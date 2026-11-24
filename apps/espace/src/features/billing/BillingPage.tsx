@@ -384,7 +384,7 @@ function Creator({ data, initialType, copy, onClose }: { data: BillingData; init
                 ['Reversements', 'Les sommes encaissées sont reversées chaque mois, déduction faite de la commission, avec un relevé détaillé.'],
                 ['Échéanciers', `Legarec peut accorder un échéancier ${term('plan')} ; au-delà, l’accord écrit du créancier est requis.`],
                 ['Durée', `À compter du ${term('start')}, pour ${term('term')}, résiliable avec un préavis de ${term('notice')}.`],
-                ['Données personnelles', 'Traitement des données des débiteurs : [STATUT RGPD À VALIDER].'],
+                ['Données personnelles', 'Legarec traite les données des dossiers en sous-traitant du créancier (article 28 du RGPD), et en responsable du traitement pour sa comptabilité, sa sécurité, son personnel et sa téléphonie.'],
               ].map(([title, text]) => (
                 <li key={title}>
                   <strong>{title}.</strong> {text}

@@ -18,10 +18,15 @@
   font-size: var(--fs-base);
   line-height: 1.6;
 }
-.main :is(h1, p) {
+.main :is(h1, h2, p) {
   margin: 0;
 }
 .main h1 {
   font-size: var(--fs-2xl);
+  color: var(--text);
+}
+.main h2 {
+  margin-top: var(--sp-2);
+  font-size: var(--fs-md);
   color: var(--text);
 }

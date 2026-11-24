@@ -321,15 +321,16 @@ const firmGroups = (): Group[] => [
   {
     label: 'Plateforme',
     items: [
-      section('rgpd', 'Données personnelles', 'Conservation et droits RGPD', 'database', 'Durées de conservation à valider', 'warning', [
-        block('retention', 'Durées de conservation', 'À valider avec votre délégué à la protection des données (DPO).', [
-          text('settled', 'Dossiers soldés', 'Données du débiteur et historique', '[DURÉE À VALIDER]'),
-          text('lost', 'Dossiers irrécouvrables', '', '[DURÉE À VALIDER]'),
-          text('recordings', 'Enregistrements d’appels', '', '[DURÉE À VALIDER]'),
-          text('audit', 'Journal d’audit', '', '[DURÉE À VALIDER]'),
+      section('rgpd', 'Données personnelles', 'Conservation et droits RGPD', 'database', 'Durées de conservation validées', 'success', [
+        block('retention', 'Durées de conservation', 'Validées par le cabinet le 24/11/2026.', [
+          text('settled', 'Dossiers soldés', 'Données du débiteur et historique, en archive à accès restreint', '5 ans après clôture'),
+          text('lost', 'Dossiers irrécouvrables', 'En archive à accès restreint', '5 ans après clôture'),
+          text('invoices', 'Factures et pièces comptables', '', '10 ans'),
+          text('recordings', 'Enregistrements d’appels', '', '6 mois'),
+          text('audit', 'Journal d’audit', '', '1 an'),
         ]),
         block('rights', 'Droits des personnes', 'Demandes d’accès, de rectification, d’opposition ou d’effacement reçues des débiteurs.', [
-          sw('g1', 'Mention d’information dans chaque relance', 'Rappelle au débiteur ses droits et le contact du DPO'),
+          sw('g1', 'Mention d’information dans chaque relance', 'Désactivée : l’information est en ligne, sur la page Confidentialité', false),
           sw('g2', 'Anonymisation automatique', 'À l’expiration de la durée de conservation'),
         ]),
       ]),

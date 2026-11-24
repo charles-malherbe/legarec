@@ -20,7 +20,7 @@ export function AccessCodeCard({ caseId }: { caseId: string }) {
     confirm({
       tone: 'danger',
       title: 'Régénérer le code d’accès ?',
-      body: 'L’ancien code ne fonctionnera plus. Le nouveau code est imprimé sur les prochains courriers ; il n’est jamais envoyé par e-mail.',
+      body: 'L’ancien code ne fonctionnera plus. Le nouveau code est imprimé sur les prochains courriers ; il figure aussi dans les relances par e-mail, et n’est donné par téléphone que sur demande.',
       confirmLabel: 'Régénérer le code',
       details: [{ k: 'Effet', v: 'Ancien code inutilisable, accès débloqué' }],
       onConfirm: async () => {

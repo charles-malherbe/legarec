@@ -161,9 +161,9 @@ const unauthorized = () => HttpResponse.json({ code: 'UNAUTHORIZED' }, { status:
 const current = () => debtors.find((entry) => entry.id === sessionId);
 const find = (identifier: DebtorIdentifier) =>
   debtors.find((entry) =>
-    identifier.kind === 'SIRET' ? entry.siren === sirenOf(identifier.value) : entry.siren === null && entry.references.includes(identifier.value),
+    identifier.kind === 'SIREN' ? entry.siren === sirenOf(identifier.value) : entry.siren === null && entry.references.includes(identifier.value),
   );
-const keyOf = (identifier: DebtorIdentifier) => (identifier.kind === 'SIRET' ? sirenOf(identifier.value) : identifier.value);
+const keyOf = (identifier: DebtorIdentifier) => (identifier.kind === 'SIREN' ? sirenOf(identifier.value) : identifier.value);
 const sessionOf = (debtor: Stored) => ({
   greeting: debtor.greeting,
   debtor: debtor.cases[0]?.debtor ?? '',
@@ -201,7 +201,7 @@ export const handlers = [
   }),
   http.get('/api/debtor/links/:token', ({ params }) =>
     params.token === 'demo'
-      ? HttpResponse.json({ identifier: { kind: 'SIRET', value: '732 829 320 00074' } })
+      ? HttpResponse.json({ identifier: { kind: 'SIREN', value: '732 829 320' } })
       : HttpResponse.json({ code: 'UNKNOWN_LINK' }, { status: 404 }),
   ),
   http.post('/api/debtor/access', async ({ request }) => {

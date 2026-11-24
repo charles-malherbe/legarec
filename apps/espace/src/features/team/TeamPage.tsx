@@ -128,7 +128,7 @@ function Activity() {
               title="Gestionnaires"
               description={`${PERIODS.find(([id]) => id === period)?.[2]} · cliquez sur une ligne pour le détail`}
               padding="none"
-              footer="Statuts et appels synchronisés avec 3CX. Les gestionnaires sont informés de ce suivi (article L1222-4 du Code du travail). Enregistrements d'appels : accès réservé aux responsables, conservation 6 mois."
+              footer="Statuts et appels synchronisés avec 3CX. Les gestionnaires sont informés de ce suivi (article L1222-4 du Code du travail) : il sert à organiser le travail et à former, sans classement ; le CSE est informé et consulté s’il existe. Chiffres individuels réservés au Directeur et au Responsable. Enregistrements d’appels : accès réservé aux responsables, conservation 6 mois. Droits d’accès et d’opposition : dpo@legarec.fr."
             >
               <Tableau
                 caption="Gestionnaires"

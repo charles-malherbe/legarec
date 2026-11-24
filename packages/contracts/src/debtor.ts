@@ -1,10 +1,11 @@
 import { z } from 'zod';
-import { accessCode, isValidSiret } from './debtorAccess';
+import { accessCode } from './debtorAccess';
+import { isValidSiren } from './firm';
 import { cents } from './money';
 
 /** Debtors' portal (no account): an identifier and a four-letter access code. */
 export const debtorIdentifier = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('SIRET'), value: z.string().refine(isValidSiret, { error: 'Ce SIRET n’est pas valide (14 chiffres).' }) }),
+  z.object({ kind: z.literal('SIREN'), value: z.string().refine(isValidSiren, { error: 'Ce SIREN n’est pas valide (9 chiffres).' }) }),
   z.object({
     kind: z.literal('REFERENCE'),
     value: z
@@ -24,7 +25,7 @@ export const debtorAccessError = z.discriminatedUnion('code', [
 ]);
 export type DebtorAccessError = z.infer<typeof debtorAccessError>;
 /** Opaque token of a letter, QR code or SMS: it pre-fills the identifier and never carries the code. */
-export const debtorLink = z.object({ identifier: z.object({ kind: z.enum(['SIRET', 'REFERENCE']), value: z.string() }) });
+export const debtorLink = z.object({ identifier: z.object({ kind: z.enum(['SIREN', 'REFERENCE']), value: z.string() }) });
 /** Always the same answer, whether a case and a phone number exist or not. */
 export const codeBySms = z.object({ requested: z.literal(true) });
 

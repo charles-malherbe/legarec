@@ -1,8 +1,9 @@
 import { z } from 'zod';
+import { accessCode } from './debtorAccess';
 
 /**
  * One schema per e-mail template, deduced from samples.json and from the header of each template.
- * Unknown keys are dropped: `case.access_code` is declared nowhere, so it never reaches a template.
+ * Unknown keys are dropped: `case.access_code` is declared for the three reminders only, so no other template can carry it.
  */
 const text = z.string().min(1);
 const optional = z.string().optional();
@@ -160,7 +161,7 @@ export const emailSchemas = {
     receipt_url: url.optional(),
   }),
   'reminder-1': z.object({
-    case: z.object({ deadline: optional, reference: text, total_due: text }),
+    case: z.object({ access_code: accessCode.optional(), deadline: optional, reference: text, total_due: text }),
     creditor: z.object({ establishment: optional, name: text }),
     debtor: z.object({ company_name: text, contact_name: optional, siren: text }),
     invoices: z
@@ -168,7 +169,7 @@ export const emailSchemas = {
       .min(1),
   }),
   'reminder-2': z.object({
-    case: z.object({ deadline: optional, reference: text, total_due: text }),
+    case: z.object({ access_code: accessCode.optional(), deadline: optional, reference: text, total_due: text }),
     creditor: z.object({ establishment: optional, name: text }),
     debtor: z.object({ company_name: text, contact_name: optional, siren: text }),
     invoices: z
@@ -176,7 +177,7 @@ export const emailSchemas = {
       .min(1),
   }),
   'reminder-3': z.object({
-    case: z.object({ deadline: optional, reference: text, total_due: text }),
+    case: z.object({ access_code: accessCode.optional(), deadline: optional, reference: text, total_due: text }),
     creditor: z.object({ establishment: optional, name: text }),
     debtor: z.object({ company_name: text, contact_name: optional, siren: text }),
     invoices: z

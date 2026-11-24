@@ -22,11 +22,11 @@ const open = (path = '/', debtor: string | null = null) => {
 const call = (path: string, body?: unknown) =>
   fetch(`/api/debtor${path}`, { method: body === undefined ? 'GET' : 'POST', body: body === undefined ? undefined : JSON.stringify(body) });
 const inDialog = async () => within(await screen.findByRole('alertdialog'));
-const access = (value: string, code: string, kind = 'SIRET') => call('/access', { identifier: { kind, value }, code, remember: false });
+const access = (value: string, code: string, kind = 'SIREN') => call('/access', { identifier: { kind, value }, code, remember: false });
 
-it('opens the file with a SIRET of any branch and a lowercase code, never in the URL', async () => {
+it('opens the file with a SIREN and a lowercase code, never in the URL', async () => {
   open();
-  await userEvent.type(await screen.findByLabelText('SIRET'), '73282932000074');
+  await userEvent.type(await screen.findByLabelText('SIREN'), '732829320');
   await userEvent.type(screen.getByLabelText('Code d’accès'), 'kxpm');
   expect(screen.getByLabelText('Code d’accès')).toHaveValue('KXPM');
   expect(screen.getByLabelText('Code d’accès')).toHaveAttribute('type', 'text');
@@ -34,43 +34,43 @@ it('opens the file with a SIRET of any branch and a lowercase code, never in the
   expect(await screen.findByRole('heading', { name: 'Bonjour Monsieur Durand' })).toBeVisible();
   expect(window.location.href).not.toMatch(/KXPM|732/);
 });
-it('checks the SIRET key and the code', async () => {
+it('checks the SIREN key and the code', async () => {
   open();
-  await userEvent.type(await screen.findByLabelText('SIRET'), '73282932000075');
+  await userEvent.type(await screen.findByLabelText('SIREN'), '732829321');
   await userEvent.type(screen.getByLabelText('Code d’accès'), 'KOIM');
   await userEvent.click(screen.getByRole('button', { name: 'Accéder à mon dossier' }));
-  expect(screen.getByText('Ce SIRET n’est pas valide (14 chiffres).')).toBeVisible();
+  expect(screen.getByText('Ce SIREN n’est pas valide (9 chiffres).')).toBeVisible();
   expect(screen.getByText('Le code comporte 4 lettres, sans I ni O.')).toBeVisible();
 });
 it('pre-fills the identifier from an opaque link, never the code', async () => {
   open('/demo');
-  expect(await screen.findByLabelText('SIRET')).toHaveValue('732 829 320 00074');
+  expect(await screen.findByLabelText('SIREN')).toHaveValue('732 829 320');
   expect(screen.getByLabelText('Code d’accès')).toHaveValue('');
 });
 it('locks after 5 failures, blocks after 10', async () => {
   const codes: string[] = [];
-  for (let index = 0; index < 11; index += 1) codes.push(((await (await access('73282932000074', 'ZZZZ')).json()) as { code: string }).code);
+  for (let index = 0; index < 11; index += 1) codes.push(((await (await access('732829320', 'ZZZZ')).json()) as { code: string }).code);
   expect(codes.slice(0, 4)).toEqual(['INVALID', 'INVALID', 'INVALID', 'INVALID']);
   expect(codes[4]).toBe('LOCKED');
   expect(codes.at(-1)).toBe('BLOCKED');
-  expect(((await (await access('73282932000074', 'KXPM')).json()) as { code: string }).code).toBe('BLOCKED');
+  expect(((await (await access('732829320', 'KXPM')).json()) as { code: string }).code).toBe('BLOCKED');
 });
 it('shows the same answer for an unknown debtor and a wrong code', async () => {
-  const unknown = await (await access('55208131766522', 'KXPM')).json();
-  const wrong = await (await access('73282932000074', 'ZZZZ')).json();
+  const unknown = await (await access('552081317', 'KXPM')).json();
+  const wrong = await (await access('732829320', 'ZZZZ')).json();
   expect(unknown).toEqual(wrong);
 });
 it('sends the code by SMS after confirmation, with a limit', async () => {
   open();
-  await userEvent.type(await screen.findByLabelText('SIRET'), '73282932000074');
+  await userEvent.type(await screen.findByLabelText('SIREN'), '732829320');
   await userEvent.click(screen.getByRole('button', { name: 'Recevoir mon code par SMS' }));
   await userEvent.click((await inDialog()).getByRole('button', { name: 'Envoyer le SMS' }));
   expect(await screen.findByText(/Si un numéro est enregistré/)).toBeVisible();
   expect(document.body.textContent).not.toMatch(/06 ••/);
-  const unknown = await (await call('/code-by-sms', { kind: 'SIRET', value: '55208131766522' })).json();
+  const unknown = await (await call('/code-by-sms', { kind: 'SIREN', value: '552081317' })).json();
   expect(unknown).toEqual({ requested: true });
-  for (let index = 0; index < 2; index += 1) await call('/code-by-sms', { kind: 'SIRET', value: '73282932000074' });
-  expect((await call('/code-by-sms', { kind: 'SIRET', value: '73282932000074' })).status).toBe(429);
+  for (let index = 0; index < 2; index += 1) await call('/code-by-sms', { kind: 'SIREN', value: '732829320' });
+  expect((await call('/code-by-sms', { kind: 'SIREN', value: '732829320' })).status).toBe(429);
 });
 it('reveals nothing about the debt in the limited access', async () => {
   open('/acces-limite');

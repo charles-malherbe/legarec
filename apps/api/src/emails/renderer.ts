@@ -30,7 +30,7 @@ export class EmailRenderer {
   }
 
   renderAutomatic(name: AutomaticEmail, data: unknown): RenderedEmail {
-    // The schema drops every unknown key, `case.access_code` included.
+    // The schema drops every unknown key: only the reminders declare `case.access_code`.
     const context = { ...emailSchemas[name].parse(data), config: this.config };
     const source = this.subjects[name];
     if (!source) throw new Error(`No subject for ${name}`);

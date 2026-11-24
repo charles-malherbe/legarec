@@ -14,7 +14,7 @@ Décisions prises après la maquette v1.21 (23/11/2026). Elles priment sur la ma
 | 23/11/2026 | Assistant IA (lot 1) : résumé et qualification des appels, tri et brouillons des e-mails, synthèse des dossiers, réglages et journal. L'IA suggère, un collaborateur valide toujours | Gain de temps sur les tâches répétitives sans décision automatisée (voir `docs/ia.md`) |
 | 24/11/2026 | Paiement par chèque et par virement bancaire uniquement : plus de carte, de prélèvement SEPA, de prestataire de paiement, de badge « Paiements PCI-DSS » ni de clés de prestataire | Choix du cabinet |
 | 24/11/2026 | paiement.legarec.fr est d'abord un espace d'échange entre débiteurs et collaborateurs (messages, pièces), puis de consultation (solde, échéancier, RIB, consignes chèque) | Besoin principal des débiteurs |
-| 24/11/2026 | Accès des débiteurs par identifiant (SIRET, recherche sur le SIREN ; référence du dossier pour un particulier) et code d'accès de 4 lettres ; code envoyé par SMS sur demande, jamais par e-mail | Sécurité sans compte débiteur |
+| 24/11/2026 | Accès des débiteurs par identifiant et code d'accès de 4 lettres (identifiant et envoi du code : voir les réponses juridiques en fin de tableau) | Sécurité sans compte débiteur |
 | 24/11/2026 | SMS à double sens (OVHcloud, expéditeur sous forme de numéro) | Recevoir les réponses des débiteurs |
 | 24/11/2026 | Nouveaux domaines n8n.legarec.fr (automatisations) et status.legarec.fr (Gatus) | Automatisations et page d'état |
 | 24/11/2026 | Valkey à la place de Redis (VALKEY_URL) | Licence libre, compatible BullMQ |
@@ -35,7 +35,6 @@ Décisions prises après la maquette v1.21 (23/11/2026). Elles priment sur la ma
 | 24/11/2026 | Caddy comme proxy inverse (HTTPS automatique, redirections www et racines) ; legarec.fr ne passe pas par Caddy | Simplicité, certificats automatiques |
 | 24/11/2026 | GitHub Actions pour l'intégration continue (pnpm verifier sur chaque PR), sans secret de production ni déploiement | Contrôle automatique des PR |
 | 24/11/2026 | Décisions d'architecture (files d'attente, envois, PDF, IMAP, SMS, contrats, S3, sauvegardes, surveillance, Caddy, journaux, n8n, mises à jour, environnement de Claude Code) : `docs/architecture.md` | Annexe du prompt v2.5 |
-| 24/11/2026 | Code d'accès des débiteurs jamais envoyé par e-mail : `case.access_code` n'est transmis à aucun modèle ; envoi par SMS sur demande, ou régénération par un collaborateur | Sécurité de l'espace débiteur |
 | 24/11/2026 | SMS : « Non rattachés » pour les numéros inconnus, « STOP » arrête les SMS automatiques, compteur signalant le passage de 160 à 70 caractères | Prompt v2.5 |
 | 24/11/2026 | Montants en centimes entiers dans `packages/contracts` et MSW ; principal, intérêts et frais séparés ; un paiement partiel s'impute d'abord sur les intérêts (calcul de l'API) | Prompt v2.5 |
 | 24/11/2026 | Paiements reçus enregistrés à la main (chèque : encaissé ou impayé ; virement : rapprochement) ; quittance quand le paiement devient définitif ; un chèque impayé annule le paiement (Confirm) | Prompt v2.5 |
@@ -69,7 +68,6 @@ Décisions prises après la maquette v1.21 (23/11/2026). Elles priment sur la ma
 | 24/11/2026 | Boîte OVH : aucune suppression depuis l'application, seulement dans l'espace client OVH (écart assumé avec le prompt) (question 28) | Action irréversible |
 | 24/11/2026 | Adresse du cabinet : [ADRESSE DU CABINET] en configuration (question 49) | Décision du cabinet |
 | 24/11/2026 | SMS : mention « STOP : répondez STOP », sans numéro court (question 24) | L'expéditeur est un numéro qui reçoit les réponses |
-| 24/11/2026 | Entreprise : accès par SIRET seulement (question 54) | Cahier des charges |
 | 24/11/2026 | Bouton SSO retiré de la connexion (question 38) | Aucun SSO prévu |
 | 24/11/2026 | Fiche débiteur : code d'accès affiché en clair à qui peut agir sur le dossier, sans trace d'affichage (écart assumé avec le prompt) (question 21) | Plus rapide au téléphone |
 | 24/11/2026 | IBAN complet d'un débiteur : Directeur seulement (question 46) | Cloisonnement |
@@ -113,4 +111,15 @@ Décisions prises après la maquette v1.21 (23/11/2026). Elles priment sur la ma
 | 24/11/2026 | Accès à Docker de l'utilisateur de développement : à retirer par le cabinet ; Claude Code n'utilise aucune commande docker (question 36) | Conforme à l'architecture |
 | 24/11/2026 | Logo de connexion : media.legarec.fr/marque/legarec-logo-negatif.svg, à déposer par le cabinet ; le nom en texte tant que le fichier manque (question 37) | Nom du kit média |
 | 24/11/2026 | Modèles importés : l'IA signale un texte peut-être masqué, le Directeur décide ; rendu PDF sans JavaScript ni réseau avec vérification du texte, à la mission API (question 60) | « Validation par IA » lue avec la règle : l'IA suggère, un collaborateur valide |
-| 24/11/2026 | Textes légaux des trois portails : réunis avec la question 7 (question 57) | Même réponse attendue du juriste |
+| 24/11/2026 | Code d'accès : envoyé par courrier et dans les trois relances par e-mail ; par téléphone ou SMS sur demande uniquement. Jamais dans une URL, un nom de fichier ni un journal. Remplace « jamais par e-mail » | Réponse du cabinet, conforme au kit |
+| 24/11/2026 | Identifiant des débiteurs : SIREN (9 chiffres) pour une entreprise, référence du dossier pour un particulier. Remplace « SIRET seulement » (question 54) | Réponse du cabinet, conforme au kit |
+| 24/11/2026 | Relances par e-mail, annonce des 40 € et des intérêts, citation de L111-8 : textes du kit validés sans changement ; la citation est reprise dans les courriers (questions 7 et 26) | Réponse du cabinet |
+| 24/11/2026 | Statut RGPD : sous-traitant du créancier pour les dossiers, responsable pour la comptabilité, la sécurité, le personnel et la téléphonie (question 23) | Réponse du cabinet |
+| 24/11/2026 | Conservation : dossiers soldés et irrécouvrables 5 ans après clôture, factures 10 ans, enregistrements 6 mois, journal 1 an | Réponse du cabinet |
+| 24/11/2026 | Information RGPD des débiteurs : page Confidentialité en ligne seulement, rien dans les courriers ni les relances | Réponse du cabinet |
+| 24/11/2026 | Pages légales rédigées par Claude Code, à relire par le cabinet ; valeurs inconnues entre crochets (questions 7 et 57) | Réponse du cabinet |
+| 24/11/2026 | Factures : mentions standard, taux de pénalités [TAUX DES PÉNALITÉS], [CAPITAL ET RCS] | Réponse du cabinet |
+| 24/11/2026 | Score de risque : entreprises seulement, règles simples, raison et mention « indicatif, aucune décision automatique » (complète la question 11) | Réponse du cabinet |
+| 24/11/2026 | Assistant IA : désactivé en production jusqu'au contrat de sous-traitance et à l'hébergement dans l'UE ; information dans la page Confidentialité | Réponse du cabinet |
+| 24/11/2026 | Suivi d'activité : mention L1222-4 complétée, chiffres individuels réservés au Directeur et au Responsable, pas de classement | Réponse du cabinet |
+| 24/11/2026 | Plages, plafonds, message vocal, imputation des paiements, frais de LRAR : validés | Réponse du cabinet |

@@ -4,6 +4,6 @@ paiement.legarec.fr — espace débiteur, sans compte : accès par identifiant (
 
 - Règles : `.claude/rules/front.md` (chargées automatiquement) ; composants uniquement via `packages/ui`.
 - Écrans : Accès à mon dossier (à proposer), Payer réorganisé, Confidentialité (RGPD).
-- Code d'accès : jamais dans une URL, envoyé par SMS sur demande, jamais par e-mail.
+- Code d'accès : jamais dans une URL ni un journal ; envoyé par courrier et dans les relances par e-mail, par téléphone ou SMS sur demande uniquement.
 - Routes et captures de référence : `scripts/ecrans.json`, `maquette/captures/`.
 - Données simulées (MSW) : `maquette/donnees-demo/<Ecran>.json`.

@@ -107,7 +107,7 @@ export const MANDATORY_BLOCKS = [
     code: 'mentions_recouvrement',
     usedIn: 'Courriers, LRAR et e-mails de recouvrement',
     content:
-      'Mentions de l’article R. 124-4 du CPCE : cabinet, créancier, détail principal / intérêts / accessoires, modalités de paiement, alinéas 3 et 4 de l’article L. 111-8 du CPCE, information RGPD.',
+      'Mentions de l’article R. 124-4 du CPCE : cabinet, créancier, détail principal / intérêts / accessoires, modalités de paiement, citation de l’article L. 111-8 du CPCE. L’information RGPD est en ligne, sur la page Confidentialité.',
   },
   {
     code: 'mentions_facture',

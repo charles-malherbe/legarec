@@ -157,6 +157,7 @@ function CaseView({ data }: { data: CaseDetail }) {
               <dt>Score de risque</dt>
               <dd className={layout.danger} title={data.risk.reason}>
                 {data.risk.label}
+                <span className={layout.hint}> · Indicatif, aucune décision automatique</span>
               </dd>
             </div>
           )}

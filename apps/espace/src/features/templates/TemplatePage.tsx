@@ -1,4 +1,4 @@
-import { templateDetail, templatesData, type TemplateDetail } from '@legarec/contracts';
+import { L111_8, templateDetail, templatesData, type TemplateDetail } from '@legarec/contracts';
 import { saveFile } from '@legarec/platform';
 import { Alerte, Badge, Bouton, Carte, Case, Champ, EtatListe, Icone, Interrupteur, PageHeader, useConfirm, useToast } from '@legarec/ui';
 import { useRef, useState } from 'react';
@@ -20,17 +20,16 @@ const LEGAL = {
   collection: [
     'Legarec, cabinet de recouvrement amiable, Paris · SIREN [SIREN] · agissant pour le compte de {creancier.nom}, {creancier.adresse}.',
     'Somme réclamée : principal {creance.principal}, intérêts {creance.interets}, indemnités forfaitaires {creance.indemnites} (art. L. 441-10 du Code de commerce). Fondement : factures {creance.factures} restées impayées.',
-    '[Reproduction des alinéas 3 et 4 de l’article L. 111-8 du Code des procédures civiles d’exécution : frais de recouvrement amiable.]',
-    'Vos données sont traitées pour le recouvrement de cette créance. Vos droits : dpo@legarec.fr.',
+    `Article L111-8 du Code des procédures civiles d’exécution : ${L111_8}`,
   ],
   billing: [
-    'Paiement à 30 jours à réception. Pas d’escompte pour paiement anticipé.',
-    'En cas de retard : pénalités au taux de trois fois le taux d’intérêt légal et indemnité forfaitaire de 40 € pour frais de recouvrement (art. L. 441-10 du Code de commerce).',
-    'Legarec · SIREN [SIREN] · TVA intracommunautaire [N° TVA] · RCS Paris',
+    'Paiement à 30 jours à réception. Escompte pour paiement anticipé : néant. Catégorie de l’opération : prestation de services.',
+    'En cas de retard : pénalités au taux de [TAUX DES PÉNALITÉS] et indemnité forfaitaire de 40 € pour frais de recouvrement (art. L. 441-10 du Code de commerce).',
+    'Legarec · SIREN [SIREN] · TVA intracommunautaire [N° TVA] · [CAPITAL ET RCS]',
   ],
   contract: [
     'Legarec · SIREN [SIREN] · RCS Paris · représentée par la direction',
-    'Données personnelles : Legarec agit en sous-traitant de {client.nom} (art. 28 du RGPD).',
+    'Données personnelles : Legarec agit en sous-traitant de {client.nom} pour les données des dossiers (art. 28 du RGPD), et en responsable du traitement pour sa comptabilité, sa sécurité, son personnel et sa téléphonie.',
   ],
   sms: ['STOP : répondez STOP'],
 };
@@ -40,8 +39,7 @@ const MANDATORY = {
     'Nom ou dénomination sociale du créancier et son adresse',
     'Fondement et montant de la somme due, en distinguant principal, intérêts et accessoires',
     'Indication d’avoir à payer et modalités de paiement',
-    'Reproduction des alinéas 3 et 4 de l’article L. 111-8 du CPCE',
-    'Information sur le traitement des données personnelles (RGPD) et contact du DPO',
+    'Reproduction de l’article L. 111-8 du CPCE, dans la rédaction validée par le cabinet',
   ],
   billing: [
     'Numéro unique et date d’émission',
