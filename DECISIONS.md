@@ -113,3 +113,4 @@ Décisions prises après la maquette v1.21 (23/11/2026). Elles priment sur la ma
 | 24/11/2026 | Accès à Docker de l'utilisateur de développement : à retirer par le cabinet ; Claude Code n'utilise aucune commande docker (question 36) | Conforme à l'architecture |
 | 24/11/2026 | Logo de connexion : media.legarec.fr/marque/legarec-logo-negatif.svg, à déposer par le cabinet ; le nom en texte tant que le fichier manque (question 37) | Nom du kit média |
 | 24/11/2026 | Modèles importés : l'IA signale un texte peut-être masqué, le Directeur décide ; rendu PDF sans JavaScript ni réseau avec vérification du texte, à la mission API (question 60) | « Validation par IA » lue avec la règle : l'IA suggère, un collaborateur valide |
+| 24/11/2026 | Textes légaux des trois portails : réunis avec la question 7 (question 57) | Même réponse attendue du juriste |
