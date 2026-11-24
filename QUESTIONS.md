@@ -34,3 +34,8 @@ Claude Code : ajoute ici toute question que la maquette, `HANDOFF.md` ou `DECISI
 | 34 | Relectures par sous-agents demandées par `/verifier` | Une relecture par lot, avant l'ouverture de la PR | Ouverte |
 | 35 | `kits/emails-handlebars` contient un IBAN, un BIC et un SIREN qui semblent réels (config.example.json, README) | Jamais repris dans l'application : valeurs entre crochets. À confirmer avant de pousser le kit | À confirmer |
 | 36 | La machine de développement héberge des conteneurs qui semblent de production (Caddy, n8n, Gatus) et l'utilisateur système a accès à docker, contrairement à l'annexe Architecture | Claude Code n'utilise aucune commande docker | À corriger par le cabinet |
+| 37 | Logo de la page de connexion : nom exact du fichier négatif sur media.legarec.fr/marque/ | Variable `VITE_LOGO_NEGATIVE_URL` ; à défaut, le nom en texte | À fournir |
+| 38 | SSO de l'entreprise (hors périmètre dans la maquette) | Bouton affiché mais désactivé | Ouverte |
+| 39 | « Activer mon compte » sans lien d'invitation | L'activation passe par le lien reçu par e-mail ; texte adapté | Ouverte |
+| 40 | Tableau de bord du Développeur, absent de la maquette | Accueil technique sans aucune donnée de dossier | Ouverte |
+| 41 | Connexion SSH à GitHub refusée sur la machine de développement | Branches gardées en local ; aucune PR ouverte | À corriger par le cabinet |

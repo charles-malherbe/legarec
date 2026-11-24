@@ -25,3 +25,5 @@ export * from './Confirm';
 export * from './PageHeader';
 export * from './Toolbar';
 export * from './SuggestionIA';
+export * from './Sidebar';
+export * from './Topbar';
