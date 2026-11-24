@@ -123,3 +123,4 @@ Décisions prises après la maquette v1.21 (23/11/2026). Elles priment sur la ma
 | 24/11/2026 | Suivi d'activité : mention L1222-4 complétée, chiffres individuels réservés au Directeur et au Responsable, pas de classement | Réponse du cabinet |
 | 24/11/2026 | Plages, plafonds, message vocal, imputation des paiements, frais de LRAR : validés | Réponse du cabinet |
 | 24/11/2026 | Kit d'e-mails : IBAN, BIC, SIREN et titulaire masqués par Claude Code à la demande du cabinet (`config.example.json`, `README.md`) ; les anciennes valeurs restent dans l'historique Git (remplace la question 35) | Demande du cabinet |
+| 24/11/2026 | Dépôt des logos sur media.legarec.fr et saisie des valeurs entre crochets : reportés à la mission API | Demande du cabinet |

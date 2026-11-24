@@ -101,4 +101,5 @@
 - [ ] Écart visuel de 3 % au plus : **atteint seulement par Erreur**. Les autres écrans restent au-dessus
 - [ ] GitHub Actions : aucune exécution constatée, cause inconnue
 - [ ] Téléchargements de PDF désactivés : ils dépendent de l'API (mission suivante)
+- [ ] Reporté à la mission API : dépôt des logos (`media.legarec.fr`), valeurs entre crochets (Paramètres, variables du serveur, fiches créanciers, numéro SMS)
 - Les numéros de la colonne « Points ouverts » renvoient à d'anciennes questions, toutes tranchées.
