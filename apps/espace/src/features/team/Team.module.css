@@ -1,0 +1,36 @@
+.pick {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2h);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.hours {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: var(--sp-1);
+  height: 84px;
+  margin-top: var(--sp-2);
+}
+.hours span {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--sp-0h);
+}
+.hours i {
+  width: 100%;
+  min-height: 2px;
+  border-radius: var(--r-xs) var(--r-xs) 0 0;
+  background: var(--data-2);
+}
+.hours small {
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+}

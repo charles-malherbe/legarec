@@ -238,7 +238,7 @@ function Workspace({ data, onRetry }: { data: Data; onRetry: () => void }) {
             type="button"
             className={css.rail}
             aria-expanded={false}
-            aria-label={`Afficher la file d'appels (${rows.length})`}
+            aria-label={`${rows.length} Afficher la file d'appels`}
             onClick={() => setCollapsed(false)}
           >
             <Icone icon="chevron-right" size={16} />
