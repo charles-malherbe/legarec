@@ -36,6 +36,9 @@ const RemindersPage = lazy(() => import('../features/reminders/RemindersPage').t
 
 const ReportsPage = lazy(() => import('../features/reports/ReportsPage').then((module) => ({ default: module.ReportsPage })));
 
+// Demonstration of the library, left out of production builds.
+const LibraryPage = import.meta.env.DEV ? lazy(() => import('../features/library/LibraryPage').then((module) => ({ default: module.LibraryPage }))) : null;
+
 function RequireSession() {
   const { data, isPending, isError } = useSession();
   if (isPending) return null;
@@ -99,6 +102,16 @@ export function App() {
                     <Route path="parametres/techniques" element={<SettingsPage key="techniques" scope="techniques" />} />
                     <Route path="parametres/techniques/:section" element={<SettingsPage key="techniques" scope="techniques" />} />
                     <Route path="parametres/:section" element={<SettingsPage />} />
+                    {LibraryPage && (
+                      <Route
+                        path="bibliotheque"
+                        element={
+                          <Suspense fallback={null}>
+                            <LibraryPage />
+                          </Suspense>
+                        }
+                      />
+                    )}
                     <Route path="compte" element={<AccountPage />} />
                     <Route path="aide" element={<HelpPage />} />
                     <Route path="aide/:slug" element={<ArticlePage />} />
