@@ -1,0 +1,378 @@
+{
+  "tabs": [
+    {
+      "label": "Portefeuille",
+      "selected": "true",
+      "color": "var(--text)",
+      "bar": "inset 0 -2px 0 var(--marine)"
+    },
+    {
+      "label": "Reversements",
+      "selected": "false",
+      "color": "var(--text-3)",
+      "bar": "none"
+    },
+    {
+      "label": "Activité",
+      "selected": "false",
+      "color": "var(--text-3)",
+      "bar": "none"
+    },
+    {
+      "label": "Convention et contacts",
+      "selected": "false",
+      "color": "var(--text-3)",
+      "bar": "none"
+    }
+  ],
+  "is": {
+    "portefeuille": true,
+    "reversements": false,
+    "activite": false
+  },
+  "showAside": true,
+  "payouts": [
+    {
+      "date": "15 nov. 2026",
+      "n": 12,
+      "gross": "41 761 €",
+      "fee": "3 341 €",
+      "net": "38 420 €"
+    },
+    {
+      "date": "15 oct. 2026",
+      "n": 15,
+      "gross": "44 837 €",
+      "fee": "3 587 €",
+      "net": "41 250 €"
+    },
+    {
+      "date": "15 sept. 2026",
+      "n": 9,
+      "gross": "30 880 €",
+      "fee": "2 470 €",
+      "net": "28 410 €"
+    },
+    {
+      "date": "15 août 2026",
+      "n": 11,
+      "gross": "36 210 €",
+      "fee": "2 897 €",
+      "net": "33 313 €"
+    }
+  ],
+  "activity": [
+    {
+      "who": "Bâtiplus SAS",
+      "what": "échéancier de 8 mois validé par Camille Laurent",
+      "when": "21/11 11:58",
+      "dot": "var(--marine)"
+    },
+    {
+      "who": "Bâtiplus SAS",
+      "what": "promesse de 18 600 € pour le 28/11",
+      "when": "21/11 09:00",
+      "dot": "var(--warning)"
+    },
+    {
+      "who": "Atelier Mistral",
+      "what": "contestation reçue (livraison incomplète)",
+      "when": "21/11 08:15",
+      "dot": "var(--violet)"
+    },
+    {
+      "who": "Charpentes Bellet",
+      "what": "accusé de réception de la mise en demeure",
+      "when": "18/11",
+      "dot": "var(--danger)"
+    },
+    {
+      "who": "Import",
+      "what": "22 nouvelles créances déposées par Claire Besson",
+      "when": "20/11",
+      "dot": "var(--text-3)"
+    },
+    {
+      "who": "Reversement",
+      "what": "38 420 € versés au créancier",
+      "when": "15/11",
+      "dot": "var(--success)"
+    }
+  ],
+  "accent": "var(--marine)",
+  "toggleAllLabel": "Tout déplier",
+  "debtors": [
+    {
+      "id": "d1",
+      "name": "Bâtiplus SAS",
+      "ref": "DOS-2026-0142",
+      "count": "3 factures",
+      "amount": "48 200 €",
+      "late": "68 j",
+      "status": "En retard",
+      "k": "retard",
+      "invoices": [
+        {
+          "num": "F-2026-0712",
+          "ext": "MD-71204",
+          "due": "14/09/2026",
+          "total": "18 600 €",
+          "left": "18 600 €",
+          "f": "impayee",
+          "state": "Impayée",
+          "bg": "var(--danger-bg)",
+          "fg": "var(--danger-fg)"
+        },
+        {
+          "num": "F-2026-0745",
+          "ext": "MD-71388",
+          "due": "27/09/2026",
+          "total": "16 400 €",
+          "left": "16 400 €",
+          "f": "impayee",
+          "state": "Impayée",
+          "bg": "var(--danger-bg)",
+          "fg": "var(--danger-fg)"
+        },
+        {
+          "num": "F-2026-0790",
+          "ext": "MD-71502",
+          "due": "10/10/2026",
+          "total": "13 200 €",
+          "left": "13 200 €",
+          "f": "relance",
+          "state": "En relance",
+          "bg": "var(--info-bg)",
+          "fg": "var(--info-fg)"
+        }
+      ],
+      "bg": "var(--danger-bg)",
+      "fg": "var(--danger-fg)",
+      "open": true,
+      "expanded": "true",
+      "rowBg": "var(--surface-2)",
+      "chev": "m6 9 6 6 6-6"
+    },
+    {
+      "id": "d2",
+      "name": "Charpentes Bellet",
+      "ref": "DOS-2026-0109",
+      "count": "4 factures",
+      "amount": "27 300 €",
+      "late": "81 j",
+      "status": "Mise en demeure",
+      "k": "retard",
+      "invoices": [
+        {
+          "num": "F-2026-0601",
+          "ext": "MD-70114",
+          "due": "31/08/2026",
+          "total": "9 800 €",
+          "left": "9 800 €",
+          "f": "impayee",
+          "state": "Impayée",
+          "bg": "var(--danger-bg)",
+          "fg": "var(--danger-fg)"
+        },
+        {
+          "num": "F-2026-0633",
+          "ext": "MD-70290",
+          "due": "07/09/2026",
+          "total": "7 400 €",
+          "left": "7 400 €",
+          "f": "impayee",
+          "state": "Impayée",
+          "bg": "var(--danger-bg)",
+          "fg": "var(--danger-fg)"
+        },
+        {
+          "num": "F-2026-0688",
+          "ext": "MD-70842",
+          "due": "21/09/2026",
+          "total": "6 900 €",
+          "left": "6 900 €",
+          "f": "impayee",
+          "state": "Impayée",
+          "bg": "var(--danger-bg)",
+          "fg": "var(--danger-fg)"
+        },
+        {
+          "num": "F-2026-0721",
+          "ext": "MD-71240",
+          "due": "05/10/2026",
+          "total": "5 200 €",
+          "left": "3 200 €",
+          "f": "partiel",
+          "state": "Partiel",
+          "bg": "var(--warning-bg)",
+          "fg": "var(--warning-fg)"
+        }
+      ],
+      "bg": "var(--danger-bg)",
+      "fg": "var(--danger-fg)",
+      "open": false,
+      "expanded": "false",
+      "rowBg": "var(--white)",
+      "chev": "m9 6 6 6-6 6"
+    },
+    {
+      "id": "d3",
+      "name": "Atelier Mistral",
+      "ref": "DOS-2026-0170",
+      "count": "1 facture",
+      "amount": "18 320 €",
+      "late": "52 j",
+      "status": "Litige",
+      "k": "litige",
+      "invoices": [
+        {
+          "num": "F-2026-0874",
+          "ext": "MD-72011",
+          "due": "30/09/2026",
+          "total": "18 320 €",
+          "left": "18 320 €",
+          "f": "contestee",
+          "state": "Contestée",
+          "bg": "var(--violet-bg)",
+          "fg": "var(--violet-fg)"
+        }
+      ],
+      "bg": "var(--violet-bg)",
+      "fg": "var(--violet-fg)",
+      "open": false,
+      "expanded": "false",
+      "rowBg": "var(--white)",
+      "chev": "m9 6 6 6-6 6"
+    },
+    {
+      "id": "d4",
+      "name": "Menuiserie Rivoire",
+      "ref": "DOS-2026-0188",
+      "count": "5 factures",
+      "amount": "15 640 €",
+      "late": "34 j",
+      "status": "Relance 1",
+      "k": "relance",
+      "invoices": [
+        {
+          "num": "F-2026-0902",
+          "ext": "MD-72230",
+          "due": "18/10/2026",
+          "total": "4 120 €",
+          "left": "4 120 €",
+          "f": "relance",
+          "state": "En relance",
+          "bg": "var(--info-bg)",
+          "fg": "var(--info-fg)"
+        },
+        {
+          "num": "F-2026-0915",
+          "ext": "MD-72301",
+          "due": "22/10/2026",
+          "total": "3 860 €",
+          "left": "3 860 €",
+          "f": "relance",
+          "state": "En relance",
+          "bg": "var(--info-bg)",
+          "fg": "var(--info-fg)"
+        },
+        {
+          "num": "F-2026-0931",
+          "ext": "MD-72377",
+          "due": "29/10/2026",
+          "total": "2 940 €",
+          "left": "2 940 €",
+          "f": "relance",
+          "state": "En relance",
+          "bg": "var(--info-bg)",
+          "fg": "var(--info-fg)"
+        },
+        {
+          "num": "F-2026-0948",
+          "ext": "MD-72455",
+          "due": "05/11/2026",
+          "total": "2 610 €",
+          "left": "2 610 €",
+          "f": "relance",
+          "state": "En relance",
+          "bg": "var(--info-bg)",
+          "fg": "var(--info-fg)"
+        },
+        {
+          "num": "F-2026-0960",
+          "ext": "MD-72519",
+          "due": "12/11/2026",
+          "total": "2 110 €",
+          "left": "2 110 €",
+          "f": "relance",
+          "state": "En relance",
+          "bg": "var(--info-bg)",
+          "fg": "var(--info-fg)"
+        }
+      ],
+      "bg": "var(--info-bg)",
+      "fg": "var(--info-fg)",
+      "open": false,
+      "expanded": "false",
+      "rowBg": "var(--white)",
+      "chev": "m9 6 6 6-6 6"
+    },
+    {
+      "id": "d5",
+      "name": "SCI Les Tilleuls",
+      "ref": "DOS-2026-0175",
+      "count": "2 factures",
+      "amount": "9 870 €",
+      "late": "12 j",
+      "status": "Échéancier 2/4",
+      "k": "promesse",
+      "invoices": [
+        {
+          "num": "F-2026-0811",
+          "ext": "MD-71760",
+          "due": "20/10/2026",
+          "total": "8 400 €",
+          "left": "4 200 €",
+          "f": "echeancier",
+          "state": "Échéancier",
+          "bg": "var(--warning-bg)",
+          "fg": "var(--warning-fg)"
+        },
+        {
+          "num": "F-2026-0866",
+          "ext": "MD-71955",
+          "due": "09/11/2026",
+          "total": "5 670 €",
+          "left": "5 670 €",
+          "f": "echeancier",
+          "state": "Échéancier",
+          "bg": "var(--warning-bg)",
+          "fg": "var(--warning-fg)"
+        }
+      ],
+      "bg": "var(--warning-bg)",
+      "fg": "var(--warning-fg)",
+      "open": false,
+      "expanded": "false",
+      "rowBg": "var(--white)",
+      "chev": "m9 6 6 6-6 6"
+    }
+  ],
+  "transfers": [
+    {
+      "date": "15 nov. 2026",
+      "detail": "12 encaissements · honoraires 3 341 €",
+      "amount": "38 420 €"
+    },
+    {
+      "date": "15 oct. 2026",
+      "detail": "15 encaissements · honoraires 3 587 €",
+      "amount": "41 250 €"
+    },
+    {
+      "date": "15 sept. 2026",
+      "detail": "9 encaissements · honoraires 2 470 €",
+      "amount": "28 410 €"
+    }
+  ]
+}

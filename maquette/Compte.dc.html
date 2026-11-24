@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Legarec – Mon compte</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Lora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+/* tokens:start — charte graphique LEGAREC v1.0 (octobre 2026). Ne pas modifier à la main : généré depuis tools/tokens.css */
+:root{
+  /* Marque */
+  --marine:#002B74; --marine-hover:#00225C; --marine-text:#002B74; --app-icon-bg:#002B74; --app-icon-fg:#FCBE03; --nuit:#001B4D; --or:#FCBE03; --or-clair:#FFF3C4; --ardoise:#5D7087;
+  --bleu-pale:#EEF2F8; --gris-clair:#F6F8FB; --bleu-200:#D6E0F0; --white:#FFFFFF;
+  /* Texte */
+  --text:#0F1B2D; --text-2:#33455C; --text-3:#5D7087; --on-primary:#FFFFFF;
+  /* Surfaces et bordures */
+  --surface:#FFFFFF; --surface-2:#F6F8FB; --surface-3:#EEF2F7; --border:#E1E7EF; --border-strong:#7D8DA1;
+  /* Surfaces sombres (carte d'appel, barre d'actions groupées) */
+  --surface-dark:#001B4D; --surface-dark-2:#0B2D63; --border-dark:#2A4A7D; --on-dark:#FFFFFF; --on-dark-2:#D5DEEB; --on-dark-muted:#A9B8CC; --on-dark-accent:#B8CBEA;
+  /* Données (graphiques, balance âgée) */
+  --data-1:#C9D6EC; --data-2:#7F9CD0; --data-3:#345DA8;
+  /* Tons sémantiques : fond, bordure, point, texte */
+  --success-bg:#ECFDF5; --success-border:#A7F3D0; --success:#059669; --success-strong:#10B981; --success-fg:#047857; --on-success:#052E16;
+  --warning-bg:#FFF3C4; --warning-border:#F5D77A; --warning:#D97706; --warning-fg:#8A4B08;
+  --danger-bg:#FFF1F2; --danger-border:#FECDD3; --danger:#E11D48; --danger-fg:#BE123C; --danger-dark:#7F1D1D; --danger-on-dark:#FDA4AF;
+  --info-bg:#F0F9FF; --info-border:#BAE6FD; --info:#0284C7; --info-fg:#0369A1;
+  --violet-bg:#F5F3FF; --violet-border:#DDD6FE; --violet:#7C3AED; --violet-fg:#6D28D9;
+  --teal-bg:#CCFBF1; --teal:#0D9488; --teal-fg:#115E59;
+  /* Fonds pleins (badges pleins, texte --on-primary ≥ 5:1 dans les deux modes) */
+  --solid-neutral:#33455C; --solid-info:#0369A1; --solid-success:#047857; --solid-warning:#8A4B08; --solid-danger:#BE123C; --solid-violet:#6D28D9; --solid-teal:#115E59;
+  /* Typographie */
+  --font-title:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-text:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-brand:Lora, Georgia, serif; --font-mono:ui-monospace, SFMono-Regular, Menlo, monospace;
+  --fs-doc-xs:8px; --fs-doc-sm:9px; --fs-doc-md:10px; --fs-doc-lg:10.5px; --fs-2xs:11px; --fs-xs:12px; --fs-sm:13px; --fs-base:14px; --fs-md:16px; --fs-lg:18px; --fs-xl:20px; --fs-2xl:26px; --fs-3xl:34px;
+  /* Rayons */
+  --r-xs:4px; --r-sm:6px; --r-md:8px; --r-lg:12px; --r-full:9999px;
+  /* Ombres */
+  --shadow-sm:0 1px 2px 0 rgba(0,27,77,0.06); --shadow-md:0 10px 15px -3px rgba(0,27,77,0.10), 0 4px 6px -4px rgba(0,27,77,0.10); --shadow-lg:0 20px 25px -5px rgba(0,27,77,0.18), 0 8px 10px -6px rgba(0,27,77,0.12);
+  --shadow-knob:0 1px 2px rgba(0,27,77,0.25); --overlay:rgba(0,27,77,0.55);
+  /* Espacements (grille de 4 px) */
+  --sp-0h:2px; --sp-1:4px; --sp-1h:6px; --sp-2:8px; --sp-2h:10px; --sp-3:12px; --sp-3h:14px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px; --sp-10:40px; --sp-11:44px; --sp-12:48px;
+  /* Hauteurs de contrôles */
+  --control-xs:28px; --control-sm:36px; --control-md:40px; --control-lg:44px;
+  /* Voiles et anneaux (surfaces sombres, animations) */
+  --veil-8:rgba(255,255,255,0.08); --veil-18:rgba(255,255,255,0.18); --veil-25:rgba(255,255,255,0.25); --veil-35:rgba(255,255,255,0.35); --veil-80:rgba(255,255,255,0.8); --veil-85:rgba(255,255,255,0.85); --on-success-veil:rgba(5,46,22,0.35); --success-ring:rgba(16,185,129,0.55); --success-ring-0:rgba(16,185,129,0);
+  /* Cibles tactiles */
+  --target:44px;
+}
+body{font-family:var(--font-text);font-feature-settings:"cv11";-webkit-font-smoothing:antialiased}
+h1,h2{font-family:var(--font-title);font-weight:700;color:var(--marine);overflow-wrap:break-word;letter-spacing:-0.015em}
+[data-brand] h1,[data-brand] h2{font-family:var(--font-brand);letter-spacing:0}
+td,th,li,h3{overflow-wrap:break-word}
+:focus-visible{outline:2px solid var(--marine);outline-offset:2px}
+[data-dark] :focus-visible{outline-color:var(--or)}
+button:disabled,[aria-disabled="true"]{cursor:not-allowed !important;opacity:.55}
+button:not(:disabled):hover,a[href][style*="border-radius"]:hover{filter:brightness(.96)}
+tbody tr:hover{background-color:var(--surface-2)}
+[data-table-scroll]{max-height:min(68vh,720px);overflow:auto !important}
+[data-table-scroll] thead th{position:sticky;top:0;z-index:2;background:var(--surface-2);box-shadow:inset 0 -1px 0 var(--border)}
+[data-skeleton]{display:block;border-radius:var(--r-xs);background:linear-gradient(90deg,var(--surface-3) 25%,var(--bleu-pale) 50%,var(--surface-3) 75%);background-size:200% 100%;animation:lg-sk 1.2s ease-in-out infinite}
+@keyframes lg-sk{from{background-position:200% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+@media (pointer: coarse), (max-width: 767px){
+  button,select,input:not([type=checkbox]):not([type=radio]):not([type=range]),[role=tab],[role=menuitem],a[href][style*="display: inline-flex"],a[href][style*="height:"]{min-height:var(--target)}
+  input[type=checkbox],input[type=radio]{min-width:22px;min-height:22px}
+}
+/* Mode sombre : data-theme="dark" sur <html> */
+:root[data-theme="dark"]{
+  --marine:#2E5FC0; --marine-hover:#2A57B0; --marine-text:#9DB8F0; --app-icon-bg:#0A1A3F; --nuit:#071028; --or-clair:#3A2F0A; --ardoise:#9AA9BD;
+  --bleu-pale:#1B2A4A; --gris-clair:#0A1020; --bleu-200:#2B3E63; --white:#16203A;
+  --text:#E6ECF5; --text-2:#C3CEDD; --text-3:#9AA9BD;
+  --surface:#0F1729; --surface-2:#0A1020; --surface-3:#1A2438; --border:#26324A; --border-strong:#67778F;
+  --surface-dark:#050B1A; --surface-dark-2:#101C36; --border-dark:#24365A;
+  --data-1:#2B3E63; --data-2:#4F73B8; --data-3:#7F9CD0;
+  --success-bg:#0B2E22; --success-border:#14532D; --success-fg:#6EE7B7;
+  --warning-bg:#3A2F0A; --warning-border:#6B5310; --warning-fg:#FCD34D;
+  --danger-bg:#3B0D17; --danger-border:#7F1D2E; --danger-fg:#FDA4AF;
+  --info-bg:#0B2540; --info-border:#164E63; --info-fg:#7DD3FC;
+  --violet-bg:#24164A; --violet-border:#4C1D95; --violet-fg:#C4B5FD;
+  --teal-bg:#0B302C; --teal-fg:#5EEAD4;
+  --shadow-sm:0 1px 2px 0 rgba(0,0,0,0.4); --shadow-md:0 10px 15px -3px rgba(0,0,0,0.5); --shadow-lg:0 20px 25px -5px rgba(0,0,0,0.6); --overlay:rgba(0,0,0,0.65);
+  color-scheme:dark;
+}
+:root[data-theme="dark"] body{background:var(--surface-2);color:var(--text)}
+:root[data-theme="dark"] :focus-visible{outline-color:#9DB8F0}
+:root[data-theme="dark"] [data-dark]{border:1px solid var(--border-dark)}
+:root[data-theme="dark"] h1,:root[data-theme="dark"] h2,:root[data-theme="dark"] a[href]:not([style*="background"]){color:var(--marine-text)}
+:root[data-theme="dark"] [style*="color: var(--marine)"]:not([style*="background: var(--marine)"]){color:var(--marine-text) !important}
+:root[data-theme="dark"] img[src*="_blob"]{background:var(--white);border-radius:var(--r-sm)}
+/* Mode malvoyant : data-a11y="malvoyant" sur <html> — texte agrandi, contraste renforcé, cibles plus grandes */
+:root[data-a11y="malvoyant"]{
+  --fs-2xs:13px; --fs-xs:14px; --fs-sm:15px; --fs-base:17px; --fs-md:19px; --fs-lg:21px; --fs-xl:24px; --fs-2xl:30px; --fs-3xl:38px;
+  --control-xs:36px; --control-sm:44px; --control-md:48px; --control-lg:52px; --target:48px;
+  --text-3:var(--text-2); --ardoise:var(--text-2); --border:var(--border-strong);
+}
+:root[data-a11y="malvoyant"] body{line-height:1.6}
+:root[data-a11y="malvoyant"] [data-sb-nav][style*="width: 264px"]{width:312px !important}
+:root[data-a11y="malvoyant"] :focus-visible{outline:3px solid var(--or);outline-offset:3px;box-shadow:0 0 0 6px var(--marine)}
+:root[data-a11y="malvoyant"] a[href]:not([style*="background"]){text-decoration:underline;text-underline-offset:3px}
+:root[data-a11y="malvoyant"] button,:root[data-a11y="malvoyant"] select,:root[data-a11y="malvoyant"] input:not([type=checkbox]):not([type=radio]){min-height:var(--target)}
+:root[data-a11y="malvoyant"] input[type=checkbox],:root[data-a11y="malvoyant"] input[type=radio]{min-width:24px;min-height:24px}
+:root[data-a11y="malvoyant"][data-theme="dark"]{--text-3:#E6ECF5;--text-2:#E6ECF5}
+/* tokens:end */
+body{margin:0;font-family:var(--font-text);color:var(--text);background:var(--surface-2)}
+a{color:var(--marine)}a:hover{color:var(--marine)}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; background: var(--surface-2); font-family: var(--font-text); color: var(--text)">
+
+<div data-sb-wrap style="flex: 0 0 auto; max-width: 100%; display: flex; background: var(--surface-2); border-right: 1px solid var(--border)">
+<dc-import name="Sidebar" active="" accent="{{accent}}" hint-size="264px,1100px"></dc-import>
+</div>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: var(--sp-8); box-sizing: border-box; display: flex; flex-direction: column; gap: var(--sp-6)">
+<dc-import name="Topbar" accent="{{accent}}" trail="Compte|Mon compte" hint-size="100%,64px"></dc-import>
+<div data-page-body style="width: 100%; max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--sp-6)">
+
+<header style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-4)">
+<div style="display: flex; align-items: center; gap: var(--sp-4)">
+<span style="width: 56px; height: 56px; border-radius: var(--r-full); background: var(--marine); color: var(--on-primary); display: flex; align-items: center; justify-content: center; font-size: var(--fs-xl); font-weight: 600">CL</span>
+<div style="display: flex; flex-direction: column; gap: var(--sp-1)">
+<h1 style="margin: 0; font-size: var(--fs-2xl); font-weight: 700; letter-spacing: -0.01em">Mon compte</h1>
+<p style="margin: 0; font-size: var(--fs-base); color: var(--text-3)">Camille Laurent · Responsable du recouvrement · Tous les créanciers</p>
+</div>
+</div>
+<button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="height: var(--control-md); padding: 0 var(--sp-3h); border-radius: var(--r-sm); border: 0; background: {{accent}}; color: var(--on-primary); font: inherit; font-size: var(--fs-base); font-weight: 600; cursor: pointer">Enregistrer</button>
+</header>
+
+<div role="tablist" aria-label="Sections du compte" style="display: flex; flex-wrap: wrap; gap: var(--sp-2); border-bottom: 1px solid var(--border)">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="4">
+<button type="button" role="tab" aria-selected="{{t.selected}}" onClick="{{t.pick}}" style="height: var(--control-lg); padding: 0 var(--sp-3); border: 0; background: transparent; font: inherit; font-size: var(--fs-base); font-weight: 500; cursor: pointer; margin-bottom: -1px; border-bottom: {{t.border}}; color: {{t.color}}">{{t.label}}</button>
+</sc-for>
+</div>
+
+<sc-if value="{{is.profil}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-6); align-items: flex-start">
+<section aria-labelledby="pro-titre" style="flex: 999 1 520px; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-5)">
+<h2 id="pro-titre" style="margin: 0; font-size: var(--fs-lg); font-weight: 600">Informations personnelles</h2>
+<div style="display: flex; align-items: center; gap: var(--sp-4)">
+<span style="width: 72px; height: 72px; border-radius: var(--r-full); background: var(--marine); color: var(--on-primary); display: flex; align-items: center; justify-content: center; font-size: var(--fs-2xl); font-weight: 600">CL</span>
+<div style="display: flex; gap: var(--sp-2)">
+<button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="height: var(--control-md); padding: 0 var(--sp-3h); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer">Changer la photo</button>
+<button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="height: var(--control-md); padding: 0 var(--sp-3h); border-radius: var(--r-sm); border: 0; background: transparent; color: var(--danger-fg); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer">Supprimer</button>
+</div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4)">
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Prénom<input type="text" value="Camille" style="height: var(--control-lg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); color: var(--text); box-sizing: border-box; min-width: 0"></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Nom<input type="text" value="Laurent" style="height: var(--control-lg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); color: var(--text); box-sizing: border-box; min-width: 0"></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">E-mail<input type="email" value="cl@legarec.fr" style="height: var(--control-lg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); color: var(--text); box-sizing: border-box; min-width: 0"></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Ligne directe<input type="tel" value="04 78 00 00 12" style="height: var(--control-lg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); color: var(--text); box-sizing: border-box; min-width: 0"></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Fonction<input type="text" value="Chargée de recouvrement" style="height: var(--control-lg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); color: var(--text); box-sizing: border-box; min-width: 0"></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Mobile (alertes SMS)<input type="tel" value="06 00 00 00 00" style="height: var(--control-lg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); color: var(--text); box-sizing: border-box; min-width: 0"></label>
+</div>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Signature e-mail
+<textarea rows="4" style="border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: var(--sp-3); font: inherit; font-size: var(--fs-base); color: var(--text); resize: vertical; line-height: 1.5">{{signature}}</textarea>
+</label>
+</section>
+<section aria-labelledby="abs-titre" style="flex: 1 1 300px; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-3h)">
+<h2 id="abs-titre" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Absence et remplacement</h2>
+<p style="margin: 0; font-size: var(--fs-sm); color: var(--text-3)">Pendant votre absence, vos appels, e-mails et tâches sont redirigés vers votre remplaçant.</p>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Remplaçant<select style="height: var(--control-lg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); background: var(--surface); color: var(--text)"><option>Hugo Benali</option><option>Sarah Morel</option><option>Thomas Giraud</option></select></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Période<input type="text" placeholder="jj/mm/aaaa → jj/mm/aaaa" style="height: var(--control-lg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); color: var(--text); box-sizing: border-box"></label>
+<label style="display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-sm); color: var(--text-2)"><input type="checkbox" style="width: 18px; height: 18px; accent-color: var(--marine)">Envoyer une réponse automatique aux débiteurs</label>
+</section>
+</div>
+</sc-if>
+
+<sc-if value="{{is.securite}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-6); align-items: flex-start">
+<section aria-labelledby="mdp-titre" style="flex: 1 1 380px; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-4)">
+<h2 id="mdp-titre" style="margin: 0; font-size: var(--fs-lg); font-weight: 600">Mot de passe</h2>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Mot de passe actuel<input type="password" value="motdepasse" style="height: var(--control-lg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); color: var(--text); box-sizing: border-box"></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Nouveau mot de passe<input type="password" style="height: var(--control-lg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); color: var(--text); box-sizing: border-box"></label>
+<p style="margin: 0; font-size: var(--fs-xs); color: var(--text-3)">12 caractères minimum, avec au moins un chiffre et un caractère spécial. Dernière modification : 02/09/2026. Votre session se ferme automatiquement après 30 minutes d'inactivité.</p>
+<button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="align-self: flex-start; height: var(--control-md); padding: 0 var(--sp-3h); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer">Mettre à jour le mot de passe</button>
+<div style="display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding-top: var(--sp-4); border-top: 1px solid var(--surface-3)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-size: var(--fs-base); font-weight: 600">Double authentification</span><span style="font-size: var(--fs-xs); color: var(--text-3)">Application d'authentification · activée le 14/01/2024</span></div>
+<dc-import name="Badge" label="Activée" tone="success" size="sm" style="display: contents" hint-size="80px,22px"></dc-import>
+</div>
+<a href="#" style="font-size: var(--fs-sm); font-weight: 500; text-decoration: none">Afficher les codes de secours</a>
+</section>
+<section aria-labelledby="sess-titre" style="flex: 999 1 460px; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); display: flex; flex-direction: column">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--sp-3); padding: var(--sp-5) var(--sp-6); border-bottom: 1px solid var(--border)">
+<h2 id="sess-titre" style="margin: 0; font-size: var(--fs-lg); font-weight: 600">Sessions actives</h2>
+<dc-import name="Bouton" variant="danger-outline" size="sm" label="Déconnecter les autres sessions" on-press="{{signOutOthers}}" style="display: contents" hint-size="120px,40px"></dc-import>
+</div>
+<ul style="list-style: none; margin: 0; padding: 0">
+<sc-for list="{{sessions}}" as="s" hint-placeholder-count="3">
+<li style="display: flex; align-items: center; gap: var(--sp-3h); padding: var(--sp-3h) var(--sp-6); border-top: 1px solid var(--surface-3)">
+<span style="width: 36px; height: 36px; border-radius: var(--r-sm); background: var(--surface-3); color: var(--text-2); display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{s.iconPath}}"></path></svg></span>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-size: var(--fs-base); font-weight: 500">{{s.device}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{s.meta}}</span></div>
+<sc-if value="{{s.current}}" hint-placeholder-val="{{ false }}"><span style="font-size: var(--fs-xs); font-weight: 600; color: var(--success-fg)">Cette session</span></sc-if>
+<sc-if value="{{s.other}}" hint-placeholder-val="{{ true }}"><dc-import name="Bouton" variant="secondary" size="sm" label="Déconnecter" on-press="{{s.revoke}}" style="display: contents" hint-size="120px,40px"></dc-import></sc-if>
+</li>
+</sc-for>
+</ul>
+</section>
+</div>
+</sc-if>
+
+<sc-if value="{{is.notifications}}" hint-placeholder-val="{{ false }}">
+<section aria-labelledby="notif-titre" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden">
+<div style="padding: var(--sp-5) var(--sp-6); border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: var(--sp-1)">
+<h2 id="notif-titre" style="margin: 0; font-size: var(--fs-lg); font-weight: 600">Préférences de notification</h2>
+<p style="margin: 0; font-size: var(--fs-base); color: var(--text-3)">Choisissez comment être prévenu pour chaque événement. Seuls vos créanciers sont concernés.</p>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 620px; border-collapse: collapse; font-size: var(--fs-base)">
+<thead style="background: var(--surface-2)"><tr style="text-align: left; color: var(--text-3); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.04em"><th scope="col" style="padding: var(--sp-3) var(--sp-6); font-weight: 600">Événement</th><th scope="col" style="padding: var(--sp-3) var(--sp-2); font-weight: 600; text-align: center; width: 110px">Dans l'app</th><th scope="col" style="padding: var(--sp-3) var(--sp-2); font-weight: 600; text-align: center; width: 110px">E-mail</th><th scope="col" style="padding: var(--sp-3) var(--sp-6); font-weight: 600; text-align: center; width: 110px">SMS</th></tr></thead>
+<tbody>
+<sc-for list="{{prefs}}" as="p" hint-placeholder-count="7">
+<tr style="border-top: 1px solid var(--surface-3)">
+<td style="padding: var(--sp-3h) var(--sp-6)"><div style="display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-weight: 500">{{p.label}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{p.detail}}</span></div></td>
+<sc-for list="{{p.cells}}" as="c" hint-placeholder-count="3">
+<td style="padding: var(--sp-3h) var(--sp-2); text-align: center"><input type="checkbox" checked="{{c.on}}" onChange="{{c.toggle}}" aria-label="{{c.aria}}" style="width: 18px; height: 18px; accent-color: var(--marine); cursor: pointer"></td>
+</sc-for>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-6); padding: var(--sp-4) var(--sp-6); border-top: 1px solid var(--border); font-size: var(--fs-base); color: var(--text-2)">
+<label style="display: flex; align-items: center; gap: var(--sp-2)">Résumé quotidien par e-mail
+<select style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-2h); font: inherit; font-size: var(--fs-base); background: var(--surface); color: var(--text)"><option>Chaque jour à 8:00</option><option>Désactivé</option></select>
+</label>
+<label style="display: flex; align-items: center; gap: var(--sp-2)"><input type="checkbox" checked style="width: 18px; height: 18px; accent-color: var(--marine)">Ne pas déranger en dehors de 8:00–19:00</label>
+</div>
+</section>
+</sc-if>
+
+<sc-if value="{{is.preferences}}" hint-placeholder-val="{{ false }}">
+<section aria-labelledby="pref-titre" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-5)">
+<h2 id="pref-titre" style="margin: 0; font-size: var(--fs-lg); font-weight: 600">Préférences d'affichage</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--sp-4)">
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Langue<select style="height: var(--control-lg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); background: var(--surface); color: var(--text)"><option>Français</option><option>English</option></select></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Fuseau horaire<select style="height: var(--control-lg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); background: var(--surface); color: var(--text)"><option>Europe/Paris (UTC+1)</option></select></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Page d'accueil<select style="height: var(--control-lg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); background: var(--surface); color: var(--text)"><option>Tableau de bord</option><option>Calendrier des relances</option><option>Téléphonie</option></select></label>
+</div>
+<div style="display: flex; flex-direction: column; gap: var(--sp-2h)">
+<span style="font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Thème</span>
+<div role="radiogroup" aria-label="Thème" style="display: grid; grid-template-columns: repeat(3, minmax(0, 160px)); gap: var(--sp-3)">
+<sc-for list="{{themes}}" as="t" hint-placeholder-count="3">
+<button type="button" role="radio" aria-checked="{{t.checked}}" onClick="{{t.pick}}" style="border-radius: var(--r-lg); padding: var(--sp-2h); font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: var(--sp-2); background: var(--surface); border: {{t.border}}">
+<span style="display: block; height: 56px; border-radius: var(--r-sm); background: {{t.preview}}; border: 1px solid var(--border)"></span>
+<span style="font-size: var(--fs-sm); font-weight: 500; color: var(--text)">{{t.label}}</span>
+</button>
+</sc-for>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: var(--sp-2h)">
+<span style="font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Densité des tableaux</span>
+<div role="radiogroup" aria-label="Densité" style="display: flex; gap: var(--sp-1); background: var(--surface-3); padding: var(--sp-1); border-radius: var(--r-lg); align-self: flex-start">
+<sc-for list="{{densities}}" as="d" hint-placeholder-count="2">
+<button type="button" role="radio" aria-checked="{{d.checked}}" onClick="{{d.pick}}" style="height: var(--control-sm); padding: 0 var(--sp-3h); border: 0; border-radius: var(--r-sm); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer; background: {{d.bg}}; color: {{d.color}}">{{d.label}}</button>
+</sc-for>
+</div>
+</div>
+</section>
+</sc-if>
+
+</div>
+</main>
+<dc-import name="Confirm" open="{{gcf.open}}" tone="{{gcf.tone}}" title="{{gcf.title}}" body="{{gcf.body}}" details="{{gcf.details}}" confirm-label="{{gcf.label}}" on-confirm="{{gcf.confirm}}" on-cancel="{{gcf.cancel}}" accent="{{accent}}" hint-size="0px,0px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#002B74","options":["#002B74","#001B4D","#5D7087"]},"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      tab: 'notifications', theme: 'clair', density: 'confort', revoked: {},
+      prefs: { paiement: [1, 1, 0], promesse: [1, 1, 1], message: [1, 0, 0], delai: [1, 1, 1], mandant: [1, 1, 0], echec: [1, 0, 0], import: [1, 0, 0], mention: [1, 1, 0] }
+    };
+  }
+  renderVals() {
+    const v = this._rv0();
+    const g = this.state.gask;
+    v.gcf = { open: !!g, tone: (g && g.tone) || 'primary', title: g ? g.title : '', body: g ? g.body : '', details: (g && g.details) || [], label: g ? g.label : '', confirm: () => { const go = g && g.go; this.setState({ gask: null }); if (go) go(); }, cancel: () => this.setState({ gask: null }) };
+    return v;
+  }
+  _rv0() {
+    const accent = this.props.accent ?? 'var(--marine)';
+    const st = this.state;
+    const tabsDef = [['profil', 'Profil'], ['securite', 'Sécurité et connexion'], ['notifications', 'Notifications'], ['preferences', 'Préférences']];
+    const is = {};
+    tabsDef.forEach(([id]) => { is[id] = id === st.tab; });
+    const prefsDef = [
+      ['paiement', 'Paiement reçu', 'Virement, prélèvement ou carte rapproché'],
+      ['promesse', 'Promesse non tenue', 'Le jour suivant la date promise'],
+      ['message', 'Réponse d’un débiteur', 'E-mail ou SMS entrant'],
+      ['delai', 'Délai judiciaire proche', '10 jours, 3 jours et la veille'],
+      ['mandant', 'Décision d’un créancier', 'Accord ou refus d’échéancier, de contentieux'],
+      ['echec', 'Échec d’envoi', 'E-mail rejeté, SMS non distribué'],
+      ['import', 'Import de factures terminé', 'Nouvelles créances confiées'],
+      ['mention', 'Mention par un collègue', 'Dans une note de dossier']
+    ];
+    const ch = ['dans l’app', 'par e-mail', 'par SMS'];
+    const phone = 'M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM11 18h2';
+    const laptop = 'M4 5h16v10H4zM2 19h20';
+    const sessions = [
+      { id: 's1', device: 'Chrome · Windows', meta: 'Lyon · actuellement', iconPath: laptop, current: true },
+      { id: 's2', device: 'Application mobile · iPhone', meta: 'Lyon · il y a 2 h', iconPath: phone, current: false },
+      { id: 's3', device: 'Edge · Windows (poste accueil)', meta: 'Lyon · 18 nov. 2026', iconPath: laptop, current: false }
+    ].filter((s) => !st.revoked[s.id]);
+    return {
+      accent,
+      is,
+      tabs: tabsDef.map(([id, label]) => ({
+        label, selected: id === st.tab ? 'true' : 'false',
+        color: id === st.tab ? 'var(--text)' : 'var(--text-3)',
+        border: id === st.tab ? '2px solid ' + accent : '2px solid transparent',
+        pick: () => this.setState({ tab: id })
+      })),
+      signature: 'Camille Laurent\nChargée de recouvrement — 04 78 00 00 12\nAgissant pour le compte de nos créanciers',
+      sessions: sessions.map((s) => ({ ...s, other: !s.current, revoke: () => this.setState({ gask: { tone: 'danger', title: 'Déconnecter « ' + s.device + ' » ?', body: 'Cet appareil devra se reconnecter avec votre mot de passe et la double authentification.', details: [{ k: 'Appareil', v: s.device }, { k: 'Dernière activité', v: s.meta }], label: 'Déconnecter', go: () => this.setState({ revoked: { ...this.state.revoked, [s.id]: true } }) } }) })),
+      signOutOthers: () => this.setState({ gask: { tone: 'danger', title: 'Déconnecter les autres sessions ?', body: 'Tous vos autres appareils devront se reconnecter avec votre mot de passe et la double authentification. À faire si un appareil a été perdu, volé ou partagé.', details: sessions.filter((x) => !x.current).map((x) => ({ k: x.device, v: x.meta })), label: 'Déconnecter les autres sessions', go: () => this.setState({ revoked: { s2: true, s3: true } }) } }),
+      prefs: prefsDef.map(([id, label, detail]) => ({
+        label, detail,
+        cells: st.prefs[id].map((v, i) => ({
+          on: !!v,
+          aria: label + ' ' + ch[i],
+          toggle: () => {
+            const next = { ...this.state.prefs, [id]: this.state.prefs[id].map((x, j) => (j === i ? (x ? 0 : 1) : x)) };
+            this.setState({ prefs: next });
+          }
+        }))
+      })),
+      themes: [['clair', 'Clair', 'linear-gradient(#FFFFFF 0 30%, #F6F8FB 30%)'], ['sombre', 'Sombre', 'linear-gradient(#16203A 0 30%, #0A1020 30%)'], ['auto', 'Automatique', 'linear-gradient(90deg, #F6F8FB 50%, #0A1020 50%)']].map(([id, label, preview]) => ({
+        label, preview, checked: st.theme === id ? 'true' : 'false',
+        border: st.theme === id ? '2px solid ' + accent : '1px solid var(--border)',
+        pick: () => this.setState({ theme: id })
+      })),
+      densities: [['confort', 'Confortable'], ['compact', 'Compacte']].map(([id, label]) => ({
+        label, checked: st.density === id ? 'true' : 'false',
+        bg: st.density === id ? 'var(--white)' : 'transparent', color: st.density === id ? 'var(--text)' : 'var(--text-2)',
+        pick: () => this.setState({ density: id })
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

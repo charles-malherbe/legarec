@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Legarec – Rédiger un courrier</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Lora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+/* tokens:start — charte graphique LEGAREC v1.0 (octobre 2026). Ne pas modifier à la main : généré depuis tools/tokens.css */
+:root{
+  /* Marque */
+  --marine:#002B74; --marine-hover:#00225C; --marine-text:#002B74; --app-icon-bg:#002B74; --app-icon-fg:#FCBE03; --nuit:#001B4D; --or:#FCBE03; --or-clair:#FFF3C4; --ardoise:#5D7087;
+  --bleu-pale:#EEF2F8; --gris-clair:#F6F8FB; --bleu-200:#D6E0F0; --white:#FFFFFF;
+  /* Texte */
+  --text:#0F1B2D; --text-2:#33455C; --text-3:#5D7087; --on-primary:#FFFFFF;
+  /* Surfaces et bordures */
+  --surface:#FFFFFF; --surface-2:#F6F8FB; --surface-3:#EEF2F7; --border:#E1E7EF; --border-strong:#7D8DA1;
+  /* Surfaces sombres (carte d'appel, barre d'actions groupées) */
+  --surface-dark:#001B4D; --surface-dark-2:#0B2D63; --border-dark:#2A4A7D; --on-dark:#FFFFFF; --on-dark-2:#D5DEEB; --on-dark-muted:#A9B8CC; --on-dark-accent:#B8CBEA;
+  /* Données (graphiques, balance âgée) */
+  --data-1:#C9D6EC; --data-2:#7F9CD0; --data-3:#345DA8;
+  /* Tons sémantiques : fond, bordure, point, texte */
+  --success-bg:#ECFDF5; --success-border:#A7F3D0; --success:#059669; --success-strong:#10B981; --success-fg:#047857; --on-success:#052E16;
+  --warning-bg:#FFF3C4; --warning-border:#F5D77A; --warning:#D97706; --warning-fg:#8A4B08;
+  --danger-bg:#FFF1F2; --danger-border:#FECDD3; --danger:#E11D48; --danger-fg:#BE123C; --danger-dark:#7F1D1D; --danger-on-dark:#FDA4AF;
+  --info-bg:#F0F9FF; --info-border:#BAE6FD; --info:#0284C7; --info-fg:#0369A1;
+  --violet-bg:#F5F3FF; --violet-border:#DDD6FE; --violet:#7C3AED; --violet-fg:#6D28D9;
+  --teal-bg:#CCFBF1; --teal:#0D9488; --teal-fg:#115E59;
+  /* Fonds pleins (badges pleins, texte --on-primary ≥ 5:1 dans les deux modes) */
+  --solid-neutral:#33455C; --solid-info:#0369A1; --solid-success:#047857; --solid-warning:#8A4B08; --solid-danger:#BE123C; --solid-violet:#6D28D9; --solid-teal:#115E59;
+  /* Typographie */
+  --font-title:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-text:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-brand:Lora, Georgia, serif; --font-mono:ui-monospace, SFMono-Regular, Menlo, monospace;
+  --fs-doc-xs:8px; --fs-doc-sm:9px; --fs-doc-md:10px; --fs-doc-lg:10.5px; --fs-2xs:11px; --fs-xs:12px; --fs-sm:13px; --fs-base:14px; --fs-md:16px; --fs-lg:18px; --fs-xl:20px; --fs-2xl:26px; --fs-3xl:34px;
+  /* Rayons */
+  --r-xs:4px; --r-sm:6px; --r-md:8px; --r-lg:12px; --r-full:9999px;
+  /* Ombres */
+  --shadow-sm:0 1px 2px 0 rgba(0,27,77,0.06); --shadow-md:0 10px 15px -3px rgba(0,27,77,0.10), 0 4px 6px -4px rgba(0,27,77,0.10); --shadow-lg:0 20px 25px -5px rgba(0,27,77,0.18), 0 8px 10px -6px rgba(0,27,77,0.12);
+  --shadow-knob:0 1px 2px rgba(0,27,77,0.25); --overlay:rgba(0,27,77,0.55);
+  /* Espacements (grille de 4 px) */
+  --sp-0h:2px; --sp-1:4px; --sp-1h:6px; --sp-2:8px; --sp-2h:10px; --sp-3:12px; --sp-3h:14px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px; --sp-10:40px; --sp-11:44px; --sp-12:48px;
+  /* Hauteurs de contrôles */
+  --control-xs:28px; --control-sm:36px; --control-md:40px; --control-lg:44px;
+  /* Voiles et anneaux (surfaces sombres, animations) */
+  --veil-8:rgba(255,255,255,0.08); --veil-18:rgba(255,255,255,0.18); --veil-25:rgba(255,255,255,0.25); --veil-35:rgba(255,255,255,0.35); --veil-80:rgba(255,255,255,0.8); --veil-85:rgba(255,255,255,0.85); --on-success-veil:rgba(5,46,22,0.35); --success-ring:rgba(16,185,129,0.55); --success-ring-0:rgba(16,185,129,0);
+  /* Cibles tactiles */
+  --target:44px;
+}
+body{font-family:var(--font-text);font-feature-settings:"cv11";-webkit-font-smoothing:antialiased}
+h1,h2{font-family:var(--font-title);font-weight:700;color:var(--marine);overflow-wrap:break-word;letter-spacing:-0.015em}
+[data-brand] h1,[data-brand] h2{font-family:var(--font-brand);letter-spacing:0}
+td,th,li,h3{overflow-wrap:break-word}
+:focus-visible{outline:2px solid var(--marine);outline-offset:2px}
+[data-dark] :focus-visible{outline-color:var(--or)}
+button:disabled,[aria-disabled="true"]{cursor:not-allowed !important;opacity:.55}
+button:not(:disabled):hover,a[href][style*="border-radius"]:hover{filter:brightness(.96)}
+tbody tr:hover{background-color:var(--surface-2)}
+[data-table-scroll]{max-height:min(68vh,720px);overflow:auto !important}
+[data-table-scroll] thead th{position:sticky;top:0;z-index:2;background:var(--surface-2);box-shadow:inset 0 -1px 0 var(--border)}
+[data-skeleton]{display:block;border-radius:var(--r-xs);background:linear-gradient(90deg,var(--surface-3) 25%,var(--bleu-pale) 50%,var(--surface-3) 75%);background-size:200% 100%;animation:lg-sk 1.2s ease-in-out infinite}
+@keyframes lg-sk{from{background-position:200% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+@media (pointer: coarse), (max-width: 767px){
+  button,select,input:not([type=checkbox]):not([type=radio]):not([type=range]),[role=tab],[role=menuitem],a[href][style*="display: inline-flex"],a[href][style*="height:"]{min-height:var(--target)}
+  input[type=checkbox],input[type=radio]{min-width:22px;min-height:22px}
+}
+/* Mode sombre : data-theme="dark" sur <html> */
+:root[data-theme="dark"]{
+  --marine:#2E5FC0; --marine-hover:#2A57B0; --marine-text:#9DB8F0; --app-icon-bg:#0A1A3F; --nuit:#071028; --or-clair:#3A2F0A; --ardoise:#9AA9BD;
+  --bleu-pale:#1B2A4A; --gris-clair:#0A1020; --bleu-200:#2B3E63; --white:#16203A;
+  --text:#E6ECF5; --text-2:#C3CEDD; --text-3:#9AA9BD;
+  --surface:#0F1729; --surface-2:#0A1020; --surface-3:#1A2438; --border:#26324A; --border-strong:#67778F;
+  --surface-dark:#050B1A; --surface-dark-2:#101C36; --border-dark:#24365A;
+  --data-1:#2B3E63; --data-2:#4F73B8; --data-3:#7F9CD0;
+  --success-bg:#0B2E22; --success-border:#14532D; --success-fg:#6EE7B7;
+  --warning-bg:#3A2F0A; --warning-border:#6B5310; --warning-fg:#FCD34D;
+  --danger-bg:#3B0D17; --danger-border:#7F1D2E; --danger-fg:#FDA4AF;
+  --info-bg:#0B2540; --info-border:#164E63; --info-fg:#7DD3FC;
+  --violet-bg:#24164A; --violet-border:#4C1D95; --violet-fg:#C4B5FD;
+  --teal-bg:#0B302C; --teal-fg:#5EEAD4;
+  --shadow-sm:0 1px 2px 0 rgba(0,0,0,0.4); --shadow-md:0 10px 15px -3px rgba(0,0,0,0.5); --shadow-lg:0 20px 25px -5px rgba(0,0,0,0.6); --overlay:rgba(0,0,0,0.65);
+  color-scheme:dark;
+}
+:root[data-theme="dark"] body{background:var(--surface-2);color:var(--text)}
+:root[data-theme="dark"] :focus-visible{outline-color:#9DB8F0}
+:root[data-theme="dark"] [data-dark]{border:1px solid var(--border-dark)}
+:root[data-theme="dark"] h1,:root[data-theme="dark"] h2,:root[data-theme="dark"] a[href]:not([style*="background"]){color:var(--marine-text)}
+:root[data-theme="dark"] [style*="color: var(--marine)"]:not([style*="background: var(--marine)"]){color:var(--marine-text) !important}
+:root[data-theme="dark"] img[src*="_blob"]{background:var(--white);border-radius:var(--r-sm)}
+/* Mode malvoyant : data-a11y="malvoyant" sur <html> — texte agrandi, contraste renforcé, cibles plus grandes */
+:root[data-a11y="malvoyant"]{
+  --fs-2xs:13px; --fs-xs:14px; --fs-sm:15px; --fs-base:17px; --fs-md:19px; --fs-lg:21px; --fs-xl:24px; --fs-2xl:30px; --fs-3xl:38px;
+  --control-xs:36px; --control-sm:44px; --control-md:48px; --control-lg:52px; --target:48px;
+  --text-3:var(--text-2); --ardoise:var(--text-2); --border:var(--border-strong);
+}
+:root[data-a11y="malvoyant"] body{line-height:1.6}
+:root[data-a11y="malvoyant"] [data-sb-nav][style*="width: 264px"]{width:312px !important}
+:root[data-a11y="malvoyant"] :focus-visible{outline:3px solid var(--or);outline-offset:3px;box-shadow:0 0 0 6px var(--marine)}
+:root[data-a11y="malvoyant"] a[href]:not([style*="background"]){text-decoration:underline;text-underline-offset:3px}
+:root[data-a11y="malvoyant"] button,:root[data-a11y="malvoyant"] select,:root[data-a11y="malvoyant"] input:not([type=checkbox]):not([type=radio]){min-height:var(--target)}
+:root[data-a11y="malvoyant"] input[type=checkbox],:root[data-a11y="malvoyant"] input[type=radio]{min-width:24px;min-height:24px}
+:root[data-a11y="malvoyant"][data-theme="dark"]{--text-3:#E6ECF5;--text-2:#E6ECF5}
+/* tokens:end */
+body{margin:0;font-family:var(--font-text);color:var(--text);background:var(--surface-2)}
+a{color:var(--marine)}a:hover{color:var(--marine)}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; background: var(--surface-2); font-family: var(--font-text); color: var(--text)">
+
+<div data-sb-wrap style="flex: 0 0 auto; max-width: 100%; display: flex; background: var(--surface-2); border-right: 1px solid var(--border)">
+<dc-import name="Sidebar" active="Generer.dc.html" accent="{{accent}}" hint-size="264px,1100px"></dc-import>
+</div>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: var(--sp-8); box-sizing: border-box; display: flex; flex-direction: column; gap: var(--sp-6)">
+<dc-import name="Topbar" accent="{{accent}}" trail="Documents|Rédiger un courrier" hint-size="100%,64px"></dc-import>
+<div data-page-body style="width: 100%; max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--sp-6)">
+
+<dc-import name="PageHeader" title="Rédiger un courrier" description="Choisissez un modèle et un destinataire : le document se remplit avec les données du dossier." accent="{{accent}}" actions="{{headActions}}" hint-size="100%,110px"></dc-import>
+
+<sc-if value="{{generated}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-3); background: var(--success-bg); border: 1px solid var(--success-border); border-radius: var(--r-lg); padding: var(--sp-3h) var(--sp-4); font-size: var(--fs-base); color: var(--success-fg)">
+<span><strong>{{doneText}}</strong> Le document est classé dans le dossier et dans la bibliothèque.</span>
+<span style="display: flex; gap: var(--sp-3)"><a href="Documents.dc.html" style="font-weight: 600; color: var(--success-fg)">Voir dans la bibliothèque</a><dc-import name="Bouton" variant="ghost" size="sm" label="Nouveau document" on-press="{{reset}}" style="display: contents" hint-size="120px,40px"></dc-import></span>
+</div>
+</sc-if>
+
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-6); align-items: flex-start">
+
+<div style="flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-4)">
+
+<section aria-labelledby="g1" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-3h)">
+<h2 id="g1" style="margin: 0; font-size: var(--fs-md); font-weight: 600; display: flex; align-items: center; gap: var(--sp-2h)"><span style="width: 24px; height: 24px; border-radius: var(--r-full); background: {{accent}}; color: var(--on-primary); font-size: var(--fs-xs); font-weight: 700; display: inline-flex; align-items: center; justify-content: center">1</span>Modèle</h2>
+<div role="radiogroup" aria-label="Modèle" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2)">
+<sc-for list="{{templates}}" as="t" hint-placeholder-count="5">
+<button type="button" role="radio" aria-checked="{{t.checked}}" onClick="{{t.pick}}" style="text-align: left; font: inherit; cursor: pointer; border-radius: var(--r-lg); padding: var(--sp-3); display: flex; flex-direction: column; gap: var(--sp-1); min-height: 72px; border: {{t.border}}; background: {{t.bg}}">
+<span style="font-size: var(--fs-base); font-weight: 600; color: var(--text)">{{t.label}}</span>
+<span style="font-size: var(--fs-xs); color: var(--text-3)">{{t.hint}}</span>
+</button>
+</sc-for>
+</div>
+<a href="Modele.dc.html" onClick="{{editTpl}}" style="align-self: flex-start; font-size: var(--fs-xs); font-weight: 500; text-decoration: none">Voir le modèle et son fichier HTML →</a>
+</section>
+
+<section aria-labelledby="g2" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-3h)">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--sp-2)">
+<h2 id="g2" style="margin: 0; font-size: var(--fs-md); font-weight: 600; display: flex; align-items: center; gap: var(--sp-2h)"><span style="width: 24px; height: 24px; border-radius: var(--r-full); background: {{accent}}; color: var(--on-primary); font-size: var(--fs-xs); font-weight: 700; display: inline-flex; align-items: center; justify-content: center">2</span>Destinataire</h2>
+<div role="group" aria-label="Mode d'envoi" style="display: flex; gap: var(--sp-1); background: var(--surface-3); padding: var(--sp-1); border-radius: var(--r-lg)">
+<sc-for list="{{modes}}" as="m" hint-placeholder-count="2">
+<button type="button" onClick="{{m.pick}}" aria-pressed="{{m.pressed}}" style="height: var(--control-sm); padding: 0 var(--sp-2h); border: 0; border-radius: var(--r-sm); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer; background: {{m.bg}}; color: {{m.color}}">{{m.label}}</button>
+</sc-for>
+</div>
+</div>
+<sc-if value="{{single}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: var(--sp-1h)">
+<sc-for list="{{debtors}}" as="d" hint-placeholder-count="4">
+<button type="button" onClick="{{d.pick}}" aria-pressed="{{d.pressed}}" style="text-align: left; font: inherit; cursor: pointer; border-radius: var(--r-sm); padding: var(--sp-2h) var(--sp-3); display: flex; justify-content: space-between; align-items: center; gap: var(--sp-2); min-height: 48px; border: {{d.border}}; background: {{d.bg}}">
+<span style="display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-size: var(--fs-base); font-weight: 600; color: var(--text)">{{d.name}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{d.mandant}} · {{d.count}} facture(s)</span></span>
+<span style="font-size: var(--fs-base); font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums">{{d.totalTxt}}</span>
+</button>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{batch}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: var(--sp-2h)">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2h)">
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Créancier<select style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-2h); font: inherit; font-size: var(--fs-sm); background: var(--surface); color: var(--text)"><option>Tous</option><option>Matériaux Delta</option><option>Énergies Rhône</option><option>Médiatel</option><option>TransAlp Leasing</option></select></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Ancienneté<select style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-2h); font: inherit; font-size: var(--fs-sm); background: var(--surface); color: var(--text)"><option>31 – 60 jours</option><option>0 – 30 jours</option><option>+ 60 jours</option></select></label>
+</div>
+<div style="background: var(--bleu-pale); border-radius: var(--r-lg); padding: var(--sp-3) var(--sp-3h); font-size: var(--fs-sm); color: var(--marine)"><strong>38 débiteurs</strong> correspondent (162 factures · 214 380 €). Les litiges et les promesses en cours sont exclus.</div>
+</div>
+</sc-if>
+</section>
+
+<section aria-labelledby="g3" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-3h)">
+<h2 id="g3" style="margin: 0; font-size: var(--fs-md); font-weight: 600; display: flex; align-items: center; gap: var(--sp-2h)"><span style="width: 24px; height: 24px; border-radius: var(--r-full); background: {{accent}}; color: var(--on-primary); font-size: var(--fs-xs); font-weight: 700; display: inline-flex; align-items: center; justify-content: center">3</span>Options</h2>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Envoi
+<select style="height: var(--control-lg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); background: var(--surface); color: var(--text)"><option>{{channelDefault}}</option><option>E-mail avec PDF joint</option><option>Lettre recommandée avec AR (MySendingBox)</option><option>Courrier simple (MySendingBox)</option><option>Télécharger seulement</option></select>
+</label>
+<sc-if value="{{showDelay}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3)">
+<span style="font-size: var(--fs-base); color: var(--text-2)">Délai de paiement accordé</span>
+<div role="group" aria-label="Délai" style="display: flex; gap: var(--sp-1); background: var(--surface-3); padding: var(--sp-1); border-radius: var(--r-lg)">
+<sc-for list="{{delays}}" as="o" hint-placeholder-count="3">
+<button type="button" onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="height: var(--control-sm); padding: 0 var(--sp-2h); border: 0; border-radius: var(--r-sm); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer; background: {{o.bg}}; color: {{o.color}}">{{o.label}}</button>
+</sc-for>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{showMonths}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3)">
+<span style="font-size: var(--fs-base); color: var(--text-2)">Nombre de mensualités</span>
+<div style="display: flex; align-items: center; gap: var(--sp-2)">
+<dc-import name="Bouton" variant="secondary" size="md" icon="minus" icon-only="{{ true }}" label="Une mensualité de moins" on-press="{{minus}}" style="display: contents" hint-size="120px,40px"></dc-import>
+<span style="width: 28px; text-align: center; font-size: var(--fs-md); font-weight: 700">{{months}}</span>
+<dc-import name="Bouton" variant="secondary" size="md" icon="plus" icon-only="{{ true }}" label="Une mensualité de plus" on-press="{{plus}}" style="display: contents" hint-size="120px,40px"></dc-import>
+</div>
+</div>
+</sc-if>
+<sc-for list="{{toggles}}" as="s" hint-placeholder-count="3">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3)">
+<span style="font-size: var(--fs-base); color: var(--text-2)">{{s.label}}</span>
+<button type="button" role="switch" aria-checked="{{s.checked}}" aria-label="{{s.label}}" onClick="{{s.toggle}}" style="width: 44px; height: var(--control-xs); flex-shrink: 0; border-radius: var(--r-full); border: 0; padding: var(--sp-1); cursor: pointer; display: flex; background: {{s.track}}; justify-content: {{s.justify}}"><span style="width: 20px; height: 20px; border-radius: var(--r-full); background: var(--surface); box-shadow: var(--shadow-knob)"></span></button>
+</div>
+</sc-for>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-2)">
+<dc-import name="Bouton" variant="secondary" size="md" label="Enregistrer le brouillon" on-press="{{saveDraft}}" style="display: contents" hint-size="120px,40px"></dc-import>
+<dc-import name="Bouton" variant="secondary" size="md" label="Générer le PDF" on-press="{{genPdf}}" style="display: contents" hint-size="120px,40px"></dc-import>
+<dc-import name="Bouton" variant="primary" size="md" label="{{sendLabel}}" on-press="{{genSend}}" layout="flex: 1" accent="{{accent}}" style="display: contents" hint-size="120px,40px"></dc-import>
+</div>
+
+</div>
+
+<section aria-label="Aperçu du document" style="flex: 1 1 560px; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-3)">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--sp-3)">
+<div style="display: flex; align-items: center; gap: var(--sp-2)">
+<span style="font-size: var(--fs-base); font-weight: 600">Aperçu</span>
+<sc-if value="{{batch}}" hint-placeholder-val="{{ false }}">
+<span style="display: flex; align-items: center; gap: var(--sp-1)">
+<dc-import name="Bouton" variant="secondary" size="sm" icon="chevron-left" icon-only="{{ true }}" label="Destinataire précédent" on-press="{{prevD}}" style="display: contents" hint-size="120px,40px"></dc-import>
+<span style="font-size: var(--fs-sm); color: var(--text-2); min-width: 56px; text-align: center">{{batchPos}}</span>
+<dc-import name="Bouton" variant="secondary" size="sm" icon="chevron-right" icon-only="{{ true }}" label="Destinataire suivant" on-press="{{nextD}}" style="display: contents" hint-size="120px,40px"></dc-import>
+</span>
+</sc-if>
+</div>
+<label style="display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-sm); color: var(--text-2)"><input type="checkbox" checked="{{hl}}" onChange="{{toggleHl}}" style="width: 18px; height: 18px; accent-color: var(--marine)">Surligner les champs remplis automatiquement</label>
+</div>
+<div style="background: var(--border); border-radius: var(--r-lg); padding: var(--sp-6); display: flex; justify-content: center">
+<article style="width: 100%; max-width: 600px; min-height: 848px; background: var(--surface); box-shadow: var(--shadow-md); padding: var(--sp-11) var(--sp-12); box-sizing: border-box; display: flex; flex-direction: column; gap: var(--sp-3h); font-size: var(--fs-xs); line-height: 1.55; color: var(--text)">
+<div style="display: flex; justify-content: space-between; gap: var(--sp-4)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-size: var(--fs-base); font-weight: 700; letter-spacing: 0.04em; color: var(--marine)">LEGAREC</span><span style="color: var(--text-2)">Cabinet de recouvrement</span><span style="color: var(--text-2)">42 rue Monge, 75005 Paris</span><span style="color: var(--text-2)">01 87 88 02 98</span></div>
+<div style="display: flex; flex-direction: column; gap: var(--sp-0h); text-align: right; color: var(--text-2)"><span>Réf. : <span style="background: {{vbg}}">{{d.ref}}</span></span><span>Dossier suivi par Camille Laurent</span></div>
+</div>
+<div style="align-self: flex-end; width: 46%; display: flex; flex-direction: column; gap: var(--sp-0h); margin-top: var(--sp-2)">
+<span style="font-weight: 600; color: var(--text); background: {{vbg}}">{{d.name}}</span>
+<span style="background: {{vbg}}">À l'attention de {{d.contact}}</span>
+<span style="white-space: pre-line; background: {{vbg}}">{{d.address}}</span>
+</div>
+<span style="align-self: flex-end; color: var(--text-2)">Paris, le 21 novembre 2026</span>
+<sc-if value="{{recommande}}" hint-placeholder-val="{{ false }}"><span style="font-weight: 700; color: var(--text); text-transform: uppercase; font-size: var(--fs-xs); letter-spacing: 0.04em">Lettre recommandée avec accusé de réception</span></sc-if>
+<span style="font-weight: 700; color: var(--text)">Objet : {{subject}}</span>
+<span>Madame, Monsieur,</span>
+<sc-for list="{{paras}}" as="p" hint-placeholder-count="3">
+<p style="margin: 0"><sc-for list="{{p.segs}}" as="g" hint-placeholder-count="3"><span style="background: {{g.bg}}; font-weight: {{g.w}}">{{g.t}}</span></sc-for></p>
+</sc-for>
+<sc-if value="{{showTable}}" hint-placeholder-val="{{ true }}">
+<table style="width: 100%; border-collapse: collapse; font-size: var(--fs-xs)">
+<thead><tr style="text-align: left; border-bottom: 1px solid var(--border-strong)"><th scope="col" style="padding: var(--sp-1) 0; font-weight: 600">{{tableHead1}}</th><th scope="col" style="padding: var(--sp-1) 0; font-weight: 600">{{tableHead2}}</th><th scope="col" style="padding: var(--sp-1) 0; font-weight: 600; text-align: right">Montant</th></tr></thead>
+<tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="3">
+<tr style="border-bottom: 1px solid var(--surface-3)"><td style="padding: var(--sp-1) 0; background: {{vbg}}">{{r.a}}</td><td style="padding: var(--sp-1) 0; background: {{vbg}}">{{r.b}}</td><td style="padding: var(--sp-1) 0; text-align: right; background: {{vbg}}">{{r.c}}</td></tr>
+</sc-for>
+<tr><td colspan="2" style="padding: var(--sp-1h) 0; font-weight: 700">{{totalLabel}}</td><td style="padding: var(--sp-1h) 0; text-align: right; font-weight: 700; background: {{vbg}}">{{totalShown}}</td></tr>
+</tbody>
+</table>
+</sc-if>
+<sc-if value="{{payLink}}" hint-placeholder-val="{{ true }}">
+<div style="border: 1px solid var(--data-1); background: var(--bleu-pale); border-radius: var(--r-sm); padding: var(--sp-2) var(--sp-2h); font-size: var(--fs-xs); color: var(--marine)">Payer en ligne de façon sécurisée : <strong>[LIEN DE PAIEMENT]</strong> · Virement : IBAN du compte dédié [IBAN]</div>
+</sc-if>
+<span>Nous vous prions d'agréer, Madame, Monsieur, l'expression de nos salutations distinguées.</span>
+<div style="display: flex; flex-direction: column; gap: 1px; margin-top: var(--sp-1)"><span style="font-weight: 600; color: var(--text)">Camille Laurent</span><span style="color: var(--text-2)">Chargée de recouvrement, pour le compte de <span style="background: {{vbg}}">{{d.mandant}}</span></span></div>
+<span style="margin-top: auto; font-size: var(--fs-doc-sm); color: var(--text-3); border-top: 1px solid var(--border); padding-top: var(--sp-1h)">LEGAREC · SIREN [SIREN] · Société de recouvrement amiable de créances pour le compte d'autrui</span>
+</article>
+</div>
+</section>
+
+</div>
+</div>
+</main>
+<dc-import name="Confirm" open="{{gcf.open}}" tone="{{gcf.tone}}" title="{{gcf.title}}" body="{{gcf.body}}" details="{{gcf.details}}" confirm-label="{{gcf.label}}" on-confirm="{{gcf.confirm}}" on-cancel="{{gcf.cancel}}" accent="{{accent}}" hint-size="0px,0px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#002B74","options":["#002B74","#001B4D","#5D7087"]},"$preview":{"width":1440,"height":1280}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { tpl: 'demeure', mode: 'single', deb: 0, delay: 8, months: 4, hl: true, opt: { table: true, pay: true, indem: true }, done: null };
+  }
+  renderVals() {
+    const v = this._rv0();
+    const g = this.state.gask;
+    v.gcf = { open: !!g, tone: (g && g.tone) || 'primary', title: g ? g.title : '', body: g ? g.body : '', details: (g && g.details) || [], label: g ? g.label : '', confirm: () => { const go = g && g.go; this.setState({ gask: null }); if (go) go(); }, cancel: () => this.setState({ gask: null }) };
+    return v;
+  }
+  _rv0() {
+    const accent = this.props.accent ?? 'var(--marine)';
+    const st = this.state;
+    const eur = (n) => n.toLocaleString('fr-FR') + ' €';
+    const debtors = [
+      { name: 'Bâtiplus SAS', contact: 'M. Julien Ferrand', address: '12 rue des Artisans\n69007 Lyon', mandant: 'Matériaux Delta', ref: 'DOS-2026-0142', last: '12/11/2026', inv: [['F-2026-0712', '14/09/2026', 18600], ['F-2026-0745', '27/09/2026', 16400], ['F-2026-0790', '10/10/2026', 13200]] },
+      { name: 'Groupe Hélio', contact: 'Mme Nadia Roussel', address: '8 avenue Jean-Jaurès\n75019 Paris', mandant: 'Médiatel', ref: 'DOS-2026-0151', last: '12/11/2026', inv: [['F-2026-0655', '13/10/2026', 21500], ['F-2026-0702', '20/10/2026', 15250]] },
+      { name: 'Garage Valmont', contact: 'M. Paul Valmont', address: '45 route de Lyon\n38000 Grenoble', mandant: 'TransAlp Leasing', ref: 'DOS-2026-0098', last: '28/10/2026', inv: [['L-2026-0118', '16/08/2026', 5975], ['L-2026-0131', '16/09/2026', 5975], ['L-2026-0144', '16/10/2026', 5975], ['L-2026-0157', '16/11/2026', 5975]] },
+      { name: 'Fromagerie Durand', contact: 'M. Marc Durand', address: '3 place du Marché\n71000 Mâcon', mandant: 'Énergies Rhône', ref: 'DOS-2026-0181', last: '03/11/2026', inv: [['F-2026-0902', '31/10/2026', 3120], ['F-2026-0927', '07/11/2026', 3120]] }
+    ];
+    const d0 = debtors[st.deb];
+    const total = d0.inv.reduce((s, i) => s + i[2], 0);
+    const nInv = d0.inv.length;
+    const indem = nInv * 40;
+    const d = { ...d0, total };
+    const T = [
+      ['amiable', 'Relance amiable', 'Premier rappel courtois'],
+      ['ferme', 'Relance ferme', 'Avec indemnités de retard'],
+      ['demeure', 'Mise en demeure', 'Dernier avertissement avant procédure'],
+      ['echeancier', 'Proposition d’échéancier', 'Plan de paiement à signer'],
+      ['attestation', 'Attestation de solde', 'Confirme le paiement intégral']
+    ];
+    const hl = st.hl;
+    const V = (t) => ({ t, bg: hl ? 'var(--warning-bg)' : 'transparent', w: '600' });
+    const S = (t) => ({ t, bg: 'transparent', w: '400' });
+    const months = st.months;
+    const mens = Math.ceil(total / months);
+    const mois = ['15/12/2026', '15/01/2027', '15/02/2027', '15/03/2027', '15/04/2027', '15/05/2027', '15/06/2027', '15/07/2027', '15/08/2027', '15/09/2027', '15/10/2027', '15/11/2027'];
+    const delayTxt = st.delay + ' jours';
+    const withIndem = st.opt.indem && (st.tpl === 'ferme' || st.tpl === 'demeure');
+    let subject, paras, rows, head1 = 'Facture', head2 = 'Échéance', totalLabel = 'Total dû', totalShown = eur(total);
+    rows = d0.inv.map((i) => ({ a: i[0], b: i[1], c: eur(i[2]) }));
+    if (st.tpl === 'amiable') {
+      subject = 'Rappel – factures impayées';
+      paras = [
+        [S('Sauf erreur de notre part, nous n’avons pas reçu le règlement des factures ci-dessous, d’un montant total de '), V(eur(total)), S(', dont le recouvrement nous a été confié par notre client '), V(d.mandant), S('.')],
+        [S('Il s’agit peut-être d’un simple oubli. Nous vous remercions de procéder au règlement sous '), V(delayTxt), S('.')],
+        [S('Si votre paiement a été effectué entre-temps, merci de ne pas tenir compte de ce courrier.')]
+      ];
+    } else if (st.tpl === 'ferme') {
+      subject = 'Relance – factures impayées';
+      paras = [
+        [S('Malgré notre précédent rappel du '), V(d.last), S(', les factures ci-dessous restent impayées pour un montant de '), V(eur(total)), S('.')],
+        [S('Nous vous demandons de régler cette somme sous '), V(delayTxt), S('. À défaut, notre client '), V(d.mandant), S(' pourra nous autoriser à engager une procédure judiciaire.')]
+      ];
+      if (withIndem) paras.push([S('Conformément à l’article L441-10 du Code de commerce, une indemnité forfaitaire pour frais de recouvrement de 40 € par facture est due, soit '), V(eur(indem)), S('.')]);
+    } else if (st.tpl === 'demeure') {
+      subject = 'Mise en demeure de payer';
+      paras = [
+        [S('En vertu du mandat qui nous a été confié par '), V(d.mandant), S(', nous vous mettons en demeure de régler la somme de '), V(eur(total + (withIndem ? indem : 0))), S(withIndem ? ', soit ' : '.')].concat(withIndem ? [V(eur(total)), S(' en principal et '), V(eur(indem)), S(' d’indemnités forfaitaires de recouvrement.')] : []),
+        [S('À défaut de règlement dans un délai de '), V(delayTxt), S(' à compter de la réception de la présente, notre client se réserve le droit d’engager à votre encontre une procédure judiciaire, sans autre avis.')],
+        [S('La présente vaut mise en demeure au sens de l’article 1344 du Code civil.')]
+      ];
+      if (withIndem) { totalLabel = 'Total dû (dont indemnités ' + eur(indem) + ')'; totalShown = eur(total + indem); }
+    } else if (st.tpl === 'echeancier') {
+      subject = 'Proposition d’échéancier';
+      paras = [
+        [S('Suite à notre échange, et avec l’accord de notre client '), V(d.mandant), S(', nous vous proposons de régler la somme de '), V(eur(total)), S(' en '), V(months + ' mensualités'), S(' selon le calendrier ci-dessous.')],
+        [S('Pour accepter, il vous suffit de signer électroniquement ce plan via le lien joint. Tout incident de paiement rendra le solde restant immédiatement exigible.')]
+      ];
+      head1 = 'Échéance'; head2 = 'Date';
+      rows = Array.from({ length: months }, (_, i) => ({ a: 'Mensualité ' + (i + 1) + '/' + months, b: mois[i], c: eur(i < months - 1 ? mens : total - mens * (months - 1)) }));
+      totalLabel = 'Total';
+    } else {
+      subject = 'Attestation de solde';
+      paras = [
+        [S('Nous attestons que '), V(d.name), S(' a réglé l’intégralité des sommes dues à notre client '), V(d.mandant), S(' au titre des factures ci-dessous, soit '), V(eur(total)), S('.')],
+        [S('Le dossier '), V(d.ref), S(' est clos. Aucune autre somme n’est due à ce titre.')]
+      ];
+      totalLabel = 'Total réglé';
+    }
+    const sw = (id, label) => {
+      const on = !!st.opt[id];
+      return { label, checked: on ? 'true' : 'false', track: on ? accent : 'var(--border-strong)', justify: on ? 'flex-end' : 'flex-start', toggle: () => this.setState({ opt: { ...this.state.opt, [id]: !this.state.opt[id] } }) };
+    };
+    const toggles = [sw('table', st.tpl === 'echeancier' ? 'Joindre le calendrier' : 'Joindre le détail des factures'), sw('pay', 'Ajouter le lien de paiement')];
+    if (st.tpl === 'ferme' || st.tpl === 'demeure') toggles.push(sw('indem', 'Ajouter l’indemnité forfaitaire (40 € / facture)'));
+    const batch = st.mode === 'batch';
+    return {
+      accent,
+      headActions: [{ label: 'Gérer les modèles', href: 'Reglages.dc.html', onClick: () => { try { localStorage.setItem('lg-settings', 'user'); localStorage.setItem('lg-settings-open', 'modeles'); localStorage.setItem('lg-settings-cat', 'rec'); } catch (e) {} } }],
+      editTpl: () => { try { localStorage.setItem('lg-tpl', st.tpl); } catch (e) {} },
+      templates: T.map(([id, label, hint]) => ({
+        label, hint, checked: st.tpl === id ? 'true' : 'false',
+        border: st.tpl === id ? '2px solid ' + accent : '1px solid var(--border)',
+        bg: st.tpl === id ? 'var(--bleu-pale)' : 'var(--white)',
+        pick: () => this.setState({ tpl: id, done: null })
+      })),
+      modes: [['single', 'Un débiteur'], ['batch', 'Envoi groupé']].map(([id, label]) => ({
+        label, pressed: st.mode === id ? 'true' : 'false',
+        bg: st.mode === id ? 'var(--white)' : 'transparent', color: st.mode === id ? 'var(--text)' : 'var(--text-2)',
+        pick: () => this.setState({ mode: id, done: null })
+      })),
+      single: !batch,
+      batch,
+      batchPos: (st.deb + 1) + ' / 38',
+      prevD: () => this.setState({ deb: (st.deb + debtors.length - 1) % debtors.length }),
+      nextD: () => this.setState({ deb: (st.deb + 1) % debtors.length }),
+      debtors: debtors.map((x, i) => {
+        const t = x.inv.reduce((s, v) => s + v[2], 0);
+        return {
+          name: x.name, mandant: x.mandant, count: x.inv.length, totalTxt: eur(t),
+          pressed: i === st.deb ? 'true' : 'false',
+          border: i === st.deb ? '2px solid ' + accent : '1px solid var(--border)',
+          bg: i === st.deb ? 'var(--bleu-pale)' : 'var(--white)',
+          pick: () => this.setState({ deb: i, done: null })
+        };
+      }),
+      channelDefault: st.tpl === 'demeure' ? 'Lettre recommandée avec AR (MySendingBox)' : st.tpl === 'echeancier' ? 'E-mail avec lien de signature' : 'E-mail avec PDF joint',
+      recommande: st.tpl === 'demeure',
+      showDelay: st.tpl === 'amiable' || st.tpl === 'ferme' || st.tpl === 'demeure',
+      delays: [8, 15, 30].map((n) => ({
+        label: n + ' j', pressed: st.delay === n ? 'true' : 'false',
+        bg: st.delay === n ? 'var(--white)' : 'transparent', color: st.delay === n ? 'var(--text)' : 'var(--text-2)',
+        pick: () => this.setState({ delay: n })
+      })),
+      showMonths: st.tpl === 'echeancier',
+      months,
+      minus: () => this.setState({ months: Math.max(2, this.state.months - 1) }),
+      plus: () => this.setState({ months: Math.min(12, this.state.months + 1) }),
+      toggles,
+      hl,
+      toggleHl: () => this.setState({ hl: !st.hl }),
+      vbg: hl ? 'var(--warning-bg)' : 'transparent',
+      d,
+      subject,
+      paras: paras.map((segs) => ({ segs })),
+      showTable: !!st.opt.table && st.tpl !== 'x',
+      tableHead1: head1,
+      tableHead2: head2,
+      rows,
+      totalLabel,
+      totalShown,
+      payLink: !!st.opt.pay && st.tpl !== 'attestation',
+      sendLabel: batch ? 'Générer et envoyer (38)' : 'Générer et envoyer',
+      saveDraft: () => this.setState({ done: 'Brouillon enregistré.' }),
+      genPdf: () => this.setState({ done: 'PDF généré.' }),
+      genSend: () => { const TN = { amiable: 'Relance amiable', ferme: 'Relance ferme', demeure: 'Mise en demeure', echeancier: 'Proposition d’échéancier', attestation: 'Attestation de solde' }; const ch = st.tpl === 'demeure' ? 'Lettre recommandée avec AR (MySendingBox)' : st.tpl === 'echeancier' ? 'E-mail avec lien de signature' : 'E-mail avec PDF joint'; this.setState({ gask: { title: batch ? 'Générer et envoyer 38 documents ?' : 'Envoyer ce document à ' + d.name + ' ?', body: (st.tpl === 'demeure' ? 'Une lettre recommandée ne peut plus être annulée une fois envoyée. Son coût est refacturable au débiteur.' : 'L’envoi part immédiatement.') + ' Chaque document est ajouté à l’historique du dossier et visible par le créancier.', details: [{ k: 'Modèle', v: TN[st.tpl] || st.tpl }, { k: 'Destinataire', v: batch ? '38 débiteurs sélectionnés' : d.name }, { k: 'Envoi', v: ch }], label: batch ? 'Envoyer les 38 documents' : 'Envoyer', go: () => this.setState({ done: batch ? '38 documents générés et mis en file d’envoi.' : 'Document généré et envoyé à ' + d.name + '.' }) } }); },
+      generated: !!st.done,
+      doneText: st.done || '',
+      reset: () => this.setState({ done: null })
+    };
+  }
+}
+</script>
+</body>
+</html>

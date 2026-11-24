@@ -1,0 +1,435 @@
+{
+  "accent": "var(--marine)",
+  "headActions": [
+    {
+      "label": "Exporter"
+    },
+    {
+      "label": "Démarrer ma session d’appels",
+      "href": "Telephonie.dc.html"
+    },
+    {
+      "label": "+ Nouveau dossier",
+      "primary": true,
+      "kbd": "N",
+      "href": "Dossiers.dc.html"
+    }
+  ],
+  "headStats": [
+    {
+      "label": "Encours total",
+      "value": "1 284 560 €",
+      "sub": "248 débiteurs · 1 942 factures"
+    },
+    {
+      "label": "Échu à plus de 30 jours",
+      "value": "412 300 €",
+      "color": "var(--danger-fg)",
+      "sub": "▲ 6,2 % vs mois dernier"
+    },
+    {
+      "label": "Recouvré",
+      "value": "186 420 €",
+      "color": "var(--success-fg)",
+      "bar": "100%",
+      "barColor": "var(--or)",
+      "sub": "107 % de l’objectif · ▲ 12,4 % vs oct."
+    },
+    {
+      "label": "Factures recouvrées",
+      "value": "1 236 / 3 178",
+      "sub": "39 % des factures confiées"
+    },
+    {
+      "label": "DSO moyen",
+      "value": "47 jours",
+      "sub": "▼ 3 j sur 90 jours"
+    }
+  ],
+  "tbTabs": [
+    {
+      "label": "Cette semaine",
+      "selected": false
+    },
+    {
+      "label": "Ce mois",
+      "selected": true
+    },
+    {
+      "label": "2026",
+      "selected": false
+    }
+  ],
+  "tbFilters": [
+    {
+      "label": "Créancier",
+      "options": [
+        "Tous les créanciers",
+        "Matériaux Delta",
+        "Énergies Rhône",
+        "Médiatel",
+        "TransAlp Leasing",
+        "Crédit Horizon"
+      ]
+    }
+  ],
+  "periodNote": "Novembre 2026, au 21",
+  "actionCount": "6",
+  "doneCount": "1",
+  "doneW": "17%",
+  "actions": [
+    {
+      "title": "Appeler Bâtiplus SAS",
+      "meta": "3 factures · 48 200 € · promesse non tenue · retard 64 j",
+      "tag": "Appel",
+      "icon": "M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z",
+      "href": "Telephonie.dc.html",
+      "cta": "Appeler",
+      "bg": "var(--danger-bg)",
+      "fg": "var(--danger-fg)",
+      "done": false,
+      "strike": "none",
+      "color": "var(--text)",
+      "rowBg": "var(--white)"
+    },
+    {
+      "title": "Contrôler la promesse de Nordis Logistique",
+      "meta": "12 500 € attendus aujourd’hui · virement annoncé",
+      "tag": "Promesse",
+      "icon": "M18 7a6 6 0 1 0 0 10M4 10h10M4 14h10",
+      "href": "Dossier.dc.html",
+      "cta": "Vérifier",
+      "bg": "var(--warning-bg)",
+      "fg": "var(--warning-fg)",
+      "done": false,
+      "strike": "none",
+      "color": "var(--text)",
+      "rowBg": "var(--white)"
+    },
+    {
+      "title": "Valider 3 demandes d’échéancier",
+      "meta": "Bâtiplus SAS, Fromagerie Durand, Garage Valmont",
+      "tag": "À valider",
+      "icon": "M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11",
+      "href": "Echeanciers.dc.html",
+      "cta": "Ouvrir",
+      "bg": "var(--warning-bg)",
+      "fg": "var(--warning-fg)",
+      "done": true,
+      "strike": "line-through",
+      "color": "var(--text-3)",
+      "rowBg": "var(--surface-2)"
+    },
+    {
+      "title": "Répondre à la contestation d’Atelier Mistral",
+      "meta": "Facture F-2026-0874 · 18 320 € · relances suspendues",
+      "tag": "Litige",
+      "icon": "M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM22 7l-10 6L2 7",
+      "href": "Messagerie.dc.html",
+      "cta": "Répondre",
+      "bg": "var(--violet-bg)",
+      "fg": "var(--violet-fg)",
+      "done": false,
+      "strike": "none",
+      "color": "var(--text)",
+      "rowBg": "var(--white)"
+    },
+    {
+      "title": "Fin du délai de mise en demeure",
+      "meta": "Charpentes Bellet · 27 300 € · expire le 30/11",
+      "tag": "Urgent",
+      "icon": "M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01",
+      "href": "Contentieux.dc.html",
+      "cta": "Préparer",
+      "bg": "var(--danger-bg)",
+      "fg": "var(--danger-fg)",
+      "done": false,
+      "strike": "none",
+      "color": "var(--text)",
+      "rowBg": "var(--white)"
+    },
+    {
+      "title": "Réattribuer les rappels de Thomas Giraud",
+      "meta": "4 rappels prévus aujourd’hui · en congé",
+      "tag": "Équipe",
+      "icon": "M12 3v18M7 21h10M3 7h18M6 7l-3 7a3 3 0 0 0 6 0L6 7M18 7l-3 7a3 3 0 0 0 6 0l-3-7",
+      "href": "Equipe.dc.html",
+      "cta": "Voir",
+      "bg": "var(--info-bg)",
+      "fg": "var(--info-fg)",
+      "done": false,
+      "strike": "none",
+      "color": "var(--text)",
+      "rowBg": "var(--white)"
+    }
+  ],
+  "feed": [
+    {
+      "icon": "€",
+      "bg": "var(--success-bg)",
+      "fg": "var(--success-fg)",
+      "text": "Nordis Logistique a versé 12 500 € (promesse tenue)",
+      "meta": "Énergies Rhône · virement",
+      "time": "11:38"
+    },
+    {
+      "icon": "☎",
+      "bg": "var(--bleu-pale)",
+      "fg": "var(--marine)",
+      "text": "Hugo Benali a obtenu une demande d’échéancier de Groupe Hélio",
+      "meta": "Médiatel · appel de 6 min",
+      "time": "11:42"
+    },
+    {
+      "icon": "@",
+      "bg": "var(--info-bg)",
+      "fg": "var(--info-fg)",
+      "text": "Julien Ferrand (Bâtiplus SAS) demande un échéancier",
+      "meta": "Matériaux Delta · e-mail",
+      "time": "10:24"
+    },
+    {
+      "icon": "✓",
+      "bg": "var(--bleu-200)",
+      "fg": "var(--marine)",
+      "text": "Matériaux Delta a validé l’échéancier de 8 mois de Bâtiplus SAS",
+      "meta": "Espace créancier · Claire Besson",
+      "time": "09:51"
+    },
+    {
+      "icon": "!",
+      "bg": "var(--danger-bg)",
+      "fg": "var(--danger-fg)",
+      "text": "E-mail non remis à j.ferrand@batiplus.fr",
+      "meta": "Resend · adresse à corriger",
+      "time": "09:12"
+    },
+    {
+      "icon": "i",
+      "bg": "var(--surface-3)",
+      "fg": "var(--text-2)",
+      "text": "1 196 SMS et e-mails automatiques envoyés ce mois",
+      "meta": "Scénarios de relance",
+      "time": "08:00"
+    }
+  ],
+  "months": [
+    {
+      "label": "Juin",
+      "value": "142 k€",
+      "h": "114px",
+      "color": "var(--data-1)",
+      "labelColor": "var(--text-2)"
+    },
+    {
+      "label": "Juil.",
+      "value": "151 k€",
+      "h": "121px",
+      "color": "var(--data-1)",
+      "labelColor": "var(--text-2)"
+    },
+    {
+      "label": "Août",
+      "value": "128 k€",
+      "h": "102px",
+      "color": "var(--data-1)",
+      "labelColor": "var(--text-2)"
+    },
+    {
+      "label": "Sept.",
+      "value": "167 k€",
+      "h": "134px",
+      "color": "var(--data-1)",
+      "labelColor": "var(--text-2)"
+    },
+    {
+      "label": "Oct.",
+      "value": "166 k€",
+      "h": "133px",
+      "color": "var(--data-1)",
+      "labelColor": "var(--text-2)"
+    },
+    {
+      "label": "Nov.",
+      "value": "186 k€",
+      "h": "149px",
+      "color": "var(--marine)",
+      "labelColor": "var(--marine)"
+    }
+  ],
+  "aging": [
+    {
+      "label": "Non échu",
+      "amount": "488 130 €",
+      "color": "var(--data-1)",
+      "w": "38%"
+    },
+    {
+      "label": "0 – 30 jours",
+      "amount": "384 130 €",
+      "color": "var(--data-2)",
+      "w": "30%"
+    },
+    {
+      "label": "31 – 60 jours",
+      "amount": "205 530 €",
+      "color": "var(--data-3)",
+      "w": "16%"
+    },
+    {
+      "label": "61 – 90 jours",
+      "amount": "115 610 €",
+      "color": "var(--marine)",
+      "w": "9%"
+    },
+    {
+      "label": "+ 90 jours",
+      "amount": "91 160 €",
+      "color": "var(--nuit)",
+      "w": "7%"
+    }
+  ],
+  "top": [
+    {
+      "name": "Bâtiplus SAS",
+      "siret": "512 334 871 00088",
+      "mandant": "Matériaux Delta",
+      "amount": "48 200 €",
+      "late": "64 j",
+      "status": "En retard",
+      "bg": "var(--danger-bg)",
+      "fg": "var(--danger-fg)"
+    },
+    {
+      "name": "Groupe Hélio",
+      "siret": "319 935 185 00011",
+      "mandant": "Médiatel",
+      "amount": "36 750 €",
+      "late": "38 j",
+      "status": "Relance 2",
+      "bg": "var(--info-bg)",
+      "fg": "var(--info-fg)"
+    },
+    {
+      "name": "Garage Valmont",
+      "siret": "193 786 571 00094",
+      "mandant": "TransAlp Leasing",
+      "amount": "23 900 €",
+      "late": "97 j",
+      "status": "Mise en demeure",
+      "bg": "var(--danger-bg)",
+      "fg": "var(--danger-fg)"
+    },
+    {
+      "name": "Nordis Logistique",
+      "siret": "854 323 193 00045",
+      "mandant": "Énergies Rhône",
+      "amount": "21 400 €",
+      "late": "45 j",
+      "status": "Promesse",
+      "bg": "var(--warning-bg)",
+      "fg": "var(--warning-fg)"
+    },
+    {
+      "name": "Atelier Mistral",
+      "siret": "975 749 110 00089",
+      "mandant": "Matériaux Delta",
+      "amount": "18 320 €",
+      "late": "52 j",
+      "status": "Litige",
+      "bg": "var(--violet-bg)",
+      "fg": "var(--violet-fg)"
+    }
+  ],
+  "mandants": [
+    {
+      "name": "Matériaux Delta",
+      "siren": "401 228 975",
+      "sector": "Négoce BTP",
+      "debtors": 64,
+      "invoices": 412,
+      "encours": "386 400 €",
+      "recovered": "450 300 €",
+      "rate": "54 %",
+      "rateW": "54%"
+    },
+    {
+      "name": "Énergies Rhône",
+      "siren": "626 018 154",
+      "sector": "Énergie",
+      "debtors": 71,
+      "invoices": 688,
+      "encours": "298 150 €",
+      "recovered": "512 900 €",
+      "rate": "63 %",
+      "rateW": "63%"
+    },
+    {
+      "name": "Médiatel",
+      "siren": "183 016 617",
+      "sector": "Télécoms",
+      "debtors": 52,
+      "invoices": 534,
+      "encours": "244 900 €",
+      "recovered": "251 600 €",
+      "rate": "51 %",
+      "rateW": "51%"
+    },
+    {
+      "name": "TransAlp Leasing",
+      "siren": "418 609 137",
+      "sector": "Crédit-bail",
+      "debtors": 33,
+      "invoices": 146,
+      "encours": "231 610 €",
+      "recovered": "204 500 €",
+      "rate": "47 %",
+      "rateW": "47%"
+    },
+    {
+      "name": "Crédit Horizon",
+      "siren": "199 603 085",
+      "sector": "Crédit conso.",
+      "debtors": 28,
+      "invoices": 162,
+      "encours": "123 500 €",
+      "recovered": "158 700 €",
+      "rate": "56 %",
+      "rateW": "56%"
+    }
+  ],
+  "team": [
+    {
+      "ini": "CL",
+      "name": "Camille Laurent",
+      "calls": "18 / 40",
+      "w": "45%",
+      "dot": "var(--success)",
+      "bar": "var(--or)"
+    },
+    {
+      "ini": "HB",
+      "name": "Hugo Benali",
+      "calls": "31 / 40",
+      "w": "78%",
+      "dot": "var(--info)",
+      "bar": "var(--success)"
+    },
+    {
+      "ini": "SM",
+      "name": "Sarah Morel",
+      "calls": "26 / 40",
+      "w": "65%",
+      "dot": "var(--warning)",
+      "bar": "var(--or)"
+    },
+    {
+      "ini": "TG",
+      "name": "Thomas Giraud",
+      "calls": "En congé",
+      "w": "0%",
+      "dot": "var(--text-3)",
+      "bar": "var(--border)"
+    }
+  ]
+}

@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Legarec – Connexion</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Lora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+/* tokens:start — charte graphique LEGAREC v1.0 (octobre 2026). Ne pas modifier à la main : généré depuis tools/tokens.css */
+:root{
+  /* Marque */
+  --marine:#002B74; --marine-hover:#00225C; --marine-text:#002B74; --app-icon-bg:#002B74; --app-icon-fg:#FCBE03; --nuit:#001B4D; --or:#FCBE03; --or-clair:#FFF3C4; --ardoise:#5D7087;
+  --bleu-pale:#EEF2F8; --gris-clair:#F6F8FB; --bleu-200:#D6E0F0; --white:#FFFFFF;
+  /* Texte */
+  --text:#0F1B2D; --text-2:#33455C; --text-3:#5D7087; --on-primary:#FFFFFF;
+  /* Surfaces et bordures */
+  --surface:#FFFFFF; --surface-2:#F6F8FB; --surface-3:#EEF2F7; --border:#E1E7EF; --border-strong:#7D8DA1;
+  /* Surfaces sombres (carte d'appel, barre d'actions groupées) */
+  --surface-dark:#001B4D; --surface-dark-2:#0B2D63; --border-dark:#2A4A7D; --on-dark:#FFFFFF; --on-dark-2:#D5DEEB; --on-dark-muted:#A9B8CC; --on-dark-accent:#B8CBEA;
+  /* Données (graphiques, balance âgée) */
+  --data-1:#C9D6EC; --data-2:#7F9CD0; --data-3:#345DA8;
+  /* Tons sémantiques : fond, bordure, point, texte */
+  --success-bg:#ECFDF5; --success-border:#A7F3D0; --success:#059669; --success-strong:#10B981; --success-fg:#047857; --on-success:#052E16;
+  --warning-bg:#FFF3C4; --warning-border:#F5D77A; --warning:#D97706; --warning-fg:#8A4B08;
+  --danger-bg:#FFF1F2; --danger-border:#FECDD3; --danger:#E11D48; --danger-fg:#BE123C; --danger-dark:#7F1D1D; --danger-on-dark:#FDA4AF;
+  --info-bg:#F0F9FF; --info-border:#BAE6FD; --info:#0284C7; --info-fg:#0369A1;
+  --violet-bg:#F5F3FF; --violet-border:#DDD6FE; --violet:#7C3AED; --violet-fg:#6D28D9;
+  --teal-bg:#CCFBF1; --teal:#0D9488; --teal-fg:#115E59;
+  /* Fonds pleins (badges pleins, texte --on-primary ≥ 5:1 dans les deux modes) */
+  --solid-neutral:#33455C; --solid-info:#0369A1; --solid-success:#047857; --solid-warning:#8A4B08; --solid-danger:#BE123C; --solid-violet:#6D28D9; --solid-teal:#115E59;
+  /* Typographie */
+  --font-title:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-text:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-brand:Lora, Georgia, serif; --font-mono:ui-monospace, SFMono-Regular, Menlo, monospace;
+  --fs-doc-xs:8px; --fs-doc-sm:9px; --fs-doc-md:10px; --fs-doc-lg:10.5px; --fs-2xs:11px; --fs-xs:12px; --fs-sm:13px; --fs-base:14px; --fs-md:16px; --fs-lg:18px; --fs-xl:20px; --fs-2xl:26px; --fs-3xl:34px;
+  /* Rayons */
+  --r-xs:4px; --r-sm:6px; --r-md:8px; --r-lg:12px; --r-full:9999px;
+  /* Ombres */
+  --shadow-sm:0 1px 2px 0 rgba(0,27,77,0.06); --shadow-md:0 10px 15px -3px rgba(0,27,77,0.10), 0 4px 6px -4px rgba(0,27,77,0.10); --shadow-lg:0 20px 25px -5px rgba(0,27,77,0.18), 0 8px 10px -6px rgba(0,27,77,0.12);
+  --shadow-knob:0 1px 2px rgba(0,27,77,0.25); --overlay:rgba(0,27,77,0.55);
+  /* Espacements (grille de 4 px) */
+  --sp-0h:2px; --sp-1:4px; --sp-1h:6px; --sp-2:8px; --sp-2h:10px; --sp-3:12px; --sp-3h:14px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px; --sp-10:40px; --sp-11:44px; --sp-12:48px;
+  /* Hauteurs de contrôles */
+  --control-xs:28px; --control-sm:36px; --control-md:40px; --control-lg:44px;
+  /* Voiles et anneaux (surfaces sombres, animations) */
+  --veil-8:rgba(255,255,255,0.08); --veil-18:rgba(255,255,255,0.18); --veil-25:rgba(255,255,255,0.25); --veil-35:rgba(255,255,255,0.35); --veil-80:rgba(255,255,255,0.8); --veil-85:rgba(255,255,255,0.85); --on-success-veil:rgba(5,46,22,0.35); --success-ring:rgba(16,185,129,0.55); --success-ring-0:rgba(16,185,129,0);
+  /* Cibles tactiles */
+  --target:44px;
+}
+body{font-family:var(--font-text);font-feature-settings:"cv11";-webkit-font-smoothing:antialiased}
+h1,h2{font-family:var(--font-title);font-weight:700;color:var(--marine);overflow-wrap:break-word;letter-spacing:-0.015em}
+[data-brand] h1,[data-brand] h2{font-family:var(--font-brand);letter-spacing:0}
+td,th,li,h3{overflow-wrap:break-word}
+:focus-visible{outline:2px solid var(--marine);outline-offset:2px}
+[data-dark] :focus-visible{outline-color:var(--or)}
+button:disabled,[aria-disabled="true"]{cursor:not-allowed !important;opacity:.55}
+button:not(:disabled):hover,a[href][style*="border-radius"]:hover{filter:brightness(.96)}
+tbody tr:hover{background-color:var(--surface-2)}
+[data-table-scroll]{max-height:min(68vh,720px);overflow:auto !important}
+[data-table-scroll] thead th{position:sticky;top:0;z-index:2;background:var(--surface-2);box-shadow:inset 0 -1px 0 var(--border)}
+[data-skeleton]{display:block;border-radius:var(--r-xs);background:linear-gradient(90deg,var(--surface-3) 25%,var(--bleu-pale) 50%,var(--surface-3) 75%);background-size:200% 100%;animation:lg-sk 1.2s ease-in-out infinite}
+@keyframes lg-sk{from{background-position:200% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+@media (pointer: coarse), (max-width: 767px){
+  button,select,input:not([type=checkbox]):not([type=radio]):not([type=range]),[role=tab],[role=menuitem],a[href][style*="display: inline-flex"],a[href][style*="height:"]{min-height:var(--target)}
+  input[type=checkbox],input[type=radio]{min-width:22px;min-height:22px}
+}
+/* Mode sombre : data-theme="dark" sur <html> */
+:root[data-theme="dark"]{
+  --marine:#2E5FC0; --marine-hover:#2A57B0; --marine-text:#9DB8F0; --app-icon-bg:#0A1A3F; --nuit:#071028; --or-clair:#3A2F0A; --ardoise:#9AA9BD;
+  --bleu-pale:#1B2A4A; --gris-clair:#0A1020; --bleu-200:#2B3E63; --white:#16203A;
+  --text:#E6ECF5; --text-2:#C3CEDD; --text-3:#9AA9BD;
+  --surface:#0F1729; --surface-2:#0A1020; --surface-3:#1A2438; --border:#26324A; --border-strong:#67778F;
+  --surface-dark:#050B1A; --surface-dark-2:#101C36; --border-dark:#24365A;
+  --data-1:#2B3E63; --data-2:#4F73B8; --data-3:#7F9CD0;
+  --success-bg:#0B2E22; --success-border:#14532D; --success-fg:#6EE7B7;
+  --warning-bg:#3A2F0A; --warning-border:#6B5310; --warning-fg:#FCD34D;
+  --danger-bg:#3B0D17; --danger-border:#7F1D2E; --danger-fg:#FDA4AF;
+  --info-bg:#0B2540; --info-border:#164E63; --info-fg:#7DD3FC;
+  --violet-bg:#24164A; --violet-border:#4C1D95; --violet-fg:#C4B5FD;
+  --teal-bg:#0B302C; --teal-fg:#5EEAD4;
+  --shadow-sm:0 1px 2px 0 rgba(0,0,0,0.4); --shadow-md:0 10px 15px -3px rgba(0,0,0,0.5); --shadow-lg:0 20px 25px -5px rgba(0,0,0,0.6); --overlay:rgba(0,0,0,0.65);
+  color-scheme:dark;
+}
+:root[data-theme="dark"] body{background:var(--surface-2);color:var(--text)}
+:root[data-theme="dark"] :focus-visible{outline-color:#9DB8F0}
+:root[data-theme="dark"] [data-dark]{border:1px solid var(--border-dark)}
+:root[data-theme="dark"] h1,:root[data-theme="dark"] h2,:root[data-theme="dark"] a[href]:not([style*="background"]){color:var(--marine-text)}
+:root[data-theme="dark"] [style*="color: var(--marine)"]:not([style*="background: var(--marine)"]){color:var(--marine-text) !important}
+:root[data-theme="dark"] img[src*="_blob"]{background:var(--white);border-radius:var(--r-sm)}
+/* Mode malvoyant : data-a11y="malvoyant" sur <html> — texte agrandi, contraste renforcé, cibles plus grandes */
+:root[data-a11y="malvoyant"]{
+  --fs-2xs:13px; --fs-xs:14px; --fs-sm:15px; --fs-base:17px; --fs-md:19px; --fs-lg:21px; --fs-xl:24px; --fs-2xl:30px; --fs-3xl:38px;
+  --control-xs:36px; --control-sm:44px; --control-md:48px; --control-lg:52px; --target:48px;
+  --text-3:var(--text-2); --ardoise:var(--text-2); --border:var(--border-strong);
+}
+:root[data-a11y="malvoyant"] body{line-height:1.6}
+:root[data-a11y="malvoyant"] [data-sb-nav][style*="width: 264px"]{width:312px !important}
+:root[data-a11y="malvoyant"] :focus-visible{outline:3px solid var(--or);outline-offset:3px;box-shadow:0 0 0 6px var(--marine)}
+:root[data-a11y="malvoyant"] a[href]:not([style*="background"]){text-decoration:underline;text-underline-offset:3px}
+:root[data-a11y="malvoyant"] button,:root[data-a11y="malvoyant"] select,:root[data-a11y="malvoyant"] input:not([type=checkbox]):not([type=radio]){min-height:var(--target)}
+:root[data-a11y="malvoyant"] input[type=checkbox],:root[data-a11y="malvoyant"] input[type=radio]{min-width:24px;min-height:24px}
+:root[data-a11y="malvoyant"][data-theme="dark"]{--text-3:#E6ECF5;--text-2:#E6ECF5}
+/* tokens:end */
+body{margin:0;font-family:var(--font-text);color:var(--text);background:var(--surface)}
+a{color:var(--marine)}a:hover{color:var(--marine)}
+</style>
+</helmet>
+<div data-brand style="display: flex; flex-wrap: wrap; min-height: 100vh; font-family: var(--font-text); color: var(--text); background: var(--surface)">
+
+<section aria-label="Présentation" style="flex: 1 1 440px; max-width: 100%; background: var(--marine); color: var(--bleu-200); padding: var(--sp-10) var(--sp-12); box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; gap: var(--sp-10)">
+<img src="/_blob/b7da0bfc2f50577a4c5b06ebfbf1d98e" alt="Legarec, cabinet de recouvrement" style="height: 64px; width: auto; align-self: flex-start">
+<div style="display: flex; flex-direction: column; gap: var(--sp-8); max-width: 460px">
+<div style="display: flex; flex-direction: column; gap: var(--sp-3)">
+<span style="align-self: flex-start; font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--or)">{{kicker}}</span>
+<h1 style="margin: 0; font-size: var(--fs-3xl); line-height: 1.15; font-weight: 700; letter-spacing: -0.02em; color: var(--on-primary)">{{headline}}</h1>
+</div>
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-4)">
+<sc-for list="{{feats}}" as="f" hint-placeholder-count="3"><li style="display: flex; gap: var(--sp-3h); align-items: flex-start"><span style="width: 36px; height: 36px; border-radius: var(--r-md); background: var(--veil-8); display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" style="stroke: var(--or)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{f.d}}"></path></svg></span><span style="display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-size: var(--fs-md); font-weight: 600; color: var(--on-primary)">{{f.t}}</span><span style="font-size: var(--fs-base); color: var(--bleu-200)">{{f.s}}</span></span></li></sc-for>
+</ul>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-2)">
+<span style="display: inline-flex; align-items: center; gap: var(--sp-1h); font-size: var(--fs-xs); color: var(--bleu-200); border: 1px solid var(--veil-18); border-radius: var(--r-full); padding: var(--sp-1) var(--sp-2h)"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>Données hébergées en France</span>
+<span style="display: inline-flex; align-items: center; gap: var(--sp-1h); font-size: var(--fs-xs); color: var(--bleu-200); border: 1px solid var(--veil-18); border-radius: var(--r-full); padding: var(--sp-1) var(--sp-2h)">Conforme RGPD</span>
+<span style="display: inline-flex; align-items: center; gap: var(--sp-1h); font-size: var(--fs-xs); color: var(--bleu-200); border: 1px solid var(--veil-18); border-radius: var(--r-full); padding: var(--sp-1) var(--sp-2h)">Paiements PCI-DSS</span>
+</div>
+</section>
+
+<section aria-label="Connexion" style="flex: 1.3 1 520px; min-width: 0; display: flex; flex-direction: column; padding: var(--sp-6) var(--sp-8); box-sizing: border-box">
+<div style="display: flex; justify-content: flex-end; align-items: center; gap: var(--sp-2); font-size: var(--fs-base); color: var(--text-3)"><span role="group" aria-label="Affichage" style="display: inline-flex; gap: var(--sp-1)"><button type="button" onClick="{{toggleLgA11y}}" aria-pressed="{{lgA11y}}" title="Texte agrandi et contraste renforcé" style="height: var(--control-sm); padding: 0 var(--sp-2h); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-size: var(--fs-sm); font-weight: 600; cursor: pointer">Aa<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)"> Texte agrandi</span></button><button type="button" onClick="{{toggleLgDark}}" aria-pressed="{{lgDark}}" title="Mode sombre" style="height: var(--control-sm); width: var(--control-sm); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Mode sombre</span></button></span>
+Besoin d'aide ? <a href="Aide.dc.html" style="font-weight: 500; text-decoration: none">Centre d'aide</a></div>
+
+<div style="flex: 1; display: flex; align-items: center; justify-content: center; padding: var(--sp-8) 0">
+<div style="width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: var(--sp-6)">
+
+<sc-if value="{{isLogin}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: var(--sp-6)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-1h)">
+<span style="align-self: flex-start; display: inline-flex; align-items: center; gap: var(--sp-1h); padding: var(--sp-0h) var(--sp-2h); border-radius: var(--r-full); background: var(--surface-3); color: var(--text-2); font-size: var(--fs-xs); font-weight: 600; font-family: var(--font-mono)"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>{{domain}}</span>
+<h2 style="margin: 0; font-size: var(--fs-2xl); font-weight: 700; letter-spacing: -0.02em">{{loginTitle}}</h2>
+<p style="margin: 0; font-size: var(--fs-base); color: var(--text-3); line-height: 1.5">{{loginSub}}</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: var(--sp-3h)">
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-base); font-weight: 500; color: var(--text)">Adresse e-mail
+<input type="email" value="{{email}}" onChange="{{onEmail}}" autocomplete="username" aria-invalid="{{invalid}}" style="height: var(--control-lg); border: {{fieldBorder}}; border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-md); font-weight: 400; color: var(--text); box-sizing: border-box; box-shadow: var(--shadow-sm)">
+</label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-base); font-weight: 500; color: var(--text)">Mot de passe
+<span style="display: flex; align-items: center; border: {{fieldBorder}}; border-radius: var(--r-sm); padding: 0 var(--sp-1) 0 var(--sp-3); height: 44px; box-sizing: border-box; box-shadow: var(--shadow-sm)">
+<input type="{{pwType}}" value="{{pw}}" onChange="{{onPw}}" autocomplete="current-password" aria-invalid="{{invalid}}" aria-describedby="erreur-connexion" style="flex: 1; min-width: 0; border: 0; outline: none; font: inherit; font-size: var(--fs-md); font-weight: 400; color: var(--text); background: transparent">
+<dc-import name="Bouton" variant="ghost" size="sm" label="{{pwBtn}}" aria-label="{{pwLabel}}" on-press="{{togglePw}}" style="display: contents" hint-size="120px,40px"></dc-import>
+</span>
+</label>
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--sp-2)">
+<label style="display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-base); color: var(--text-2)"><input type="checkbox" checked="" style="width: 16px; height: 16px; accent-color: var(--marine)">Rester connecté</label>
+<a href="#" onClick="{{forgot}}" style="font-size: var(--fs-base); font-weight: 500; text-decoration: none">Mot de passe oublié ?</a>
+</div>
+</div>
+<sc-if value="{{hasError}}" hint-placeholder-val="{{ false }}">
+<div id="erreur-connexion" role="alert" style="display: flex; gap: var(--sp-2h); border-radius: var(--r-md); padding: var(--sp-3) var(--sp-3h); font-size: var(--fs-base); line-height: 1.45; background: {{errBg}}; border: 1px solid {{errBorder}}; color: {{errFg}}"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path></svg><span>{{errText}}</span></div>
+</sc-if>
+<div style="display: flex; flex-direction: column; gap: var(--sp-2h)">
+<button type="button" onClick="{{submit}}" disabled="{{locked}}" style="height: var(--control-lg); border-radius: var(--r-sm); border: 0; font: inherit; font-size: var(--fs-md); font-weight: 600; background: {{submitBg}}; color: {{submitFg}}; cursor: {{submitCursor}}">Se connecter</button>
+<span style="font-size: var(--fs-sm); color: var(--text-3); text-align: center">Vous avez reçu une invitation ? <a href="#" onClick="{{openActivate}}" style="font-weight: 600; text-decoration: none">Activer mon compte</a></span>
+<span style="font-size: var(--fs-sm); color: var(--text-3); text-align: center">{{otherQ}} <a href="#" onClick="{{switchPortal}}" style="font-weight: 600; text-decoration: none">{{otherLink}}</a></span>
+<sc-if value="{{isStaffPortal}}" hint-placeholder-val="{{ true }}"><div style="display: flex; align-items: center; gap: var(--sp-3); font-size: var(--fs-xs); color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em"><span style="flex: 1; height: 1px; background: var(--border)"></span>ou<span style="flex: 1; height: 1px; background: var(--border)"></span></div>
+<button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="height: var(--control-lg); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-size: var(--fs-md); font-weight: 500; cursor: pointer; box-shadow: var(--shadow-sm)">Continuer avec le SSO de l'entreprise</button></sc-if>
+</div>
+<div style="display: flex; flex-direction: column; gap: var(--sp-2); border: 1px dashed var(--border-strong); border-radius: var(--r-md); padding: var(--sp-3) var(--sp-3h)">
+<span style="font-size: var(--fs-xs); font-weight: 600; color: var(--text-2)">Accès de démonstration · adresse ouverte : {{domain}}</span>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-1h)">
+<button type="button" onClick="{{demoStaff}}" style="height: var(--control-xs); padding: 0 var(--sp-2h); border-radius: var(--r-full); border: 1px solid var(--border); background: var(--surface); font: inherit; font-size: var(--fs-xs); font-weight: 500; color: var(--text-2); cursor: pointer">Équipe Legarec</button>
+<button type="button" onClick="{{demoCreditor}}" style="height: var(--control-xs); padding: 0 var(--sp-2h); border-radius: var(--r-full); border: 1px solid var(--border); background: var(--surface); font: inherit; font-size: var(--fs-xs); font-weight: 500; color: var(--text-2); cursor: pointer">Créancier</button>
+<button type="button" onClick="{{demoWrong}}" style="height: var(--control-xs); padding: 0 var(--sp-2h); border-radius: var(--r-full); border: 1px solid var(--border); background: var(--surface); font: inherit; font-size: var(--fs-xs); font-weight: 500; color: var(--text-2); cursor: pointer">Mauvais mot de passe</button>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isTwoFa}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: var(--sp-6)">
+<dc-import name="Bouton" variant="ghost" size="sm" label="← Retour" on-press="{{back}}" layout="align-self: flex-start" style="display: contents" hint-size="120px,40px"></dc-import>
+<div style="display: flex; flex-direction: column; gap: var(--sp-1h)">
+<sc-if value="{{hasRedirect}}" hint-placeholder-val="{{ false }}"><div role="status" style="display: flex; gap: var(--sp-2); background: var(--info-bg); border: 1px solid var(--info-border); border-radius: var(--r-md); padding: var(--sp-3) var(--sp-3h); font-size: var(--fs-sm); color: var(--info-fg); line-height: 1.5"><span>{{redirectText}}</span></div></sc-if>
+<h2 style="margin: 0; font-size: var(--fs-2xl); font-weight: 700; letter-spacing: -0.02em">Vérification en deux étapes</h2>
+<p style="margin: 0; font-size: var(--fs-base); color: var(--text-3); line-height: 1.5">Saisissez le code à 6 chiffres affiché dans votre application d'authentification.</p>
+<p style="margin: 0; font-size: var(--fs-xs); color: var(--text-3)">{{tfaNote}}</p>
+</div>
+<div role="group" aria-label="Code de vérification" style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--sp-2)">
+<sc-for list="{{digits}}" as="d" hint-placeholder-count="6">
+<span style="height: 52px; border-radius: var(--r-md); display: flex; align-items: center; justify-content: center; font-size: var(--fs-xl); font-weight: 700; border: {{d.border}}; background: var(--surface)">{{d.v}}</span>
+</sc-for>
+</div>
+<div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--sp-1h)">
+<sc-for list="{{pad}}" as="k" hint-placeholder-count="10">
+<dc-import name="Bouton" variant="secondary" size="md" label="{{k.d}}" on-press="{{k.press}}" style="display: contents" hint-size="120px,40px"></dc-import>
+</sc-for>
+</div>
+<sc-if value="{{codeComplete}}" hint-placeholder-val="{{ false }}">
+<dc-import name="Bouton" variant="primary" size="lg" label="{{homeLabel}}" href="{{homeHref}}" accent="{{accent}}" style="display: contents" hint-size="120px,40px"></dc-import>
+</sc-if>
+<sc-if value="{{codeIncomplete}}" hint-placeholder-val="{{ true }}">
+<span style="height: 44px; border-radius: var(--r-sm); background: var(--surface-3); color: var(--text-3); font-size: var(--fs-md); font-weight: 600; display: flex; align-items: center; justify-content: center">Valider</span>
+</sc-if>
+<div style="display: flex; justify-content: space-between; gap: var(--sp-3); font-size: var(--fs-sm)">
+<dc-import name="Bouton" variant="ghost" size="sm" label="Effacer" on-press="{{clearCode}}" style="display: contents" hint-size="120px,40px"></dc-import>
+<a href="Aide.dc.html" style="text-decoration: none; font-weight: 500">Utiliser un code de secours</a>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isForgot}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: var(--sp-5)">
+<dc-import name="Bouton" variant="ghost" size="sm" label="← Retour à la connexion" on-press="{{back}}" layout="align-self: flex-start" style="display: contents" hint-size="120px,40px"></dc-import>
+<div style="display: flex; flex-direction: column; gap: var(--sp-1h)">
+<h2 style="margin: 0; font-size: var(--fs-2xl); font-weight: 700; letter-spacing: -0.02em">Mot de passe oublié</h2>
+<p style="margin: 0; font-size: var(--fs-base); color: var(--text-3); line-height: 1.5">Nous vous envoyons un lien de réinitialisation, valable 1 heure.</p>
+</div>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-base); font-weight: 500; color: var(--text)">Adresse e-mail
+<input type="email" value="{{email}}" onChange="{{onEmail}}" style="height: var(--control-lg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-md); font-weight: 400; color: var(--text); box-sizing: border-box">
+</label>
+<sc-if value="{{sent}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="background: var(--success-bg); border: 1px solid var(--success-border); border-radius: var(--r-md); padding: var(--sp-3) var(--sp-3h); font-size: var(--fs-base); color: var(--success-fg)">Si un compte existe pour {{email}}, un lien vient d'être envoyé. <dc-import name="Bouton" variant="ghost" size="sm" label="Ouvrir le lien (démo)" on-press="{{openReset}}" style="display: contents" hint-size="120px,40px"></dc-import></div>
+</sc-if>
+<dc-import name="Bouton" variant="primary" size="lg" label="Envoyer le lien" on-press="{{sendLink}}" accent="{{accent}}" style="display: contents" hint-size="120px,40px"></dc-import>
+</div>
+</sc-if>
+
+<sc-if value="{{isReset}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: var(--sp-5)">
+<dc-import name="Bouton" variant="ghost" size="sm" label="← Retour à la connexion" on-press="{{back}}" layout="align-self: flex-start" style="display: contents" hint-size="120px,40px"></dc-import>
+<div style="display: flex; flex-direction: column; gap: var(--sp-1h)">
+<h2 style="margin: 0; font-size: var(--fs-2xl)">Nouveau mot de passe</h2>
+<p style="margin: 0; font-size: var(--fs-base); color: var(--text-3); line-height: 1.5">Pour {{email}} · lien valable jusqu'à 16 h 42.</p>
+</div>
+<sc-if value="{{linkExpired}}" hint-placeholder-val="{{ false }}"><div role="alert" style="background: var(--danger-bg); border: 1px solid var(--danger-border); border-radius: var(--r-md); padding: var(--sp-3) var(--sp-3h); font-size: var(--fs-base); color: var(--danger-fg)">Ce lien a expiré (validité 1 heure). Demandez-en un nouveau depuis « Mot de passe oublié ».</div></sc-if>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-base); font-weight: 500">Nouveau mot de passe<input type="password" autocomplete="new-password" value="{{newPw}}" onChange="{{onNewPw}}" style="height: var(--control-lg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-md); font-weight: 400; color: var(--text); box-sizing: border-box"></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-base); font-weight: 500">Confirmer le mot de passe<input type="password" autocomplete="new-password" value="{{newPw2}}" onChange="{{onNewPw2}}" style="height: var(--control-lg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-md); font-weight: 400; color: var(--text); box-sizing: border-box"></label>
+<ul aria-label="Règles du mot de passe" style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm)">
+<sc-for list="{{pwRules}}" as="r" hint-placeholder-count="3"><li style="display: flex; align-items: center; gap: var(--sp-2); color: {{r.color}}"><span aria-hidden="true" style="width: 18px; text-align: center; font-weight: 700">{{r.mark}}</span>{{r.label}}</li></sc-for>
+</ul>
+<sc-if value="{{resetDone}}" hint-placeholder-val="{{ false }}"><div role="status" style="background: var(--success-bg); border: 1px solid var(--success-border); border-radius: var(--r-md); padding: var(--sp-3) var(--sp-3h); font-size: var(--fs-base); color: var(--success-fg)">Mot de passe modifié. Vos autres sessions ont été fermées ; reconnectez-vous.</div></sc-if>
+<dc-import name="Bouton" variant="primary" size="lg" label="Enregistrer le mot de passe" on-press="{{saveReset}}" disabled="{{pwBlocked}}" accent="{{accent}}" style="display: contents" hint-size="120px,40px"></dc-import>
+</div>
+</sc-if>
+
+<sc-if value="{{isActivate}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: var(--sp-5)">
+<dc-import name="Bouton" variant="ghost" size="sm" label="← Retour à la connexion" on-press="{{back}}" layout="align-self: flex-start" style="display: contents" hint-size="120px,40px"></dc-import>
+<div style="display: flex; flex-direction: column; gap: var(--sp-1h)">
+<span style="font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3)">Activation · étape {{actStep}} sur 3</span>
+<h2 style="margin: 0; font-size: var(--fs-2xl)">{{actTitle}}</h2>
+<p style="margin: 0; font-size: var(--fs-base); color: var(--text-3); line-height: 1.5">{{actText}}</p>
+</div>
+<sc-if value="{{act1}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: var(--sp-4)">
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-base); font-weight: 500">Mot de passe<input type="password" autocomplete="new-password" value="{{newPw}}" onChange="{{onNewPw}}" style="height: var(--control-lg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-md); font-weight: 400; color: var(--text); box-sizing: border-box"></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-base); font-weight: 500">Confirmer<input type="password" autocomplete="new-password" value="{{newPw2}}" onChange="{{onNewPw2}}" style="height: var(--control-lg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-md); font-weight: 400; color: var(--text); box-sizing: border-box"></label>
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm)"><sc-for list="{{pwRules}}" as="r" hint-placeholder-count="3"><li style="display: flex; align-items: center; gap: var(--sp-2); color: {{r.color}}"><span aria-hidden="true" style="width: 18px; text-align: center; font-weight: 700">{{r.mark}}</span>{{r.label}}</li></sc-for></ul>
+<dc-import name="Bouton" variant="primary" size="lg" label="Continuer" on-press="{{actNext}}" disabled="{{pwBlocked}}" accent="{{accent}}" style="display: contents" hint-size="120px,40px"></dc-import>
+</div>
+</sc-if>
+<sc-if value="{{act2}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: var(--sp-4)">
+<div style="display: flex; gap: var(--sp-4); align-items: center; padding: var(--sp-4); border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface-2)">
+<div role="img" aria-label="QR code à scanner avec l'application d'authentification" style="width: 112px; height: 112px; flex-shrink: 0; display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--sp-0h); padding: var(--sp-2); box-sizing: border-box; background: var(--white); border-radius: var(--r-sm)"><sc-for list="{{qr}}" as="q" hint-placeholder-count="49"><span style="background: {{q}}"></span></sc-for></div>
+<div style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); color: var(--text-2)"><span>Scannez avec Google Authenticator, Microsoft Authenticator ou 1Password.</span><span>Ou saisissez la clé : <code style="font-family: var(--font-mono); font-size: var(--fs-xs); background: var(--white); padding: var(--sp-0h) var(--sp-1h); border-radius: var(--r-xs)">JBSW Y3DP EHPK 3PXP</code></span></div>
+</div>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-base); font-weight: 500">Code à 6 chiffres affiché dans l'application<input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" value="{{code2}}" onChange="{{onCode2}}" placeholder="123456" style="height: var(--control-lg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-md); font-weight: 400; color: var(--text); box-sizing: border-box; letter-spacing: 0.3em; font-variant-numeric: tabular-nums"></label>
+<dc-import name="Bouton" variant="primary" size="lg" label="Vérifier le code" on-press="{{actNext}}" disabled="{{codeBlocked}}" accent="{{accent}}" style="display: contents" hint-size="120px,40px"></dc-import>
+<sc-if value="{{canSkip}}" hint-placeholder-val="{{ true }}"><dc-import name="Bouton" variant="ghost" size="sm" label="Plus tard (recommandé pour votre rôle, non obligatoire)" on-press="{{actSkip}}" style="display: contents" hint-size="120px,40px"></dc-import></sc-if>
+</div>
+</sc-if>
+<sc-if value="{{act3}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: var(--sp-4)">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2); padding: var(--sp-4); border: 1px dashed var(--border-strong); border-radius: var(--r-lg); font-family: var(--font-mono); font-size: var(--fs-sm)"><sc-for list="{{backupCodes}}" as="c" hint-placeholder-count="8"><span>{{c}}</span></sc-for></div>
+<span style="font-size: var(--fs-sm); color: var(--text-3)">Chaque code ne sert qu'une fois. Conservez-les hors de l'application (gestionnaire de mots de passe, coffre papier).</span>
+<dc-import name="Bouton" variant="primary" size="lg" label="J'ai conservé mes codes · accéder à Legarec" href="Main.dc.html" accent="{{accent}}" style="display: contents" hint-size="120px,40px"></dc-import>
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+</div>
+</div>
+
+<dc-import name="PiedDePage" variant="integre" note="Blocage 15 min après 5 échecs · Déconnexion après 30 min d'inactivité" aide="true" style="display: contents" hint-size="100%,72px"></dc-import>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"portail":{"editor":"enum","options":["espace","partenaires"],"default":"espace"},"accent":{"editor":"color","default":"#002B74","options":["#002B74","#001B4D","#5D7087"]},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { newPw: '', newPw2: '', code2: '', actStep: 1, resetDone: false, linkExpired: false, step: 'login', portal: props.portail === 'partenaires' ? 'partenaires' : 'espace', redirected: null, email: 'cl@legarec.fr', pw: 'motdepasse12', showPw: false, code: '', sent: false, fails: 0 };
+  }
+  componentDidMount() { const lp = this.lgPrefs(); this.lgApply(lp); this.setState({ prefs: lp }); }
+  lgPrefs() { try { return { theme: localStorage.getItem('lg-theme') || 'light', a11y: localStorage.getItem('lg-a11y') === '1' }; } catch (e) { return { theme: 'light', a11y: false }; } }
+  lgApply(p) { const d = document.documentElement; const dark = p.theme === 'dark' || (p.theme === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches); d.setAttribute('data-theme', dark ? 'dark' : 'light'); d.setAttribute('data-a11y', p.a11y ? 'malvoyant' : 'standard'); }
+  lgSave(p) { try { localStorage.setItem('lg-theme', p.theme); localStorage.setItem('lg-a11y', p.a11y ? '1' : '0'); } catch (e) {} this.lgApply(p); this.setState({ prefs: p }); }
+  renderVals() {
+    const accent = this.props.accent ?? 'var(--marine)';
+    const st = this.state;
+    const code = st.code;
+    const isCreditor = !/@legarec\.fr$/i.test(st.email.trim());
+    return {
+      lgA11y: (this.state.prefs || {}).a11y ? 'true' : 'false',
+      lgDark: (this.state.prefs || {}).theme === 'dark' ? 'true' : 'false',
+      toggleLgA11y: () => this.lgSave({ ...(this.state.prefs || { theme: 'light' }), a11y: !(this.state.prefs || {}).a11y }),
+      toggleLgDark: () => this.lgSave({ ...(this.state.prefs || { a11y: false }), theme: (this.state.prefs || {}).theme === 'dark' ? 'light' : 'dark' }),
+      accent,
+      isStaffPortal: st.portal === 'espace',
+      domain: st.portal === 'espace' ? 'espace.legarec.fr' : 'partenaires.legarec.fr',
+      kicker: st.portal === 'espace' ? 'Portail interne Legarec' : 'Portail créanciers',
+      headline: st.portal === 'espace' ? 'Appels, relances et dossiers, au même endroit.' : 'Suivez vos créances confiées à Legarec.',
+      feats: (st.portal === 'espace' ? [
+        ['M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z', 'Appels, SMS et e-mails', 'Tout l’historique au même endroit, par dossier'],
+        ['M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z', 'Agenda et suivi des relances', 'Relances automatiques et actions du jour'],
+        ['M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5', 'Historique des fichiers', 'Courriers, pièces et actes de chaque dossier']
+      ] : [
+        ['M3 3v18h18M7 16v-4M12 16V8M17 16v-7', 'Avancement de vos dossiers', 'Relances, promesses, échéanciers et contentieux'],
+        ['M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12', 'Transmission des pièces', 'Factures, contrats et justificatifs, en toute sécurité'],
+        ['M18 7a7 7 0 1 0 0 10M4 10h10M4 14h10', 'Reversements et relevés', 'Sommes recouvrées et relevés mensuels']
+      ]).map(([d, t, sub]) => ({ d, t, s: sub })),
+      loginTitle: st.portal === 'espace' ? 'Connexion à l’espace Legarec' : 'Connexion à votre espace créancier',
+      loginSub: st.portal === 'espace' ? 'Réservé aux collaborateurs du cabinet.' : 'Suivez vos dossiers et transmettez vos pièces.',
+      otherQ: st.portal === 'espace' ? 'Vous êtes créancier ?' : 'Collaborateur Legarec ?',
+      otherLink: st.portal === 'espace' ? 'Aller sur partenaires.legarec.fr' : 'Aller sur espace.legarec.fr',
+      switchPortal: (e) => { if (e && e.preventDefault) e.preventDefault(); this.setState({ portal: st.portal === 'espace' ? 'partenaires' : 'espace', fails: 0, redirected: null }); },
+      hasRedirect: !!st.redirected,
+      redirectText: st.redirected === 'partenaires' ? 'Ce compte est un compte créancier : vous avez été redirigé vers partenaires.legarec.fr, l’adresse des créanciers.' : 'Ce compte est un compte Legarec : vous avez été redirigé vers espace.legarec.fr, l’adresse des collaborateurs.',
+      isLogin: st.step === 'login',
+      isTwoFa: st.step === '2fa',
+      isForgot: st.step === 'forgot',
+      isReset: st.step === 'reset',
+      isActivate: st.step === 'activate',
+      openReset: () => this.setState({ step: 'reset', newPw: '', newPw2: '', resetDone: false }),
+      openActivate: (e) => { if (e && e.preventDefault) e.preventDefault(); this.setState({ step: 'activate', actStep: 1, newPw: '', newPw2: '', code2: '' }); },
+      newPw: st.newPw, newPw2: st.newPw2, code2: st.code2,
+      onNewPw: (e) => this.setState({ newPw: e.target.value }),
+      onNewPw2: (e) => this.setState({ newPw2: e.target.value }),
+      onCode2: (e) => this.setState({ code2: e.target.value.replace(/\D/g, '').slice(0, 6) }),
+      linkExpired: st.linkExpired, resetDone: st.resetDone,
+      pwRules: [
+        ['12 caractères minimum', st.newPw.length >= 12],
+        ['Différent de l’adresse e-mail', st.newPw.length > 0 && !st.email.toLowerCase().includes(st.newPw.toLowerCase())],
+        ['Les deux saisies sont identiques', st.newPw.length > 0 && st.newPw === st.newPw2]
+      ].map(([label, ok]) => ({ label, mark: ok ? '✓' : '·', color: ok ? 'var(--success-fg)' : 'var(--text-3)' })),
+      pwBlocked: !(st.newPw.length >= 12 && st.newPw === st.newPw2),
+      saveReset: () => this.setState({ resetDone: true }),
+      actStep: String(st.actStep),
+      act1: st.actStep === 1, act2: st.actStep === 2, act3: st.actStep === 3,
+      actTitle: ['Bienvenue, Nadia', 'Double authentification', 'Codes de secours'][st.actStep - 1],
+      actText: ['Invitation de Camille Laurent · rôle Gestionnaire de créances · lien valable 72 h. Choisissez votre mot de passe.', 'Ajoutez une seconde vérification à la connexion. Obligatoire pour les rôles Développeur et Dirigeant.', 'Ils vous permettent de vous connecter si vous perdez votre téléphone.'][st.actStep - 1],
+      codeBlocked: st.code2.length !== 6,
+      canSkip: true,
+      actNext: () => this.setState({ actStep: Math.min(3, st.actStep + 1) }),
+      actSkip: () => this.setState({ actStep: 3 }),
+      qr: Array.from({ length: 49 }, (_, i) => ([0, 1, 2, 7, 9, 14, 15, 16, 4, 5, 6, 11, 13, 18, 19, 20, 28, 29, 30, 35, 37, 42, 43, 44, 24, 26, 32, 40, 46, 22, 38].includes(i) ? 'var(--text)' : 'transparent')),
+      backupCodes: ['4821-7730', '1093-5562', '7740-2218', '3365-9014', '6602-4471', '9187-3305', '2258-6649', '5531-0827'],
+      email: st.email,
+      onEmail: (e) => this.setState({ email: e.target.value }),
+      pwType: st.showPw ? 'text' : 'password',
+      pwBtn: st.showPw ? 'Masquer' : 'Afficher',
+      pwLabel: st.showPw ? 'Masquer le mot de passe' : 'Afficher le mot de passe',
+      togglePw: () => this.setState({ showPw: !st.showPw }),
+      forgot: (e) => { e.preventDefault(); this.setState({ step: 'forgot', sent: false }); },
+      submit: () => {
+        if (st.fails >= 5) return;
+        if (st.pw !== 'motdepasse12') { this.setState({ fails: st.fails + 1 }); return; }
+        const want = /@legarec\.fr$/i.test(st.email.trim()) ? 'espace' : 'partenaires';
+        this.setState({ step: '2fa', code: '', fails: 0, portal: want, redirected: want !== st.portal ? want : null });
+      },
+      back: () => this.setState({ step: 'login', redirected: null }),
+      sent: !!this.state.sent,
+      sendLink: () => this.setState({ sent: true }),
+      pw: st.pw,
+      onPw: (e) => this.setState({ pw: e.target.value }),
+      demoStaff: () => this.setState({ email: 'cl@legarec.fr', pw: 'motdepasse12', fails: 0 }),
+      demoCreditor: () => this.setState({ email: 'c.besson@materiauxdelta.example', pw: 'motdepasse12', fails: 0 }),
+      demoWrong: () => this.setState({ pw: 'erreur', fails: Math.min(st.fails, 4) }),
+      hasError: st.fails > 0,
+      locked: st.fails >= 5,
+      invalid: st.fails > 0 ? 'true' : 'false',
+      fieldBorder: st.fails > 0 ? '1px solid var(--danger)' : '1px solid var(--border-strong)',
+      errText: st.fails >= 5
+        ? 'Compte bloqué pendant 15 minutes après 5 tentatives échouées. Vous pouvez aussi réinitialiser votre mot de passe.'
+        : 'E-mail ou mot de passe incorrect. Il vous reste ' + (5 - st.fails) + ' tentative' + (5 - st.fails > 1 ? 's' : '') + ' avant le blocage temporaire du compte.',
+      errBg: st.fails >= 5 ? 'var(--danger-bg)' : 'var(--warning-bg)',
+      errBorder: st.fails >= 5 ? 'var(--danger-border)' : 'var(--warning-border)',
+      errFg: st.fails >= 5 ? 'var(--danger-fg)' : 'var(--warning-fg)',
+      submitBg: st.fails >= 5 ? 'var(--border)' : accent,
+      submitFg: st.fails >= 5 ? 'var(--text-3)' : 'var(--on-primary)',
+      submitCursor: st.fails >= 5 ? 'not-allowed' : 'pointer',
+      tfaNote: isCreditor ? 'Recommandée pour votre compte créancier.' : 'Obligatoire pour les rôles Développeur et Dirigeant, recommandée pour les autres.',
+      homeHref: isCreditor ? 'Portail.dc.html' : 'Main.dc.html',
+      homeLabel: isCreditor ? 'Valider et ouvrir mon espace créancier' : 'Valider et accéder au tableau de bord',
+      digits: [0, 1, 2, 3, 4, 5].map((i) => ({
+        v: code[i] || '',
+        border: i === code.length ? '2px solid ' + accent : '1px solid var(--border-strong)'
+      })),
+      pad: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map((d) => ({
+        d, press: () => { if (this.state.code.length < 6) this.setState({ code: this.state.code + d }); }
+      })),
+      clearCode: () => this.setState({ code: '' }),
+      codeComplete: code.length === 6,
+      codeIncomplete: code.length < 6
+    };
+  }
+}
+</script>
+</body>
+</html>

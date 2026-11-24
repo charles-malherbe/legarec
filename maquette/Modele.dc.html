@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Legarec – Modèle de document</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Lora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+/* tokens:start — charte graphique LEGAREC v1.0 (octobre 2026). Ne pas modifier à la main : généré depuis tools/tokens.css */
+:root{
+  /* Marque */
+  --marine:#002B74; --marine-hover:#00225C; --marine-text:#002B74; --app-icon-bg:#002B74; --app-icon-fg:#FCBE03; --nuit:#001B4D; --or:#FCBE03; --or-clair:#FFF3C4; --ardoise:#5D7087;
+  --bleu-pale:#EEF2F8; --gris-clair:#F6F8FB; --bleu-200:#D6E0F0; --white:#FFFFFF;
+  /* Texte */
+  --text:#0F1B2D; --text-2:#33455C; --text-3:#5D7087; --on-primary:#FFFFFF;
+  /* Surfaces et bordures */
+  --surface:#FFFFFF; --surface-2:#F6F8FB; --surface-3:#EEF2F7; --border:#E1E7EF; --border-strong:#7D8DA1;
+  /* Surfaces sombres (carte d'appel, barre d'actions groupées) */
+  --surface-dark:#001B4D; --surface-dark-2:#0B2D63; --border-dark:#2A4A7D; --on-dark:#FFFFFF; --on-dark-2:#D5DEEB; --on-dark-muted:#A9B8CC; --on-dark-accent:#B8CBEA;
+  /* Données (graphiques, balance âgée) */
+  --data-1:#C9D6EC; --data-2:#7F9CD0; --data-3:#345DA8;
+  /* Tons sémantiques : fond, bordure, point, texte */
+  --success-bg:#ECFDF5; --success-border:#A7F3D0; --success:#059669; --success-strong:#10B981; --success-fg:#047857; --on-success:#052E16;
+  --warning-bg:#FFF3C4; --warning-border:#F5D77A; --warning:#D97706; --warning-fg:#8A4B08;
+  --danger-bg:#FFF1F2; --danger-border:#FECDD3; --danger:#E11D48; --danger-fg:#BE123C; --danger-dark:#7F1D1D; --danger-on-dark:#FDA4AF;
+  --info-bg:#F0F9FF; --info-border:#BAE6FD; --info:#0284C7; --info-fg:#0369A1;
+  --violet-bg:#F5F3FF; --violet-border:#DDD6FE; --violet:#7C3AED; --violet-fg:#6D28D9;
+  --teal-bg:#CCFBF1; --teal:#0D9488; --teal-fg:#115E59;
+  /* Fonds pleins (badges pleins, texte --on-primary ≥ 5:1 dans les deux modes) */
+  --solid-neutral:#33455C; --solid-info:#0369A1; --solid-success:#047857; --solid-warning:#8A4B08; --solid-danger:#BE123C; --solid-violet:#6D28D9; --solid-teal:#115E59;
+  /* Typographie */
+  --font-title:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-text:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-brand:Lora, Georgia, serif; --font-mono:ui-monospace, SFMono-Regular, Menlo, monospace;
+  --fs-doc-xs:8px; --fs-doc-sm:9px; --fs-doc-md:10px; --fs-doc-lg:10.5px; --fs-2xs:11px; --fs-xs:12px; --fs-sm:13px; --fs-base:14px; --fs-md:16px; --fs-lg:18px; --fs-xl:20px; --fs-2xl:26px; --fs-3xl:34px;
+  /* Rayons */
+  --r-xs:4px; --r-sm:6px; --r-md:8px; --r-lg:12px; --r-full:9999px;
+  /* Ombres */
+  --shadow-sm:0 1px 2px 0 rgba(0,27,77,0.06); --shadow-md:0 10px 15px -3px rgba(0,27,77,0.10), 0 4px 6px -4px rgba(0,27,77,0.10); --shadow-lg:0 20px 25px -5px rgba(0,27,77,0.18), 0 8px 10px -6px rgba(0,27,77,0.12);
+  --shadow-knob:0 1px 2px rgba(0,27,77,0.25); --overlay:rgba(0,27,77,0.55);
+  /* Espacements (grille de 4 px) */
+  --sp-0h:2px; --sp-1:4px; --sp-1h:6px; --sp-2:8px; --sp-2h:10px; --sp-3:12px; --sp-3h:14px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px; --sp-10:40px; --sp-11:44px; --sp-12:48px;
+  /* Hauteurs de contrôles */
+  --control-xs:28px; --control-sm:36px; --control-md:40px; --control-lg:44px;
+  /* Voiles et anneaux (surfaces sombres, animations) */
+  --veil-8:rgba(255,255,255,0.08); --veil-18:rgba(255,255,255,0.18); --veil-25:rgba(255,255,255,0.25); --veil-35:rgba(255,255,255,0.35); --veil-80:rgba(255,255,255,0.8); --veil-85:rgba(255,255,255,0.85); --on-success-veil:rgba(5,46,22,0.35); --success-ring:rgba(16,185,129,0.55); --success-ring-0:rgba(16,185,129,0);
+  /* Cibles tactiles */
+  --target:44px;
+}
+body{font-family:var(--font-text);font-feature-settings:"cv11";-webkit-font-smoothing:antialiased}
+h1,h2{font-family:var(--font-title);font-weight:700;color:var(--marine);overflow-wrap:break-word;letter-spacing:-0.015em}
+[data-brand] h1,[data-brand] h2{font-family:var(--font-brand);letter-spacing:0}
+td,th,li,h3{overflow-wrap:break-word}
+:focus-visible{outline:2px solid var(--marine);outline-offset:2px}
+[data-dark] :focus-visible{outline-color:var(--or)}
+button:disabled,[aria-disabled="true"]{cursor:not-allowed !important;opacity:.55}
+button:not(:disabled):hover,a[href][style*="border-radius"]:hover{filter:brightness(.96)}
+tbody tr:hover{background-color:var(--surface-2)}
+[data-table-scroll]{max-height:min(68vh,720px);overflow:auto !important}
+[data-table-scroll] thead th{position:sticky;top:0;z-index:2;background:var(--surface-2);box-shadow:inset 0 -1px 0 var(--border)}
+[data-skeleton]{display:block;border-radius:var(--r-xs);background:linear-gradient(90deg,var(--surface-3) 25%,var(--bleu-pale) 50%,var(--surface-3) 75%);background-size:200% 100%;animation:lg-sk 1.2s ease-in-out infinite}
+@keyframes lg-sk{from{background-position:200% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+@media (pointer: coarse), (max-width: 767px){
+  button,select,input:not([type=checkbox]):not([type=radio]):not([type=range]),[role=tab],[role=menuitem],a[href][style*="display: inline-flex"],a[href][style*="height:"]{min-height:var(--target)}
+  input[type=checkbox],input[type=radio]{min-width:22px;min-height:22px}
+}
+/* Mode sombre : data-theme="dark" sur <html> */
+:root[data-theme="dark"]{
+  --marine:#2E5FC0; --marine-hover:#2A57B0; --marine-text:#9DB8F0; --app-icon-bg:#0A1A3F; --nuit:#071028; --or-clair:#3A2F0A; --ardoise:#9AA9BD;
+  --bleu-pale:#1B2A4A; --gris-clair:#0A1020; --bleu-200:#2B3E63; --white:#16203A;
+  --text:#E6ECF5; --text-2:#C3CEDD; --text-3:#9AA9BD;
+  --surface:#0F1729; --surface-2:#0A1020; --surface-3:#1A2438; --border:#26324A; --border-strong:#67778F;
+  --surface-dark:#050B1A; --surface-dark-2:#101C36; --border-dark:#24365A;
+  --data-1:#2B3E63; --data-2:#4F73B8; --data-3:#7F9CD0;
+  --success-bg:#0B2E22; --success-border:#14532D; --success-fg:#6EE7B7;
+  --warning-bg:#3A2F0A; --warning-border:#6B5310; --warning-fg:#FCD34D;
+  --danger-bg:#3B0D17; --danger-border:#7F1D2E; --danger-fg:#FDA4AF;
+  --info-bg:#0B2540; --info-border:#164E63; --info-fg:#7DD3FC;
+  --violet-bg:#24164A; --violet-border:#4C1D95; --violet-fg:#C4B5FD;
+  --teal-bg:#0B302C; --teal-fg:#5EEAD4;
+  --shadow-sm:0 1px 2px 0 rgba(0,0,0,0.4); --shadow-md:0 10px 15px -3px rgba(0,0,0,0.5); --shadow-lg:0 20px 25px -5px rgba(0,0,0,0.6); --overlay:rgba(0,0,0,0.65);
+  color-scheme:dark;
+}
+:root[data-theme="dark"] body{background:var(--surface-2);color:var(--text)}
+:root[data-theme="dark"] :focus-visible{outline-color:#9DB8F0}
+:root[data-theme="dark"] [data-dark]{border:1px solid var(--border-dark)}
+:root[data-theme="dark"] h1,:root[data-theme="dark"] h2,:root[data-theme="dark"] a[href]:not([style*="background"]){color:var(--marine-text)}
+:root[data-theme="dark"] [style*="color: var(--marine)"]:not([style*="background: var(--marine)"]){color:var(--marine-text) !important}
+:root[data-theme="dark"] img[src*="_blob"]{background:var(--white);border-radius:var(--r-sm)}
+/* Mode malvoyant : data-a11y="malvoyant" sur <html> — texte agrandi, contraste renforcé, cibles plus grandes */
+:root[data-a11y="malvoyant"]{
+  --fs-2xs:13px; --fs-xs:14px; --fs-sm:15px; --fs-base:17px; --fs-md:19px; --fs-lg:21px; --fs-xl:24px; --fs-2xl:30px; --fs-3xl:38px;
+  --control-xs:36px; --control-sm:44px; --control-md:48px; --control-lg:52px; --target:48px;
+  --text-3:var(--text-2); --ardoise:var(--text-2); --border:var(--border-strong);
+}
+:root[data-a11y="malvoyant"] body{line-height:1.6}
+:root[data-a11y="malvoyant"] [data-sb-nav][style*="width: 264px"]{width:312px !important}
+:root[data-a11y="malvoyant"] :focus-visible{outline:3px solid var(--or);outline-offset:3px;box-shadow:0 0 0 6px var(--marine)}
+:root[data-a11y="malvoyant"] a[href]:not([style*="background"]){text-decoration:underline;text-underline-offset:3px}
+:root[data-a11y="malvoyant"] button,:root[data-a11y="malvoyant"] select,:root[data-a11y="malvoyant"] input:not([type=checkbox]):not([type=radio]){min-height:var(--target)}
+:root[data-a11y="malvoyant"] input[type=checkbox],:root[data-a11y="malvoyant"] input[type=radio]{min-width:24px;min-height:24px}
+:root[data-a11y="malvoyant"][data-theme="dark"]{--text-3:#E6ECF5;--text-2:#E6ECF5}
+/* tokens:end */
+body{margin:0;font-family:var(--font-text);color:var(--text);background:var(--surface-2)}
+a{color:var(--marine)}a:hover{color:var(--marine)}
+button:focus-visible{outline:2px solid var(--marine);outline-offset:1px}
+[data-md-doc] h1,[data-md-doc] h2{font-family:var(--font-brand)}
+[data-md-field="on"]{background:var(--bleu-pale);color:var(--marine);border-radius:3px;box-shadow:inset 0 -1px 0 var(--marine);padding:0 2px}
+[data-md-field="bad"]{background:var(--danger-bg);color:var(--danger-fg);border-radius:3px;padding:0 2px}
+[data-md-in]:focus{outline:2px solid var(--marine);outline-offset:-1px}
+@media (min-width: 1280px){[data-md-preview]{position:sticky;top:var(--sp-4)}}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; background: var(--surface-2); font-family: var(--font-text); color: var(--text)">
+
+<div data-sb-wrap style="flex: 0 0 auto; max-width: 100%; display: flex; background: var(--surface-2); border-right: 1px solid var(--border)">
+<dc-import name="Sidebar" active="Reglages.dc.html" accent="{{accent}}" hint-size="264px,1100px"></dc-import>
+</div>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: var(--sp-8); box-sizing: border-box; display: flex; flex-direction: column; gap: var(--sp-6)">
+<dc-import name="Topbar" accent="{{accent}}" trail="{{trail}}" hint-size="100%,64px"></dc-import>
+<div data-page-body style="width: 100%; max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--sp-6)">
+
+<dc-import name="PageHeader" title="{{t.name}}" description="{{headDesc}}" accent="{{accent}}" status="{{headStatus}}" actions="{{headActions}}" stats="{{noStats}}" hint-size="100%,110px"></dc-import>
+
+<sc-if value="{{isWaiting}}" hint-placeholder-val="{{ false }}"><dc-import name="Alerte" tone="info" title="En attente de validation" text="{{waitText}}" layout="width: 100%" style="display: contents" hint-size="100%,72px"></dc-import></sc-if>
+
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-6); align-items: flex-start">
+
+<div style="flex: 1 1 460px; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-5)">
+
+<section aria-labelledby="md-a" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-4)">
+<h2 id="md-a" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Modèle</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--sp-3)">
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Modèle à modifier
+<select onChange="{{pickTpl}}" style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); background: var(--surface); color: var(--text)">
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="2"><optgroup label="{{g.label}}"><sc-for list="{{g.items}}" as="o" hint-placeholder-count="4"><option value="{{o.id}}" selected="{{o.sel}}">{{o.name}}</option></sc-for></optgroup></sc-for>
+</select></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Nom affiché dans l’application
+<input data-md-in type="text" value="{{t.name}}" readonly="readonly" style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); background: var(--surface); color: var(--text); box-sizing: border-box; width: 100%"></label>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-2)">
+<sc-for list="{{chips}}" as="c" hint-placeholder-count="3"><span style="display: inline-flex; align-items: center; gap: var(--sp-1h); padding: var(--sp-0h) var(--sp-2h); border-radius: var(--r-full); font-size: var(--fs-xs); font-weight: 600; background: var(--surface-3); color: var(--text-2)"><span style="font-weight: 500; color: var(--text-3)">{{c.k}}</span>{{c.v}}</span></sc-for>
+</div>
+</section>
+
+<section aria-labelledby="md-b" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-4)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-1)">
+<h2 id="md-b" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Fichier HTML du modèle</h2>
+<p style="margin: 0; font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Téléchargez le fichier, modifiez-le dans votre éditeur, puis importez la nouvelle version. Les champs de fusion s’écrivent <code style="font-family: var(--font-mono); color: var(--text-2)">{{example}}</code>.</p>
+</div>
+<div style="display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface-2)">
+<span aria-hidden="true" style="width: 40px; height: 48px; flex-shrink: 0; border-radius: var(--r-sm); background: var(--surface); border: 1px solid var(--border); display: flex; align-items: flex-end; justify-content: center; padding-bottom: 6px; box-sizing: border-box; font-size: var(--fs-2xs); font-weight: 700; color: var(--marine)">{{fileExt}}</span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px"><span style="font-size: var(--fs-base); font-weight: 600; font-family: var(--font-mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{fileName}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{fileMeta}}</span></span>
+<dc-import name="Bouton" variant="secondary" size="sm" icon="download" label="Télécharger" on-press="{{download}}" style="display: contents" hint-size="120px,32px"></dc-import>
+</div>
+<sc-if value="{{showDrop}}" hint-placeholder-val="{{ true }}">
+<div onDragOver="{{dragOver}}" onDrop="{{dropFile}}" style="display: flex; flex-direction: column; align-items: center; gap: var(--sp-2); padding: var(--sp-5); border: 2px dashed var(--border-strong); border-radius: var(--r-md); text-align: center">
+<span style="font-size: var(--fs-base); font-weight: 600">Déposez le fichier .html modifié ici</span>
+<span style="font-size: var(--fs-xs); color: var(--text-3)">ou</span>
+<div style="display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sp-2)">
+<dc-import name="Bouton" variant="primary" size="sm" icon="upload" label="Choisir un fichier" on-press="{{importOk}}" style="display: contents" hint-size="150px,32px"></dc-import>
+<dc-import name="Bouton" variant="ghost" size="sm" label="Démo : fichier avec erreurs" on-press="{{importBad}}" style="display: contents" hint-size="180px,32px"></dc-import>
+</div>
+<span style="font-size: var(--fs-xs); color: var(--text-3)">HTML en UTF-8, 500 Ko maximum, sans script ni ressource externe</span>
+</div>
+</sc-if>
+<sc-if value="{{showCheck}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-4); border: 1px solid {{checkBorder}}; border-radius: var(--r-md); background: {{checkBg}}">
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2)"><span style="font-size: var(--fs-base); font-weight: 600">{{checkTitle}}</span><span style="font-size: var(--fs-xs); color: var(--text-3); font-family: var(--font-mono)">{{importName}}</span></div>
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-1h)">
+<sc-for list="{{checks}}" as="c" hint-placeholder-count="4"><li style="display: flex; gap: var(--sp-2); font-size: var(--fs-sm); line-height: 1.45"><span aria-hidden="true" style="flex-shrink: 0; width: 18px; font-weight: 700; color: {{c.color}}">{{c.icon}}</span><span><span style="font-weight: 500">{{c.label}}</span><sc-if value="{{c.hasDetail}}" hint-placeholder-val="{{ false }}"><span style="display: block; color: var(--text-2); font-family: var(--font-mono); font-size: var(--fs-xs)">{{c.detail}}</span></sc-if></span></li></sc-for>
+</ul>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-2)">
+<sc-if value="{{checkOk}}" hint-placeholder-val="{{ true }}"><dc-import name="Bouton" variant="primary" size="sm" label="Soumettre pour validation" on-press="{{submit}}" style="display: contents" hint-size="180px,32px"></dc-import></sc-if>
+<sc-if value="{{checkKo}}" hint-placeholder-val="{{ false }}"><dc-import name="Bouton" variant="primary" size="sm" icon="upload" label="Importer un fichier corrigé" on-press="{{importOk}}" style="display: contents" hint-size="180px,32px"></dc-import></sc-if>
+<dc-import name="Bouton" variant="secondary" size="sm" label="Annuler l’import" on-press="{{cancelImport}}" style="display: contents" hint-size="120px,32px"></dc-import>
+</div>
+</div>
+</sc-if>
+<div style="display: flex; flex-direction: column; gap: var(--sp-2)">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--sp-2)"><span style="font-size: var(--fs-sm); font-weight: 600; color: var(--text-2)">Champs utilisés dans ce modèle ({{usedCount}})</span><a href="champs-de-fusion.html" target="_blank" rel="noopener" style="font-size: var(--fs-sm); font-weight: 500; text-decoration: none">Liste complète des champs de fusion ↗</a></div>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-1h)"><sc-for list="{{used}}" as="u" hint-placeholder-count="6"><span title="{{u.ex}}" style="padding: var(--sp-0h) var(--sp-2); border-radius: var(--r-sm); background: var(--bleu-pale); color: var(--marine); font-family: var(--font-mono); font-size: var(--fs-xs)">{{u.code}}</span></sc-for></div>
+</div>
+</section>
+
+<section aria-labelledby="md-c" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-3)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-1)">
+<h2 id="md-c" style="margin: 0; font-size: var(--fs-md); font-weight: 600; display: flex; align-items: center; gap: var(--sp-2)"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="M5 11h14a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1zM8 11V7a4 4 0 0 1 8 0v4"></path></svg>Mentions imposées</h2>
+<p style="margin: 0; font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">{{lockedIntro}} Bloc à placer dans le fichier : <code style="font-family: var(--font-mono); color: var(--marine)">{{partial}}</code></p>
+</div>
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-2)">
+<sc-for list="{{locked}}" as="m" hint-placeholder-count="5"><li style="display: flex; gap: var(--sp-2h); font-size: var(--fs-sm); line-height: 1.45; color: var(--text-2)"><span aria-hidden="true" style="color: var(--success-fg); flex-shrink: 0">✓</span><span>{{m}}</span></li></sc-for>
+</ul>
+<span style="font-size: var(--fs-xs); color: var(--text-3)">Textes à faire valider par votre juriste avant mise en production.</span>
+</section>
+
+<section aria-labelledby="md-d" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden">
+<div style="padding: var(--sp-4) var(--sp-5); border-bottom: 1px solid var(--border)"><h2 id="md-d" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Historique des versions</h2></div>
+<ol style="list-style: none; margin: 0; padding: 0">
+<sc-for list="{{versions}}" as="v" hint-placeholder-count="4">
+<li style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); padding: var(--sp-3) var(--sp-5); border-top: 1px solid var(--surface-3)">
+<span style="width: 36px; flex-shrink: 0; font-size: var(--fs-sm); font-weight: 700; color: var(--text-2); font-variant-numeric: tabular-nums">{{v.no}}</span>
+<span style="flex: 1; min-width: 180px; display: flex; flex-direction: column; gap: 1px"><span style="font-size: var(--fs-base); font-weight: 500">{{v.what}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{v.who}}</span></span>
+<dc-import name="Badge" label="{{v.state}}" tone="{{v.tone}}" size="sm" style="display: contents" hint-size="80px,22px"></dc-import>
+<sc-if value="{{v.canRestore}}" hint-placeholder-val="{{ false }}"><dc-import name="Bouton" variant="ghost" size="sm" label="Restaurer" on-press="{{v.restore}}" style="display: contents" hint-size="90px,32px"></dc-import></sc-if>
+</li>
+</sc-for>
+</ol>
+</section>
+
+</div>
+
+<section data-md-preview aria-labelledby="md-p" style="flex: 1 1 520px; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-3)">
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2) var(--sp-3)">
+<h2 id="md-p" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Aperçu</h2>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3)">
+<label style="display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-sm); color: var(--text-2)">Avec
+<select onChange="{{pickSample}}" aria-label="Dossier utilisé pour l'aperçu" style="height: var(--control-sm); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-2); font: inherit; font-size: var(--fs-sm); background: var(--surface); color: var(--text)"><sc-for list="{{samples}}" as="s" hint-placeholder-count="2"><option value="{{s.id}}" selected="{{s.sel}}">{{s.label}}</option></sc-for></select></label>
+<dc-import name="Interrupteur" checked="{{hl}}" on-toggle="{{toggleHl}}" label="Repérer les champs" label-position="end" size="sm" style="display: contents" hint-size="160px,24px"></dc-import>
+</div>
+</div>
+
+<div data-md-doc style="background: var(--surface-3); border-radius: var(--r-lg); padding: var(--sp-5); display: flex; justify-content: center">
+
+<sc-if value="{{isLetter}}" hint-placeholder-val="{{ true }}">
+<article aria-label="Aperçu du document" style="width: 100%; max-width: 620px; min-height: 760px; box-sizing: border-box; background: var(--white); color: #1E2733; box-shadow: var(--shadow-md); border-radius: 2px; padding: 44px 48px; display: flex; flex-direction: column; gap: 18px; font-size: 13px; line-height: 1.6">
+<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 2px; font-size: 11.5px; color: #4A5668"><span style="font-family: var(--font-brand); font-size: 20px; font-weight: 700; color: #002B74">Legarec</span><span>Cabinet de recouvrement amiable</span><span>Paris · 01 87 88 02 98</span><span>administratif@legarec.fr</span></div>
+<sc-if value="{{isLrar}}" hint-placeholder-val="{{ false }}"><span style="font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; border: 1.5px solid #1E2733; padding: 4px 8px">Lettre recommandée avec AR</span></sc-if>
+</div>
+<div style="align-self: flex-end; width: 46%; display: flex; flex-direction: column; font-size: 12.5px"><sc-for list="{{addr}}" as="p" hint-placeholder-count="2"><span style="white-space: pre-line"><sc-for list="{{p.parts}}" as="x" hint-placeholder-count="3"><span data-md-field="{{x.f}}" title="{{x.tip}}">{{x.t}}</span></sc-for></span></sc-for></div>
+<span style="align-self: flex-end; font-size: 12.5px">{{placeDate}}</span>
+<sc-if value="{{hasSubject}}" hint-placeholder-val="{{ true }}"><p style="margin: 0; font-weight: 700"><sc-for list="{{subjectParts}}" as="p" hint-placeholder-count="1">Objet : <sc-for list="{{p.parts}}" as="x" hint-placeholder-count="3"><span data-md-field="{{x.f}}" title="{{x.tip}}">{{x.t}}</span></sc-for></sc-for></p></sc-if>
+<sc-for list="{{paras}}" as="p" hint-placeholder-count="4"><p style="margin: 0; white-space: pre-line"><sc-for list="{{p.parts}}" as="x" hint-placeholder-count="3"><span data-md-field="{{x.f}}" title="{{x.tip}}">{{x.t}}</span></sc-for></p></sc-for>
+<div style="display: flex; flex-direction: column; gap: 2px"><sc-for list="{{sign}}" as="p" hint-placeholder-count="2"><span><sc-for list="{{p.parts}}" as="x" hint-placeholder-count="3"><span data-md-field="{{x.f}}" title="{{x.tip}}">{{x.t}}</span></sc-for></span></sc-for></div>
+<div style="margin-top: auto; padding-top: 12px; border-top: 1px solid #D5DCE6; display: flex; flex-direction: column; gap: 4px; font-size: 10px; line-height: 1.5; color: #5D6B7E">
+<span style="display: flex; align-items: center; gap: 4px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="M5 11h14a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1zM8 11V7a4 4 0 0 1 8 0v4"></path></svg>Mentions obligatoires, ajoutées automatiquement</span>
+<sc-for list="{{footLines}}" as="m" hint-placeholder-count="3"><span>{{m}}</span></sc-for>
+</div>
+</article>
+</sc-if>
+
+<sc-if value="{{isInvoice}}" hint-placeholder-val="{{ false }}">
+<article aria-label="Aperçu du document" style="width: 100%; max-width: 620px; min-height: 760px; box-sizing: border-box; background: var(--white); color: #1E2733; box-shadow: var(--shadow-md); border-radius: 2px; padding: 44px 48px; display: flex; flex-direction: column; gap: 18px; font-size: 12.5px; line-height: 1.55">
+<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 2px; font-size: 11.5px; color: #4A5668"><span style="font-family: var(--font-brand); font-size: 20px; font-weight: 700; color: #002B74">Legarec</span><span>Cabinet de recouvrement amiable</span><span>Paris · SIREN [SIREN] · TVA [n° TVA]</span></div>
+<div style="text-align: right; display: flex; flex-direction: column; gap: 2px"><span style="font-family: var(--font-brand); font-size: 20px; font-weight: 700; color: #002B74">{{docTitle}}</span><span style="font-size: 11.5px; color: #4A5668; font-variant-numeric: tabular-nums">{{docMeta}}</span></div>
+</div>
+<div style="align-self: flex-end; width: 46%; display: flex; flex-direction: column; font-size: 12px"><span style="font-size: 10.5px; color: #5D6B7E; text-transform: uppercase; letter-spacing: 0.04em">Client</span><sc-for list="{{addr}}" as="p" hint-placeholder-count="2"><span style="white-space: pre-line"><sc-for list="{{p.parts}}" as="x" hint-placeholder-count="3"><span data-md-field="{{x.f}}" title="{{x.tip}}">{{x.t}}</span></sc-for></span></sc-for></div>
+<sc-if value="{{hasSubject}}" hint-placeholder-val="{{ true }}"><p style="margin: 0; font-weight: 700"><sc-for list="{{subjectParts}}" as="p" hint-placeholder-count="1"><sc-for list="{{p.parts}}" as="x" hint-placeholder-count="3"><span data-md-field="{{x.f}}" title="{{x.tip}}">{{x.t}}</span></sc-for></sc-for></p></sc-if>
+<table style="width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums">
+<thead><tr style="text-align: left; color: #5D6B7E; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em"><th style="padding: 6px 0; border-bottom: 1.5px solid #1E2733; font-weight: 600">Désignation</th><th style="padding: 6px 0; border-bottom: 1.5px solid #1E2733; font-weight: 600; text-align: right">Montant HT</th></tr></thead>
+<tbody><sc-for list="{{lines}}" as="l" hint-placeholder-count="2"><tr><td style="padding: 8px 12px 8px 0; border-bottom: 1px solid #E3E8EF"><span style="display: block">{{l.d}}</span><span style="font-size: 11px; color: #5D6B7E">{{l.s}}</span></td><td style="padding: 8px 0; border-bottom: 1px solid #E3E8EF; text-align: right; white-space: nowrap">{{l.a}}</td></tr></sc-for></tbody>
+</table>
+<div style="align-self: flex-end; width: 52%; display: flex; flex-direction: column; gap: 4px; font-variant-numeric: tabular-nums"><sc-for list="{{totals}}" as="x" hint-placeholder-count="3"><div style="display: flex; justify-content: space-between; gap: 12px; font-weight: {{x.w}}; border-top: {{x.b}}; padding-top: {{x.pt}}"><span>{{x.k}}</span><span>{{x.v}}</span></div></sc-for></div>
+<sc-for list="{{paras}}" as="p" hint-placeholder-count="2"><p style="margin: 0; white-space: pre-line"><sc-for list="{{p.parts}}" as="x" hint-placeholder-count="3"><span data-md-field="{{x.f}}" title="{{x.tip}}">{{x.t}}</span></sc-for></p></sc-for>
+<div style="margin-top: auto; padding-top: 12px; border-top: 1px solid #D5DCE6; display: flex; flex-direction: column; gap: 4px; font-size: 10px; line-height: 1.5; color: #5D6B7E">
+<span style="display: flex; align-items: center; gap: 4px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="M5 11h14a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1zM8 11V7a4 4 0 0 1 8 0v4"></path></svg>Mentions obligatoires, ajoutées automatiquement</span>
+<sc-for list="{{footLines}}" as="m" hint-placeholder-count="3"><span>{{m}}</span></sc-for>
+</div>
+</article>
+</sc-if>
+
+<sc-if value="{{isEmail}}" hint-placeholder-val="{{ false }}">
+<article aria-label="Aperçu de l'e-mail" style="width: 100%; max-width: 620px; box-sizing: border-box; background: var(--white); color: #1E2733; box-shadow: var(--shadow-md); border-radius: var(--r-md); overflow: hidden; font-size: 13.5px; line-height: 1.6">
+<div style="padding: 14px 20px; border-bottom: 1px solid #E3E8EF; display: flex; flex-direction: column; gap: 2px; font-size: 12.5px; color: #4A5668"><span><b style="color: #1E2733">De :</b> Legarec &lt;recouvrement@legarec.fr&gt;</span><sc-for list="{{addr}}" as="p" hint-placeholder-count="1"><span><b style="color: #1E2733">À :</b> <sc-for list="{{p.parts}}" as="x" hint-placeholder-count="3"><span data-md-field="{{x.f}}" title="{{x.tip}}">{{x.t}}</span></sc-for></span></sc-for><sc-for list="{{subjectParts}}" as="p" hint-placeholder-count="1"><span><b style="color: #1E2733">Objet :</b> <sc-for list="{{p.parts}}" as="x" hint-placeholder-count="3"><span data-md-field="{{x.f}}" title="{{x.tip}}">{{x.t}}</span></sc-for></span></sc-for></div>
+<div style="padding: 20px; display: flex; flex-direction: column; gap: 14px"><sc-for list="{{paras}}" as="p" hint-placeholder-count="3"><p style="margin: 0; white-space: pre-line"><sc-for list="{{p.parts}}" as="x" hint-placeholder-count="3"><span data-md-field="{{x.f}}" title="{{x.tip}}">{{x.t}}</span></sc-for></p></sc-for>
+<div style="padding-top: 12px; border-top: 1px solid #E3E8EF; display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #5D6B7E"><sc-for list="{{footLines}}" as="m" hint-placeholder-count="2"><span>{{m}}</span></sc-for></div></div>
+</article>
+</sc-if>
+
+<sc-if value="{{isSms}}" hint-placeholder-val="{{ false }}">
+<article aria-label="Aperçu du SMS" style="width: 320px; max-width: 100%; box-sizing: border-box; background: var(--white); box-shadow: var(--shadow-md); border-radius: 28px; padding: 18px 16px 28px; display: flex; flex-direction: column; gap: 10px; color: #1E2733">
+<span style="align-self: center; font-size: 12px; font-weight: 600; color: #4A5668">LEGAREC</span>
+<span style="align-self: center; font-size: 10.5px; color: #8593A6">Aujourd'hui 10:12</span>
+<div style="align-self: flex-start; max-width: 88%; background: #E9EDF3; border-radius: 18px 18px 18px 4px; padding: 10px 13px; font-size: 13.5px; line-height: 1.45"><sc-for list="{{paras}}" as="p" hint-placeholder-count="1"><span style="white-space: pre-line"><sc-for list="{{p.parts}}" as="x" hint-placeholder-count="3"><span data-md-field="{{x.f}}" title="{{x.tip}}">{{x.t}}</span></sc-for></span></sc-for><sc-for list="{{footLines}}" as="m" hint-placeholder-count="1"><span style="display: block; margin-top: 6px; color: #5D6B7E">{{m}}</span></sc-for></div>
+</article>
+</sc-if>
+
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-2)">
+<dc-import name="Bouton" variant="secondary" size="sm" icon="download" label="Télécharger l'aperçu (PDF)" on-press="{{pdf}}" style="display: contents" hint-size="180px,32px"></dc-import>
+<dc-import name="Bouton" variant="ghost" size="sm" icon="send" label="M'envoyer un test" on-press="{{sendTest}}" style="display: contents" hint-size="150px,32px"></dc-import>
+</div>
+</section>
+
+</div>
+
+</div>
+</main>
+<dc-import name="Confirm" open="{{cf.open}}" tone="primary" title="{{cf.title}}" body="{{cf.body}}" details="{{cf.details}}" confirm-label="{{cf.label}}" on-confirm="{{cf.confirm}}" on-cancel="{{cf.cancel}}" accent="{{accent}}" hint-size="0px,0px"></dc-import>
+<dc-import name="Toast" open="{{toastOpen}}" message="{{toastMsg}}" tone="success" action-label="{{toastAction}}" on-action="{{toastUndo}}" on-close="{{toastClose}}" hint-size="0px,0px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#002B74","options":["#002B74","#001B4D","#5D7087"]},"$preview":{"width":1440,"height":1400}}'>
+const KNOWN = {"debiteur.raison_sociale": "Bâtiplus SAS", "debiteur.adresse": "14 rue des Forges, 69007 Lyon", "debiteur.siret": "512 384 920 00027", "debiteur.contact": "M. Julien Garnier", "debiteur.email": "compta@batiplus.fr", "debiteur.telephone": "04 78 61 22 90", "creance.principal": "48 200,00 €", "creance.interets": "1 128,40 €", "creance.indemnites": "120,00 €", "creance.frais": "0,00 €", "creance.total": "49 448,40 €", "creance.deja_paye": "0,00 €", "creance.anciennete": "70 jours", "creance.factures": "3 factures", "facture.numero": "F-2026-0712", "facture.date": "14/08/2026", "facture.echeance": "14/09/2026", "facture.montant": "18 600,00 €", "creancier.nom": "Matériaux Delta", "creancier.adresse": "ZI des Platanes, 38070 Saint-Quentin-Fallavier", "creancier.siren": "401 228 975", "dossier.reference": "LGR-2026-04812", "dossier.gestionnaire": "Camille Laurent", "dossier.gestionnaire_telephone": "01 87 88 02 98", "date.jour": "23 novembre 2026", "date.limite": "1er décembre 2026", "paiement.lien": "paiement.legarec.fr/7F3A2C", "paiement.iban": "FR76 •••• •••• 0142", "echeancier.mensualites": "4", "echeancier.montant": "12 362,10 €", "echeancier.premiere_date": "5 janvier 2027", "document.numero": "FA-2026-0118", "document.date": "23 novembre 2026", "document.echeance": "23 décembre 2026", "document.periode": "octobre 2026", "document.lignes": "2 lignes", "ligne.designation": "Commission de recouvrement", "ligne.detail": "Sommes recouvrées : 45 200,00 €", "ligne.montant_ht": "5 424,00 €", "document.total_ht": "5 447,40 €", "document.tva": "1 089,48 €", "document.total_ttc": "6 536,88 €", "client.nom": "Matériaux Delta", "client.adresse": "ZI des Platanes, 38070 Saint-Quentin-Fallavier", "client.siren": "401 228 975", "client.tva": "FR52 401 228 975", "client.contact": "Mme Sophie Delattre", "commission.taux": "12 %", "cabinet.nom": "Legarec", "cabinet.adresse": "[adresse du cabinet], Paris", "cabinet.telephone": "01 87 88 02 98", "cabinet.email": "administratif@legarec.fr", "cabinet.siren": "[SIREN]", "cabinet.tva": "[n° TVA]"};
+const SAMPLES = {
+  bp: { label: 'Bâtiplus SAS · Matériaux Delta', v: {
+    'debiteur.raison_sociale': 'Bâtiplus SAS', 'debiteur.adresse': '14 rue des Forges\n69007 Lyon', 'debiteur.siret': '512 384 920 00027', 'debiteur.contact': 'M. Julien Garnier', 'debiteur.telephone': '04 78 61 22 90',
+    'creance.factures': 'F-2026-0712, F-2026-0745 et F-2026-0790', 'creance.principal': '48 200,00 €', 'creance.interets': '1 128,40 €', 'creance.indemnites': '120,00 €', 'creance.total': '49 448,40 €', 'creance.anciennete': '70 jours',
+    'creancier.nom': 'Matériaux Delta', 'creancier.adresse': 'ZI des Platanes, 38070 Saint-Quentin-Fallavier', 'creancier.siren': '401 228 975',
+    'dossier.reference': 'LGR-2026-04812', 'dossier.gestionnaire': 'Camille Laurent', 'date.jour': '23 novembre 2026', 'date.limite': '1er décembre 2026', 'paiement.lien': 'paiement.legarec.fr/7F3A2C', 'echeancier.mensualites': '4', 'echeancier.montant': '12 362,10 €',
+    'document.numero': 'FA-2026-0118', 'document.periode': 'octobre 2026', 'document.echeance': '23 décembre 2026', 'client.nom': 'Matériaux Delta', 'client.adresse': 'ZI des Platanes\n38070 Saint-Quentin-Fallavier', 'client.contact': 'Mme Sophie Delattre', 'commission.taux': '12 %'
+  } },
+  gh: { label: 'Groupe Hélio · Médiatel', v: {
+    'debiteur.raison_sociale': 'Groupe Hélio', 'debiteur.adresse': '3 avenue Jean-Jaurès\n13002 Marseille', 'debiteur.siret': '830 115 774 00012', 'debiteur.contact': 'Mme Nadia Ferhat', 'debiteur.telephone': '04 91 08 44 17',
+    'creance.factures': 'F-2026-0533', 'creance.principal': '36 750,00 €', 'creance.interets': '642,80 €', 'creance.indemnites': '40,00 €', 'creance.total': '37 432,80 €', 'creance.anciennete': '41 jours',
+    'creancier.nom': 'Médiatel', 'creancier.adresse': '27 quai Perrache, 69002 Lyon', 'creancier.siren': '183 016 617',
+    'dossier.reference': 'LGR-2026-05107', 'dossier.gestionnaire': 'Sarah Morel', 'date.jour': '23 novembre 2026', 'date.limite': '1er décembre 2026', 'paiement.lien': 'paiement.legarec.fr/9B21E4', 'echeancier.mensualites': '6', 'echeancier.montant': '6 238,80 €',
+    'document.numero': 'FA-2026-0119', 'document.periode': 'octobre 2026', 'document.echeance': '23 décembre 2026', 'client.nom': 'Médiatel', 'client.adresse': '27 quai Perrache\n69002 Lyon', 'client.contact': 'M. Olivier Brunet', 'commission.taux': '10 %'
+  } }
+};
+const L_RECO = [
+  'Legarec, cabinet de recouvrement amiable, Paris · SIREN [SIREN] · agissant pour le compte de {creancier.nom}, {creancier.adresse}.',
+  'Somme réclamée : principal {creance.principal}, intérêts {creance.interets}, indemnités forfaitaires {creance.indemnites} (art. L. 441-10 du Code de commerce). Fondement : factures {creance.factures} restées impayées.',
+  '[Reproduction des alinéas 3 et 4 de l’article L. 111-8 du Code des procédures civiles d’exécution : frais de recouvrement amiable.]',
+  'Vos données sont traitées pour le recouvrement de cette créance. Vos droits : dpo@legarec.fr.'
+];
+const M_RECO = [
+  'Identité et adresse du cabinet, et mention qu’il agit pour le compte du créancier',
+  'Nom ou dénomination sociale du créancier et son adresse',
+  'Fondement et montant de la somme due, en distinguant principal, intérêts et accessoires',
+  'Indication d’avoir à payer et modalités de paiement',
+  'Reproduction des alinéas 3 et 4 de l’article L. 111-8 du CPCE',
+  'Information sur le traitement des données personnelles (RGPD) et contact du DPO'
+];
+const L_FAC = [
+  'Paiement à 30 jours à réception. Pas d’escompte pour paiement anticipé.',
+  'En cas de retard : pénalités au taux de trois fois le taux d’intérêt légal et indemnité forfaitaire de 40 € pour frais de recouvrement (art. L. 441-10 du Code de commerce).',
+  'Legarec · SIREN [SIREN] · TVA intracommunautaire [n° TVA] · RCS Paris'
+];
+const M_FAC = [
+  'Numéro unique et date d’émission',
+  'Identité, SIREN et numéro de TVA du cabinet et du client',
+  'Désignation, montants HT, taux et montant de TVA, total TTC',
+  'Date d’échéance et conditions d’escompte',
+  'Taux des pénalités de retard et indemnité forfaitaire de 40 €'
+];
+const T = {
+  amiable: { name: 'Relance amiable', cat: 'rec', channel: 'Courrier', kind: 'lettre', v: 6, date: '12/09/2026', author: 'Camille Laurent', uses: 214, used: 'Scénario standard, étape J+15',
+    subject: 'Facture(s) impayée(s) – dossier {dossier.reference}',
+    body: 'Madame, Monsieur,\n\nSauf erreur de notre part, les factures {creance.factures} émises par {creancier.nom} restent impayées à ce jour, pour un montant de {creance.principal}.\n\nNous vous remercions de bien vouloir régler cette somme avant le {date.limite}, par virement ou en ligne sur {paiement.lien}.\n\nSi votre règlement est déjà parti, merci de ne pas tenir compte de ce courrier. En cas de difficulté, appelez-nous au 01 87 88 02 98 : nous pouvons étudier un échéancier.' },
+  ferme: { name: 'Relance ferme', cat: 'rec', channel: 'Courrier', kind: 'lettre', v: 3, date: '12/09/2026', author: 'Camille Laurent', uses: 128, used: 'Scénario standard, étape J+30',
+    subject: 'Deuxième relance – dossier {dossier.reference}',
+    body: 'Madame, Monsieur,\n\nMalgré notre précédent courrier, les factures {creance.factures} restent impayées. La somme due s’élève désormais à {creance.total}, indemnités forfaitaires comprises.\n\nNous vous demandons de régler cette somme avant le {date.limite}. Paiement en ligne : {paiement.lien}.\n\nSans règlement ni prise de contact de votre part, {creancier.nom} pourra engager une procédure judiciaire, dont les frais resteraient à votre charge.' },
+  demeure: { name: 'Mise en demeure', cat: 'rec', channel: 'LRAR', kind: 'lettre', lrar: true, v: 4, date: '03/10/2026', author: 'Camille Laurent', uses: 21, used: 'Scénario standard, étape J+60, après accord du créancier',
+    subject: 'Mise en demeure de payer – dossier {dossier.reference}',
+    body: 'Madame, Monsieur,\n\nMalgré nos relances, les factures {creance.factures} émises par {creancier.nom} demeurent impayées.\n\nPar la présente, nous vous mettons en demeure de régler la somme de {creance.total} au plus tard le {date.limite}, soit :\n– principal : {creance.principal}\n– intérêts de retard : {creance.interets}\n– indemnités forfaitaires : {creance.indemnites}\n\nVous pouvez payer par virement ou en ligne sur {paiement.lien}.\n\nÀ défaut de paiement dans ce délai, {creancier.nom} pourra saisir la juridiction compétente sans nouvel avis.' },
+  echeancier: { name: 'Proposition d’échéancier', cat: 'rec', channel: 'Courrier', kind: 'lettre', v: 2, date: '18/10/2026', author: 'Thomas Giraud', uses: 37, used: 'Rédiger un courrier, échéanciers',
+    subject: 'Proposition d’échéancier – dossier {dossier.reference}',
+    body: 'Madame, Monsieur,\n\nComme convenu, {creancier.nom} accepte que la somme de {creance.total} soit réglée en {echeancier.mensualites} mensualités de {echeancier.montant}.\n\nPour valider cet échéancier, signez-le en ligne sur {paiement.lien} avant le {date.limite}. Les prélèvements commenceront le mois suivant.\n\nUn retard de paiement rendrait l’échéancier caduc et la totalité de la somme immédiatement exigible.' },
+  attestation: { name: 'Attestation de solde', cat: 'rec', channel: 'Courrier', kind: 'lettre', v: 1, date: '02/06/2026', author: 'Camille Laurent', uses: 19, used: 'Clôture d’un dossier réglé',
+    subject: 'Attestation de solde – dossier {dossier.reference}',
+    body: 'Madame, Monsieur,\n\nNous attestons que {debiteur.raison_sociale} a réglé l’intégralité des sommes dues à {creancier.nom} au titre des factures {creance.factures}.\n\nLe dossier {dossier.reference} est clos. Aucune autre somme ne vous sera réclamée à ce titre.' },
+  rappel: { name: 'Rappel avant échéance', cat: 'rec', channel: 'E-mail', kind: 'email', v: 5, date: '30/08/2026', author: 'Thomas Giraud', uses: 402, used: 'Scénario préventif, J−3',
+    subject: 'Rappel : facture {creance.factures} à régler le {date.limite}',
+    body: 'Bonjour {debiteur.contact},\n\nPour rappel, le règlement de {creance.principal} à {creancier.nom} est attendu le {date.limite}.\n\nVous pouvez payer en quelques clics : {paiement.lien}\n\nSi c’est déjà fait, merci et bonne journée.\nL’équipe Legarec' },
+  sms21: { name: 'Relance SMS J+21', cat: 'rec', channel: 'SMS', kind: 'sms', v: 7, date: '05/11/2026', author: 'Camille Laurent', uses: 1196, used: 'Scénario standard, étape J+21',
+    body: 'Legarec pour {creancier.nom} : {creance.principal} dus (dossier {dossier.reference}). Payez sur {paiement.lien} ou au 01 87 88 02 98.' },
+  fac_com: { name: 'Facture de commission mensuelle', cat: 'fac', channel: 'Facture', kind: 'facture', v: 3, date: '28/09/2026', author: 'Marie Dubreuil', uses: 5, used: 'Facturation, émission mensuelle',
+    subject: 'Commission de recouvrement – {document.periode}',
+    body: 'Commission calculée au taux de {commission.taux} sur les sommes recouvrées en {document.periode}, déduite du reversement du mois.\n\nÀ régler avant le {document.echeance}. Pour toute question : administratif@legarec.fr.',
+    lines: [['Commission de recouvrement', 'Sommes recouvrées : 45 200,00 €', '5 424,00 €'], ['Frais refacturés', '3 lettres recommandées', '23,40 €']], totals: ['5 447,40 €', '1 089,48 €', '6 536,88 €'] },
+  fac_frais: { name: 'Refacturation de frais de procédure', cat: 'fac', channel: 'Facture', kind: 'facture', v: 2, date: '14/10/2026', author: 'Marie Dubreuil', uses: 2, used: 'Facturation, frais avancés',
+    subject: 'Frais de procédure avancés – dossier {dossier.reference}',
+    body: 'Frais avancés par Legarec pour le compte de {client.nom} dans le dossier {dossier.reference}, sur justificatifs joints.\n\nÀ régler avant le {document.echeance}.',
+    lines: [['Signification par commissaire de justice', 'Acte du 02/11/2026', '86,40 €'], ['Frais de greffe', 'Requête en injonction de payer', '33,47 €']], totals: ['119,87 €', '23,97 €', '143,84 €'] },
+  fac_forfait: { name: 'Facture forfaitaire', cat: 'fac', channel: 'Facture', kind: 'facture', v: 1, date: '05/05/2026', author: 'Marie Dubreuil', uses: 1, used: 'Facturation, prestations ponctuelles',
+    subject: 'Prestation forfaitaire – {document.periode}',
+    body: 'Prestation réalisée pour {client.nom} selon le devis accepté.\n\nÀ régler avant le {document.echeance}.',
+    lines: [['Mise en place du portefeuille', 'Import et contrôle de 248 créances', '1 200,00 €']], totals: ['1 200,00 €', '240,00 €', '1 440,00 €'] },
+  dev_amiable: { name: 'Devis recouvrement amiable', cat: 'fac', channel: 'Devis', kind: 'facture', devis: true, v: 2, date: '21/09/2026', author: 'Marie Dubreuil', uses: 3, used: 'Facturation, prospects',
+    subject: 'Proposition de recouvrement amiable pour {client.nom}',
+    body: 'Bonjour {client.contact},\n\nVoici notre proposition pour le recouvrement amiable de vos créances : aucune avance de frais, commission de {commission.taux} sur les seules sommes recouvrées.\n\nDevis valable 30 jours.',
+    lines: [['Commission sur sommes recouvrées', 'Taux appliqué sur encaissement', '{commission.taux}'], ['Frais de dossier', 'Offerts', '0,00 €']], totals: ['0,00 €', '0,00 €', '0,00 €'] },
+  con_convention: { name: 'Convention de recouvrement amiable', cat: 'fac', channel: 'Contrat', kind: 'lettre', contract: true, v: 2, date: '12/03/2026', author: 'Marie Dubreuil', uses: 1, used: 'Facturation, contrats (signature électronique)',
+    subject: 'Convention de recouvrement amiable entre Legarec et {client.nom}',
+    body: 'Article 1 – Objet\n{client.nom} confie à Legarec le recouvrement amiable de ses créances commerciales impayées.\n\nArticle 2 – Rémunération\nLegarec perçoit une commission de {commission.taux} des sommes effectivement recouvrées, déduite des reversements.\n\nArticle 3 – Reversements\nLes sommes encaissées sont reversées chaque mois, accompagnées d’un relevé détaillé.\n\nArticle 4 – Durée\nLa convention est conclue pour un an, renouvelable par tacite reconduction.' }
+};
+const GROUPS = [['rec', 'Recouvrement'], ['fac', 'Facturation']];
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { id: 'demeure', sample: 'bp', hl: true, edits: {}, status: {}, ask: false, toast: null, me: 'RESP', imp: {} };
+  }
+  componentDidMount() {
+    try {
+      const id = localStorage.getItem('lg-tpl');
+      const me = localStorage.getItem('lg-role');
+      const st = {};
+      if (id && T[id]) st.id = id;
+      if (me) st.me = me;
+      this.setState(st);
+    } catch (e) {}
+  }
+  componentWillUnmount() { clearTimeout(this.tt); }
+  cur() { const t = T[this.state.id]; const e = this.state.edits[this.state.id] || {}; return { subject: e.subject ?? t.subject ?? '', body: e.body ?? t.body }; }
+  setEdit(k, v) { const id = this.state.id; const e = { ...(this.state.edits[id] || {}), [k]: v }; this.setState({ edits: { ...this.state.edits, [id]: e }, status: { ...this.state.status, [id]: 'dirty' } }); }
+  toast(msg, undo) { clearTimeout(this.tt); this.setState({ toast: { msg, undo } }); this.tt = setTimeout(() => this.setState({ toast: null }), 6000); }
+  renderVals() {
+    const st = this.state;
+    const accent = this.props.accent ?? 'var(--marine)';
+    const t = T[st.id];
+    const c = this.cur();
+    const vals = SAMPLES[st.sample].v;
+    const known = KNOWN;
+    const bad = new Set();
+    const parts = (txt) => String(txt).split(/(\{[^{}\s]+\})/).filter((x) => x !== '').map((x) => {
+      const m = x.match(/^\{([^{}\s]+)\}$/);
+      if (!m) return { t: x, f: 'off', tip: '' };
+      if (!known[m[1]]) { bad.add(x); return { t: x, f: 'bad', tip: 'Champ inconnu' }; }
+      return { t: vals[m[1]], f: st.hl ? 'on' : 'off', tip: x };
+    });
+    const lineParts = (txt) => String(txt).split('\n').map((l) => ({ parts: parts(l) }));
+    const paras = c.body.split(/\n\s*\n/).map((p) => ({ parts: parts(p) }));
+    const subjectParts = [{ parts: parts(c.subject) }];
+    const kind = t.kind;
+    const isRec = t.cat === 'rec';
+    const status = st.status[st.id] || 'pub';
+    const ro = st.me === 'GESTIONNAIRE_CREANCES' ? 'readonly' : undefined;
+    const S = {
+      pub: { label: 'Version ' + t.v + ' publiée', color: 'var(--success)' },
+      imported: { label: 'Version ' + (t.v + 1) + ' importée, à soumettre', color: 'var(--warning)' },
+      draft: { label: 'Ancienne version restaurée, à soumettre', color: 'var(--warning)' },
+      wait: { label: 'En attente de validation', color: 'var(--info)' }
+    };
+    const smsLen = kind === 'sms' ? paras.map((p) => p.parts.map((x) => x.t).join('')).join('\n').length + 18 : 0;
+    const smsCount = smsLen <= 160 ? 1 : Math.ceil(smsLen / 153);
+    const versions = [
+      ...(status === 'imported' || status === 'draft' || status === 'wait' ? [{ no: 'v' + (t.v + 1), what: status === 'wait' ? 'Fichier importé, soumis pour validation' : 'Fichier importé, pas encore soumis', who: 'Camille Laurent · aujourd’hui', state: status === 'wait' ? 'À valider' : 'Importée', tone: status === 'wait' ? 'info' : 'warning', canRestore: false }] : []),
+      { no: 'v' + t.v, what: 'Version en service', who: t.author + ' · ' + t.date + ' · validée par Marie Dubreuil', state: 'Publiée', tone: 'success', canRestore: false },
+      ...[1, 2].filter((d) => t.v - d >= 1).map((d) => ({ no: 'v' + (t.v - d), what: d === 1 ? 'Délai de paiement passé de 15 à 8 jours' : 'Ajout du lien de paiement en ligne', who: (d === 1 ? 'Hugo Benali' : t.author) + ' · ' + (d === 1 ? '14/08/2026' : '02/05/2026'), state: 'Archivée', tone: 'neutral', canRestore: true, restore: () => { this.toast('Version ' + (t.v - d) + ' copiée dans un nouveau brouillon.'); this.setState({ status: { ...st.status, [st.id]: 'draft' } }); } }))
+    ];
+    const imp = st.imp[st.id] || null;
+    const setImp = (v) => this.setState({ imp: { ...st.imp, [st.id]: v }, status: { ...st.status, [st.id]: v === 'ok' ? 'imported' : 'pub' } });
+    const slug = t.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const fileName = slug + '-v' + t.v + '.' + (kind === 'sms' ? 'txt' : 'html');
+    const partial = kind === 'sms' ? '{{> mention_sms}}' : isRec ? '{{> mentions_recouvrement}}' : t.contract ? '{{> en_tete}}' : '{{> mentions_facture}}';
+    const usedList = Array.from(new Set((c.subject + ' ' + c.body + ' ' + (isRec ? '{debiteur.raison_sociale} {debiteur.adresse}' : '{client.nom} {client.adresse}')).match(/\{[^{}\s]+\}/g) || [])).map((x) => ({ code: '{' + x + '}', ex: String(KNOWN[x.slice(1, -1)] || '') }));
+    const lines = (t.lines || []).map(([d, s, a]) => ({ d, s, a: parts(a).map((x) => x.t).join('') }));
+    const trail = 'Paramètres>Reglages.dc.html|Modèles de documents>Reglages.dc.html|' + t.name;
+    const ex = '{debiteur.raison_sociale}';
+    return {
+      accent, t, ro, noStats: [],
+      trail,
+      headDesc: t.channel + ' · ' + (isRec ? 'Recouvrement' : 'Facturation') + ' · utilisé ' + t.uses.toLocaleString('fr-FR') + ' fois ce mois · ' + t.used,
+      headStatus: S[status],
+      headActions: [
+        { label: 'Liste des champs de fusion', href: 'champs-de-fusion.html' },
+        { label: 'Télécharger le fichier HTML', primary: true, onClick: () => this.toast('Fichier ' + fileName + ' téléchargé.') }
+      ],
+      example: '{{debiteur.raison_sociale}}',
+      fileExt: kind === 'sms' ? 'TXT' : 'HTML',
+      fileName,
+      fileMeta: 'v' + t.v + ' · ' + (kind === 'sms' ? '0,2' : kind === 'facture' ? '7,8' : '6,4') + ' Ko · importé le ' + t.date + ' par ' + t.author,
+      download: () => this.toast('Fichier ' + fileName + ' téléchargé.'),
+      showDrop: !imp && status !== 'wait',
+      dragOver: (e) => { if (e && e.preventDefault) e.preventDefault(); },
+      dropFile: (e) => { if (e && e.preventDefault) e.preventDefault(); setImp('ok'); },
+      importOk: () => setImp('ok'),
+      importBad: () => setImp('bad'),
+      cancelImport: () => this.setState({ imp: { ...st.imp, [st.id]: null }, status: { ...st.status, [st.id]: 'pub' } }),
+      showCheck: !!imp,
+      checkOk: imp === 'ok', checkKo: imp === 'bad',
+      checkTitle: imp === 'bad' ? 'Import refusé : 2 erreurs à corriger' : 'Fichier conforme, prêt à être soumis',
+      checkBorder: imp === 'bad' ? 'var(--danger-border)' : 'var(--success-border, var(--border))',
+      checkBg: imp === 'bad' ? 'var(--danger-bg)' : 'var(--success-bg)',
+      importName: slug + '-v' + (t.v + 1) + '.' + (kind === 'sms' ? 'txt' : 'html'),
+      checks: (imp === 'bad' ? [
+        ['✕', 'var(--danger-fg)', 'Champ inconnu, ligne 18', '{{debiteur.raison_social}} : vouliez-vous dire {{debiteur.raison_sociale}} ?'],
+        ['✕', 'var(--danger-fg)', 'Bloc imposé absent', partial + ' doit figurer dans le fichier'],
+        ['✓', 'var(--success-fg)', 'Fichier ' + (kind === 'sms' ? 'texte' : 'HTML') + ' valide, encodé en UTF-8', ''],
+        ['✓', 'var(--success-fg)', 'Aucun script, formulaire ni ressource externe', '']
+      ] : [
+        ['✓', 'var(--success-fg)', 'Fichier ' + (kind === 'sms' ? 'texte' : 'HTML') + ' valide, encodé en UTF-8', ''],
+        ['✓', 'var(--success-fg)', usedList.length + ' champs de fusion reconnus', ''],
+        ['✓', 'var(--success-fg)', 'Bloc imposé présent', partial],
+        ['✓', 'var(--success-fg)', kind === 'sms' ? 'Longueur : ' + smsLen + ' caractères, ' + smsCount + ' SMS' : 'Aucun script, formulaire ni ressource externe', '']
+      ]).map(([icon, color, label, detail]) => ({ icon, color, label, detail, hasDetail: !!detail })),
+      submit: () => this.setState({ ask: true }),
+      used: usedList, usedCount: String(usedList.length),
+      partial,
+      isWaiting: status === 'wait',
+      waitText: 'Marie Dubreuil (Dirigeante) a été prévenue. La version ' + t.v + ' reste utilisée jusqu’à sa validation.',
+      groups: GROUPS.map(([g, label]) => ({ label, items: Object.keys(T).filter((k) => T[k].cat === g).map((k) => ({ id: k, name: T[k].name, sel: k === st.id ? 'selected' : undefined })) })),
+      pickTpl: (e) => { this.setState({ id: e.target.value }); try { localStorage.setItem('lg-tpl', e.target.value); } catch (x) {} },
+      noop: () => {},
+      chips: [{ k: 'Type', v: t.channel }, { k: 'Catégorie', v: isRec ? 'Recouvrement' : 'Facturation' }, { k: 'Version en service', v: 'v' + t.v + ' du ' + t.date }, { k: 'Validation', v: 'Dirigeante' }],
+      hasSubject: kind !== 'sms',
+      subjectParts, paras,
+      lockedIntro: kind === 'sms' ? 'Ajoutées à chaque SMS ; elles comptent dans la longueur du message.' : isRec ? 'Ajoutées automatiquement en bas de chaque courrier envoyé pour le compte d’un créancier. Modifiables uniquement par la Dirigeante.' : 'Ajoutées automatiquement à chaque facture et devis. Modifiables uniquement par la Dirigeante.',
+      locked: kind === 'sms' ? ['Nom de l’expéditeur : LEGAREC', 'Mention « STOP au 36173 » pour ne plus recevoir de SMS', 'Pas d’envoi le dimanche, les jours fériés ni entre 20 h et 8 h'] : isRec ? (kind === 'email' ? M_RECO.slice(0, 2).concat(['Lien de désinscription des rappels préventifs', M_RECO[5]]) : M_RECO) : t.contract ? ['Identité, SIREN et représentant légal des deux parties', 'Signature électronique et horodatage', 'Clause relative aux données personnelles (sous-traitance RGPD)'] : M_FAC,
+      versions,
+      samples: Object.keys(SAMPLES).map((k) => ({ id: k, label: SAMPLES[k].label, sel: k === st.sample ? 'selected' : undefined })),
+      pickSample: (e) => this.setState({ sample: e.target.value }),
+      hl: st.hl, toggleHl: () => this.setState({ hl: !st.hl }),
+      isLetter: kind === 'lettre', isInvoice: kind === 'facture', isEmail: kind === 'email', isSms: kind === 'sms',
+      isLrar: !!t.lrar,
+      addr: kind === 'email' ? [{ parts: parts('{debiteur.contact}, {debiteur.raison_sociale}') }] : (isRec ? ['{debiteur.raison_sociale}', '{debiteur.contact}', '{debiteur.adresse}'] : ['{client.nom}', '{client.contact}', '{client.adresse}']).flatMap((x) => lineParts(x)),
+      placeDate: 'Paris, le ' + vals['date.jour'],
+      sign: t.contract ? lineParts('Fait à Paris, le {date.jour}, en signature électronique.') : lineParts(isRec ? '{dossier.gestionnaire}\nGestionnaire de votre dossier · 01 87 88 02 98' : 'Le service administratif de Legarec'),
+      footLines: (kind === 'sms' ? ['STOP au 36173'] : isRec ? (kind === 'email' ? [L_RECO[0], 'Ne plus recevoir ces rappels : se désinscrire', L_RECO[3]] : L_RECO) : t.contract ? ['Legarec · SIREN [SIREN] · RCS Paris · représentée par Marie Dubreuil, Dirigeante', 'Données personnelles : Legarec agit en sous-traitant de {client.nom} (art. 28 du RGPD).'] : L_FAC).map((x) => parts(x).map((p) => p.t).join('')),
+      docTitle: t.devis ? 'Devis' : 'Facture',
+      docMeta: (t.devis ? 'DE-2026-0043' : vals['document.numero']) + ' · ' + vals['date.jour'],
+      lines,
+      totals: (t.totals || []).map((v, i) => ({ k: ['Total HT', 'TVA 20 %', 'Total TTC'][i], v, w: i === 2 ? '700' : '400', b: i === 2 ? '1.5px solid #1E2733' : '0', pt: i === 2 ? '6px' : '0' })),
+      pdf: () => this.toast('Aperçu PDF généré avec les données de ' + SAMPLES[st.sample].label.split(' · ')[0] + '.'),
+      sendTest: () => this.toast(kind === 'sms' ? 'SMS de test envoyé au 06 •• •• •• 42.' : 'Test envoyé à cl@legarec.fr.'),
+      cf: {
+        open: st.ask,
+        title: 'Soumettre « ' + t.name + ' » pour validation ?',
+        body: 'La Dirigeante reçoit une notification. Tant qu’il n’a pas validé, la version ' + t.v + ' reste utilisée par les scénarios et les envois.',
+        details: [{ k: 'Modèle', v: t.name + ' (' + t.channel + ')' }, { k: 'Nouvelle version', v: 'v' + (t.v + 1) }, { k: 'Validation', v: 'Marie Dubreuil, Dirigeante' }, { k: 'Utilisé par', v: t.used }],
+        label: 'Soumettre',
+        confirm: () => { this.setState({ ask: false, imp: { ...st.imp, [st.id]: null }, status: { ...st.status, [st.id]: 'wait' } }); this.toast('Nouvelle version soumise pour validation.'); },
+        cancel: () => this.setState({ ask: false })
+      },
+      toastOpen: !!st.toast, toastMsg: st.toast ? st.toast.msg : '', toastAction: '', toastUndo: () => {}, toastClose: () => this.setState({ toast: null })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Legarec – Débiteurs</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Lora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+/* tokens:start — charte graphique LEGAREC v1.0 (octobre 2026). Ne pas modifier à la main : généré depuis tools/tokens.css */
+:root{
+  /* Marque */
+  --marine:#002B74; --marine-hover:#00225C; --marine-text:#002B74; --app-icon-bg:#002B74; --app-icon-fg:#FCBE03; --nuit:#001B4D; --or:#FCBE03; --or-clair:#FFF3C4; --ardoise:#5D7087;
+  --bleu-pale:#EEF2F8; --gris-clair:#F6F8FB; --bleu-200:#D6E0F0; --white:#FFFFFF;
+  /* Texte */
+  --text:#0F1B2D; --text-2:#33455C; --text-3:#5D7087; --on-primary:#FFFFFF;
+  /* Surfaces et bordures */
+  --surface:#FFFFFF; --surface-2:#F6F8FB; --surface-3:#EEF2F7; --border:#E1E7EF; --border-strong:#7D8DA1;
+  /* Surfaces sombres (carte d'appel, barre d'actions groupées) */
+  --surface-dark:#001B4D; --surface-dark-2:#0B2D63; --border-dark:#2A4A7D; --on-dark:#FFFFFF; --on-dark-2:#D5DEEB; --on-dark-muted:#A9B8CC; --on-dark-accent:#B8CBEA;
+  /* Données (graphiques, balance âgée) */
+  --data-1:#C9D6EC; --data-2:#7F9CD0; --data-3:#345DA8;
+  /* Tons sémantiques : fond, bordure, point, texte */
+  --success-bg:#ECFDF5; --success-border:#A7F3D0; --success:#059669; --success-strong:#10B981; --success-fg:#047857; --on-success:#052E16;
+  --warning-bg:#FFF3C4; --warning-border:#F5D77A; --warning:#D97706; --warning-fg:#8A4B08;
+  --danger-bg:#FFF1F2; --danger-border:#FECDD3; --danger:#E11D48; --danger-fg:#BE123C; --danger-dark:#7F1D1D; --danger-on-dark:#FDA4AF;
+  --info-bg:#F0F9FF; --info-border:#BAE6FD; --info:#0284C7; --info-fg:#0369A1;
+  --violet-bg:#F5F3FF; --violet-border:#DDD6FE; --violet:#7C3AED; --violet-fg:#6D28D9;
+  --teal-bg:#CCFBF1; --teal:#0D9488; --teal-fg:#115E59;
+  /* Fonds pleins (badges pleins, texte --on-primary ≥ 5:1 dans les deux modes) */
+  --solid-neutral:#33455C; --solid-info:#0369A1; --solid-success:#047857; --solid-warning:#8A4B08; --solid-danger:#BE123C; --solid-violet:#6D28D9; --solid-teal:#115E59;
+  /* Typographie */
+  --font-title:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-text:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-brand:Lora, Georgia, serif; --font-mono:ui-monospace, SFMono-Regular, Menlo, monospace;
+  --fs-doc-xs:8px; --fs-doc-sm:9px; --fs-doc-md:10px; --fs-doc-lg:10.5px; --fs-2xs:11px; --fs-xs:12px; --fs-sm:13px; --fs-base:14px; --fs-md:16px; --fs-lg:18px; --fs-xl:20px; --fs-2xl:26px; --fs-3xl:34px;
+  /* Rayons */
+  --r-xs:4px; --r-sm:6px; --r-md:8px; --r-lg:12px; --r-full:9999px;
+  /* Ombres */
+  --shadow-sm:0 1px 2px 0 rgba(0,27,77,0.06); --shadow-md:0 10px 15px -3px rgba(0,27,77,0.10), 0 4px 6px -4px rgba(0,27,77,0.10); --shadow-lg:0 20px 25px -5px rgba(0,27,77,0.18), 0 8px 10px -6px rgba(0,27,77,0.12);
+  --shadow-knob:0 1px 2px rgba(0,27,77,0.25); --overlay:rgba(0,27,77,0.55);
+  /* Espacements (grille de 4 px) */
+  --sp-0h:2px; --sp-1:4px; --sp-1h:6px; --sp-2:8px; --sp-2h:10px; --sp-3:12px; --sp-3h:14px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px; --sp-10:40px; --sp-11:44px; --sp-12:48px;
+  /* Hauteurs de contrôles */
+  --control-xs:28px; --control-sm:36px; --control-md:40px; --control-lg:44px;
+  /* Voiles et anneaux (surfaces sombres, animations) */
+  --veil-8:rgba(255,255,255,0.08); --veil-18:rgba(255,255,255,0.18); --veil-25:rgba(255,255,255,0.25); --veil-35:rgba(255,255,255,0.35); --veil-80:rgba(255,255,255,0.8); --veil-85:rgba(255,255,255,0.85); --on-success-veil:rgba(5,46,22,0.35); --success-ring:rgba(16,185,129,0.55); --success-ring-0:rgba(16,185,129,0);
+  /* Cibles tactiles */
+  --target:44px;
+}
+body{font-family:var(--font-text);font-feature-settings:"cv11";-webkit-font-smoothing:antialiased}
+h1,h2{font-family:var(--font-title);font-weight:700;color:var(--marine);overflow-wrap:break-word;letter-spacing:-0.015em}
+[data-brand] h1,[data-brand] h2{font-family:var(--font-brand);letter-spacing:0}
+td,th,li,h3{overflow-wrap:break-word}
+:focus-visible{outline:2px solid var(--marine);outline-offset:2px}
+[data-dark] :focus-visible{outline-color:var(--or)}
+button:disabled,[aria-disabled="true"]{cursor:not-allowed !important;opacity:.55}
+button:not(:disabled):hover,a[href][style*="border-radius"]:hover{filter:brightness(.96)}
+tbody tr:hover{background-color:var(--surface-2)}
+[data-table-scroll]{max-height:min(68vh,720px);overflow:auto !important}
+[data-table-scroll] thead th{position:sticky;top:0;z-index:2;background:var(--surface-2);box-shadow:inset 0 -1px 0 var(--border)}
+[data-skeleton]{display:block;border-radius:var(--r-xs);background:linear-gradient(90deg,var(--surface-3) 25%,var(--bleu-pale) 50%,var(--surface-3) 75%);background-size:200% 100%;animation:lg-sk 1.2s ease-in-out infinite}
+@keyframes lg-sk{from{background-position:200% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+@media (pointer: coarse), (max-width: 767px){
+  button,select,input:not([type=checkbox]):not([type=radio]):not([type=range]),[role=tab],[role=menuitem],a[href][style*="display: inline-flex"],a[href][style*="height:"]{min-height:var(--target)}
+  input[type=checkbox],input[type=radio]{min-width:22px;min-height:22px}
+}
+/* Mode sombre : data-theme="dark" sur <html> */
+:root[data-theme="dark"]{
+  --marine:#2E5FC0; --marine-hover:#2A57B0; --marine-text:#9DB8F0; --app-icon-bg:#0A1A3F; --nuit:#071028; --or-clair:#3A2F0A; --ardoise:#9AA9BD;
+  --bleu-pale:#1B2A4A; --gris-clair:#0A1020; --bleu-200:#2B3E63; --white:#16203A;
+  --text:#E6ECF5; --text-2:#C3CEDD; --text-3:#9AA9BD;
+  --surface:#0F1729; --surface-2:#0A1020; --surface-3:#1A2438; --border:#26324A; --border-strong:#67778F;
+  --surface-dark:#050B1A; --surface-dark-2:#101C36; --border-dark:#24365A;
+  --data-1:#2B3E63; --data-2:#4F73B8; --data-3:#7F9CD0;
+  --success-bg:#0B2E22; --success-border:#14532D; --success-fg:#6EE7B7;
+  --warning-bg:#3A2F0A; --warning-border:#6B5310; --warning-fg:#FCD34D;
+  --danger-bg:#3B0D17; --danger-border:#7F1D2E; --danger-fg:#FDA4AF;
+  --info-bg:#0B2540; --info-border:#164E63; --info-fg:#7DD3FC;
+  --violet-bg:#24164A; --violet-border:#4C1D95; --violet-fg:#C4B5FD;
+  --teal-bg:#0B302C; --teal-fg:#5EEAD4;
+  --shadow-sm:0 1px 2px 0 rgba(0,0,0,0.4); --shadow-md:0 10px 15px -3px rgba(0,0,0,0.5); --shadow-lg:0 20px 25px -5px rgba(0,0,0,0.6); --overlay:rgba(0,0,0,0.65);
+  color-scheme:dark;
+}
+:root[data-theme="dark"] body{background:var(--surface-2);color:var(--text)}
+:root[data-theme="dark"] :focus-visible{outline-color:#9DB8F0}
+:root[data-theme="dark"] [data-dark]{border:1px solid var(--border-dark)}
+:root[data-theme="dark"] h1,:root[data-theme="dark"] h2,:root[data-theme="dark"] a[href]:not([style*="background"]){color:var(--marine-text)}
+:root[data-theme="dark"] [style*="color: var(--marine)"]:not([style*="background: var(--marine)"]){color:var(--marine-text) !important}
+:root[data-theme="dark"] img[src*="_blob"]{background:var(--white);border-radius:var(--r-sm)}
+/* Mode malvoyant : data-a11y="malvoyant" sur <html> — texte agrandi, contraste renforcé, cibles plus grandes */
+:root[data-a11y="malvoyant"]{
+  --fs-2xs:13px; --fs-xs:14px; --fs-sm:15px; --fs-base:17px; --fs-md:19px; --fs-lg:21px; --fs-xl:24px; --fs-2xl:30px; --fs-3xl:38px;
+  --control-xs:36px; --control-sm:44px; --control-md:48px; --control-lg:52px; --target:48px;
+  --text-3:var(--text-2); --ardoise:var(--text-2); --border:var(--border-strong);
+}
+:root[data-a11y="malvoyant"] body{line-height:1.6}
+:root[data-a11y="malvoyant"] [data-sb-nav][style*="width: 264px"]{width:312px !important}
+:root[data-a11y="malvoyant"] :focus-visible{outline:3px solid var(--or);outline-offset:3px;box-shadow:0 0 0 6px var(--marine)}
+:root[data-a11y="malvoyant"] a[href]:not([style*="background"]){text-decoration:underline;text-underline-offset:3px}
+:root[data-a11y="malvoyant"] button,:root[data-a11y="malvoyant"] select,:root[data-a11y="malvoyant"] input:not([type=checkbox]):not([type=radio]){min-height:var(--target)}
+:root[data-a11y="malvoyant"] input[type=checkbox],:root[data-a11y="malvoyant"] input[type=radio]{min-width:24px;min-height:24px}
+:root[data-a11y="malvoyant"][data-theme="dark"]{--text-3:#E6ECF5;--text-2:#E6ECF5}
+/* tokens:end */
+body{margin:0;font-family:var(--font-text);color:var(--text);background:var(--surface-2)}
+a{color:var(--marine)}a:hover{color:var(--marine)}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; background: var(--surface-2); font-family: var(--font-text); color: var(--text)">
+
+<div data-sb-wrap style="flex: 0 0 auto; max-width: 100%; display: flex; background: var(--surface-2); border-right: 1px solid var(--border)">
+<dc-import name="Sidebar" active="Dossiers.dc.html" accent="{{accent}}" hint-size="264px,1100px"></dc-import>
+</div>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: var(--sp-8); box-sizing: border-box; display: flex; flex-direction: column; gap: var(--sp-6)">
+<dc-import name="Topbar" accent="{{accent}}" trail="Portefeuille|Débiteurs" hint-size="100%,64px"></dc-import>
+<div data-page-body style="width: 100%; max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--sp-6)">
+
+<dc-import name="PageHeader" title="Débiteurs" description="248 débiteurs · 1 942 factures impayées · 5 créanciers · identification par SIRET" accent="{{accent}}" actions="{{headActions}}" stats="{{headStats}}" stats-label="Indicateurs du portefeuille" hint-size="100%,170px"></dc-import>
+
+<dc-import name="Toolbar" label="Filtrer les débiteurs" tabs="{{tbTabs}}" tabs-label="Statut" placeholder="Débiteur, SIRET, n° de facture…" filters="{{tbFilters}}" query="{{q}}" on-query="{{onQuery}}" hint-size="100%,48px"></dc-import>
+
+<section aria-label="Liste des dossiers" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden">
+<div data-table-scroll style="overflow-x: auto">
+<table style="width: 100%; min-width: 980px; border-collapse: collapse; font-size: var(--fs-base)">
+<thead style="background: var(--surface-2)">
+<tr style="text-align: left; color: var(--text-3); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.04em">
+<th scope="col" style="padding: var(--sp-3) var(--sp-4); width: 32px"><input type="checkbox" aria-label="Tout sélectionner" checked="{{allChecked}}" onChange="{{toggleAll}}" style="width: 18px; height: 18px; accent-color: var(--marine)"></th>
+<th scope="col" style="padding: var(--sp-3) var(--sp-2); font-weight: 600">Débiteur</th>
+<th scope="col" style="padding: var(--sp-3) var(--sp-2); font-weight: 600">Créancier</th>
+<th scope="col" style="padding: var(--sp-3) var(--sp-2); font-weight: 600">Factures</th>
+<th scope="col" style="padding: var(--sp-3) var(--sp-2); font-weight: 600; text-align: right">Montant dû</th>
+<th scope="col" style="padding: var(--sp-3) var(--sp-2); font-weight: 600; text-align: right">Retard</th>
+<th scope="col" style="padding: var(--sp-3) var(--sp-2); font-weight: 600">Statut</th>
+<th scope="col" style="padding: var(--sp-3) var(--sp-2); font-weight: 600">Prochaine action</th>
+<th scope="col" style="padding: var(--sp-3) var(--sp-4); font-weight: 600">Gestionnaire</th>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+<tr style="border-top: 1px solid var(--surface-3); background: {{r.rowBg}}">
+<td style="padding: var(--sp-3h) var(--sp-4)"><input type="checkbox" aria-label="Sélectionner {{r.name}}" checked="{{r.checked}}" onChange="{{r.toggle}}" style="width: 18px; height: 18px; accent-color: var(--marine)"></td>
+<td style="padding: var(--sp-3h) var(--sp-2)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-0h)">
+<a href="Dossier.dc.html" style="color: var(--text); font-weight: 600; text-decoration: none">{{r.name}}</a>
+<span style="font-size: var(--fs-xs); color: var(--text-3)">{{r.ref}}</span>
+</div>
+</td>
+<td style="padding: var(--sp-3h) var(--sp-2)"><a href="Mandant.dc.html" style="color: var(--text-2); text-decoration: none; font-weight: 500">{{r.mandant}}</a></td>
+<td style="padding: var(--sp-3h) var(--sp-2); color: var(--text-2)">{{r.invoices}}</td>
+<td style="padding: var(--sp-3h) var(--sp-2); text-align: right; font-weight: 600; font-variant-numeric: tabular-nums">{{r.amount}}</td>
+<td style="padding: var(--sp-3h) var(--sp-2); text-align: right; font-variant-numeric: tabular-nums; color: {{r.lateColor}}; font-weight: 500">{{r.late}}</td>
+<td style="padding: var(--sp-3h) var(--sp-2)"><span style="font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-1) var(--sp-2h); border-radius: var(--r-full); white-space: nowrap; background: {{r.bg}}; color: {{r.fg}}">{{r.status}}</span></td>
+<td style="padding: var(--sp-3h) var(--sp-2)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-0h)">
+<span style="color: var(--text-2)">{{r.next}}</span>
+<span style="font-size: var(--fs-xs); color: var(--text-3)">{{r.nextDate}}</span>
+</div>
+</td>
+<td style="padding: var(--sp-3h) var(--sp-4)">
+<span style="display: inline-flex; align-items: center; gap: var(--sp-2); color: var(--text-2)"><span style="width: 28px; height: 28px; border-radius: var(--r-full); background: var(--bleu-200); color: var(--marine); font-size: var(--fs-xs); font-weight: 600; display: inline-flex; align-items: center; justify-content: center">{{r.owner}}</span></span>
+</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+<sc-if value="{{lst.show}}" hint-placeholder-val="{{ false }}"><dc-import name="EtatListe" kind="{{lst.kind}}" title="{{lst.title}}" text="{{lst.text}}" action-label="{{lst.actionLabel}}" on-action="{{lst.action}}" count="{{lst.count}}" hint-size="100%,220px"></dc-import></sc-if>
+<sc-if value="{{pg.show}}" hint-placeholder-val="{{ true }}"><dc-import name="Pagination" total="{{pg.total}}" page="{{pg.page}}" size="{{pg.size}}" unit="débiteurs" label="Pagination des débiteurs" on-page="{{pg.onPage}}" on-size="{{pg.onSize}}" hint-size="100%,60px"></dc-import></sc-if>
+</section>
+
+<sc-if value="{{hasSel}}" hint-placeholder-val="{{ false }}">
+<div data-dark role="region" aria-label="Actions groupées" style="position: sticky; bottom: 16px; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); background: var(--surface-dark); color: var(--on-dark); border-radius: var(--r-lg); font-size: var(--fs-base); box-shadow: var(--shadow-lg)">
+<span style="font-weight: 600">{{selLabel}}</span>
+<dc-import name="Bouton" variant="dark" size="sm" label="Envoyer une relance" on-press="{{bulkRelance}}" style="display: contents" hint-size="120px,40px"></dc-import>
+<button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="height: var(--control-sm); padding: 0 var(--sp-3); border-radius: var(--r-sm); border: 1px solid var(--border-dark); background: var(--surface-dark-2); color: var(--on-dark); font: inherit; font-size: var(--fs-sm); cursor: pointer">Réassigner</button>
+<button type="button" onClick="{{bulkContentieux}}" style="height: var(--control-sm); padding: 0 var(--sp-3); border-radius: var(--r-sm); border: 1px solid var(--danger-dark); background: var(--danger-dark); color: var(--danger-border); font: inherit; font-size: var(--fs-sm); cursor: pointer">Passer en contentieux</button>
+<dc-import name="Bouton" variant="ghost" size="sm" label="Désélectionner" on-press="{{clearSel}}" layout="margin-left: auto" style="display: contents" hint-size="120px,40px"></dc-import>
+</div>
+</sc-if>
+<sc-if value="{{hasNotice}}" hint-placeholder-val="{{ false }}"><div role="status" style="padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); background: var(--success-bg); border: 1px solid var(--success-border); color: var(--success-fg); font-size: var(--fs-base)">{{notice}}</div></sc-if>
+
+</div>
+</main>
+<dc-import name="Confirm" open="{{cf.open}}" tone="{{cf.tone}}" title="{{cf.title}}" body="{{cf.body}}" details="{{cf.details}}" confirm-label="{{cf.label}}" reason-label="{{cf.reason}}" on-confirm="{{cf.confirm}}" on-cancel="{{cf.cancel}}" accent="{{accent}}" hint-size="0px,0px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#002B74","options":["#002B74","#001B4D","#5D7087"]},"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { loading: true, q: '', tab: 'all', sel: {}, ask: null, notice: '' };
+  }
+  componentDidMount() { this.lt = setTimeout(() => this.setState({ loading: false }), 700); }
+  componentWillUnmount() { clearTimeout(this.lt); }
+  renderVals() {
+    const v = this._rv();
+    const st = this.state;
+    const q = (st.q || '').toLowerCase().trim();
+    const qs = q.replace(/\s/g, '');
+    const hit = (o) => {
+      if (!q) return true;
+      const t = JSON.stringify(o, (k, x) => (typeof x === 'function' ? undefined : x)).toLowerCase();
+      return t.includes(q) || (qs.length >= 3 && t.replace(/\s/g, '').includes(qs));
+    };
+    const list = (v.rows || []).filter(hit);
+    v.rows = st.loading ? [] : list;
+    v.q = st.q || '';
+    v.onQuery = (e) => this.setState({ q: e.target.value });
+    const pgTotal = q ? list.length : v.shownTotal ? Number(String(v.shownTotal).replace(/\D/g, "")) : 248;
+    v.pg = { show: !st.loading && list.length > 0, total: pgTotal, page: st.pgPage || 1, size: st.pgSize || 25, onPage: (n) => this.setState({ pgPage: n }), onSize: (n) => this.setState({ pgSize: n, pgPage: 1 }) };
+    const failed = (st.q || '').trim().toLowerCase() === 'erreur';
+    if (failed) { v.rows = []; list.length = 0; }
+    v.lst = failed ? { show: true, kind: 'error', title: 'Impossible de charger les débiteurs', text: 'Le serveur n\u2019a pas répondu (délai dépassé). Vos filtres sont conservés.', actionLabel: 'Réessayer', action: () => this.setState({ q: '' }), count: 6 } : {
+      show: !!st.loading || list.length === 0,
+      kind: st.loading ? 'loading' : q ? 'noresult' : 'empty',
+      title: st.loading ? '' : q ? 'Aucun résultat pour « ' + (st.q || '').trim() + ' »' : 'Aucun débiteur dans ce statut',
+      text: st.loading ? '' : q ? 'Vérifiez l\u2019orthographe, ou cherchez par numéro SIRET, SIREN ou de facture.' : 'Les débiteurs apparaissent ici dès que leurs factures sont importées.',
+      actionLabel: q ? 'Effacer la recherche' : '',
+      action: () => this.setState({ q: '' }),
+      count: 6
+    };
+    return v;
+  }
+  _rv() {
+    const accent = this.props.accent ?? 'var(--marine)';
+    const S = {
+      retard: { bg: 'var(--danger-bg)', fg: 'var(--danger-fg)' },
+      promesse: { bg: 'var(--warning-bg)', fg: 'var(--warning-fg)' },
+      relance: { bg: 'var(--info-bg)', fg: 'var(--info-fg)' },
+      litige: { bg: 'var(--violet-bg)', fg: 'var(--violet-fg)' },
+      regle: { bg: 'var(--success-bg)', fg: 'var(--success-fg)' }
+    };
+    const all = [
+      { k: 'retard', name: 'Bâtiplus SAS', mandant: 'Matériaux Delta', ref: 'DOS-2026-0142 · SIRET 512 334 871 00088', invoices: '3 factures', amount: '48 200 €', late: '64 j', status: 'En retard', next: 'Appel téléphonique', nextDate: 'Aujourd’hui', owner: 'CL' },
+      { k: 'relance', name: 'Groupe Hélio', mandant: 'Médiatel', ref: 'DOS-2026-0151 · SIRET 319 935 185 00011', invoices: '2 factures', amount: '36 750 €', late: '38 j', status: 'Relance 2', next: 'Relance n°3 (ferme)', nextDate: '25 nov.', owner: 'HB' },
+      { k: 'retard', name: 'Garage Valmont', mandant: 'TransAlp Leasing', ref: 'DOS-2026-0098 · SIRET 193 786 571 00094', invoices: '4 factures', amount: '23 900 €', late: '97 j', status: 'Mise en demeure', next: 'Transfert contentieux', nextDate: '28 nov.', owner: 'CL' },
+      { k: 'promesse', name: 'Nordis Logistique', mandant: 'Énergies Rhône', ref: 'DOS-2026-0163 · SIRET 854 323 193 00045', invoices: '1 facture', amount: '21 400 €', late: '45 j', status: 'Promesse', next: 'Contrôler paiement', nextDate: 'Aujourd’hui', owner: 'SM' },
+      { k: 'litige', name: 'Atelier Mistral', mandant: 'Matériaux Delta', ref: 'DOS-2026-0170 · SIRET 975 749 110 00089', invoices: '1 facture', amount: '18 320 €', late: '52 j', status: 'Litige', next: 'Réponse au litige', nextDate: '22 nov.', owner: 'HB' },
+      { k: 'promesse', name: 'Cabinet Orsay', mandant: 'Médiatel', ref: 'DOS-2026-0177 · SIRET 725 276 018 00084', invoices: 'Échéancier 2/6', amount: '14 800 €', late: '12 j', status: 'Échéancier', next: 'Échéance n°3', nextDate: '5 déc.', owner: 'SM' },
+      { k: 'relance', name: 'Fromagerie Durand', mandant: 'Énergies Rhône', ref: 'DOS-2026-0181 · SIRET 655 979 714 00012', invoices: '2 factures', amount: '6 240 €', late: '21 j', status: 'Relance 1', next: 'Relance n°2', nextDate: '24 nov.', owner: 'CL' },
+      { k: 'regle', name: 'Imprimerie Castel', mandant: 'TransAlp Leasing', ref: 'DOS-2026-0119 · SIRET 571 049 741 00069', invoices: '1 facture', amount: '0 €', late: '—', status: 'Réglé', next: 'Clôturer le dossier', nextDate: '—', owner: 'HB' }
+    ];
+    const tabsDef = [
+      { id: 'all', label: 'Tous', count: 248 },
+      { id: 'retard', label: 'En retard', count: 86 },
+      { id: 'relance', label: 'En relance', count: 72 },
+      { id: 'promesse', label: 'Promesse / échéancier', count: 41 },
+      { id: 'litige', label: 'Litige', count: 14 },
+      { id: 'regle', label: 'Réglés', count: 35 }
+    ];
+    const tab = this.state.tab;
+    const rows = all
+      .filter((r) => tab === 'all' || r.k === tab)
+      .map((r) => ({ ...r, ...S[r.k], lateColor: r.k === 'retard' ? 'var(--danger-fg)' : 'var(--text-2)' }));
+    const current = tabsDef.find((t) => t.id === tab);
+    const st = this.state;
+    const selIds = Object.keys(st.sel).filter((k) => st.sel[k]);
+    const selNames = all.filter((r) => st.sel[r.name]).map((r) => r.name);
+    const selAmount = all.filter((r) => st.sel[r.name]).reduce((a, r) => a + Number(r.amount.replace(/[^\d]/g, '')), 0);
+    const ask = st.ask;
+    const cfDef = !ask ? { open: false, title: '', body: '', details: [], label: '', tone: 'primary', reason: '' }
+      : ask === 'ctx' ? { open: true, tone: 'danger', label: 'Passer en contentieux', reason: 'Motif du passage en contentieux',
+          title: 'Passer ' + selIds.length + ' dossier' + (selIds.length > 1 ? 's' : '') + ' en contentieux ?',
+          body: 'Les relances amiables s’arrêtent. Une demande d’accord est envoyée à chaque créancier avant tout engagement de frais.',
+          details: [{ k: 'Débiteurs', v: selNames.join(', ') }, { k: 'Montant total', v: selAmount.toLocaleString('fr-FR') + ' €' }] }
+      : { open: true, tone: 'primary', label: 'Envoyer les relances', reason: '',
+          title: 'Envoyer une relance à ' + selIds.length + ' débiteur' + (selIds.length > 1 ? 's' : '') + ' ?',
+          body: 'Chaque débiteur reçoit la prochaine relance de son scénario (e-mail via Resend ou SMS), avec son lien de paiement personnel.',
+          details: [{ k: 'Débiteurs', v: selNames.join(', ') }] };
+    return {
+      accent,
+      headActions: [
+        { label: 'Importer des factures', href: 'Mandant.dc.html' },
+        { label: 'Exporter' },
+        { label: '+ Nouveau débiteur', primary: true, kbd: 'N' }
+      ],
+      headStats: [
+        { label: 'Encours total', value: '1 284 560 €', sub: '1 942 factures' },
+        { label: 'En retard', value: '86', color: 'var(--danger-fg)', sub: '412 300 € à plus de 60 j' },
+        { label: 'Promesses à contrôler', value: '7', color: 'var(--warning-fg)', sub: 'dont 2 aujourd’hui' },
+        { label: 'Recouvré en novembre', value: '186 420 €', color: 'var(--success-fg)', sub: '107 % de l’objectif' }
+      ],
+      tbTabs: tabsDef.map((t) => ({ label: t.label, count: String(t.count), selected: t.id === tab, pick: () => this.setState({ tab: t.id }) })),
+      tbFilters: [
+        { label: 'Créancier', options: ['Tous les créanciers', 'Matériaux Delta', 'Énergies Rhône', 'Médiatel', 'TransAlp Leasing', 'Crédit Horizon'] },
+        { label: 'Ancienneté', options: ['Toute ancienneté', '0 – 30 j', '31 – 60 j', '61 – 90 j', '+ 90 j'] },
+        { label: 'Gestionnaire', options: ['Tous les gestionnaires', 'Camille Laurent', 'Hugo Benali', 'Sarah Morel', 'Thomas Giraud'] }
+      ],
+      allChecked: rows.length > 0 && rows.every((r) => st.sel[r.name]),
+      toggleAll: () => { const on = !(rows.length > 0 && rows.every((r) => st.sel[r.name])); const n = { ...st.sel }; rows.forEach((r) => { n[r.name] = on; }); this.setState({ sel: n, notice: '' }); },
+      hasSel: selIds.length > 0,
+      selLabel: selIds.length + ' sélectionné' + (selIds.length > 1 ? 's' : '') + ' · ' + selAmount.toLocaleString('fr-FR') + ' €',
+      clearSel: () => this.setState({ sel: {} }),
+      bulkRelance: () => this.setState({ ask: 'rel' }),
+      bulkContentieux: () => this.setState({ ask: 'ctx' }),
+      hasNotice: !!st.notice,
+      notice: st.notice,
+      cf: {
+        ...cfDef,
+        confirm: () => this.setState({ ask: null, sel: {}, notice: ask === 'ctx' ? selIds.length + ' dossier(s) transmis au contentieux · demandes d’accord envoyées aux créanciers.' : selIds.length + ' relance(s) programmée(s) pour envoi immédiat.' }),
+        cancel: () => this.setState({ ask: null })
+      },
+      rows: rows.map((r) => ({ ...r, checked: !!st.sel[r.name], rowBg: st.sel[r.name] ? 'var(--bleu-pale)' : 'var(--white)', toggle: () => this.setState({ sel: { ...this.state.sel, [r.name]: !this.state.sel[r.name] }, notice: '' }) })),
+      shownTotal: current ? current.count : 248,
+      tabs: tabsDef.map((t) => ({
+        ...t,
+        selected: t.id === tab ? 'true' : 'false',
+        color: t.id === tab ? 'var(--text)' : 'var(--text-3)',
+        border: t.id === tab ? '2px solid ' + accent : '2px solid transparent',
+        pick: () => this.setState({ tab: t.id })
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

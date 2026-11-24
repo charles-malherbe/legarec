@@ -1,0 +1,250 @@
+{
+  "accent": "var(--marine)",
+  "is": {
+    "profil": false,
+    "securite": false,
+    "notifications": true,
+    "preferences": false
+  },
+  "tabs": [
+    {
+      "label": "Profil",
+      "selected": "false",
+      "color": "var(--text-3)",
+      "border": "2px solid transparent"
+    },
+    {
+      "label": "Sécurité et connexion",
+      "selected": "false",
+      "color": "var(--text-3)",
+      "border": "2px solid transparent"
+    },
+    {
+      "label": "Notifications",
+      "selected": "true",
+      "color": "var(--text)",
+      "border": "2px solid var(--marine)"
+    },
+    {
+      "label": "Préférences",
+      "selected": "false",
+      "color": "var(--text-3)",
+      "border": "2px solid transparent"
+    }
+  ],
+  "signature": "Camille Laurent\nChargée de recouvrement — 04 78 00 00 12\nAgissant pour le compte de nos créanciers",
+  "sessions": [
+    {
+      "id": "s1",
+      "device": "Chrome · Windows",
+      "meta": "Lyon · actuellement",
+      "iconPath": "M4 5h16v10H4zM2 19h20",
+      "current": true,
+      "other": false
+    },
+    {
+      "id": "s2",
+      "device": "Application mobile · iPhone",
+      "meta": "Lyon · il y a 2 h",
+      "iconPath": "M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM11 18h2",
+      "current": false,
+      "other": true
+    },
+    {
+      "id": "s3",
+      "device": "Edge · Windows (poste accueil)",
+      "meta": "Lyon · 18 nov. 2026",
+      "iconPath": "M4 5h16v10H4zM2 19h20",
+      "current": false,
+      "other": true
+    }
+  ],
+  "prefs": [
+    {
+      "label": "Paiement reçu",
+      "detail": "Virement, prélèvement ou carte rapproché",
+      "cells": [
+        {
+          "on": true,
+          "aria": "Paiement reçu dans l’app"
+        },
+        {
+          "on": true,
+          "aria": "Paiement reçu par e-mail"
+        },
+        {
+          "on": false,
+          "aria": "Paiement reçu par SMS"
+        }
+      ]
+    },
+    {
+      "label": "Promesse non tenue",
+      "detail": "Le jour suivant la date promise",
+      "cells": [
+        {
+          "on": true,
+          "aria": "Promesse non tenue dans l’app"
+        },
+        {
+          "on": true,
+          "aria": "Promesse non tenue par e-mail"
+        },
+        {
+          "on": true,
+          "aria": "Promesse non tenue par SMS"
+        }
+      ]
+    },
+    {
+      "label": "Réponse d’un débiteur",
+      "detail": "E-mail ou SMS entrant",
+      "cells": [
+        {
+          "on": true,
+          "aria": "Réponse d’un débiteur dans l’app"
+        },
+        {
+          "on": false,
+          "aria": "Réponse d’un débiteur par e-mail"
+        },
+        {
+          "on": false,
+          "aria": "Réponse d’un débiteur par SMS"
+        }
+      ]
+    },
+    {
+      "label": "Délai judiciaire proche",
+      "detail": "10 jours, 3 jours et la veille",
+      "cells": [
+        {
+          "on": true,
+          "aria": "Délai judiciaire proche dans l’app"
+        },
+        {
+          "on": true,
+          "aria": "Délai judiciaire proche par e-mail"
+        },
+        {
+          "on": true,
+          "aria": "Délai judiciaire proche par SMS"
+        }
+      ]
+    },
+    {
+      "label": "Décision d’un créancier",
+      "detail": "Accord ou refus d’échéancier, de contentieux",
+      "cells": [
+        {
+          "on": true,
+          "aria": "Décision d’un créancier dans l’app"
+        },
+        {
+          "on": true,
+          "aria": "Décision d’un créancier par e-mail"
+        },
+        {
+          "on": false,
+          "aria": "Décision d’un créancier par SMS"
+        }
+      ]
+    },
+    {
+      "label": "Échec d’envoi",
+      "detail": "E-mail rejeté, SMS non distribué",
+      "cells": [
+        {
+          "on": true,
+          "aria": "Échec d’envoi dans l’app"
+        },
+        {
+          "on": false,
+          "aria": "Échec d’envoi par e-mail"
+        },
+        {
+          "on": false,
+          "aria": "Échec d’envoi par SMS"
+        }
+      ]
+    },
+    {
+      "label": "Import de factures terminé",
+      "detail": "Nouvelles créances confiées",
+      "cells": [
+        {
+          "on": true,
+          "aria": "Import de factures terminé dans l’app"
+        },
+        {
+          "on": false,
+          "aria": "Import de factures terminé par e-mail"
+        },
+        {
+          "on": false,
+          "aria": "Import de factures terminé par SMS"
+        }
+      ]
+    },
+    {
+      "label": "Mention par un collègue",
+      "detail": "Dans une note de dossier",
+      "cells": [
+        {
+          "on": true,
+          "aria": "Mention par un collègue dans l’app"
+        },
+        {
+          "on": true,
+          "aria": "Mention par un collègue par e-mail"
+        },
+        {
+          "on": false,
+          "aria": "Mention par un collègue par SMS"
+        }
+      ]
+    }
+  ],
+  "themes": [
+    {
+      "label": "Clair",
+      "preview": "linear-gradient(#FFFFFF 0 30%, #F6F8FB 30%)",
+      "checked": "true",
+      "border": "2px solid var(--marine)"
+    },
+    {
+      "label": "Sombre",
+      "preview": "linear-gradient(#16203A 0 30%, #0A1020 30%)",
+      "checked": "false",
+      "border": "1px solid var(--border)"
+    },
+    {
+      "label": "Automatique",
+      "preview": "linear-gradient(90deg, #F6F8FB 50%, #0A1020 50%)",
+      "checked": "false",
+      "border": "1px solid var(--border)"
+    }
+  ],
+  "densities": [
+    {
+      "label": "Confortable",
+      "checked": "true",
+      "bg": "var(--white)",
+      "color": "var(--text)"
+    },
+    {
+      "label": "Compacte",
+      "checked": "false",
+      "bg": "transparent",
+      "color": "var(--text-2)"
+    }
+  ],
+  "gcf": {
+    "open": false,
+    "tone": "primary",
+    "title": "",
+    "body": "",
+    "details": [],
+    "label": ""
+  }
+}

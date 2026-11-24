@@ -1,0 +1,419 @@
+{
+  "accent": "var(--marine)",
+  "headActions": [
+    {
+      "label": "Voir dans l’agenda",
+      "href": "Relances.dc.html"
+    },
+    {
+      "label": "+ Nouvel échéancier",
+      "primary": true,
+      "kbd": "N",
+      "expanded": "false"
+    }
+  ],
+  "headStats": [
+    {
+      "label": "À percevoir en décembre",
+      "value": "42 600 €",
+      "sub": "51 échéances"
+    },
+    {
+      "label": "Échéances honorées",
+      "value": "91 %",
+      "color": "var(--success-fg)",
+      "sub": "▲ 3 pts sur 90 jours"
+    },
+    {
+      "label": "Plans en défaut",
+      "value": "4",
+      "color": "var(--danger-fg)",
+      "sub": "2 impayés ou plus"
+    },
+    {
+      "label": "À valider",
+      "value": "3",
+      "color": "var(--warning-fg)",
+      "sub": "par un responsable"
+    }
+  ],
+  "tbTabs": [
+    {
+      "label": "Tous",
+      "count": "6",
+      "selected": true
+    },
+    {
+      "label": "À jour",
+      "count": "3",
+      "selected": false
+    },
+    {
+      "label": "Retard / défaut",
+      "count": "2",
+      "selected": false
+    },
+    {
+      "label": "À valider",
+      "count": "1",
+      "selected": false
+    }
+  ],
+  "tbFilters": [
+    {
+      "label": "Créancier",
+      "options": [
+        "Tous les créanciers",
+        "Matériaux Delta",
+        "Énergies Rhône",
+        "Médiatel",
+        "TransAlp Leasing",
+        "Crédit Horizon"
+      ]
+    },
+    {
+      "label": "Mode de paiement",
+      "options": [
+        "Tous les modes",
+        "Prélèvement SEPA",
+        "Virement",
+        "Carte bancaire"
+      ]
+    }
+  ],
+  "plansCount": "6",
+  "hasNotice": false,
+  "notice": "",
+  "cf": {
+    "open": false,
+    "title": "",
+    "body": "",
+    "details": [],
+    "label": "Confirmer",
+    "tone": "primary",
+    "reason": ""
+  },
+  "showSim": false,
+  "simExpanded": "false",
+  "simLabel": "+ Nouvel échéancier",
+  "pendingCount": "3",
+  "requests": [
+    {
+      "name": "Bâtiplus SAS",
+      "creditor": "Matériaux Delta",
+      "plan": "29 600 € en 8 mensualités de 3 700 € à partir du 15/12",
+      "origin": "Proposé par Thomas Giraud · accord écrit du créancier reçu le 21/11",
+      "flag": "Au-delà de 6 mois",
+      "flagBg": "var(--warning-bg)",
+      "flagFg": "var(--warning-fg)",
+      "pending": true,
+      "decided": false,
+      "result": "Refusé · le gestionnaire est prévenu",
+      "resColor": "var(--danger-fg)"
+    },
+    {
+      "name": "Fromagerie Durand",
+      "creditor": "Énergies Rhône",
+      "plan": "5 320 € en 3 mensualités de 1 774 €",
+      "origin": "Demandé par le débiteur depuis son espace de paiement · 21/11 10:51",
+      "flag": "Demande débiteur",
+      "flagBg": "var(--info-bg)",
+      "flagFg": "var(--info-fg)",
+      "pending": true,
+      "decided": false,
+      "result": "Refusé · le gestionnaire est prévenu",
+      "resColor": "var(--danger-fg)"
+    },
+    {
+      "name": "Garage Valmont",
+      "creditor": "TransAlp Leasing",
+      "plan": "23 900 € en 12 mensualités de 1 992 €",
+      "origin": "Proposé par Hugo Benali · accord du créancier en attente",
+      "flag": "Accord créancier manquant",
+      "flagBg": "var(--danger-bg)",
+      "flagFg": "var(--danger-fg)",
+      "pending": true,
+      "decided": false,
+      "result": "Refusé · le gestionnaire est prévenu",
+      "resColor": "var(--danger-fg)"
+    }
+  ],
+  "filters": [
+    {
+      "label": "Tous",
+      "pressed": "true",
+      "bg": "var(--white)",
+      "color": "var(--text)"
+    },
+    {
+      "label": "À jour",
+      "pressed": "false",
+      "bg": "transparent",
+      "color": "var(--text-2)"
+    },
+    {
+      "label": "Retard / défaut",
+      "pressed": "false",
+      "bg": "transparent",
+      "color": "var(--text-2)"
+    },
+    {
+      "label": "À valider",
+      "pressed": "false",
+      "bg": "transparent",
+      "color": "var(--text-2)"
+    }
+  ],
+  "plans": [
+    {
+      "id": "p1",
+      "k": "ok",
+      "name": "SCI Les Tilleuls",
+      "idLabel": "SIRET 442 366 712 00028",
+      "mandant": "Matériaux Delta",
+      "total": "14 070 €",
+      "count": 4,
+      "paid": 2,
+      "next": "05/12/2026",
+      "nextAmount": "3 517 €",
+      "mode": "Prélèvement SEPA",
+      "start": [
+        "05/10/2026",
+        "05/11/2026",
+        "05/12/2026",
+        "05/01/2027"
+      ],
+      "unit": "3 517 €",
+      "state": "À jour",
+      "bg": "var(--success-bg)",
+      "fg": "var(--success-fg)",
+      "prog": "2 / 4",
+      "progW": "50%",
+      "pressed": "true",
+      "rowBg": "var(--bleu-pale)"
+    },
+    {
+      "id": "p2",
+      "k": "ok",
+      "name": "Cabinet Orsay",
+      "idLabel": "SIRET 725 276 018 00084",
+      "mandant": "Médiatel",
+      "total": "22 200 €",
+      "count": 6,
+      "paid": 2,
+      "next": "05/12/2026",
+      "nextAmount": "3 700 €",
+      "mode": "Virement",
+      "start": [
+        "05/10/2026",
+        "05/11/2026",
+        "05/12/2026",
+        "05/01/2027",
+        "05/02/2027",
+        "05/03/2027"
+      ],
+      "unit": "3 700 €",
+      "state": "À jour",
+      "bg": "var(--success-bg)",
+      "fg": "var(--success-fg)",
+      "prog": "2 / 6",
+      "progW": "33%",
+      "pressed": "false",
+      "rowBg": "var(--white)"
+    },
+    {
+      "id": "p3",
+      "k": "late",
+      "name": "Nordis Logistique",
+      "idLabel": "SIRET 854 323 193 00045",
+      "mandant": "Énergies Rhône",
+      "total": "8 900 €",
+      "count": 2,
+      "paid": 0,
+      "next": "15/12/2026",
+      "nextAmount": "4 450 €",
+      "mode": "Virement",
+      "start": [
+        "15/11/2026",
+        "15/12/2026"
+      ],
+      "unit": "4 450 €",
+      "missed": 1,
+      "state": "En retard",
+      "bg": "var(--warning-bg)",
+      "fg": "var(--warning-fg)",
+      "prog": "0 / 2",
+      "progW": "0%",
+      "pressed": "false",
+      "rowBg": "var(--white)"
+    },
+    {
+      "id": "p4",
+      "k": "def",
+      "name": "Transports Lemaire",
+      "idLabel": "SIRET 868 426 842 00068",
+      "mandant": "TransAlp Leasing",
+      "total": "31 500 €",
+      "count": 6,
+      "paid": 1,
+      "next": "—",
+      "nextAmount": "2 impayées",
+      "mode": "Prélèvement SEPA",
+      "start": [
+        "10/08/2026",
+        "10/09/2026",
+        "10/10/2026",
+        "10/11/2026",
+        "10/12/2026",
+        "10/01/2027"
+      ],
+      "unit": "5 250 €",
+      "missed": 2,
+      "state": "En défaut",
+      "bg": "var(--danger-bg)",
+      "fg": "var(--danger-fg)",
+      "prog": "1 / 6",
+      "progW": "17%",
+      "pressed": "false",
+      "rowBg": "var(--white)"
+    },
+    {
+      "id": "p5",
+      "k": "wait",
+      "name": "Bâtiplus SAS",
+      "idLabel": "SIRET 512 334 871 00088",
+      "mandant": "Matériaux Delta",
+      "total": "29 600 €",
+      "count": 8,
+      "paid": 0,
+      "next": "15/12/2026",
+      "nextAmount": "3 700 €",
+      "mode": "Prélèvement SEPA",
+      "start": [
+        "15/12/2026",
+        "15/01/2027",
+        "15/02/2027",
+        "15/03/2027",
+        "15/04/2027",
+        "15/05/2027",
+        "15/06/2027",
+        "15/07/2027"
+      ],
+      "unit": "3 700 €",
+      "state": "Accord créancier",
+      "bg": "var(--info-bg)",
+      "fg": "var(--info-fg)",
+      "prog": "0 / 8",
+      "progW": "0%",
+      "pressed": "false",
+      "rowBg": "var(--white)"
+    },
+    {
+      "id": "p6",
+      "k": "ok",
+      "name": "Julie Mercier",
+      "idLabel": "Particulier",
+      "mandant": "Crédit Horizon",
+      "total": "2 880 €",
+      "count": 12,
+      "paid": 7,
+      "next": "01/12/2026",
+      "nextAmount": "240 €",
+      "mode": "Carte bancaire",
+      "start": [
+        "01/05/2026",
+        "01/06/2026",
+        "01/07/2026",
+        "01/08/2026",
+        "01/09/2026",
+        "01/10/2026",
+        "01/11/2026",
+        "01/12/2026",
+        "01/01/2027",
+        "01/02/2027",
+        "01/03/2027",
+        "01/04/2027"
+      ],
+      "unit": "240 €",
+      "state": "À jour",
+      "bg": "var(--success-bg)",
+      "fg": "var(--success-fg)",
+      "prog": "7 / 12",
+      "progW": "58%",
+      "pressed": "false",
+      "rowBg": "var(--white)"
+    }
+  ],
+  "cur": {
+    "id": "p1",
+    "k": "ok",
+    "name": "SCI Les Tilleuls",
+    "idLabel": "SIRET 442 366 712 00028",
+    "mandant": "Matériaux Delta",
+    "total": "14 070 €",
+    "count": 4,
+    "paid": 2,
+    "next": "05/12/2026",
+    "nextAmount": "3 517 €",
+    "mode": "Prélèvement SEPA",
+    "unit": "3 517 €",
+    "rows": [
+      {
+        "n": 1,
+        "date": "05/10/2026",
+        "amount": "3 517 €",
+        "label": "Payée",
+        "bg": "var(--success-bg)",
+        "fg": "var(--success-fg)",
+        "fg2": "var(--success-fg)"
+      },
+      {
+        "n": 2,
+        "date": "05/11/2026",
+        "amount": "3 517 €",
+        "label": "Payée",
+        "bg": "var(--success-bg)",
+        "fg": "var(--success-fg)",
+        "fg2": "var(--success-fg)"
+      },
+      {
+        "n": 3,
+        "date": "05/12/2026",
+        "amount": "3 517 €",
+        "label": "À venir",
+        "bg": "var(--surface-3)",
+        "fg": "var(--text-2)",
+        "fg2": "var(--text-3)"
+      },
+      {
+        "n": 4,
+        "date": "05/01/2027",
+        "amount": "3 517 €",
+        "label": "À venir",
+        "bg": "var(--surface-3)",
+        "fg": "var(--text-2)",
+        "fg2": "var(--text-3)"
+      }
+    ]
+  },
+  "months": 4,
+  "monthly": "7 400 €",
+  "lastDate": "15 mars 2027",
+  "needsApproval": false,
+  "ctaLabel": "Proposer au débiteur",
+  "q": "",
+  "pg": {
+    "show": true,
+    "total": 38,
+    "page": 1,
+    "size": 25
+  },
+  "lst": {
+    "show": false,
+    "kind": "empty",
+    "title": "Aucun échéancier",
+    "text": "Les plans de paiement créés depuis le simulateur ou proposés par les débiteurs apparaissent ici.",
+    "actionLabel": "",
+    "count": 5
+  }
+}

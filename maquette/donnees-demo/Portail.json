@@ -1,0 +1,660 @@
+{
+  "accent": "var(--marine)",
+  "is": {
+    "dash": true,
+    "files": false,
+    "deposit": false,
+    "payouts": false,
+    "messages": false,
+    "docs": false
+  },
+  "lgA11y": "false",
+  "lgDark": "false",
+  "tabs": [
+    {
+      "label": "Tableau de bord",
+      "hasBadge": false,
+      "badge": "",
+      "current": "page",
+      "color": "var(--text)",
+      "bar": "inset 0 -2px 0 var(--marine)"
+    },
+    {
+      "label": "Mes dossiers",
+      "hasBadge": false,
+      "badge": "",
+      "current": "false",
+      "color": "var(--text-3)",
+      "bar": "none"
+    },
+    {
+      "label": "Déposer des créances",
+      "hasBadge": false,
+      "badge": "",
+      "current": "false",
+      "color": "var(--text-3)",
+      "bar": "none"
+    },
+    {
+      "label": "Reversements",
+      "hasBadge": false,
+      "badge": "",
+      "current": "false",
+      "color": "var(--text-3)",
+      "bar": "none"
+    },
+    {
+      "label": "Messages",
+      "hasBadge": true,
+      "badge": "1",
+      "current": "false",
+      "color": "var(--text-3)",
+      "bar": "none"
+    },
+    {
+      "label": "Relevés et rapports",
+      "hasBadge": false,
+      "badge": "",
+      "current": "false",
+      "color": "var(--text-3)",
+      "bar": "none"
+    }
+  ],
+  "kpis": [
+    {
+      "label": "Montant confié en 2026",
+      "value": "836 700 €",
+      "hint": "412 factures · 64 débiteurs"
+    },
+    {
+      "label": "Montant recouvré",
+      "value": "450 300 €",
+      "hint": "dont 52 340 € en novembre"
+    },
+    {
+      "label": "Taux de recouvrement",
+      "value": "54 %",
+      "hint": "sur les dossiers ouverts en 2026"
+    },
+    {
+      "label": "Délai moyen de recouvrement",
+      "value": "38 jours",
+      "hint": "de la prise en charge au paiement"
+    }
+  ],
+  "statusBar": [
+    {
+      "label": "Nouveau",
+      "n": 6,
+      "color": "var(--text-3)",
+      "w": "9.4%"
+    },
+    {
+      "label": "En relance",
+      "n": 31,
+      "color": "var(--info)",
+      "w": "48.4%"
+    },
+    {
+      "label": "Échéancier",
+      "n": 9,
+      "color": "var(--warning)",
+      "w": "14.1%"
+    },
+    {
+      "label": "Contentieux",
+      "n": 4,
+      "color": "var(--danger)",
+      "w": "6.3%"
+    },
+    {
+      "label": "Soldé",
+      "n": 12,
+      "color": "var(--success)",
+      "w": "18.8%"
+    },
+    {
+      "label": "Irrécouvrable",
+      "n": 2,
+      "color": "var(--text-2)",
+      "w": "3.1%"
+    }
+  ],
+  "statusAria": "Nouveau 6, En relance 31, Échéancier 9, Contentieux 4, Soldé 12, Irrécouvrable 2",
+  "months": [
+    {
+      "l": "Juin",
+      "v": "38 k€",
+      "h": "89px",
+      "c": "var(--data-1)"
+    },
+    {
+      "l": "Juil.",
+      "v": "41 k€",
+      "h": "96px",
+      "c": "var(--data-1)"
+    },
+    {
+      "l": "Août",
+      "v": "33 k€",
+      "h": "77px",
+      "c": "var(--data-1)"
+    },
+    {
+      "l": "Sept.",
+      "v": "46 k€",
+      "h": "107px",
+      "c": "var(--data-1)"
+    },
+    {
+      "l": "Oct.",
+      "v": "44 k€",
+      "h": "103px",
+      "c": "var(--data-1)"
+    },
+    {
+      "l": "Nov.",
+      "v": "52 k€",
+      "h": "121px",
+      "c": "var(--marine)"
+    }
+  ],
+  "activity": [
+    {
+      "who": "Bâtiplus SAS",
+      "what": "promesse de paiement de 18 600 € pour le 28/11",
+      "when": "Aujourd’hui 09:12",
+      "dot": "var(--warning)"
+    },
+    {
+      "who": "Charpentes Bellet",
+      "what": "accusé de réception de la mise en demeure",
+      "when": "18/11",
+      "dot": "var(--danger)"
+    },
+    {
+      "who": "Reversement",
+      "what": "38 420 € versés sur votre compte",
+      "when": "15/11",
+      "dot": "var(--success)"
+    },
+    {
+      "who": "SCI Les Tilleuls",
+      "what": "échéance 2/4 de 3 517 € payée",
+      "when": "05/11",
+      "dot": "var(--success)"
+    }
+  ],
+  "chips": [
+    {
+      "label": "Tous",
+      "n": 64,
+      "pressed": "true",
+      "border": "1px solid var(--marine)",
+      "bg": "var(--bleu-pale)",
+      "color": "var(--marine)"
+    },
+    {
+      "label": "Nouveau",
+      "n": 6,
+      "pressed": "false",
+      "border": "1px solid var(--border)",
+      "bg": "var(--white)",
+      "color": "var(--text-2)"
+    },
+    {
+      "label": "En relance",
+      "n": 31,
+      "pressed": "false",
+      "border": "1px solid var(--border)",
+      "bg": "var(--white)",
+      "color": "var(--text-2)"
+    },
+    {
+      "label": "Échéancier",
+      "n": 9,
+      "pressed": "false",
+      "border": "1px solid var(--border)",
+      "bg": "var(--white)",
+      "color": "var(--text-2)"
+    },
+    {
+      "label": "Contentieux",
+      "n": 4,
+      "pressed": "false",
+      "border": "1px solid var(--border)",
+      "bg": "var(--white)",
+      "color": "var(--text-2)"
+    },
+    {
+      "label": "Soldé",
+      "n": 12,
+      "pressed": "false",
+      "border": "1px solid var(--border)",
+      "bg": "var(--white)",
+      "color": "var(--text-2)"
+    },
+    {
+      "label": "Irrécouvrable",
+      "n": 2,
+      "pressed": "false",
+      "border": "1px solid var(--border)",
+      "bg": "var(--white)",
+      "color": "var(--text-2)"
+    }
+  ],
+  "files": [
+    {
+      "id": "f1",
+      "k": "relance",
+      "name": "Bâtiplus SAS",
+      "ext": "CLI-08812",
+      "ref": "DOS-2026-0142",
+      "invoices": "3 factures",
+      "total": "48 200 €",
+      "rec": "0 €",
+      "last": "Appel le 21/11 : promesse de 18 600 €",
+      "steps": [
+        {
+          "t": "Rappel amiable par e-mail",
+          "d": "21/09"
+        },
+        {
+          "t": "Relance ferme",
+          "d": "12/11"
+        },
+        {
+          "t": "Appel : promesse de paiement",
+          "d": "21/11"
+        },
+        {
+          "t": "Échéancier 8 mois validé par Legarec",
+          "d": "21/11"
+        }
+      ],
+      "status": "En relance",
+      "bg": "var(--info-bg)",
+      "fg": "var(--info-fg)",
+      "recColor": "var(--text-3)",
+      "pressed": "true",
+      "rowBg": "var(--bleu-pale)"
+    },
+    {
+      "id": "f2",
+      "k": "contentieux",
+      "name": "Charpentes Bellet",
+      "ext": "CLI-07740",
+      "ref": "DOS-2026-0109",
+      "invoices": "4 factures",
+      "total": "29 300 €",
+      "rec": "2 000 €",
+      "last": "Mise en demeure reçue le 18/11",
+      "steps": [
+        {
+          "t": "Relances amiables (3)",
+          "d": "14/09 → 28/10"
+        },
+        {
+          "t": "Votre accord pour le contentieux",
+          "d": "05/11"
+        },
+        {
+          "t": "Mise en demeure LRAR",
+          "d": "16/11"
+        }
+      ],
+      "status": "Contentieux",
+      "bg": "var(--danger-bg)",
+      "fg": "var(--danger-fg)",
+      "recColor": "var(--success-fg)",
+      "pressed": "false",
+      "rowBg": "var(--white)"
+    },
+    {
+      "id": "f3",
+      "k": "echeancier",
+      "name": "SCI Les Tilleuls",
+      "ext": "CLI-09120",
+      "ref": "DOS-2026-0175",
+      "invoices": "2 factures",
+      "total": "14 070 €",
+      "rec": "7 034 €",
+      "last": "Échéance 2/4 payée le 05/11",
+      "steps": [
+        {
+          "t": "Échéancier signé (4 mois)",
+          "d": "03/10"
+        },
+        {
+          "t": "Échéance 1/4 payée",
+          "d": "05/10"
+        },
+        {
+          "t": "Échéance 2/4 payée",
+          "d": "05/11"
+        }
+      ],
+      "status": "Échéancier",
+      "bg": "var(--warning-bg)",
+      "fg": "var(--warning-fg)",
+      "recColor": "var(--success-fg)",
+      "pressed": "false",
+      "rowBg": "var(--white)"
+    },
+    {
+      "id": "f4",
+      "k": "relance",
+      "name": "Menuiserie Rivoire",
+      "ext": "CLI-09311",
+      "ref": "DOS-2026-0188",
+      "invoices": "5 factures",
+      "total": "15 640 €",
+      "rec": "0 €",
+      "last": "Relance n°1 envoyée le 18/11",
+      "steps": [
+        {
+          "t": "Prise en charge",
+          "d": "14/11"
+        },
+        {
+          "t": "Relance n°1 par e-mail",
+          "d": "18/11"
+        }
+      ],
+      "status": "En relance",
+      "bg": "var(--info-bg)",
+      "fg": "var(--info-fg)",
+      "recColor": "var(--text-3)",
+      "pressed": "false",
+      "rowBg": "var(--white)"
+    },
+    {
+      "id": "f5",
+      "k": "solde",
+      "name": "Menuiserie Arnal",
+      "ext": "CLI-06655",
+      "ref": "DOS-2026-0061",
+      "invoices": "2 factures",
+      "total": "9 800 €",
+      "rec": "9 800 €",
+      "last": "Soldé le 30/10",
+      "steps": [
+        {
+          "t": "Relance ferme",
+          "d": "02/10"
+        },
+        {
+          "t": "Paiement intégral",
+          "d": "30/10"
+        }
+      ],
+      "status": "Soldé",
+      "bg": "var(--success-bg)",
+      "fg": "var(--success-fg)",
+      "recColor": "var(--success-fg)",
+      "pressed": "false",
+      "rowBg": "var(--white)"
+    },
+    {
+      "id": "f6",
+      "k": "nouveau",
+      "name": "Bâtir Sud Rénovation",
+      "ext": "CLI-09402",
+      "ref": "DOS-2026-0199",
+      "invoices": "1 facture",
+      "total": "4 380 €",
+      "rec": "0 €",
+      "last": "Déposé le 20/11",
+      "steps": [
+        {
+          "t": "Créance déposée par vous",
+          "d": "20/11"
+        }
+      ],
+      "status": "Nouveau",
+      "bg": "var(--surface-3)",
+      "fg": "var(--text-2)",
+      "recColor": "var(--text-3)",
+      "pressed": "false",
+      "rowBg": "var(--white)"
+    },
+    {
+      "id": "f7",
+      "k": "irrecouvrable",
+      "name": "Atelier Corbin",
+      "ext": "CLI-05120",
+      "ref": "DOS-2026-0033",
+      "invoices": "1 facture",
+      "total": "2 150 €",
+      "rec": "0 €",
+      "last": "Liquidation judiciaire du débiteur",
+      "steps": [
+        {
+          "t": "Procédure collective constatée",
+          "d": "12/09"
+        },
+        {
+          "t": "Déclaration de créance conseillée",
+          "d": "13/09"
+        }
+      ],
+      "status": "Irrécouvrable",
+      "bg": "var(--surface-3)",
+      "fg": "var(--text-2)",
+      "recColor": "var(--text-3)",
+      "pressed": "false",
+      "rowBg": "var(--white)"
+    }
+  ],
+  "cur": {
+    "id": "f1",
+    "k": "relance",
+    "name": "Bâtiplus SAS",
+    "ext": "CLI-08812",
+    "ref": "DOS-2026-0142",
+    "invoices": "3 factures",
+    "total": "48 200 €",
+    "rec": "0 €",
+    "last": "Appel le 21/11 : promesse de 18 600 €"
+  },
+  "depModes": [
+    {
+      "label": "Une créance",
+      "selected": "true",
+      "bg": "var(--white)",
+      "color": "var(--text)",
+      "shadow": "var(--shadow-sm)"
+    },
+    {
+      "label": "En lot (CSV ou Excel)",
+      "selected": "false",
+      "bg": "transparent",
+      "color": "var(--text-3)",
+      "shadow": "none"
+    }
+  ],
+  "depOne": true,
+  "depBatch": false,
+  "depDone": false,
+  "payouts": [
+    {
+      "date": "15 nov. 2026",
+      "n": 12,
+      "gross": "41 761 €",
+      "fee": "3 341 €",
+      "net": "38 420 €"
+    },
+    {
+      "date": "15 oct. 2026",
+      "n": 15,
+      "gross": "44 837 €",
+      "fee": "3 587 €",
+      "net": "41 250 €"
+    },
+    {
+      "date": "15 sept. 2026",
+      "n": 9,
+      "gross": "30 880 €",
+      "fee": "2 470 €",
+      "net": "28 410 €"
+    },
+    {
+      "date": "15 août 2026",
+      "n": 11,
+      "gross": "36 210 €",
+      "fee": "2 897 €",
+      "net": "33 313 €"
+    }
+  ],
+  "convs": [
+    {
+      "id": "c1",
+      "subject": "Échéancier Bâtiplus SAS",
+      "ref": "DOS-2026-0142",
+      "time": "10:02",
+      "msgs": [
+        {
+          "me": false,
+          "who": "Thomas Giraud",
+          "when": "aujourd’hui 09:40",
+          "text": "Bonjour Claire, Bâtiplus propose de régler 18 600 € le 28/11 puis le solde en 8 mensualités. Cela dépasse les 6 mois prévus au mandat : validez-vous ?"
+        },
+        {
+          "me": true,
+          "who": "Vous",
+          "when": "10:02",
+          "text": "Bonjour Thomas, c’est d’accord pour 8 mois, à condition que le premier versement soit bien reçu le 28/11."
+        }
+      ],
+      "preview": "Vous : Bonjour Thomas, c’est d’accord pour 8 mois, à condition que le premier versement soit bien reçu le 28/11.",
+      "pressed": "true",
+      "bg": "var(--surface-3)",
+      "bar": "inset 3px 0 0 var(--or)"
+    },
+    {
+      "id": "c2",
+      "subject": "Contestation Atelier Mistral",
+      "ref": "DOS-2026-0170",
+      "time": "Hier",
+      "msgs": [
+        {
+          "me": false,
+          "who": "Thomas Giraud",
+          "when": "hier 15:10",
+          "text": "Le débiteur indique 2 palettes manquantes sur la livraison du 02/10. Pouvez-vous nous transmettre le bon de livraison signé ?"
+        }
+      ],
+      "preview": "Le débiteur indique 2 palettes manquantes sur la livraison du 02/10. Pouvez-vous nous transmettre le bon de livraison signé ?",
+      "pressed": "false",
+      "bg": "var(--white)",
+      "bar": "none"
+    },
+    {
+      "id": "c3",
+      "subject": "Nouveau lot de créances",
+      "ref": "Import du 20/11",
+      "time": "20 nov.",
+      "msgs": [
+        {
+          "me": true,
+          "who": "Vous",
+          "when": "20/11 16:00",
+          "text": "Je viens de déposer le lot de novembre (22 factures)."
+        },
+        {
+          "me": false,
+          "who": "Thomas Giraud",
+          "when": "20/11 16:45",
+          "text": "Bien reçu, la prise en charge démarre lundi."
+        }
+      ],
+      "preview": "Bien reçu, la prise en charge démarre lundi.",
+      "pressed": "false",
+      "bg": "var(--white)",
+      "bar": "none"
+    }
+  ],
+  "conv": {
+    "id": "c1",
+    "subject": "Échéancier Bâtiplus SAS",
+    "ref": "DOS-2026-0142",
+    "time": "10:02",
+    "msgs": [
+      {
+        "me": false,
+        "who": "Thomas Giraud",
+        "when": "aujourd’hui 09:40",
+        "text": "Bonjour Claire, Bâtiplus propose de régler 18 600 € le 28/11 puis le solde en 8 mensualités. Cela dépasse les 6 mois prévus au mandat : validez-vous ?",
+        "align": "flex-start",
+        "bg": "var(--white)",
+        "fg": "var(--text)",
+        "border": "1px solid var(--border)",
+        "radius": "14px 14px 14px 4px"
+      },
+      {
+        "me": true,
+        "who": "Vous",
+        "when": "10:02",
+        "text": "Bonjour Thomas, c’est d’accord pour 8 mois, à condition que le premier versement soit bien reçu le 28/11.",
+        "align": "flex-end",
+        "bg": "var(--marine)",
+        "fg": "var(--on-primary)",
+        "border": "0",
+        "radius": "14px 14px 4px 14px"
+      }
+    ]
+  },
+  "draft": "",
+  "docs": [
+    {
+      "name": "Rapport mensuel – novembre 2026",
+      "meta": "Disponible le 05/12/2026",
+      "ext": "PDF",
+      "bg": "var(--surface-3)",
+      "fg": "var(--text-3)"
+    },
+    {
+      "name": "Relevé de reversement – 15/11/2026",
+      "meta": "PDF · 210 Ko",
+      "ext": "PDF",
+      "bg": "var(--bleu-200)",
+      "fg": "var(--marine)"
+    },
+    {
+      "name": "Rapport mensuel – octobre 2026",
+      "meta": "PDF · 340 Ko",
+      "ext": "PDF",
+      "bg": "var(--bleu-200)",
+      "fg": "var(--marine)"
+    },
+    {
+      "name": "Relevé de reversement – 15/10/2026",
+      "meta": "PDF · 196 Ko",
+      "ext": "PDF",
+      "bg": "var(--bleu-200)",
+      "fg": "var(--marine)"
+    },
+    {
+      "name": "Détail des dossiers au 21/11/2026",
+      "meta": "Excel · généré à la demande",
+      "ext": "XLSX",
+      "bg": "var(--success-bg)",
+      "fg": "var(--success-fg)"
+    },
+    {
+      "name": "Convention de mandat signée",
+      "meta": "PDF · 12/03/2024",
+      "ext": "PDF",
+      "bg": "var(--bleu-200)",
+      "fg": "var(--marine)"
+    }
+  ],
+  "gcf": {
+    "open": false,
+    "tone": "primary",
+    "title": "",
+    "body": "",
+    "details": [],
+    "label": ""
+  }
+}

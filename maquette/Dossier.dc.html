@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Legarec – Fiche débiteur</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Lora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+/* tokens:start — charte graphique LEGAREC v1.0 (octobre 2026). Ne pas modifier à la main : généré depuis tools/tokens.css */
+:root{
+  /* Marque */
+  --marine:#002B74; --marine-hover:#00225C; --marine-text:#002B74; --app-icon-bg:#002B74; --app-icon-fg:#FCBE03; --nuit:#001B4D; --or:#FCBE03; --or-clair:#FFF3C4; --ardoise:#5D7087;
+  --bleu-pale:#EEF2F8; --gris-clair:#F6F8FB; --bleu-200:#D6E0F0; --white:#FFFFFF;
+  /* Texte */
+  --text:#0F1B2D; --text-2:#33455C; --text-3:#5D7087; --on-primary:#FFFFFF;
+  /* Surfaces et bordures */
+  --surface:#FFFFFF; --surface-2:#F6F8FB; --surface-3:#EEF2F7; --border:#E1E7EF; --border-strong:#7D8DA1;
+  /* Surfaces sombres (carte d'appel, barre d'actions groupées) */
+  --surface-dark:#001B4D; --surface-dark-2:#0B2D63; --border-dark:#2A4A7D; --on-dark:#FFFFFF; --on-dark-2:#D5DEEB; --on-dark-muted:#A9B8CC; --on-dark-accent:#B8CBEA;
+  /* Données (graphiques, balance âgée) */
+  --data-1:#C9D6EC; --data-2:#7F9CD0; --data-3:#345DA8;
+  /* Tons sémantiques : fond, bordure, point, texte */
+  --success-bg:#ECFDF5; --success-border:#A7F3D0; --success:#059669; --success-strong:#10B981; --success-fg:#047857; --on-success:#052E16;
+  --warning-bg:#FFF3C4; --warning-border:#F5D77A; --warning:#D97706; --warning-fg:#8A4B08;
+  --danger-bg:#FFF1F2; --danger-border:#FECDD3; --danger:#E11D48; --danger-fg:#BE123C; --danger-dark:#7F1D1D; --danger-on-dark:#FDA4AF;
+  --info-bg:#F0F9FF; --info-border:#BAE6FD; --info:#0284C7; --info-fg:#0369A1;
+  --violet-bg:#F5F3FF; --violet-border:#DDD6FE; --violet:#7C3AED; --violet-fg:#6D28D9;
+  --teal-bg:#CCFBF1; --teal:#0D9488; --teal-fg:#115E59;
+  /* Fonds pleins (badges pleins, texte --on-primary ≥ 5:1 dans les deux modes) */
+  --solid-neutral:#33455C; --solid-info:#0369A1; --solid-success:#047857; --solid-warning:#8A4B08; --solid-danger:#BE123C; --solid-violet:#6D28D9; --solid-teal:#115E59;
+  /* Typographie */
+  --font-title:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-text:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-brand:Lora, Georgia, serif; --font-mono:ui-monospace, SFMono-Regular, Menlo, monospace;
+  --fs-doc-xs:8px; --fs-doc-sm:9px; --fs-doc-md:10px; --fs-doc-lg:10.5px; --fs-2xs:11px; --fs-xs:12px; --fs-sm:13px; --fs-base:14px; --fs-md:16px; --fs-lg:18px; --fs-xl:20px; --fs-2xl:26px; --fs-3xl:34px;
+  /* Rayons */
+  --r-xs:4px; --r-sm:6px; --r-md:8px; --r-lg:12px; --r-full:9999px;
+  /* Ombres */
+  --shadow-sm:0 1px 2px 0 rgba(0,27,77,0.06); --shadow-md:0 10px 15px -3px rgba(0,27,77,0.10), 0 4px 6px -4px rgba(0,27,77,0.10); --shadow-lg:0 20px 25px -5px rgba(0,27,77,0.18), 0 8px 10px -6px rgba(0,27,77,0.12);
+  --shadow-knob:0 1px 2px rgba(0,27,77,0.25); --overlay:rgba(0,27,77,0.55);
+  /* Espacements (grille de 4 px) */
+  --sp-0h:2px; --sp-1:4px; --sp-1h:6px; --sp-2:8px; --sp-2h:10px; --sp-3:12px; --sp-3h:14px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px; --sp-10:40px; --sp-11:44px; --sp-12:48px;
+  /* Hauteurs de contrôles */
+  --control-xs:28px; --control-sm:36px; --control-md:40px; --control-lg:44px;
+  /* Voiles et anneaux (surfaces sombres, animations) */
+  --veil-8:rgba(255,255,255,0.08); --veil-18:rgba(255,255,255,0.18); --veil-25:rgba(255,255,255,0.25); --veil-35:rgba(255,255,255,0.35); --veil-80:rgba(255,255,255,0.8); --veil-85:rgba(255,255,255,0.85); --on-success-veil:rgba(5,46,22,0.35); --success-ring:rgba(16,185,129,0.55); --success-ring-0:rgba(16,185,129,0);
+  /* Cibles tactiles */
+  --target:44px;
+}
+body{font-family:var(--font-text);font-feature-settings:"cv11";-webkit-font-smoothing:antialiased}
+h1,h2{font-family:var(--font-title);font-weight:700;color:var(--marine);overflow-wrap:break-word;letter-spacing:-0.015em}
+[data-brand] h1,[data-brand] h2{font-family:var(--font-brand);letter-spacing:0}
+td,th,li,h3{overflow-wrap:break-word}
+:focus-visible{outline:2px solid var(--marine);outline-offset:2px}
+[data-dark] :focus-visible{outline-color:var(--or)}
+button:disabled,[aria-disabled="true"]{cursor:not-allowed !important;opacity:.55}
+button:not(:disabled):hover,a[href][style*="border-radius"]:hover{filter:brightness(.96)}
+tbody tr:hover{background-color:var(--surface-2)}
+[data-table-scroll]{max-height:min(68vh,720px);overflow:auto !important}
+[data-table-scroll] thead th{position:sticky;top:0;z-index:2;background:var(--surface-2);box-shadow:inset 0 -1px 0 var(--border)}
+[data-skeleton]{display:block;border-radius:var(--r-xs);background:linear-gradient(90deg,var(--surface-3) 25%,var(--bleu-pale) 50%,var(--surface-3) 75%);background-size:200% 100%;animation:lg-sk 1.2s ease-in-out infinite}
+@keyframes lg-sk{from{background-position:200% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+@media (pointer: coarse), (max-width: 767px){
+  button,select,input:not([type=checkbox]):not([type=radio]):not([type=range]),[role=tab],[role=menuitem],a[href][style*="display: inline-flex"],a[href][style*="height:"]{min-height:var(--target)}
+  input[type=checkbox],input[type=radio]{min-width:22px;min-height:22px}
+}
+/* Mode sombre : data-theme="dark" sur <html> */
+:root[data-theme="dark"]{
+  --marine:#2E5FC0; --marine-hover:#2A57B0; --marine-text:#9DB8F0; --app-icon-bg:#0A1A3F; --nuit:#071028; --or-clair:#3A2F0A; --ardoise:#9AA9BD;
+  --bleu-pale:#1B2A4A; --gris-clair:#0A1020; --bleu-200:#2B3E63; --white:#16203A;
+  --text:#E6ECF5; --text-2:#C3CEDD; --text-3:#9AA9BD;
+  --surface:#0F1729; --surface-2:#0A1020; --surface-3:#1A2438; --border:#26324A; --border-strong:#67778F;
+  --surface-dark:#050B1A; --surface-dark-2:#101C36; --border-dark:#24365A;
+  --data-1:#2B3E63; --data-2:#4F73B8; --data-3:#7F9CD0;
+  --success-bg:#0B2E22; --success-border:#14532D; --success-fg:#6EE7B7;
+  --warning-bg:#3A2F0A; --warning-border:#6B5310; --warning-fg:#FCD34D;
+  --danger-bg:#3B0D17; --danger-border:#7F1D2E; --danger-fg:#FDA4AF;
+  --info-bg:#0B2540; --info-border:#164E63; --info-fg:#7DD3FC;
+  --violet-bg:#24164A; --violet-border:#4C1D95; --violet-fg:#C4B5FD;
+  --teal-bg:#0B302C; --teal-fg:#5EEAD4;
+  --shadow-sm:0 1px 2px 0 rgba(0,0,0,0.4); --shadow-md:0 10px 15px -3px rgba(0,0,0,0.5); --shadow-lg:0 20px 25px -5px rgba(0,0,0,0.6); --overlay:rgba(0,0,0,0.65);
+  color-scheme:dark;
+}
+:root[data-theme="dark"] body{background:var(--surface-2);color:var(--text)}
+:root[data-theme="dark"] :focus-visible{outline-color:#9DB8F0}
+:root[data-theme="dark"] [data-dark]{border:1px solid var(--border-dark)}
+:root[data-theme="dark"] h1,:root[data-theme="dark"] h2,:root[data-theme="dark"] a[href]:not([style*="background"]){color:var(--marine-text)}
+:root[data-theme="dark"] [style*="color: var(--marine)"]:not([style*="background: var(--marine)"]){color:var(--marine-text) !important}
+:root[data-theme="dark"] img[src*="_blob"]{background:var(--white);border-radius:var(--r-sm)}
+/* Mode malvoyant : data-a11y="malvoyant" sur <html> — texte agrandi, contraste renforcé, cibles plus grandes */
+:root[data-a11y="malvoyant"]{
+  --fs-2xs:13px; --fs-xs:14px; --fs-sm:15px; --fs-base:17px; --fs-md:19px; --fs-lg:21px; --fs-xl:24px; --fs-2xl:30px; --fs-3xl:38px;
+  --control-xs:36px; --control-sm:44px; --control-md:48px; --control-lg:52px; --target:48px;
+  --text-3:var(--text-2); --ardoise:var(--text-2); --border:var(--border-strong);
+}
+:root[data-a11y="malvoyant"] body{line-height:1.6}
+:root[data-a11y="malvoyant"] [data-sb-nav][style*="width: 264px"]{width:312px !important}
+:root[data-a11y="malvoyant"] :focus-visible{outline:3px solid var(--or);outline-offset:3px;box-shadow:0 0 0 6px var(--marine)}
+:root[data-a11y="malvoyant"] a[href]:not([style*="background"]){text-decoration:underline;text-underline-offset:3px}
+:root[data-a11y="malvoyant"] button,:root[data-a11y="malvoyant"] select,:root[data-a11y="malvoyant"] input:not([type=checkbox]):not([type=radio]){min-height:var(--target)}
+:root[data-a11y="malvoyant"] input[type=checkbox],:root[data-a11y="malvoyant"] input[type=radio]{min-width:24px;min-height:24px}
+:root[data-a11y="malvoyant"][data-theme="dark"]{--text-3:#E6ECF5;--text-2:#E6ECF5}
+/* tokens:end */
+body{margin:0;font-family:var(--font-text);color:var(--text);background:var(--surface-2)}
+a{color:var(--marine)}a:hover{color:var(--marine)}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; background: var(--surface-2); font-family: var(--font-text); color: var(--text)">
+
+<div data-sb-wrap style="flex: 0 0 auto; max-width: 100%; display: flex; background: var(--surface-2); border-right: 1px solid var(--border)">
+<dc-import name="Sidebar" active="Dossiers.dc.html" accent="{{accent}}" hint-size="264px,1100px"></dc-import>
+</div>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: var(--sp-8); box-sizing: border-box; display: flex; flex-direction: column; gap: var(--sp-6)">
+<dc-import name="Topbar" accent="{{accent}}" trail="Créanciers>Mandants.dc.html|Matériaux Delta>Mandant.dc.html|Bâtiplus SAS" hint-size="100%,64px"></dc-import>
+<div data-page-body style="width: 100%; max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--sp-6)">
+
+
+<section aria-label="Débiteur" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden">
+<div style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--sp-4); padding: var(--sp-5) var(--sp-6)">
+<div style="display: flex; align-items: center; gap: var(--sp-4)">
+<div style="width: 56px; height: 56px; border-radius: var(--r-lg); background: var(--bleu-200); color: var(--marine); display: flex; align-items: center; justify-content: center; font-size: var(--fs-xl); font-weight: 700">BP</div>
+<div style="display: flex; flex-direction: column; gap: var(--sp-1h)">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3)">
+<h1 style="margin: 0; font-size: var(--fs-2xl); font-weight: 700; letter-spacing: -0.01em">Bâtiplus SAS</h1>
+<dc-import name="Badge" label="En retard · 64 j" tone="danger" size="sm" style="display: contents" hint-size="80px,22px"></dc-import>
+</div>
+<p style="margin: 0; font-size: var(--fs-base); color: var(--text-3)">Créancier : <a href="Mandant.dc.html" style="font-weight: 600; text-decoration: none">Matériaux Delta</a> · DOS-2026-0142 · SIRET 512 334 871 00088 · Réf. créancier CLI-08812 · Gestionnaire : Camille Laurent</p>
+</div>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-3)">
+<button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="height: var(--control-md); padding: 0 var(--sp-3h); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font: inherit; font-size: var(--fs-base); font-weight: 500; cursor: pointer">Proposer un échéancier</button>
+<button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="height: var(--control-md); padding: 0 var(--sp-3h); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font: inherit; font-size: var(--fs-base); font-weight: 500; cursor: pointer">Enregistrer un paiement</button>
+<dc-import name="Bouton" variant="secondary" size="md" label="Envoyer une relance" on-press="{{openRelance}}" style="display: contents" hint-size="120px,40px"></dc-import>
+<dc-import name="Bouton" variant="primary" size="md" label="Appeler" icon="phone" href="Telephonie.dc.html" accent="{{accent}}" title="Appeler le contact principal via 3CX" style="display: contents" hint-size="120px,40px"></dc-import>
+</div>
+</div>
+<div aria-label="Contacts du débiteur" role="group" style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-5); padding: var(--sp-3) var(--sp-6); border-top: 1px solid var(--surface-3); background: var(--surface-2); font-size: var(--fs-sm)">
+<span style="font-weight: 600; color: var(--text)">Julien Ferrand <span style="font-weight: 400; color: var(--text-3)">· gérant, contact principal</span></span>
+<span style="display: inline-flex; align-items: center; gap: var(--sp-2)"><a href="Telephonie.dc.html" title="Appeler via 3CX" style="font-weight: 600; font-variant-numeric: tabular-nums; text-decoration: none">04 72 18 45 90</a><dc-import name="Statut" label="Vérifié" tone="success" style="display: contents" hint-size="70px,20px"></dc-import></span>
+<span style="display: inline-flex; align-items: center; gap: var(--sp-2)"><a href="Telephonie.dc.html" title="Appeler via 3CX" style="font-weight: 600; font-variant-numeric: tabular-nums; text-decoration: none">06 12 48 77 03</a><dc-import name="Statut" label="Non vérifié" tone="warning" style="display: contents" hint-size="90px,20px"></dc-import></span>
+<span style="display: inline-flex; align-items: center; gap: var(--sp-2)"><a href="Messagerie.dc.html" style="font-weight: 600; text-decoration: none">compta@batiplus.fr</a><dc-import name="Statut" label="Vérifié" tone="success" style="display: contents" hint-size="70px,20px"></dc-import></span>
+<span style="margin-left: auto; color: var(--text-3)">Coordonnées synchronisées avec 3CX</span>
+</div>
+<dl style="margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); border-top: 1px solid var(--surface-3)"><div style="display: flex; flex-direction: column; gap: var(--sp-0h); padding: var(--sp-3h) var(--sp-6); border-right: 1px solid var(--surface-3)"><dt style="font-size: var(--fs-xs); color: var(--text-3)">Montant dû</dt><dd style="margin: 0; font-size: var(--fs-lg); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text)">48 200 €</dd></div><div style="display: flex; flex-direction: column; gap: var(--sp-0h); padding: var(--sp-3h) var(--sp-6); border-right: 1px solid var(--surface-3)"><dt style="font-size: var(--fs-xs); color: var(--text-3)">Pénalités et indemnités</dt><dd style="margin: 0; font-size: var(--fs-lg); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text)">1 486 €</dd></div><div style="display: flex; flex-direction: column; gap: var(--sp-0h); padding: var(--sp-3h) var(--sp-6); border-right: 1px solid var(--surface-3)"><dt style="font-size: var(--fs-xs); color: var(--text-3)">Relances envoyées</dt><dd style="margin: 0; font-size: var(--fs-lg); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text)">2 sur 4</dd></div><div style="display: flex; flex-direction: column; gap: var(--sp-0h); padding: var(--sp-3h) var(--sp-6); border-right: 1px solid var(--surface-3)"><dt style="font-size: var(--fs-xs); color: var(--text-3)">Score de risque</dt><dd style="margin: 0; font-size: var(--fs-lg); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--danger-fg)">Élevé</dd></div><div style="display: flex; flex-direction: column; gap: var(--sp-0h); padding: var(--sp-3h) var(--sp-6); border-right: 1px solid var(--surface-3)"><dt style="font-size: var(--fs-xs); color: var(--text-3)">Prochaine action</dt><dd style="margin: 0; font-size: var(--fs-lg); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text)">Appel · aujourd’hui</dd></div></dl>
+<div role="tablist" aria-label="Sections du dossier" style="display: flex; gap: var(--sp-1); padding: 0 var(--sp-4); border-top: 1px solid var(--border); overflow-x: auto">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="5">
+<button type="button" role="tab" aria-selected="{{t.selected}}" onClick="{{t.pick}}" style="height: var(--control-lg); padding: 0 var(--sp-2h); border: 0; background: transparent; font: inherit; font-size: var(--fs-base); font-weight: 500; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: var(--sp-1h); color: {{t.color}}; box-shadow: {{t.bar}}">{{t.label}}<sc-if value="{{t.hasCount}}" hint-placeholder-val="{{ false }}"><dc-import name="Badge" label="{{t.count}}" tone="neutral" size="sm" style="display: contents" hint-size="80px,22px"></dc-import></sc-if></button>
+</sc-for>
+</div>
+</section>
+
+<sc-if value="{{showRelance}}" hint-placeholder-val="{{ false }}">
+<section aria-labelledby="relance-titre" style="background: var(--surface); border: 1px solid var(--data-1); border-radius: var(--r-lg); padding: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-4); box-shadow: var(--shadow-md)">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3)">
+<h2 id="relance-titre" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Nouvelle relance — niveau 3</h2>
+<button type="button" aria-label="Fermer" onClick="{{closeRelance}}" style="width: 44px; height: var(--control-lg); border: 0; background: transparent; color: var(--text-3); cursor: pointer; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--sp-4)">
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Canal
+<select style="height: var(--control-lg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); background: var(--surface); color: var(--text)"><option>E-mail</option><option>Courrier recommandé</option><option>SMS</option></select>
+</label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Modèle
+<select style="height: var(--control-lg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); background: var(--surface); color: var(--text)"><option>Relance ferme (niveau 3)</option><option>Rappel amiable</option><option>Mise en demeure</option></select>
+</label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Destinataire
+<input type="email" value="compta@batiplus.example" style="height: var(--control-lg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); color: var(--text); box-sizing: border-box">
+</label>
+</div>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Message
+<textarea rows="5" style="border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: var(--sp-3); font: inherit; font-size: var(--fs-base); color: var(--text); resize: vertical; line-height: 1.5">Madame, Monsieur,
+
+Nous intervenons pour le compte de notre client Matériaux Delta. Malgré nos précédentes relances, les factures F-2026-0712, F-2026-0745 et F-2026-0790, d'un montant total de 48 200 €, restent impayées. Nous vous remercions de procéder au règlement sous 8 jours.</textarea>
+</label>
+<div style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--sp-3)">
+<dc-import name="Bouton" variant="secondary" size="md" label="Annuler" on-press="{{closeRelance}}" style="display: contents" hint-size="120px,40px"></dc-import>
+<dc-import name="Bouton" variant="primary" size="md" label="Envoyer la relance" on-press="{{closeRelance}}" accent="{{accent}}" style="display: contents" hint-size="120px,40px"></dc-import>
+</div>
+</section>
+</sc-if>
+
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-6); align-items: flex-start">
+
+<div style="flex: 999 1 520px; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-6)">
+
+<sc-if value="{{showSynth}}" hint-placeholder-val="{{ true }}">
+<section aria-labelledby="synth-titre" style="background: var(--violet-bg); border: 1px solid var(--violet-border); border-left: 4px solid var(--violet); border-radius: var(--r-lg); padding: var(--sp-4) var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-3)">
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2)">
+<div style="display: flex; flex-direction: column; gap: 1px"><h2 id="synth-titre" style="margin: 0; display: flex; align-items: center; gap: var(--sp-1h); font-size: var(--fs-md); font-weight: 600; color: var(--violet-fg)"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="M12 3l1.8 4.9L19 10l-5.2 2.1L12 17l-1.8-4.9L5 10l5.2-2.1zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"></path></svg>Synthèse du dossier</h2><span style="font-size: var(--fs-xs); color: var(--text-3)">{{synthMeta}}</span></div>
+<div style="display: flex; gap: var(--sp-1h)">
+<dc-import name="Bouton" variant="ghost" size="sm" icon="refresh" label="Régénérer" on-press="{{synthRegen}}" style="display: contents" hint-size="110px,32px"></dc-import>
+<dc-import name="Bouton" variant="ghost" size="sm" label="Signaler une erreur" on-press="{{synthReport}}" style="display: contents" hint-size="140px,32px"></dc-import>
+</div>
+</div>
+<dl style="margin: 0; display: grid; grid-template-columns: minmax(120px, auto) 1fr; gap: var(--sp-2) var(--sp-4); font-size: var(--fs-base); line-height: 1.5">
+<sc-for list="{{synth}}" as="x" hint-placeholder-count="5"><dt style="font-size: var(--fs-sm); font-weight: 600; color: var(--text-2)">{{x.k}}</dt><dd style="margin: 0; color: var(--text)">{{x.v}}</dd></sc-for>
+</dl>
+<sc-if value="{{synthReported}}" hint-placeholder-val="{{ false }}"><span role="status" style="font-size: var(--fs-sm); color: var(--violet-fg)">Merci : le signalement est enregistré dans le journal de l’IA et sera revu par la Responsable du recouvrement.</span></sc-if>
+<span style="font-size: var(--fs-xs); color: var(--text-3)">Rédigé par l’IA à partir de l’historique, des appels et des e-mails du dossier. À vérifier avant de s’y fier.</span>
+</section>
+</sc-if>
+
+<sc-if value="{{showFactures}}" hint-placeholder-val="{{ true }}">
+<section aria-labelledby="factures-titre" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden">
+<div style="padding: var(--sp-5) var(--sp-6); border-bottom: 1px solid var(--border)">
+<h2 id="factures-titre" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Factures impayées</h2>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 560px; border-collapse: collapse; font-size: var(--fs-base)">
+<thead style="background: var(--surface-2)">
+<tr style="text-align: left; color: var(--text-3); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.04em">
+<th scope="col" style="padding: var(--sp-3) var(--sp-6); font-weight: 600">N° facture</th>
+<th scope="col" style="padding: var(--sp-3) var(--sp-2); font-weight: 600">Émise le</th>
+<th scope="col" style="padding: var(--sp-3) var(--sp-2); font-weight: 600">Échéance</th>
+<th scope="col" style="padding: var(--sp-3) var(--sp-2); font-weight: 600; text-align: right">Montant TTC</th>
+<th scope="col" style="padding: var(--sp-3) var(--sp-6); font-weight: 600; text-align: right">Retard</th>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{invoices}}" as="f" hint-placeholder-count="3">
+<tr style="border-top: 1px solid var(--surface-3)">
+<td style="padding: var(--sp-3h) var(--sp-6); font-weight: 500">{{f.num}}</td>
+<td style="padding: var(--sp-3h) var(--sp-2); color: var(--text-2)">{{f.issued}}</td>
+<td style="padding: var(--sp-3h) var(--sp-2); color: var(--text-2)">{{f.due}}</td>
+<td style="padding: var(--sp-3h) var(--sp-2); text-align: right; font-weight: 600; font-variant-numeric: tabular-nums">{{f.amount}}</td>
+<td style="padding: var(--sp-3h) var(--sp-6); text-align: right; color: var(--danger-fg); font-weight: 500">{{f.late}}</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</section>
+</sc-if>
+
+<sc-if value="{{showHisto}}" hint-placeholder-val="{{ true }}">
+<section aria-labelledby="histo-titre" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-5)">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3)">
+<h2 id="histo-titre" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Historique des actions</h2>
+<button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="height: var(--control-sm); padding: 0 var(--sp-3); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer">+ Ajouter une note</button>
+</div>
+<ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+<sc-for list="{{history}}" as="h" hint-placeholder-count="5">
+<li style="display: flex; gap: var(--sp-4)">
+<div style="display: flex; flex-direction: column; align-items: center">
+<span style="width: 12px; height: 12px; border-radius: var(--r-full); margin-top: var(--sp-1); background: {{h.dot}}"></span>
+<span style="flex: 1; width: 2px; background: var(--border); min-height: 28px"></span>
+</div>
+<div style="display: flex; flex-direction: column; gap: var(--sp-1); padding-bottom: var(--sp-5)">
+<span style="font-size: var(--fs-base); font-weight: 600">{{h.title}}</span>
+<span style="font-size: var(--fs-sm); color: var(--text-2)">{{h.detail}}</span>
+<span style="font-size: var(--fs-xs); color: var(--text-3)">{{h.date}}</span>
+</div>
+</li>
+</sc-for>
+</ol>
+</section>
+</sc-if>
+<sc-if value="{{is.documents}}" hint-placeholder-val="{{ false }}">
+<section aria-labelledby="docs-titre" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5); border-bottom: 1px solid var(--border)"><h2 id="docs-titre" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Documents du dossier</h2><a href="Generer.dc.html" style="height: var(--control-sm); padding: 0 var(--sp-3); border-radius: var(--r-sm); border: 1px solid var(--border); color: var(--text); font-size: var(--fs-sm); font-weight: 500; text-decoration: none; display: inline-flex; align-items: center">+ Nouveau courrier</a></div>
+<ul style="list-style: none; margin: 0; padding: 0">
+<sc-for list="{{docs}}" as="d" hint-placeholder-count="5">
+<li style="display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3) var(--sp-5); border-top: 1px solid var(--surface-3)"><span style="width: 30px; height: 36px; border-radius: var(--r-xs); flex-shrink: 0; display: flex; align-items: flex-end; justify-content: center; padding-bottom: var(--sp-1); box-sizing: border-box; font-size: var(--fs-2xs); font-weight: 700; background: {{d.bg}}; color: {{d.fg}}">{{d.ext}}</span><span style="flex: 1; min-width: 0; display: flex; flex-direction: column"><span style="font-size: var(--fs-base); font-weight: 500">{{d.name}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{d.meta}}</span></span><a href="Documents.dc.html" style="font-size: var(--fs-sm); font-weight: 500; text-decoration: none">Ouvrir</a></li>
+</sc-for>
+</ul>
+</section>
+</sc-if>
+<sc-if value="{{is.echanges}}" hint-placeholder-val="{{ false }}">
+<section aria-labelledby="ech-titre" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5); border-bottom: 1px solid var(--border)"><h2 id="ech-titre" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Échanges avec le débiteur</h2><span style="display: flex; gap: var(--sp-2)"><a href="Telephonie.dc.html" style="height: var(--control-sm); padding: 0 var(--sp-3); border-radius: var(--r-sm); border: 1px solid var(--border); color: var(--text); font-size: var(--fs-sm); font-weight: 500; text-decoration: none; display: inline-flex; align-items: center">Appeler</a><a href="Messagerie.dc.html" style="height: var(--control-sm); padding: 0 var(--sp-3); border-radius: var(--r-sm); border: 1px solid var(--border); color: var(--text); font-size: var(--fs-sm); font-weight: 500; text-decoration: none; display: inline-flex; align-items: center">E-mail</a><a href="Sms.dc.html" style="height: var(--control-sm); padding: 0 var(--sp-3); border-radius: var(--r-sm); border: 1px solid var(--border); color: var(--text); font-size: var(--fs-sm); font-weight: 500; text-decoration: none; display: inline-flex; align-items: center">SMS</a></span></div>
+<ul style="list-style: none; margin: 0; padding: 0">
+<sc-for list="{{exchanges}}" as="x" hint-placeholder-count="5">
+<li style="display: flex; gap: var(--sp-3); padding: var(--sp-3h) var(--sp-5); border-top: 1px solid var(--surface-3)"><span style="font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-0h) var(--sp-2); border-radius: var(--r-full); height: fit-content; white-space: nowrap; background: {{x.bg}}; color: {{x.fg}}">{{x.ch}}</span><span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-1)"><span style="font-size: var(--fs-base); font-weight: 500">{{x.title}}</span><span style="font-size: var(--fs-sm); color: var(--text-2); line-height: 1.5">{{x.text}}</span></span><span style="font-size: var(--fs-xs); color: var(--text-3); white-space: nowrap">{{x.when}}</span></li>
+</sc-for>
+</ul>
+</section>
+</sc-if>
+
+</div>
+
+<aside style="flex: 1 1 280px; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-6)">
+<section aria-labelledby="mandat-titre" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-3h)">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: var(--sp-2)">
+<h2 id="mandat-titre" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Mandat</h2>
+<a href="Mandant.dc.html" style="font-size: var(--fs-sm); font-weight: 500; text-decoration: none">Voir le créancier →</a>
+</div>
+<div style="display: flex; align-items: center; gap: var(--sp-3)">
+<div style="width: 40px; height: 40px; border-radius: var(--r-lg); background: var(--nuit); color: var(--on-primary); display: flex; align-items: center; justify-content: center; font-size: var(--fs-base); font-weight: 700">MD</div>
+<div style="display: flex; flex-direction: column"><span style="font-size: var(--fs-base); font-weight: 600">Matériaux Delta</span><span style="font-size: var(--fs-xs); color: var(--text-3)">Négoce de matériaux BTP</span></div>
+</div>
+<dl style="margin: 0; display: flex; flex-direction: column; gap: var(--sp-2); font-size: var(--fs-sm)">
+<div style="display: flex; justify-content: space-between; gap: var(--sp-3)"><dt style="color: var(--text-3)">Honoraires</dt><dd style="margin: 0; font-weight: 500">8 % HT du recouvré</dd></div>
+<div style="display: flex; justify-content: space-between; gap: var(--sp-3)"><dt style="color: var(--text-3)">Échéancier sans accord</dt><dd style="margin: 0; font-weight: 500">≤ 6 mois</dd></div>
+<div style="display: flex; justify-content: space-between; gap: var(--sp-3)"><dt style="color: var(--text-3)">Remise autorisée</dt><dd style="margin: 0; font-weight: 500">≤ 5 %</dd></div>
+<div style="display: flex; justify-content: space-between; gap: var(--sp-3)"><dt style="color: var(--text-3)">Contentieux</dt><dd style="margin: 0; font-weight: 500">Sur accord écrit</dd></div>
+</dl>
+</section>
+
+<section aria-labelledby="autres-titre" style="background: var(--warning-bg); border: 1px solid var(--warning-border); border-radius: var(--r-lg); padding: var(--sp-5) var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-2h)">
+<h2 id="autres-titre" style="margin: 0; font-size: var(--fs-base); font-weight: 600; color: var(--warning-fg)">Ce débiteur doit aussi à un autre créancier</h2>
+<div style="display: flex; justify-content: space-between; gap: var(--sp-3); font-size: var(--fs-base); color: var(--text)"><span>Énergies Rhône · 1 facture</span><span style="font-weight: 600">3 240 €</span></div>
+<p style="margin: 0; font-size: var(--fs-xs); color: var(--warning-fg)">Les relances et les paiements restent séparés pour chaque créancier.</p>
+</section>
+
+<section aria-labelledby="contact-titre" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-4)">
+<h2 id="contact-titre" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Contact principal</h2>
+<div style="display: flex; flex-direction: column; gap: var(--sp-1)">
+<span style="font-size: var(--fs-base); font-weight: 600">Julien Ferrand</span>
+<span style="font-size: var(--fs-sm); color: var(--text-3)">Directeur administratif et financier</span>
+</div>
+<dl style="margin: 0; display: flex; flex-direction: column; gap: var(--sp-2h); font-size: var(--fs-base)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-0h)"><dt style="font-size: var(--fs-xs); color: var(--text-3)">Téléphone</dt><dd style="margin: 0"><a href="#" style="text-decoration: none">01 23 45 67 89</a></dd></div>
+<div style="display: flex; flex-direction: column; gap: var(--sp-0h)"><dt style="font-size: var(--fs-xs); color: var(--text-3)">E-mail</dt><dd style="margin: 0"><a href="#" style="text-decoration: none">compta@batiplus.example</a></dd></div>
+<div style="display: flex; flex-direction: column; gap: var(--sp-0h)"><dt style="font-size: var(--fs-xs); color: var(--text-3)">Adresse</dt><dd style="margin: 0; color: var(--text-2)">12 rue des Artisans, 69007 Lyon</dd></div>
+</dl>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2)">
+<button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="height: var(--control-lg); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font: inherit; font-size: var(--fs-base); font-weight: 500; cursor: pointer">Appeler</button>
+<button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="height: var(--control-lg); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font: inherit; font-size: var(--fs-base); font-weight: 500; cursor: pointer">E-mail</button>
+</div>
+</section>
+
+<section aria-labelledby="scenario-titre" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-4)">
+<h2 id="scenario-titre" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Scénario de relance</h2>
+<ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-3)">
+<sc-for list="{{steps}}" as="s" hint-placeholder-count="4">
+<li style="display: flex; align-items: center; gap: var(--sp-3)">
+<span style="width: 28px; height: 28px; border-radius: var(--r-full); font-size: var(--fs-xs); font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: {{s.bg}}; color: {{s.fg}}">{{s.n}}</span>
+<div style="display: flex; flex-direction: column; gap: var(--sp-0h)">
+<span style="font-size: var(--fs-base); font-weight: 500">{{s.label}}</span>
+<span style="font-size: var(--fs-xs); color: var(--text-3)">{{s.when}}</span>
+</div>
+</li>
+</sc-for>
+</ol>
+</section>
+</aside>
+
+</div>
+
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#002B74","options":["#002B74","#001B4D","#5D7087"]},"showRelance":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { relance: null, tab: 'overview' };
+  }
+  renderVals() {
+    const accent = this.props.accent ?? 'var(--marine)';
+    const open = this.state.relance ?? (this.props.showRelance ?? false);
+    const done = { bg: 'var(--success-bg)', fg: 'var(--success-fg)' };
+    const next = { bg: accent, fg: 'var(--on-primary)' };
+    const todo = { bg: 'var(--surface-3)', fg: 'var(--text-2)' };
+    return {
+      accent,
+      tabs: [['overview', 'Vue d\u2019ensemble', ''], ['factures', 'Factures', '3'], ['historique', 'Historique', '5'], ['echanges', 'Échanges', '6'], ['documents', 'Documents', '5']].map(([id, label, count]) => ({
+        label, count, hasCount: !!count,
+        selected: this.state.tab === id ? 'true' : 'false',
+        color: this.state.tab === id ? 'var(--text)' : 'var(--text-3)',
+        bar: this.state.tab === id ? 'inset 0 -2px 0 ' + accent : 'none',
+        pick: () => this.setState({ tab: id })
+      })),
+      is: { documents: this.state.tab === 'documents', echanges: this.state.tab === 'echanges' },
+      showFactures: this.state.tab === 'overview' || this.state.tab === 'factures',
+      showSynth: this.state.tab === 'overview',
+      synthMeta: (this.state.regen ? 'Mise à jour à l’instant' : 'Mise à jour il y a 2 min') + ' · d’après 23 événements (appels, e-mails, relances)',
+      synth: [
+        ['Situation', '48 200 € dus à Matériaux Delta sur 3 factures, la plus ancienne en retard de 68 jours.'],
+        ['Promesses', '2 promesses depuis septembre : celle du 15/10 n’a pas été tenue ; la dernière (18 600 € au plus tard le 28/11) est en cours.'],
+        ['Dernier contact', 'Appel du 21/11 avec Julien Ferrand (gérant), confirmé par e-mail le même jour.'],
+        ['Blocage', 'Trésorerie tendue après un retard de chantier. Demande d’échéancier en 4 mensualités pour le solde de 29 600 €.'],
+        ['Suggestion', 'Vérifier le virement le 29/11, puis soumettre l’échéancier 4 × 7 400 € à Matériaux Delta.']
+      ].map(([k, v]) => ({ k, v })),
+      synthRegen: () => this.setState({ regen: true }),
+      synthReport: () => this.setState({ reported: true }),
+      synthReported: !!this.state.reported,
+      showHisto: this.state.tab === 'overview' || this.state.tab === 'historique',
+      docs: [
+        { name: 'Relance n°2 – relance ferme.pdf', meta: 'Envoyée le 12/11/2026 · ouverte le 13/11', ext: 'PDF', bg: 'var(--info-bg)', fg: 'var(--info-fg)' },
+        { name: 'Proposition d\u2019échéancier (8 mois).docx', meta: 'Brouillon du 21/11/2026', ext: 'DOCX', bg: 'var(--surface-3)', fg: 'var(--text-2)' },
+        { name: 'F-2026-0712.pdf', meta: 'Facture du créancier · 18 600 €', ext: 'PDF', bg: 'var(--bleu-200)', fg: 'var(--marine)' },
+        { name: 'F-2026-0745.pdf', meta: 'Facture du créancier · 16 400 €', ext: 'PDF', bg: 'var(--bleu-200)', fg: 'var(--marine)' },
+        { name: 'F-2026-0790.pdf', meta: 'Facture du créancier · 13 200 €', ext: 'PDF', bg: 'var(--bleu-200)', fg: 'var(--marine)' }
+      ],
+      exchanges: [
+        { ch: 'E-mail reçu', title: 'Julien Ferrand demande un échéancier', text: 'Confirme 18 600 € au 28/11 et propose d\u2019étaler le solde de 29 600 € en quatre fois.', when: '21/11 09:42', bg: 'var(--info-bg)', fg: 'var(--info-fg)' },
+        { ch: 'Appel', title: 'Appel sortant · 4 min 32', text: 'Promesse de paiement de 18 600 € pour le 28/11, demande d\u2019échéancier pour le solde.', when: '21/11 09:00', bg: 'var(--bleu-200)', fg: 'var(--marine)' },
+        { ch: 'Appel', title: 'Appel sans réponse', text: 'Message laissé, rappel demandé.', when: '19/11 11:00', bg: 'var(--bleu-200)', fg: 'var(--marine)' },
+        { ch: 'E-mail envoyé', title: 'Relance n°2 – relance ferme', text: 'Ouverte le 13/11 à 08:15.', when: '12/11 09:00', bg: 'var(--surface-3)', fg: 'var(--text-2)' },
+        { ch: 'SMS envoyé', title: 'Relance SMS avec lien de paiement', text: 'Distribué. Aucun clic sur le lien.', when: '05/10 10:00', bg: 'var(--teal-bg)', fg: 'var(--teal-fg)' },
+        { ch: 'E-mail envoyé', title: 'Relance n°1 – rappel amiable', text: 'Ouverte le 22/09.', when: '21/09 09:00', bg: 'var(--surface-3)', fg: 'var(--text-2)' }
+      ],
+      showRelance: open,
+      openRelance: () => this.setState({ relance: true }),
+      closeRelance: () => this.setState({ relance: false }),
+      invoices: [
+        { num: 'F-2026-0712', issued: '15 août 2026', due: '14 sept. 2026', amount: '18 600 €', late: '68 j' },
+        { num: 'F-2026-0745', issued: '28 août 2026', due: '27 sept. 2026', amount: '16 400 €', late: '55 j' },
+        { num: 'F-2026-0790', issued: '10 sept. 2026', due: '10 oct. 2026', amount: '13 200 €', late: '42 j' }
+      ],
+      history: [
+        { title: 'Appel sans réponse', detail: 'Message laissé à J. Ferrand, rappel demandé.', date: '19 nov. 2026 · Camille Laurent', dot: 'var(--danger-fg)' },
+        { title: 'Relance n°2 envoyée par e-mail', detail: 'Modèle « Relance ferme » · ouvert le 13 nov.', date: '12 nov. 2026 · automatique', dot: 'var(--info-fg)' },
+        { title: 'Promesse de paiement non tenue', detail: 'Paiement de 18 600 € annoncé pour le 31 oct.', date: '3 nov. 2026 · Camille Laurent', dot: 'var(--warning-fg)' },
+        { title: 'Relance n°1 envoyée par e-mail', detail: 'Modèle « Rappel amiable »', date: '21 sept. 2026 · automatique', dot: 'var(--info-fg)' },
+        { title: 'Dossier ouvert', detail: 'Créé automatiquement depuis la comptabilité', date: '15 sept. 2026', dot: 'var(--text-3)' }
+      ],
+      steps: [
+        { n: '1', label: 'Rappel amiable (e-mail)', when: 'J+7 · envoyé', ...done },
+        { n: '2', label: 'Relance ferme (e-mail)', when: 'J+30 · envoyé', ...done },
+        { n: '3', label: 'Relance téléphonique + courrier', when: 'J+60 · à faire', ...next },
+        { n: '4', label: 'Mise en demeure (LRAR)', when: 'J+75', ...todo }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

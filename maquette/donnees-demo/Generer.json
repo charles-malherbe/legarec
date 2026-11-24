@@ -1,0 +1,288 @@
+{
+  "accent": "var(--marine)",
+  "headActions": [
+    {
+      "label": "Gérer les modèles",
+      "href": "Reglages.dc.html"
+    }
+  ],
+  "templates": [
+    {
+      "label": "Relance amiable",
+      "hint": "Premier rappel courtois",
+      "checked": "false",
+      "border": "1px solid var(--border)",
+      "bg": "var(--white)"
+    },
+    {
+      "label": "Relance ferme",
+      "hint": "Avec indemnités de retard",
+      "checked": "false",
+      "border": "1px solid var(--border)",
+      "bg": "var(--white)"
+    },
+    {
+      "label": "Mise en demeure",
+      "hint": "Dernier avertissement avant procédure",
+      "checked": "true",
+      "border": "2px solid var(--marine)",
+      "bg": "var(--bleu-pale)"
+    },
+    {
+      "label": "Proposition d’échéancier",
+      "hint": "Plan de paiement à signer",
+      "checked": "false",
+      "border": "1px solid var(--border)",
+      "bg": "var(--white)"
+    },
+    {
+      "label": "Attestation de solde",
+      "hint": "Confirme le paiement intégral",
+      "checked": "false",
+      "border": "1px solid var(--border)",
+      "bg": "var(--white)"
+    }
+  ],
+  "modes": [
+    {
+      "label": "Un débiteur",
+      "pressed": "true",
+      "bg": "var(--white)",
+      "color": "var(--text)"
+    },
+    {
+      "label": "Envoi groupé",
+      "pressed": "false",
+      "bg": "transparent",
+      "color": "var(--text-2)"
+    }
+  ],
+  "single": true,
+  "batch": false,
+  "batchPos": "1 / 38",
+  "debtors": [
+    {
+      "name": "Bâtiplus SAS",
+      "mandant": "Matériaux Delta",
+      "count": 3,
+      "totalTxt": "48 200 €",
+      "pressed": "true",
+      "border": "2px solid var(--marine)",
+      "bg": "var(--bleu-pale)"
+    },
+    {
+      "name": "Groupe Hélio",
+      "mandant": "Médiatel",
+      "count": 2,
+      "totalTxt": "36 750 €",
+      "pressed": "false",
+      "border": "1px solid var(--border)",
+      "bg": "var(--white)"
+    },
+    {
+      "name": "Garage Valmont",
+      "mandant": "TransAlp Leasing",
+      "count": 4,
+      "totalTxt": "23 900 €",
+      "pressed": "false",
+      "border": "1px solid var(--border)",
+      "bg": "var(--white)"
+    },
+    {
+      "name": "Fromagerie Durand",
+      "mandant": "Énergies Rhône",
+      "count": 2,
+      "totalTxt": "6 240 €",
+      "pressed": "false",
+      "border": "1px solid var(--border)",
+      "bg": "var(--white)"
+    }
+  ],
+  "channelDefault": "Lettre recommandée avec AR (MySendingBox)",
+  "recommande": true,
+  "showDelay": true,
+  "delays": [
+    {
+      "label": "8 j",
+      "pressed": "true",
+      "bg": "var(--white)",
+      "color": "var(--text)"
+    },
+    {
+      "label": "15 j",
+      "pressed": "false",
+      "bg": "transparent",
+      "color": "var(--text-2)"
+    },
+    {
+      "label": "30 j",
+      "pressed": "false",
+      "bg": "transparent",
+      "color": "var(--text-2)"
+    }
+  ],
+  "showMonths": false,
+  "months": 4,
+  "toggles": [
+    {
+      "label": "Joindre le détail des factures",
+      "checked": "true",
+      "track": "var(--marine)",
+      "justify": "flex-end"
+    },
+    {
+      "label": "Ajouter le lien de paiement",
+      "checked": "true",
+      "track": "var(--marine)",
+      "justify": "flex-end"
+    },
+    {
+      "label": "Ajouter l’indemnité forfaitaire (40 € / facture)",
+      "checked": "true",
+      "track": "var(--marine)",
+      "justify": "flex-end"
+    }
+  ],
+  "hl": true,
+  "vbg": "var(--warning-bg)",
+  "d": {
+    "name": "Bâtiplus SAS",
+    "contact": "M. Julien Ferrand",
+    "address": "12 rue des Artisans\n69007 Lyon",
+    "mandant": "Matériaux Delta",
+    "ref": "DOS-2026-0142",
+    "last": "12/11/2026",
+    "inv": [
+      [
+        "F-2026-0712",
+        "14/09/2026",
+        18600
+      ],
+      [
+        "F-2026-0745",
+        "27/09/2026",
+        16400
+      ],
+      [
+        "F-2026-0790",
+        "10/10/2026",
+        13200
+      ]
+    ],
+    "total": 48200
+  },
+  "subject": "Mise en demeure de payer",
+  "paras": [
+    {
+      "segs": [
+        {
+          "t": "En vertu du mandat qui nous a été confié par ",
+          "bg": "transparent",
+          "w": "400"
+        },
+        {
+          "t": "Matériaux Delta",
+          "bg": "var(--warning-bg)",
+          "w": "600"
+        },
+        {
+          "t": ", nous vous mettons en demeure de régler la somme de ",
+          "bg": "transparent",
+          "w": "400"
+        },
+        {
+          "t": "48 320 €",
+          "bg": "var(--warning-bg)",
+          "w": "600"
+        },
+        {
+          "t": ", soit ",
+          "bg": "transparent",
+          "w": "400"
+        },
+        {
+          "t": "48 200 €",
+          "bg": "var(--warning-bg)",
+          "w": "600"
+        },
+        {
+          "t": " en principal et ",
+          "bg": "transparent",
+          "w": "400"
+        },
+        {
+          "t": "120 €",
+          "bg": "var(--warning-bg)",
+          "w": "600"
+        },
+        {
+          "t": " d’indemnités forfaitaires de recouvrement.",
+          "bg": "transparent",
+          "w": "400"
+        }
+      ]
+    },
+    {
+      "segs": [
+        {
+          "t": "À défaut de règlement dans un délai de ",
+          "bg": "transparent",
+          "w": "400"
+        },
+        {
+          "t": "8 jours",
+          "bg": "var(--warning-bg)",
+          "w": "600"
+        },
+        {
+          "t": " à compter de la réception de la présente, notre client se réserve le droit d’engager à votre encontre une procédure judiciaire, sans autre avis.",
+          "bg": "transparent",
+          "w": "400"
+        }
+      ]
+    },
+    {
+      "segs": [
+        {
+          "t": "La présente vaut mise en demeure au sens de l’article 1344 du Code civil.",
+          "bg": "transparent",
+          "w": "400"
+        }
+      ]
+    }
+  ],
+  "showTable": true,
+  "tableHead1": "Facture",
+  "tableHead2": "Échéance",
+  "rows": [
+    {
+      "a": "F-2026-0712",
+      "b": "14/09/2026",
+      "c": "18 600 €"
+    },
+    {
+      "a": "F-2026-0745",
+      "b": "27/09/2026",
+      "c": "16 400 €"
+    },
+    {
+      "a": "F-2026-0790",
+      "b": "10/10/2026",
+      "c": "13 200 €"
+    }
+  ],
+  "totalLabel": "Total dû (dont indemnités 120 €)",
+  "totalShown": "48 320 €",
+  "payLink": true,
+  "sendLabel": "Générer et envoyer",
+  "generated": false,
+  "doneText": "",
+  "gcf": {
+    "open": false,
+    "tone": "primary",
+    "title": "",
+    "body": "",
+    "details": [],
+    "label": ""
+  }
+}

@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Legarec – Contentieux</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Lora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+/* tokens:start — charte graphique LEGAREC v1.0 (octobre 2026). Ne pas modifier à la main : généré depuis tools/tokens.css */
+:root{
+  /* Marque */
+  --marine:#002B74; --marine-hover:#00225C; --marine-text:#002B74; --app-icon-bg:#002B74; --app-icon-fg:#FCBE03; --nuit:#001B4D; --or:#FCBE03; --or-clair:#FFF3C4; --ardoise:#5D7087;
+  --bleu-pale:#EEF2F8; --gris-clair:#F6F8FB; --bleu-200:#D6E0F0; --white:#FFFFFF;
+  /* Texte */
+  --text:#0F1B2D; --text-2:#33455C; --text-3:#5D7087; --on-primary:#FFFFFF;
+  /* Surfaces et bordures */
+  --surface:#FFFFFF; --surface-2:#F6F8FB; --surface-3:#EEF2F7; --border:#E1E7EF; --border-strong:#7D8DA1;
+  /* Surfaces sombres (carte d'appel, barre d'actions groupées) */
+  --surface-dark:#001B4D; --surface-dark-2:#0B2D63; --border-dark:#2A4A7D; --on-dark:#FFFFFF; --on-dark-2:#D5DEEB; --on-dark-muted:#A9B8CC; --on-dark-accent:#B8CBEA;
+  /* Données (graphiques, balance âgée) */
+  --data-1:#C9D6EC; --data-2:#7F9CD0; --data-3:#345DA8;
+  /* Tons sémantiques : fond, bordure, point, texte */
+  --success-bg:#ECFDF5; --success-border:#A7F3D0; --success:#059669; --success-strong:#10B981; --success-fg:#047857; --on-success:#052E16;
+  --warning-bg:#FFF3C4; --warning-border:#F5D77A; --warning:#D97706; --warning-fg:#8A4B08;
+  --danger-bg:#FFF1F2; --danger-border:#FECDD3; --danger:#E11D48; --danger-fg:#BE123C; --danger-dark:#7F1D1D; --danger-on-dark:#FDA4AF;
+  --info-bg:#F0F9FF; --info-border:#BAE6FD; --info:#0284C7; --info-fg:#0369A1;
+  --violet-bg:#F5F3FF; --violet-border:#DDD6FE; --violet:#7C3AED; --violet-fg:#6D28D9;
+  --teal-bg:#CCFBF1; --teal:#0D9488; --teal-fg:#115E59;
+  /* Fonds pleins (badges pleins, texte --on-primary ≥ 5:1 dans les deux modes) */
+  --solid-neutral:#33455C; --solid-info:#0369A1; --solid-success:#047857; --solid-warning:#8A4B08; --solid-danger:#BE123C; --solid-violet:#6D28D9; --solid-teal:#115E59;
+  /* Typographie */
+  --font-title:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-text:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-brand:Lora, Georgia, serif; --font-mono:ui-monospace, SFMono-Regular, Menlo, monospace;
+  --fs-doc-xs:8px; --fs-doc-sm:9px; --fs-doc-md:10px; --fs-doc-lg:10.5px; --fs-2xs:11px; --fs-xs:12px; --fs-sm:13px; --fs-base:14px; --fs-md:16px; --fs-lg:18px; --fs-xl:20px; --fs-2xl:26px; --fs-3xl:34px;
+  /* Rayons */
+  --r-xs:4px; --r-sm:6px; --r-md:8px; --r-lg:12px; --r-full:9999px;
+  /* Ombres */
+  --shadow-sm:0 1px 2px 0 rgba(0,27,77,0.06); --shadow-md:0 10px 15px -3px rgba(0,27,77,0.10), 0 4px 6px -4px rgba(0,27,77,0.10); --shadow-lg:0 20px 25px -5px rgba(0,27,77,0.18), 0 8px 10px -6px rgba(0,27,77,0.12);
+  --shadow-knob:0 1px 2px rgba(0,27,77,0.25); --overlay:rgba(0,27,77,0.55);
+  /* Espacements (grille de 4 px) */
+  --sp-0h:2px; --sp-1:4px; --sp-1h:6px; --sp-2:8px; --sp-2h:10px; --sp-3:12px; --sp-3h:14px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px; --sp-10:40px; --sp-11:44px; --sp-12:48px;
+  /* Hauteurs de contrôles */
+  --control-xs:28px; --control-sm:36px; --control-md:40px; --control-lg:44px;
+  /* Voiles et anneaux (surfaces sombres, animations) */
+  --veil-8:rgba(255,255,255,0.08); --veil-18:rgba(255,255,255,0.18); --veil-25:rgba(255,255,255,0.25); --veil-35:rgba(255,255,255,0.35); --veil-80:rgba(255,255,255,0.8); --veil-85:rgba(255,255,255,0.85); --on-success-veil:rgba(5,46,22,0.35); --success-ring:rgba(16,185,129,0.55); --success-ring-0:rgba(16,185,129,0);
+  /* Cibles tactiles */
+  --target:44px;
+}
+body{font-family:var(--font-text);font-feature-settings:"cv11";-webkit-font-smoothing:antialiased}
+h1,h2{font-family:var(--font-title);font-weight:700;color:var(--marine);overflow-wrap:break-word;letter-spacing:-0.015em}
+[data-brand] h1,[data-brand] h2{font-family:var(--font-brand);letter-spacing:0}
+td,th,li,h3{overflow-wrap:break-word}
+:focus-visible{outline:2px solid var(--marine);outline-offset:2px}
+[data-dark] :focus-visible{outline-color:var(--or)}
+button:disabled,[aria-disabled="true"]{cursor:not-allowed !important;opacity:.55}
+button:not(:disabled):hover,a[href][style*="border-radius"]:hover{filter:brightness(.96)}
+tbody tr:hover{background-color:var(--surface-2)}
+[data-table-scroll]{max-height:min(68vh,720px);overflow:auto !important}
+[data-table-scroll] thead th{position:sticky;top:0;z-index:2;background:var(--surface-2);box-shadow:inset 0 -1px 0 var(--border)}
+[data-skeleton]{display:block;border-radius:var(--r-xs);background:linear-gradient(90deg,var(--surface-3) 25%,var(--bleu-pale) 50%,var(--surface-3) 75%);background-size:200% 100%;animation:lg-sk 1.2s ease-in-out infinite}
+@keyframes lg-sk{from{background-position:200% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+@media (pointer: coarse), (max-width: 767px){
+  button,select,input:not([type=checkbox]):not([type=radio]):not([type=range]),[role=tab],[role=menuitem],a[href][style*="display: inline-flex"],a[href][style*="height:"]{min-height:var(--target)}
+  input[type=checkbox],input[type=radio]{min-width:22px;min-height:22px}
+}
+/* Mode sombre : data-theme="dark" sur <html> */
+:root[data-theme="dark"]{
+  --marine:#2E5FC0; --marine-hover:#2A57B0; --marine-text:#9DB8F0; --app-icon-bg:#0A1A3F; --nuit:#071028; --or-clair:#3A2F0A; --ardoise:#9AA9BD;
+  --bleu-pale:#1B2A4A; --gris-clair:#0A1020; --bleu-200:#2B3E63; --white:#16203A;
+  --text:#E6ECF5; --text-2:#C3CEDD; --text-3:#9AA9BD;
+  --surface:#0F1729; --surface-2:#0A1020; --surface-3:#1A2438; --border:#26324A; --border-strong:#67778F;
+  --surface-dark:#050B1A; --surface-dark-2:#101C36; --border-dark:#24365A;
+  --data-1:#2B3E63; --data-2:#4F73B8; --data-3:#7F9CD0;
+  --success-bg:#0B2E22; --success-border:#14532D; --success-fg:#6EE7B7;
+  --warning-bg:#3A2F0A; --warning-border:#6B5310; --warning-fg:#FCD34D;
+  --danger-bg:#3B0D17; --danger-border:#7F1D2E; --danger-fg:#FDA4AF;
+  --info-bg:#0B2540; --info-border:#164E63; --info-fg:#7DD3FC;
+  --violet-bg:#24164A; --violet-border:#4C1D95; --violet-fg:#C4B5FD;
+  --teal-bg:#0B302C; --teal-fg:#5EEAD4;
+  --shadow-sm:0 1px 2px 0 rgba(0,0,0,0.4); --shadow-md:0 10px 15px -3px rgba(0,0,0,0.5); --shadow-lg:0 20px 25px -5px rgba(0,0,0,0.6); --overlay:rgba(0,0,0,0.65);
+  color-scheme:dark;
+}
+:root[data-theme="dark"] body{background:var(--surface-2);color:var(--text)}
+:root[data-theme="dark"] :focus-visible{outline-color:#9DB8F0}
+:root[data-theme="dark"] [data-dark]{border:1px solid var(--border-dark)}
+:root[data-theme="dark"] h1,:root[data-theme="dark"] h2,:root[data-theme="dark"] a[href]:not([style*="background"]){color:var(--marine-text)}
+:root[data-theme="dark"] [style*="color: var(--marine)"]:not([style*="background: var(--marine)"]){color:var(--marine-text) !important}
+:root[data-theme="dark"] img[src*="_blob"]{background:var(--white);border-radius:var(--r-sm)}
+/* Mode malvoyant : data-a11y="malvoyant" sur <html> — texte agrandi, contraste renforcé, cibles plus grandes */
+:root[data-a11y="malvoyant"]{
+  --fs-2xs:13px; --fs-xs:14px; --fs-sm:15px; --fs-base:17px; --fs-md:19px; --fs-lg:21px; --fs-xl:24px; --fs-2xl:30px; --fs-3xl:38px;
+  --control-xs:36px; --control-sm:44px; --control-md:48px; --control-lg:52px; --target:48px;
+  --text-3:var(--text-2); --ardoise:var(--text-2); --border:var(--border-strong);
+}
+:root[data-a11y="malvoyant"] body{line-height:1.6}
+:root[data-a11y="malvoyant"] [data-sb-nav][style*="width: 264px"]{width:312px !important}
+:root[data-a11y="malvoyant"] :focus-visible{outline:3px solid var(--or);outline-offset:3px;box-shadow:0 0 0 6px var(--marine)}
+:root[data-a11y="malvoyant"] a[href]:not([style*="background"]){text-decoration:underline;text-underline-offset:3px}
+:root[data-a11y="malvoyant"] button,:root[data-a11y="malvoyant"] select,:root[data-a11y="malvoyant"] input:not([type=checkbox]):not([type=radio]){min-height:var(--target)}
+:root[data-a11y="malvoyant"] input[type=checkbox],:root[data-a11y="malvoyant"] input[type=radio]{min-width:24px;min-height:24px}
+:root[data-a11y="malvoyant"][data-theme="dark"]{--text-3:#E6ECF5;--text-2:#E6ECF5}
+/* tokens:end */
+body{margin:0;font-family:var(--font-text);color:var(--text);background:var(--surface-2)}
+a{color:var(--marine)}a:hover{color:var(--marine)}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; background: var(--surface-2); font-family: var(--font-text); color: var(--text)">
+
+<div data-sb-wrap style="flex: 0 0 auto; max-width: 100%; display: flex; background: var(--surface-2); border-right: 1px solid var(--border)">
+<dc-import name="Sidebar" active="Contentieux.dc.html" accent="{{accent}}" hint-size="264px,1100px"></dc-import>
+</div>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: var(--sp-8); box-sizing: border-box; display: flex; flex-direction: column; gap: var(--sp-6)">
+<dc-import name="Topbar" accent="{{accent}}" trail="Recouvrement|Contentieux" hint-size="100%,64px"></dc-import>
+<div data-page-body style="width: 100%; max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--sp-6)">
+
+<dc-import name="PageHeader" title="Contentieux" description="21 dossiers en phase judiciaire · 284 900 € · tous créanciers" accent="{{accent}}" actions="{{headActions}}" stats="{{headStats}}" stats-label="Indicateurs du contentieux" hint-size="100%,170px"></dc-import>
+
+<dc-import name="Toolbar" label="Filtrer les procédures" tabs="{{tbTabs}}" tabs-label="Étape de la procédure" placeholder="Débiteur, SIRET, juridiction…" filters="{{tbFilters}}" views="{{tbViews}}" query="{{q}}" on-query="{{onQuery}}" hint-size="100%,48px"></dc-import>
+
+<sc-if value="{{isBoard}}" hint-placeholder-val="{{ true }}">
+<section aria-labelledby="pipe-titre" style="display: flex; flex-direction: column; gap: var(--sp-3)">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--sp-3)">
+<h2 id="pipe-titre" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Avancement des procédures</h2>
+<span style="font-size: var(--fs-sm); color: var(--text-3)">Sélectionnez un dossier pour afficher ses actes ci-dessous</span>
+</div>
+<div style="overflow-x: auto; padding-bottom: var(--sp-1)">
+<div style="display: grid; grid-template-columns: {{boardCols}}; gap: var(--sp-3); min-width: {{boardMin}}">
+<sc-for list="{{stages}}" as="c" hint-placeholder-count="5">
+<div style="background: var(--surface-3); border-radius: var(--r-lg); border-top: 3px solid {{c.color}}; padding: var(--sp-3); display: flex; flex-direction: column; gap: var(--sp-2h); min-width: 0">
+<div style="display: flex; flex-direction: column; gap: var(--sp-0h); padding: 0 var(--sp-1)">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: var(--sp-2)">
+<span style="font-size: var(--fs-sm); font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis" title="{{c.label}}">{{c.label}}</span>
+<span style="flex-shrink: 0; min-width: 22px; height: 22px; padding: 0 var(--sp-1h); box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; font-size: var(--fs-xs); font-weight: 700; font-variant-numeric: tabular-nums; background: var(--surface); color: var(--text-2); border-radius: var(--r-full)">{{c.count}}</span>
+</div>
+<span style="font-size: var(--fs-xs); color: var(--text-3); font-variant-numeric: tabular-nums">{{c.total}} · {{c.hint}}</span>
+</div>
+<sc-for list="{{c.cards}}" as="k" hint-placeholder-count="2">
+<button type="button" onClick="{{k.pick}}" aria-pressed="{{k.pressed}}" data-ct-card style="text-align: left; font: inherit; color: var(--text); cursor: pointer; background: var(--surface); border-radius: var(--r-md); padding: var(--sp-3); display: flex; flex-direction: column; gap: var(--sp-1); border: 1px solid var(--border); box-shadow: {{k.shadow}}; outline: {{k.outline}}; outline-offset: -1px">
+<span style="display: flex; justify-content: space-between; align-items: baseline; gap: var(--sp-2); width: 100%"><span style="font-size: var(--fs-base); font-weight: 600; min-width: 0">{{k.name}}</span><span style="flex-shrink: 0; white-space: nowrap; font-size: var(--fs-sm); font-weight: 600; font-variant-numeric: tabular-nums">{{k.amount}}</span></span>
+<span style="font-size: var(--fs-xs); color: var(--text-3)">{{k.mandant}}</span>
+<span style="font-size: var(--fs-sm); color: var(--text-2); line-height: 1.4">{{k.step}}</span>
+<span style="align-self: flex-start; margin-top: var(--sp-1); display: inline-flex; align-items: center; gap: var(--sp-1); padding: var(--sp-0h) var(--sp-2); border-radius: var(--r-full); font-size: var(--fs-xs); font-weight: 600; background: {{k.dueBg}}; color: {{k.dueFg}}"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2"></path></svg>{{k.due}}</span>
+</button>
+</sc-for>
+<sc-if value="{{c.hasMore}}" hint-placeholder-val="{{ true }}"><a href="#" onClick="{{c.showAll}}" style="padding: var(--sp-1) var(--sp-1) 0; font-size: var(--fs-sm); font-weight: 500; color: var(--marine); text-decoration: none">{{c.more}}</a></sc-if>
+</div>
+</sc-for>
+</div>
+</div>
+</section>
+</sc-if>
+<sc-if value="{{isList}}" hint-placeholder-val="{{ false }}">
+<section aria-labelledby="liste-titre" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3); padding: var(--sp-3h) var(--sp-5); border-bottom: 1px solid var(--border)"><h2 id="liste-titre" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Procédures</h2><span style="font-size: var(--fs-sm); color: var(--text-3)">{{listCount}} dossiers</span></div>
+<div data-table-scroll style="overflow-x: auto">
+<table style="width: 100%; min-width: 820px; border-collapse: collapse; font-size: var(--fs-base)">
+<thead style="background: var(--surface-2)"><tr style="text-align: left; color: var(--text-3); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.04em"><th scope="col" style="padding: var(--sp-3) var(--sp-5); font-weight: 600">Débiteur</th><th scope="col" style="padding: var(--sp-3) var(--sp-2); font-weight: 600">Procédure</th><th scope="col" style="padding: var(--sp-3) var(--sp-2); font-weight: 600">Étape actuelle</th><th scope="col" style="padding: var(--sp-3) var(--sp-2); font-weight: 600">Échéance</th><th scope="col" style="padding: var(--sp-3) var(--sp-5); font-weight: 600; text-align: right">Montant</th></tr></thead>
+<tbody>
+<sc-for list="{{listRows}}" as="k" hint-placeholder-count="6">
+<tr style="border-top: 1px solid var(--surface-3); background: {{k.rowBg}}">
+<td style="padding: var(--sp-3) var(--sp-5)"><button type="button" onClick="{{k.pick}}" aria-pressed="{{k.pressed}}" style="border: 0; background: transparent; padding: 0; font: inherit; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-weight: 600; color: var(--text)">{{k.name}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{k.mandant}} · SIRET {{k.siret}}</span></button></td>
+<td style="padding: var(--sp-3) var(--sp-2); color: var(--text-2)">{{k.procedure}}</td>
+<td style="padding: var(--sp-3) var(--sp-2); color: var(--text-2)">{{k.step}}</td>
+<td style="padding: var(--sp-3) var(--sp-2); font-size: var(--fs-sm); font-weight: 600; color: {{k.dueColor}}">{{k.due}}</td>
+<td style="padding: var(--sp-3) var(--sp-5); text-align: right; font-weight: 600; font-variant-numeric: tabular-nums">{{k.amount}}</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+<sc-if value="{{lst.show}}" hint-placeholder-val="{{ false }}"><dc-import name="EtatListe" kind="{{lst.kind}}" title="{{lst.title}}" text="{{lst.text}}" action-label="{{lst.actionLabel}}" on-action="{{lst.action}}" count="{{lst.count}}" hint-size="100%,220px"></dc-import></sc-if>
+<sc-if value="{{pg.show}}" hint-placeholder-val="{{ true }}"><dc-import name="Pagination" total="{{pg.total}}" page="{{pg.page}}" size="{{pg.size}}" unit="procédures" label="Pagination des procédures" on-page="{{pg.onPage}}" on-size="{{pg.onSize}}" hint-size="100%,60px"></dc-import></sc-if>
+</section>
+</sc-if>
+
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-6); align-items: flex-start">
+
+<section aria-labelledby="actes-titre" style="flex: 999 1 520px; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-4)">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--sp-3)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-1h); min-width: 0">
+<span style="align-self: flex-start; display: inline-flex; align-items: center; gap: var(--sp-1h); padding: var(--sp-0h) var(--sp-2); border-radius: var(--r-full); font-size: var(--fs-xs); font-weight: 600; background: var(--surface-3); color: var(--text-2)"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: var(--r-full); background: {{cur.color}}"></span>{{cur.procedure}}</span>
+<h2 id="actes-titre" style="margin: 0; font-size: var(--fs-xl); font-weight: 700">{{cur.name}}</h2>
+<span style="font-size: var(--fs-sm); color: var(--text-3); font-variant-numeric: tabular-nums">SIRET {{cur.siret}}</span>
+</div>
+<dc-import name="Bouton" variant="secondary" size="sm" label="Ouvrir le dossier" icon="arrow-right" href="Dossier.dc.html" style="display: contents" hint-size="120px,32px"></dc-import>
+</div>
+<dl style="margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--sp-3); padding: var(--sp-3h) var(--sp-4); background: var(--surface-2); border-radius: var(--r-md)">
+<sc-for list="{{cur.facts}}" as="f" hint-placeholder-count="4"><div style="display: flex; flex-direction: column; gap: var(--sp-0h); min-width: 0"><dt style="font-size: var(--fs-xs); color: var(--text-3)">{{f.k}}</dt><dd style="margin: 0; font-size: var(--fs-sm); font-weight: 600; font-variant-numeric: tabular-nums">{{f.v}}</dd></div></sc-for>
+</dl>
+<h3 style="margin: 0; font-size: var(--fs-sm); font-weight: 600; color: var(--text-2)">Actes de la procédure</h3>
+<ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+<sc-for list="{{cur.acts}}" as="a" hint-placeholder-count="4">
+<li style="display: flex; gap: var(--sp-3h)">
+<div style="display: flex; flex-direction: column; align-items: center">
+<span style="width: 12px; height: 12px; flex-shrink: 0; border-radius: var(--r-full); margin-top: {{a.dotTop}}; box-sizing: border-box; background: {{a.dot}}; border: {{a.ring}}"></span>
+<span style="flex: 1; width: 2px; background: var(--border); min-height: 24px"></span>
+</div>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-0h); margin-bottom: var(--sp-2h); padding: {{a.pad}}; border-radius: var(--r-sm); background: {{a.bg}}">
+<span style="font-size: var(--fs-base); font-weight: 600; color: {{a.color}}">{{a.title}}<sc-if value="{{a.isNow}}" hint-placeholder-val="{{ false }}"><span style="margin-left: var(--sp-2); font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--marine)">En cours</span></sc-if></span>
+<span style="font-size: var(--fs-sm); color: var(--text-3)">{{a.date}}</span>
+</div>
+</li>
+</sc-for>
+</ol>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-2)">
+<dc-import name="Bouton" variant="primary" size="md" label="{{cur.cta}}" on-press="{{askCta}}" accent="{{accent}}" style="display: contents" hint-size="120px,40px"></dc-import>
+<button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="height: var(--control-md); padding: 0 var(--sp-3h); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer">Ajouter un acte</button>
+<button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="height: var(--control-md); padding: 0 var(--sp-3h); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer">Informer le créancier</button>
+</div>
+</section>
+
+<section aria-labelledby="delais-titre" style="flex: 1 1 340px; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); display: flex; flex-direction: column">
+<div style="padding: var(--sp-5) var(--sp-6); border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: var(--sp-0h)">
+<h2 id="delais-titre" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Délais à surveiller</h2>
+<span style="font-size: var(--fs-xs); color: var(--text-3)">15 prochains jours · délais légaux et échéances</span>
+</div>
+<ul style="list-style: none; margin: 0; padding: 0">
+<sc-for list="{{deadlines}}" as="d" hint-placeholder-count="4">
+<li style="border-bottom: 1px solid var(--surface-3)"><button type="button" onClick="{{d.pick}}" aria-label="{{d.aria}}" style="width: 100%; display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3h) var(--sp-6); border: 0; background: {{d.rowBg}}; font: inherit; color: var(--text); text-align: left; cursor: pointer">
+<div style="width: 48px; flex-shrink: 0; text-align: center; border-radius: var(--r-sm); padding: var(--sp-1h) 0; background: {{d.bg}}"><div style="font-size: var(--fs-md); font-weight: 700; color: {{d.fg}}">{{d.day}}</div><div style="font-size: var(--fs-xs); color: {{d.fg}}">{{d.month}}</div></div>
+<div style="display: flex; flex-direction: column; gap: var(--sp-0h); min-width: 0"><span style="font-size: var(--fs-base); font-weight: 500">{{d.title}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{d.who}}</span></div>
+</button></li>
+</sc-for>
+</ul>
+</section>
+
+</div>
+
+</div>
+</main>
+<dc-import name="Confirm" open="{{cf.open}}" tone="primary" title="{{cf.title}}" body="{{cf.body}}" details="{{cf.details}}" confirm-label="{{cf.label}}" on-confirm="{{cf.confirm}}" on-cancel="{{cf.cancel}}" accent="{{accent}}" hint-size="0px,0px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#002B74","options":["#002B74","#001B4D","#5D7087"]},"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { loading: true, q: '', sel: 'c1', stage: 'all', view: 'board', ask: false, doneCta: {} };
+  }
+  componentDidMount() { this.lt = setTimeout(() => this.setState({ loading: false }), 700); }
+  componentWillUnmount() { clearTimeout(this.lt); }
+  renderVals() {
+    const v = this._rv();
+    const st = this.state;
+    const q = (st.q || '').toLowerCase().trim();
+    const qs = q.replace(/\s/g, '');
+    const hit = (o) => {
+      if (!q) return true;
+      const t = JSON.stringify(o, (k, x) => (typeof x === 'function' ? undefined : x)).toLowerCase();
+      return t.includes(q) || (qs.length >= 3 && t.replace(/\s/g, '').includes(qs));
+    };
+    const list = (v.listRows || []).filter(hit);
+    v.listRows = st.loading ? [] : list;
+    v.stages = (v.stages || []).map((g) => ({ ...g, cards: st.loading ? [] : g.cards.filter(hit) }));
+    v.q = st.q || '';
+    v.onQuery = (e) => this.setState({ q: e.target.value });
+    const pgTotal = q ? list.length : 21;
+    v.pg = { show: !st.loading && list.length > 0, total: pgTotal, page: st.pgPage || 1, size: st.pgSize || 25, onPage: (n) => this.setState({ pgPage: n }), onSize: (n) => this.setState({ pgSize: n, pgPage: 1 }) };
+    v.lst = {
+      show: !!st.loading || list.length === 0,
+      kind: st.loading ? 'loading' : q ? 'noresult' : 'empty',
+      title: st.loading ? '' : q ? 'Aucun résultat pour « ' + (st.q || '').trim() + ' »' : 'Aucune procédure en cours',
+      text: st.loading ? '' : q ? 'Vérifiez l\u2019orthographe, ou cherchez par numéro SIRET, SIREN ou de facture.' : 'Les dossiers passés en contentieux apparaissent ici.',
+      actionLabel: q ? 'Effacer la recherche' : '',
+      action: () => this.setState({ q: '' }),
+      count: 5
+    };
+    return v;
+  }
+  _rv() {
+    const accent = this.props.accent ?? 'var(--marine)';
+    const sel = this.state.sel;
+    const done = { dot: 'var(--success-fg)', ring: '0', color: 'var(--text)', bg: 'transparent', pad: '0', isNow: false, dotTop: 'var(--sp-1)' };
+    const now = { dot: 'var(--white)', ring: '3px solid ' + accent, color: 'var(--text)', bg: 'var(--bleu-pale)', pad: 'var(--sp-2) var(--sp-3)', isNow: true, dotTop: 'calc(var(--sp-2) + 4px)' };
+    const todo = { dot: 'var(--white)', ring: '2px solid var(--border-strong)', color: 'var(--text-3)', bg: 'transparent', pad: '0', isNow: false, dotTop: 'var(--sp-1)' };
+    const SC = ['var(--warning)', 'var(--info)', 'var(--violet)', 'var(--danger)', 'var(--success)'];
+    const ST = ['38 600 €', '64 140 €', '71 900 €', '81 260 €', '29 000 €'];
+    const cases = [
+      { id: 'c1', siret: '607 529 179 00006', st: 0, name: 'Charpentes Bellet', mandant: 'Matériaux Delta', amount: '27 300 €', step: 'Mise en demeure LRAR envoyée', due: 'Délai expire le 30/11', urgent: true, procedure: 'Mise en demeure', court: 'Tribunal de commerce de Lyon', partner: 'Me Durieux, avocat', cta: 'Préparer la requête en injonction', acts: [
+        { title: 'Relances amiables (3) sans résultat', date: '14/09 → 28/10/2026', ...done },
+        { title: 'Accord du créancier pour le contentieux', date: '05/11/2026', ...done },
+        { title: 'Mise en demeure LRAR — accusé de réception signé', date: '16/11/2026', ...now },
+        { title: 'Requête en injonction de payer', date: 'Prévue après le 30/11/2026', ...todo }
+      ] },
+      { id: 'c2', siret: '193 786 571 00094', st: 0, name: 'Garage Valmont', mandant: 'TransAlp Leasing', amount: '23 900 €', step: 'Accord créancier demandé', due: 'En attente depuis 3 j', urgent: false, procedure: 'Mise en demeure', court: 'Tribunal judiciaire de Grenoble', partner: 'À désigner', cta: 'Relancer le créancier', acts: [
+        { title: 'Relances amiables sans résultat', date: '20/08 → 10/11/2026', ...done },
+        { title: 'Demande d’accord au créancier', date: '18/11/2026', ...now },
+        { title: 'Mise en demeure LRAR', date: 'À venir', ...todo }
+      ] },
+      { id: 'c3', siret: '887 789 329 00018', st: 1, name: 'Électricité Fabre', mandant: 'Énergies Rhône', amount: '12 480 €', step: 'Requête déposée au greffe', due: 'Ordonnance attendue', urgent: false, procedure: 'Injonction de payer', court: 'Tribunal judiciaire de Valence', partner: 'Me Roche, avocate', cta: 'Suivre au greffe', acts: [
+        { title: 'Mise en demeure LRAR', date: '02/10/2026', ...done },
+        { title: 'Requête en injonction de payer déposée', date: '04/11/2026', ...now },
+        { title: 'Ordonnance du juge', date: 'En attente', ...todo },
+        { title: 'Signification par commissaire de justice', date: 'À venir', ...todo }
+      ] },
+      { id: 'c4', siret: '979 217 429 00013', st: 1, name: 'Studio Pixelia', mandant: 'Médiatel', amount: '3 960 €', step: 'Procédure simplifiée (< 5 000 €)', due: 'Réponse débiteur avant le 04/12', urgent: true, procedure: 'Procédure simplifiée', court: '—', partner: 'Étude Garnier, commissaires de justice', cta: 'Voir la proposition d’accord', acts: [
+        { title: 'Mise en demeure LRAR', date: '15/10/2026', ...done },
+        { title: 'Lettre du commissaire de justice (procédure simplifiée)', date: '04/11/2026', ...now },
+        { title: 'Accord du débiteur → titre exécutoire', date: 'Délai d’un mois', ...todo }
+      ] },
+      { id: 'c5', siret: '280 967 928 00019', st: 2, name: 'Menuiserie Arnal', mandant: 'Matériaux Delta', amount: '18 750 €', step: 'Ordonnance signifiée', due: 'Opposition possible jusqu’au 02/12', urgent: true, procedure: 'Injonction de payer', court: 'Tribunal de commerce de Lyon', partner: 'Étude Garnier', cta: 'Demander la formule exécutoire', acts: [
+        { title: 'Ordonnance d’injonction de payer rendue', date: '20/10/2026', ...done },
+        { title: 'Signification au débiteur', date: '02/11/2026', ...done },
+        { title: 'Délai d’opposition d’un mois', date: 'Jusqu’au 02/12/2026', ...now },
+        { title: 'Apposition de la formule exécutoire', date: 'À venir', ...todo }
+      ] },
+      { id: 'c6', siret: '868 426 842 00068', st: 3, name: 'Transports Lemaire', mandant: 'TransAlp Leasing', amount: '31 500 €', step: 'Saisie-attribution sur compte', due: 'Fonds attendus 05/12', urgent: false, procedure: 'Exécution forcée', court: 'Tribunal judiciaire de Grenoble', partner: 'Étude Garnier', cta: 'Voir le procès-verbal', acts: [
+        { title: 'Titre exécutoire obtenu', date: '12/09/2026', ...done },
+        { title: 'Commandement de payer', date: '01/10/2026', ...done },
+        { title: 'Saisie-attribution sur compte bancaire', date: '17/11/2026', ...now },
+        { title: 'Versement des fonds saisis', date: 'Attendu le 05/12/2026', ...todo }
+      ] },
+      { id: 'c7', siret: '181 003 393 00012', st: 4, name: 'Boulangerie Morin', mandant: 'Crédit Horizon', amount: '7 240 €', step: 'Recouvré intégralement', due: 'Clos le 10/11', urgent: false, procedure: 'Clos', court: 'Tribunal judiciaire de Lyon', partner: 'Me Durieux', cta: 'Archiver', acts: [
+        { title: 'Titre exécutoire', date: '02/07/2026', ...done },
+        { title: 'Paiement intégral + frais', date: '10/11/2026', ...done }
+      ] }
+    ];
+    const stagesDef = [
+      ['Mise en demeure', 'Accord créancier, LRAR', 6],
+      ['Injonction de payer', 'ou procédure simplifiée', 5],
+      ['Titre exécutoire', 'Signification, délai d’opposition', 4],
+      ['Exécution forcée', 'Commandement, saisies', 3],
+      ['Clos', 'Recouvré ou irrécouvrable', 3]
+    ];
+    const st = this.state;
+    const cur0 = cases.find((c) => c.id === sel) || cases[0];
+    const cur = { ...cur0, color: SC[cur0.st], cta: st.doneCta[cur0.id] ? 'Demande envoyée ✓' : cur0.cta, facts: [{ k: 'Créancier', v: cur0.mandant }, { k: 'Montant', v: cur0.amount }, { k: 'Juridiction', v: cur0.court }, { k: 'Partenaire', v: cur0.partner }] };
+    const stageIdx = st.stage === 'all' ? -1 : Number(st.stage);
+    const deco = (c) => ({
+      ...c,
+      dueColor: c.urgent ? 'var(--danger-fg)' : 'var(--text-3)',
+      pressed: c.id === sel ? 'true' : 'false',
+      rowBg: c.id === sel ? 'var(--bleu-pale)' : 'var(--white)',
+      border: c.id === sel ? '2px solid ' + accent : '1px solid var(--border)',
+      pick: () => this.setState({ sel: c.id })
+    });
+    const listed = cases.filter((c) => stageIdx < 0 || c.st === stageIdx);
+    return {
+      accent,
+      cur,
+      headActions: [
+        { label: 'Partenaires (avocats, commissaires)' },
+        { label: '+ Transférer un dossier', primary: true, kbd: 'N', href: 'Dossiers.dc.html' }
+      ],
+      headStats: [
+        { label: 'Montant en contentieux', value: '284 900 €', sub: '21 dossiers' },
+        { label: 'Frais de procédure avancés', value: '4 820 €', sub: 'refacturables au débiteur' },
+        { label: 'Titres exécutoires (2026)', value: '14', color: 'var(--success-fg)', sub: '▲ 4 sur un an' },
+        { label: 'En attente d’accord créancier', value: '3', color: 'var(--warning-fg)', sub: 'avant engagement de frais' },
+        { label: 'Délais sous 15 jours', value: '4', color: 'var(--danger-fg)', sub: 'dont 2 urgents' }
+      ],
+      tbTabs: [{ id: 'all', label: 'Toutes', count: '21' }].concat(stagesDef.map(([label, hint, count], i) => ({ id: String(i), label, count: String(count) }))).map((t) => ({ ...t, selected: st.stage === t.id, pick: () => this.setState({ stage: t.id }) })),
+      tbFilters: [
+        { label: 'Créancier', options: ['Tous les créanciers', 'Matériaux Delta', 'Énergies Rhône', 'Médiatel', 'TransAlp Leasing', 'Crédit Horizon'] },
+        { label: 'Partenaire', options: ['Tous les partenaires', 'Me Duval (avocat)', 'SCP Arnaud & Fils (commissaires)'] }
+      ],
+      tbViews: [['board', 'Tableau'], ['list', 'Liste']].map(([id, label]) => ({ label, selected: st.view === id, pick: () => this.setState({ view: id }) })),
+      boardCols: stageIdx < 0 ? 'repeat(5, minmax(196px, 1fr))' : 'minmax(0, 420px)',
+      boardMin: stageIdx < 0 ? '1028px' : '0',
+      isBoard: st.view === 'board',
+      isList: st.view === 'list',
+      listCount: String(listed.length),
+      listRows: listed.map(deco),
+      askCta: () => { if (!st.doneCta[cur0.id]) this.setState({ ask: true }); },
+      cf: {
+        open: st.ask,
+        title: cur0.cta + ' ?',
+        body: 'Cette étape engage des frais de procédure et sera visible par ' + cur0.mandant + ' dans son espace. Vérifiez que l’accord du créancier couvre cette étape.',
+        details: [{ k: 'Débiteur', v: cur0.name + ' · SIRET ' + cur0.siret }, { k: 'Montant', v: cur0.amount }, { k: 'Procédure', v: cur0.procedure }, { k: 'Partenaire', v: cur0.partner }],
+        label: 'Confirmer et envoyer',
+        confirm: () => this.setState({ ask: false, doneCta: { ...st.doneCta, [cur0.id]: true } }),
+        cancel: () => this.setState({ ask: false })
+      },
+      stages: stagesDef.map(([label, hint, count], i) => ({ label, hint, count, i })).filter((g) => stageIdx < 0 || g.i === stageIdx).map(({ label, hint, count, i }) => ({
+        label, hint, count,
+        color: SC[i], total: ST[i],
+        hasMore: stageIdx < 0 && count > cases.filter((c) => c.st === i).length,
+        more: '+ ' + (count - cases.filter((c) => c.st === i).length) + ' autres dossiers',
+        showAll: (e) => { if (e) e.preventDefault(); this.setState({ stage: String(i) }); },
+        cards: cases.filter((c) => c.st === i).map((c) => ({
+          ...c,
+          dueBg: c.urgent ? 'var(--danger-bg)' : 'var(--surface-3)',
+          dueFg: c.urgent ? 'var(--danger-fg)' : 'var(--text-2)',
+          pressed: c.id === sel ? 'true' : 'false',
+          outline: c.id === sel ? '2px solid ' + accent : '0',
+          shadow: c.id === sel ? 'var(--shadow-md)' : 'var(--shadow-sm)',
+          pick: () => this.setState({ sel: c.id })
+        }))
+      })),
+      deadlines: [
+        ['c1', '30', 'nov.', 'Fin du délai de mise en demeure', 'Charpentes Bellet · Matériaux Delta', 'danger'],
+        ['c5', '02', 'déc.', 'Fin du délai d’opposition', 'Menuiserie Arnal · Matériaux Delta', 'danger'],
+        ['c4', '04', 'déc.', 'Réponse en procédure simplifiée', 'Studio Pixelia · Médiatel', 'warning'],
+        ['c6', '05', 'déc.', 'Versement des fonds saisis', 'Transports Lemaire · TransAlp Leasing', 'neutral']
+      ].map(([id, day, month, title, who, tone]) => ({
+        day, month, title, who,
+        bg: tone === 'neutral' ? 'var(--surface-3)' : 'var(--' + tone + '-bg)', fg: tone === 'neutral' ? 'var(--text-2)' : 'var(--' + tone + '-fg)',
+        rowBg: id === sel ? 'var(--bleu-pale)' : 'transparent',
+        aria: day + ' ' + month + ' : ' + title + ', ' + who + '. Afficher le dossier',
+        pick: () => this.setState({ sel: id })
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

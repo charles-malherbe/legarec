@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Legarec – Proposer et faire valider un échéancier</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Lora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+/* tokens:start — charte graphique LEGAREC v1.0 (octobre 2026). Ne pas modifier à la main : généré depuis tools/tokens.css */
+:root{
+  /* Marque */
+  --marine:#002B74; --marine-hover:#00225C; --marine-text:#002B74; --app-icon-bg:#002B74; --app-icon-fg:#FCBE03; --nuit:#001B4D; --or:#FCBE03; --or-clair:#FFF3C4; --ardoise:#5D7087;
+  --bleu-pale:#EEF2F8; --gris-clair:#F6F8FB; --bleu-200:#D6E0F0; --white:#FFFFFF;
+  /* Texte */
+  --text:#0F1B2D; --text-2:#33455C; --text-3:#5D7087; --on-primary:#FFFFFF;
+  /* Surfaces et bordures */
+  --surface:#FFFFFF; --surface-2:#F6F8FB; --surface-3:#EEF2F7; --border:#E1E7EF; --border-strong:#7D8DA1;
+  /* Surfaces sombres (carte d'appel, barre d'actions groupées) */
+  --surface-dark:#001B4D; --surface-dark-2:#0B2D63; --border-dark:#2A4A7D; --on-dark:#FFFFFF; --on-dark-2:#D5DEEB; --on-dark-muted:#A9B8CC; --on-dark-accent:#B8CBEA;
+  /* Données (graphiques, balance âgée) */
+  --data-1:#C9D6EC; --data-2:#7F9CD0; --data-3:#345DA8;
+  /* Tons sémantiques : fond, bordure, point, texte */
+  --success-bg:#ECFDF5; --success-border:#A7F3D0; --success:#059669; --success-strong:#10B981; --success-fg:#047857; --on-success:#052E16;
+  --warning-bg:#FFF3C4; --warning-border:#F5D77A; --warning:#D97706; --warning-fg:#8A4B08;
+  --danger-bg:#FFF1F2; --danger-border:#FECDD3; --danger:#E11D48; --danger-fg:#BE123C; --danger-dark:#7F1D1D; --danger-on-dark:#FDA4AF;
+  --info-bg:#F0F9FF; --info-border:#BAE6FD; --info:#0284C7; --info-fg:#0369A1;
+  --violet-bg:#F5F3FF; --violet-border:#DDD6FE; --violet:#7C3AED; --violet-fg:#6D28D9;
+  --teal-bg:#CCFBF1; --teal:#0D9488; --teal-fg:#115E59;
+  /* Fonds pleins (badges pleins, texte --on-primary ≥ 5:1 dans les deux modes) */
+  --solid-neutral:#33455C; --solid-info:#0369A1; --solid-success:#047857; --solid-warning:#8A4B08; --solid-danger:#BE123C; --solid-violet:#6D28D9; --solid-teal:#115E59;
+  /* Typographie */
+  --font-title:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-text:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-brand:Lora, Georgia, serif; --font-mono:ui-monospace, SFMono-Regular, Menlo, monospace;
+  --fs-doc-xs:8px; --fs-doc-sm:9px; --fs-doc-md:10px; --fs-doc-lg:10.5px; --fs-2xs:11px; --fs-xs:12px; --fs-sm:13px; --fs-base:14px; --fs-md:16px; --fs-lg:18px; --fs-xl:20px; --fs-2xl:26px; --fs-3xl:34px;
+  /* Rayons */
+  --r-xs:4px; --r-sm:6px; --r-md:8px; --r-lg:12px; --r-full:9999px;
+  /* Ombres */
+  --shadow-sm:0 1px 2px 0 rgba(0,27,77,0.06); --shadow-md:0 10px 15px -3px rgba(0,27,77,0.10), 0 4px 6px -4px rgba(0,27,77,0.10); --shadow-lg:0 20px 25px -5px rgba(0,27,77,0.18), 0 8px 10px -6px rgba(0,27,77,0.12);
+  --shadow-knob:0 1px 2px rgba(0,27,77,0.25); --overlay:rgba(0,27,77,0.55);
+  /* Espacements (grille de 4 px) */
+  --sp-0h:2px; --sp-1:4px; --sp-1h:6px; --sp-2:8px; --sp-2h:10px; --sp-3:12px; --sp-3h:14px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px; --sp-10:40px; --sp-11:44px; --sp-12:48px;
+  /* Hauteurs de contrôles */
+  --control-xs:28px; --control-sm:36px; --control-md:40px; --control-lg:44px;
+  /* Voiles et anneaux (surfaces sombres, animations) */
+  --veil-8:rgba(255,255,255,0.08); --veil-18:rgba(255,255,255,0.18); --veil-25:rgba(255,255,255,0.25); --veil-35:rgba(255,255,255,0.35); --veil-80:rgba(255,255,255,0.8); --veil-85:rgba(255,255,255,0.85); --on-success-veil:rgba(5,46,22,0.35); --success-ring:rgba(16,185,129,0.55); --success-ring-0:rgba(16,185,129,0);
+  /* Cibles tactiles */
+  --target:44px;
+}
+body{font-family:var(--font-text);font-feature-settings:"cv11";-webkit-font-smoothing:antialiased}
+h1,h2{font-family:var(--font-title);font-weight:700;color:var(--marine);overflow-wrap:break-word;letter-spacing:-0.015em}
+[data-brand] h1,[data-brand] h2{font-family:var(--font-brand);letter-spacing:0}
+td,th,li,h3{overflow-wrap:break-word}
+:focus-visible{outline:2px solid var(--marine);outline-offset:2px}
+[data-dark] :focus-visible{outline-color:var(--or)}
+button:disabled,[aria-disabled="true"]{cursor:not-allowed !important;opacity:.55}
+button:not(:disabled):hover,a[href][style*="border-radius"]:hover{filter:brightness(.96)}
+tbody tr:hover{background-color:var(--surface-2)}
+[data-table-scroll]{max-height:min(68vh,720px);overflow:auto !important}
+[data-table-scroll] thead th{position:sticky;top:0;z-index:2;background:var(--surface-2);box-shadow:inset 0 -1px 0 var(--border)}
+[data-skeleton]{display:block;border-radius:var(--r-xs);background:linear-gradient(90deg,var(--surface-3) 25%,var(--bleu-pale) 50%,var(--surface-3) 75%);background-size:200% 100%;animation:lg-sk 1.2s ease-in-out infinite}
+@keyframes lg-sk{from{background-position:200% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+@media (pointer: coarse), (max-width: 767px){
+  button,select,input:not([type=checkbox]):not([type=radio]):not([type=range]),[role=tab],[role=menuitem],a[href][style*="display: inline-flex"],a[href][style*="height:"]{min-height:var(--target)}
+  input[type=checkbox],input[type=radio]{min-width:22px;min-height:22px}
+}
+/* Mode sombre : data-theme="dark" sur <html> */
+:root[data-theme="dark"]{
+  --marine:#2E5FC0; --marine-hover:#2A57B0; --marine-text:#9DB8F0; --app-icon-bg:#0A1A3F; --nuit:#071028; --or-clair:#3A2F0A; --ardoise:#9AA9BD;
+  --bleu-pale:#1B2A4A; --gris-clair:#0A1020; --bleu-200:#2B3E63; --white:#16203A;
+  --text:#E6ECF5; --text-2:#C3CEDD; --text-3:#9AA9BD;
+  --surface:#0F1729; --surface-2:#0A1020; --surface-3:#1A2438; --border:#26324A; --border-strong:#67778F;
+  --surface-dark:#050B1A; --surface-dark-2:#101C36; --border-dark:#24365A;
+  --data-1:#2B3E63; --data-2:#4F73B8; --data-3:#7F9CD0;
+  --success-bg:#0B2E22; --success-border:#14532D; --success-fg:#6EE7B7;
+  --warning-bg:#3A2F0A; --warning-border:#6B5310; --warning-fg:#FCD34D;
+  --danger-bg:#3B0D17; --danger-border:#7F1D2E; --danger-fg:#FDA4AF;
+  --info-bg:#0B2540; --info-border:#164E63; --info-fg:#7DD3FC;
+  --violet-bg:#24164A; --violet-border:#4C1D95; --violet-fg:#C4B5FD;
+  --teal-bg:#0B302C; --teal-fg:#5EEAD4;
+  --shadow-sm:0 1px 2px 0 rgba(0,0,0,0.4); --shadow-md:0 10px 15px -3px rgba(0,0,0,0.5); --shadow-lg:0 20px 25px -5px rgba(0,0,0,0.6); --overlay:rgba(0,0,0,0.65);
+  color-scheme:dark;
+}
+:root[data-theme="dark"] body{background:var(--surface-2);color:var(--text)}
+:root[data-theme="dark"] :focus-visible{outline-color:#9DB8F0}
+:root[data-theme="dark"] [data-dark]{border:1px solid var(--border-dark)}
+:root[data-theme="dark"] h1,:root[data-theme="dark"] h2,:root[data-theme="dark"] a[href]:not([style*="background"]){color:var(--marine-text)}
+:root[data-theme="dark"] [style*="color: var(--marine)"]:not([style*="background: var(--marine)"]){color:var(--marine-text) !important}
+:root[data-theme="dark"] img[src*="_blob"]{background:var(--white);border-radius:var(--r-sm)}
+/* Mode malvoyant : data-a11y="malvoyant" sur <html> — texte agrandi, contraste renforcé, cibles plus grandes */
+:root[data-a11y="malvoyant"]{
+  --fs-2xs:13px; --fs-xs:14px; --fs-sm:15px; --fs-base:17px; --fs-md:19px; --fs-lg:21px; --fs-xl:24px; --fs-2xl:30px; --fs-3xl:38px;
+  --control-xs:36px; --control-sm:44px; --control-md:48px; --control-lg:52px; --target:48px;
+  --text-3:var(--text-2); --ardoise:var(--text-2); --border:var(--border-strong);
+}
+:root[data-a11y="malvoyant"] body{line-height:1.6}
+:root[data-a11y="malvoyant"] [data-sb-nav][style*="width: 264px"]{width:312px !important}
+:root[data-a11y="malvoyant"] :focus-visible{outline:3px solid var(--or);outline-offset:3px;box-shadow:0 0 0 6px var(--marine)}
+:root[data-a11y="malvoyant"] a[href]:not([style*="background"]){text-decoration:underline;text-underline-offset:3px}
+:root[data-a11y="malvoyant"] button,:root[data-a11y="malvoyant"] select,:root[data-a11y="malvoyant"] input:not([type=checkbox]):not([type=radio]){min-height:var(--target)}
+:root[data-a11y="malvoyant"] input[type=checkbox],:root[data-a11y="malvoyant"] input[type=radio]{min-width:24px;min-height:24px}
+:root[data-a11y="malvoyant"][data-theme="dark"]{--text-3:#E6ECF5;--text-2:#E6ECF5}
+/* tokens:end */
+body{margin:0;font-family:var(--font-text);color:var(--text);background:var(--surface-2)}
+a{color:var(--marine)}a:hover{color:var(--marine)}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; background: var(--surface-2); font-family: var(--font-text); color: var(--text)">
+
+<div data-sb-wrap style="flex: 0 0 auto; max-width: 100%; display: flex; background: var(--surface-2); border-right: 1px solid var(--border)">
+<dc-import name="Sidebar" active="Aide.dc.html" accent="{{accent}}" hint-size="264px,1100px"></dc-import>
+</div>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: var(--sp-8); box-sizing: border-box; display: flex; flex-direction: column; gap: var(--sp-6)">
+<dc-import name="Topbar" accent="{{accent}}" trail="Aide>Aide.dc.html|Échéanciers et paiements>Aide.dc.html|Proposer et faire valider un échéancier" hint-size="100%,64px"></dc-import>
+<div data-page-body style="width: 100%; max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--sp-6)">
+
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-10); align-items: flex-start">
+
+<article style="flex: 999 1 560px; min-width: 0; max-width: 760px; display: flex; flex-direction: column; gap: var(--sp-6); font-size: var(--fs-md); line-height: 1.65; color: var(--text)">
+
+<header style="display: flex; flex-direction: column; gap: var(--sp-2h)">
+<a href="Aide.dc.html" style="align-self: flex-start; font-size: var(--fs-base); font-weight: 500; text-decoration: none">← Centre d'aide</a>
+<h1 style="margin: 0; font-size: var(--fs-3xl); line-height: 1.2; font-weight: 700; letter-spacing: -0.02em; color: var(--text)">Proposer et faire valider un échéancier</h1>
+<p style="margin: 0; font-size: var(--fs-md); color: var(--text-2)">Quand un débiteur ne peut pas régler en une fois, un échéancier étale le paiement sur plusieurs mois. Voici comment le proposer, qui le valide et comment le suivre.</p>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: var(--fs-sm); color: var(--text-3)"><span>5 min de lecture</span><span>Mis à jour le 18 novembre 2026</span><span>Pour : Gestionnaires et Responsables</span></div>
+</header>
+
+<section id="roles" aria-labelledby="h-roles" style="display: flex; flex-direction: column; gap: var(--sp-3)">
+<h2 id="h-roles" style="margin: 0; font-size: var(--fs-xl); font-weight: 600; color: var(--text)">Qui peut faire quoi</h2>
+<div style="border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; background: var(--surface)">
+<table style="width: 100%; border-collapse: collapse; font-size: var(--fs-base); line-height: 1.5">
+<thead style="background: var(--surface-2)"><tr style="text-align: left"><th scope="col" style="padding: var(--sp-2h) var(--sp-3h); font-weight: 600">Action</th><th scope="col" style="padding: var(--sp-2h) var(--sp-3h); font-weight: 600">Rôles</th></tr></thead>
+<tbody>
+<tr style="border-top: 1px solid var(--surface-3)"><td style="padding: var(--sp-2h) var(--sp-3h)">Proposer un échéancier</td><td style="padding: var(--sp-2h) var(--sp-3h)">Gestionnaire de créances, Responsable du recouvrement</td></tr>
+<tr style="border-top: 1px solid var(--surface-3)"><td style="padding: var(--sp-2h) var(--sp-3h)">Valider un échéancier</td><td style="padding: var(--sp-2h) var(--sp-3h)">Responsable du recouvrement, Dirigeant</td></tr>
+<tr style="border-top: 1px solid var(--surface-3)"><td style="padding: var(--sp-2h) var(--sp-3h)">Demander un échéancier</td><td style="padding: var(--sp-2h) var(--sp-3h)">Le débiteur, depuis son espace de paiement</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<section id="etapes" aria-labelledby="h-etapes" style="display: flex; flex-direction: column; gap: var(--sp-3h)">
+<h2 id="h-etapes" style="margin: 0; font-size: var(--fs-xl); font-weight: 600; color: var(--text)">Proposer un échéancier, étape par étape</h2>
+<ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-3h)">
+<sc-for list="{{steps}}" as="s" hint-placeholder-count="5">
+<li style="display: flex; gap: var(--sp-3h)">
+<span style="width: 28px; height: 28px; border-radius: var(--r-full); flex-shrink: 0; background: var(--marine); color: var(--on-primary); font-size: var(--fs-sm); font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 1px">{{s.n}}</span>
+<div style="display: flex; flex-direction: column; gap: var(--sp-1)"><span style="font-weight: 600; color: var(--text)">{{s.title}}</span><span style="color: var(--text-2)">{{s.text}}</span><sc-if value="{{s.hasLink}}" hint-placeholder-val="{{ false }}"><a href="{{s.href}}" style="font-size: var(--fs-base); font-weight: 500; text-decoration: none">{{s.link}} →</a></sc-if></div>
+</li>
+</sc-for>
+</ol>
+</section>
+
+<div role="note" style="display: flex; gap: var(--sp-3); background: var(--warning-bg); border: 1px solid var(--warning-border); border-radius: var(--r-lg); padding: var(--sp-3h) var(--sp-4); font-size: var(--fs-base); color: var(--warning-fg); line-height: 1.55">
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: var(--sp-0h)"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path></svg>
+<span><strong>Au-delà de la durée prévue au mandat</strong> (6 mois par défaut), l'échéancier doit aussi être accepté par le créancier. Legarec lui envoie la demande dans son espace et vous prévient de sa réponse.</span>
+</div>
+
+<section id="debiteur" aria-labelledby="h-deb" style="display: flex; flex-direction: column; gap: var(--sp-2h)">
+<h2 id="h-deb" style="margin: 0; font-size: var(--fs-xl); font-weight: 600; color: var(--text)">Quand c'est le débiteur qui demande</h2>
+<p style="margin: 0">Depuis son espace de paiement, le débiteur peut choisir un paiement en 2, 3 ou 6 mois. Sa demande apparaît dans <a href="Echeanciers.dc.html">Échéanciers</a> avec l'état « À valider », et les relances automatiques sont suspendues jusqu'à la décision.</p>
+<p style="margin: 0">Une fois la demande validée, le débiteur reçoit le plan à signer et la première échéance est programmée.</p>
+</section>
+
+<section id="suivi" aria-labelledby="h-suivi" style="display: flex; flex-direction: column; gap: var(--sp-2h)">
+<h2 id="h-suivi" style="margin: 0; font-size: var(--fs-xl); font-weight: 600; color: var(--text)">Suivre les échéances</h2>
+<p style="margin: 0">Chaque échéance apparaît dans l'<a href="Relances.dc.html">agenda des relances</a>. Un rappel part 3 jours avant ; en cas d'impayé, le plan passe « En retard », puis « En défaut » après deux échéances manquées. Le solde redevient alors exigible.</p>
+</section>
+
+<section id="faq" aria-labelledby="h-faq" style="display: flex; flex-direction: column; gap: var(--sp-2h)">
+<h2 id="h-faq" style="margin: 0; font-size: var(--fs-xl); font-weight: 600; color: var(--text)">Questions fréquentes</h2>
+<div style="border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); overflow: hidden">
+<sc-for list="{{faq}}" as="f" hint-placeholder-count="3">
+<div style="border-top: 1px solid var(--surface-3)">
+<button type="button" onClick="{{f.toggle}}" aria-expanded="{{f.expanded}}" style="width: 100%; display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3); padding: var(--sp-3h) var(--sp-4); border: 0; background: transparent; font: inherit; font-size: var(--fs-md); font-weight: 500; color: var(--text); cursor: pointer; text-align: left">{{f.q}}<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" style="stroke: var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="{{f.chev}}"></path></svg></button>
+<sc-if value="{{f.open}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; padding: 0 var(--sp-4) var(--sp-4); font-size: var(--fs-base); color: var(--text-2)">{{f.a}}</p></sc-if>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section aria-label="Avis sur l'article" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-3); border-top: 1px solid var(--border); padding-top: var(--sp-5)">
+<sc-if value="{{noVote}}" hint-placeholder-val="{{ true }}">
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2h); font-size: var(--fs-base); color: var(--text-2)">Cet article vous a-t-il aidé ?
+<dc-import name="Bouton" variant="secondary" size="sm" label="Oui" on-press="{{yes}}" style="display: contents" hint-size="120px,40px"></dc-import>
+<dc-import name="Bouton" variant="secondary" size="sm" label="Non" on-press="{{no}}" style="display: contents" hint-size="120px,40px"></dc-import></span>
+</sc-if>
+<sc-if value="{{voted}}" hint-placeholder-val="{{ false }}"><span role="status" style="font-size: var(--fs-base); color: var(--success-fg)">{{voteText}}</span></sc-if>
+<a href="Aide.dc.html#contact" style="font-size: var(--fs-base); font-weight: 500; text-decoration: none">Contacter le support</a>
+</section>
+
+</article>
+
+<aside style="flex: 1 1 240px; min-width: 0; max-width: 300px; display: flex; flex-direction: column; gap: var(--sp-5)">
+<nav aria-label="Sur cette page" style="display: flex; flex-direction: column; gap: var(--sp-0h); border-left: 1px solid var(--border); padding-left: var(--sp-3h)">
+<span style="font-size: var(--fs-xs); font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: var(--sp-1h)">Sur cette page</span>
+<a href="#roles" style="font-size: var(--fs-base); color: var(--text-2); text-decoration: none; padding: var(--sp-1) 0">Qui peut faire quoi</a>
+<a href="#etapes" style="font-size: var(--fs-base); color: var(--text-2); text-decoration: none; padding: var(--sp-1) 0">Étape par étape</a>
+<a href="#debiteur" style="font-size: var(--fs-base); color: var(--text-2); text-decoration: none; padding: var(--sp-1) 0">Demande du débiteur</a>
+<a href="#suivi" style="font-size: var(--fs-base); color: var(--text-2); text-decoration: none; padding: var(--sp-1) 0">Suivre les échéances</a>
+<a href="#faq" style="font-size: var(--fs-base); color: var(--text-2); text-decoration: none; padding: var(--sp-1) 0">Questions fréquentes</a>
+</nav>
+<section aria-labelledby="rel-titre" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-2h); box-shadow: var(--shadow-sm)">
+<h2 id="rel-titre" style="margin: 0; font-size: var(--fs-base); font-weight: 600">Articles liés</h2>
+<a href="AideArticle.dc.html" style="font-size: var(--fs-base); text-decoration: none">Envoyer un lien de paiement au débiteur</a>
+<a href="AideArticle.dc.html" style="font-size: var(--fs-base); text-decoration: none">Valider une remise ou un abandon de créance</a>
+<a href="AideArticle.dc.html" style="font-size: var(--fs-base); text-decoration: none">Rôles et permissions : qui peut faire quoi ?</a>
+</section>
+</aside>
+
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#002B74","options":["#002B74","#001B4D","#5D7087"]},"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { open: { 0: true }, vote: null };
+  }
+  renderVals() {
+    const accent = this.props.accent ?? 'var(--marine)';
+    const st = this.state;
+    const steps = [
+      ['Ouvrez le dossier du débiteur', 'Depuis Débiteurs ou la recherche (Ctrl K), ouvrez la fiche, puis cliquez sur « Proposer un échéancier ».', 'Ouvrir une fiche débiteur', 'Dossier.dc.html'],
+      ['Simulez le plan', 'Choisissez le nombre de mensualités : la mensualité et la date de la dernière échéance se calculent automatiquement.', 'Ouvrir le simulateur', 'Echeanciers.dc.html'],
+      ['Choisissez le mode de paiement', 'Le prélèvement SEPA réduit fortement les oublis. Le virement et la carte restent possibles.', '', ''],
+      ['Envoyez la proposition', 'Si vous êtes Gestionnaire, la proposition part d’abord en validation chez un Responsable du recouvrement. Sinon, elle est envoyée directement au débiteur.', '', ''],
+      ['Le débiteur signe', 'Il reçoit un lien pour accepter et signer le plan. L’échéancier passe alors « À jour » et les relances classiques s’arrêtent.', 'Voir l’espace de paiement', 'Payer.dc.html']
+    ];
+    const faq = [
+      ['Puis-je modifier un échéancier déjà signé ?', 'Oui, depuis Échéanciers › Modifier le plan. La modification repart en validation et le débiteur signe un nouveau plan.'],
+      ['Que se passe-t-il si une échéance n’est pas payée ?', 'Le débiteur reçoit un rappel et le plan passe « En retard ». Après deux échéances impayées, il passe « En défaut » et vous pouvez reprendre les relances ou proposer le contentieux.'],
+      ['Le créancier est-il prévenu ?', 'Oui : l’échéancier apparaît dans son espace créancier, avec le statut « Échéancier » et le détail des paiements reçus.']
+    ];
+    return {
+      accent,
+      steps: steps.map(([title, text, link, href], i) => ({ n: i + 1, title, text, link, href, hasLink: !!link })),
+      faq: faq.map(([q, a], i) => ({
+        q, a, open: !!st.open[i], expanded: st.open[i] ? 'true' : 'false',
+        chev: st.open[i] ? 'm18 15-6-6-6 6' : 'm6 9 6 6 6-6',
+        toggle: () => this.setState({ open: { ...this.state.open, [i]: !this.state.open[i] } })
+      })),
+      noVote: !st.vote,
+      voted: !!st.vote,
+      voteText: st.vote === 'yes' ? 'Merci pour votre retour !' : 'Merci. Dites-nous ce qui manque via le support, nous améliorerons l’article.',
+      yes: () => this.setState({ vote: 'yes' }),
+      no: () => this.setState({ vote: 'no' })
+    };
+  }
+}
+</script>
+</body>
+</html>

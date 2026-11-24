@@ -1,0 +1,503 @@
+{
+  "reminder-1": {
+    "debtor": {
+      "company_name": "KAREGEST",
+      "siren": "533 591 210"
+    },
+    "case": {
+      "reference": "533 591 210 00026",
+      "access_code": "EXEMPLE",
+      "total_due": "11 445,48 €",
+      "balance": "11 445,48 €"
+    },
+    "creditor": {
+      "name": "OMNES EDUCATION",
+      "establishment": "CEE RA"
+    },
+    "invoices": [
+      {
+        "number": "9222504195",
+        "issue_date": "02/12/2025",
+        "due_date": "02/01/2026",
+        "principal": "10 000,00 €",
+        "late_fees": "40,00 €",
+        "interest": "1 405,48 €",
+        "total": "11 445,48 €"
+      }
+    ]
+  },
+  "reminder-2": {
+    "debtor": {
+      "company_name": "LA FRANCAISE DES JEUX",
+      "siren": "315 065 292"
+    },
+    "case": {
+      "reference": "315 065 292 00296",
+      "total_due": "15 404,59 €"
+    },
+    "creditor": {
+      "name": "OMNES EDUCATION",
+      "establishment": "MBA INSTITUTE"
+    },
+    "invoices": [
+      {
+        "number": "9062506706",
+        "issue_date": "27/11/2025",
+        "due_date": "27/12/2025",
+        "principal": "7 614,00 €",
+        "late_fees": "40,00 €",
+        "interest": "1 092,66 €",
+        "total": "8 746,66 €"
+      },
+      {
+        "number": "9062508310",
+        "issue_date": "22/01/2026",
+        "due_date": "22/02/2026",
+        "principal": "5 933,25 €",
+        "late_fees": "40,00 €",
+        "interest": "684,68 €",
+        "total": "6 657,93 €"
+      }
+    ]
+  },
+  "reminder-3": {
+    "debtor": {
+      "company_name": "KAREGEST",
+      "siren": "533 591 210",
+      "contact_name": "MADAME ANNA TAPEK"
+    },
+    "case": {
+      "reference": "533 591 210 00026",
+      "access_code": "EXEMPLE",
+      "total_due": "11 445,48 €",
+      "balance": "11 445,48 €",
+      "deadline": "25/11/2026"
+    },
+    "creditor": {
+      "name": "OMNES EDUCATION",
+      "establishment": "CEE RA"
+    },
+    "invoices": [
+      {
+        "number": "9222504195",
+        "issue_date": "02/12/2025",
+        "due_date": "02/01/2026",
+        "principal": "10 000,00 €",
+        "late_fees": "40,00 €",
+        "interest": "1 405,48 €",
+        "total": "11 445,48 €"
+      }
+    ]
+  },
+  "debtor-new-message": {
+    "case": {
+      "reference": "533 591 210 00026",
+      "access_code": "EXEMPLE",
+      "total_due": "11 445,48 €",
+      "balance": "11 445,48 €"
+    },
+    "creditor": {
+      "name": "OMNES EDUCATION",
+      "establishment": "CEE RA"
+    },
+    "message": {
+      "subject": "Votre proposition d'échéancier",
+      "sent_at": "24/11/2026"
+    },
+    "action_url": "https://paiement.legarec.fr/messages"
+  },
+  "debtor-request-received": {
+    "case": {
+      "reference": "533 591 210 00026",
+      "access_code": "EXEMPLE",
+      "total_due": "11 445,48 €",
+      "balance": "11 445,48 €"
+    },
+    "request": {
+      "type_label": "demande d'échéancier",
+      "reference": "DEM-2026-0412",
+      "submitted_at": "24/11/2026",
+      "response_delay": "sous 5 jours ouvrés"
+    }
+  },
+  "payment-plan-decision": {
+    "case": {
+      "reference": "533 591 210 00026",
+      "access_code": "EXEMPLE",
+      "total_due": "11 445,48 €",
+      "balance": "11 445,48 €"
+    },
+    "plan": {
+      "approved": true,
+      "total": "11 445,48 €",
+      "installments": [
+        {
+          "number": 1,
+          "due_date": "05/12/2026",
+          "amount": "3 815,16 €"
+        },
+        {
+          "number": 2,
+          "due_date": "05/01/2027",
+          "amount": "3 815,16 €"
+        },
+        {
+          "number": 3,
+          "due_date": "05/02/2027",
+          "amount": "3 815,16 €"
+        }
+      ]
+    }
+  },
+  "installment-reminder": {
+    "case": {
+      "reference": "533 591 210 00026",
+      "access_code": "EXEMPLE",
+      "total_due": "11 445,48 €",
+      "balance": "11 445,48 €"
+    },
+    "installment": {
+      "number": 2,
+      "amount": "3 815,16 €",
+      "due_date": "05/01/2027",
+      "balance_after": "3 815,16 €"
+    },
+    "plan": {
+      "installment_count": 3
+    }
+  },
+  "installment-missed": {
+    "case": {
+      "reference": "533 591 210 00026",
+      "access_code": "EXEMPLE",
+      "total_due": "11 445,48 €",
+      "balance": "7 630,32 €"
+    },
+    "installment": {
+      "number": 2,
+      "amount": "3 815,16 €",
+      "due_date": "05/01/2027",
+      "grace_deadline": "12/01/2027"
+    },
+    "plan": {
+      "installment_count": 3
+    }
+  },
+  "receipt": {
+    "case": {
+      "reference": "533 591 210 00026",
+      "access_code": "EXEMPLE",
+      "total_due": "11 445,48 €",
+      "balance": "7 630,32 €",
+      "fully_paid": false
+    },
+    "creditor": {
+      "name": "OMNES EDUCATION",
+      "establishment": "CEE RA"
+    },
+    "payment": {
+      "amount": "3 815,16 €",
+      "date": "05/12/2026",
+      "method_label": "Chèque",
+      "reference": "CHQ 0012345",
+      "subject_to_collection": true
+    },
+    "receipt_url": "https://paiement.legarec.fr/quittances/123"
+  },
+  "cheque-bounced": {
+    "case": {
+      "reference": "533 591 210 00026",
+      "access_code": "EXEMPLE",
+      "total_due": "11 445,48 €",
+      "balance": "11 445,48 €",
+      "deadline": "15/12/2026"
+    },
+    "cheque": {
+      "number": "0012345",
+      "amount": "3 815,16 €",
+      "received_date": "05/12/2026",
+      "rejection_reason": "provision insuffisante"
+    }
+  },
+  "case-closed": {
+    "case": {
+      "reference": "533 591 210 00026",
+      "access_code": "EXEMPLE",
+      "total_due": "11 445,48 €",
+      "balance": "11 445,48 €",
+      "closed_date": "05/02/2027",
+      "total_paid": "11 445,48 €"
+    },
+    "creditor": {
+      "name": "OMNES EDUCATION",
+      "establishment": "CEE RA"
+    },
+    "certificate_url": "https://paiement.legarec.fr/attestations/123"
+  },
+  "email-verification": {
+    "recipient": {
+      "first_name": "Sophie",
+      "email": "sophie.martin@exemple.fr"
+    },
+    "verification_url": "https://app.exemple.fr/verifier?jeton=abc123",
+    "verification_code": "482 913",
+    "expires_in": "24 heures"
+  },
+  "creditor-invitation": {
+    "recipient": {
+      "first_name": "Claire"
+    },
+    "inviter": {
+      "name": "Michel Oliveri"
+    },
+    "creditor": {
+      "name": "OMNES EDUCATION"
+    },
+    "invitation_url": "https://app.exemple.fr/invitation?jeton=abc123",
+    "expires_in": "7 jours"
+  },
+  "creditor-password-reset": {
+    "recipient": {
+      "first_name": "Claire"
+    },
+    "requested_at": "24/11/2026 à 15:42",
+    "reset_url": "https://app.exemple.fr/mot-de-passe?jeton=abc123",
+    "expires_in": "1 heure"
+  },
+  "import-report": {
+    "recipient": {
+      "first_name": "Claire"
+    },
+    "creditor": {
+      "name": "OMNES EDUCATION"
+    },
+    "import": {
+      "file_name": "factures_novembre.csv",
+      "date": "24/11/2026",
+      "total_rows": 119,
+      "created": 105,
+      "updated": 7,
+      "rejected": 7,
+      "has_errors": true,
+      "errors": [
+        {
+          "line": 14,
+          "message": "SIRET absent"
+        },
+        {
+          "line": 52,
+          "message": "Montant illisible : 1.234,5O"
+        },
+        {
+          "line": 87,
+          "message": "Date d'échéance antérieure à l'émission"
+        }
+      ],
+      "errors_more": 4
+    },
+    "report_url": "https://app.exemple.fr/imports/42"
+  },
+  "payment-plan-approval-request": {
+    "recipient": {
+      "first_name": "Claire"
+    },
+    "debtor": {
+      "company_name": "KAREGEST",
+      "siren": "533 591 210"
+    },
+    "case": {
+      "reference": "533 591 210 00026",
+      "access_code": "EXEMPLE",
+      "total_due": "11 445,48 €",
+      "balance": "11 445,48 €"
+    },
+    "plan": {
+      "duration_label": "10 mois",
+      "installment_count": 10,
+      "installment_amount": "1 144,55 €",
+      "first_due_date": "05/12/2026",
+      "last_due_date": "05/09/2027",
+      "debtor_comment": "Notre trésorerie ne permet pas un règlement plus rapide, nous proposons des virements mensuels.",
+      "firm_opinion": "Débiteur de bonne foi, premier versement déjà reçu. Avis favorable."
+    },
+    "response_deadline": "30/11/2026",
+    "approval_url": "https://app.exemple.fr/echeanciers/77"
+  },
+  "creditor-new-activity": {
+    "recipient": {
+      "first_name": "Claire"
+    },
+    "debtor": {
+      "company_name": "KAREGEST",
+      "siren": "533 591 210"
+    },
+    "case": {
+      "reference": "533 591 210 00026",
+      "access_code": "EXEMPLE",
+      "total_due": "11 445,48 €",
+      "balance": "11 445,48 €"
+    },
+    "activity": {
+      "is_document": true,
+      "document_name": "Preuve de virement.pdf",
+      "author": "KAREGEST",
+      "date": "24/11/2026"
+    },
+    "action_url": "https://app.exemple.fr/dossiers/123"
+  },
+  "remittance-invoice": {
+    "recipient": {
+      "first_name": "Claire"
+    },
+    "creditor": {
+      "name": "OMNES EDUCATION"
+    },
+    "remittance": {
+      "date": "30/11/2026",
+      "period": "novembre 2026",
+      "collected": "26 850,07 €",
+      "fees": "3 222,01 €",
+      "net_amount": "23 628,06 €",
+      "bank_account": "FR76 **** **** 4521",
+      "reference": "REV-2026-11"
+    },
+    "invoice": {
+      "number": "F2026-118",
+      "amount_excl_tax": "2 685,01 €",
+      "vat": "537,00 €",
+      "amount_incl_tax": "3 222,01 €",
+      "settled_by_offset": true
+    },
+    "lines": [
+      {
+        "case_reference": "533 591 210 00026",
+        "debtor_name": "KAREGEST",
+        "collected": "11 445,48 €",
+        "net": "10 072,02 €"
+      },
+      {
+        "case_reference": "315 065 292 00296",
+        "debtor_name": "LA FRANCAISE DES JEUX",
+        "collected": "15 404,59 €",
+        "net": "13 556,04 €"
+      }
+    ],
+    "invoice_url": "https://app.exemple.fr/factures/F2026-118.pdf",
+    "statement_url": "https://app.exemple.fr/reversements/REV-2026-11"
+  },
+  "staff-invitation": {
+    "recipient": {
+      "first_name": "Julien"
+    },
+    "inviter": {
+      "name": "Michel Oliveri"
+    },
+    "role_label": "Gestionnaire de dossiers",
+    "requires_2fa": true,
+    "invitation_url": "https://app.exemple.fr/invitation?jeton=abc123",
+    "expires_in": "7 jours"
+  },
+  "staff-password-reset": {
+    "recipient": {
+      "first_name": "Julien"
+    },
+    "requested_at": "24/11/2026 à 15:42",
+    "reset_url": "https://app.exemple.fr/mot-de-passe?jeton=abc123",
+    "expires_in": "1 heure"
+  },
+  "staff-2fa-enabled": {
+    "recipient": {
+      "first_name": "Julien"
+    },
+    "event": {
+      "date": "24/11/2026 à 15:45",
+      "method_label": "Application d'authentification",
+      "ip": "203.0.113.24"
+    }
+  },
+  "staff-new-device": {
+    "recipient": {
+      "first_name": "Julien"
+    },
+    "device": {
+      "login_at": "24/11/2026 à 08:12",
+      "name": "Ordinateur Windows",
+      "browser": "Chrome 131",
+      "location": "Lyon, France",
+      "ip": "198.51.100.7"
+    },
+    "secure_url": "https://app.exemple.fr/securite"
+  },
+  "delegation-changed": {
+    "recipient": {
+      "first_name": "Julien"
+    },
+    "delegation": {
+      "status_label": "accordée",
+      "changed_by": "Michel Oliveri",
+      "changed_at": "24/11/2026",
+      "from_name": "Sophie Martin",
+      "to_name": "Julien Bernard",
+      "scope_label": "Dossiers OMNES EDUCATION",
+      "start_date": "25/11/2026",
+      "end_date": "12/12/2026"
+    },
+    "action_url": "https://app.exemple.fr/delegations"
+  },
+  "notifications-digest": {
+    "recipient": {
+      "first_name": "Claire"
+    },
+    "digest": {
+      "period_label": "24 novembre 2026",
+      "count_label": "4 notifications",
+      "items": [
+        {
+          "title": "Paiement reçu : 3 815,16 €",
+          "case_reference": "533 591 210 00026",
+          "date": "09:14",
+          "description": "Chèque enregistré sous réserve d'encaissement.",
+          "url": "https://app.exemple.fr/dossiers/123"
+        },
+        {
+          "title": "Nouvelle demande d'échéancier",
+          "case_reference": "315 065 292 00296",
+          "date": "11:02",
+          "url": "https://app.exemple.fr/dossiers/124"
+        },
+        {
+          "title": "Relance urgente envoyée",
+          "case_reference": "301 608 634 00012",
+          "date": "14:30"
+        }
+      ],
+      "more_count": 1
+    },
+    "action_url": "https://app.exemple.fr/notifications",
+    "settings_url": "https://app.exemple.fr/preferences"
+  },
+  "ops-alert": {
+    "alert": {
+      "severity_label": "CRITIQUE",
+      "is_critical": true,
+      "title": "Échec d'envoi des e-mails de relance",
+      "service": "Envoi des e-mails",
+      "environment": "Production",
+      "started_at": "24/11/2026 à 15:02",
+      "description": "Le prestataire d'envoi renvoie des erreurs : 37 relances sont en attente.",
+      "metrics": [
+        {
+          "label": "Taux d'échec",
+          "value": "100 %"
+        },
+        {
+          "label": "Messages en attente",
+          "value": "37"
+        }
+      ],
+      "details": "POST /emails 403\n{\"message\": \"The domain is not verified\"}",
+      "dashboard_url": "https://supervision.exemple.fr/emails",
+      "runbook_url": "https://docs.exemple.fr/runbooks/envoi-emails"
+    }
+  }
+}

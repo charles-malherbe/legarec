@@ -1,0 +1,1094 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Legarec – Paramètres</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Lora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+/* tokens:start — charte graphique LEGAREC v1.0 (octobre 2026). Ne pas modifier à la main : généré depuis tools/tokens.css */
+:root{
+  /* Marque */
+  --marine:#002B74; --marine-hover:#00225C; --marine-text:#002B74; --app-icon-bg:#002B74; --app-icon-fg:#FCBE03; --nuit:#001B4D; --or:#FCBE03; --or-clair:#FFF3C4; --ardoise:#5D7087;
+  --bleu-pale:#EEF2F8; --gris-clair:#F6F8FB; --bleu-200:#D6E0F0; --white:#FFFFFF;
+  /* Texte */
+  --text:#0F1B2D; --text-2:#33455C; --text-3:#5D7087; --on-primary:#FFFFFF;
+  /* Surfaces et bordures */
+  --surface:#FFFFFF; --surface-2:#F6F8FB; --surface-3:#EEF2F7; --border:#E1E7EF; --border-strong:#7D8DA1;
+  /* Surfaces sombres (carte d'appel, barre d'actions groupées) */
+  --surface-dark:#001B4D; --surface-dark-2:#0B2D63; --border-dark:#2A4A7D; --on-dark:#FFFFFF; --on-dark-2:#D5DEEB; --on-dark-muted:#A9B8CC; --on-dark-accent:#B8CBEA;
+  /* Données (graphiques, balance âgée) */
+  --data-1:#C9D6EC; --data-2:#7F9CD0; --data-3:#345DA8;
+  /* Tons sémantiques : fond, bordure, point, texte */
+  --success-bg:#ECFDF5; --success-border:#A7F3D0; --success:#059669; --success-strong:#10B981; --success-fg:#047857; --on-success:#052E16;
+  --warning-bg:#FFF3C4; --warning-border:#F5D77A; --warning:#D97706; --warning-fg:#8A4B08;
+  --danger-bg:#FFF1F2; --danger-border:#FECDD3; --danger:#E11D48; --danger-fg:#BE123C; --danger-dark:#7F1D1D; --danger-on-dark:#FDA4AF;
+  --info-bg:#F0F9FF; --info-border:#BAE6FD; --info:#0284C7; --info-fg:#0369A1;
+  --violet-bg:#F5F3FF; --violet-border:#DDD6FE; --violet:#7C3AED; --violet-fg:#6D28D9;
+  --teal-bg:#CCFBF1; --teal:#0D9488; --teal-fg:#115E59;
+  /* Fonds pleins (badges pleins, texte --on-primary ≥ 5:1 dans les deux modes) */
+  --solid-neutral:#33455C; --solid-info:#0369A1; --solid-success:#047857; --solid-warning:#8A4B08; --solid-danger:#BE123C; --solid-violet:#6D28D9; --solid-teal:#115E59;
+  /* Typographie */
+  --font-title:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-text:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-brand:Lora, Georgia, serif; --font-mono:ui-monospace, SFMono-Regular, Menlo, monospace;
+  --fs-doc-xs:8px; --fs-doc-sm:9px; --fs-doc-md:10px; --fs-doc-lg:10.5px; --fs-2xs:11px; --fs-xs:12px; --fs-sm:13px; --fs-base:14px; --fs-md:16px; --fs-lg:18px; --fs-xl:20px; --fs-2xl:26px; --fs-3xl:34px;
+  /* Rayons */
+  --r-xs:4px; --r-sm:6px; --r-md:8px; --r-lg:12px; --r-full:9999px;
+  /* Ombres */
+  --shadow-sm:0 1px 2px 0 rgba(0,27,77,0.06); --shadow-md:0 10px 15px -3px rgba(0,27,77,0.10), 0 4px 6px -4px rgba(0,27,77,0.10); --shadow-lg:0 20px 25px -5px rgba(0,27,77,0.18), 0 8px 10px -6px rgba(0,27,77,0.12);
+  --shadow-knob:0 1px 2px rgba(0,27,77,0.25); --overlay:rgba(0,27,77,0.55);
+  /* Espacements (grille de 4 px) */
+  --sp-0h:2px; --sp-1:4px; --sp-1h:6px; --sp-2:8px; --sp-2h:10px; --sp-3:12px; --sp-3h:14px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px; --sp-10:40px; --sp-11:44px; --sp-12:48px;
+  /* Hauteurs de contrôles */
+  --control-xs:28px; --control-sm:36px; --control-md:40px; --control-lg:44px;
+  /* Voiles et anneaux (surfaces sombres, animations) */
+  --veil-8:rgba(255,255,255,0.08); --veil-18:rgba(255,255,255,0.18); --veil-25:rgba(255,255,255,0.25); --veil-35:rgba(255,255,255,0.35); --veil-80:rgba(255,255,255,0.8); --veil-85:rgba(255,255,255,0.85); --on-success-veil:rgba(5,46,22,0.35); --success-ring:rgba(16,185,129,0.55); --success-ring-0:rgba(16,185,129,0);
+  /* Cibles tactiles */
+  --target:44px;
+}
+body{font-family:var(--font-text);font-feature-settings:"cv11";-webkit-font-smoothing:antialiased}
+h1,h2{font-family:var(--font-title);font-weight:700;color:var(--marine);overflow-wrap:break-word;letter-spacing:-0.015em}
+[data-brand] h1,[data-brand] h2{font-family:var(--font-brand);letter-spacing:0}
+td,th,li,h3{overflow-wrap:break-word}
+:focus-visible{outline:2px solid var(--marine);outline-offset:2px}
+[data-dark] :focus-visible{outline-color:var(--or)}
+button:disabled,[aria-disabled="true"]{cursor:not-allowed !important;opacity:.55}
+button:not(:disabled):hover,a[href][style*="border-radius"]:hover{filter:brightness(.96)}
+tbody tr:hover{background-color:var(--surface-2)}
+[data-table-scroll]{max-height:min(68vh,720px);overflow:auto !important}
+[data-table-scroll] thead th{position:sticky;top:0;z-index:2;background:var(--surface-2);box-shadow:inset 0 -1px 0 var(--border)}
+[data-skeleton]{display:block;border-radius:var(--r-xs);background:linear-gradient(90deg,var(--surface-3) 25%,var(--bleu-pale) 50%,var(--surface-3) 75%);background-size:200% 100%;animation:lg-sk 1.2s ease-in-out infinite}
+@keyframes lg-sk{from{background-position:200% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+@media (pointer: coarse), (max-width: 767px){
+  button,select,input:not([type=checkbox]):not([type=radio]):not([type=range]),[role=tab],[role=menuitem],a[href][style*="display: inline-flex"],a[href][style*="height:"]{min-height:var(--target)}
+  input[type=checkbox],input[type=radio]{min-width:22px;min-height:22px}
+}
+/* Mode sombre : data-theme="dark" sur <html> */
+:root[data-theme="dark"]{
+  --marine:#2E5FC0; --marine-hover:#2A57B0; --marine-text:#9DB8F0; --app-icon-bg:#0A1A3F; --nuit:#071028; --or-clair:#3A2F0A; --ardoise:#9AA9BD;
+  --bleu-pale:#1B2A4A; --gris-clair:#0A1020; --bleu-200:#2B3E63; --white:#16203A;
+  --text:#E6ECF5; --text-2:#C3CEDD; --text-3:#9AA9BD;
+  --surface:#0F1729; --surface-2:#0A1020; --surface-3:#1A2438; --border:#26324A; --border-strong:#67778F;
+  --surface-dark:#050B1A; --surface-dark-2:#101C36; --border-dark:#24365A;
+  --data-1:#2B3E63; --data-2:#4F73B8; --data-3:#7F9CD0;
+  --success-bg:#0B2E22; --success-border:#14532D; --success-fg:#6EE7B7;
+  --warning-bg:#3A2F0A; --warning-border:#6B5310; --warning-fg:#FCD34D;
+  --danger-bg:#3B0D17; --danger-border:#7F1D2E; --danger-fg:#FDA4AF;
+  --info-bg:#0B2540; --info-border:#164E63; --info-fg:#7DD3FC;
+  --violet-bg:#24164A; --violet-border:#4C1D95; --violet-fg:#C4B5FD;
+  --teal-bg:#0B302C; --teal-fg:#5EEAD4;
+  --shadow-sm:0 1px 2px 0 rgba(0,0,0,0.4); --shadow-md:0 10px 15px -3px rgba(0,0,0,0.5); --shadow-lg:0 20px 25px -5px rgba(0,0,0,0.6); --overlay:rgba(0,0,0,0.65);
+  color-scheme:dark;
+}
+:root[data-theme="dark"] body{background:var(--surface-2);color:var(--text)}
+:root[data-theme="dark"] :focus-visible{outline-color:#9DB8F0}
+:root[data-theme="dark"] [data-dark]{border:1px solid var(--border-dark)}
+:root[data-theme="dark"] h1,:root[data-theme="dark"] h2,:root[data-theme="dark"] a[href]:not([style*="background"]){color:var(--marine-text)}
+:root[data-theme="dark"] [style*="color: var(--marine)"]:not([style*="background: var(--marine)"]){color:var(--marine-text) !important}
+:root[data-theme="dark"] img[src*="_blob"]{background:var(--white);border-radius:var(--r-sm)}
+/* Mode malvoyant : data-a11y="malvoyant" sur <html> — texte agrandi, contraste renforcé, cibles plus grandes */
+:root[data-a11y="malvoyant"]{
+  --fs-2xs:13px; --fs-xs:14px; --fs-sm:15px; --fs-base:17px; --fs-md:19px; --fs-lg:21px; --fs-xl:24px; --fs-2xl:30px; --fs-3xl:38px;
+  --control-xs:36px; --control-sm:44px; --control-md:48px; --control-lg:52px; --target:48px;
+  --text-3:var(--text-2); --ardoise:var(--text-2); --border:var(--border-strong);
+}
+:root[data-a11y="malvoyant"] body{line-height:1.6}
+:root[data-a11y="malvoyant"] [data-sb-nav][style*="width: 264px"]{width:312px !important}
+:root[data-a11y="malvoyant"] :focus-visible{outline:3px solid var(--or);outline-offset:3px;box-shadow:0 0 0 6px var(--marine)}
+:root[data-a11y="malvoyant"] a[href]:not([style*="background"]){text-decoration:underline;text-underline-offset:3px}
+:root[data-a11y="malvoyant"] button,:root[data-a11y="malvoyant"] select,:root[data-a11y="malvoyant"] input:not([type=checkbox]):not([type=radio]){min-height:var(--target)}
+:root[data-a11y="malvoyant"] input[type=checkbox],:root[data-a11y="malvoyant"] input[type=radio]{min-width:24px;min-height:24px}
+:root[data-a11y="malvoyant"][data-theme="dark"]{--text-3:#E6ECF5;--text-2:#E6ECF5}
+/* tokens:end */
+body{margin:0;font-family:var(--font-text);color:var(--text);background:var(--surface-2)}
+a{color:var(--marine)}a:hover{color:var(--marine)}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; background: var(--surface-2); font-family: var(--font-text); color: var(--text)">
+
+<div data-sb-wrap style="flex: 0 0 auto; max-width: 100%; display: flex; background: var(--surface-2); border-right: 1px solid var(--border)">
+<dc-import name="Sidebar" active="Reglages.dc.html" accent="{{accent}}" hint-size="264px,1100px"></dc-import>
+</div>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: var(--sp-8); box-sizing: border-box; display: flex; flex-direction: column; gap: var(--sp-6)">
+<dc-import name="Topbar" accent="{{accent}}" trail="{{trailText}}" hint-size="100%,64px"></dc-import>
+<div data-page-body style="width: 100%; max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--sp-6)">
+
+<header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--sp-4)">
+<div style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-1)">
+<sc-if value="{{inSection}}" hint-placeholder-val="{{ false }}"><dc-import name="Bouton" label="{{backLabel}}" icon="arrow-left" variant="link" size="sm" on-press="{{goHub}}" layout="align-self: flex-start; margin-bottom: var(--sp-1)" style="display: contents" hint-size="180px,20px"></dc-import></sc-if>
+<h1 style="margin: 0; font-size: var(--fs-2xl); font-weight: 700; letter-spacing: -0.01em">{{headTitle}}</h1>
+<p style="margin: 0; font-size: var(--fs-base); color: var(--text-3)">{{headDesc}}</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3)">
+<sc-if value="{{showClean}}" hint-placeholder-val="{{ false }}"><dc-import name="Statut" label="{{savedText}}" tone="success" style="display: contents" hint-size="140px,20px"></dc-import></sc-if>
+<sc-if value="{{showTechLink}}" hint-placeholder-val="{{ false }}"><dc-import name="Bouton" label="Paramètres techniques" icon="code" variant="secondary" size="sm" count="Dév." on-press="{{goTech}}" style="display: contents" hint-size="220px,36px"></dc-import></sc-if>
+<sc-if value="{{showUserLink}}" hint-placeholder-val="{{ false }}"><dc-import name="Bouton" label="Paramètres du cabinet" icon="building" variant="secondary" size="sm" on-press="{{goUser}}" style="display: contents" hint-size="200px,36px"></dc-import></sc-if>
+</div>
+</header>
+<sc-if value="{{denied}}" hint-placeholder-val="{{ false }}">
+<section role="alert" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-10) var(--sp-6); display: flex; flex-direction: column; align-items: center; gap: var(--sp-3); text-align: center">
+<h2 style="margin: 0; font-size: var(--fs-xl)">Réservé au rôle Développeur</h2>
+<p style="margin: 0; max-width: 480px; font-size: var(--fs-base); line-height: 1.5; color: var(--text-3)">La configuration technique (3CX, e-mails, paiement en ligne, API, secrets, sécurité et journaux) n'est accessible qu'aux développeurs de la plateforme.</p>
+<dc-import name="Bouton" variant="primary" size="md" label="Retour aux paramètres du cabinet" href="Reglages.dc.html" on-press="{{goUser}}" style="display: contents" hint-size="120px,40px"></dc-import>
+</section>
+</sc-if>
+<sc-if value="{{allowed}}" hint-placeholder-val="{{ true }}">
+
+
+<sc-if value="{{inHub}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: var(--sp-6)">
+<dc-import name="Champ" type="search" label="Rechercher un paramètre" hide-label="{{yes}}" placeholder="Rechercher : SMS, mot de passe, logo…" value="{{hq}}" on-change="{{onHq}}" layout="max-width: 520px" hint-size="520px,40px"></dc-import>
+<sc-if value="{{hubEmpty}}" hint-placeholder-val="{{ false }}"><dc-import name="EtatListe" kind="noresult" action-label="Effacer la recherche" on-action="{{clearHq}}" hint-size="100%,200px"></dc-import></sc-if>
+<div style="columns: 3 300px; column-gap: var(--sp-6)">
+<sc-for list="{{hubGroups}}" as="g" hint-placeholder-count="3">
+<section aria-label="{{g.label}}" style="break-inside: avoid; display: flex; flex-direction: column; gap: var(--sp-3); padding-bottom: var(--sp-6)">
+<h2 style="margin: 0; font-size: var(--fs-lg); font-weight: 600">{{g.label}}</h2>
+<div style="display: flex; flex-direction: column; gap: var(--sp-3)">
+<sc-for list="{{g.tiles}}" as="t" hint-placeholder-count="3"><dc-import name="Tuile" dc-props="{{t}}" style="display: contents" hint-size="100%,124px"></dc-import></sc-for>
+</div>
+</section>
+</sc-for>
+</div>
+<dc-import name="Carte" title="Démonstration" description="Réservé à la maquette : simule le rôle de l’utilisateur connecté. En production, le rôle vient de la session." tone="subtle" hint-size="100%,120px">
+<dc-import name="Onglets" items="{{asRoles}}" label="Rôle de démonstration" style="display: contents" hint-size="380px,44px"></dc-import>
+</dc-import>
+</div>
+</sc-if>
+<sc-if value="{{inSection}}" hint-placeholder-val="{{ false }}">
+<div style="width: 100%; max-width: 960px; display: flex; flex-direction: column; gap: var(--sp-5)">
+<div style="min-width: 0; display: flex; flex-direction: column; gap: var(--sp-5)">
+
+<sc-if value="{{hasSiblings}}" hint-placeholder-val="{{ true }}"><dc-import name="Onglets" variant="underline" items="{{siblings}}" label="{{siblingsLabel}}" hint-size="100%,41px"></dc-import></sc-if>
+
+<sc-if value="{{ro}}" hint-placeholder-val="{{ false }}">
+<dc-import name="Alerte" tone="neutral" icon="lock" title="Lecture seule" text="La configuration technique (API, paiement, e-mails, journaux) est réservée au rôle Développeur." action-label="En savoir plus sur les rôles" action-href="Aide.dc.html" hint-size="100%,96px"></dc-import>
+</sc-if>
+
+<sc-if value="{{is.cabinet}}" hint-placeholder-val="{{ false }}">
+<fieldset disabled="{{ro}}" style="border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-5)">
+<section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden"><div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5)"><div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h3 style="margin: 0; font-size: var(--fs-md); font-weight: 600">Identité du cabinet</h3><p style="margin: 0; font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Apparaît sur les courriers, e-mails, SMS et dans les espaces débiteur et créancier.</p></div></div><dc-import name="Reglage" kind="text" label="Raison sociale" description="Nom légal de la société" value="LEGAREC" field-id="f1" hint-size="100%,72px"></dc-import><dc-import name="Reglage" kind="text" label="Nom affiché" description="Utilisé dans les e-mails et l’espace de paiement" value="Legarec – Cabinet de recouvrement" field-id="f2" hint-size="100%,72px"></dc-import><dc-import name="Reglage" kind="text" label="SIREN" description="9 chiffres" value="[SIREN]" field-id="f3" hint-size="100%,72px"></dc-import><dc-import name="Reglage" kind="text" label="Adresse du siège" description="" value="42 rue Monge, 75005 Paris" field-id="f4" hint-size="100%,72px"></dc-import><dc-import name="Reglage" kind="text" label="Téléphone du service" description="Affiché aux débiteurs" value="01 87 88 02 98" field-id="f5" hint-size="100%,72px"></dc-import><dc-import name="Reglage" kind="text" label="Horaires d’ouverture" description="Utilisés pour les appels et la réponse automatique" value="Lundi au vendredi, 9 h – 19 h" field-id="f6" hint-size="100%,72px"></dc-import></section><section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden"><div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5)"><div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h3 style="margin: 0; font-size: var(--fs-md); font-weight: 600">Obligations de l’activité</h3><p style="margin: 0; font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Pièces exigées pour exercer le recouvrement amiable pour le compte d’autrui.</p></div></div><div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--sp-3); padding: 0 var(--sp-5) var(--sp-5)"><div style="border: 1px solid var(--border); border-radius: var(--r-md); padding: var(--sp-3h); display: flex; flex-direction: column; gap: var(--sp-1)"><span style="font-size: var(--fs-base); font-weight: 600">Assurance RC professionnelle</span><span style="font-size: var(--fs-sm); color: var(--text-3)">Attestation 2026 · expire le 31/12/2026</span><span style="font-size: var(--fs-xs); font-weight: 600; color: var(--warning-fg)">À renouveler dans 40 jours</span></div><div style="border: 1px solid var(--border); border-radius: var(--r-md); padding: var(--sp-3h); display: flex; flex-direction: column; gap: var(--sp-1)"><span style="font-size: var(--fs-base); font-weight: 600">Compte dédié aux fonds encaissés</span><span style="font-size: var(--fs-sm); color: var(--text-3)">IBAN FR76 •••• •••• 4821</span><span style="font-size: var(--fs-xs); font-weight: 600; color: var(--success-fg)">Vérifié</span></div><div style="border: 1px solid var(--border); border-radius: var(--r-md); padding: var(--sp-3h); display: flex; flex-direction: column; gap: var(--sp-1)"><span style="font-size: var(--fs-base); font-weight: 600">Déclaration au procureur</span><span style="font-size: var(--fs-sm); color: var(--text-3)">Justificatif déposé le 14/01/2024</span><span style="font-size: var(--fs-xs); font-weight: 600; color: var(--success-fg)">À jour</span></div></div></section>
+</fieldset>
+</sc-if>
+<sc-if value="{{is.users}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: var(--sp-5)">
+
+<section aria-label="Synthèse des comptes" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--sp-3)">
+<sc-for list="{{uStats}}" as="k" hint-placeholder-count="4">
+<div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-3h) var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-size: var(--fs-xs); color: var(--text-3)">{{k.label}}</span><span style="font-size: var(--fs-xl); font-weight: 700; font-variant-numeric: tabular-nums; color: {{k.color}}">{{k.value}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{k.hint}}</span></div>
+</sc-for>
+</section>
+
+<sc-if value="{{cantManage}}" hint-placeholder-val="{{ true }}">
+<div role="note" style="display: flex; gap: var(--sp-2h); align-items: flex-start; background: var(--surface-3); border: 1px solid var(--border); border-radius: var(--r-md); padding: var(--sp-3) var(--sp-3h); font-size: var(--fs-sm); color: var(--text-2); line-height: 1.5"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" style="stroke: var(--text-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: var(--sp-0h)"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16v-4M12 8h.01"></path></svg><span>En tant que Responsable du recouvrement, vous pouvez consulter les comptes et modifier le périmètre des gestionnaires. Créer, changer de rôle ou désactiver un compte est réservé aux rôles Dirigeant et Développeur.</span></div>
+</sc-if>
+
+<sc-if value="{{inviteOpen}}" hint-placeholder-val="{{ false }}">
+<section aria-labelledby="inv-titre" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5); border-bottom: 1px solid var(--surface-3)"><div style="display: flex; flex-direction: column; gap: var(--sp-0h)"><h3 id="inv-titre" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Créer un compte</h3><span style="font-size: var(--fs-sm); color: var(--text-3)">La personne reçoit un e-mail (envoyé par Resend) pour choisir son mot de passe. Le lien est valable 72 heures.</span></div><dc-import name="Bouton" variant="ghost" size="sm" icon="x" icon-only="{{ true }}" label="Fermer" on-press="{{closeInvite}}" style="display: contents" hint-size="120px,40px"></dc-import></div>
+<div style="padding: var(--sp-4) var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-4)">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3)">
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500">Prénom et nom<input type="text" value="{{invName}}" onChange="{{onInvName}}" placeholder="Ex. : Nadia Faure" style="height: var(--control-sm); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-2h); font: inherit; font-size: var(--fs-base); color: var(--text); background: var(--surface); box-sizing: border-box; width: 100%"></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500">Adresse e-mail<input type="email" value="{{invMail}}" onChange="{{onInvMail}}" placeholder="initiales@legarec.fr" style="height: var(--control-sm); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-2h); font: inherit; font-size: var(--fs-base); color: var(--text); background: var(--surface); box-sizing: border-box; width: 100%"></label>
+</div>
+<fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-2)">
+<legend style="font-size: var(--fs-sm); font-weight: 500; margin-bottom: var(--sp-2)">Rôle</legend>
+<div role="radiogroup" aria-label="Rôle" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--sp-2)">
+<sc-for list="{{invRoles}}" as="r" hint-placeholder-count="5">
+<button type="button" role="radio" aria-checked="{{r.checked}}" onClick="{{r.pick}}" style="text-align: left; font: inherit; cursor: pointer; border-radius: var(--r-md); padding: var(--sp-2h) var(--sp-3); display: flex; flex-direction: column; gap: var(--sp-0h); background: {{r.bg}}; border: {{r.border}}"><span style="font-size: var(--fs-base); font-weight: 600; color: var(--text)">{{r.label}}</span><span style="font-size: var(--fs-xs); color: var(--text-3); line-height: 1.4">{{r.desc}}</span></button>
+</sc-for>
+</div>
+</fieldset>
+<sc-if value="{{invNeeds2fa}}" hint-placeholder-val="{{ false }}"><div role="note" style="background: var(--warning-bg); border: 1px solid var(--warning-border); border-radius: var(--r-md); padding: var(--sp-2h) var(--sp-3); font-size: var(--fs-sm); color: var(--warning-fg)">La double authentification sera exigée dès la première connexion pour ce rôle.</div></sc-if>
+<div style="display: flex; justify-content: flex-end; gap: var(--sp-2)"><dc-import name="Bouton" variant="secondary" size="sm" label="Annuler" on-press="{{closeInvite}}" style="display: contents" hint-size="120px,40px"></dc-import><dc-import name="Bouton" variant="primary" size="sm" label="Envoyer l'invitation" on-press="{{sendInvite}}" accent="{{accent}}" style="display: contents" hint-size="120px,40px"></dc-import></div>
+</div>
+</section>
+</sc-if>
+
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-5); align-items: flex-start">
+
+<section aria-label="Liste des comptes" style="flex: 999 1 420px; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2h); padding: var(--sp-3) var(--sp-3h); border-bottom: 1px solid var(--border)">
+<div role="tablist" aria-label="Type de compte" style="display: flex; gap: var(--sp-1); background: var(--surface-3); padding: var(--sp-1); border-radius: var(--r-md)">
+<sc-for list="{{uKinds}}" as="t" hint-placeholder-count="3"><button type="button" role="tab" aria-selected="{{t.selected}}" onClick="{{t.pick}}" style="height: var(--control-xs); padding: 0 var(--sp-2h); border: 0; border-radius: var(--r-sm); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer; white-space: nowrap; background: {{t.bg}}; color: {{t.color}}; box-shadow: {{t.shadow}}">{{t.label}} <span style="color: var(--text-3)">{{t.count}}</span></button></sc-for>
+</div>
+<label style="flex: 1 1 160px; display: flex; align-items: center; gap: var(--sp-2); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 0 var(--sp-2h); height: 36px; box-sizing: border-box; color: var(--text-3)"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Rechercher un compte</span><input type="search" value="{{uq}}" onChange="{{onUq}}" placeholder="Nom ou e-mail" style="flex: 1; min-width: 0; border: 0; outline: none; font: inherit; font-size: var(--fs-base); background: transparent; color: var(--text)"></label>
+<button type="button" onClick="{{openInvite}}" disabled="{{cantManage}}" title="{{inviteTip}}" style="height: var(--control-sm); padding: 0 var(--sp-3); border-radius: var(--r-sm); border: 0; font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: {{invCursor}}; background: {{invBg}}; color: {{invFg}}">+ Créer un compte</button>
+</div>
+<sc-if value="{{uEmpty}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; padding: var(--sp-6) var(--sp-4); font-size: var(--fs-base); color: var(--text-3); text-align: center">Aucun compte ne correspond.</p></sc-if>
+<ul style="list-style: none; margin: 0; padding: 0">
+<sc-for list="{{uRows}}" as="u" hint-placeholder-count="7">
+<li style="border-top: 1px solid var(--surface-3)">
+<button type="button" onClick="{{u.pick}}" aria-pressed="{{u.pressed}}" style="width: 100%; text-align: left; border: 0; font: inherit; cursor: pointer; padding: var(--sp-3) var(--sp-3h); display: flex; align-items: center; gap: var(--sp-3); background: {{u.rowBg}}; box-shadow: {{u.bar}}">
+<span style="width: 36px; height: 36px; border-radius: var(--r-full); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: var(--fs-xs); font-weight: 600; background: {{u.avBg}}; color: {{u.avFg}}">{{u.ini}}</span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-size: var(--fs-base); font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{u.name}} <span style="font-weight: 400; color: var(--text-3)">{{u.me}}</span></span><span style="font-size: var(--fs-xs); color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{u.email}}</span></span>
+<span style="font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-0h) var(--sp-2); border-radius: var(--r-full); white-space: nowrap; background: {{u.bg}}; color: {{u.fg}}">{{u.role}}</span>
+<span data-hide-sm title="{{u.tfa}}" style="display: inline-flex; align-items: center; gap: var(--sp-1); font-size: var(--fs-xs); font-weight: 600; white-space: nowrap; color: {{u.tfaColor}}"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>{{u.tfaShort}}</span>
+<span data-hide-sm style="display: inline-flex; align-items: center; gap: var(--sp-1h); font-size: var(--fs-xs); color: var(--text-2); white-space: nowrap; width: 84px"><span style="width: 8px; height: 8px; border-radius: var(--r-full); background: {{u.stDot}}"></span>{{u.status}}</span>
+</button>
+</li>
+</sc-for>
+</ul>
+</section>
+
+<sc-if value="{{hasSel}}" hint-placeholder-val="{{ true }}">
+<aside aria-label="Détail du compte" style="flex: 1 1 300px; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); display: flex; flex-direction: column">
+<div style="display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-4) var(--sp-4) var(--sp-3h)">
+<span style="width: 48px; height: 48px; border-radius: var(--r-full); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: var(--fs-md); font-weight: 600; background: {{sel.avBg}}; color: {{sel.avFg}}">{{sel.ini}}</span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-size: var(--fs-md); font-weight: 600">{{sel.name}}</span><span style="font-size: var(--fs-sm); color: var(--text-3); word-break: break-all">{{sel.email}}</span></span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-1h); padding: 0 var(--sp-4) var(--sp-3h)"><span style="font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-0h) var(--sp-2); border-radius: var(--r-full); background: {{sel.bg}}; color: {{sel.fg}}">{{sel.role}}</span><code style="font-size: var(--fs-xs); color: var(--text-3); padding: var(--sp-1) 0">{{sel.code}}</code><span style="display: inline-flex; align-items: center; gap: var(--sp-1h); font-size: var(--fs-xs); color: var(--text-2); margin-left: auto"><span style="width: 8px; height: 8px; border-radius: var(--r-full); background: {{sel.stDot}}"></span>{{sel.status}}</span></div>
+
+<div style="padding: var(--sp-3h) var(--sp-4); border-top: 1px solid var(--surface-3); display: flex; flex-direction: column; gap: var(--sp-2)">
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500">Rôle
+<select disabled="{{cantManage}}" onChange="{{markDirty}}" style="height: var(--control-sm); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-2h); font: inherit; font-size: var(--fs-base); color: var(--text); background: var(--surface); box-sizing: border-box; width: 100%"><sc-for list="{{sel.roleOpts}}" as="o" hint-placeholder-count="5"><option selected="{{o.selected}}">{{o.label}}</option></sc-for></select></label>
+<span style="font-size: var(--fs-xs); color: var(--text-3); line-height: 1.45">{{sel.mission}}</span>
+</div>
+
+<sc-if value="{{sel.hasScope}}" hint-placeholder-val="{{ true }}">
+<fieldset style="margin: 0; padding: var(--sp-3h) var(--sp-4); border: 0; border-top: 1px solid var(--surface-3); display: flex; flex-direction: column; gap: var(--sp-2)">
+<legend style="float: left; width: 100%; padding: 0; margin-bottom: var(--sp-1); font-size: var(--fs-sm); font-weight: 500">Créanciers suivis <span style="font-weight: 400; color: var(--text-3)">· détermine les dossiers visibles</span></legend>
+<sc-for list="{{sel.scopes}}" as="c" hint-placeholder-count="5">
+<label style="display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-base); color: var(--text-2)"><input type="checkbox" checked="{{c.on}}" onChange="{{c.toggle}}" disabled="{{sel.scopeLocked}}" style="width: 16px; height: 16px; accent-color: var(--marine)">{{c.name}}<span style="margin-left: auto; font-size: var(--fs-xs); color: var(--text-3)">{{c.n}} dossiers</span></label>
+</sc-for>
+</fieldset>
+</sc-if>
+
+<div style="padding: var(--sp-3h) var(--sp-4); border-top: 1px solid var(--surface-3); display: flex; flex-direction: column; gap: var(--sp-2h)">
+<span style="font-size: var(--fs-sm); font-weight: 500">Sécurité</span>
+<dl style="margin: 0; display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm)">
+<div style="display: flex; justify-content: space-between; gap: var(--sp-3)"><dt style="color: var(--text-3)">Double authentification</dt><dd style="margin: 0; font-weight: 600; color: {{sel.tfaColor}}">{{sel.tfa}}</dd></div>
+<div style="display: flex; justify-content: space-between; gap: var(--sp-3)"><dt style="color: var(--text-3)">Dernière connexion</dt><dd style="margin: 0">{{sel.last}}</dd></div>
+<div style="display: flex; justify-content: space-between; gap: var(--sp-3)"><dt style="color: var(--text-3)">Sessions ouvertes</dt><dd style="margin: 0">{{sel.sessions}}</dd></div>
+</dl>
+<sc-if value="{{sel.done}}" hint-placeholder-val="{{ false }}"><div role="status" style="font-size: var(--fs-sm); color: var(--success-fg); background: var(--success-bg); border: 1px solid var(--success-border); border-radius: var(--r-sm); padding: var(--sp-2) var(--sp-2h)">{{sel.doneText}}</div></sc-if>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-2)">
+<dc-import name="Bouton" variant="secondary" size="sm" label="Envoyer un lien de réinitialisation" on-press="{{sel.reset}}" disabled="{{cantManage}}" style="display: contents" hint-size="120px,40px"></dc-import>
+<dc-import name="Bouton" variant="secondary" size="sm" label="Exiger la 2FA" on-press="{{sel.force2fa}}" disabled="{{cantManage}}" style="display: contents" hint-size="120px,40px"></dc-import>
+</div>
+</div>
+
+<div style="padding: var(--sp-3h) var(--sp-4); border-top: 1px solid var(--surface-3); display: flex; flex-direction: column; gap: var(--sp-2)">
+<span style="font-size: var(--fs-sm); font-weight: 500">Activité récente</span>
+<sc-for list="{{sel.activity}}" as="a" hint-placeholder-count="3"><div style="display: flex; justify-content: space-between; gap: var(--sp-2h); font-size: var(--fs-sm)"><span style="color: var(--text-2)">{{a.what}}</span><span style="color: var(--text-3); white-space: nowrap">{{a.when}}</span></div></sc-for>
+<a href="#" onClick="{{goAudit}}" style="font-size: var(--fs-sm); font-weight: 500; text-decoration: none">Voir le journal d'audit →</a>
+</div>
+
+<div style="margin-top: auto; padding: var(--sp-3h) var(--sp-4); border-top: 1px solid var(--surface-3); display: flex; justify-content: space-between; gap: var(--sp-2)">
+<dc-import name="Bouton" variant="danger-outline" size="sm" label="{{sel.activeLabel}}" on-press="{{sel.toggleActive}}" disabled="{{sel.noDeactivate}}" layout="border-color: var(--danger-border)" style="display: contents" hint-size="120px,40px"></dc-import>
+</div>
+</aside>
+</sc-if>
+
+</div>
+</div>
+</sc-if>
+<sc-if value="{{is.roles}}" hint-placeholder-val="{{ false }}">
+<fieldset disabled="{{ro}}" style="border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-5)">
+<section aria-labelledby="perm-titre" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--sp-3); padding: var(--sp-5) var(--sp-6); border-bottom: 1px solid var(--border)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h2 id="perm-titre" style="margin: 0; font-size: var(--fs-lg); font-weight: 600">Rôles et permissions</h2><p style="margin: 0; font-size: var(--fs-base); color: var(--text-3)">{{roleMission}}</p></div>
+<div role="group" aria-label="Rôle à mettre en évidence" style="display: flex; flex-wrap: wrap; gap: var(--sp-1); background: var(--surface-3); padding: var(--sp-1); border-radius: var(--r-md)">
+<sc-for list="{{roles}}" as="r" hint-placeholder-count="4">
+<button type="button" onClick="{{r.pick}}" aria-pressed="{{r.pressed}}" style="height: var(--control-sm); padding: 0 var(--sp-2h); border: 0; border-radius: var(--r-sm); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer; background: {{r.bg}}; color: {{r.color}}; box-shadow: {{r.shadow}}">{{r.short}}</button>
+</sc-for>
+</div>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 760px; border-collapse: collapse; font-size: var(--fs-base)">
+<thead><tr style="background: var(--surface-2)"><th scope="col" style="padding: var(--sp-3) var(--sp-6); text-align: left; font-size: var(--fs-xs); font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.04em">Action</th>
+<sc-for list="{{roles}}" as="r" hint-placeholder-count="4"><th scope="col" style="padding: var(--sp-3) var(--sp-2); text-align: center; font-size: var(--fs-xs); font-weight: 600; width: 130px; background: {{r.colBg}}; color: {{r.colFg}}">{{r.short}}</th></sc-for>
+</tr></thead>
+<tbody>
+<sc-for list="{{perms}}" as="p" hint-placeholder-count="9">
+<tr style="border-top: 1px solid var(--surface-3)">
+<th scope="row" style="padding: var(--sp-3) var(--sp-6); text-align: left; font-weight: 500; color: var(--text)">{{p.label}}</th>
+<sc-for list="{{p.cells}}" as="c" hint-placeholder-count="4">
+<td style="padding: var(--sp-3) var(--sp-2); text-align: center; background: {{c.colBg}}">
+<sc-if value="{{c.yes}}" hint-placeholder-val="{{ true }}"><span style="display: inline-flex; align-items: center; gap: var(--sp-1); font-size: var(--fs-xs); font-weight: 600; color: var(--success-fg)"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>{{c.note}}</span></sc-if>
+<sc-if value="{{c.no}}" hint-placeholder-val="{{ false }}"><span style="display: inline-flex; align-items: center; gap: var(--sp-1); font-size: var(--fs-xs); color: var(--text-3)"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14"></path></svg><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Non</span></span></sc-if>
+</td>
+</sc-for>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+<p style="margin: 0; padding: var(--sp-3) var(--sp-6); border-top: 1px solid var(--surface-3); font-size: var(--fs-sm); color: var(--text-3)">Les créanciers (rôle <code>CREANCIER</code>) se connectent avec le même formulaire et ne voient que leurs propres dossiers, dans l'espace créancier.</p>
+</section>
+</fieldset>
+</sc-if>
+<sc-if value="{{is.scenarios}}" hint-placeholder-val="{{ false }}">
+<fieldset disabled="{{ro}}" style="border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-5)">
+<section aria-labelledby="sc-titre" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-5)">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--sp-3)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h2 id="sc-titre" style="margin: 0; font-size: var(--fs-lg); font-weight: 600">Scénarios de relance</h2><p style="margin: 0; font-size: var(--fs-base); color: var(--text-3)">Les étapes se déclenchent après l'échéance de chaque facture et apparaissent dans le calendrier des relances.</p></div>
+<label style="display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-base); color: var(--text-2)">Scénario
+<select style="height: var(--control-lg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); background: var(--surface); color: var(--text)"><option>Professionnels (B2B) — standard</option><option>Particuliers (B2C)</option><option>Grands comptes</option></select>
+</label>
+</div>
+<ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-2h)">
+<sc-for list="{{steps}}" as="s" hint-placeholder-count="5">
+<li style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3h); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-3) var(--sp-4); background: {{s.bg}}">
+<span style="width: 56px; font-size: var(--fs-base); font-weight: 700; color: {{s.textColor}}">{{s.when}}</span>
+<span style="font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-0h) var(--sp-2); border-radius: var(--r-full); background: {{s.chipBg}}; color: {{s.chipFg}}">{{s.channel}}</span>
+<div style="flex: 1; min-width: 180px; display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-size: var(--fs-base); font-weight: 500; color: {{s.textColor}}">{{s.title}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{s.detail}}</span></div>
+<a href="#" style="font-size: var(--fs-sm); font-weight: 500; text-decoration: none">Modèle</a>
+<button type="button" role="switch" aria-checked="{{s.checked}}" aria-label="Activer cette étape" onClick="{{s.toggle}}" style="width: 44px; height: var(--control-xs); border-radius: var(--r-full); border: 0; padding: var(--sp-1); cursor: pointer; display: flex; background: {{s.track}}; justify-content: {{s.justify}}"><span style="width: 20px; height: 20px; border-radius: var(--r-full); background: var(--surface); box-shadow: var(--shadow-knob)"></span></button>
+</li>
+</sc-for>
+</ol>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-4); padding-top: var(--sp-4); border-top: 1px solid var(--surface-3); font-size: var(--fs-base); color: var(--text-2)">
+<dc-import name="Case" label="Suspendre le scénario si une promesse ou un litige est enregistré" checked="{{ true }}" style="display: contents" hint-size="300px,24px"></dc-import>
+<dc-import name="Case" label="Ne rien envoyer le week-end et les jours fériés" checked="{{ true }}" style="display: contents" hint-size="300px,24px"></dc-import>
+</div>
+</section>
+</fieldset>
+</sc-if>
+<sc-if value="{{is.regles}}" hint-placeholder-val="{{ false }}">
+<fieldset disabled="{{ro}}" style="border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-5)">
+<section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden"><div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5)"><div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h3 style="margin: 0; font-size: var(--fs-md); font-weight: 600">Frais et pénalités</h3><p style="margin: 0; font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Appliqués automatiquement aux créances entre professionnels.</p></div></div><div style="display: flex; flex-wrap: wrap; gap: var(--sp-2h) var(--sp-6); padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--surface-3)"><div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: var(--sp-0h)"><label for="f7" style="font-size: var(--fs-base); font-weight: 500; color: var(--text)">Indemnité forfaitaire</label><span style="font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">40 € par facture impayée (article L441-10 du Code de commerce)</span></div><div style="flex: 1 1 280px; min-width: 0; display: flex; align-items: center; gap: var(--sp-2)"><span id="f7" style="flex: 1; font-size: var(--fs-base); color: var(--text)">40 € par facture</span><dc-import name="Badge" label="Active" tone="success" size="sm" style="display: contents" hint-size="80px,22px"></dc-import></div></div><div style="display: flex; flex-wrap: wrap; gap: var(--sp-2h) var(--sp-6); padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--surface-3)"><div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: var(--sp-0h)"><label for="f8" style="font-size: var(--fs-base); font-weight: 500; color: var(--text)">Intérêts de retard</label><span style="font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Taux appliqué par défaut si le contrat du créancier n’en prévoit pas</span></div><div style="flex: 1 1 280px; min-width: 0; display: flex; align-items: center; gap: var(--sp-2)"><select id="f8" onChange="{{markDirty}}" style="width: 100%; height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); color: var(--text); background: var(--surface); box-sizing: border-box; box-shadow: var(--shadow-sm)"><option>Taux BCE majoré de 10 points</option><option>Taux prévu au contrat du créancier</option><option>Aucun</option></select></div></div></section><section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden"><div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5)"><div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h3 style="margin: 0; font-size: var(--fs-md); font-weight: 600">Validations</h3><p style="margin: 0; font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Actions qui nécessitent l’accord d’un Responsable du recouvrement ou du Dirigeant.</p></div></div><sc-for list="{{ruleToggles}}" as="s" hint-placeholder-count="3"><dc-import name="Reglage" dc-props="{{s.reg}}" hint-size="100%,72px"></dc-import></sc-for><div style="display: flex; flex-wrap: wrap; gap: var(--sp-2h) var(--sp-6); padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--surface-3)"><div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: var(--sp-0h)"><label for="f9" style="font-size: var(--fs-base); font-weight: 500; color: var(--text)">Durée maximale sans validation</label><span style="font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Au-delà, l’échéancier part en validation</span></div><div style="flex: 1 1 280px; min-width: 0; display: flex; align-items: center; gap: var(--sp-2)"><select id="f9" onChange="{{markDirty}}" style="width: 100%; height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); color: var(--text); background: var(--surface); box-sizing: border-box; box-shadow: var(--shadow-sm)"><option>6 mois</option><option>3 mois</option><option>12 mois</option></select></div></div><div style="display: flex; flex-wrap: wrap; gap: var(--sp-2h) var(--sp-6); padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--surface-3)"><div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: var(--sp-0h)"><label for="f10" style="font-size: var(--fs-base); font-weight: 500; color: var(--text)">Délai minimum avant mise en demeure</label><span style="font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Après la première échéance impayée</span></div><div style="flex: 1 1 280px; min-width: 0; display: flex; align-items: center; gap: var(--sp-2)"><select id="f10" onChange="{{markDirty}}" style="width: 100%; height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); color: var(--text); background: var(--surface); box-sizing: border-box; box-shadow: var(--shadow-sm)"><option>60 jours</option><option>45 jours</option><option>90 jours</option></select></div></div></section>
+</fieldset>
+</sc-if>
+<sc-if value="{{is.modeles}}" hint-placeholder-val="{{ false }}">
+<fieldset disabled="{{ro}}" style="border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-5)">
+<section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden"><div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5)"><div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h3 style="margin: 0; font-size: var(--fs-md); font-weight: 600">Modèles de documents</h3><p style="margin: 0; font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Courriers, LRAR, e-mails et SMS de recouvrement, factures, devis et contrats du cabinet. Chaque modification est validée par la Dirigeante avant d’être utilisée.</p></div><dc-import name="Bouton" variant="primary" size="sm" label="+ Nouveau modèle" href="Generer.dc.html" accent="{{accent}}" style="display: contents" hint-size="120px,40px"></dc-import></div><div role="group" aria-label="Catégorie de modèles" style="display: flex; flex-wrap: wrap; gap: var(--sp-1h); padding: 0 var(--sp-5) var(--sp-3h)"><sc-for list="{{tcats}}" as="c" hint-placeholder-count="3"><button type="button" onClick="{{c.pick}}" aria-pressed="{{c.pressed}}" style="height: var(--control-xs); padding: 0 var(--sp-3); border-radius: var(--r-full); border: 1px solid {{c.border}}; background: {{c.bg}}; color: {{c.fg}}; font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer">{{c.label}} <span style="font-variant-numeric: tabular-nums; opacity: 0.75">{{c.count}}</span></button></sc-for></div>
+<ul style="list-style: none; margin: 0; padding: 0">
+<sc-for list="{{templates}}" as="t" hint-placeholder-count="7">
+<li style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); padding: var(--sp-3) var(--sp-5); border-top: 1px solid var(--surface-3)">
+<span style="min-width: 64px; box-sizing: border-box; text-align: center; font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-0h) var(--sp-2); border-radius: var(--r-full); background: {{t.bg}}; color: {{t.fg}}">{{t.channel}}</span>
+<span style="flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-size: var(--fs-base); font-weight: 500">{{t.name}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">Modifié le {{t.date}} · utilisé {{t.uses}} fois ce mois</span></span>
+<dc-import name="Bouton" variant="secondary" size="sm" label="Ouvrir" href="Modele.dc.html" on-press="{{t.open}}" style="display: contents" hint-size="120px,40px"></dc-import>
+</li>
+</sc-for>
+</ul></section>
+</fieldset>
+</sc-if>
+<sc-if value="{{is.telephonie}}" hint-placeholder-val="{{ false }}">
+<fieldset disabled="{{ro}}" style="border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-5)">
+<section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5); border-bottom: 1px solid var(--border)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h3 style="margin: 0; font-size: var(--fs-md); font-weight: 600">Standard téléphonique · 3CX</h3><p style="margin: 0; font-size: var(--fs-sm); color: var(--text-3)">Appels sortants et entrants, enregistrements et statuts des gestionnaires passent par 3CX.</p></div>
+<span style="display: inline-flex; align-items: center; gap: var(--sp-1h); height: 28px; padding: 0 var(--sp-2h); border-radius: var(--r-full); background: var(--success-bg); color: var(--success-fg); font-size: var(--fs-xs); font-weight: 600"><span style="width: 8px; height: 8px; border-radius: var(--r-full); background: var(--success)"></span>Connecté</span>
+</div>
+<dl style="margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1px; background: var(--surface-3)">
+<sc-for list="{{cx.facts}}" as="f" hint-placeholder-count="6"><div style="background: var(--surface); padding: var(--sp-3) var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-0h)"><dt style="font-size: var(--fs-xs); color: var(--text-3)">{{f.k}}</dt><dd style="margin: 0; font-size: var(--fs-base); font-weight: 500; overflow-wrap: anywhere">{{f.v}}</dd></div></sc-for>
+</dl>
+<div style="padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: var(--sp-2h)">
+<h4 style="margin: 0; font-size: var(--fs-sm); font-weight: 600">Postes des utilisateurs</h4>
+<div style="overflow-x: auto"><table style="width: 100%; min-width: 520px; border-collapse: collapse; font-size: var(--fs-sm)">
+<thead><tr style="text-align: left; color: var(--text-3); font-size: var(--fs-xs)"><th scope="col" style="padding: var(--sp-2) 0; font-weight: 600">Utilisateur</th><th scope="col" style="padding: var(--sp-2); font-weight: 600">Poste 3CX</th><th scope="col" style="padding: var(--sp-2); font-weight: 600">Files</th><th scope="col" style="padding: var(--sp-2) 0; font-weight: 600">Statut 3CX</th></tr></thead>
+<tbody><sc-for list="{{cx.exts}}" as="x" hint-placeholder-count="4"><tr style="border-top: 1px solid var(--surface-3)"><td style="padding: var(--sp-2) 0; font-weight: 500">{{x.name}}</td><td style="padding: var(--sp-2); font-variant-numeric: tabular-nums">{{x.ext}}</td><td style="padding: var(--sp-2); color: var(--text-2)">{{x.queues}}</td><td style="padding: var(--sp-2) 0"><span style="display: inline-flex; align-items: center; gap: var(--sp-1h); color: var(--text-2)"><span style="width: 8px; height: 8px; border-radius: var(--r-full); background: {{x.dot}}"></span>{{x.state}}</span></td></tr></sc-for></tbody>
+</table></div>
+</div>
+<div style="padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: var(--sp-2h)">
+<h4 style="margin: 0; font-size: var(--fs-sm); font-weight: 600">Codes de qualification envoyés à 3CX</h4>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-1h)"><sc-for list="{{cx.codes}}" as="c" hint-placeholder-count="8"><span style="font-family: var(--font-mono); font-size: var(--fs-xs); padding: var(--sp-1) var(--sp-2); border-radius: var(--r-xs); background: var(--surface-3); color: var(--text-2)">{{c}}</span></sc-for></div>
+<span style="font-size: var(--fs-xs); color: var(--text-3)">Chaque fiche enregistrée dans Appels renvoie son code à 3CX, qui l'ajoute au rapport d'appels. Le secret de l'API est rangé dans Paramètres › Secrets et clés.</span>
+</div>
+</section>
+<section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden"><div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5)"><div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h3 style="margin: 0; font-size: var(--fs-md); font-weight: 600">Téléphonie</h3><p style="margin: 0; font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Numéros, plages d’appel et options du dialer.</p></div></div><div style="display: flex; flex-wrap: wrap; gap: var(--sp-2h) var(--sp-6); padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--surface-3)"><div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: var(--sp-0h)"><label for="f11" style="font-size: var(--fs-base); font-weight: 500; color: var(--text)">Numéro affiché</label><span style="font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Vu par le débiteur lors des appels sortants</span></div><div style="flex: 1 1 280px; min-width: 0; display: flex; align-items: center; gap: var(--sp-2)"><select id="f11" onChange="{{markDirty}}" style="width: 100%; height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); color: var(--text); background: var(--surface); box-sizing: border-box; box-shadow: var(--shadow-sm)"><option>01 87 88 02 98 (numéro principal 3CX)</option><option>Ligne directe du gestionnaire (poste 3CX)</option></select></div></div><dc-import name="Reglage" kind="text" label="Plages d’appel autorisées" description="Les appels hors plage sont bloqués" value="Lundi au vendredi 9:00–19:00 · samedi 9:00–12:00" field-id="f12" hint-size="100%,72px"></dc-import><sc-for list="{{telToggles}}" as="s" hint-placeholder-count="3"><dc-import name="Reglage" dc-props="{{s.reg}}" hint-size="100%,72px"></dc-import></sc-for></section>
+</fieldset>
+</sc-if>
+<sc-if value="{{is.emails}}" hint-placeholder-val="{{ false }}">
+<fieldset disabled="{{ro}}" style="border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-5)">
+<section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden"><div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5)"><div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h3 style="margin: 0; font-size: var(--fs-md); font-weight: 600">Répartition des envois</h3><p style="margin: 0; font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Les e-mails automatiques partent par Resend. Les e-mails des débiteurs et créanciers arrivent dans la boîte partagée recouvrement@legarec.fr, accessible à tous les utilisateurs ; chacun répond depuis son adresse professionnelle (initiales@legarec.fr, par exemple mo@legarec.fr pour Michel Oliveri ou dm@legarec.fr pour Didier Malherbe), avec une copie classée dans la boîte partagée et dans le dossier.</p></div></div><dc-import name="Tableau" columns="{{mailCols}}" rows="{{mailRows}}" sticky="{{ false }}" bordered="{{ false }}" hint-size="100%,380px"></dc-import></section><section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden"><div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5)"><div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h3 style="margin: 0; font-size: var(--fs-md); font-weight: 600">E-mails transactionnels · Resend</h3><p style="margin: 0; font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Envoi par API, suivi de la distribution et des ouvertures, rattaché automatiquement au dossier.</p></div><a href="https://resend.com" style="height: var(--control-sm); padding: 0 var(--sp-3); border-radius: var(--r-sm); border: 1px solid var(--border); color: var(--text); font-size: var(--fs-sm); font-weight: 500; text-decoration: none; display: inline-flex; align-items: center">Tableau de bord Resend</a></div><div style="display: flex; flex-wrap: wrap; gap: var(--sp-2h) var(--sp-6); padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--surface-3)"><div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: var(--sp-0h)"><label for="f501" style="font-size: var(--fs-base); font-weight: 500; color: var(--text)">Statut</label><span style="font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Clé API de production</span></div><div style="flex: 1 1 280px; min-width: 0; display: flex; align-items: center; gap: var(--sp-2)"><span id="f501" style="flex: 1; font-size: var(--fs-base); color: var(--text)">Connecté · re_••••••••••••3d9f</span><dc-import name="Badge" label="Actif" tone="success" size="sm" style="display: contents" hint-size="80px,22px"></dc-import></div></div><div style="display: flex; flex-wrap: wrap; gap: var(--sp-2h) var(--sp-6); padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--surface-3)"><div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: var(--sp-0h)"><label for="f502" style="font-size: var(--fs-base); font-weight: 500; color: var(--text)">Domaine d’envoi</label><span style="font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Enregistrements SPF et DKIM vérifiés chez Resend</span></div><div style="flex: 1 1 280px; min-width: 0; display: flex; align-items: center; gap: var(--sp-2)"><span id="f502" style="flex: 1; font-size: var(--fs-base); color: var(--text); font-family: var(--font-mono)">mail.legarec.fr</span><dc-import name="Badge" label="Vérifié" tone="success" size="sm" style="display: contents" hint-size="80px,22px"></dc-import></div></div><div style="display: flex; flex-wrap: wrap; gap: var(--sp-2h) var(--sp-6); padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--surface-3)"><div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: var(--sp-0h)"><label for="f503" style="font-size: var(--fs-base); font-weight: 500; color: var(--text)">Expéditeur</label><span style="font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Adresse sans réponse : les débiteurs sont invités à répondre à la boîte du service</span></div><div style="flex: 1 1 280px; min-width: 0; display: flex; align-items: center; gap: var(--sp-2)"><input id="f503" type="text" value="Legarec <no-reply@mail.legarec.fr>" style="width: 100%; height: 40px; border: 1px solid var(--border); border-radius: var(--r-sm); padding: 0 12px; font: inherit; font-size: var(--fs-base); color: var(--text); background: var(--surface); box-sizing: border-box; box-shadow: var(--shadow-sm)"></div></div><dc-import name="Reglage" kind="text" label="Adresse de réponse" description="Les réponses arrivent dans « E-mails » (OVH)" value="recouvrement@legarec.fr" field-id="f504" hint-size="100%,72px"></dc-import><div style="display: flex; flex-wrap: wrap; gap: var(--sp-2h) var(--sp-6); padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--surface-3)"><div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: var(--sp-0h)"><label for="f505" style="font-size: var(--fs-base); font-weight: 500; color: var(--text)">Événements suivis</label><span style="font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Reçus par webhook et affichés dans l’historique du dossier</span></div><div style="flex: 1 1 280px; min-width: 0; display: flex; align-items: center; gap: var(--sp-2)"><span id="f505" style="flex: 1; font-size: var(--fs-base); color: var(--text)">Distribué, ouvert, clic, rebond, plainte</span></div></div><sc-for list="{{resendToggles}}" as="s" hint-placeholder-count="3"><dc-import name="Reglage" dc-props="{{s.reg}}" hint-size="100%,72px"></dc-import></sc-for></section><section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden"><div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5)"><div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h3 style="margin: 0; font-size: var(--fs-md); font-weight: 600">Messagerie de l’équipe · OVH MX Plan</h3><p style="margin: 0; font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Boîtes e-mail du service, en SMTP pour l’envoi et en IMAP pour la réception.</p></div><button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="height: var(--control-sm); padding: 0 var(--sp-3); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer; box-shadow: var(--shadow-sm)">+ Connecter une boîte</button></div><div style="display: flex; flex-wrap: wrap; gap: var(--sp-2h) var(--sp-6); padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--surface-3)"><div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: var(--sp-0h)"><label for="f506" style="font-size: var(--fs-base); font-weight: 500; color: var(--text)">Boîte partagée</label><span style="font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Reçoit les réponses des débiteurs et des créanciers</span></div><div style="flex: 1 1 280px; min-width: 0; display: flex; align-items: center; gap: var(--sp-2)"><span id="f506" style="flex: 1; font-size: var(--fs-base); color: var(--text)">recouvrement@legarec.fr</span><dc-import name="Badge" label="Synchronisée" tone="success" size="sm" style="display: contents" hint-size="80px,22px"></dc-import></div></div><div style="display: flex; flex-wrap: wrap; gap: var(--sp-2h) var(--sp-6); padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--surface-3)"><div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: var(--sp-0h)"><label for="f507" style="font-size: var(--fs-base); font-weight: 500; color: var(--text)">Serveur d’envoi (SMTP)</label><span style="font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Envoi depuis l’adresse de chaque collaborateur</span></div><div style="flex: 1 1 280px; min-width: 0; display: flex; align-items: center; gap: var(--sp-2)"><span id="f507" style="flex: 1; font-size: var(--fs-base); color: var(--text)">ssl0.ovh.net · port 465 · SSL/TLS</span></div></div><div style="display: flex; flex-wrap: wrap; gap: var(--sp-2h) var(--sp-6); padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--surface-3)"><div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: var(--sp-0h)"><label for="f508" style="font-size: var(--fs-base); font-weight: 500; color: var(--text)">Serveur de réception (IMAP)</label><span style="font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Synchronisation toutes les minutes. POP disponible (port 995, SSL/TLS) mais non utilisé</span></div><div style="flex: 1 1 280px; min-width: 0; display: flex; align-items: center; gap: var(--sp-2)"><span id="f508" style="flex: 1; font-size: var(--fs-base); color: var(--text)">ssl0.ovh.net · port 993 · SSL/TLS</span></div></div><div style="padding: var(--sp-3h) var(--sp-5); border-top: 1px solid var(--surface-3); display: flex; flex-direction: column; gap: var(--sp-2h)"><span style="font-size: var(--fs-base); font-weight: 500">Boîtes connectées</span>
+<sc-for list="{{ovhBoxes}}" as="b" hint-placeholder-count="4"><div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2h); font-size: var(--fs-base)"><span style="flex: 1; min-width: 200px">{{b.mail}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{b.user}}</span><span style="display: inline-flex; align-items: center; gap: var(--sp-1h); font-size: var(--fs-xs); font-weight: 600; color: {{b.color}}"><span style="width: 8px; height: 8px; border-radius: var(--r-full); background: {{b.dot}}"></span>{{b.state}}</span></div></sc-for>
+</div></section><div role="note" style="display: flex; gap: var(--sp-2h); background: var(--warning-bg); border: 1px solid var(--warning-border); border-radius: var(--r-md); padding: var(--sp-3) var(--sp-3h); font-size: var(--fs-sm); color: var(--warning-fg); line-height: 1.5"><span><strong>DNS :</strong> Resend envoie depuis le sous-domaine mail.legarec.fr, qui porte ses propres enregistrements SPF, DKIM et MX de retour. Le SPF et le DKIM d’OVH restent sur legarec.fr. Les deux configurations sont indépendantes : ne pas ajouter Resend au SPF de legarec.fr.</span></div>
+</fieldset>
+</sc-if>
+<sc-if value="{{is.sms}}" hint-placeholder-val="{{ false }}">
+<fieldset disabled="{{ro}}" style="border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-5)">
+<section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden"><div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5)"><div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h3 style="margin: 0; font-size: var(--fs-md); font-weight: 600">Envoi des SMS · OVHcloud</h3><p style="margin: 0; font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Les SMS de relance partent par l’API SMS d’OVHcloud. Paramètres communs à tous les envois.</p></div></div><dc-import name="Reglage" kind="value" label="Fournisseur" description="Compte SMS OVHcloud, clé d’API dans Secrets et clés" value="OVHcloud SMS · sms-lg-1" status="Connecté" hint-size="100%,72px"></dc-import><dc-import name="Reglage" kind="text" label="Nom d’expéditeur" description="11 caractères maximum, sans espace, validé par OVHcloud" value="LEGAREC" field-id="f17" hint-size="100%,72px"></dc-import><dc-import name="Reglage" kind="text" label="Numéro de désinscription" description="Mention « STOP » ajoutée à chaque SMS" value="[NUMÉRO STOP]" field-id="f18" hint-size="100%,72px"></dc-import><dc-import name="Reglage" kind="text" label="Plages d’envoi" description="Aucun envoi les dimanches et jours fériés" value="Lundi au samedi, 9 h – 19 h" field-id="f19" hint-size="100%,72px"></dc-import><div style="display: flex; flex-wrap: wrap; gap: var(--sp-2h) var(--sp-6); padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--surface-3)"><div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: var(--sp-0h)"><label for="f20" style="font-size: var(--fs-base); font-weight: 500; color: var(--text)">Crédits disponibles</label><span style="font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Rechargement automatique sous 2 000 crédits</span></div><div style="flex: 1 1 280px; min-width: 0; display: flex; align-items: center; gap: var(--sp-2)"><span id="f20" style="flex: 1; font-size: var(--fs-base); color: var(--text)">18 420 SMS</span></div></div><sc-for list="{{smsToggles}}" as="s" hint-placeholder-count="3"><dc-import name="Reglage" dc-props="{{s.reg}}" hint-size="100%,72px"></dc-import></sc-for></section>
+</fieldset>
+</sc-if>
+<sc-if value="{{is.paiements}}" hint-placeholder-val="{{ false }}">
+<fieldset disabled="{{ro}}" style="border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-5)">
+<section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden"><div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5)"><div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h3 style="margin: 0; font-size: var(--fs-md); font-weight: 600">Prestataire de paiement</h3><p style="margin: 0; font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Les paiements des débiteurs passent par un prestataire certifié PCI-DSS : aucune donnée de carte n’est stockée par Legarec.</p></div></div><div style="display: flex; flex-wrap: wrap; gap: var(--sp-2h) var(--sp-6); padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--surface-3)"><div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: var(--sp-0h)"><label for="f21" style="font-size: var(--fs-base); font-weight: 500; color: var(--text)">Compte prestataire</label><span style="font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Mode production</span></div><div style="flex: 1 1 280px; min-width: 0; display: flex; align-items: center; gap: var(--sp-2)"><span id="f21" style="flex: 1; font-size: var(--fs-base); color: var(--text)">Connecté · compte vérifié</span><dc-import name="Badge" label="Actif" tone="success" size="sm" style="display: contents" hint-size="80px,22px"></dc-import></div></div><sc-for list="{{payToggles}}" as="s" hint-placeholder-count="3"><dc-import name="Reglage" dc-props="{{s.reg}}" hint-size="100%,72px"></dc-import></sc-for><div style="display: flex; flex-wrap: wrap; gap: var(--sp-2h) var(--sp-6); padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--surface-3)"><div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: var(--sp-0h)"><label for="f22" style="font-size: var(--fs-base); font-weight: 500; color: var(--text)">Validité du lien de paiement</label><span style="font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Le gestionnaire peut générer un nouveau lien</span></div><div style="flex: 1 1 280px; min-width: 0; display: flex; align-items: center; gap: var(--sp-2)"><select id="f22" onChange="{{markDirty}}" style="width: 100%; height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); color: var(--text); background: var(--surface); box-sizing: border-box; box-shadow: var(--shadow-sm)"><option>Jusqu’au solde du dossier</option><option>90 jours</option><option>30 jours</option></select></div></div></section>
+</fieldset>
+</sc-if>
+<sc-if value="{{is.reversements}}" hint-placeholder-val="{{ false }}">
+<fieldset disabled="{{ro}}" style="border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-5)">
+<section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden"><div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5)"><div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h3 style="margin: 0; font-size: var(--fs-md); font-weight: 600">Reversements aux créanciers</h3><p style="margin: 0; font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Calcul des sommes encaissées, des commissions et des virements.</p></div></div><div style="display: flex; flex-wrap: wrap; gap: var(--sp-2h) var(--sp-6); padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--surface-3)"><div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: var(--sp-0h)"><label for="f23" style="font-size: var(--fs-base); font-weight: 500; color: var(--text)">Fréquence</label><span style="font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45"></span></div><div style="flex: 1 1 280px; min-width: 0; display: flex; align-items: center; gap: var(--sp-2)"><select id="f23" onChange="{{markDirty}}" style="width: 100%; height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); color: var(--text); background: var(--surface); box-sizing: border-box; box-shadow: var(--shadow-sm)"><option>Mensuelle, le 15</option><option>Bimensuelle, le 1er et le 15</option><option>Hebdomadaire, le lundi</option></select></div></div><dc-import name="Reglage" kind="text" label="Commission par défaut" description="Peut être modifiée dans la fiche de chaque créancier" value="8 % HT des sommes recouvrées" field-id="f24" hint-size="100%,72px"></dc-import><dc-import name="Reglage" kind="text" label="Seuil minimum" description="En dessous, le montant est reporté au reversement suivant" value="100 €" field-id="f25" hint-size="100%,72px"></dc-import><sc-for list="{{payoutToggles}}" as="s" hint-placeholder-count="3"><dc-import name="Reglage" dc-props="{{s.reg}}" hint-size="100%,72px"></dc-import></sc-for></section>
+</fieldset>
+</sc-if>
+<sc-if value="{{is.ia}}" hint-placeholder-val="{{ false }}">
+<fieldset disabled="{{ro}}" style="border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-5)">
+<section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden"><div style="display: flex; flex-direction: column; gap: var(--sp-1); padding: var(--sp-4) var(--sp-5)"><h3 style="margin: 0; font-size: var(--fs-md); font-weight: 600">Fonctions</h3><p style="margin: 0; font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Chaque fonction s’active séparément. Les suggestions sont toujours marquées « Proposé par l’IA » et ne sont appliquées qu’après validation d’un collaborateur.</p></div><sc-for list="{{iaToggles}}" as="s" hint-placeholder-count="6"><dc-import name="Reglage" dc-props="{{s.reg}}" hint-size="100%,72px"></dc-import></sc-for></section>
+<section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden"><div style="display: flex; flex-direction: column; gap: var(--sp-1); padding: var(--sp-4) var(--sp-5)"><h3 style="margin: 0; font-size: var(--fs-md); font-weight: 600">Garde-fous</h3><p style="margin: 0; font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Règles fixes, non désactivables. Textes et périmètre à valider avec votre juriste et votre DPO.</p></div><sc-for list="{{iaGuards}}" as="s" hint-placeholder-count="5"><dc-import name="Reglage" dc-props="{{s.reg}}" hint-size="100%,72px"></dc-import></sc-for></section>
+<section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden"><div style="display: flex; flex-direction: column; gap: var(--sp-1); padding: var(--sp-4) var(--sp-5)"><h3 style="margin: 0; font-size: var(--fs-md); font-weight: 600">Fournisseur et budget</h3><p style="margin: 0; font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Claude (Anthropic). Contrat de sous-traitance (DPA) à signer avant la mise en service.</p></div>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-2h) var(--sp-6); padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--surface-3)"><div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-size: var(--fs-base); font-weight: 500; color: var(--text)">Modèles</span><span style="font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Un modèle rapide et économique pour le tri et l’extraction, un modèle avancé pour les synthèses et les brouillons.</span></div><div style="flex: 1 1 280px; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-1h)"><span style="font-size: var(--fs-base)">Rapide : tri, extraction · Avancé : résumés, synthèses, brouillons</span></div></div>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-2h) var(--sp-6); padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--surface-3)"><div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-size: var(--fs-base); font-weight: 500; color: var(--text)">Hébergement des traitements</span><span style="font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Où les données envoyées à l’IA sont traitées.</span></div><div style="flex: 1 1 280px; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-1h)"><select onChange="{{markDirty}}" style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); background: var(--surface); color: var(--text); max-width: 360px"><option>À choisir</option><option>API Anthropic</option><option>AWS Bedrock · région Europe</option><option>Google Vertex AI · région Europe</option></select></div></div>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-2h) var(--sp-6); padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--surface-3)"><div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-size: var(--fs-base); font-weight: 500; color: var(--text)">Budget mensuel</span><span style="font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Au-delà, les fonctions passent en pause jusqu’au mois suivant ; alerte à 80 %.</span></div><div style="flex: 1 1 280px; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-1h)"><input type="text" inputmode="decimal" value="150 €" onInput="{{markDirty}}" style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); background: var(--surface); color: var(--text); max-width: 360px; width: 140px"><dc-import name="Progression" value="26" tone="info" size="md" show-value="{{ true }}" label="38,40 € consommés ce mois" layout="max-width: 360px" style="display: contents" hint-size="100%,32px"></dc-import><span style="font-size: var(--fs-sm); color: var(--text-2)">38,40 € consommés ce mois sur 150 € · alerte envoyée à la Dirigeante à 120 €</span></div></div>
+</section>
+<section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden"><div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5)"><div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h3 style="margin: 0; font-size: var(--fs-md); font-weight: 600">Journal de l’IA</h3><p style="margin: 0; font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Chaque suggestion est conservée avec la décision prise. 30 derniers jours : 82 % acceptées telles quelles, 13 % modifiées, 5 % ignorées, 3 signalements.</p></div><dc-import name="Bouton" variant="secondary" size="sm" icon="download" label="Exporter" style="display: contents" hint-size="100px,32px"></dc-import></div>
+<dc-import name="Tableau" columns="{{iaLogCols}}" rows="{{iaLogRows}}" sticky="{{ false }}" style="display: contents" hint-size="100%,240px"></dc-import></section>
+</fieldset>
+</sc-if>
+<sc-if value="{{is.integrations}}" hint-placeholder-val="{{ false }}">
+<fieldset disabled="{{ro}}" style="border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-5)">
+<section aria-labelledby="int-titre" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-4)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h2 id="int-titre" style="margin: 0; font-size: var(--fs-lg); font-weight: 600">Intégrations</h2><p style="margin: 0; font-size: var(--fs-base); color: var(--text-3)">Connectez les outils qui alimentent les factures et les paiements.</p></div>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--sp-3)">
+<sc-for list="{{integrations}}" as="i" hint-placeholder-count="6">
+<div style="border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-2h)">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: var(--sp-2)"><span style="font-size: var(--fs-base); font-weight: 600">{{i.title}}</span><span style="font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-0h) var(--sp-2); border-radius: var(--r-full); background: {{i.bg}}; color: {{i.fg}}">{{i.status}}</span></div>
+<span style="font-size: var(--fs-sm); color: var(--text-3)">{{i.detail}}</span>
+<button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="align-self: flex-start; height: var(--control-sm); padding: 0 var(--sp-3); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer">{{i.cta}}</button>
+</div>
+</sc-for>
+</div>
+</section>
+<section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden"><div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5)"><div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h3 style="margin: 0; font-size: var(--fs-md); font-weight: 600">Accès API</h3><p style="margin: 0; font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Pour connecter le logiciel comptable d’un créancier ou un outil interne.</p></div></div><div style="display: flex; flex-wrap: wrap; gap: var(--sp-2h) var(--sp-6); padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--surface-3)"><div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-size: var(--fs-base); font-weight: 500; color: var(--text)">Adresse de l’API</span><span style="font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Back-end utilisé par l’application, l’espace créancier et les intégrations</span></div><div style="flex: 1 1 280px; min-width: 0; display: flex; align-items: center; gap: var(--sp-2)"><code style="flex: 1; font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--text)">https://api.legarec.fr</code></div></div><div style="display: flex; flex-wrap: wrap; gap: var(--sp-2h) var(--sp-6); padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--surface-3)"><div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: var(--sp-0h)"><label for="f26" style="font-size: var(--fs-base); font-weight: 500; color: var(--text)">Clé API de production</label><span style="font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Créée le 03/03/2026 par Julien Martin</span></div><div style="flex: 1 1 280px; min-width: 0; display: flex; align-items: center; gap: var(--sp-2)"><span id="f26" style="flex: 1; font-size: var(--fs-base); color: var(--text)">lgr_live_••••••••••••••7f2a</span></div></div><div style="display: flex; flex-wrap: wrap; gap: var(--sp-2h) var(--sp-6); padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--surface-3)"><div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: var(--sp-0h)"><label for="f27" style="font-size: var(--fs-base); font-weight: 500; color: var(--text)">Webhooks</label><span style="font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Paiement reçu, statut de dossier modifié</span></div><div style="flex: 1 1 280px; min-width: 0; display: flex; align-items: center; gap: var(--sp-2)"><span id="f27" style="flex: 1; font-size: var(--fs-base); color: var(--text)">2 points de terminaison actifs</span></div></div></section>
+<section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden"><div style="display: flex; flex-direction: column; gap: var(--sp-1); padding: var(--sp-4) var(--sp-5)"><h3 style="margin: 0; font-size: var(--fs-md); font-weight: 600">Domaines et sous-domaines</h3><p style="margin: 0; font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Sous-domaines confirmés et leur destination.</p></div><div data-table-scroll style="overflow-x: auto"><table style="width: 100%; min-width: 720px; border-collapse: collapse; font-size: var(--fs-base)"><thead style="background: var(--surface-2)"><tr style="text-align: left; color: var(--text-3); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.04em"><th scope="col" style="padding: var(--sp-3) var(--sp-5); font-weight: 600">Adresse</th><th scope="col" style="padding: var(--sp-3) var(--sp-2); font-weight: 600">Usage</th><th scope="col" style="padding: var(--sp-3) var(--sp-2); font-weight: 600">Dirige vers</th><th scope="col" style="padding: var(--sp-3) var(--sp-5); font-weight: 600">État</th></tr></thead><tbody><tr style="border-top: 1px solid var(--surface-3)"><td style="padding: var(--sp-3) var(--sp-5); font-family: var(--font-mono); font-size: var(--fs-sm); white-space: nowrap">legarec.fr</td><td style="padding: var(--sp-3) var(--sp-2); color: var(--text-2)">Domaine principal : site du cabinet, adresses e-mail OVH</td><td style="padding: var(--sp-3) var(--sp-2); color: var(--text-2)">Site public (hors application)</td><td style="padding: var(--sp-3) var(--sp-5)"><span style="font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-0h) var(--sp-2); border-radius: var(--r-full); white-space: nowrap; background: var(--success-bg); color: var(--success-fg)">Confirmé</span></td></tr><tr style="border-top: 1px solid var(--surface-3)"><td style="padding: var(--sp-3) var(--sp-5); font-family: var(--font-mono); font-size: var(--fs-sm); white-space: nowrap">espace.legarec.fr</td><td style="padding: var(--sp-3) var(--sp-2); color: var(--text-2)">Portail interne : employés Legarec (appels, SMS, e-mails, agenda, suivi des relances, historique des fichiers)</td><td style="padding: var(--sp-3) var(--sp-2); color: var(--text-2)">Application, accès équipe</td><td style="padding: var(--sp-3) var(--sp-5)"><span style="font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-0h) var(--sp-2); border-radius: var(--r-full); white-space: nowrap; background: var(--success-bg); color: var(--success-fg)">Confirmé</span></td></tr><tr style="border-top: 1px solid var(--surface-3)"><td style="padding: var(--sp-3) var(--sp-5); font-family: var(--font-mono); font-size: var(--fs-sm); white-space: nowrap">partenaires.legarec.fr</td><td style="padding: var(--sp-3) var(--sp-2); color: var(--text-2)">Portail créanciers : suivi de l’avancement, transmission des pièces</td><td style="padding: var(--sp-3) var(--sp-2); color: var(--text-2)">Application, espace créancier</td><td style="padding: var(--sp-3) var(--sp-5)"><span style="font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-0h) var(--sp-2); border-radius: var(--r-full); white-space: nowrap; background: var(--success-bg); color: var(--success-fg)">Confirmé</span></td></tr><tr style="border-top: 1px solid var(--surface-3)"><td style="padding: var(--sp-3) var(--sp-5); font-family: var(--font-mono); font-size: var(--fs-sm); white-space: nowrap">paiement.legarec.fr</td><td style="padding: var(--sp-3) var(--sp-2); color: var(--text-2)">Portail débiteurs : paiement, RIB, échéancier (liens des courriers et SMS)</td><td style="padding: var(--sp-3) var(--sp-2); color: var(--text-2)">Application, espace de paiement</td><td style="padding: var(--sp-3) var(--sp-5)"><span style="font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-0h) var(--sp-2); border-radius: var(--r-full); white-space: nowrap; background: var(--success-bg); color: var(--success-fg)">Confirmé</span></td></tr><tr style="border-top: 1px solid var(--surface-3)"><td style="padding: var(--sp-3) var(--sp-5); font-family: var(--font-mono); font-size: var(--fs-sm); white-space: nowrap">api.legarec.fr</td><td style="padding: var(--sp-3) var(--sp-2); color: var(--text-2)">API back-end : données, webhooks, API créanciers</td><td style="padding: var(--sp-3) var(--sp-2); color: var(--text-2)">Serveur back-end</td><td style="padding: var(--sp-3) var(--sp-5)"><span style="font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-0h) var(--sp-2); border-radius: var(--r-full); white-space: nowrap; background: var(--success-bg); color: var(--success-fg)">Confirmé</span></td></tr><tr style="border-top: 1px solid var(--surface-3)"><td style="padding: var(--sp-3) var(--sp-5); font-family: var(--font-mono); font-size: var(--fs-sm); white-space: nowrap">legarec.on3cx.fr</td><td style="padding: var(--sp-3) var(--sp-2); color: var(--text-2)">Standard téléphonique</td><td style="padding: var(--sp-3) var(--sp-2); color: var(--text-2)">3CX (hébergé par 3CX)</td><td style="padding: var(--sp-3) var(--sp-5)"><span style="font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-0h) var(--sp-2); border-radius: var(--r-full); white-space: nowrap; background: var(--success-bg); color: var(--success-fg)">Confirmé</span></td></tr><tr style="border-top: 1px solid var(--surface-3)"><td style="padding: var(--sp-3) var(--sp-5); font-family: var(--font-mono); font-size: var(--fs-sm); white-space: nowrap">media.legarec.fr</td><td style="padding: var(--sp-3) var(--sp-2); color: var(--text-2)">Logos du kit média</td><td style="padding: var(--sp-3) var(--sp-2); color: var(--text-2)">Stockage de fichiers statiques</td><td style="padding: var(--sp-3) var(--sp-5)"><span style="font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-0h) var(--sp-2); border-radius: var(--r-full); white-space: nowrap; background: var(--success-bg); color: var(--success-fg)">Confirmé</span></td></tr><tr style="border-top: 1px solid var(--surface-3)"><td style="padding: var(--sp-3) var(--sp-5); font-family: var(--font-mono); font-size: var(--fs-sm); white-space: nowrap">mail.legarec.fr</td><td style="padding: var(--sp-3) var(--sp-2); color: var(--text-2)">Envoi des e-mails automatiques (expéditeur no-reply@mail.legarec.fr)</td><td style="padding: var(--sp-3) var(--sp-2); color: var(--text-2)">Resend</td><td style="padding: var(--sp-3) var(--sp-5)"><span style="font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-0h) var(--sp-2); border-radius: var(--r-full); white-space: nowrap; background: var(--success-bg); color: var(--success-fg)">Confirmé</span></td></tr></tbody></table></div></section>
+</fieldset>
+</sc-if>
+<sc-if value="{{is.securite}}" hint-placeholder-val="{{ false }}">
+<fieldset disabled="{{ro}}" style="border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-5)">
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--sp-3)">
+<div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-1)"><span style="font-size: var(--fs-xs); color: var(--text-3)">Mots de passe</span><span style="font-size: var(--fs-md); font-weight: 600">12 caractères minimum</span><span style="font-size: var(--fs-xs); color: var(--text-3)">Stockés uniquement hachés (Argon2)</span></div>
+<div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-1)"><span style="font-size: var(--fs-xs); color: var(--text-3)">Réinitialisation</span><span style="font-size: var(--fs-md); font-weight: 600">Lien valable 1 heure</span><span style="font-size: var(--fs-xs); color: var(--text-3)">Envoyé par e-mail, usage unique</span></div>
+<div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-1)"><span style="font-size: var(--fs-xs); color: var(--text-3)">Double authentification</span><span style="font-size: var(--fs-md); font-weight: 600">7 comptes sur 8</span><span style="font-size: var(--fs-xs); color: var(--warning-fg)">Hugo Benali ne l’a pas activée</span></div>
+</div>
+<section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden"><div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5)"><div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h3 style="margin: 0; font-size: var(--fs-md); font-weight: 600">Règles d’accès</h3><p style="margin: 0; font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Appliquées à tous les comptes, créanciers compris.</p></div></div><sc-for list="{{secToggles}}" as="s" hint-placeholder-count="3"><dc-import name="Reglage" dc-props="{{s.reg}}" hint-size="100%,72px"></dc-import></sc-for></section>
+</fieldset>
+</sc-if>
+<sc-if value="{{is.audit}}" hint-placeholder-val="{{ false }}">
+<fieldset disabled="{{ro}}" style="border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-5)">
+<section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden"><div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5)"><div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h3 style="margin: 0; font-size: var(--fs-md); font-weight: 600">Journal d’audit</h3><p style="margin: 0; font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Chaque connexion et chaque action sensible est enregistrée : utilisateur, action, date, adresse IP.</p></div><button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="height: var(--control-sm); padding: 0 var(--sp-3); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer; box-shadow: var(--shadow-sm)">Exporter (CSV)</button></div><div style="display: flex; flex-wrap: wrap; gap: var(--sp-2h); padding: 0 var(--sp-5) var(--sp-3h)">
+<select aria-label="Filtrer par utilisateur" style="height: var(--control-sm); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-2h); font: inherit; font-size: var(--fs-sm); background: var(--surface)"><option>Tous les utilisateurs</option><option>Camille Laurent</option><option>Marie Dubreuil</option><option>Thomas Giraud</option></select>
+<select aria-label="Filtrer par type" style="height: var(--control-sm); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-2h); font: inherit; font-size: var(--fs-sm); background: var(--surface)"><option>Toutes les actions</option><option>Connexions</option><option>Validations</option><option>Exports</option><option>Comptes</option></select>
+</div>
+<div style="overflow-x: auto"><table style="width: 100%; min-width: 680px; border-collapse: collapse; font-size: var(--fs-sm)">
+<thead style="background: var(--surface-2)"><tr style="text-align: left; color: var(--text-3); font-size: var(--fs-xs)"><th scope="col" style="padding: var(--sp-2h) var(--sp-5); font-weight: 600">Date</th><th scope="col" style="padding: var(--sp-2h) var(--sp-2); font-weight: 600">Utilisateur</th><th scope="col" style="padding: var(--sp-2h) var(--sp-2); font-weight: 600">Action</th><th scope="col" style="padding: var(--sp-2h) var(--sp-5); font-weight: 600">Adresse IP</th></tr></thead>
+<tbody><sc-for list="{{audit}}" as="a" hint-placeholder-count="7"><tr style="border-top: 1px solid var(--surface-3)"><td style="padding: var(--sp-2h) var(--sp-5); color: var(--text-2); white-space: nowrap">{{a.date}}</td><td style="padding: var(--sp-2h) var(--sp-2); font-weight: 500">{{a.who}}</td><td style="padding: var(--sp-2h) var(--sp-2)"><span style="display: inline-flex; align-items: center; gap: var(--sp-2)"><span style="width: 8px; height: 8px; border-radius: var(--r-full); background: {{a.dot}}"></span>{{a.what}}</span></td><td style="padding: var(--sp-2h) var(--sp-5); color: var(--text-3); font-variant-numeric: tabular-nums">{{a.ip}}</td></tr></sc-for></tbody>
+</table></div></section>
+</fieldset>
+</sc-if>
+<sc-if value="{{is.rgpd}}" hint-placeholder-val="{{ false }}">
+<fieldset disabled="{{ro}}" style="border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-5)">
+<section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden"><div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5)"><div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h3 style="margin: 0; font-size: var(--fs-md); font-weight: 600">Durées de conservation</h3><p style="margin: 0; font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">À valider avec votre délégué à la protection des données (DPO).</p></div></div><dc-import name="Reglage" kind="text" label="Dossiers soldés" description="Données du débiteur et historique" value="[DURÉE À VALIDER]" field-id="f28" hint-size="100%,72px"></dc-import><dc-import name="Reglage" kind="text" label="Dossiers irrécouvrables" description="" value="[DURÉE À VALIDER]" field-id="f29" hint-size="100%,72px"></dc-import><dc-import name="Reglage" kind="text" label="Enregistrements d’appels" description="" value="[DURÉE À VALIDER]" field-id="f30" hint-size="100%,72px"></dc-import><dc-import name="Reglage" kind="text" label="Journal d’audit" description="" value="[DURÉE À VALIDER]" field-id="f31" hint-size="100%,72px"></dc-import></section><section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden"><div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5)"><div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h3 style="margin: 0; font-size: var(--fs-md); font-weight: 600">Droits des personnes</h3><p style="margin: 0; font-size: var(--fs-sm); color: var(--text-3); line-height: 1.45">Demandes d’accès, de rectification ou d’effacement reçues des débiteurs.</p></div></div><sc-for list="{{rgpdToggles}}" as="s" hint-placeholder-count="3"><dc-import name="Reglage" dc-props="{{s.reg}}" hint-size="100%,72px"></dc-import></sc-for><div style="display: flex; flex-wrap: wrap; gap: var(--sp-2); padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--surface-3)"><button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="height: var(--control-sm); padding: 0 var(--sp-3); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer; box-shadow: var(--shadow-sm)">Demandes en cours (2)</button><button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="height: var(--control-sm); padding: 0 var(--sp-3); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer; box-shadow: var(--shadow-sm)">Exporter les données d’un débiteur</button><button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="height: var(--control-sm); padding: 0 var(--sp-3); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer; box-shadow: var(--shadow-sm); color: var(--danger-fg); border-color: var(--danger-border)">Anonymiser les dossiers expirés</button></div></section>
+</fieldset>
+</sc-if>
+<sc-if value="{{is.secrets}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: var(--sp-5)">
+<div style="display: flex; gap: var(--sp-3); padding: var(--sp-3h) var(--sp-4); border-radius: var(--r-lg); background: var(--bleu-pale); border: 1px solid var(--bleu-200); font-size: var(--fs-sm); line-height: 1.5; color: var(--marine)"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg><span>Les secrets sont chiffrés dans un coffre dédié, jamais dans le code ni dans les e-mails. Afficher une valeur redemande votre code de double authentification et laisse une trace dans le journal d'audit. {{secretsRoleNote}}</span></div>
+
+<section aria-labelledby="sec-liste" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5); border-bottom: 1px solid var(--border)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-0h)"><h3 id="sec-liste" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Secrets enregistrés</h3><span style="font-size: var(--fs-sm); color: var(--text-3)">{{secretsSummary}}</span></div>
+<button type="button" onClick="{{toggleNewSecret}}" disabled="{{ro}}" style="height: var(--control-sm); padding: 0 var(--sp-3); border-radius: var(--r-sm); border: 0; background: {{accent}}; color: var(--on-primary); font: inherit; font-size: var(--fs-sm); font-weight: 600; cursor: pointer; opacity: {{roOpacity}}">+ Ajouter un secret</button>
+</div>
+<sc-if value="{{newSecret}}" hint-placeholder-val="{{ false }}">
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--sp-3); padding: var(--sp-4) var(--sp-5); background: var(--surface-2); border-bottom: 1px solid var(--border)">
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Nom<input type="text" placeholder="EX_NOM_DU_SECRET" style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); font-family: var(--font-mono); box-sizing: border-box; min-width: 0"></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Service<input type="text" placeholder="Ex. : Resend" style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); box-sizing: border-box; min-width: 0"></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Valeur<input type="password" autocomplete="off" style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); box-sizing: border-box; min-width: 0"></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Rotation<select style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-2h); font: inherit; font-size: var(--fs-base); background: var(--surface)"><option>Tous les 90 jours</option><option>Tous les 30 jours</option><option>Manuelle</option></select></label>
+<div style="grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: var(--sp-2)"><dc-import name="Bouton" variant="secondary" size="sm" label="Annuler" on-press="{{toggleNewSecret}}" style="display: contents" hint-size="120px,40px"></dc-import><dc-import name="Bouton" variant="primary" size="sm" label="Enregistrer dans le coffre" on-press="{{toggleNewSecret}}" accent="{{accent}}" style="display: contents" hint-size="120px,40px"></dc-import></div>
+</div>
+</sc-if>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 880px; border-collapse: collapse; font-size: var(--fs-sm)">
+<thead style="background: var(--surface-2)"><tr style="text-align: left; color: var(--text-3); font-size: var(--fs-xs)"><th scope="col" style="padding: var(--sp-2h) var(--sp-5); font-weight: 600">Secret</th><th scope="col" style="padding: var(--sp-2h) var(--sp-2); font-weight: 600">Valeur</th><th scope="col" style="padding: var(--sp-2h) var(--sp-2); font-weight: 600">Dernière rotation</th><th scope="col" style="padding: var(--sp-2h) var(--sp-2); font-weight: 600">État</th><th scope="col" style="padding: var(--sp-2h) var(--sp-5); font-weight: 600; text-align: right">Actions</th></tr></thead>
+<tbody>
+<sc-for list="{{secrets}}" as="k" hint-placeholder-count="6">
+<tr style="border-top: 1px solid var(--surface-3)">
+<td style="padding: var(--sp-3) var(--sp-5)"><div style="display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-family: var(--font-mono); font-size: var(--fs-sm); font-weight: 600">{{k.name}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{k.service}} · {{k.env}} · utilisé {{k.used}}</span></div></td>
+<td style="padding: var(--sp-3) var(--sp-2)"><span style="font-family: var(--font-mono); font-size: var(--fs-xs); padding: var(--sp-1) var(--sp-2); border-radius: var(--r-xs); background: var(--surface-3); color: var(--text-2); white-space: nowrap">{{k.shown}}</span></td>
+<td style="padding: var(--sp-3) var(--sp-2); color: var(--text-2); white-space: nowrap">{{k.rotated}}</td>
+<td style="padding: var(--sp-3) var(--sp-2)"><span style="font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-1) var(--sp-2h); border-radius: var(--r-full); white-space: nowrap; background: {{k.stBg}}; color: {{k.stFg}}">{{k.status}}</span></td>
+<td style="padding: var(--sp-3) var(--sp-5)"><div style="display: flex; justify-content: flex-end; gap: var(--sp-1h)">
+<button type="button" onClick="{{k.reveal}}" disabled="{{ro}}" aria-pressed="{{k.revealed}}" style="height: var(--control-sm); padding: 0 var(--sp-2h); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); font: inherit; font-size: var(--fs-xs); font-weight: 500; cursor: pointer; opacity: {{roOpacity}}">{{k.revealLabel}}</button>
+<button type="button" onClick="{{k.rotate}}" disabled="{{ro}}" style="height: var(--control-sm); padding: 0 var(--sp-2h); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); font: inherit; font-size: var(--fs-xs); font-weight: 500; cursor: pointer; opacity: {{roOpacity}}">Renouveler</button>
+<button type="button" onClick="{{k.revoke}}" disabled="{{ro}}" style="height: var(--control-sm); padding: 0 var(--sp-2h); border-radius: var(--r-sm); border: 1px solid var(--danger-border); background: var(--danger-bg); color: var(--danger-fg); font: inherit; font-size: var(--fs-xs); font-weight: 500; cursor: pointer; opacity: {{roOpacity}}">Révoquer</button>
+</div></td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</section>
+
+<section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden"><div style="padding: var(--sp-4) var(--sp-5); border-bottom: 1px solid var(--border)"><h3 style="margin: 0; font-size: var(--fs-md); font-weight: 600">Règles de gestion</h3></div>
+<sc-for list="{{secretToggles}}" as="s" hint-placeholder-count="3"><dc-import name="Reglage" dc-props="{{s.reg}}" hint-size="100%,72px"></dc-import></sc-for>
+</section>
+</div>
+</sc-if>
+
+<sc-if value="{{is.kitmedia}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: var(--sp-5)">
+<section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-4) var(--sp-5); display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-4)">
+<div style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-1)"><h3 style="margin: 0; font-size: var(--fs-md); font-weight: 600">Kit complet</h3><span style="font-size: var(--fs-sm); color: var(--text-3)">Logos, couleurs, typographie et règles d'usage · ZIP de 4,2 Mo · mis à jour le 12/11/2026</span></div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2)">
+<dc-import name="Bouton" variant="secondary" size="md" label="{{kitPageLabel}}" on-press="{{kitCopyPage}}" style="display: contents" hint-size="120px,40px"></dc-import>
+<dc-import name="Bouton" variant="primary" size="md" label="Télécharger le kit (.zip)" icon="download" href="https://media.legarec.fr/kit/legarec-kit-media.zip" accent="{{accent}}" style="display: contents" hint-size="120px,40px"></dc-import>
+</div>
+</section>
+
+<section aria-labelledby="kit-logos" style="display: flex; flex-direction: column; gap: var(--sp-3)">
+<h3 id="kit-logos" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Logos</h3>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--sp-4)">
+<sc-for list="{{kitLogos}}" as="l" hint-placeholder-count="4">
+<article style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden; display: flex; flex-direction: column">
+<div style="height: 140px; display: flex; align-items: center; justify-content: center; padding: var(--sp-5); box-sizing: border-box; background: {{l.bg}}; border-bottom: 1px solid var(--border)"><img src="{{l.src}}" alt="{{l.alt}}" style="max-width: 100%; max-height: 100%; object-fit: contain"></div>
+<div style="padding: var(--sp-3h) var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-2h)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-size: var(--fs-base); font-weight: 600">{{l.name}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{l.use}}</span></div>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-1h)"><sc-for list="{{l.formats}}" as="f" hint-placeholder-count="3"><dc-import name="Bouton" variant="secondary" size="xs" label="{{f.label}}" icon="download" href="{{f.href}}" style="display: contents" hint-size="120px,40px"></dc-import></sc-for></div>
+<div style="display: flex; gap: var(--sp-1h)">
+<input type="text" readonly value="{{l.url}}" aria-label="URL publique de {{l.name}}" style="flex: 1; min-width: 0; height: var(--control-sm); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-2); font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-2); background: var(--surface-2)">
+<button type="button" onClick="{{l.copy}}" style="height: var(--control-sm); padding: 0 var(--sp-2h); border-radius: var(--r-sm); border: 1px solid var(--border); background: {{l.copyBg}}; color: {{l.copyFg}}; font: inherit; font-size: var(--fs-xs); font-weight: 500; white-space: nowrap; cursor: pointer">{{l.copyLabel}}</button>
+</div>
+</div>
+</article>
+</sc-for>
+</div>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-5); align-items: flex-start">
+<section aria-labelledby="kit-couleurs" style="flex: 2 1 420px; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-4) var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-3)">
+<h3 id="kit-couleurs" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Couleurs</h3>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--sp-3)">
+<sc-for list="{{kitColors}}" as="c" hint-placeholder-count="4">
+<button type="button" onClick="{{c.copy}}" aria-label="Copier {{c.hex}}" style="padding: 0; border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; background: var(--surface); font: inherit; text-align: left; cursor: pointer; display: flex; flex-direction: column"><span style="height: 64px; background: {{c.hex}}"></span><span style="padding: var(--sp-2h) var(--sp-3); display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-size: var(--fs-sm); font-weight: 600; color: var(--text)">{{c.name}}</span><span style="font-size: var(--fs-xs); color: var(--text-3); font-variant-numeric: tabular-nums">{{c.hex}} · {{c.rgb}}</span><span style="font-size: var(--fs-xs); font-weight: 500; color: {{c.noteColor}}">{{c.note}}</span></span></button>
+</sc-for>
+</div>
+</section>
+<section style="flex: 1 1 300px; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-4) var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-3)">
+<h3 style="margin: 0; font-size: var(--fs-md); font-weight: 600">Typographie et usage</h3>
+<div style="display: flex; flex-direction: column; gap: var(--sp-1); padding: var(--sp-3); border-radius: var(--r-md); background: var(--surface-2)"><span style="font-family: var(--font-title); font-size: var(--fs-2xl); font-weight: 700; color: var(--marine-text)">Lora · titres</span><span style="font-size: var(--fs-xs); color: var(--text-3)">SemiBold 600 · Bold 700 · licence libre (OFL)</span><span style="margin-top: var(--sp-2); font-family: var(--font-text); font-size: var(--fs-xl); font-weight: 600">Poppins · textes</span><span style="font-size: var(--fs-xs); color: var(--text-3)">Regular 400 · Medium 500 · SemiBold 600 · Bold 700 · licence libre (OFL)</span><a href="https://fonts.google.com/specimen/Poppins" style="font-size: var(--fs-sm); font-weight: 500; text-decoration: none">Voir sur Google Fonts →</a></div>
+<ul style="margin: 0; padding-left: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); line-height: 1.5; color: var(--text-2)">
+<li>Laisser autour du logo un espace libre au moins égal à la hauteur de l’emblème.</li>
+<li>Ne pas déformer, recolorer ni ajouter d'ombre au logo.</li>
+<li>Sur fond foncé ou photo, utiliser la version négative.</li>
+<li>Largeur minimale : 120 px à l'écran, 30 mm à l'impression.</li>
+</ul>
+</section>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{dirty}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="position: sticky; bottom: var(--sp-4); z-index: 5; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); border-radius: var(--r-lg); background: var(--surface-dark); color: var(--on-dark); box-shadow: var(--shadow-lg)">
+<span style="font-size: var(--fs-sm); font-weight: 500">Modifications non enregistrées dans « {{secLabel}} »</span>
+<span style="display: flex; gap: var(--sp-2)"><dc-import name="Bouton" label="Annuler" variant="dark" size="sm" on-press="{{cancel}}" style="display: contents" hint-size="90px,36px"></dc-import><dc-import name="Bouton" label="Enregistrer" size="sm" accent="var(--or)" on-press="{{save}}" layout="color: var(--nuit)" style="display: contents" hint-size="110px,36px"></dc-import></span>
+</div>
+</sc-if>
+
+</div>
+</div>
+</sc-if>
+
+</sc-if>
+</div>
+</main>
+<dc-import name="Confirm" open="{{scf.open}}" tone="{{scf.tone}}" title="{{scf.title}}" body="{{scf.body}}" details="{{scf.details}}" confirm-label="{{scf.label}}" on-confirm="{{scf.confirm}}" on-cancel="{{scf.cancel}}" accent="{{accent}}" hint-size="0px,0px"></dc-import>
+<dc-import name="Confirm" open="{{gcf.open}}" tone="{{gcf.tone}}" title="{{gcf.title}}" body="{{gcf.body}}" details="{{gcf.details}}" confirm-label="{{gcf.label}}" on-confirm="{{gcf.confirm}}" on-cancel="{{gcf.cancel}}" accent="{{accent}}" hint-size="0px,0px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#002B74","options":["#002B74","#001B4D","#5D7087"]},"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { tab: 'users', me: 'RESPONSABLE_RECOUVREMENT', ukind: 'team', uq: '', usel: 4, uscope: {}, uactive: {}, u2fa: {}, udone: null, invite: false, invName: '', invMail: '', invRole: 'GESTIONNAIRE_CREANCES', invited: [], dirty: false, saved: false, on: { ia1: true, ia2: true, ia3: true, ia4: true, ia5: false, ia6: false, r1: true, r2: true, r3: true, m1: true, m2: true, m3: true, p1: true, p2: true, p3: true, p4: true, p5: true, v1: true, v2: true, g1: true, g2: true, s1: true, s2: true, s3: true, s4: true, s5: true, s6: false, t1: true, t2: true, t3: false, t4: true, x1: true, x2: true, x3: true, x4: false, x5: true, x6: true, x7: true, x8: true, e1: true, e2: true, e3: true, k1: true, k2: true, k3: true }, reveal: null, rot: {}, revoked: {}, sask: null, newSecret: false, copied: null, snote: '' };
+  }
+  componentDidMount() { try { const open = localStorage.getItem('lg-settings-open'); if (open) localStorage.removeItem('lg-settings-open'); const cat = localStorage.getItem('lg-settings-cat'); if (cat) localStorage.removeItem('lg-settings-cat'); this.setState({ mode: localStorage.getItem('lg-settings') || 'user', me: localStorage.getItem('lg-role') || this.state.me, ...(open ? { tab: open, view: 'section' } : {}), ...(cat ? { tcat: cat } : {}) }); } catch (e) {} }
+  sw(id, title, detail, accent, locked) {
+    const on = locked ? true : !!this.state.on[id];
+    return {
+      title, detail, checked: on ? 'true' : 'false', locked: !!locked, opacity: locked ? '0.55' : '1',
+      track: on ? accent : 'var(--border-strong)', justify: on ? 'flex-end' : 'flex-start',
+      toggle: () => { if (!locked) this.setState({ on: { ...this.state.on, [id]: !this.state.on[id] }, dirty: true, saved: false }); },
+      reg: { kind: 'switch', label: title, description: detail, checked: on, locked: !!locked, onToggle: () => { if (!locked) this.setState({ on: { ...this.state.on, [id]: !this.state.on[id] }, dirty: true, saved: false }); } }
+    };
+  }
+  usersVals(ROLE, usersDef, accent) {
+    const st = this.state;
+    const canManage = st.me === 'DEVELOPPEUR' || st.me === 'DIRIGEANT';
+    const CRE = [['Matériaux Delta', 64], ['Énergies Rhône', 71], ['Médiatel', 52], ['TransAlp Leasing', 33], ['Crédit Horizon', 28]];
+    const SC = {
+      'Thomas Giraud': ['Matériaux Delta', 'TransAlp Leasing'], 'Hugo Benali': ['Médiatel'], 'Sarah Morel': ['Énergies Rhône', 'Crédit Horizon'], 'Lucas Perrin': []
+    };
+    const ACT = {
+      'Camille Laurent': [['Validation d\u2019un échéancier (Bâtiplus SAS)', '21/11 11:58'], ['Connexion réussie (2FA)', '21/11 09:02']],
+      'Hugo Benali': [['3 tentatives échouées depuis une IP inconnue', '21/11 08:57'], ['Connexion réussie', '20/11 08:41']],
+      'Marie Dubreuil': [['Export des données (Rapports)', '21/11 10:44'], ['Création du compte de Lucas Perrin', '20/11 16:12']],
+      'Julien Martin': [['Modification des webhooks', '20/11 18:30']],
+      'Claire Besson': [['Connexion à l\u2019espace créancier', '20/11 14:05'], ['Dépôt de 22 créances', '20/11 16:00']]
+    };
+    const ini = (n) => n.split(' ').map((p) => p[0]).join('').slice(0, 2).toUpperCase();
+    const all = usersDef.map(([name, email, code, scope, tfa, last, active], idx) => ({ idx, name, email, code, scope, tfa, last, active: st.uactive[idx] ?? active, tfaOn: tfa === 'on' || !!st.u2fa[idx] }))
+      .concat((st.invited || []).map((p, k) => ({ idx: 100 + k, name: p.name, email: p.mail, code: p.code, scope: '', tfa: 'off', last: 'Invitation envoyée', active: true, pending: true, tfaOn: false })));
+    all.push({ idx: 99, name: 'Nadia Faure', email: 'nf@legarec.fr', code: 'GESTIONNAIRE_CREANCES', scope: '', tfa: 'off', last: 'Invitation envoyée le 19/11 · expire le 22/11', active: true, pending: true, tfaOn: false });
+    const kindOf = (u) => u.pending ? 'pending' : u.code === 'CREANCIER' ? 'creditors' : 'team';
+    const norm = (x) => x.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const q = norm(st.uq.trim());
+    const rows = all.filter((u) => kindOf(u) === st.ukind && (!q || norm(u.name + ' ' + u.email).includes(q)));
+    const mand = (c) => c === 'DEVELOPPEUR' || c === 'DIRIGEANT';
+    const tfaInfo = (u) => u.pending ? ['À la première connexion', 'En attente', 'var(--text-3)'] : u.tfaOn ? ['Activée', 'Activée', 'var(--success-fg)'] : mand(u.code) ? ['Obligatoire : à activer', 'À activer', 'var(--danger-fg)'] : ['Recommandée, non activée', 'Non', 'var(--warning-fg)'];
+    const status = (u) => u.pending ? ['Invité', 'var(--warning)'] : u.active ? ['Actif', 'var(--success)'] : ['Inactif', 'var(--text-3)'];
+    const avatar = (u) => u.code === 'CREANCIER' ? ['var(--warning-bg)', 'var(--warning-fg)'] : u.pending ? ['var(--surface-3)', 'var(--text-3)'] : ['var(--bleu-200)', 'var(--marine)'];
+    const selU = all.find((u) => u.idx === st.usel && kindOf(u) === st.ukind) || rows[0];
+    const kinds = [['team', 'Équipe'], ['creditors', 'Créanciers'], ['pending', 'Invitations']];
+    const counts = { team: all.filter((u) => kindOf(u) === 'team').length, creditors: all.filter((u) => kindOf(u) === 'creditors').length, pending: all.filter((u) => kindOf(u) === 'pending').length };
+    const activeTeam = all.filter((u) => kindOf(u) === 'team' && u.active).length;
+    const missing2fa = all.filter((u) => !u.pending && !u.tfaOn && u.active).length;
+    const missingMand = all.filter((u) => !u.pending && !u.tfaOn && mand(u.code)).length;
+    const scopeOf = (u) => st.uscope[u.idx] || SC[u.name] || [];
+    const INV = [['GESTIONNAIRE_CREANCES', 'Traite ses dossiers au quotidien'], ['RESPONSABLE_RECOUVREMENT', 'Encadre l\u2019équipe, valide les actions sensibles'], ['DIRIGEANT', 'Pilotage global, gestion des comptes'], ['DEVELOPPEUR', 'Configuration technique de la plateforme'], ['CREANCIER', 'Accès à l\u2019espace créancier, ses dossiers uniquement']];
+    let sel = null;
+    if (selU) {
+      const t = tfaInfo(selU), stt = status(selU), av = avatar(selU);
+      const isSelf = selU.name === 'Camille Laurent';
+      const hasScope = selU.code === 'GESTIONNAIRE_CREANCES' && !selU.pending;
+      sel = {
+        name: selU.name, email: selU.email, ini: ini(selU.name), avBg: av[0], avFg: av[1],
+        role: ROLE[selU.code][0], code: selU.code, bg: ROLE[selU.code][2][0], fg: ROLE[selU.code][2][1],
+        mission: ROLE[selU.code][3] || 'Accès en lecture à ses dossiers, dépôt de créances, messagerie avec le gestionnaire.',
+        roleOpts: INV.map(([k]) => ({ label: ROLE[k][0], selected: k === selU.code })),
+        status: stt[0], stDot: stt[1], tfa: t[0], tfaColor: t[2], last: selU.last,
+        sessions: selU.pending ? '—' : selU.name === 'Camille Laurent' ? '2 (ordinateur, mobile)' : '1',
+        hasScope, scopeLocked: !hasScope,
+        scopes: CRE.map(([n, c]) => ({ name: n, n: c, on: scopeOf(selU).includes(n), toggle: () => {
+          const cur = scopeOf(selU); const next = cur.includes(n) ? cur.filter((x) => x !== n) : cur.concat([n]);
+          this.setState({ uscope: { ...this.state.uscope, [selU.idx]: next }, dirty: true, saved: false });
+        } })),
+        activity: (ACT[selU.name] || [['Aucune activité récente', '']]).map(([what, when]) => ({ what, when })),
+        done: st.udone && st.udone.idx === selU.idx, doneText: st.udone ? st.udone.text : '',
+        reset: () => this.setState({ udone: { idx: selU.idx, text: 'Lien de réinitialisation envoyé à ' + selU.email + ' (valable 1 heure).' } }),
+        force2fa: () => this.setState({ udone: { idx: selU.idx, text: 'La 2FA sera exigée à la prochaine connexion de ' + selU.name + '.' } }),
+        noDeactivate: !canManage || isSelf || selU.pending,
+        activeLabel: selU.pending ? 'Annuler l\u2019invitation' : selU.active ? 'Désactiver le compte' : 'Réactiver le compte',
+        toggleActive: () => { const go = () => this.setState({ uactive: { ...this.state.uactive, [selU.idx]: !selU.active } }); if (!selU.active && !selU.pending) { go(); return; } this.setState({ gask: { tone: 'danger', title: selU.pending ? 'Annuler l’invitation de ' + selU.name + ' ?' : 'Désactiver le compte de ' + selU.name + ' ?', body: selU.pending ? 'Le lien d’invitation ne fonctionnera plus. Vous pourrez inviter cette personne à nouveau.' : 'Ses sessions sont fermées immédiatement et elle ne peut plus se connecter. Ses dossiers restent attribués : pensez à les réaffecter. Le compte peut être réactivé.', label: selU.pending ? 'Annuler l’invitation' : 'Désactiver le compte', go } }); }
+      };
+    }
+    return {
+      cantManage: !canManage,
+      inviteTip: canManage ? '' : 'Réservé aux rôles Dirigeant et Développeur',
+      invBg: canManage ? accent : 'var(--surface-3)', invFg: canManage ? 'var(--on-primary)' : 'var(--text-3)', invCursor: canManage ? 'pointer' : 'not-allowed',
+      uStats: [
+        { label: 'Équipe active', value: activeTeam + ' / ' + counts.team, hint: 'comptes internes', color: 'var(--text)' },
+        { label: 'Accès créanciers', value: String(counts.creditors), hint: 'espace créancier', color: 'var(--text)' },
+        { label: '2FA à activer', value: String(missing2fa), hint: missingMand ? missingMand + ' obligatoire' : 'dont 0 obligatoire', color: missing2fa ? 'var(--warning-fg)' : 'var(--success-fg)' },
+        { label: 'Invitations', value: String(counts.pending), hint: 'en attente d\u2019activation', color: 'var(--text)' }
+      ],
+      uKinds: kinds.map(([k, label]) => ({
+        label, count: counts[k], selected: st.ukind === k ? 'true' : 'false',
+        bg: st.ukind === k ? 'var(--white)' : 'transparent', color: st.ukind === k ? 'var(--text)' : 'var(--text-3)',
+        shadow: st.ukind === k ? 'var(--shadow-sm)' : 'none',
+        pick: () => this.setState({ ukind: k, usel: null })
+      })),
+      uq: st.uq,
+      onUq: (e) => this.setState({ uq: e.target.value }),
+      uEmpty: rows.length === 0,
+      uRows: rows.map((u) => {
+        const t = tfaInfo(u), stt = status(u), av = avatar(u), isSel = selU && u.idx === selU.idx;
+        return {
+          name: u.name, email: u.email, ini: ini(u.name), avBg: av[0], avFg: av[1], me: u.name === 'Camille Laurent' ? '(vous)' : '',
+          role: ROLE[u.code][1], bg: ROLE[u.code][2][0], fg: ROLE[u.code][2][1],
+          tfa: '2FA : ' + t[0], tfaShort: t[1], tfaColor: t[2], status: stt[0], stDot: stt[1],
+          pressed: isSel ? 'true' : 'false', rowBg: isSel ? 'var(--surface-3)' : 'var(--white)', bar: isSel ? 'inset 3px 0 0 var(--or)' : 'none',
+          pick: () => this.setState({ usel: u.idx, udone: null })
+        };
+      }),
+      hasSel: !!sel,
+      sel: sel || {},
+      goAudit: (e) => { e.preventDefault(); this.setState({ tab: 'audit' }); },
+      inviteOpen: st.invite && canManage,
+      openInvite: () => this.setState({ invite: true }),
+      closeInvite: () => this.setState({ invite: false }),
+      invName: st.invName, invMail: st.invMail,
+      onInvName: (e) => this.setState({ invName: e.target.value }),
+      onInvMail: (e) => this.setState({ invMail: e.target.value }),
+      invRoles: INV.map(([k, desc]) => ({
+        label: ROLE[k][0], desc, checked: st.invRole === k ? 'true' : 'false',
+        bg: st.invRole === k ? 'var(--bleu-pale)' : 'var(--white)', border: st.invRole === k ? '2px solid ' + accent : '1px solid var(--border)',
+        pick: () => this.setState({ invRole: k })
+      })),
+      invNeeds2fa: mand(st.invRole),
+      sendInvite: () => {
+        const name = st.invName.trim() || 'Nouvel utilisateur';
+        const mail = st.invMail.trim() || 'nouveau@legarec.fr';
+        this.setState({ invited: (st.invited || []).concat([{ name, mail, code: st.invRole }]), invite: false, invName: '', invMail: '', ukind: 'pending' });
+      }
+    };
+  }
+  renderVals() {
+    const v = this._rv0();
+    const g = this.state.gask;
+    v.gcf = { open: !!g, tone: (g && g.tone) || 'primary', title: g ? g.title : '', body: g ? g.body : '', details: (g && g.details) || [], label: g ? g.label : '', confirm: () => { const go = g && g.go; this.setState({ gask: null }); if (go) go(); }, cancel: () => this.setState({ gask: null }) };
+    return v;
+  }
+  _rv0() {
+    const accent = this.props.accent ?? 'var(--marine)';
+    const tab = this.state.tab;
+    const SECTIONS = [["Organisation", [["cabinet", "Cabinet", "Identité et obligations légales", false], ["users", "Comptes utilisateurs", "Équipe Legarec, accès des créanciers et invitations", false], ["roles", "Rôles et permissions", "Qui peut faire quoi", false], ["kitmedia", "Kit média", "Logos, couleurs et typographie à télécharger ou à partager par URL", false]]], ["Recouvrement", [["scenarios", "Scénarios de relance", "Étapes automatiques après l’échéance", false], ["regles", "Règles et validations", "Frais, pénalités, seuils de validation", false], ["modeles", "Modèles de documents", "Courriers, SMS, factures et contrats", false]]], ["Communication", [["telephonie", "Téléphonie · 3CX", "Standard 3CX : postes, files, codes de qualification et options d’appel", true], ["emails", "E-mails", "Resend pour les e-mails automatiques, OVH pour la messagerie", true], ["sms", "SMS", "OVHcloud : expéditeur, plages, crédits", false]]], ["Paiements", [["paiements", "Paiement en ligne", "Prestataire et moyens acceptés", true], ["reversements", "Reversements", "Fréquence et commissions", false]]], ["Intelligence artificielle", [["ia", "Assistant IA", "Fonctions activées, garde-fous, budget et journal", false]]], ["Plateforme", [["integrations", "Intégrations et API", "Outils connectés", true], ["securite", "Sécurité", "Connexion et accès", false], ["secrets", "Secrets et clés", "Clés d’API et mots de passe techniques, rotation et révocation", true], ["audit", "Journal d’audit", "Connexions et actions sensibles", false], ["rgpd", "Données personnelles", "Conservation et droits RGPD", false]]]];
+    const secretsDef = [
+      ['k-resend', 'RESEND_API_KEY', 'Resend', 'Production', 're_••••••••3d9f', '02/10/2026', 'ok', 'il y a 2 min', 're_live_8Hq2mT0x9Pz4vB7c3d9f'],
+      ['k-ovh', 'OVH_SMTP_PASSWORD', 'OVH MX Plan', 'Production', '••••••••••••', '24/08/2026', 'soon', 'il y a 1 min', 'Lg!r2026-mxP#ovh'],
+      ['k-pay', 'PAYMENT_SECRET_KEY', 'Prestataire de paiement', 'Production', 'sk_live_••••81aa', '15/09/2026', 'ok', 'il y a 6 min', 'sk_live_51NxR4kT2a9mQ81aa'],
+      ['k-hook', 'PAYMENT_WEBHOOK_SECRET', 'Prestataire de paiement', 'Production', 'whsec_••••c27e', '15/09/2026', 'ok', 'il y a 6 min', 'whsec_Yt7pW3nE0qLc27e'],
+      ['k-msb', 'MYSENDINGBOX_API_KEY', 'MySendingBox (lettres recommandées)', 'Production', 'msb_live_••••8d21', '15/09/2026', 'ok', 'il y a 4 min', 'msb_live_Qm4rT8vW2xZ58d21'],
+      ['k-s3', 'SCW_SECRET_KEY', 'Scaleway Object Storage (fichiers)', 'Production', '••••••••a41d', '15/09/2026', 'ok', 'il y a 3 min', 'scw_9fK2pQ7xR4tW1a41d'],
+      ['k-sms', 'OVH_SMS_APP_SECRET', 'OVHcloud SMS', 'Production', '••••••••5b10', '30/09/2026', 'ok', 'il y a 14 min', 'smstk_9fA2kQ7rV1x5b10'],
+      ['k-3cx', 'TCX_API_CLIENT_SECRET', '3CX (API Call Control)', 'Production', '••••••••••••', '01/09/2026', 'soon', 'en continu', 'tcx_cc_7Hk2pQ9wLx4m'],
+      ['k-jwt', 'SESSION_SIGNING_KEY', 'Plateforme Legarec', 'Production', '••••••••••••', '06/11/2026', 'ok', 'en continu', 'jwk_EdDSA_4c1f…'],
+      ['k-erp', 'API_KEY_MATERIAUX_DELTA', 'Import ERP Matériaux Delta', 'Production', 'lgr_live_••••a41e', '18/10/2026', 'ok', 'hier, 23:02', 'lgr_live_Qm82Zr5Ka41e']
+    ];
+    const TECH = ['telephonie', 'emails', 'paiements', 'integrations', 'secrets', 'securite', 'audit'];
+    const mode = this.state.mode === 'tech' ? 'tech' : 'user';
+    const isDev = this.state.me === 'DEVELOPPEUR';
+    const VIS = SECTIONS.map(([g, items]) => [g, items.filter(([id]) => (mode === 'tech') === TECH.includes(id))]).filter(([g, items]) => items.length);
+    const flat = [];
+    VIS.forEach(([g, items]) => items.forEach((it) => flat.push(it)));
+    const cur = flat.find((x) => x[0] === tab) || flat[0];
+    const is = {};
+    flat.forEach(([id]) => { is[id] = id === cur[0]; });
+    const view = this.state.view === 'section' ? 'section' : 'hub';
+    const ICO = { ia: 'sparkle', cabinet: 'building', users: 'users', roles: 'shield', kitmedia: 'image', scenarios: 'route', regles: 'scale', modeles: 'file', sms: 'sms', reversements: 'euro', rgpd: 'database', telephonie: 'phone', emails: 'mail', paiements: 'card', integrations: 'plug', securite: 'lock', secrets: 'key', audit: 'list' };
+    const HST = {
+      ia: ['4 fonctions actives · 38,40 € sur 150 € ce mois', 'info'],
+      cabinet: ['RC professionnelle à renouveler dans 40 jours', 'warning'], users: ['8 comptes actifs · 1 sans double authentification', 'warning'],
+      roles: ['5 rôles', 'neutral'], kitmedia: ['4 logos, 4 couleurs, 2 polices', 'neutral'], scenarios: ['Scénario B2B actif · 6 étapes', 'success'],
+      regles: ['3 validations obligatoires', 'neutral'], modeles: ['12 modèles', 'neutral'], sms: ['OVHcloud connecté · 1 196 SMS ce mois', 'success'],
+      reversements: ['Prochain reversement le 1er décembre', 'info'], rgpd: ['Conservation : 5 ans après clôture', 'neutral'],
+      telephonie: ['3CX connecté · 4 postes', 'success'], emails: ['1 boîte OVH à reconnecter', 'warning'], paiements: ['Paiement en ligne actif', 'success'],
+      integrations: ['3 intégrations actives', 'success'], securite: ['Double authentification obligatoire', 'success'], secrets: ['2 secrets à renouveler', 'warning'], audit: ['Dernière action il y a 2 min', 'neutral']
+    };
+    const normQ = (t) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const hqq = normQ((this.state.hq || '').trim());
+    const hubGroups = VIS.map(([label, items]) => ({
+      label,
+      tiles: items.filter(([id, l, d]) => !hqq || normQ(l + ' ' + d + ' ' + label).includes(hqq)).map(([id, l, d, lock]) => ({
+        title: l, description: d, icon: ICO[id] || 'settings', status: HST[id] ? HST[id][0] : '', statusTone: HST[id] ? HST[id][1] : 'neutral',
+        badge: lock && this.state.me !== 'DEVELOPPEUR' ? 'Lecture seule' : '', badgeTone: 'neutral',
+        onPress: () => this.setState({ tab: id, view: 'section', dirty: false })
+      }))
+    })).filter((g) => g.tiles.length);
+    const grp = VIS.find(([g, items]) => items.some((it) => it[0] === cur[0]));
+    const sib = grp ? grp[1] : [];
+    const TPLS = [
+      ['rec', 'amiable', 'Courrier', 'Relance amiable', '12/09/2026', 214], ['rec', 'ferme', 'Courrier', 'Relance ferme', '12/09/2026', 128], ['rec', 'demeure', 'LRAR', 'Mise en demeure', '03/10/2026', 21],
+      ['rec', 'echeancier', 'Courrier', 'Proposition d\u2019échéancier', '18/10/2026', 37], ['rec', 'attestation', 'Courrier', 'Attestation de solde', '02/06/2026', 19],
+      ['rec', 'rappel', 'E-mail', 'Rappel avant échéance', '30/08/2026', 402], ['rec', 'sms21', 'SMS', 'Relance SMS J+21', '05/11/2026', 1196],
+      ['fac', 'fac_com', 'Facture', 'Facture de commission mensuelle', '28/09/2026', 5], ['fac', 'fac_frais', 'Facture', 'Refacturation de frais de procédure', '14/10/2026', 2], ['fac', 'fac_forfait', 'Facture', 'Facture forfaitaire', '05/05/2026', 1],
+      ['fac', 'dev_amiable', 'Devis', 'Devis recouvrement amiable', '21/09/2026', 3], ['fac', 'con_convention', 'Contrat', 'Convention de recouvrement amiable', '12/03/2026', 1]
+    ];
+    const CH = {
+      'E-mail': ['var(--info-bg)', 'var(--info-fg)'], 'SMS': ['var(--teal-bg)', 'var(--teal-fg)'], 'Appel': ['var(--bleu-200)', 'var(--marine)'], 'Courrier': ['var(--warning-bg)', 'var(--warning-fg)'], 'LRAR': ['var(--danger-bg)', 'var(--danger-fg)'], 'Facture': ['var(--violet-bg)', 'var(--violet-fg)'], 'Devis': ['var(--bleu-200)', 'var(--marine)'], 'Contrat': ['var(--surface-3)', 'var(--text-2)'], 'Contentieux': ['var(--danger-bg)', 'var(--danger-fg)']
+    };
+    const stepsDef = [
+      ['s1', 'J−3', 'E-mail', 'Rappel avant échéance', 'Modèle « Rappel courtois »'],
+      ['s2', 'J+7', 'E-mail', 'Relance n°1 — rappel amiable', 'Avec relevé de compte et lien de paiement'],
+      ['s3', 'J+21', 'SMS', 'Relance SMS', 'Lien de paiement court'],
+      ['s4', 'J+30', 'E-mail', 'Relance n°2 — relance ferme', 'Mention des pénalités de retard'],
+      ['s5', 'J+45', 'Appel', 'Appel du gestionnaire', 'Tâche ajoutée à la file d’appels'],
+      ['s6', 'J+60', 'LRAR', 'Mise en demeure', 'Seulement si le créancier l’autorise']
+    ];
+    const ROLE = {
+      DEVELOPPEUR: ['Développeur', 'Dév.', ['var(--text)', 'var(--white)'], 'Administration technique de la plateforme.'],
+      DIRIGEANT: ['Dirigeant', 'Dirigeant', ['var(--marine)', 'var(--white)'], 'Pilotage global et décisions stratégiques.'],
+      RESPONSABLE_RECOUVREMENT: ['Responsable du recouvrement', 'Resp. recouvrement', ['var(--bleu-200)', 'var(--marine)'], 'Encadrement de l\u2019équipe et validation des actions sensibles.'],
+      GESTIONNAIRE_CREANCES: ['Gestionnaire de créances', 'Gestionnaire', ['var(--surface-3)', 'var(--text-2)'], 'Traitement des dossiers au quotidien.'],
+      CREANCIER: ['Créancier', 'Créancier', ['var(--warning-bg)', 'var(--warning-fg)'], '']
+    };
+    const usersDef = [
+      ['Julien Martin', 'jm@legarec.fr', 'DEVELOPPEUR', 'Plateforme', 'on', 'Aujourd\u2019hui', true],
+      ['Marie Dubreuil', 'md@legarec.fr', 'DIRIGEANT', 'Tous les créanciers', 'on', 'Aujourd\u2019hui', true],
+      ['Camille Laurent', 'cl@legarec.fr', 'RESPONSABLE_RECOUVREMENT', 'Tous les créanciers', 'on', 'Aujourd\u2019hui', true],
+      ['Thomas Giraud', 'tg@legarec.fr', 'GESTIONNAIRE_CREANCES', 'Matériaux Delta, TransAlp Leasing', 'on', 'Il y a 3 jours', true],
+      ['Hugo Benali', 'hb@legarec.fr', 'GESTIONNAIRE_CREANCES', 'Médiatel', 'off', 'Hier', true],
+      ['Sarah Morel', 'sm@legarec.fr', 'GESTIONNAIRE_CREANCES', 'Énergies Rhône, Crédit Horizon', 'on', 'Aujourd\u2019hui', true],
+      ['Claire Besson', 'c.besson@materiauxdelta.example', 'CREANCIER', 'Matériaux Delta (ses dossiers)', 'off', '18 nov.', true],
+      ['Lucas Perrin', 'lp@legarec.fr', 'GESTIONNAIRE_CREANCES', '—', 'off', '02 sept.', false]
+    ];
+    const RK = ['DEVELOPPEUR', 'DIRIGEANT', 'RESPONSABLE_RECOUVREMENT', 'GESTIONNAIRE_CREANCES'];
+    const permsDef = [
+      ['Configuration technique (API, paiement, e-mails, journaux)', ['y', 'n', 'n', 'n']],
+      ['Créer ou supprimer des comptes utilisateurs', ['y', 'y', 'n', 'n']],
+      ['Voir les tableaux de bord globaux (CA, taux de recouvrement)', ['y', 'y', 'y', 'n']],
+      ['Gérer les créanciers (clients)', ['n', 'y', 'y', 'Lecture']],
+      ['Affecter les dossiers aux gestionnaires', ['n', 'y', 'y', 'n']],
+      ['Valider un échéancier, une remise ou un abandon de créance', ['n', 'y', 'y', 'n']],
+      ['Traiter un dossier (relances, notes, appels)', ['n', 'n', 'y', 'Ses dossiers']],
+      ['Proposer un échéancier', ['n', 'n', 'y', 'y']],
+      ['Exporter les données', ['y', 'y', 'y', 'n']]
+    ];
+    const pr = this.state.prole || 'RESPONSABLE_RECOUVREMENT';
+    const I = (st) => st === 'Connecté' ? ['var(--success-bg)', 'var(--success-fg)', 'Configurer'] : ['var(--surface-3)', 'var(--text-2)', 'Connecter'];
+    const intDef = [
+      ['Logiciel comptable des créanciers', 'Import automatique des factures échues', 'Connecté'],
+      ['Synchronisation bancaire', 'Rapprochement des virements reçus', 'Connecté'],
+      ['Prélèvement SEPA', 'Encaissement des échéanciers', 'Connecté'],
+      ['Paiement par carte', 'Liens de paiement dans les relances', 'Connecté'],
+      ['Resend', 'E-mails transactionnels : reçus, liens de paiement, relances automatiques, codes', 'Connecté'],
+      ['OVH MX Plan', 'Messagerie de l\u2019équipe en SMTP / IMAP', 'Connecté'],
+      ['MySendingBox', 'Lettres recommandées et courriers postaux · comptes test et production', 'Connecté'],
+      ['Scaleway Object Storage', 'Stockage S3 des documents, pièces et courriers', 'Connecté'],
+      ['Signature électronique', 'Signature des échéanciers par le débiteur', 'Non connecté'],
+      ['Données entreprises', 'Vérification SIREN, procédures collectives', 'Non connecté']
+    ];
+    return {
+      accent,
+      is,
+      resendToggles: [
+        this.sw('e1', 'Suivi des ouvertures', 'Affiche « ouvert le… » dans l\u2019historique du dossier', accent),
+        this.sw('e2', 'Suivi des clics', 'Indique si le lien de paiement a été ouvert', accent),
+        this.sw('e3', 'Basculer sur OVH en cas d\u2019incident Resend', 'Les reçus et codes de connexion restent envoyés', accent)
+      ],
+      mailCols: [{ key: 'type', label: 'Type d’e-mail' }, { key: 'via', label: 'Envoyé par', type: 'badge' }, { key: 'from', label: 'Adresse d’expédition', mono: true }],
+      mailRows: [['Relances automatiques des scénarios', 'Resend', 'no-reply@mail.legarec.fr'], ['Liens vers l\u2019espace de paiement', 'Resend', 'no-reply@mail.legarec.fr'], ['Reçus de paiement', 'Resend', 'no-reply@mail.legarec.fr'], ['Réinitialisation du mot de passe et codes', 'Resend', 'no-reply@mail.legarec.fr'], ['Relevés de reversement et rapports créanciers', 'Resend', 'no-reply@mail.legarec.fr'], ['Notifications de l\u2019équipe', 'Resend', 'no-reply@mail.legarec.fr'], ['E-mails écrits par un gestionnaire', 'OVH MX Plan', 'adresse du collaborateur (ex. mo@legarec.fr)'], ['Réponses aux débiteurs et créanciers', 'OVH MX Plan', 'adresse du collaborateur (ex. mo@legarec.fr)']].map(([type, via, from]) => ({ type, via: { text: via, tone: via === 'Resend' ? 'neutral' : 'marine' }, from: { text: from, mono: true } })),
+      mailRoutes: [
+        ['Relances automatiques des scénarios', 'Resend', 'no-reply@mail.legarec.fr'],
+        ['Liens vers l\u2019espace de paiement', 'Resend', 'no-reply@mail.legarec.fr'],
+        ['Reçus de paiement', 'Resend', 'no-reply@mail.legarec.fr'],
+        ['Réinitialisation du mot de passe et codes', 'Resend', 'no-reply@mail.legarec.fr'],
+        ['Relevés de reversement et rapports créanciers', 'Resend', 'no-reply@mail.legarec.fr'],
+        ['Notifications de l\u2019équipe', 'Resend', 'no-reply@mail.legarec.fr'],
+        ['E-mails écrits par un gestionnaire', 'OVH MX Plan', 'adresse du collaborateur (ex. mo@legarec.fr)'],
+        ['Réponses aux débiteurs et créanciers', 'OVH MX Plan', 'adresse du collaborateur (ex. mo@legarec.fr)']
+      ].map(([type, via, from]) => ({ type, via, from, bg: via === 'Resend' ? 'var(--surface-3)' : 'var(--bleu-200)', fg: via === 'Resend' ? 'var(--text)' : 'var(--marine)' })),
+      ovhBoxes: [
+        { mail: 'recouvrement@legarec.fr', user: 'Boîte partagée · réception, accessible à tous les utilisateurs', state: 'Synchronisée', dot: 'var(--success)', color: 'var(--success-fg)' },
+        { mail: 'cl@legarec.fr', user: 'Camille Laurent', state: 'Synchronisée', dot: 'var(--success)', color: 'var(--success-fg)' },
+        { mail: 'tg@legarec.fr', user: 'Thomas Giraud', state: 'Synchronisée', dot: 'var(--success)', color: 'var(--success-fg)' },
+        { mail: 'hb@legarec.fr', user: 'Hugo Benali', state: 'Mot de passe à mettre à jour', dot: 'var(--warning)', color: 'var(--warning-fg)' }
+      ],
+      secretsRoleNote: isDev ? 'Vous avez le rôle Développeur : vous pouvez gérer les secrets.' : 'Seul le rôle Développeur peut afficher, renouveler ou révoquer un secret.',
+      roOpacity: (!!cur[3] && !isDev) ? '0.5' : '1',
+      newSecret: this.state.newSecret,
+      toggleNewSecret: () => this.setState({ newSecret: !this.state.newSecret }),
+      secretsSummary: (() => { const n = secretsDef.filter((x) => !this.state.revoked[x[0]]).length; return n + ' secrets actifs · ' + secretsDef.filter((x) => x[6] === 'soon' && !this.state.rot[x[0]]).length + ' à renouveler bientôt' + (this.state.snote ? ' · ' + this.state.snote : ''); })(),
+      secrets: secretsDef.map(([id, name, service, env, masked, rotated, st0, used, full]) => {
+        const revoked = !!this.state.revoked[id];
+        const rot = !!this.state.rot[id];
+        const stt = revoked ? 'revoked' : rot ? 'ok' : st0;
+        const ST = { ok: ['Valide', 'var(--success-bg)', 'var(--success-fg)'], soon: ['Expire sous 15 j', 'var(--warning-bg)', 'var(--warning-fg)'], revoked: ['Révoqué', 'var(--surface-3)', 'var(--text-3)'] };
+        const shown = this.state.reveal === id;
+        return {
+          name, service, env, used,
+          shown: revoked ? '—' : shown ? full : masked,
+          rotated: rot ? 'Aujourd’hui' : rotated,
+          status: ST[stt][0], stBg: ST[stt][1], stFg: ST[stt][2],
+          revealed: shown ? 'true' : 'false',
+          revealLabel: shown ? 'Masquer' : 'Afficher',
+          reveal: () => { if (!isDev || revoked) return; this.setState({ reveal: shown ? null : id }); },
+          rotate: () => { if (isDev && !revoked) this.setState({ sask: { kind: 'rot', id, name, service } }); },
+          revoke: () => { if (isDev && !revoked) this.setState({ sask: { kind: 'rev', id, name, service } }); }
+        };
+      }),
+      secretToggles: [
+        this.sw('k1', 'Rotation automatique', 'Les clés compatibles sont renouvelées tous les 90 jours, sans interruption de service', accent),
+        this.sw('k2', 'Alerte avant expiration', 'Les développeurs sont prévenus 15 jours avant l’expiration d’un secret', accent),
+        this.sw('k3', 'Double validation pour révoquer', 'Une révocation en production demande l’accord d’un second développeur', accent)
+      ],
+      scf: (() => {
+        const a = this.state.sask;
+        if (!a) return { open: false, title: '', body: '', details: [], label: '', tone: 'primary', confirm: () => {}, cancel: () => {} };
+        const rev = a.kind === 'rev';
+        return {
+          open: true, tone: rev ? 'danger' : 'primary',
+          label: rev ? 'Révoquer définitivement' : 'Renouveler la clé',
+          title: rev ? 'Révoquer ' + a.name + ' ?' : 'Renouveler ' + a.name + ' ?',
+          body: rev ? 'Le service ' + a.service + ' cessera immédiatement de fonctionner jusqu’à l’ajout d’une nouvelle clé. Cette action est irréversible.' : 'Une nouvelle valeur est générée chez ' + a.service + ' et déployée. L’ancienne reste valable 24 h pour éviter toute coupure.',
+          details: [{ k: 'Secret', v: a.name }, { k: 'Service', v: a.service }, { k: 'Environnement', v: 'Production' }],
+          confirm: () => this.setState(rev ? { revoked: { ...this.state.revoked, [a.id]: true }, sask: null, reveal: null, snote: a.name + ' révoqué' } : { rot: { ...this.state.rot, [a.id]: true }, sask: null, snote: a.name + ' renouvelé' }),
+          cancel: () => this.setState({ sask: null })
+        };
+      })(),
+      kitPageLabel: this.state.copied === 'page' ? 'Lien copié ✓' : 'Copier le lien du kit',
+      kitCopyPage: () => { try { navigator.clipboard.writeText('https://media.legarec.fr/kit/'); } catch (e) {} this.setState({ copied: 'page' }); },
+      kitLogos: [
+        ['h', 'Logo horizontal', 'Usage principal : site, e-mails, documents', '/_blob/51643287c78f23747afb5d585ed071a2', 'var(--white)', 'legarec-logo-horizontal'],
+        ['v', 'Logo vertical', 'Formats carrés, réseaux sociaux, signalétique', '/_blob/2b1757703b6a08527257db6a3c071902', 'var(--white)', 'legarec-logo-vertical'],
+        ['e', 'Emblème', 'Favicon, avatar, petits formats', '/_blob/5d8564b85080db4c67a3b8c1fba9f81b', 'var(--white)', 'legarec-embleme'],
+        ['n', 'Logo négatif', 'Sur fond bleu Legarec ou fond foncé', '/_blob/b7da0bfc2f50577a4c5b06ebfbf1d98e', 'var(--marine)', 'legarec-logo-negatif']
+      ].map(([id, name, use, src, bg, file]) => {
+        const done = this.state.copied === id;
+        return {
+          name, use, src, bg, alt: name + ' Legarec',
+          url: 'https://media.legarec.fr/kit/' + file + '.svg',
+          formats: [['SVG', 'svg'], ['PNG', 'png'], ['PDF', 'pdf']].map(([label, ext]) => ({ label, href: ext === 'png' ? src : 'https://media.legarec.fr/kit/' + file + '.' + ext, file: file + '.' + ext })),
+          copyLabel: done ? 'Copiée ✓' : 'Copier l’URL',
+          copyBg: done ? 'var(--success-bg)' : 'var(--white)', copyFg: done ? 'var(--success-fg)' : 'var(--text)',
+          copy: () => { try { navigator.clipboard.writeText('https://media.legarec.fr/kit/' + file + '.svg'); } catch (e) {} this.setState({ copied: id }); }
+        };
+      }),
+      kitColors: [
+        ['Bleu Legarec', '#002B74', 'rgb(0, 43, 116)'],
+        ['Jaune Legarec', '#FCBE03', 'rgb(252, 190, 3)'],
+        ['Ardoise', '#5D7087', 'rgb(93, 112, 135)'],
+        ['Bleu nuit', '#001B4D', 'rgb(0, 27, 77)']
+      ].map(([name, hex, rgb]) => {
+        const done = this.state.copied === hex;
+        return { name, hex, rgb, note: done ? 'Copié ✓' : 'Cliquer pour copier', noteColor: done ? 'var(--success-fg)' : 'var(--text-3)', copy: () => { try { navigator.clipboard.writeText(hex); } catch (e) {} this.setState({ copied: hex }); } };
+      }),
+      pageTitle: mode === 'tech' ? 'Paramètres techniques' : 'Paramètres du cabinet',
+      pageDesc: mode === 'tech' ? '3CX, e-mails, paiement en ligne, API, secrets, sécurité et journaux · rôle Développeur' : 'Cabinet, équipe, rôles, relances, modèles, SMS, reversements et données personnelles',
+      showTechLink: mode === 'user' && isDev,
+      showUserLink: mode === 'tech',
+      denied: mode === 'tech' && !isDev,
+      allowed: !(mode === 'tech' && !isDev),
+      goTech: () => { try { localStorage.setItem('lg-settings', 'tech'); } catch (e) {} this.setState({ mode: 'tech', view: 'hub' }); },
+      goUser: () => { try { localStorage.setItem('lg-settings', 'user'); } catch (e) {} this.setState({ mode: 'user', view: 'hub' }); },
+      trailText: view === 'hub' ? (mode === 'tech' ? 'Paramètres techniques' : 'Paramètres') : (mode === 'tech' ? 'Paramètres techniques' : 'Paramètres') + '>Reglages.dc.html|' + cur[1],
+      secLabel: cur[1],
+      yes: true,
+      inHub: view === 'hub', inSection: view === 'section',
+      headTitle: view === 'hub' ? (mode === 'tech' ? 'Paramètres techniques' : 'Paramètres du cabinet') : cur[1],
+      headDesc: view === 'hub' ? (mode === 'tech' ? '3CX, e-mails, paiement en ligne, API, secrets, sécurité et journaux · rôle Développeur' : 'Choisissez un thème. Les réglages techniques sont réservés au rôle Développeur.') : cur[2],
+      backLabel: mode === 'tech' ? 'Paramètres techniques' : 'Paramètres du cabinet',
+      goHub: () => this.setState({ view: 'hub', dirty: false }),
+      showClean: view === 'section' && !this.state.dirty,
+      hq: this.state.hq || '',
+      onHq: (e) => this.setState({ hq: e.target.value }),
+      clearHq: () => this.setState({ hq: '' }),
+      hubGroups: hubGroups,
+      hubEmpty: hubGroups.length === 0,
+      hasSiblings: sib.length > 1,
+      siblingsLabel: 'Sections : ' + (grp ? grp[0] : ''),
+      siblings: sib.map(([id, l]) => ({ label: l, selected: id === cur[0], pick: () => this.setState({ tab: id, dirty: false }) })),
+      secDesc: cur[2],
+      ro: !!cur[3] && !isDev,
+      groups: VIS.map(([label, items]) => ({
+        label,
+        items: items.map(([id, l, d, lock]) => ({
+          label: l, lock: !!lock && !isDev,
+          current: id === cur[0] ? 'page' : 'false',
+          bg: id === cur[0] ? 'var(--surface-3)' : 'transparent', color: id === cur[0] ? 'var(--text)' : 'var(--text-2)', weight: id === cur[0] ? '600' : '500',
+          pick: () => this.setState({ tab: id })
+        }))
+      })),
+      asRoles: [['RESPONSABLE_RECOUVREMENT', 'Responsable (vous)'], ['DIRIGEANT', 'Dirigeant'], ['DEVELOPPEUR', 'Développeur']].map(([k, label]) => ({
+        label, selected: this.state.me === k,
+        pick: () => { this.setState({ me: k }); try { localStorage.setItem('lg-role', k); } catch (e) {} try { window.dispatchEvent(new CustomEvent('lg-role', { detail: k })); } catch (e) {} }
+      })),
+      dirty: this.state.dirty,
+      clean: !this.state.dirty,
+      savedText: this.state.saved ? 'Modifications enregistrées' : 'Tout est à jour',
+      markDirty: () => this.setState({ dirty: true, saved: false }),
+      save: () => this.setState({ dirty: false, saved: true }),
+      cancel: () => this.setState({ dirty: false }),
+      ruleToggles: [
+        this.sw('r1', 'Échéancier au-delà de la durée maximale', 'Validation par un Responsable du recouvrement ou le Dirigeant', accent, true),
+        this.sw('r2', 'Remise ou abandon de créance', 'Toujours soumis à validation, quel que soit le montant', accent, true),
+        this.sw('r3', 'Passage en contentieux', 'Nécessite aussi l\u2019accord écrit du créancier', accent)
+      ],
+      smsToggles: [
+        this.sw('m1', 'Mention « STOP » obligatoire', 'Ajoutée automatiquement à la fin de chaque SMS', accent, true),
+        this.sw('m2', 'Lien de paiement raccourci', 'Inséré dans les SMS de relance', accent),
+        this.sw('m3', 'Accusés de distribution', 'Les SMS non distribués apparaissent en rouge dans la conversation', accent)
+      ],
+      iaToggles: [
+        this.sw('ia1', 'Transcription et résumé des appels', 'Résumé et qualification proposés après l’appel (Appels). Uniquement si l’enregistrement a été annoncé.', accent),
+        this.sw('ia2', 'Tri et analyse des e-mails', 'Catégorie, dossier rattaché, montants et dates extraits (E-mails)', accent),
+        this.sw('ia3', 'Brouillons de réponse', 'Proposés dans le ton du cabinet, à relire avant envoi (E-mails, SMS)', accent),
+        this.sw('ia4', 'Synthèse des dossiers', 'Résumé en 5 lignes en tête de la fiche débiteur', accent),
+        this.sw('ia5', 'Lecture des factures importées', 'Pré-remplissage des créances déposées en PDF par les créanciers', accent),
+        this.sw('ia6', 'Recherche en langage courant', 'Dans la recherche rapide (touche /)', accent)
+      ],
+      iaGuards: [
+        this.sw('g-ia1', 'Validation humaine obligatoire', 'Aucun envoi, échéancier, procédure ou enregistrement ne part sans le clic d’un collaborateur', accent, true),
+        this.sw('g-ia2', 'Pas de décision automatique sur les débiteurs', 'L’IA suggère et explique, elle ne décide jamais (RGPD, article 22)', accent, true),
+        this.sw('g-ia3', 'Transcription liée au consentement', 'Rien n’est enregistré ni analysé tant que l’annonce de l’enregistrement n’est pas cochée', accent, true),
+        this.sw('g-ia4', 'Données minimisées', 'IBAN, données bancaires et pièces d’identité masqués avant envoi à l’IA', accent, true),
+        this.sw('g-ia5', 'Mentions obligatoires hors IA', 'Les mentions légales des courriers et e-mails viennent toujours des modèles validés', accent, true)
+      ],
+      iaLogCols: [{ key: 'date', label: 'Date', width: '120px' }, { key: 'fn', label: 'Fonction' }, { key: 'dossier', label: 'Dossier' }, { key: 'user', label: 'Collaborateur' }, { key: 'decision', label: 'Décision', type: 'badge' }],
+      iaLogRows: [
+        ['23/11 10:42', 'Résumé d’appel', 'Bâtiplus SAS', 'Camille Laurent', 'Acceptée', 'success'],
+        ['23/11 10:15', 'Brouillon de réponse', 'Atelier Mistral', 'Camille Laurent', 'Modifiée', 'info'],
+        ['23/11 09:58', 'Tri des e-mails', 'Groupe Hélio', 'Thomas Giraud', 'Acceptée', 'success'],
+        ['22/11 17:20', 'Synthèse du dossier', 'Garage Valmont', 'Hugo Benali', 'Signalée', 'warning'],
+        ['22/11 16:03', 'Tri des e-mails', 'Fromagerie Durand', 'Sarah Morel', 'Corrigée', 'info'],
+        ['22/11 14:47', 'Résumé d’appel', 'Cabinet Orsay', 'Thomas Giraud', 'Ignorée', 'neutral']
+      ].map(([date, fn, dossier, user, d, tone]) => ({ date, fn, dossier, user, decision: { text: d, tone } })),
+      payToggles: [
+        this.sw('p1', 'Carte bancaire', 'Paiement immédiat depuis l\u2019espace débiteur', accent),
+        this.sw('p2', 'Virement', 'Avec la référence du dossier, rapproché automatiquement', accent),
+        this.sw('p3', 'Prélèvement SEPA', 'Utilisé aussi pour les échéanciers', accent),
+        this.sw('p4', 'Paiement partiel', 'Le débiteur peut régler une partie du solde', accent),
+        this.sw('p5', 'Reçu automatique par e-mail', 'Envoyé à chaque paiement', accent)
+      ],
+      payoutToggles: [
+        this.sw('v1', 'Validation du Dirigeant avant virement', 'Le lot de reversements attend son accord', accent),
+        this.sw('v2', 'Relevé envoyé au créancier', 'PDF et CSV, disponibles aussi dans son espace', accent)
+      ],
+      rgpdToggles: [
+        this.sw('g1', 'Mention d\u2019information dans chaque relance', 'Rappelle au débiteur ses droits et le contact du DPO', accent),
+        this.sw('g2', 'Anonymisation automatique', 'À l\u2019expiration de la durée de conservation', accent)
+      ],
+      tcats: [['all', 'Tous'], ['rec', 'Recouvrement'], ['fac', 'Facturation']].map(([id, label]) => { const on = (this.state.tcat || 'all') === id; return { label, count: String(TPLS.filter((x) => id === 'all' || x[0] === id).length), pressed: on ? 'true' : 'false', bg: on ? 'var(--marine)' : 'var(--surface)', fg: on ? 'var(--on-primary)' : 'var(--text-2)', border: on ? 'var(--marine)' : 'var(--border)', pick: () => this.setState({ tcat: id }) }; }),
+      templates: TPLS.filter((x) => (this.state.tcat || 'all') === 'all' || x[0] === this.state.tcat).map(([cat, id, channel, name, date, uses]) => ({ channel, name, date, uses, bg: (CH[channel] || CH['Courrier'])[0], fg: (CH[channel] || CH['Courrier'])[1], open: () => { try { localStorage.setItem('lg-tpl', id); } catch (e) {} } })),
+      audit: [
+        ['21/11/2026 11:58', 'Camille Laurent', 'Validation d\u2019un échéancier de 8 mois (Bâtiplus SAS)', 'var(--marine)', '91.168.•••.12'],
+        ['21/11/2026 10:44', 'Marie Dubreuil', 'Export des données (Rapports)', 'var(--warning)', '91.168.•••.40'],
+        ['21/11/2026 09:02', 'Camille Laurent', 'Connexion réussie (2FA)', 'var(--success)', '91.168.•••.12'],
+        ['21/11/2026 08:57', 'Inconnu', '3 tentatives de connexion échouées (hb@legarec.fr)', 'var(--danger)', '185.22.•••.7'],
+        ['20/11/2026 18:30', 'Julien Martin', 'Modification de la configuration des webhooks', 'var(--text-2)', '10.0.•••.3'],
+        ['20/11/2026 16:12', 'Marie Dubreuil', 'Création du compte de Lucas Perrin', 'var(--marine)', '91.168.•••.40'],
+        ['20/11/2026 14:05', 'Claire Besson', 'Connexion à l\u2019espace créancier', 'var(--success)', '78.192.•••.88']
+      ].map(([date, who, what, dot, ip]) => ({ date, who, what, dot, ip })),
+      ...this.usersVals(ROLE, usersDef, accent),
+      roleMission: ROLE[pr][0] + ' : ' + ROLE[pr][3],
+      roles: RK.map((k) => ({
+        short: ROLE[k][1], pressed: pr === k ? 'true' : 'false',
+        bg: pr === k ? 'var(--white)' : 'transparent', color: pr === k ? 'var(--text)' : 'var(--text-3)',
+        shadow: pr === k ? 'var(--shadow-sm)' : 'none',
+        colBg: pr === k ? 'var(--bleu-pale)' : 'transparent', colFg: pr === k ? 'var(--marine)' : 'var(--text-3)',
+        pick: () => this.setState({ prole: k })
+      })),
+      perms: permsDef.map(([label, vals]) => ({
+        label,
+        cells: vals.map((v, i) => ({ yes: v !== 'n', no: v === 'n', note: v === 'y' ? '' : v, colBg: RK[i] === pr ? 'var(--bleu-pale)' : 'transparent' }))
+      })),
+      steps: stepsDef.map(([id, when, channel, title, detail]) => {
+        const s = this.sw(id, title, detail, accent);
+        const on = !!this.state.on[id];
+        return { ...s, when, channel, chipBg: CH[channel][0], chipFg: CH[channel][1], bg: on ? 'var(--white)' : 'var(--surface-2)', textColor: on ? 'var(--text)' : 'var(--text-3)' };
+      }),
+      cx: {
+        facts: [
+          { k: 'Instance', v: 'legarec.on3cx.fr · 3CX V20 hébergée' },
+          { k: 'Numéro principal', v: '01 87 88 02 98 · 4 lignes simultanées' },
+          { k: 'File entrante', v: '800 « Recouvrement » · distribution au plus disponible' },
+          { k: 'Post-appel', v: '60 s de pause pour qualifier' },
+          { k: 'Enregistrements', v: 'Récupérés de 3CX et rattachés au dossier · 6 mois' },
+          { k: 'Dernière synchronisation', v: 'il y a 20 s' }
+        ],
+        exts: [
+          ['Camille Laurent', '101', '800', 'En appel', 'var(--success)'],
+          ['Hugo Benali', '102', '800', 'Disponible', 'var(--info)'],
+          ['Sarah Morel', '103', '800', 'Pause', 'var(--warning)'],
+          ['Thomas Giraud', '104', '800', 'Absent', 'var(--text-3)']
+        ].map(([name, ext, queues, state, dot]) => ({ name, ext, queues, state, dot })),
+        codes: ['PROMESSE', 'ECHEANCIER', 'RAPPEL', 'LITIGE', 'DEJA_PAYE', 'ABSENT', 'NON_REPONSE', 'FAUX_NUMERO']
+      },
+      telToggles: [
+        this.sw('t1', 'Enregistrer les appels', 'Message d’information diffusé au début de chaque appel', accent),
+        this.sw('t2', 'Composition automatique', 'Le numéro suivant de la file est appelé à la fin de la qualification', accent),
+        this.sw('t4', 'Fiche débiteur à l\u2019appel entrant', '3CX reconnaît le numéro et ouvre le dossier du débiteur', accent),
+        this.sw('t3', 'Transcription des appels', 'Résumé ajouté à l’historique du dossier', accent)
+      ],
+      signature: 'Camille Laurent\nChargée de recouvrement\nAgissant pour le compte de nos créanciers',
+      integrations: intDef.map(([title, detail, status]) => ({ title, detail, status, bg: I(status)[0], fg: I(status)[1], cta: I(status)[2] })),
+      secToggles: [
+        this.sw('x1', 'Double authentification obligatoire pour Développeur et Dirigeant', 'Ces comptes ne peuvent pas se connecter sans 2FA', accent),
+        this.sw('x5', 'Recommander la 2FA aux autres rôles', 'Rappel affiché à chaque connexion tant qu\u2019elle n\u2019est pas activée', accent),
+        this.sw('x6', 'Bloquer le compte après 5 tentatives échouées', 'Blocage de 15 minutes, alerte envoyée à l\u2019utilisateur', accent),
+        this.sw('x7', 'Déconnexion automatique après 30 minutes d\u2019inactivité', 'S\u2019applique à tous les comptes, créanciers compris', accent),
+        this.sw('x8', 'Journal d\u2019audit', 'Chaque connexion et chaque action sensible est enregistrée (utilisateur, action, date, adresse IP)', accent),
+        this.sw('x2', 'Cloisonnement par créancier', 'Un gestionnaire ne voit que ses dossiers, un créancier que les siens', accent),
+        this.sw('x3', 'Masquer les IBAN des débiteurs', 'Visibles seulement par les rôles Dirigeant et Développeur', accent),
+        this.sw('x4', 'Connexion par SSO', 'Authentification unique de l\u2019entreprise', accent)
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

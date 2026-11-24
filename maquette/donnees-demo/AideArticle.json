@@ -1,0 +1,71 @@
+{
+  "accent": "var(--marine)",
+  "steps": [
+    {
+      "n": 1,
+      "title": "Ouvrez le dossier du débiteur",
+      "text": "Depuis Débiteurs ou la recherche (Ctrl K), ouvrez la fiche, puis cliquez sur « Proposer un échéancier ».",
+      "link": "Ouvrir une fiche débiteur",
+      "href": "Dossier.dc.html",
+      "hasLink": true
+    },
+    {
+      "n": 2,
+      "title": "Simulez le plan",
+      "text": "Choisissez le nombre de mensualités : la mensualité et la date de la dernière échéance se calculent automatiquement.",
+      "link": "Ouvrir le simulateur",
+      "href": "Echeanciers.dc.html",
+      "hasLink": true
+    },
+    {
+      "n": 3,
+      "title": "Choisissez le mode de paiement",
+      "text": "Le prélèvement SEPA réduit fortement les oublis. Le virement et la carte restent possibles.",
+      "link": "",
+      "href": "",
+      "hasLink": false
+    },
+    {
+      "n": 4,
+      "title": "Envoyez la proposition",
+      "text": "Si vous êtes Gestionnaire, la proposition part d’abord en validation chez un Responsable du recouvrement. Sinon, elle est envoyée directement au débiteur.",
+      "link": "",
+      "href": "",
+      "hasLink": false
+    },
+    {
+      "n": 5,
+      "title": "Le débiteur signe",
+      "text": "Il reçoit un lien pour accepter et signer le plan. L’échéancier passe alors « À jour » et les relances classiques s’arrêtent.",
+      "link": "Voir l’espace de paiement",
+      "href": "Payer.dc.html",
+      "hasLink": true
+    }
+  ],
+  "faq": [
+    {
+      "q": "Puis-je modifier un échéancier déjà signé ?",
+      "a": "Oui, depuis Échéanciers › Modifier le plan. La modification repart en validation et le débiteur signe un nouveau plan.",
+      "open": true,
+      "expanded": "true",
+      "chev": "m18 15-6-6-6 6"
+    },
+    {
+      "q": "Que se passe-t-il si une échéance n’est pas payée ?",
+      "a": "Le débiteur reçoit un rappel et le plan passe « En retard ». Après deux échéances impayées, il passe « En défaut » et vous pouvez reprendre les relances ou proposer le contentieux.",
+      "open": false,
+      "expanded": "false",
+      "chev": "m6 9 6 6 6-6"
+    },
+    {
+      "q": "Le créancier est-il prévenu ?",
+      "a": "Oui : l’échéancier apparaît dans son espace créancier, avec le statut « Échéancier » et le détail des paiements reçus.",
+      "open": false,
+      "expanded": "false",
+      "chev": "m6 9 6 6 6-6"
+    }
+  ],
+  "noVote": true,
+  "voted": false,
+  "voteText": "Merci. Dites-nous ce qui manque via le support, nous améliorerons l’article."
+}

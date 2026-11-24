@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Legarec – SMS</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Lora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+/* tokens:start — charte graphique LEGAREC v1.0 (octobre 2026). Ne pas modifier à la main : généré depuis tools/tokens.css */
+:root{
+  /* Marque */
+  --marine:#002B74; --marine-hover:#00225C; --marine-text:#002B74; --app-icon-bg:#002B74; --app-icon-fg:#FCBE03; --nuit:#001B4D; --or:#FCBE03; --or-clair:#FFF3C4; --ardoise:#5D7087;
+  --bleu-pale:#EEF2F8; --gris-clair:#F6F8FB; --bleu-200:#D6E0F0; --white:#FFFFFF;
+  /* Texte */
+  --text:#0F1B2D; --text-2:#33455C; --text-3:#5D7087; --on-primary:#FFFFFF;
+  /* Surfaces et bordures */
+  --surface:#FFFFFF; --surface-2:#F6F8FB; --surface-3:#EEF2F7; --border:#E1E7EF; --border-strong:#7D8DA1;
+  /* Surfaces sombres (carte d'appel, barre d'actions groupées) */
+  --surface-dark:#001B4D; --surface-dark-2:#0B2D63; --border-dark:#2A4A7D; --on-dark:#FFFFFF; --on-dark-2:#D5DEEB; --on-dark-muted:#A9B8CC; --on-dark-accent:#B8CBEA;
+  /* Données (graphiques, balance âgée) */
+  --data-1:#C9D6EC; --data-2:#7F9CD0; --data-3:#345DA8;
+  /* Tons sémantiques : fond, bordure, point, texte */
+  --success-bg:#ECFDF5; --success-border:#A7F3D0; --success:#059669; --success-strong:#10B981; --success-fg:#047857; --on-success:#052E16;
+  --warning-bg:#FFF3C4; --warning-border:#F5D77A; --warning:#D97706; --warning-fg:#8A4B08;
+  --danger-bg:#FFF1F2; --danger-border:#FECDD3; --danger:#E11D48; --danger-fg:#BE123C; --danger-dark:#7F1D1D; --danger-on-dark:#FDA4AF;
+  --info-bg:#F0F9FF; --info-border:#BAE6FD; --info:#0284C7; --info-fg:#0369A1;
+  --violet-bg:#F5F3FF; --violet-border:#DDD6FE; --violet:#7C3AED; --violet-fg:#6D28D9;
+  --teal-bg:#CCFBF1; --teal:#0D9488; --teal-fg:#115E59;
+  /* Fonds pleins (badges pleins, texte --on-primary ≥ 5:1 dans les deux modes) */
+  --solid-neutral:#33455C; --solid-info:#0369A1; --solid-success:#047857; --solid-warning:#8A4B08; --solid-danger:#BE123C; --solid-violet:#6D28D9; --solid-teal:#115E59;
+  /* Typographie */
+  --font-title:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-text:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-brand:Lora, Georgia, serif; --font-mono:ui-monospace, SFMono-Regular, Menlo, monospace;
+  --fs-doc-xs:8px; --fs-doc-sm:9px; --fs-doc-md:10px; --fs-doc-lg:10.5px; --fs-2xs:11px; --fs-xs:12px; --fs-sm:13px; --fs-base:14px; --fs-md:16px; --fs-lg:18px; --fs-xl:20px; --fs-2xl:26px; --fs-3xl:34px;
+  /* Rayons */
+  --r-xs:4px; --r-sm:6px; --r-md:8px; --r-lg:12px; --r-full:9999px;
+  /* Ombres */
+  --shadow-sm:0 1px 2px 0 rgba(0,27,77,0.06); --shadow-md:0 10px 15px -3px rgba(0,27,77,0.10), 0 4px 6px -4px rgba(0,27,77,0.10); --shadow-lg:0 20px 25px -5px rgba(0,27,77,0.18), 0 8px 10px -6px rgba(0,27,77,0.12);
+  --shadow-knob:0 1px 2px rgba(0,27,77,0.25); --overlay:rgba(0,27,77,0.55);
+  /* Espacements (grille de 4 px) */
+  --sp-0h:2px; --sp-1:4px; --sp-1h:6px; --sp-2:8px; --sp-2h:10px; --sp-3:12px; --sp-3h:14px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px; --sp-10:40px; --sp-11:44px; --sp-12:48px;
+  /* Hauteurs de contrôles */
+  --control-xs:28px; --control-sm:36px; --control-md:40px; --control-lg:44px;
+  /* Voiles et anneaux (surfaces sombres, animations) */
+  --veil-8:rgba(255,255,255,0.08); --veil-18:rgba(255,255,255,0.18); --veil-25:rgba(255,255,255,0.25); --veil-35:rgba(255,255,255,0.35); --veil-80:rgba(255,255,255,0.8); --veil-85:rgba(255,255,255,0.85); --on-success-veil:rgba(5,46,22,0.35); --success-ring:rgba(16,185,129,0.55); --success-ring-0:rgba(16,185,129,0);
+  /* Cibles tactiles */
+  --target:44px;
+}
+body{font-family:var(--font-text);font-feature-settings:"cv11";-webkit-font-smoothing:antialiased}
+h1,h2{font-family:var(--font-title);font-weight:700;color:var(--marine);overflow-wrap:break-word;letter-spacing:-0.015em}
+[data-brand] h1,[data-brand] h2{font-family:var(--font-brand);letter-spacing:0}
+td,th,li,h3{overflow-wrap:break-word}
+:focus-visible{outline:2px solid var(--marine);outline-offset:2px}
+[data-dark] :focus-visible{outline-color:var(--or)}
+button:disabled,[aria-disabled="true"]{cursor:not-allowed !important;opacity:.55}
+button:not(:disabled):hover,a[href][style*="border-radius"]:hover{filter:brightness(.96)}
+tbody tr:hover{background-color:var(--surface-2)}
+[data-table-scroll]{max-height:min(68vh,720px);overflow:auto !important}
+[data-table-scroll] thead th{position:sticky;top:0;z-index:2;background:var(--surface-2);box-shadow:inset 0 -1px 0 var(--border)}
+[data-skeleton]{display:block;border-radius:var(--r-xs);background:linear-gradient(90deg,var(--surface-3) 25%,var(--bleu-pale) 50%,var(--surface-3) 75%);background-size:200% 100%;animation:lg-sk 1.2s ease-in-out infinite}
+@keyframes lg-sk{from{background-position:200% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+@media (pointer: coarse), (max-width: 767px){
+  button,select,input:not([type=checkbox]):not([type=radio]):not([type=range]),[role=tab],[role=menuitem],a[href][style*="display: inline-flex"],a[href][style*="height:"]{min-height:var(--target)}
+  input[type=checkbox],input[type=radio]{min-width:22px;min-height:22px}
+}
+/* Mode sombre : data-theme="dark" sur <html> */
+:root[data-theme="dark"]{
+  --marine:#2E5FC0; --marine-hover:#2A57B0; --marine-text:#9DB8F0; --app-icon-bg:#0A1A3F; --nuit:#071028; --or-clair:#3A2F0A; --ardoise:#9AA9BD;
+  --bleu-pale:#1B2A4A; --gris-clair:#0A1020; --bleu-200:#2B3E63; --white:#16203A;
+  --text:#E6ECF5; --text-2:#C3CEDD; --text-3:#9AA9BD;
+  --surface:#0F1729; --surface-2:#0A1020; --surface-3:#1A2438; --border:#26324A; --border-strong:#67778F;
+  --surface-dark:#050B1A; --surface-dark-2:#101C36; --border-dark:#24365A;
+  --data-1:#2B3E63; --data-2:#4F73B8; --data-3:#7F9CD0;
+  --success-bg:#0B2E22; --success-border:#14532D; --success-fg:#6EE7B7;
+  --warning-bg:#3A2F0A; --warning-border:#6B5310; --warning-fg:#FCD34D;
+  --danger-bg:#3B0D17; --danger-border:#7F1D2E; --danger-fg:#FDA4AF;
+  --info-bg:#0B2540; --info-border:#164E63; --info-fg:#7DD3FC;
+  --violet-bg:#24164A; --violet-border:#4C1D95; --violet-fg:#C4B5FD;
+  --teal-bg:#0B302C; --teal-fg:#5EEAD4;
+  --shadow-sm:0 1px 2px 0 rgba(0,0,0,0.4); --shadow-md:0 10px 15px -3px rgba(0,0,0,0.5); --shadow-lg:0 20px 25px -5px rgba(0,0,0,0.6); --overlay:rgba(0,0,0,0.65);
+  color-scheme:dark;
+}
+:root[data-theme="dark"] body{background:var(--surface-2);color:var(--text)}
+:root[data-theme="dark"] :focus-visible{outline-color:#9DB8F0}
+:root[data-theme="dark"] [data-dark]{border:1px solid var(--border-dark)}
+:root[data-theme="dark"] h1,:root[data-theme="dark"] h2,:root[data-theme="dark"] a[href]:not([style*="background"]){color:var(--marine-text)}
+:root[data-theme="dark"] [style*="color: var(--marine)"]:not([style*="background: var(--marine)"]){color:var(--marine-text) !important}
+:root[data-theme="dark"] img[src*="_blob"]{background:var(--white);border-radius:var(--r-sm)}
+/* Mode malvoyant : data-a11y="malvoyant" sur <html> — texte agrandi, contraste renforcé, cibles plus grandes */
+:root[data-a11y="malvoyant"]{
+  --fs-2xs:13px; --fs-xs:14px; --fs-sm:15px; --fs-base:17px; --fs-md:19px; --fs-lg:21px; --fs-xl:24px; --fs-2xl:30px; --fs-3xl:38px;
+  --control-xs:36px; --control-sm:44px; --control-md:48px; --control-lg:52px; --target:48px;
+  --text-3:var(--text-2); --ardoise:var(--text-2); --border:var(--border-strong);
+}
+:root[data-a11y="malvoyant"] body{line-height:1.6}
+:root[data-a11y="malvoyant"] [data-sb-nav][style*="width: 264px"]{width:312px !important}
+:root[data-a11y="malvoyant"] :focus-visible{outline:3px solid var(--or);outline-offset:3px;box-shadow:0 0 0 6px var(--marine)}
+:root[data-a11y="malvoyant"] a[href]:not([style*="background"]){text-decoration:underline;text-underline-offset:3px}
+:root[data-a11y="malvoyant"] button,:root[data-a11y="malvoyant"] select,:root[data-a11y="malvoyant"] input:not([type=checkbox]):not([type=radio]){min-height:var(--target)}
+:root[data-a11y="malvoyant"] input[type=checkbox],:root[data-a11y="malvoyant"] input[type=radio]{min-width:24px;min-height:24px}
+:root[data-a11y="malvoyant"][data-theme="dark"]{--text-3:#E6ECF5;--text-2:#E6ECF5}
+/* tokens:end */
+body{margin:0;font-family:var(--font-text);color:var(--text);background:var(--surface-2)}
+a{color:var(--marine)}a:hover{color:var(--marine)}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; background: var(--surface-2); font-family: var(--font-text); color: var(--text)">
+
+<div data-sb-wrap style="flex: 0 0 auto; max-width: 100%; display: flex; background: var(--surface-2); border-right: 1px solid var(--border)">
+<dc-import name="Sidebar" active="Sms.dc.html" accent="{{accent}}" hint-size="264px,1100px"></dc-import>
+</div>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: var(--sp-8); box-sizing: border-box; display: flex; flex-direction: column; gap: var(--sp-6)">
+<dc-import name="Topbar" accent="{{accent}}" trail="Communication|SMS" hint-size="100%,64px"></dc-import>
+<div data-page-body style="width: 100%; max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--sp-6)">
+
+<dc-import name="PageHeader" title="SMS" description="Conversations avec les débiteurs · expéditeur « LEGAREC » · réponse STOP gérée automatiquement" accent="{{accent}}" actions="{{headActions}}" stats="{{headStats}}" stats-label="Indicateurs SMS" hint-size="100%,170px"></dc-import>
+
+<dc-import name="Toolbar" label="Filtrer les conversations" tabs="{{tbTabs}}" tabs-label="Filtrer" placeholder="Débiteur, SIRET, numéro…" filters="{{tbFilters}}" query="{{q}}" on-query="{{onQuery}}" hint-size="100%,48px"></dc-import>
+
+<div style="display: flex; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden; align-items: stretch; min-height: 640px">
+
+<section aria-label="Conversations" style="flex: 1 1 300px; min-width: 0; border-right: 1px solid var(--border); display: flex; flex-direction: column">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: var(--sp-2); padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--border)"><span style="font-size: var(--fs-base); font-weight: 600">Conversations</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{threadCount}} affichées</span></div>
+<ul style="list-style: none; margin: 0; padding: 0; overflow-y: auto">
+<sc-for list="{{threads}}" as="t" hint-placeholder-count="6">
+<li style="border-bottom: 1px solid var(--surface-3)">
+<button type="button" onClick="{{t.pick}}" aria-pressed="{{t.pressed}}" style="width: 100%; text-align: left; border: 0; font: inherit; cursor: pointer; padding: var(--sp-3) var(--sp-3h); display: flex; gap: var(--sp-2h); background: {{t.bg}}; box-shadow: {{t.bar}}">
+<span style="width: 36px; height: 36px; border-radius: var(--r-full); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: var(--fs-xs); font-weight: 600; background: var(--bleu-pale); color: var(--marine)">{{t.ini}}</span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-0h)">
+<span style="display: flex; justify-content: space-between; gap: var(--sp-2)"><span style="font-size: var(--fs-base); color: var(--text); font-weight: {{t.weight}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{t.name}}</span><span style="font-size: var(--fs-xs); color: var(--text-3); white-space: nowrap">{{t.time}}</span></span>
+<span style="font-size: var(--fs-xs); color: var(--marine); font-weight: 500">{{t.mandant}}</span>
+<span style="display: flex; justify-content: space-between; gap: var(--sp-2); align-items: center"><span style="font-size: var(--fs-sm); color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{t.preview}}</span><sc-if value="{{t.unread}}" hint-placeholder-val="{{ false }}"><span style="min-width: 18px; height: 18px; border-radius: var(--r-full); background: var(--or); color: var(--text); font-size: var(--fs-xs); font-weight: 700; display: inline-flex; align-items: center; justify-content: center; padding: 0 var(--sp-1); box-sizing: border-box">{{t.unreadCount}}</span></sc-if></span>
+</span>
+</button>
+</li>
+</sc-for>
+</ul>
+<sc-if value="{{lst.show}}" hint-placeholder-val="{{ false }}"><dc-import name="EtatListe" kind="{{lst.kind}}" title="{{lst.title}}" text="{{lst.text}}" action-label="{{lst.actionLabel}}" on-action="{{lst.action}}" count="{{lst.count}}" hint-size="100%,220px"></dc-import></sc-if>
+<sc-if value="{{pg.show}}" hint-placeholder-val="{{ true }}"><dc-import name="Pagination" total="{{pg.total}}" page="{{pg.page}}" size="{{pg.size}}" unit="conversations" label="Pagination des conversations" on-page="{{pg.onPage}}" on-size="{{pg.onSize}}" hint-size="100%,60px"></dc-import></sc-if>
+</section>
+
+<section aria-label="Conversation" style="flex: 2 1 420px; min-width: 0; display: flex; flex-direction: column; border-right: 1px solid var(--border)">
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-3) var(--sp-5); border-bottom: 1px solid var(--border)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-0h)">
+<span style="font-size: var(--fs-md); font-weight: 600">{{cur.name}}</span>
+<span style="font-size: var(--fs-sm); color: var(--text-3)">{{cur.contact}} · {{cur.phone}}</span>
+</div>
+<div style="display: flex; gap: var(--sp-2)">
+<dc-import name="Bouton" variant="secondary" size="sm" label="Appeler" icon="phone" href="Telephonie.dc.html" style="display: contents" hint-size="120px,40px"></dc-import>
+<dc-import name="Bouton" variant="secondary" size="sm" label="Ouvrir le dossier" href="Dossier.dc.html" style="display: contents" hint-size="120px,40px"></dc-import>
+</div>
+</div>
+
+<div style="flex: 1; padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-3); background: var(--surface-2); overflow-y: auto">
+<sc-for list="{{cur.msgs}}" as="m" hint-placeholder-count="4">
+<div style="display: flex; flex-direction: column; gap: var(--sp-1); align-self: {{m.align}}; max-width: 78%; align-items: {{m.itemsAlign}}">
+<sc-if value="{{m.isAuto}}" hint-placeholder-val="{{ false }}"><span style="font-size: var(--fs-xs); font-weight: 500; color: var(--text-3); display: flex; align-items: center; gap: var(--sp-1)"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v6l4 2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z"></path></svg>{{m.autoLabel}}</span></sc-if>
+<div style="padding: var(--sp-2h) var(--sp-3h); font-size: var(--fs-base); line-height: 1.5; white-space: pre-line; border-radius: {{m.radius}}; background: {{m.bg}}; color: {{m.fg}}; border: {{m.border}}">{{m.text}}</div>
+<span style="font-size: var(--fs-xs); color: var(--text-3)">{{m.meta}}</span>
+</div>
+</sc-for>
+</div>
+
+<div style="border-top: 1px solid var(--border); padding: var(--sp-3) var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-2h); background: var(--surface)">
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-1h); align-items: center">
+<span style="font-size: var(--fs-xs); color: var(--text-3)">Réponses rapides :</span>
+<sc-for list="{{quick}}" as="q" hint-placeholder-count="4">
+<button type="button" onClick="{{q.use}}" style="height: var(--control-xs); padding: 0 var(--sp-2h); border-radius: var(--r-full); border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font: inherit; font-size: var(--fs-xs); font-weight: 500; cursor: pointer">{{q.label}}</button>
+</sc-for>
+</div>
+<label style="display: block">
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Votre SMS</span>
+<textarea rows="3" value="{{draft}}" onChange="{{onDraft}}" placeholder="Écrire un SMS à {{cur.contact}}…" style="width: 100%; box-sizing: border-box; border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: var(--sp-2h) var(--sp-3); font: inherit; font-size: var(--fs-base); color: var(--text); resize: vertical; line-height: 1.5; outline: none"></textarea>
+</label>
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--sp-2h)">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); font-size: var(--fs-xs); color: var(--text-3)">
+<span style="font-variant-numeric: tabular-nums; color: {{countColor}}">{{charCount}} caractères · {{segments}} SMS</span>
+<label style="display: flex; align-items: center; gap: var(--sp-1h); color: var(--text-2)"><input type="checkbox" checked="{{withLink}}" onChange="{{toggleLink}}" style="width: 16px; height: 16px; accent-color: var(--marine)">Ajouter le lien de paiement</label>
+<span>Mention « STOP » ajoutée automatiquement</span>
+</div>
+<div style="display: flex; gap: var(--sp-2)">
+<button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="height: var(--control-sm); padding: 0 var(--sp-3); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer">Programmer</button>
+<button type="button" onClick="{{send}}" style="height: var(--control-sm); padding: 0 var(--sp-3h); border-radius: var(--r-sm); border: 0; background: {{accent}}; color: var(--on-primary); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: var(--sp-1h)"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4zM22 2 11 13"></path></svg>Envoyer</button>
+</div>
+</div>
+</div>
+</section>
+
+<aside aria-label="Contexte du dossier" style="flex: 1 1 260px; min-width: 0; padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-4)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-1)">
+<span style="font-size: var(--fs-xs); color: var(--text-3)">Dossier</span>
+<a href="Dossier.dc.html" style="font-size: var(--fs-md); font-weight: 600; text-decoration: none; color: var(--text)">{{cur.name}}</a>
+<span style="font-size: var(--fs-sm); color: var(--marine); font-weight: 500">Pour le compte de {{cur.mandant}}</span>
+</div>
+<dl style="margin: 0; display: flex; flex-direction: column; gap: var(--sp-2h); font-size: var(--fs-sm)">
+<div style="display: flex; justify-content: space-between; gap: var(--sp-3)"><dt style="color: var(--text-3)">Montant dû</dt><dd style="margin: 0; font-weight: 600">{{cur.due}}</dd></div>
+<div style="display: flex; justify-content: space-between; gap: var(--sp-3)"><dt style="color: var(--text-3)">Retard</dt><dd style="margin: 0">{{cur.late}}</dd></div>
+<div style="display: flex; justify-content: space-between; gap: var(--sp-3)"><dt style="color: var(--text-3)">Statut</dt><dd style="margin: 0"><span style="font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-0h) var(--sp-2); border-radius: var(--r-full); background: {{cur.stBg}}; color: {{cur.stFg}}">{{cur.status}}</span></dd></div>
+<div style="display: flex; justify-content: space-between; gap: var(--sp-3)"><dt style="color: var(--text-3)">Consentement SMS</dt><dd style="margin: 0; color: var(--success-fg); font-weight: 500">Actif</dd></div>
+</dl>
+<div style="display: flex; flex-direction: column; gap: var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--surface-3)">
+<span style="font-size: var(--fs-xs); font-weight: 500; color: var(--text-3)">Actions</span>
+<a href="Echeanciers.dc.html" style="height: var(--control-sm); padding: 0 var(--sp-3); border-radius: var(--r-sm); border: 1px solid var(--border); color: var(--text); font-size: var(--fs-sm); font-weight: 500; text-decoration: none; display: flex; align-items: center">Enregistrer une promesse</a>
+<a href="Echeanciers.dc.html" style="height: var(--control-sm); padding: 0 var(--sp-3); border-radius: var(--r-sm); border: 1px solid var(--border); color: var(--text); font-size: var(--fs-sm); font-weight: 500; text-decoration: none; display: flex; align-items: center">Proposer un échéancier</a>
+<a href="Relances.dc.html" style="height: var(--control-sm); padding: 0 var(--sp-3); border-radius: var(--r-sm); border: 1px solid var(--border); color: var(--text); font-size: var(--fs-sm); font-weight: 500; text-decoration: none; display: flex; align-items: center">Planifier un rappel</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: var(--sp-1h); padding-top: var(--sp-3); border-top: 1px solid var(--surface-3)">
+<span style="font-size: var(--fs-xs); font-weight: 500; color: var(--text-3)">Prochain SMS automatique</span>
+<span style="font-size: var(--fs-sm); color: var(--text-2)">{{cur.next}}</span>
+</div>
+</aside>
+
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#002B74","options":["#002B74","#001B4D","#5D7087"]},"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { loading: true, q: '', sel: 's1', filter: 'all', draft: '', withLink: true, sent: {}, read: {} };
+  }
+  componentDidMount() { this.lt = setTimeout(() => this.setState({ loading: false }), 700); }
+  componentWillUnmount() { clearTimeout(this.lt); }
+  renderVals() {
+    const v = this._rv();
+    const st = this.state;
+    const q = (st.q || '').toLowerCase().trim();
+    const qs = q.replace(/\s/g, '');
+    const hit = (o) => {
+      if (!q) return true;
+      const t = JSON.stringify(o, (k, x) => (typeof x === 'function' ? undefined : x)).toLowerCase();
+      return t.includes(q) || (qs.length >= 3 && t.replace(/\s/g, '').includes(qs));
+    };
+    const list = (v.threads || []).filter(hit);
+    v.threads = st.loading ? [] : list;
+    v.q = st.q || '';
+    v.onQuery = (e) => this.setState({ q: e.target.value });
+    const pgTotal = q ? list.length : 64;
+    v.pg = { show: !st.loading && list.length > 0, total: pgTotal, page: st.pgPage || 1, size: st.pgSize || 25, onPage: (n) => this.setState({ pgPage: n }), onSize: (n) => this.setState({ pgSize: n, pgPage: 1 }) };
+    v.lst = {
+      show: !!st.loading || list.length === 0,
+      kind: st.loading ? 'loading' : q ? 'noresult' : 'empty',
+      title: st.loading ? '' : q ? 'Aucun résultat pour « ' + (st.q || '').trim() + ' »' : 'Aucune conversation',
+      text: st.loading ? '' : q ? 'Vérifiez l\u2019orthographe, ou cherchez par numéro SIRET, SIREN ou de facture.' : 'Les réponses des débiteurs aux SMS de relance apparaissent ici.',
+      actionLabel: q ? 'Effacer la recherche' : '',
+      action: () => this.setState({ q: '' }),
+      count: 5
+    };
+    return v;
+  }
+  _rv() {
+    const accent = this.props.accent ?? 'var(--marine)';
+    const st = this.state;
+    const S = { retard: ['var(--danger-bg)', 'var(--danger-fg)', 'En retard'], promesse: ['var(--warning-bg)', 'var(--warning-fg)', 'Promesse'], relance: ['var(--info-bg)', 'var(--info-fg)', 'En relance'], regle: ['var(--success-bg)', 'var(--success-fg)', 'Réglé'] };
+    const out = (text, meta, auto) => ({ dir: 'out', text, meta, auto });
+    const inc = (text, meta) => ({ dir: 'in', text, meta });
+    const threads = [
+      { id: 's1', ini: 'FD', name: 'Fromagerie Durand', contact: 'M. Marc Durand', phone: '06 12 •• •• 48', mandant: 'Énergies Rhône', due: '6 240 €', late: '21 j', k: 'relance', time: '10:42', unread: 2, next: 'Aucun : scénario suspendu (réponse reçue)', msgs: [
+        out('LEGAREC pour Énergies Rhône : 2 factures restent impayées (6 240 €). Réglez en ligne : [LIEN DE PAIEMENT]. STOP au [NUMÉRO STOP]', 'Envoyé le 21/11 à 10:00 · distribué', 'Relance SMS automatique J+21'),
+        inc('Bonjour, j’ai demandé le RIB par mail mercredi, toujours rien reçu.', '10:38'),
+        inc('Je peux payer cette semaine.', '10:42')
+      ] },
+      { id: 's2', ini: 'JM', name: 'Julie Mercier', contact: 'Mme Julie Mercier', phone: '06 74 •• •• 02', mandant: 'Crédit Horizon', due: '1 200 €', late: '—', k: 'promesse', time: '09:15', unread: 1, next: 'Rappel d’échéance le 28/11 à 10:00', msgs: [
+        out('LEGAREC pour Crédit Horizon : votre échéance de 240 € sera prélevée le 01/12. STOP au [NUMÉRO STOP]', 'Envoyé le 20/11 · distribué', 'Rappel avant échéance'),
+        inc('Est-ce possible de décaler au 05/12 ? Mon salaire arrive le 4.', '09:15')
+      ] },
+      { id: 's3', ini: 'GH', name: 'Groupe Hélio', contact: 'Mme Nadia Roussel', phone: '06 33 •• •• 91', mandant: 'Médiatel', due: '36 750 €', late: '38 j', k: 'relance', time: 'Hier', unread: 0, next: 'Relance n°3 le 25/11 à 09:00', msgs: [
+        out('LEGAREC pour Médiatel : sauf erreur, 36 750 € restent dus. Merci de nous contacter au 01 87 88 02 98. STOP au [NUMÉRO STOP]', 'Envoyé le 12/11 · distribué', 'Relance SMS automatique J+30'),
+        inc('Le paiement est en validation, départ prévu le 30/11.', 'Hier 16:20'),
+        out('Merci Madame Roussel, nous notons un règlement le 30/11. Bonne journée.', 'Hier 16:41 · distribué · Camille Laurent')
+      ] },
+      { id: 's4', ini: 'NL', name: 'Nordis Logistique', contact: 'Service comptable', phone: '06 51 •• •• 77', mandant: 'Énergies Rhône', due: '8 900 €', late: '45 j', k: 'promesse', time: '20 nov.', unread: 0, next: 'Rappel d’échéance le 13/12', msgs: [
+        out('LEGAREC : nous confirmons la réception de votre virement de 12 500 €. Solde restant : 8 900 € au 15/12. Merci.', '20/11 · distribué · Camille Laurent')
+      ] },
+      { id: 's5', ini: 'GV', name: 'Garage Valmont', contact: 'M. Paul Valmont', phone: '06 09 •• •• 15', mandant: 'TransAlp Leasing', due: '23 900 €', late: '97 j', k: 'retard', time: '19 nov.', unread: 0, next: 'Aucun : passage en contentieux en attente', msgs: [
+        out('LEGAREC pour TransAlp Leasing : sans règlement de 23 900 € sous 8 jours, une procédure pourra être engagée. Contact : 01 87 88 02 98. STOP au [NUMÉRO STOP]', '19/11 · non distribué : numéro injoignable', 'Relance SMS automatique J+90')
+      ] }
+    ];
+    const filtersDef = [['all', 'Toutes'], ['unread', 'Non lues'], ['mine', 'À traiter']];
+    const isUnread = (t) => t.unread > 0 && !st.read[t.id];
+    const list = threads.filter((t) => st.filter === 'all' || (st.filter === 'unread' ? isUnread(t) : t.k !== 'regle' && (isUnread(t) || t.id === 's5')));
+    const curRaw = threads.find((t) => t.id === st.sel) || threads[0];
+    const extra = st.sent[curRaw.id] || [];
+    const msgs = curRaw.msgs.concat(extra).map((m) => {
+      const o = m.dir === 'out';
+      const failed = (m.meta || '').indexOf('non distribué') >= 0;
+      return {
+        text: m.text, meta: m.meta,
+        isAuto: !!m.auto, autoLabel: m.auto || '',
+        align: o ? 'flex-end' : 'flex-start',
+        itemsAlign: o ? 'flex-end' : 'flex-start',
+        bg: o ? (failed ? 'var(--danger-bg)' : accent) : 'var(--white)',
+        fg: o ? (failed ? 'var(--danger-fg)' : 'var(--on-primary)') : 'var(--text)',
+        border: o ? (failed ? '1px solid var(--danger-border)' : '0') : '1px solid var(--border)',
+        radius: o ? '14px 14px 4px 14px' : '14px 14px 14px 4px'
+      };
+    });
+    const link = st.withLink ? ' Payer : [LIEN DE PAIEMENT]' : '';
+    const full = st.draft + (st.draft ? link : '');
+    const len = full.length;
+    const segs = len === 0 ? 0 : len <= 160 ? 1 : Math.ceil(len / 153);
+    const quickDef = [
+      ['RIB / lien de paiement', 'Bonjour, voici le lien pour régler en ligne en toute sécurité. Merci.'],
+      ['Confirmer une promesse', 'Merci, nous notons votre règlement prévu le [DATE]. Bonne journée.'],
+      ['Proposer un échéancier', 'Nous pouvons vous proposer un paiement en plusieurs fois. Souhaitez-vous être rappelé ?'],
+      ['Demander un rappel', 'Pouvez-vous nous rappeler au 01 87 88 02 98 (lun–ven 9h–19h) ? Merci.']
+    ];
+    return {
+      accent,
+      focusNew: () => this.setState({ draft: '' }),
+      headActions: [
+        { label: 'Modèles de SMS', href: 'Reglages.dc.html' },
+        { label: 'Envoi groupé', href: 'Generer.dc.html' },
+        { label: '+ Nouveau SMS', primary: true, kbd: 'N', onClick: () => { this.setState({ draft: '' }); setTimeout(() => { const el = document.querySelector('textarea'); if (el) el.focus(); }, 30); } }
+      ],
+      headStats: [
+        { label: 'Envoyés en novembre', value: '1 284', sub: 'dont 1 196 automatiques' },
+        { label: 'Taux de réponse', value: '18 %', sub: '▲ 3 pts' },
+        { label: 'Paiements sous 7 jours', value: '9,4 %', color: 'var(--success-fg)', sub: 'après un SMS avec lien' },
+        { label: 'Désinscriptions (STOP)', value: '0,6 %', sub: '8 numéros ce mois' }
+      ],
+      tbTabs: filtersDef.map(([id, label]) => ({ label, selected: st.filter === id, count: String(threads.filter((t) => id === 'all' || (id === 'unread' ? isUnread(t) : t.k !== 'regle' && (isUnread(t) || t.id === 's5'))).length), pick: () => this.setState({ filter: id }) })),
+      tbFilters: [{ label: 'Créancier', options: ['Tous les créanciers', 'Matériaux Delta', 'Énergies Rhône', 'Médiatel', 'TransAlp Leasing', 'Crédit Horizon'] }],
+      threadCount: String(list.length),
+      filters: filtersDef.map(([id, label]) => ({
+        label, pressed: st.filter === id ? 'true' : 'false',
+        bg: st.filter === id ? 'var(--white)' : 'transparent', color: st.filter === id ? 'var(--text)' : 'var(--text-3)',
+        shadow: st.filter === id ? 'var(--shadow-sm)' : 'none',
+        pick: () => this.setState({ filter: id })
+      })),
+      threads: list.map((t) => {
+        const u = isUnread(t);
+        const last = (st.sent[t.id] || []).slice(-1)[0] || t.msgs[t.msgs.length - 1];
+        return {
+          ...t, unread: u, unreadCount: t.unread,
+          preview: (last.dir === 'out' ? 'Vous : ' : '') + last.text,
+          weight: u ? '600' : '500',
+          pressed: t.id === curRaw.id ? 'true' : 'false',
+          bg: t.id === curRaw.id ? 'var(--surface-3)' : 'var(--white)',
+          bar: t.id === curRaw.id ? 'inset 3px 0 0 var(--or)' : 'none',
+          pick: () => this.setState({ sel: t.id, draft: '', read: { ...this.state.read, [t.id]: true } })
+        };
+      }),
+      cur: { ...curRaw, msgs, stBg: S[curRaw.k][0], stFg: S[curRaw.k][1], status: S[curRaw.k][2] },
+      quick: quickDef.map(([label, text]) => ({ label, use: () => this.setState({ draft: text }) })),
+      draft: st.draft,
+      onDraft: (e) => this.setState({ draft: e.target.value }),
+      withLink: st.withLink,
+      toggleLink: () => this.setState({ withLink: !st.withLink }),
+      charCount: len,
+      segments: segs,
+      countColor: segs > 1 ? 'var(--warning-fg)' : 'var(--text-3)',
+      send: () => {
+        if (!st.draft.trim()) return;
+        const arr = (st.sent[curRaw.id] || []).concat([out(full, 'À l’instant · envoi en cours · Camille Laurent')]);
+        this.setState({ sent: { ...st.sent, [curRaw.id]: arr }, draft: '' });
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

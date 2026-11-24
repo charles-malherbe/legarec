@@ -1,0 +1,160 @@
+{
+  "accent": "var(--marine)",
+  "headActions": [
+    {
+      "label": "Importer des créances"
+    },
+    {
+      "label": "+ Nouveau créancier",
+      "primary": true,
+      "kbd": "N"
+    }
+  ],
+  "headStats": [
+    {
+      "label": "Encours confié",
+      "value": "1 284 560 €",
+      "sub": "1 942 factures"
+    },
+    {
+      "label": "Recouvré en 2026",
+      "value": "1 578 000 €",
+      "color": "var(--success-fg)",
+      "sub": "55 % du montant confié"
+    },
+    {
+      "label": "Commission moyenne",
+      "value": "8 % HT",
+      "sub": "sur les sommes encaissées"
+    },
+    {
+      "label": "Conventions à renouveler",
+      "value": "1",
+      "color": "var(--warning-fg)",
+      "sub": "Matériaux Delta · 31/12"
+    }
+  ],
+  "mandants": [
+    {
+      "initials": "MD",
+      "name": "Matériaux Delta",
+      "sector": "Négoce de matériaux BTP",
+      "debtors": 64,
+      "invoices": 412,
+      "encours": "386 400 €",
+      "e": 386400,
+      "recovered": "450 300 €",
+      "rate": "54 %",
+      "r": 54,
+      "fee": "8 % HT",
+      "owner": "C. Laurent",
+      "status": "Mandat actif",
+      "pillBg": "var(--success-bg)",
+      "pillFg": "var(--success-fg)",
+      "rateW": "54%"
+    },
+    {
+      "initials": "ER",
+      "name": "Énergies Rhône",
+      "sector": "Fourniture d’énergie",
+      "debtors": 71,
+      "invoices": 688,
+      "encours": "298 150 €",
+      "e": 298150,
+      "recovered": "512 900 €",
+      "rate": "63 %",
+      "r": 63,
+      "fee": "7 % HT",
+      "owner": "S. Morel",
+      "status": "Mandat actif",
+      "pillBg": "var(--success-bg)",
+      "pillFg": "var(--success-fg)",
+      "rateW": "63%"
+    },
+    {
+      "initials": "MT",
+      "name": "Médiatel",
+      "sector": "Télécommunications",
+      "debtors": 52,
+      "invoices": 534,
+      "encours": "244 900 €",
+      "e": 244900,
+      "recovered": "251 600 €",
+      "rate": "51 %",
+      "r": 51,
+      "fee": "9 % HT",
+      "owner": "H. Benali",
+      "status": "Renouvellement 12/2026",
+      "pillBg": "var(--warning-bg)",
+      "pillFg": "var(--warning-fg)",
+      "rateW": "51%"
+    },
+    {
+      "initials": "TL",
+      "name": "TransAlp Leasing",
+      "sector": "Crédit-bail",
+      "debtors": 33,
+      "invoices": 146,
+      "encours": "231 610 €",
+      "e": 231610,
+      "recovered": "204 500 €",
+      "rate": "47 %",
+      "r": 47,
+      "fee": "10 % HT",
+      "owner": "C. Laurent",
+      "status": "Mandat actif",
+      "pillBg": "var(--success-bg)",
+      "pillFg": "var(--success-fg)",
+      "rateW": "47%"
+    },
+    {
+      "initials": "CH",
+      "name": "Crédit Horizon",
+      "sector": "Crédit à la consommation",
+      "debtors": 28,
+      "invoices": 162,
+      "encours": "123 500 €",
+      "e": 123500,
+      "recovered": "158 700 €",
+      "rate": "56 %",
+      "r": 56,
+      "fee": "12 % HT",
+      "owner": "S. Morel",
+      "status": "Mandat actif",
+      "pillBg": "var(--success-bg)",
+      "pillFg": "var(--success-fg)",
+      "rateW": "56%"
+    }
+  ],
+  "sorts": [
+    {
+      "label": "Encours",
+      "pressed": "true",
+      "bg": "var(--white)",
+      "color": "var(--text)",
+      "shadow": "0 1px 2px rgba(15,23,42,0.08)"
+    },
+    {
+      "label": "Taux",
+      "pressed": "false",
+      "bg": "transparent",
+      "color": "var(--text-2)",
+      "shadow": "none"
+    },
+    {
+      "label": "Nom",
+      "pressed": "false",
+      "bg": "transparent",
+      "color": "var(--text-2)",
+      "shadow": "none"
+    }
+  ],
+  "lst": {
+    "show": false,
+    "kind": "empty",
+    "title": "Aucun créancier",
+    "text": "Ajoutez un créancier pour lui confier des dossiers.",
+    "actionLabel": "",
+    "count": 4
+  }
+}

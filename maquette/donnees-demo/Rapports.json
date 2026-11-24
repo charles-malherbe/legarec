@@ -1,0 +1,275 @@
+{
+  "accent": "var(--marine)",
+  "headActions": [
+    {
+      "label": "Exporter Excel"
+    },
+    {
+      "label": "Générer le PDF",
+      "primary": true,
+      "kbd": "N"
+    }
+  ],
+  "headStats": [
+    {
+      "label": "Recouvré",
+      "value": "1 578 000 €",
+      "sub": "▲ 18 % vs 2025"
+    },
+    {
+      "label": "Nouvelles créances confiées",
+      "value": "2,18 M€",
+      "sub": "1 108 factures"
+    },
+    {
+      "label": "Taux de recouvrement",
+      "value": "55 %",
+      "sub": "▲ 4 pts"
+    },
+    {
+      "label": "DSO moyen",
+      "value": "47 j",
+      "sub": "▼ 6 j"
+    },
+    {
+      "label": "Irrécouvrable",
+      "value": "38 200 €",
+      "sub": "▲ 2 dossiers",
+      "color": "var(--danger-fg)"
+    }
+  ],
+  "tbTabs": [
+    {
+      "label": "Mois",
+      "selected": false
+    },
+    {
+      "label": "Trimestre",
+      "selected": false
+    },
+    {
+      "label": "Année",
+      "selected": true
+    }
+  ],
+  "tbFilters": [
+    {
+      "label": "Créancier",
+      "options": [
+        "Tous les créanciers",
+        "Matériaux Delta",
+        "Énergies Rhône",
+        "Médiatel",
+        "TransAlp Leasing",
+        "Crédit Horizon"
+      ]
+    }
+  ],
+  "periodText": "Année 2026 (au 21/11)",
+  "periods": [
+    {
+      "label": "Mois",
+      "pressed": "false",
+      "bg": "transparent",
+      "color": "var(--text-2)"
+    },
+    {
+      "label": "Trimestre",
+      "pressed": "false",
+      "bg": "transparent",
+      "color": "var(--text-2)"
+    },
+    {
+      "label": "Année",
+      "pressed": "true",
+      "bg": "var(--white)",
+      "color": "var(--text)"
+    }
+  ],
+  "kpis": [
+    {
+      "label": "Recouvré",
+      "value": "1 578 000 €",
+      "delta": "▲ 18 % vs 2025",
+      "deltaColor": "var(--success-fg)"
+    },
+    {
+      "label": "Nouvelles créances confiées",
+      "value": "2,18 M€",
+      "delta": "1 108 factures",
+      "deltaColor": "var(--text-3)"
+    },
+    {
+      "label": "Taux de recouvrement",
+      "value": "55 %",
+      "delta": "▲ 4 pts",
+      "deltaColor": "var(--success-fg)"
+    },
+    {
+      "label": "DSO moyen",
+      "value": "47 j",
+      "delta": "▼ 6 j",
+      "deltaColor": "var(--success-fg)"
+    },
+    {
+      "label": "Irrécouvrable",
+      "value": "38 200 €",
+      "delta": "▲ 2 dossiers",
+      "deltaColor": "var(--danger-fg)"
+    }
+  ],
+  "bars": [
+    {
+      "label": "Janv.",
+      "h1": "150px",
+      "h2": "97px"
+    },
+    {
+      "label": "Févr.",
+      "h1": "145px",
+      "h2": "102px"
+    },
+    {
+      "label": "Mars",
+      "h1": "169px",
+      "h2": "108px"
+    },
+    {
+      "label": "Avr.",
+      "h1": "157px",
+      "h2": "105px"
+    },
+    {
+      "label": "Mai",
+      "h1": "164px",
+      "h2": "114px"
+    },
+    {
+      "label": "Juin",
+      "h1": "174px",
+      "h2": "117px"
+    },
+    {
+      "label": "Juil.",
+      "h1": "156px",
+      "h2": "125px"
+    },
+    {
+      "label": "Août",
+      "h1": "127px",
+      "h2": "106px"
+    },
+    {
+      "label": "Sept.",
+      "h1": "190px",
+      "h2": "138px"
+    },
+    {
+      "label": "Oct.",
+      "h1": "188px",
+      "h2": "137px"
+    },
+    {
+      "label": "Nov.",
+      "h1": "177px",
+      "h2": "154px"
+    },
+    {
+      "label": "Déc.",
+      "h1": "0px",
+      "h2": "0px"
+    }
+  ],
+  "chartAria": "Confié et recouvré en milliers d’euros : Janv. 182 et 118, Févr. 176 et 124, Mars 205 et 131, Avr. 190 et 127, Mai 198 et 138, Juin 211 et 142, Juil. 189 et 151, Août 154 et 128, Sept. 230 et 167, Oct. 228 et 166, Nov. 214 et 186",
+  "outcomes": [
+    {
+      "label": "Recouvré intégralement",
+      "value": "61 %",
+      "color": "var(--success-fg)",
+      "w": "61%"
+    },
+    {
+      "label": "Recouvré partiellement",
+      "value": "17 %",
+      "color": "var(--teal)",
+      "w": "17%"
+    },
+    {
+      "label": "Échéancier en cours",
+      "value": "9 %",
+      "color": "var(--warning)",
+      "w": "9%"
+    },
+    {
+      "label": "Rendu au créancier",
+      "value": "8 %",
+      "color": "var(--text-3)",
+      "w": "8%"
+    },
+    {
+      "label": "Irrécouvrable",
+      "value": "5 %",
+      "color": "var(--danger)",
+      "w": "5%"
+    }
+  ],
+  "team": [
+    {
+      "ini": "CL",
+      "name": "Camille Laurent",
+      "files": 96,
+      "calls": 412,
+      "prom": 58,
+      "rec": "632 900 €",
+      "rate": "59 %"
+    },
+    {
+      "ini": "HB",
+      "name": "Hugo Benali",
+      "files": 82,
+      "calls": 365,
+      "prom": 44,
+      "rec": "491 400 €",
+      "rate": "52 %"
+    },
+    {
+      "ini": "SM",
+      "name": "Sarah Morel",
+      "files": 70,
+      "calls": 298,
+      "prom": 41,
+      "rec": "453 700 €",
+      "rate": "54 %"
+    }
+  ],
+  "scheduled": [
+    {
+      "title": "Rapport mensuel créancier",
+      "meta": "Chaque créancier · le 5 du mois · PDF par e-mail",
+      "checked": "true",
+      "track": "var(--marine)",
+      "justify": "flex-end"
+    },
+    {
+      "title": "Relevé de reversement",
+      "meta": "Avec chaque reversement · PDF + CSV",
+      "checked": "true",
+      "track": "var(--marine)",
+      "justify": "flex-end"
+    },
+    {
+      "title": "Synthèse hebdomadaire équipe",
+      "meta": "Lundi 8:00 · direction",
+      "checked": "true",
+      "track": "var(--marine)",
+      "justify": "flex-end"
+    },
+    {
+      "title": "Balance âgée détaillée",
+      "meta": "Trimestriel · Excel",
+      "checked": "false",
+      "track": "var(--border-strong)",
+      "justify": "flex-start"
+    }
+  ]
+}

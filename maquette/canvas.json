@@ -1,0 +1,694 @@
+{
+ "v": 3,
+ "attachments": {},
+ "boards": {
+  "Aide.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "page": "aide",
+   "title": "Centre d'aide",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "AideArticle.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "page": "aide",
+   "title": "Article d'aide",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "Compte.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "page": "administration",
+   "title": "Mon compte",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "Connexion.dc.html": {
+   "expand": "fill",
+   "h": 900,
+   "is_interactive": true,
+   "page": "connexion",
+   "title": "Connexion",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "Contentieux.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "page": "recouvrement",
+   "title": "Contentieux",
+   "w": 1440,
+   "x": 6080,
+   "y": 0
+  },
+  "Documents.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "page": "documents",
+   "title": "Bibliothèque",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "Dossier.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "page": "portefeuille",
+   "title": "Fiche débiteur",
+   "w": 1440,
+   "x": 4560,
+   "y": 0
+  },
+  "Dossiers.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "page": "portefeuille",
+   "title": "Débiteurs",
+   "w": 1440,
+   "x": 3040,
+   "y": 0
+  },
+  "Echeanciers.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "page": "portefeuille",
+   "title": "Échéanciers",
+   "w": 1440,
+   "x": 6080,
+   "y": 0
+  },
+  "Generer.dc.html": {
+   "expand": "fill",
+   "h": 1280,
+   "is_interactive": true,
+   "page": "documents",
+   "title": "Rédiger un courrier",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "Main.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "page": "pilotage",
+   "title": "Tableau de bord",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "Mandant.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "page": "portefeuille",
+   "title": "Fiche créancier",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "Mandants.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "page": "portefeuille",
+   "title": "Créanciers",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "Messagerie.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "page": "recouvrement",
+   "title": "E-mails",
+   "w": 1440,
+   "x": 3040,
+   "y": 0
+  },
+  "Notifications.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "page": "pilotage",
+   "title": "Centre de notifications",
+   "w": 1440,
+   "x": 3040,
+   "y": 0
+  },
+  "Payer.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "page": "externes",
+   "title": "Espace de paiement débiteur",
+   "w": 1280,
+   "x": 0,
+   "y": 0
+  },
+  "Portail.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "page": "externes",
+   "title": "Espace créancier",
+   "w": 1440,
+   "x": 1360,
+   "y": 0
+  },
+  "Rapports.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "page": "pilotage",
+   "title": "Rapports",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "Reglages.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "page": "administration",
+   "title": "Paramètres du cabinet",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "Relances.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "page": "recouvrement",
+   "title": "Relances",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "Sidebar.dc.html": {
+   "h": 1100,
+   "is_interactive": true,
+   "page": "composants",
+   "title": "Menu latéral (composant)",
+   "w": 264,
+   "x": 1280,
+   "y": 0
+  },
+  "Sms.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "page": "recouvrement",
+   "title": "SMS",
+   "w": 1440,
+   "x": 4560,
+   "y": 0
+  },
+  "Telephonie.dc.html": {
+   "expand": "fill",
+   "h": 1380,
+   "is_interactive": true,
+   "page": "recouvrement",
+   "title": "Appels",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "Topbar.dc.html": {
+   "h": 64,
+   "is_interactive": true,
+   "page": "composants",
+   "title": "Barre supérieure (composant)",
+   "w": 1200,
+   "x": 0,
+   "y": 0
+  },
+  "PageHeader.dc.html": {
+   "h": 170,
+   "is_interactive": true,
+   "title": "En-tête de page",
+   "w": 1200,
+   "x": 0,
+   "y": 160,
+   "page": "composants"
+  },
+  "Toolbar.dc.html": {
+   "h": 48,
+   "is_interactive": true,
+   "title": "Barre de filtres",
+   "w": 1200,
+   "x": 0,
+   "y": 420,
+   "page": "composants"
+  },
+  "Confirm.dc.html": {
+   "h": 420,
+   "is_interactive": true,
+   "title": "Fenêtre de confirmation",
+   "w": 640,
+   "x": 0,
+   "y": 560,
+   "page": "composants"
+  },
+  "Equipe.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "title": "Équipe",
+   "w": 1440,
+   "x": 4560,
+   "y": 0,
+   "page": "pilotage"
+  },
+  "Facturation.dc.html": {
+   "expand": "fill",
+   "h": 1700,
+   "is_interactive": true,
+   "title": "Facturation",
+   "w": 1440,
+   "x": 3040,
+   "y": 0,
+   "page": "documents"
+  },
+  "Composants.dc.html": {
+   "h": 2600,
+   "title": "Fondations : tokens et règles",
+   "w": 1440,
+   "x": 1640,
+   "y": 0,
+   "page": "composants"
+  },
+  "EtatListe.dc.html": {
+   "h": 240,
+   "is_interactive": true,
+   "title": "États de liste",
+   "w": 600,
+   "x": 0,
+   "y": 1060,
+   "page": "composants"
+  },
+  "Erreur.dc.html": {
+   "expand": "fill",
+   "h": 720,
+   "is_interactive": true,
+   "title": "Page d'erreur (403, 404, 500)",
+   "w": 1280,
+   "x": 1520,
+   "y": 0,
+   "page": "connexion"
+  },
+  "Pagination.dc.html": {
+   "h": 64,
+   "is_interactive": true,
+   "title": "Pagination",
+   "w": 900,
+   "x": 0,
+   "y": 1360,
+   "page": "composants"
+  },
+  "Bibliotheque.dc.html": {
+   "h": 6700,
+   "is_interactive": true,
+   "title": "Bibliothèque de composants (catalogue)",
+   "w": 1440,
+   "x": 3200,
+   "y": 0,
+   "page": "composants"
+  },
+  "Bouton.dc.html": {
+   "h": 56,
+   "is_interactive": true,
+   "title": "Bouton (composant)",
+   "w": 200,
+   "x": 4760,
+   "y": 0,
+   "page": "composants"
+  },
+  "Icone.dc.html": {
+   "h": 48,
+   "is_interactive": true,
+   "title": "Icône (composant)",
+   "w": 48,
+   "x": 4760,
+   "y": 136,
+   "page": "composants"
+  },
+  "Badge.dc.html": {
+   "h": 40,
+   "is_interactive": true,
+   "title": "Badge (composant)",
+   "w": 140,
+   "x": 4760,
+   "y": 264,
+   "page": "composants"
+  },
+  "Statut.dc.html": {
+   "h": 32,
+   "is_interactive": true,
+   "title": "Statut (composant)",
+   "w": 160,
+   "x": 4760,
+   "y": 384,
+   "page": "composants"
+  },
+  "Avatar.dc.html": {
+   "h": 64,
+   "is_interactive": true,
+   "title": "Avatar (composant)",
+   "w": 64,
+   "x": 4760,
+   "y": 496,
+   "page": "composants"
+  },
+  "Champ.dc.html": {
+   "h": 110,
+   "is_interactive": true,
+   "title": "Champ (composant)",
+   "w": 360,
+   "x": 4760,
+   "y": 640,
+   "page": "composants"
+  },
+  "Interrupteur.dc.html": {
+   "h": 40,
+   "is_interactive": true,
+   "title": "Interrupteur (composant)",
+   "w": 120,
+   "x": 4760,
+   "y": 830,
+   "page": "composants"
+  },
+  "Case.dc.html": {
+   "h": 48,
+   "is_interactive": true,
+   "title": "Case (composant)",
+   "w": 360,
+   "x": 4760,
+   "y": 950,
+   "page": "composants"
+  },
+  "Onglets.dc.html": {
+   "h": 56,
+   "is_interactive": true,
+   "title": "Onglets (composant)",
+   "w": 480,
+   "x": 4760,
+   "y": 1078,
+   "page": "composants"
+  },
+  "Carte.dc.html": {
+   "h": 200,
+   "is_interactive": true,
+   "title": "Carte (composant)",
+   "w": 560,
+   "x": 4760,
+   "y": 1214,
+   "page": "composants"
+  },
+  "Reglage.dc.html": {
+   "h": 80,
+   "is_interactive": true,
+   "title": "Ligne de réglage (composant)",
+   "w": 760,
+   "x": 4760,
+   "y": 1494,
+   "page": "composants"
+  },
+  "Indicateur.dc.html": {
+   "h": 110,
+   "is_interactive": true,
+   "title": "Indicateur (composant)",
+   "w": 260,
+   "x": 4760,
+   "y": 1654,
+   "page": "composants"
+  },
+  "Progression.dc.html": {
+   "h": 32,
+   "is_interactive": true,
+   "title": "Progression (composant)",
+   "w": 300,
+   "x": 4760,
+   "y": 1844,
+   "page": "composants"
+  },
+  "Alerte.dc.html": {
+   "h": 100,
+   "is_interactive": true,
+   "title": "Alerte (composant)",
+   "w": 560,
+   "x": 4760,
+   "y": 1956,
+   "page": "composants"
+  },
+  "Tuile.dc.html": {
+   "h": 120,
+   "is_interactive": true,
+   "title": "Tuile (composant)",
+   "w": 380,
+   "x": 4760,
+   "y": 2136,
+   "page": "composants"
+  },
+  "Tableau.dc.html": {
+   "h": 260,
+   "is_interactive": true,
+   "title": "Tableau (composant)",
+   "w": 760,
+   "x": 4760,
+   "y": 2336,
+   "page": "composants"
+  },
+  "Toast.dc.html": {
+   "h": 96,
+   "is_interactive": true,
+   "title": "Toast (composant)",
+   "w": 520,
+   "x": 4760,
+   "y": 2676,
+   "page": "composants"
+  },
+  "PiedDePage.dc.html": {
+   "h": 120,
+   "is_interactive": true,
+   "title": "Pied de page (composant)",
+   "w": 1080,
+   "x": 4760,
+   "y": 2812,
+   "page": "composants"
+  },
+  "Modele.dc.html": {
+   "expand": "fill",
+   "h": 1800,
+   "is_interactive": true,
+   "page": "administration",
+   "title": "Modèle de document (fichier HTML)",
+   "w": 1440,
+   "x": 3040,
+   "y": 0
+  }
+ },
+ "createdOnFiles": {
+  "at": "2026-11-21T00:50:00Z",
+  "v": 1
+ },
+ "designSystems": [],
+ "launch": {
+  "page": "pilotage",
+  "view": "canvas"
+ },
+ "notes": {
+  "t-administration": {
+   "kind": "title1",
+   "maxW": 2960,
+   "page": "administration",
+   "text": "Administration et compte",
+   "w": 240,
+   "x": 0,
+   "y": -260
+  },
+  "t-aide": {
+   "kind": "title1",
+   "maxW": 2960,
+   "page": "aide",
+   "text": "Aide",
+   "w": 240,
+   "x": 0,
+   "y": -260
+  },
+  "t-composants": {
+   "kind": "title1",
+   "maxW": 6200,
+   "page": "composants",
+   "text": "Bibliothèque de composants",
+   "w": 240,
+   "x": 0,
+   "y": -260
+  },
+  "t-connexion": {
+   "kind": "title1",
+   "maxW": 2800,
+   "page": "connexion",
+   "text": "Connexion",
+   "w": 240,
+   "x": 0,
+   "y": -260
+  },
+  "t-documents": {
+   "kind": "title1",
+   "maxW": 4480,
+   "page": "documents",
+   "text": "Documents",
+   "w": 240,
+   "x": 0,
+   "y": -260
+  },
+  "t-externes": {
+   "kind": "title1",
+   "maxW": 2800,
+   "page": "externes",
+   "text": "Espaces externes",
+   "w": 240,
+   "x": 0,
+   "y": -260
+  },
+  "t-pilotage": {
+   "kind": "title1",
+   "maxW": 6000,
+   "page": "pilotage",
+   "text": "Pilotage",
+   "w": 240,
+   "x": 0,
+   "y": -260
+  },
+  "t-portefeuille": {
+   "kind": "title1",
+   "maxW": 7520,
+   "page": "portefeuille",
+   "text": "Portefeuille",
+   "w": 240,
+   "x": 0,
+   "y": -260
+  },
+  "t-recouvrement": {
+   "kind": "title1",
+   "maxW": 7520,
+   "page": "recouvrement",
+   "text": "Recouvrement",
+   "w": 240,
+   "x": 0,
+   "y": -260
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "Dossiers.dc.html",
+  "Dossier.dc.html",
+  "Telephonie.dc.html",
+  "Messagerie.dc.html",
+  "Mandants.dc.html",
+  "Mandant.dc.html",
+  "Echeanciers.dc.html",
+  "Contentieux.dc.html",
+  "Relances.dc.html",
+  "Rapports.dc.html",
+  "Reglages.dc.html",
+  "Modele.dc.html",
+  "Notifications.dc.html",
+  "Compte.dc.html",
+  "Topbar.dc.html",
+  "Connexion.dc.html",
+  "Documents.dc.html",
+  "Generer.dc.html",
+  "Sidebar.dc.html",
+  "Sms.dc.html",
+  "Payer.dc.html",
+  "Portail.dc.html",
+  "Aide.dc.html",
+  "AideArticle.dc.html",
+  "PageHeader.dc.html",
+  "Toolbar.dc.html",
+  "Confirm.dc.html",
+  "Equipe.dc.html",
+  "Facturation.dc.html",
+  "Composants.dc.html",
+  "EtatListe.dc.html",
+  "Erreur.dc.html",
+  "Pagination.dc.html",
+  "Bouton.dc.html",
+  "Icone.dc.html",
+  "Badge.dc.html",
+  "Statut.dc.html",
+  "Avatar.dc.html",
+  "Champ.dc.html",
+  "Interrupteur.dc.html",
+  "Case.dc.html",
+  "Onglets.dc.html",
+  "Carte.dc.html",
+  "Reglage.dc.html",
+  "Indicateur.dc.html",
+  "Progression.dc.html",
+  "Alerte.dc.html",
+  "Tuile.dc.html",
+  "Bibliotheque.dc.html",
+  "Tableau.dc.html",
+  "Toast.dc.html",
+  "PiedDePage.dc.html"
+ ],
+ "pages": [
+  {
+   "id": "connexion",
+   "name": "Connexion"
+  },
+  {
+   "id": "pilotage",
+   "name": "Pilotage"
+  },
+  {
+   "id": "portefeuille",
+   "name": "Portefeuille"
+  },
+  {
+   "id": "recouvrement",
+   "name": "Recouvrement"
+  },
+  {
+   "id": "documents",
+   "name": "Documents"
+  },
+  {
+   "id": "administration",
+   "name": "Administration et compte"
+  },
+  {
+   "id": "aide",
+   "name": "Aide"
+  },
+  {
+   "id": "externes",
+   "name": "Espaces externes"
+  },
+  {
+   "id": "composants",
+   "name": "Bibliothèque de composants"
+  }
+ ],
+ "title": "Maquette UI – Application de recouvrement"
+}

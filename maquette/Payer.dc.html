@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Legarec – Régler votre dossier</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Lora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+/* tokens:start — charte graphique LEGAREC v1.0 (octobre 2026). Ne pas modifier à la main : généré depuis tools/tokens.css */
+:root{
+  /* Marque */
+  --marine:#002B74; --marine-hover:#00225C; --marine-text:#002B74; --app-icon-bg:#002B74; --app-icon-fg:#FCBE03; --nuit:#001B4D; --or:#FCBE03; --or-clair:#FFF3C4; --ardoise:#5D7087;
+  --bleu-pale:#EEF2F8; --gris-clair:#F6F8FB; --bleu-200:#D6E0F0; --white:#FFFFFF;
+  /* Texte */
+  --text:#0F1B2D; --text-2:#33455C; --text-3:#5D7087; --on-primary:#FFFFFF;
+  /* Surfaces et bordures */
+  --surface:#FFFFFF; --surface-2:#F6F8FB; --surface-3:#EEF2F7; --border:#E1E7EF; --border-strong:#7D8DA1;
+  /* Surfaces sombres (carte d'appel, barre d'actions groupées) */
+  --surface-dark:#001B4D; --surface-dark-2:#0B2D63; --border-dark:#2A4A7D; --on-dark:#FFFFFF; --on-dark-2:#D5DEEB; --on-dark-muted:#A9B8CC; --on-dark-accent:#B8CBEA;
+  /* Données (graphiques, balance âgée) */
+  --data-1:#C9D6EC; --data-2:#7F9CD0; --data-3:#345DA8;
+  /* Tons sémantiques : fond, bordure, point, texte */
+  --success-bg:#ECFDF5; --success-border:#A7F3D0; --success:#059669; --success-strong:#10B981; --success-fg:#047857; --on-success:#052E16;
+  --warning-bg:#FFF3C4; --warning-border:#F5D77A; --warning:#D97706; --warning-fg:#8A4B08;
+  --danger-bg:#FFF1F2; --danger-border:#FECDD3; --danger:#E11D48; --danger-fg:#BE123C; --danger-dark:#7F1D1D; --danger-on-dark:#FDA4AF;
+  --info-bg:#F0F9FF; --info-border:#BAE6FD; --info:#0284C7; --info-fg:#0369A1;
+  --violet-bg:#F5F3FF; --violet-border:#DDD6FE; --violet:#7C3AED; --violet-fg:#6D28D9;
+  --teal-bg:#CCFBF1; --teal:#0D9488; --teal-fg:#115E59;
+  /* Fonds pleins (badges pleins, texte --on-primary ≥ 5:1 dans les deux modes) */
+  --solid-neutral:#33455C; --solid-info:#0369A1; --solid-success:#047857; --solid-warning:#8A4B08; --solid-danger:#BE123C; --solid-violet:#6D28D9; --solid-teal:#115E59;
+  /* Typographie */
+  --font-title:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-text:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-brand:Lora, Georgia, serif; --font-mono:ui-monospace, SFMono-Regular, Menlo, monospace;
+  --fs-doc-xs:8px; --fs-doc-sm:9px; --fs-doc-md:10px; --fs-doc-lg:10.5px; --fs-2xs:11px; --fs-xs:12px; --fs-sm:13px; --fs-base:14px; --fs-md:16px; --fs-lg:18px; --fs-xl:20px; --fs-2xl:26px; --fs-3xl:34px;
+  /* Rayons */
+  --r-xs:4px; --r-sm:6px; --r-md:8px; --r-lg:12px; --r-full:9999px;
+  /* Ombres */
+  --shadow-sm:0 1px 2px 0 rgba(0,27,77,0.06); --shadow-md:0 10px 15px -3px rgba(0,27,77,0.10), 0 4px 6px -4px rgba(0,27,77,0.10); --shadow-lg:0 20px 25px -5px rgba(0,27,77,0.18), 0 8px 10px -6px rgba(0,27,77,0.12);
+  --shadow-knob:0 1px 2px rgba(0,27,77,0.25); --overlay:rgba(0,27,77,0.55);
+  /* Espacements (grille de 4 px) */
+  --sp-0h:2px; --sp-1:4px; --sp-1h:6px; --sp-2:8px; --sp-2h:10px; --sp-3:12px; --sp-3h:14px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px; --sp-10:40px; --sp-11:44px; --sp-12:48px;
+  /* Hauteurs de contrôles */
+  --control-xs:28px; --control-sm:36px; --control-md:40px; --control-lg:44px;
+  /* Voiles et anneaux (surfaces sombres, animations) */
+  --veil-8:rgba(255,255,255,0.08); --veil-18:rgba(255,255,255,0.18); --veil-25:rgba(255,255,255,0.25); --veil-35:rgba(255,255,255,0.35); --veil-80:rgba(255,255,255,0.8); --veil-85:rgba(255,255,255,0.85); --on-success-veil:rgba(5,46,22,0.35); --success-ring:rgba(16,185,129,0.55); --success-ring-0:rgba(16,185,129,0);
+  /* Cibles tactiles */
+  --target:44px;
+}
+body{font-family:var(--font-text);font-feature-settings:"cv11";-webkit-font-smoothing:antialiased}
+h1,h2{font-family:var(--font-title);font-weight:700;color:var(--marine);overflow-wrap:break-word;letter-spacing:-0.015em}
+[data-brand] h1,[data-brand] h2{font-family:var(--font-brand);letter-spacing:0}
+td,th,li,h3{overflow-wrap:break-word}
+:focus-visible{outline:2px solid var(--marine);outline-offset:2px}
+[data-dark] :focus-visible{outline-color:var(--or)}
+button:disabled,[aria-disabled="true"]{cursor:not-allowed !important;opacity:.55}
+button:not(:disabled):hover,a[href][style*="border-radius"]:hover{filter:brightness(.96)}
+tbody tr:hover{background-color:var(--surface-2)}
+[data-table-scroll]{max-height:min(68vh,720px);overflow:auto !important}
+[data-table-scroll] thead th{position:sticky;top:0;z-index:2;background:var(--surface-2);box-shadow:inset 0 -1px 0 var(--border)}
+[data-skeleton]{display:block;border-radius:var(--r-xs);background:linear-gradient(90deg,var(--surface-3) 25%,var(--bleu-pale) 50%,var(--surface-3) 75%);background-size:200% 100%;animation:lg-sk 1.2s ease-in-out infinite}
+@keyframes lg-sk{from{background-position:200% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+@media (pointer: coarse), (max-width: 767px){
+  button,select,input:not([type=checkbox]):not([type=radio]):not([type=range]),[role=tab],[role=menuitem],a[href][style*="display: inline-flex"],a[href][style*="height:"]{min-height:var(--target)}
+  input[type=checkbox],input[type=radio]{min-width:22px;min-height:22px}
+}
+/* Mode sombre : data-theme="dark" sur <html> */
+:root[data-theme="dark"]{
+  --marine:#2E5FC0; --marine-hover:#2A57B0; --marine-text:#9DB8F0; --app-icon-bg:#0A1A3F; --nuit:#071028; --or-clair:#3A2F0A; --ardoise:#9AA9BD;
+  --bleu-pale:#1B2A4A; --gris-clair:#0A1020; --bleu-200:#2B3E63; --white:#16203A;
+  --text:#E6ECF5; --text-2:#C3CEDD; --text-3:#9AA9BD;
+  --surface:#0F1729; --surface-2:#0A1020; --surface-3:#1A2438; --border:#26324A; --border-strong:#67778F;
+  --surface-dark:#050B1A; --surface-dark-2:#101C36; --border-dark:#24365A;
+  --data-1:#2B3E63; --data-2:#4F73B8; --data-3:#7F9CD0;
+  --success-bg:#0B2E22; --success-border:#14532D; --success-fg:#6EE7B7;
+  --warning-bg:#3A2F0A; --warning-border:#6B5310; --warning-fg:#FCD34D;
+  --danger-bg:#3B0D17; --danger-border:#7F1D2E; --danger-fg:#FDA4AF;
+  --info-bg:#0B2540; --info-border:#164E63; --info-fg:#7DD3FC;
+  --violet-bg:#24164A; --violet-border:#4C1D95; --violet-fg:#C4B5FD;
+  --teal-bg:#0B302C; --teal-fg:#5EEAD4;
+  --shadow-sm:0 1px 2px 0 rgba(0,0,0,0.4); --shadow-md:0 10px 15px -3px rgba(0,0,0,0.5); --shadow-lg:0 20px 25px -5px rgba(0,0,0,0.6); --overlay:rgba(0,0,0,0.65);
+  color-scheme:dark;
+}
+:root[data-theme="dark"] body{background:var(--surface-2);color:var(--text)}
+:root[data-theme="dark"] :focus-visible{outline-color:#9DB8F0}
+:root[data-theme="dark"] [data-dark]{border:1px solid var(--border-dark)}
+:root[data-theme="dark"] h1,:root[data-theme="dark"] h2,:root[data-theme="dark"] a[href]:not([style*="background"]){color:var(--marine-text)}
+:root[data-theme="dark"] [style*="color: var(--marine)"]:not([style*="background: var(--marine)"]){color:var(--marine-text) !important}
+:root[data-theme="dark"] img[src*="_blob"]{background:var(--white);border-radius:var(--r-sm)}
+/* Mode malvoyant : data-a11y="malvoyant" sur <html> — texte agrandi, contraste renforcé, cibles plus grandes */
+:root[data-a11y="malvoyant"]{
+  --fs-2xs:13px; --fs-xs:14px; --fs-sm:15px; --fs-base:17px; --fs-md:19px; --fs-lg:21px; --fs-xl:24px; --fs-2xl:30px; --fs-3xl:38px;
+  --control-xs:36px; --control-sm:44px; --control-md:48px; --control-lg:52px; --target:48px;
+  --text-3:var(--text-2); --ardoise:var(--text-2); --border:var(--border-strong);
+}
+:root[data-a11y="malvoyant"] body{line-height:1.6}
+:root[data-a11y="malvoyant"] [data-sb-nav][style*="width: 264px"]{width:312px !important}
+:root[data-a11y="malvoyant"] :focus-visible{outline:3px solid var(--or);outline-offset:3px;box-shadow:0 0 0 6px var(--marine)}
+:root[data-a11y="malvoyant"] a[href]:not([style*="background"]){text-decoration:underline;text-underline-offset:3px}
+:root[data-a11y="malvoyant"] button,:root[data-a11y="malvoyant"] select,:root[data-a11y="malvoyant"] input:not([type=checkbox]):not([type=radio]){min-height:var(--target)}
+:root[data-a11y="malvoyant"] input[type=checkbox],:root[data-a11y="malvoyant"] input[type=radio]{min-width:24px;min-height:24px}
+:root[data-a11y="malvoyant"][data-theme="dark"]{--text-3:#E6ECF5;--text-2:#E6ECF5}
+/* tokens:end */
+body{margin:0;font-family:var(--font-text);color:var(--text);background:var(--surface-2)}
+a{color:var(--marine)}a:hover{color:var(--marine)}
+</style>
+</helmet>
+<div data-brand style="min-height: 100vh; background: var(--surface-2); font-family: var(--font-text); color: var(--text); display: flex; flex-direction: column">
+
+<header style="background: var(--surface); border-bottom: 1px solid var(--border)">
+<div style="max-width: 1080px; margin: 0 auto; padding: var(--sp-3h) var(--sp-6); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-3)">
+<div style="display: flex; align-items: center; gap: var(--sp-2h)"><span aria-hidden="true" style="width: 32px; height: 32px; flex-shrink: 0; border-radius: var(--r-md); background: var(--app-icon-bg); color: var(--app-icon-fg); display: flex; align-items: center; justify-content: center; font-family: var(--font-title); font-size: var(--fs-xl); font-weight: 700; line-height: 1">L</span><div style="display: flex; flex-direction: column; line-height: 1.2"><span style="font-size: var(--fs-lg); font-weight: 700; color: var(--marine)">Legarec</span><span style="font-size: var(--fs-xs); color: var(--text-3)">Cabinet de recouvrement</span></div></div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-4); font-size: var(--fs-sm); color: var(--text-2)">
+<span style="display: inline-flex; align-items: center; gap: var(--sp-1h); color: var(--success-fg); font-weight: 500"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>Espace sécurisé</span>
+<span>Une question ? <a href="#" style="font-weight: 600; text-decoration: none">01 87 88 02 98</a></span>
+<span role="group" aria-label="Affichage" style="display: inline-flex; gap: var(--sp-1)"><button type="button" onClick="{{toggleLgA11y}}" aria-pressed="{{lgA11y}}" title="Texte agrandi et contraste renforcé" style="height: var(--control-sm); padding: 0 var(--sp-2h); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-size: var(--fs-sm); font-weight: 600; cursor: pointer">Aa<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)"> Texte agrandi</span></button><button type="button" onClick="{{toggleLgDark}}" aria-pressed="{{lgDark}}" title="Mode sombre" style="height: var(--control-sm); width: var(--control-sm); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Mode sombre</span></button></span>
+<sc-if value="{{isSpace}}" hint-placeholder-val="{{ true }}"><dc-import name="Bouton" variant="secondary" size="sm" label="Quitter" on-press="{{leave}}" style="display: contents" hint-size="120px,40px"></dc-import></sc-if>
+</div>
+</div>
+</header>
+
+<main style="flex: 1; width: 100%; max-width: 1080px; margin: 0 auto; padding: var(--sp-8) var(--sp-6); box-sizing: border-box; display: flex; flex-direction: column; gap: var(--sp-6)">
+
+<sc-if value="{{isVerify}}" hint-placeholder-val="{{ false }}">
+<section aria-labelledby="verif-titre" style="max-width: 440px; width: 100%; margin: var(--sp-6) auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-8); box-sizing: border-box; display: flex; flex-direction: column; gap: var(--sp-4)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-1h)">
+<h1 id="verif-titre" style="margin: 0; font-size: var(--fs-xl); font-weight: 700">Accéder à votre dossier</h1>
+<p style="margin: 0; font-size: var(--fs-base); color: var(--text-2); line-height: 1.5">Ce lien vous a été envoyé par Legarec, pour le compte d'Énergies Rhône. Pour votre sécurité, confirmez deux informations.</p>
+</div>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Référence du dossier<input type="text" value="DOS-2026-0181" style="height: var(--control-lg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-md); color: var(--text); box-sizing: border-box"><span style="font-size: var(--fs-xs); font-weight: 400; color: var(--text-3)">Indiquée en haut du courrier, de l'e-mail ou du SMS reçu</span></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Code postal de votre adresse<input type="text" inputmode="numeric" value="71000" style="height: var(--control-lg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-md); color: var(--text); box-sizing: border-box"></label>
+<button type="button" onClick="{{verify}}" style="height: 48px; border-radius: var(--r-sm); border: 0; background: {{accent}}; color: var(--on-primary); font: inherit; font-size: var(--fs-md); font-weight: 600; cursor: pointer">Accéder à mon dossier</button>
+<p style="margin: 0; font-size: var(--fs-xs); color: var(--text-3); line-height: 1.5">Aucun compte à créer. Ce lien est personnel : ne le partagez pas. Il expire une fois le dossier soldé.</p>
+</section>
+</sc-if>
+
+<sc-if value="{{isSpace}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: var(--sp-6)">
+
+<div style="display: flex; flex-direction: column; gap: var(--sp-1)">
+<h1 style="margin: 0; font-size: var(--fs-2xl); font-weight: 700; letter-spacing: -0.01em">Bonjour Monsieur Durand</h1>
+<p style="margin: 0; font-size: var(--fs-base); color: var(--text-2)">Dossier DOS-2026-0181 · Fromagerie Durand · créance d'<strong style="color: var(--text)">Énergies Rhône</strong></p>
+</div>
+
+<sc-if value="{{hasBanner}}" hint-placeholder-val="{{ false }}">
+<div role="{{bannerRole}}" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-3); border-radius: var(--r-lg); padding: var(--sp-3h) var(--sp-4); font-size: var(--fs-base); background: {{bannerBg}}; border: 1px solid {{bannerBorder}}; color: {{bannerFg}}">
+<span style="display: flex; align-items: center; gap: var(--sp-2h)"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="{{bannerIcon}}"></path></svg><span>{{bannerText}}</span></span>
+<sc-if value="{{bannerReceipt}}" hint-placeholder-val="{{ false }}"><a href="#" style="font-weight: 600; color: inherit">Télécharger le reçu (PDF)</a></sc-if>
+</div>
+</sc-if>
+
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-6); align-items: flex-start">
+
+<div style="flex: 999 1 520px; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-6)">
+
+<section aria-labelledby="solde-titre" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-4)">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: var(--sp-3)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h2 id="solde-titre" style="margin: 0; font-size: var(--fs-base); font-weight: 500; color: var(--text-3)">Solde restant à régler</h2><span style="font-size: var(--fs-3xl); font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: {{soldeColor}}">{{soldeTxt}}</span></div>
+<span style="font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-1) var(--sp-2h); border-radius: var(--r-full); background: {{stBg}}; color: {{stFg}}">{{stLabel}}</span>
+</div>
+<div role="img" aria-label="{{paidPct}} du montant total réglé" style="height: 8px; border-radius: var(--r-full); background: var(--surface-3); overflow: hidden"><div style="height: 100%; border-radius: var(--r-full); background: var(--success); width: {{paidPct}}"></div></div>
+<dl style="margin: 0; display: flex; flex-direction: column; font-size: var(--fs-base)">
+<div style="display: flex; justify-content: space-between; padding: var(--sp-2) 0; border-bottom: 1px solid var(--surface-3)"><dt style="color: var(--text-2)">Montant initial (2 factures)</dt><dd style="margin: 0; font-variant-numeric: tabular-nums">6 240,00 €</dd></div>
+<div style="display: flex; justify-content: space-between; padding: var(--sp-2) 0; border-bottom: 1px solid var(--surface-3)"><dt style="color: var(--text-2)">Frais de recouvrement (indemnité forfaitaire 2 × 40 €)</dt><dd style="margin: 0; font-variant-numeric: tabular-nums">80,00 €</dd></div>
+<div style="display: flex; justify-content: space-between; padding: var(--sp-2) 0; border-bottom: 1px solid var(--surface-3)"><dt style="color: var(--text-2)">Déjà payé</dt><dd style="margin: 0; font-variant-numeric: tabular-nums; color: var(--success-fg)">− {{paidTxt}}</dd></div>
+<div style="display: flex; justify-content: space-between; padding: var(--sp-2h) 0 0; font-weight: 700"><dt>Solde</dt><dd style="margin: 0; font-variant-numeric: tabular-nums">{{soldeTxt}}</dd></div>
+</dl>
+</section>
+
+<sc-if value="{{notSettled}}" hint-placeholder-val="{{ true }}">
+<section aria-label="Que souhaitez-vous faire ?" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden">
+<div role="tablist" aria-label="Que souhaitez-vous faire ?" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-bottom: 1px solid var(--border)">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+<button type="button" role="tab" aria-selected="{{t.selected}}" onClick="{{t.pick}}" style="min-height: 52px; padding: var(--sp-2); border: 0; font: inherit; font-size: var(--fs-base); font-weight: 500; cursor: pointer; background: {{t.bg}}; color: {{t.color}}; box-shadow: {{t.bar}}">{{t.label}}</button>
+</sc-for>
+</div>
+
+<sc-if value="{{isPay}}" hint-placeholder-val="{{ true }}">
+<div style="padding: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-5)">
+<fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-2h)">
+<legend style="font-size: var(--fs-base); font-weight: 600; margin-bottom: var(--sp-2h)">Montant à payer</legend>
+<sc-for list="{{amountOpts}}" as="o" hint-placeholder-count="2">
+<button type="button" role="radio" aria-checked="{{o.checked}}" onClick="{{o.pick}}" style="display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3h); border-radius: var(--r-md); font: inherit; cursor: pointer; text-align: left; background: var(--surface); border: {{o.border}}">
+<span style="width: 18px; height: 18px; border-radius: var(--r-full); box-sizing: border-box; flex-shrink: 0; border: {{o.ring}}"></span>
+<span style="flex: 1; display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-size: var(--fs-base); font-weight: 600; color: var(--text)">{{o.label}}</span><span style="font-size: var(--fs-sm); color: var(--text-3)">{{o.hint}}</span></span>
+</button>
+</sc-for>
+<sc-if value="{{isPartial}}" hint-placeholder-val="{{ false }}">
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2); padding-left: var(--sp-11)">Montant (€)<input type="text" inputmode="decimal" value="{{custom}}" onChange="{{onCustom}}" style="height: var(--control-lg); max-width: 220px; border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-md); color: var(--text); box-sizing: border-box"></label>
+</sc-if>
+</fieldset>
+<fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-2h)">
+<legend style="font-size: var(--fs-base); font-weight: 600; margin-bottom: var(--sp-2h)">Moyen de paiement</legend>
+<div role="radiogroup" aria-label="Moyen de paiement" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2)">
+<sc-for list="{{methods}}" as="m" hint-placeholder-count="3">
+<button type="button" role="radio" aria-checked="{{m.checked}}" onClick="{{m.pick}}" style="min-height: 64px; padding: var(--sp-2h); border-radius: var(--r-md); font: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--sp-1h); background: {{m.bg}}; border: {{m.border}}; color: var(--text)"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{m.iconColor}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{m.d}}"></path></svg><span style="font-size: var(--fs-sm); font-weight: 500">{{m.label}}</span></button>
+</sc-for>
+</div>
+<sc-if value="{{isCard}}" hint-placeholder-val="{{ true }}"><p style="margin: 0; font-size: var(--fs-sm); color: var(--text-2); line-height: 1.5">Vous serez redirigé vers notre prestataire de paiement certifié PCI-DSS. Aucune donnée de carte n'est conservée par Legarec.</p></sc-if>
+<sc-if value="{{isTransfer}}" hint-placeholder-val="{{ false }}">
+<div style="border: 1px solid var(--border); border-radius: var(--r-md); padding: var(--sp-3h); display: flex; flex-direction: column; gap: var(--sp-2); font-size: var(--fs-base)">
+<div style="display: flex; justify-content: space-between; gap: var(--sp-3)"><span style="color: var(--text-3)">Bénéficiaire</span><span style="font-weight: 500">LEGAREC – compte dédié aux fonds</span></div>
+<div style="display: flex; justify-content: space-between; gap: var(--sp-3)"><span style="color: var(--text-3)">IBAN</span><span style="font-weight: 500">[IBAN DU COMPTE DÉDIÉ]</span></div>
+<div style="display: flex; justify-content: space-between; gap: var(--sp-3)"><span style="color: var(--text-3)">Référence obligatoire</span><span style="font-weight: 700">DOS-2026-0181</span></div>
+<span style="font-size: var(--fs-xs); color: var(--text-3)">Le dossier est mis à jour dès réception du virement (1 à 2 jours ouvrés).</span>
+</div>
+</sc-if>
+<sc-if value="{{isSepa}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: var(--sp-2h)">
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">IBAN du compte à débiter<input type="text" placeholder="FR76 •••• •••• •••• •••• •••• •••" style="height: var(--control-lg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-md); color: var(--text); box-sizing: border-box"></label>
+<label style="display: flex; gap: var(--sp-2); font-size: var(--fs-sm); color: var(--text-2); line-height: 1.45"><input type="checkbox" style="width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--marine)">J'autorise le prélèvement de ce montant au titre du mandat SEPA présenté par notre prestataire de paiement.</label>
+</div>
+</sc-if>
+</fieldset>
+<button type="button" onClick="{{pay}}" style="height: 52px; border-radius: var(--r-sm); border: 0; background: {{accent}}; color: var(--on-primary); font: inherit; font-size: var(--fs-md); font-weight: 600; cursor: pointer">{{payLabel}}</button>
+</div>
+</sc-if>
+
+<sc-if value="{{isPlan}}" hint-placeholder-val="{{ false }}">
+<div style="padding: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-4)">
+<sc-if value="{{planAccepted}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="background: var(--success-bg); border: 1px solid var(--success-border, var(--border)); border-radius: var(--r-md); padding: var(--sp-3) var(--sp-3h); font-size: var(--fs-base); color: var(--success-fg)">Échéancier accepté le 20/11/2026 : {{planChoice}}. Les relances sont suspendues tant que les mensualités sont réglées.</div>
+<table style="width: 100%; border-collapse: collapse; font-size: var(--fs-base); font-variant-numeric: tabular-nums">
+<caption style="text-align: left; font-size: var(--fs-sm); font-weight: 600; color: var(--text-2); padding-bottom: var(--sp-2)">Mes mensualités</caption>
+<thead><tr style="text-align: left; color: var(--text-3); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.04em"><th scope="col" style="padding: var(--sp-2) var(--sp-2) var(--sp-2) 0; font-weight: 600; border-bottom: 1px solid var(--border)">N°</th><th scope="col" style="padding: var(--sp-2); font-weight: 600; border-bottom: 1px solid var(--border)">Échéance</th><th scope="col" style="padding: var(--sp-2); font-weight: 600; border-bottom: 1px solid var(--border); text-align: right">Montant</th><th scope="col" style="padding: var(--sp-2) 0 var(--sp-2) var(--sp-2); font-weight: 600; border-bottom: 1px solid var(--border)">Statut</th></tr></thead>
+<tbody><sc-for list="{{sched}}" as="m" hint-placeholder-count="3"><tr style="background: {{m.bg}}"><td style="padding: var(--sp-2h) var(--sp-2) var(--sp-2h) var(--sp-2); border-bottom: 1px solid var(--surface-3)">{{m.no}}</td><td style="padding: var(--sp-2h) var(--sp-2); border-bottom: 1px solid var(--surface-3)">{{m.date}}</td><td style="padding: var(--sp-2h) var(--sp-2); border-bottom: 1px solid var(--surface-3); text-align: right; font-weight: 600">{{m.amount}}</td><td style="padding: var(--sp-2h) var(--sp-2); border-bottom: 1px solid var(--surface-3)"><span style="font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-0h) var(--sp-2); border-radius: var(--r-full); background: {{m.sBg}}; color: {{m.sFg}}">{{m.state}}</span></td></tr></sc-for></tbody>
+</table>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-2)">
+<button type="button" onClick="{{payNext}}" style="height: 48px; padding: 0 var(--sp-5); border-radius: var(--r-sm); border: 0; background: {{accent}}; color: var(--on-primary); font: inherit; font-size: var(--fs-md); font-weight: 600; cursor: pointer">Payer la mensualité du {{nextDate}}</button>
+<button type="button" onClick="{{dlSched}}" style="height: 48px; padding: 0 var(--sp-4); border-radius: var(--r-sm); border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font: inherit; font-size: var(--fs-base); font-weight: 600; cursor: pointer">Télécharger l'échéancier (PDF)</button>
+</div>
+<span style="font-size: var(--fs-xs); color: var(--text-3)">Vous pouvez aussi payer chaque mensualité par virement avec le RIB ci-contre, en indiquant la référence du dossier.</span>
+</sc-if>
+<sc-if value="{{planOpen}}" hint-placeholder-val="{{ true }}">
+<p style="margin: 0; font-size: var(--fs-base); color: var(--text-2); line-height: 1.5">Vous ne pouvez pas tout régler d'un coup ? Proposez un paiement en plusieurs fois. Votre demande sera examinée par un responsable, avec une réponse sous 48 heures ouvrées.</p>
+<div role="radiogroup" aria-label="Nombre de mensualités" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2h)">
+<sc-for list="{{plans}}" as="p" hint-placeholder-count="3">
+<button type="button" role="radio" aria-checked="{{p.checked}}" onClick="{{p.pick}}" style="padding: var(--sp-4) var(--sp-3); border-radius: var(--r-lg); font: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: var(--sp-1); background: {{p.bg}}; border: {{p.border}}; color: var(--text)"><span style="font-size: var(--fs-base); font-weight: 600">{{p.label}}</span><span style="font-size: var(--fs-xl); font-weight: 700; font-variant-numeric: tabular-nums">{{p.monthly}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">par mois</span></button>
+</sc-for>
+</div>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Votre situation (facultatif)<textarea rows="3" placeholder="Expliquez brièvement votre situation pour faciliter la validation." style="border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: var(--sp-2h) var(--sp-3); font: inherit; font-size: var(--fs-base); color: var(--text); resize: vertical"></textarea></label>
+<sc-if value="{{planSent}}" hint-placeholder-val="{{ false }}"><div role="status" style="background: var(--info-bg); border: 1px solid var(--info-border); border-radius: var(--r-md); padding: var(--sp-3) var(--sp-3h); font-size: var(--fs-base); color: var(--info-fg)">Demande envoyée : {{planChoice}}. Elle est en attente de validation par un responsable. Les relances sont suspendues en attendant.</div></sc-if>
+<button type="button" onClick="{{sendPlan}}" style="height: 48px; border-radius: var(--r-sm); border: 0; background: {{accent}}; color: var(--on-primary); font: inherit; font-size: var(--fs-md); font-weight: 600; cursor: pointer">Envoyer ma demande d'échéancier</button>
+<button type="button" onClick="{{demoAccept}}" style="align-self: flex-start; border: 0; background: transparent; padding: 0; font: inherit; font-size: var(--fs-xs); color: var(--text-3); text-decoration: underline; cursor: pointer">Démo : afficher un échéancier accepté</button>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{isDispute}}" hint-placeholder-val="{{ false }}">
+<div style="padding: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-4)">
+<p style="margin: 0; font-size: var(--fs-base); color: var(--text-2); line-height: 1.5">Vous estimez ne pas devoir tout ou partie de cette somme ? Expliquez-nous pourquoi et joignez vos justificatifs. Le dossier sera examiné avec Énergies Rhône.</p>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Motif<select style="height: var(--control-lg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); background: var(--surface); color: var(--text)"><option>La facture a déjà été payée</option><option>Le montant est erroné</option><option>La prestation n'est pas conforme</option><option>Je ne suis pas concerné par cette dette</option><option>Autre motif</option></select></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Explication<textarea rows="4" style="border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: var(--sp-2h) var(--sp-3); font: inherit; font-size: var(--fs-base); color: var(--text); resize: vertical"></textarea></label>
+<div style="border: 2px dashed var(--border-strong); border-radius: var(--r-lg); padding: var(--sp-4); display: flex; flex-direction: column; align-items: center; gap: var(--sp-1h); text-align: center"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" style="stroke: var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"></path></svg><span style="font-size: var(--fs-base); font-weight: 500">Ajouter un justificatif</span><span style="font-size: var(--fs-xs); color: var(--text-3)">Preuve de paiement, bon de livraison, courrier… PDF ou image, 10 Mo max.</span></div>
+<sc-if value="{{disputeSent}}" hint-placeholder-val="{{ false }}"><div role="status" style="background: var(--violet-bg); border: 1px solid var(--violet-border); border-radius: var(--r-md); padding: var(--sp-3) var(--sp-3h); font-size: var(--fs-base); color: var(--violet-fg)">Contestation enregistrée. Les relances sont suspendues pendant l'examen ; nous revenons vers vous par e-mail.</div></sc-if>
+<button type="button" onClick="{{sendDispute}}" style="height: 48px; border-radius: var(--r-sm); border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font: inherit; font-size: var(--fs-md); font-weight: 600; cursor: pointer">Envoyer ma contestation</button>
+</div>
+</sc-if>
+</section>
+</sc-if>
+
+</div>
+
+<aside style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-6)">
+<section aria-labelledby="rib-titre" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-3)">
+<h2 id="rib-titre" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Payer par virement</h2>
+<dl style="margin: 0; display: flex; flex-direction: column; gap: var(--sp-2); font-size: var(--fs-sm)">
+<div style="display: flex; flex-direction: column; gap: 1px"><dt style="color: var(--text-3)">Bénéficiaire</dt><dd style="margin: 0; font-weight: 500">LEGAREC – compte dédié aux fonds</dd></div>
+<div style="display: flex; flex-direction: column; gap: 1px"><dt style="color: var(--text-3)">IBAN</dt><dd style="margin: 0; font-weight: 600; font-family: var(--font-mono); font-size: var(--fs-sm)">[IBAN DU COMPTE DÉDIÉ]</dd></div>
+<div style="display: flex; flex-direction: column; gap: 1px"><dt style="color: var(--text-3)">BIC</dt><dd style="margin: 0; font-weight: 600; font-family: var(--font-mono); font-size: var(--fs-sm)">[BIC]</dd></div>
+<div style="display: flex; flex-direction: column; gap: 1px"><dt style="color: var(--text-3)">Référence à indiquer (obligatoire)</dt><dd style="margin: 0; font-weight: 700">DOS-2026-0181</dd></div>
+</dl>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-2)">
+<button type="button" onClick="{{copyIban}}" style="height: var(--control-md); padding: 0 var(--sp-3h); border-radius: var(--r-sm); border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font: inherit; font-size: var(--fs-sm); font-weight: 600; cursor: pointer">{{copyLabel}}</button>
+<button type="button" onClick="{{dlRib}}" style="height: var(--control-md); padding: 0 var(--sp-3h); border-radius: var(--r-sm); border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font: inherit; font-size: var(--fs-sm); font-weight: 600; cursor: pointer">Télécharger le RIB (PDF)</button>
+</div>
+</section>
+
+<section aria-labelledby="fact-titre" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-3)">
+<h2 id="fact-titre" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Factures concernées</h2>
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-2)">
+<li style="display: flex; align-items: center; gap: var(--sp-2h); border: 1px solid var(--surface-3); border-radius: var(--r-md); padding: var(--sp-2h)"><span style="width: 30px; height: 36px; border-radius: var(--r-xs); background: var(--bleu-pale); color: var(--marine); font-size: var(--fs-2xs); font-weight: 700; display: flex; align-items: flex-end; justify-content: center; padding-bottom: var(--sp-1); box-sizing: border-box">PDF</span><span style="flex: 1; display: flex; flex-direction: column"><span style="font-size: var(--fs-base); font-weight: 500">F-2026-0902</span><span style="font-size: var(--fs-xs); color: var(--text-3)">Échue le 31/10/2026 · 3 120 €</span></span><a href="#" aria-label="Télécharger la facture F-2026-0902" style="font-size: var(--fs-sm); font-weight: 500; text-decoration: none">Télécharger</a></li>
+<li style="display: flex; align-items: center; gap: var(--sp-2h); border: 1px solid var(--surface-3); border-radius: var(--r-md); padding: var(--sp-2h)"><span style="width: 30px; height: 36px; border-radius: var(--r-xs); background: var(--bleu-pale); color: var(--marine); font-size: var(--fs-2xs); font-weight: 700; display: flex; align-items: flex-end; justify-content: center; padding-bottom: var(--sp-1); box-sizing: border-box">PDF</span><span style="flex: 1; display: flex; flex-direction: column"><span style="font-size: var(--fs-base); font-weight: 500">F-2026-0927</span><span style="font-size: var(--fs-xs); color: var(--text-3)">Échue le 07/11/2026 · 3 120 €</span></span><a href="#" aria-label="Télécharger la facture F-2026-0927" style="font-size: var(--fs-sm); font-weight: 500; text-decoration: none">Télécharger</a></li>
+</ul>
+</section>
+
+<section aria-labelledby="hist-titre" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-3)">
+<h2 id="hist-titre" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Mes paiements</h2>
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+<sc-for list="{{history}}" as="h" hint-placeholder-count="2">
+<li style="display: flex; align-items: center; gap: var(--sp-2h); padding: var(--sp-2h) 0; border-top: 1px solid var(--surface-3)">
+<span style="flex: 1; display: flex; flex-direction: column"><span style="font-size: var(--fs-base); font-weight: 600; font-variant-numeric: tabular-nums">{{h.amount}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{h.date}} · {{h.method}}</span></span>
+<a href="#" style="font-size: var(--fs-sm); font-weight: 500; text-decoration: none">Reçu</a>
+</li>
+</sc-for>
+</ul>
+</section>
+
+<section aria-labelledby="aide-titre" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-base)">
+<h2 id="aide-titre" style="margin: 0 0 var(--sp-1); font-size: var(--fs-md); font-weight: 600">Votre interlocuteur</h2>
+<span style="font-weight: 500">Camille Laurent</span>
+<a href="#" style="text-decoration: none">01 87 88 02 98</a>
+<span style="font-size: var(--fs-sm); color: var(--text-3)">Du lundi au vendredi, 9 h – 19 h</span>
+</section>
+</aside>
+
+</div>
+</div>
+</sc-if>
+
+</main>
+
+<dc-import name="PiedDePage" paiement="true" mandant="Énergies Rhône" style="display: contents" hint-size="100%,72px"></dc-import>
+
+<dc-import name="Confirm" open="{{gcf.open}}" tone="{{gcf.tone}}" title="{{gcf.title}}" body="{{gcf.body}}" details="{{gcf.details}}" confirm-label="{{gcf.label}}" on-confirm="{{gcf.confirm}}" on-cancel="{{gcf.cancel}}" accent="{{accent}}" hint-size="0px,0px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#002B74","options":["#002B74","#001B4D","#5D7087"]},"$preview":{"width":1280,"height":1180}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { step: 'space', tab: 'pay', mode: 'full', custom: '1 000', method: 'card', payments: [], banner: null, plan: 3, planSent: false, disputeSent: false };
+  }
+  componentDidMount() { const lp = this.lgPrefs(); this.lgApply(lp); this.setState({ prefs: lp }); }
+  lgPrefs() { try { return { theme: localStorage.getItem('lg-theme') || 'light', a11y: localStorage.getItem('lg-a11y') === '1' }; } catch (e) { return { theme: 'light', a11y: false }; } }
+  lgApply(p) { const d = document.documentElement; const dark = p.theme === 'dark' || (p.theme === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches); d.setAttribute('data-theme', dark ? 'dark' : 'light'); d.setAttribute('data-a11y', p.a11y ? 'malvoyant' : 'standard'); }
+  lgSave(p) { try { localStorage.setItem('lg-theme', p.theme); localStorage.setItem('lg-a11y', p.a11y ? '1' : '0'); } catch (e) {} this.lgApply(p); this.setState({ prefs: p }); }
+  renderVals() {
+    const v = this._rv0();
+    const g = this.state.gask;
+    v.gcf = { open: !!g, tone: (g && g.tone) || 'primary', title: g ? g.title : '', body: g ? g.body : '', details: (g && g.details) || [], label: g ? g.label : '', confirm: () => { const go = g && g.go; this.setState({ gask: null }); if (go) go(); }, cancel: () => this.setState({ gask: null }) };
+    return v;
+  }
+  _rv0() {
+    const accent = this.props.accent ?? 'var(--marine)';
+    const st = this.state;
+    const eur = (n) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+    const total = 6320;
+    const basePaid = 1000;
+    const extra = st.payments.reduce((s, p) => s + p.amount, 0);
+    const paid = basePaid + extra;
+    const solde = Math.max(0, total - paid);
+    const parse = (v) => { const n = parseFloat(String(v).replace(/\s/g, '').replace(',', '.')); return isNaN(n) ? 0 : n; };
+    const amt = st.mode === 'full' ? solde : Math.min(solde, Math.max(0, parse(st.custom)));
+    const M = {
+      card: ['Carte bancaire', 'M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM2 10h20M6 15h4'],
+      transfer: ['Virement', 'M3 21h18M5 21V10M19 21V10M9 21V10M15 21V10M12 3l9 5H3z'],
+      sepa: ['Prélèvement SEPA', 'M17 1l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3']
+    };
+    const settled = solde === 0;
+    const history = st.payments.slice().reverse().map((p) => ({ amount: eur(p.amount), date: '21/11/2026', method: M[p.method][0] }))
+      .concat([{ amount: eur(1000), date: '14/11/2026', method: 'Virement' }]);
+    const plansDef = [2, 3, 6];
+    return {
+      lgA11y: (this.state.prefs || {}).a11y ? 'true' : 'false',
+      lgDark: (this.state.prefs || {}).theme === 'dark' ? 'true' : 'false',
+      toggleLgA11y: () => this.lgSave({ ...(this.state.prefs || { theme: 'light' }), a11y: !(this.state.prefs || {}).a11y }),
+      toggleLgDark: () => this.lgSave({ ...(this.state.prefs || { a11y: false }), theme: (this.state.prefs || {}).theme === 'dark' ? 'light' : 'dark' }),
+      accent,
+      isVerify: st.step === 'verify',
+      isSpace: st.step === 'space',
+      verify: () => this.setState({ step: 'space' }),
+      leave: () => this.setState({ step: 'verify' }),
+      soldeTxt: eur(solde),
+      soldeColor: settled ? 'var(--success-fg)' : 'var(--text)',
+      paidTxt: eur(paid),
+      paidPct: Math.round((paid / total) * 100) + '%',
+      stLabel: settled ? 'Dossier soldé' : st.disputeSent ? 'Contestation en cours' : st.planSent ? 'Échéancier demandé' : 'Paiement attendu',
+      stBg: settled ? 'var(--success-bg)' : st.disputeSent ? 'var(--violet-bg)' : st.planSent ? 'var(--info-bg)' : 'var(--warning-bg)',
+      stFg: settled ? 'var(--success-fg)' : st.disputeSent ? 'var(--violet-fg)' : st.planSent ? 'var(--info-fg)' : 'var(--warning-fg)',
+      notSettled: !settled,
+      hasBanner: !!st.banner,
+      bannerText: st.banner || '',
+      bannerReceipt: !!st.banner && !st.bannerErr,
+      bannerRole: st.bannerErr ? 'alert' : 'status',
+      bannerIcon: st.bannerErr ? 'M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z' : 'M20 6 9 17l-5-5',
+      bannerBg: st.bannerErr ? 'var(--danger-bg)' : 'var(--success-bg)', bannerBorder: st.bannerErr ? 'var(--danger-border)' : 'var(--success-border)', bannerFg: st.bannerErr ? 'var(--danger-fg)' : 'var(--success-fg)',
+      tabs: [['pay', 'Payer'], ['plan', 'Mon échéancier'], ['dispute', 'Contester']].map(([id, label]) => ({
+        label, selected: st.tab === id ? 'true' : 'false',
+        bg: st.tab === id ? 'var(--white)' : 'var(--surface-2)', color: st.tab === id ? 'var(--text)' : 'var(--text-3)',
+        bar: st.tab === id ? 'inset 0 -2px 0 ' + accent : 'none',
+        pick: () => this.setState({ tab: id })
+      })),
+      planAccepted: !!st.planAccepted, planOpen: !st.planAccepted,
+      demoAccept: () => this.setState({ planAccepted: true }),
+      sched: Array.from({ length: st.plan }, (_, i) => { const due = i === 0; return { no: (i + 1) + '/' + st.plan, date: ['05/12/2026', '05/01/2027', '05/02/2027', '05/03/2027', '05/04/2027', '05/05/2027'][i] || '', amount: eur(i === st.plan - 1 ? solde - Math.ceil(solde / st.plan) * (st.plan - 1) : Math.ceil(solde / st.plan)), state: due ? 'À payer' : 'À venir', sBg: due ? 'var(--warning-bg)' : 'var(--surface-3)', sFg: due ? 'var(--warning-fg)' : 'var(--text-2)', bg: due ? 'var(--bleu-pale)' : 'transparent' }; }),
+      nextDate: '05/12/2026',
+      payNext: () => this.setState({ tab: 'pay', mode: 'part', custom: String(Math.ceil(solde / st.plan)) }),
+      dlSched: () => {},
+      copyLabel: st.ibanCopied ? 'IBAN copié ✓' : 'Copier l’IBAN',
+      copyIban: () => { try { navigator.clipboard.writeText('[IBAN DU COMPTE DÉDIÉ]'); } catch (e) {} this.setState({ ibanCopied: true }); },
+      dlRib: () => {},
+      isPay: st.tab === 'pay', isPlan: st.tab === 'plan', isDispute: st.tab === 'dispute',
+      amountOpts: [['full', 'Régler la totalité', eur(solde) + ' · le dossier est soldé immédiatement'], ['part', 'Payer une partie', 'Choisissez le montant ; le solde restant reste dû']].map(([id, label, hint]) => ({
+        label, hint, checked: st.mode === id ? 'true' : 'false',
+        border: st.mode === id ? '2px solid ' + accent : '1px solid var(--border)',
+        ring: st.mode === id ? '5px solid ' + accent : '2px solid var(--text-3)',
+        pick: () => this.setState({ mode: id })
+      })),
+      isPartial: st.mode === 'part',
+      custom: st.custom,
+      onCustom: (e) => this.setState({ custom: e.target.value }),
+      methods: Object.keys(M).map((k) => ({
+        label: M[k][0], d: M[k][1], checked: st.method === k ? 'true' : 'false',
+        bg: st.method === k ? 'var(--bleu-pale)' : 'var(--white)', border: st.method === k ? '2px solid ' + accent : '1px solid var(--border)',
+        iconColor: st.method === k ? accent : 'var(--text-3)',
+        pick: () => this.setState({ method: k })
+      })),
+      isCard: st.method === 'card', isTransfer: st.method === 'transfer', isSepa: st.method === 'sepa',
+      payLabel: st.method === 'transfer' ? 'J’ai effectué le virement de ' + eur(amt) : 'Payer ' + eur(amt),
+      pay: () => {
+        if (amt <= 0) return;
+        if (st.method === 'transfer') { this.setState({ bannerErr: false, banner: 'Merci, nous vérifions la réception de votre virement de ' + eur(amt) + '. Un reçu vous sera envoyé par e-mail.' }); return; }
+        if (st.method === 'card' && !st.cardTried) { this.setState({ cardTried: true, banner: 'Paiement refusé par votre banque (fonds insuffisants ou plafond atteint). Aucune somme n\u2019a été prélevée. Réessayez, payez une partie, ou choisissez le virement ou un échéancier.', bannerErr: true }); return; }
+        const payments = st.payments.concat([{ amount: amt, method: st.method }]);
+        const left = Math.max(0, total - basePaid - payments.reduce((s, p) => s + p.amount, 0));
+        this.setState({ payments, bannerErr: false, banner: 'Paiement de ' + eur(amt) + ' confirmé. ' + (left === 0 ? 'Votre dossier est soldé. ' : 'Solde restant : ' + eur(left) + '. ') + 'Un reçu vous a été envoyé par e-mail.' });
+      },
+      plans: plansDef.map((n) => ({
+        label: n + ' mois', monthly: eur(Math.ceil(solde / n)), checked: st.plan === n ? 'true' : 'false',
+        bg: st.plan === n ? 'var(--bleu-pale)' : 'var(--white)', border: st.plan === n ? '2px solid ' + accent : '1px solid var(--border)',
+        pick: () => this.setState({ plan: n })
+      })),
+      planSent: st.planSent,
+      planChoice: st.plan + ' mensualités de ' + eur(Math.ceil(solde / st.plan)),
+      sendPlan: () => this.setState({ gask: { title: 'Envoyer votre demande d’échéancier ?', body: 'Vous proposez de régler en ' + st.plan + ' mensualités de ' + eur(Math.ceil(solde / st.plan)) + '. Un responsable étudie votre demande ; les relances sont suspendues en attendant sa réponse.', label: 'Envoyer ma demande', go: () => this.setState({ planSent: true }) } }),
+      disputeSent: st.disputeSent,
+      sendDispute: () => this.setState({ gask: { title: 'Envoyer votre contestation ?', body: 'Les relances sont suspendues pendant l’examen. Nous vous répondons par e-mail.', label: 'Envoyer ma contestation', go: () => this.setState({ disputeSent: true }) } }),
+      history
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,227 @@
+{
+  "accent": "var(--marine)",
+  "q": "",
+  "popular": [
+    {
+      "label": "Échéancier"
+    },
+    {
+      "label": "Mise en demeure"
+    },
+    {
+      "label": "Double authentification"
+    },
+    {
+      "label": "Import CSV"
+    }
+  ],
+  "cats": [
+    {
+      "label": "Prise en main",
+      "desc": "Premiers pas, navigation, recherche et raccourcis",
+      "d": "M12 2 2 7l10 5 10-5zM2 17l10 5 10-5M2 12l10 5 10-5",
+      "iconBg": "var(--bleu-pale)",
+      "iconFg": "var(--marine)",
+      "count": 2,
+      "pressed": "false",
+      "border": "1px solid var(--border)"
+    },
+    {
+      "label": "Dossiers et débiteurs",
+      "desc": "Créer, affecter et suivre un dossier",
+      "d": "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
+      "iconBg": "var(--surface-3)",
+      "iconFg": "var(--text-2)",
+      "count": 2,
+      "pressed": "false",
+      "border": "1px solid var(--border)"
+    },
+    {
+      "label": "Relances et scénarios",
+      "desc": "Agenda, relances automatiques, modèles",
+      "d": "M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z",
+      "iconBg": "var(--info-bg)",
+      "iconFg": "var(--info-fg)",
+      "count": 2,
+      "pressed": "false",
+      "border": "1px solid var(--border)"
+    },
+    {
+      "label": "Appels, e-mails et SMS",
+      "desc": "Dialer, boîte de réception, conversations SMS",
+      "d": "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",
+      "iconBg": "var(--teal-bg)",
+      "iconFg": "var(--teal-fg)",
+      "count": 2,
+      "pressed": "false",
+      "border": "1px solid var(--border)"
+    },
+    {
+      "label": "Échéanciers et paiements",
+      "desc": "Plans de paiement, espace débiteur, reçus",
+      "d": "M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM2 10h20",
+      "iconBg": "var(--success-bg)",
+      "iconFg": "var(--success-fg)",
+      "count": 3,
+      "pressed": "false",
+      "border": "1px solid var(--border)"
+    },
+    {
+      "label": "Contentieux",
+      "desc": "Mise en demeure, injonction de payer, délais",
+      "d": "M12 3v18M7 21h10M3 7h18M6 7l-3 7a3 3 0 0 0 6 0L6 7M18 7l-3 7a3 3 0 0 0 6 0l-3-7",
+      "iconBg": "var(--danger-bg)",
+      "iconFg": "var(--danger-fg)",
+      "count": 2,
+      "pressed": "false",
+      "border": "1px solid var(--border)"
+    },
+    {
+      "label": "Créanciers et reversements",
+      "desc": "Mandats, commissions, relevés, espace créancier",
+      "d": "M3 21h18M5 21V7l7-4 7 4v14M9 9h1M14 9h1M9 13h1M14 13h1",
+      "iconBg": "var(--warning-bg)",
+      "iconFg": "var(--warning-fg)",
+      "count": 2,
+      "pressed": "false",
+      "border": "1px solid var(--border)"
+    },
+    {
+      "label": "Comptes, rôles et sécurité",
+      "desc": "Connexion, 2FA, permissions, données personnelles",
+      "d": "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
+      "iconBg": "var(--violet-bg)",
+      "iconFg": "var(--violet-fg)",
+      "count": 3,
+      "pressed": "false",
+      "border": "1px solid var(--border)"
+    }
+  ],
+  "hasCat": false,
+  "listTitle": "Articles les plus consultés",
+  "listCount": "18 articles",
+  "empty": false,
+  "articles": [
+    {
+      "title": "Découvrir Legarec en 10 minutes",
+      "time": "6 min",
+      "cat": "Prise en main",
+      "isRole": false,
+      "role": ""
+    },
+    {
+      "title": "Comprendre les statuts d’un dossier",
+      "time": "3 min",
+      "cat": "Dossiers et débiteurs",
+      "isRole": false,
+      "role": ""
+    },
+    {
+      "title": "Passer et qualifier un appel",
+      "time": "4 min",
+      "cat": "Appels, e-mails et SMS",
+      "isRole": false,
+      "role": ""
+    },
+    {
+      "title": "Proposer et faire valider un échéancier",
+      "time": "5 min",
+      "cat": "Échéanciers et paiements",
+      "isRole": false,
+      "role": ""
+    },
+    {
+      "title": "Passer un dossier en contentieux",
+      "time": "6 min",
+      "cat": "Contentieux",
+      "isRole": true,
+      "role": "Rôle Responsable"
+    },
+    {
+      "title": "Importer des créances en lot (CSV ou Excel)",
+      "time": "4 min",
+      "cat": "Créanciers et reversements",
+      "isRole": false,
+      "role": ""
+    },
+    {
+      "title": "Activer la double authentification",
+      "time": "2 min",
+      "cat": "Comptes, rôles et sécurité",
+      "isRole": false,
+      "role": ""
+    },
+    {
+      "title": "Rôles et permissions : qui peut faire quoi ?",
+      "time": "4 min",
+      "cat": "Comptes, rôles et sécurité",
+      "isRole": false,
+      "role": ""
+    }
+  ],
+  "ticketSent": false,
+  "keys": [
+    {
+      "label": "Rechercher",
+      "key": "Ctrl K"
+    },
+    {
+      "label": "Créer (débiteur, courrier…)",
+      "key": "C"
+    },
+    {
+      "label": "Aller au tableau de bord",
+      "key": "G puis T"
+    },
+    {
+      "label": "Aller à l’agenda des relances",
+      "key": "G puis R"
+    },
+    {
+      "label": "Appeler le débiteur affiché",
+      "key": "A"
+    },
+    {
+      "label": "Ouvrir l’aide",
+      "key": "?"
+    }
+  ],
+  "services": [
+    {
+      "name": "Application",
+      "state": "Opérationnel",
+      "dot": "var(--success)",
+      "color": "var(--success-fg)"
+    },
+    {
+      "name": "E-mails automatiques (Resend)",
+      "state": "Opérationnel",
+      "dot": "var(--success)",
+      "color": "var(--success-fg)"
+    },
+    {
+      "name": "Messagerie (OVH)",
+      "state": "Opérationnel",
+      "dot": "var(--success)",
+      "color": "var(--success-fg)"
+    },
+    {
+      "name": "Envoi des SMS",
+      "state": "Opérationnel",
+      "dot": "var(--success)",
+      "color": "var(--success-fg)"
+    },
+    {
+      "name": "Téléphonie 3CX",
+      "state": "Opérationnel",
+      "dot": "var(--success)",
+      "color": "var(--success-fg)"
+    },
+    {
+      "name": "Paiement en ligne",
+      "state": "Opérationnel",
+      "dot": "var(--success)",
+      "color": "var(--success-fg)"
+    }
+  ]
+}

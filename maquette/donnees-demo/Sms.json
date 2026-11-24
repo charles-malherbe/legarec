@@ -1,0 +1,350 @@
+{
+  "accent": "var(--marine)",
+  "headActions": [
+    {
+      "label": "Modèles de SMS",
+      "href": "Reglages.dc.html"
+    },
+    {
+      "label": "Envoi groupé",
+      "href": "Generer.dc.html"
+    },
+    {
+      "label": "+ Nouveau SMS",
+      "primary": true,
+      "kbd": "N"
+    }
+  ],
+  "headStats": [
+    {
+      "label": "Envoyés en novembre",
+      "value": "1 284",
+      "sub": "dont 1 196 automatiques"
+    },
+    {
+      "label": "Taux de réponse",
+      "value": "18 %",
+      "sub": "▲ 3 pts"
+    },
+    {
+      "label": "Paiements sous 7 jours",
+      "value": "9,4 %",
+      "color": "var(--success-fg)",
+      "sub": "après un SMS avec lien"
+    },
+    {
+      "label": "Désinscriptions (STOP)",
+      "value": "0,6 %",
+      "sub": "8 numéros ce mois"
+    }
+  ],
+  "tbTabs": [
+    {
+      "label": "Toutes",
+      "selected": true,
+      "count": "5"
+    },
+    {
+      "label": "Non lues",
+      "selected": false,
+      "count": "2"
+    },
+    {
+      "label": "À traiter",
+      "selected": false,
+      "count": "3"
+    }
+  ],
+  "tbFilters": [
+    {
+      "label": "Créancier",
+      "options": [
+        "Tous les créanciers",
+        "Matériaux Delta",
+        "Énergies Rhône",
+        "Médiatel",
+        "TransAlp Leasing",
+        "Crédit Horizon"
+      ]
+    }
+  ],
+  "threadCount": "5",
+  "filters": [
+    {
+      "label": "Toutes",
+      "pressed": "true",
+      "bg": "var(--white)",
+      "color": "var(--text)",
+      "shadow": "var(--shadow-sm)"
+    },
+    {
+      "label": "Non lues",
+      "pressed": "false",
+      "bg": "transparent",
+      "color": "var(--text-3)",
+      "shadow": "none"
+    },
+    {
+      "label": "À traiter",
+      "pressed": "false",
+      "bg": "transparent",
+      "color": "var(--text-3)",
+      "shadow": "none"
+    }
+  ],
+  "threads": [
+    {
+      "id": "s1",
+      "ini": "FD",
+      "name": "Fromagerie Durand",
+      "contact": "M. Marc Durand",
+      "phone": "06 12 •• •• 48",
+      "mandant": "Énergies Rhône",
+      "due": "6 240 €",
+      "late": "21 j",
+      "k": "relance",
+      "time": "10:42",
+      "unread": true,
+      "next": "Aucun : scénario suspendu (réponse reçue)",
+      "msgs": [
+        {
+          "dir": "out",
+          "text": "LEGAREC pour Énergies Rhône : 2 factures restent impayées (6 240 €). Réglez en ligne : [LIEN DE PAIEMENT]. STOP au [NUMÉRO STOP]",
+          "meta": "Envoyé le 21/11 à 10:00 · distribué",
+          "auto": "Relance SMS automatique J+21"
+        },
+        {
+          "dir": "in",
+          "text": "Bonjour, j’ai demandé le RIB par mail mercredi, toujours rien reçu.",
+          "meta": "10:38"
+        },
+        {
+          "dir": "in",
+          "text": "Je peux payer cette semaine.",
+          "meta": "10:42"
+        }
+      ],
+      "unreadCount": 2,
+      "preview": "Je peux payer cette semaine.",
+      "weight": "600",
+      "pressed": "true",
+      "bg": "var(--surface-3)",
+      "bar": "inset 3px 0 0 var(--or)"
+    },
+    {
+      "id": "s2",
+      "ini": "JM",
+      "name": "Julie Mercier",
+      "contact": "Mme Julie Mercier",
+      "phone": "06 74 •• •• 02",
+      "mandant": "Crédit Horizon",
+      "due": "1 200 €",
+      "late": "—",
+      "k": "promesse",
+      "time": "09:15",
+      "unread": true,
+      "next": "Rappel d’échéance le 28/11 à 10:00",
+      "msgs": [
+        {
+          "dir": "out",
+          "text": "LEGAREC pour Crédit Horizon : votre échéance de 240 € sera prélevée le 01/12. STOP au [NUMÉRO STOP]",
+          "meta": "Envoyé le 20/11 · distribué",
+          "auto": "Rappel avant échéance"
+        },
+        {
+          "dir": "in",
+          "text": "Est-ce possible de décaler au 05/12 ? Mon salaire arrive le 4.",
+          "meta": "09:15"
+        }
+      ],
+      "unreadCount": 1,
+      "preview": "Est-ce possible de décaler au 05/12 ? Mon salaire arrive le 4.",
+      "weight": "600",
+      "pressed": "false",
+      "bg": "var(--white)",
+      "bar": "none"
+    },
+    {
+      "id": "s3",
+      "ini": "GH",
+      "name": "Groupe Hélio",
+      "contact": "Mme Nadia Roussel",
+      "phone": "06 33 •• •• 91",
+      "mandant": "Médiatel",
+      "due": "36 750 €",
+      "late": "38 j",
+      "k": "relance",
+      "time": "Hier",
+      "unread": false,
+      "next": "Relance n°3 le 25/11 à 09:00",
+      "msgs": [
+        {
+          "dir": "out",
+          "text": "LEGAREC pour Médiatel : sauf erreur, 36 750 € restent dus. Merci de nous contacter au 01 87 88 02 98. STOP au [NUMÉRO STOP]",
+          "meta": "Envoyé le 12/11 · distribué",
+          "auto": "Relance SMS automatique J+30"
+        },
+        {
+          "dir": "in",
+          "text": "Le paiement est en validation, départ prévu le 30/11.",
+          "meta": "Hier 16:20"
+        },
+        {
+          "dir": "out",
+          "text": "Merci Madame Roussel, nous notons un règlement le 30/11. Bonne journée.",
+          "meta": "Hier 16:41 · distribué · Camille Laurent"
+        }
+      ],
+      "unreadCount": 0,
+      "preview": "Vous : Merci Madame Roussel, nous notons un règlement le 30/11. Bonne journée.",
+      "weight": "500",
+      "pressed": "false",
+      "bg": "var(--white)",
+      "bar": "none"
+    },
+    {
+      "id": "s4",
+      "ini": "NL",
+      "name": "Nordis Logistique",
+      "contact": "Service comptable",
+      "phone": "06 51 •• •• 77",
+      "mandant": "Énergies Rhône",
+      "due": "8 900 €",
+      "late": "45 j",
+      "k": "promesse",
+      "time": "20 nov.",
+      "unread": false,
+      "next": "Rappel d’échéance le 13/12",
+      "msgs": [
+        {
+          "dir": "out",
+          "text": "LEGAREC : nous confirmons la réception de votre virement de 12 500 €. Solde restant : 8 900 € au 15/12. Merci.",
+          "meta": "20/11 · distribué · Camille Laurent"
+        }
+      ],
+      "unreadCount": 0,
+      "preview": "Vous : LEGAREC : nous confirmons la réception de votre virement de 12 500 €. Solde restant : 8 900 € au 15/12. Merci.",
+      "weight": "500",
+      "pressed": "false",
+      "bg": "var(--white)",
+      "bar": "none"
+    },
+    {
+      "id": "s5",
+      "ini": "GV",
+      "name": "Garage Valmont",
+      "contact": "M. Paul Valmont",
+      "phone": "06 09 •• •• 15",
+      "mandant": "TransAlp Leasing",
+      "due": "23 900 €",
+      "late": "97 j",
+      "k": "retard",
+      "time": "19 nov.",
+      "unread": false,
+      "next": "Aucun : passage en contentieux en attente",
+      "msgs": [
+        {
+          "dir": "out",
+          "text": "LEGAREC pour TransAlp Leasing : sans règlement de 23 900 € sous 8 jours, une procédure pourra être engagée. Contact : 01 87 88 02 98. STOP au [NUMÉRO STOP]",
+          "meta": "19/11 · non distribué : numéro injoignable",
+          "auto": "Relance SMS automatique J+90"
+        }
+      ],
+      "unreadCount": 0,
+      "preview": "Vous : LEGAREC pour TransAlp Leasing : sans règlement de 23 900 € sous 8 jours, une procédure pourra être engagée. Contact : 01 87 88 02 98. STOP au [NUMÉRO STOP]",
+      "weight": "500",
+      "pressed": "false",
+      "bg": "var(--white)",
+      "bar": "none"
+    }
+  ],
+  "cur": {
+    "id": "s1",
+    "ini": "FD",
+    "name": "Fromagerie Durand",
+    "contact": "M. Marc Durand",
+    "phone": "06 12 •• •• 48",
+    "mandant": "Énergies Rhône",
+    "due": "6 240 €",
+    "late": "21 j",
+    "k": "relance",
+    "time": "10:42",
+    "unread": 2,
+    "next": "Aucun : scénario suspendu (réponse reçue)",
+    "msgs": [
+      {
+        "text": "LEGAREC pour Énergies Rhône : 2 factures restent impayées (6 240 €). Réglez en ligne : [LIEN DE PAIEMENT]. STOP au [NUMÉRO STOP]",
+        "meta": "Envoyé le 21/11 à 10:00 · distribué",
+        "isAuto": true,
+        "autoLabel": "Relance SMS automatique J+21",
+        "align": "flex-end",
+        "itemsAlign": "flex-end",
+        "bg": "var(--marine)",
+        "fg": "var(--on-primary)",
+        "border": "0",
+        "radius": "14px 14px 4px 14px"
+      },
+      {
+        "text": "Bonjour, j’ai demandé le RIB par mail mercredi, toujours rien reçu.",
+        "meta": "10:38",
+        "isAuto": false,
+        "autoLabel": "",
+        "align": "flex-start",
+        "itemsAlign": "flex-start",
+        "bg": "var(--white)",
+        "fg": "var(--text)",
+        "border": "1px solid var(--border)",
+        "radius": "14px 14px 14px 4px"
+      },
+      {
+        "text": "Je peux payer cette semaine.",
+        "meta": "10:42",
+        "isAuto": false,
+        "autoLabel": "",
+        "align": "flex-start",
+        "itemsAlign": "flex-start",
+        "bg": "var(--white)",
+        "fg": "var(--text)",
+        "border": "1px solid var(--border)",
+        "radius": "14px 14px 14px 4px"
+      }
+    ],
+    "stBg": "var(--info-bg)",
+    "stFg": "var(--info-fg)",
+    "status": "En relance"
+  },
+  "quick": [
+    {
+      "label": "RIB / lien de paiement"
+    },
+    {
+      "label": "Confirmer une promesse"
+    },
+    {
+      "label": "Proposer un échéancier"
+    },
+    {
+      "label": "Demander un rappel"
+    }
+  ],
+  "draft": "",
+  "withLink": true,
+  "charCount": 0,
+  "segments": 0,
+  "countColor": "var(--text-3)",
+  "q": "",
+  "pg": {
+    "show": true,
+    "total": 64,
+    "page": 1,
+    "size": 25
+  },
+  "lst": {
+    "show": false,
+    "kind": "empty",
+    "title": "Aucune conversation",
+    "text": "Les réponses des débiteurs aux SMS de relance apparaissent ici.",
+    "actionLabel": "",
+    "count": 5
+  }
+}

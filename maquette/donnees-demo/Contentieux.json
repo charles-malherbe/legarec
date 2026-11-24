@@ -1,0 +1,843 @@
+{
+  "accent": "var(--marine)",
+  "cur": {
+    "id": "c1",
+    "siret": "607 529 179 00006",
+    "st": 0,
+    "name": "Charpentes Bellet",
+    "mandant": "Matériaux Delta",
+    "amount": "27 300 €",
+    "step": "Mise en demeure LRAR envoyée",
+    "due": "Délai expire le 30/11",
+    "urgent": true,
+    "procedure": "Mise en demeure",
+    "court": "Tribunal de commerce de Lyon",
+    "partner": "Me Durieux, avocat",
+    "cta": "Préparer la requête en injonction",
+    "acts": [
+      {
+        "title": "Relances amiables (3) sans résultat",
+        "date": "14/09 → 28/10/2026",
+        "dot": "var(--success-fg)",
+        "ring": "0",
+        "color": "var(--text)",
+        "bg": "transparent",
+        "pad": "0",
+        "isNow": false,
+        "dotTop": "var(--sp-1)"
+      },
+      {
+        "title": "Accord du créancier pour le contentieux",
+        "date": "05/11/2026",
+        "dot": "var(--success-fg)",
+        "ring": "0",
+        "color": "var(--text)",
+        "bg": "transparent",
+        "pad": "0",
+        "isNow": false,
+        "dotTop": "var(--sp-1)"
+      },
+      {
+        "title": "Mise en demeure LRAR — accusé de réception signé",
+        "date": "16/11/2026",
+        "dot": "var(--white)",
+        "ring": "3px solid var(--marine)",
+        "color": "var(--text)",
+        "bg": "var(--bleu-pale)",
+        "pad": "var(--sp-2) var(--sp-3)",
+        "isNow": true,
+        "dotTop": "calc(var(--sp-2) + 4px)"
+      },
+      {
+        "title": "Requête en injonction de payer",
+        "date": "Prévue après le 30/11/2026",
+        "dot": "var(--white)",
+        "ring": "2px solid var(--border-strong)",
+        "color": "var(--text-3)",
+        "bg": "transparent",
+        "pad": "0",
+        "isNow": false,
+        "dotTop": "var(--sp-1)"
+      }
+    ],
+    "color": "var(--warning)",
+    "facts": [
+      {
+        "k": "Créancier",
+        "v": "Matériaux Delta"
+      },
+      {
+        "k": "Montant",
+        "v": "27 300 €"
+      },
+      {
+        "k": "Juridiction",
+        "v": "Tribunal de commerce de Lyon"
+      },
+      {
+        "k": "Partenaire",
+        "v": "Me Durieux, avocat"
+      }
+    ]
+  },
+  "headActions": [
+    {
+      "label": "Partenaires (avocats, commissaires)"
+    },
+    {
+      "label": "+ Transférer un dossier",
+      "primary": true,
+      "kbd": "N",
+      "href": "Dossiers.dc.html"
+    }
+  ],
+  "headStats": [
+    {
+      "label": "Montant en contentieux",
+      "value": "284 900 €",
+      "sub": "21 dossiers"
+    },
+    {
+      "label": "Frais de procédure avancés",
+      "value": "4 820 €",
+      "sub": "refacturables au débiteur"
+    },
+    {
+      "label": "Titres exécutoires (2026)",
+      "value": "14",
+      "color": "var(--success-fg)",
+      "sub": "▲ 4 sur un an"
+    },
+    {
+      "label": "En attente d’accord créancier",
+      "value": "3",
+      "color": "var(--warning-fg)",
+      "sub": "avant engagement de frais"
+    },
+    {
+      "label": "Délais sous 15 jours",
+      "value": "4",
+      "color": "var(--danger-fg)",
+      "sub": "dont 2 urgents"
+    }
+  ],
+  "tbTabs": [
+    {
+      "id": "all",
+      "label": "Toutes",
+      "count": "21",
+      "selected": true
+    },
+    {
+      "id": "0",
+      "label": "Mise en demeure",
+      "count": "6",
+      "selected": false
+    },
+    {
+      "id": "1",
+      "label": "Injonction de payer",
+      "count": "5",
+      "selected": false
+    },
+    {
+      "id": "2",
+      "label": "Titre exécutoire",
+      "count": "4",
+      "selected": false
+    },
+    {
+      "id": "3",
+      "label": "Exécution forcée",
+      "count": "3",
+      "selected": false
+    },
+    {
+      "id": "4",
+      "label": "Clos",
+      "count": "3",
+      "selected": false
+    }
+  ],
+  "tbFilters": [
+    {
+      "label": "Créancier",
+      "options": [
+        "Tous les créanciers",
+        "Matériaux Delta",
+        "Énergies Rhône",
+        "Médiatel",
+        "TransAlp Leasing",
+        "Crédit Horizon"
+      ]
+    },
+    {
+      "label": "Partenaire",
+      "options": [
+        "Tous les partenaires",
+        "Me Duval (avocat)",
+        "SCP Arnaud & Fils (commissaires)"
+      ]
+    }
+  ],
+  "tbViews": [
+    {
+      "label": "Tableau",
+      "selected": true
+    },
+    {
+      "label": "Liste",
+      "selected": false
+    }
+  ],
+  "boardCols": "repeat(5, minmax(196px, 1fr))",
+  "boardMin": "1028px",
+  "isBoard": true,
+  "isList": false,
+  "listCount": "7",
+  "listRows": [
+    {
+      "id": "c1",
+      "siret": "607 529 179 00006",
+      "st": 0,
+      "name": "Charpentes Bellet",
+      "mandant": "Matériaux Delta",
+      "amount": "27 300 €",
+      "step": "Mise en demeure LRAR envoyée",
+      "due": "Délai expire le 30/11",
+      "urgent": true,
+      "procedure": "Mise en demeure",
+      "court": "Tribunal de commerce de Lyon",
+      "partner": "Me Durieux, avocat",
+      "cta": "Préparer la requête en injonction",
+      "dueColor": "var(--danger-fg)",
+      "pressed": "true",
+      "rowBg": "var(--bleu-pale)",
+      "border": "2px solid var(--marine)"
+    },
+    {
+      "id": "c2",
+      "siret": "193 786 571 00094",
+      "st": 0,
+      "name": "Garage Valmont",
+      "mandant": "TransAlp Leasing",
+      "amount": "23 900 €",
+      "step": "Accord créancier demandé",
+      "due": "En attente depuis 3 j",
+      "urgent": false,
+      "procedure": "Mise en demeure",
+      "court": "Tribunal judiciaire de Grenoble",
+      "partner": "À désigner",
+      "cta": "Relancer le créancier",
+      "acts": [
+        {
+          "title": "Relances amiables sans résultat",
+          "date": "20/08 → 10/11/2026",
+          "dot": "var(--success-fg)",
+          "ring": "0",
+          "color": "var(--text)",
+          "bg": "transparent",
+          "pad": "0",
+          "isNow": false,
+          "dotTop": "var(--sp-1)"
+        },
+        {
+          "title": "Demande d’accord au créancier",
+          "date": "18/11/2026",
+          "dot": "var(--white)",
+          "ring": "3px solid var(--marine)",
+          "color": "var(--text)",
+          "bg": "var(--bleu-pale)",
+          "pad": "var(--sp-2) var(--sp-3)",
+          "isNow": true,
+          "dotTop": "calc(var(--sp-2) + 4px)"
+        },
+        {
+          "title": "Mise en demeure LRAR",
+          "date": "À venir",
+          "dot": "var(--white)",
+          "ring": "2px solid var(--border-strong)",
+          "color": "var(--text-3)",
+          "bg": "transparent",
+          "pad": "0",
+          "isNow": false,
+          "dotTop": "var(--sp-1)"
+        }
+      ],
+      "dueColor": "var(--text-3)",
+      "pressed": "false",
+      "rowBg": "var(--white)",
+      "border": "1px solid var(--border)"
+    },
+    {
+      "id": "c3",
+      "siret": "887 789 329 00018",
+      "st": 1,
+      "name": "Électricité Fabre",
+      "mandant": "Énergies Rhône",
+      "amount": "12 480 €",
+      "step": "Requête déposée au greffe",
+      "due": "Ordonnance attendue",
+      "urgent": false,
+      "procedure": "Injonction de payer",
+      "court": "Tribunal judiciaire de Valence",
+      "partner": "Me Roche, avocate",
+      "cta": "Suivre au greffe",
+      "acts": [
+        {
+          "title": "Mise en demeure LRAR",
+          "date": "02/10/2026",
+          "dot": "var(--success-fg)",
+          "ring": "0",
+          "color": "var(--text)",
+          "bg": "transparent",
+          "pad": "0",
+          "isNow": false,
+          "dotTop": "var(--sp-1)"
+        },
+        {
+          "title": "Requête en injonction de payer déposée",
+          "date": "04/11/2026",
+          "dot": "var(--white)",
+          "ring": "3px solid var(--marine)",
+          "color": "var(--text)",
+          "bg": "var(--bleu-pale)",
+          "pad": "var(--sp-2) var(--sp-3)",
+          "isNow": true,
+          "dotTop": "calc(var(--sp-2) + 4px)"
+        },
+        {
+          "title": "Ordonnance du juge",
+          "date": "En attente",
+          "dot": "var(--white)",
+          "ring": "2px solid var(--border-strong)",
+          "color": "var(--text-3)",
+          "bg": "transparent",
+          "pad": "0",
+          "isNow": false,
+          "dotTop": "var(--sp-1)"
+        },
+        {
+          "title": "Signification par commissaire de justice",
+          "date": "À venir",
+          "dot": "var(--white)",
+          "ring": "2px solid var(--border-strong)",
+          "color": "var(--text-3)",
+          "bg": "transparent",
+          "pad": "0",
+          "isNow": false,
+          "dotTop": "var(--sp-1)"
+        }
+      ],
+      "dueColor": "var(--text-3)",
+      "pressed": "false",
+      "rowBg": "var(--white)",
+      "border": "1px solid var(--border)"
+    },
+    {
+      "id": "c4",
+      "siret": "979 217 429 00013",
+      "st": 1,
+      "name": "Studio Pixelia",
+      "mandant": "Médiatel",
+      "amount": "3 960 €",
+      "step": "Procédure simplifiée (< 5 000 €)",
+      "due": "Réponse débiteur avant le 04/12",
+      "urgent": true,
+      "procedure": "Procédure simplifiée",
+      "court": "—",
+      "partner": "Étude Garnier, commissaires de justice",
+      "cta": "Voir la proposition d’accord",
+      "acts": [
+        {
+          "title": "Mise en demeure LRAR",
+          "date": "15/10/2026",
+          "dot": "var(--success-fg)",
+          "ring": "0",
+          "color": "var(--text)",
+          "bg": "transparent",
+          "pad": "0",
+          "isNow": false,
+          "dotTop": "var(--sp-1)"
+        },
+        {
+          "title": "Lettre du commissaire de justice (procédure simplifiée)",
+          "date": "04/11/2026",
+          "dot": "var(--white)",
+          "ring": "3px solid var(--marine)",
+          "color": "var(--text)",
+          "bg": "var(--bleu-pale)",
+          "pad": "var(--sp-2) var(--sp-3)",
+          "isNow": true,
+          "dotTop": "calc(var(--sp-2) + 4px)"
+        },
+        {
+          "title": "Accord du débiteur → titre exécutoire",
+          "date": "Délai d’un mois",
+          "dot": "var(--white)",
+          "ring": "2px solid var(--border-strong)",
+          "color": "var(--text-3)",
+          "bg": "transparent",
+          "pad": "0",
+          "isNow": false,
+          "dotTop": "var(--sp-1)"
+        }
+      ],
+      "dueColor": "var(--danger-fg)",
+      "pressed": "false",
+      "rowBg": "var(--white)",
+      "border": "1px solid var(--border)"
+    },
+    {
+      "id": "c5",
+      "siret": "280 967 928 00019",
+      "st": 2,
+      "name": "Menuiserie Arnal",
+      "mandant": "Matériaux Delta",
+      "amount": "18 750 €",
+      "step": "Ordonnance signifiée",
+      "due": "Opposition possible jusqu’au 02/12",
+      "urgent": true,
+      "procedure": "Injonction de payer",
+      "court": "Tribunal de commerce de Lyon",
+      "partner": "Étude Garnier",
+      "cta": "Demander la formule exécutoire",
+      "acts": [
+        {
+          "title": "Ordonnance d’injonction de payer rendue",
+          "date": "20/10/2026",
+          "dot": "var(--success-fg)",
+          "ring": "0",
+          "color": "var(--text)",
+          "bg": "transparent",
+          "pad": "0",
+          "isNow": false,
+          "dotTop": "var(--sp-1)"
+        },
+        {
+          "title": "Signification au débiteur",
+          "date": "02/11/2026",
+          "dot": "var(--success-fg)",
+          "ring": "0",
+          "color": "var(--text)",
+          "bg": "transparent",
+          "pad": "0",
+          "isNow": false,
+          "dotTop": "var(--sp-1)"
+        },
+        {
+          "title": "Délai d’opposition d’un mois",
+          "date": "Jusqu’au 02/12/2026",
+          "dot": "var(--white)",
+          "ring": "3px solid var(--marine)",
+          "color": "var(--text)",
+          "bg": "var(--bleu-pale)",
+          "pad": "var(--sp-2) var(--sp-3)",
+          "isNow": true,
+          "dotTop": "calc(var(--sp-2) + 4px)"
+        },
+        {
+          "title": "Apposition de la formule exécutoire",
+          "date": "À venir",
+          "dot": "var(--white)",
+          "ring": "2px solid var(--border-strong)",
+          "color": "var(--text-3)",
+          "bg": "transparent",
+          "pad": "0",
+          "isNow": false,
+          "dotTop": "var(--sp-1)"
+        }
+      ],
+      "dueColor": "var(--danger-fg)",
+      "pressed": "false",
+      "rowBg": "var(--white)",
+      "border": "1px solid var(--border)"
+    },
+    {
+      "id": "c6",
+      "siret": "868 426 842 00068",
+      "st": 3,
+      "name": "Transports Lemaire",
+      "mandant": "TransAlp Leasing",
+      "amount": "31 500 €",
+      "step": "Saisie-attribution sur compte",
+      "due": "Fonds attendus 05/12",
+      "urgent": false,
+      "procedure": "Exécution forcée",
+      "court": "Tribunal judiciaire de Grenoble",
+      "partner": "Étude Garnier",
+      "cta": "Voir le procès-verbal",
+      "acts": [
+        {
+          "title": "Titre exécutoire obtenu",
+          "date": "12/09/2026",
+          "dot": "var(--success-fg)",
+          "ring": "0",
+          "color": "var(--text)",
+          "bg": "transparent",
+          "pad": "0",
+          "isNow": false,
+          "dotTop": "var(--sp-1)"
+        },
+        {
+          "title": "Commandement de payer",
+          "date": "01/10/2026",
+          "dot": "var(--success-fg)",
+          "ring": "0",
+          "color": "var(--text)",
+          "bg": "transparent",
+          "pad": "0",
+          "isNow": false,
+          "dotTop": "var(--sp-1)"
+        },
+        {
+          "title": "Saisie-attribution sur compte bancaire",
+          "date": "17/11/2026",
+          "dot": "var(--white)",
+          "ring": "3px solid var(--marine)",
+          "color": "var(--text)",
+          "bg": "var(--bleu-pale)",
+          "pad": "var(--sp-2) var(--sp-3)",
+          "isNow": true,
+          "dotTop": "calc(var(--sp-2) + 4px)"
+        },
+        {
+          "title": "Versement des fonds saisis",
+          "date": "Attendu le 05/12/2026",
+          "dot": "var(--white)",
+          "ring": "2px solid var(--border-strong)",
+          "color": "var(--text-3)",
+          "bg": "transparent",
+          "pad": "0",
+          "isNow": false,
+          "dotTop": "var(--sp-1)"
+        }
+      ],
+      "dueColor": "var(--text-3)",
+      "pressed": "false",
+      "rowBg": "var(--white)",
+      "border": "1px solid var(--border)"
+    },
+    {
+      "id": "c7",
+      "siret": "181 003 393 00012",
+      "st": 4,
+      "name": "Boulangerie Morin",
+      "mandant": "Crédit Horizon",
+      "amount": "7 240 €",
+      "step": "Recouvré intégralement",
+      "due": "Clos le 10/11",
+      "urgent": false,
+      "procedure": "Clos",
+      "court": "Tribunal judiciaire de Lyon",
+      "partner": "Me Durieux",
+      "cta": "Archiver",
+      "acts": [
+        {
+          "title": "Titre exécutoire",
+          "date": "02/07/2026",
+          "dot": "var(--success-fg)",
+          "ring": "0",
+          "color": "var(--text)",
+          "bg": "transparent",
+          "pad": "0",
+          "isNow": false,
+          "dotTop": "var(--sp-1)"
+        },
+        {
+          "title": "Paiement intégral + frais",
+          "date": "10/11/2026",
+          "dot": "var(--success-fg)",
+          "ring": "0",
+          "color": "var(--text)",
+          "bg": "transparent",
+          "pad": "0",
+          "isNow": false,
+          "dotTop": "var(--sp-1)"
+        }
+      ],
+      "dueColor": "var(--text-3)",
+      "pressed": "false",
+      "rowBg": "var(--white)",
+      "border": "1px solid var(--border)"
+    }
+  ],
+  "cf": {
+    "open": false,
+    "title": "Préparer la requête en injonction ?",
+    "body": "Cette étape engage des frais de procédure et sera visible par Matériaux Delta dans son espace. Vérifiez que l’accord du créancier couvre cette étape.",
+    "details": [
+      {
+        "k": "Débiteur",
+        "v": "Charpentes Bellet · SIRET 607 529 179 00006"
+      },
+      {
+        "k": "Montant",
+        "v": "27 300 €"
+      },
+      {
+        "k": "Procédure",
+        "v": "Mise en demeure"
+      },
+      {
+        "k": "Partenaire",
+        "v": "Me Durieux, avocat"
+      }
+    ],
+    "label": "Confirmer et envoyer"
+  },
+  "stages": [
+    {
+      "label": "Mise en demeure",
+      "hint": "Accord créancier, LRAR",
+      "count": 6,
+      "color": "var(--warning)",
+      "total": "38 600 €",
+      "hasMore": true,
+      "more": "+ 4 autres dossiers",
+      "cards": [
+        {
+          "id": "c1",
+          "siret": "607 529 179 00006",
+          "st": 0,
+          "name": "Charpentes Bellet",
+          "mandant": "Matériaux Delta",
+          "amount": "27 300 €",
+          "step": "Mise en demeure LRAR envoyée",
+          "due": "Délai expire le 30/11",
+          "urgent": true,
+          "procedure": "Mise en demeure",
+          "court": "Tribunal de commerce de Lyon",
+          "partner": "Me Durieux, avocat",
+          "cta": "Préparer la requête en injonction",
+          "dueBg": "var(--danger-bg)",
+          "dueFg": "var(--danger-fg)",
+          "pressed": "true",
+          "outline": "2px solid var(--marine)",
+          "shadow": "var(--shadow-md)"
+        },
+        {
+          "id": "c2",
+          "siret": "193 786 571 00094",
+          "st": 0,
+          "name": "Garage Valmont",
+          "mandant": "TransAlp Leasing",
+          "amount": "23 900 €",
+          "step": "Accord créancier demandé",
+          "due": "En attente depuis 3 j",
+          "urgent": false,
+          "procedure": "Mise en demeure",
+          "court": "Tribunal judiciaire de Grenoble",
+          "partner": "À désigner",
+          "cta": "Relancer le créancier",
+          "dueBg": "var(--surface-3)",
+          "dueFg": "var(--text-2)",
+          "pressed": "false",
+          "outline": "0",
+          "shadow": "var(--shadow-sm)"
+        }
+      ]
+    },
+    {
+      "label": "Injonction de payer",
+      "hint": "ou procédure simplifiée",
+      "count": 5,
+      "color": "var(--info)",
+      "total": "64 140 €",
+      "hasMore": true,
+      "more": "+ 3 autres dossiers",
+      "cards": [
+        {
+          "id": "c3",
+          "siret": "887 789 329 00018",
+          "st": 1,
+          "name": "Électricité Fabre",
+          "mandant": "Énergies Rhône",
+          "amount": "12 480 €",
+          "step": "Requête déposée au greffe",
+          "due": "Ordonnance attendue",
+          "urgent": false,
+          "procedure": "Injonction de payer",
+          "court": "Tribunal judiciaire de Valence",
+          "partner": "Me Roche, avocate",
+          "cta": "Suivre au greffe",
+          "dueBg": "var(--surface-3)",
+          "dueFg": "var(--text-2)",
+          "pressed": "false",
+          "outline": "0",
+          "shadow": "var(--shadow-sm)"
+        },
+        {
+          "id": "c4",
+          "siret": "979 217 429 00013",
+          "st": 1,
+          "name": "Studio Pixelia",
+          "mandant": "Médiatel",
+          "amount": "3 960 €",
+          "step": "Procédure simplifiée (< 5 000 €)",
+          "due": "Réponse débiteur avant le 04/12",
+          "urgent": true,
+          "procedure": "Procédure simplifiée",
+          "court": "—",
+          "partner": "Étude Garnier, commissaires de justice",
+          "cta": "Voir la proposition d’accord",
+          "dueBg": "var(--danger-bg)",
+          "dueFg": "var(--danger-fg)",
+          "pressed": "false",
+          "outline": "0",
+          "shadow": "var(--shadow-sm)"
+        }
+      ]
+    },
+    {
+      "label": "Titre exécutoire",
+      "hint": "Signification, délai d’opposition",
+      "count": 4,
+      "color": "var(--violet)",
+      "total": "71 900 €",
+      "hasMore": true,
+      "more": "+ 3 autres dossiers",
+      "cards": [
+        {
+          "id": "c5",
+          "siret": "280 967 928 00019",
+          "st": 2,
+          "name": "Menuiserie Arnal",
+          "mandant": "Matériaux Delta",
+          "amount": "18 750 €",
+          "step": "Ordonnance signifiée",
+          "due": "Opposition possible jusqu’au 02/12",
+          "urgent": true,
+          "procedure": "Injonction de payer",
+          "court": "Tribunal de commerce de Lyon",
+          "partner": "Étude Garnier",
+          "cta": "Demander la formule exécutoire",
+          "dueBg": "var(--danger-bg)",
+          "dueFg": "var(--danger-fg)",
+          "pressed": "false",
+          "outline": "0",
+          "shadow": "var(--shadow-sm)"
+        }
+      ]
+    },
+    {
+      "label": "Exécution forcée",
+      "hint": "Commandement, saisies",
+      "count": 3,
+      "color": "var(--danger)",
+      "total": "81 260 €",
+      "hasMore": true,
+      "more": "+ 2 autres dossiers",
+      "cards": [
+        {
+          "id": "c6",
+          "siret": "868 426 842 00068",
+          "st": 3,
+          "name": "Transports Lemaire",
+          "mandant": "TransAlp Leasing",
+          "amount": "31 500 €",
+          "step": "Saisie-attribution sur compte",
+          "due": "Fonds attendus 05/12",
+          "urgent": false,
+          "procedure": "Exécution forcée",
+          "court": "Tribunal judiciaire de Grenoble",
+          "partner": "Étude Garnier",
+          "cta": "Voir le procès-verbal",
+          "dueBg": "var(--surface-3)",
+          "dueFg": "var(--text-2)",
+          "pressed": "false",
+          "outline": "0",
+          "shadow": "var(--shadow-sm)"
+        }
+      ]
+    },
+    {
+      "label": "Clos",
+      "hint": "Recouvré ou irrécouvrable",
+      "count": 3,
+      "color": "var(--success)",
+      "total": "29 000 €",
+      "hasMore": true,
+      "more": "+ 2 autres dossiers",
+      "cards": [
+        {
+          "id": "c7",
+          "siret": "181 003 393 00012",
+          "st": 4,
+          "name": "Boulangerie Morin",
+          "mandant": "Crédit Horizon",
+          "amount": "7 240 €",
+          "step": "Recouvré intégralement",
+          "due": "Clos le 10/11",
+          "urgent": false,
+          "procedure": "Clos",
+          "court": "Tribunal judiciaire de Lyon",
+          "partner": "Me Durieux",
+          "cta": "Archiver",
+          "dueBg": "var(--surface-3)",
+          "dueFg": "var(--text-2)",
+          "pressed": "false",
+          "outline": "0",
+          "shadow": "var(--shadow-sm)"
+        }
+      ]
+    }
+  ],
+  "deadlines": [
+    {
+      "day": "30",
+      "month": "nov.",
+      "title": "Fin du délai de mise en demeure",
+      "who": "Charpentes Bellet · Matériaux Delta",
+      "bg": "var(--danger-bg)",
+      "fg": "var(--danger-fg)",
+      "rowBg": "var(--bleu-pale)",
+      "aria": "30 nov. : Fin du délai de mise en demeure, Charpentes Bellet · Matériaux Delta. Afficher le dossier"
+    },
+    {
+      "day": "02",
+      "month": "déc.",
+      "title": "Fin du délai d’opposition",
+      "who": "Menuiserie Arnal · Matériaux Delta",
+      "bg": "var(--danger-bg)",
+      "fg": "var(--danger-fg)",
+      "rowBg": "transparent",
+      "aria": "02 déc. : Fin du délai d’opposition, Menuiserie Arnal · Matériaux Delta. Afficher le dossier"
+    },
+    {
+      "day": "04",
+      "month": "déc.",
+      "title": "Réponse en procédure simplifiée",
+      "who": "Studio Pixelia · Médiatel",
+      "bg": "var(--warning-bg)",
+      "fg": "var(--warning-fg)",
+      "rowBg": "transparent",
+      "aria": "04 déc. : Réponse en procédure simplifiée, Studio Pixelia · Médiatel. Afficher le dossier"
+    },
+    {
+      "day": "05",
+      "month": "déc.",
+      "title": "Versement des fonds saisis",
+      "who": "Transports Lemaire · TransAlp Leasing",
+      "bg": "var(--surface-3)",
+      "fg": "var(--text-2)",
+      "rowBg": "transparent",
+      "aria": "05 déc. : Versement des fonds saisis, Transports Lemaire · TransAlp Leasing. Afficher le dossier"
+    }
+  ],
+  "q": "",
+  "pg": {
+    "show": true,
+    "total": 21,
+    "page": 1,
+    "size": 25
+  },
+  "lst": {
+    "show": false,
+    "kind": "empty",
+    "title": "Aucune procédure en cours",
+    "text": "Les dossiers passés en contentieux apparaissent ici.",
+    "actionLabel": "",
+    "count": 5
+  }
+}

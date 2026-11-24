@@ -1,0 +1,947 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Legarec – Appels</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Lora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+/* tokens:start — charte graphique LEGAREC v1.0 (octobre 2026). Ne pas modifier à la main : généré depuis tools/tokens.css */
+:root{
+  /* Marque */
+  --marine:#002B74; --marine-hover:#00225C; --marine-text:#002B74; --app-icon-bg:#002B74; --app-icon-fg:#FCBE03; --nuit:#001B4D; --or:#FCBE03; --or-clair:#FFF3C4; --ardoise:#5D7087;
+  --bleu-pale:#EEF2F8; --gris-clair:#F6F8FB; --bleu-200:#D6E0F0; --white:#FFFFFF;
+  /* Texte */
+  --text:#0F1B2D; --text-2:#33455C; --text-3:#5D7087; --on-primary:#FFFFFF;
+  /* Surfaces et bordures */
+  --surface:#FFFFFF; --surface-2:#F6F8FB; --surface-3:#EEF2F7; --border:#E1E7EF; --border-strong:#7D8DA1;
+  /* Surfaces sombres (carte d'appel, barre d'actions groupées) */
+  --surface-dark:#001B4D; --surface-dark-2:#0B2D63; --border-dark:#2A4A7D; --on-dark:#FFFFFF; --on-dark-2:#D5DEEB; --on-dark-muted:#A9B8CC; --on-dark-accent:#B8CBEA;
+  /* Données (graphiques, balance âgée) */
+  --data-1:#C9D6EC; --data-2:#7F9CD0; --data-3:#345DA8;
+  /* Tons sémantiques : fond, bordure, point, texte */
+  --success-bg:#ECFDF5; --success-border:#A7F3D0; --success:#059669; --success-strong:#10B981; --success-fg:#047857; --on-success:#052E16;
+  --warning-bg:#FFF3C4; --warning-border:#F5D77A; --warning:#D97706; --warning-fg:#8A4B08;
+  --danger-bg:#FFF1F2; --danger-border:#FECDD3; --danger:#E11D48; --danger-fg:#BE123C; --danger-dark:#7F1D1D; --danger-on-dark:#FDA4AF;
+  --info-bg:#F0F9FF; --info-border:#BAE6FD; --info:#0284C7; --info-fg:#0369A1;
+  --violet-bg:#F5F3FF; --violet-border:#DDD6FE; --violet:#7C3AED; --violet-fg:#6D28D9;
+  --teal-bg:#CCFBF1; --teal:#0D9488; --teal-fg:#115E59;
+  /* Fonds pleins (badges pleins, texte --on-primary ≥ 5:1 dans les deux modes) */
+  --solid-neutral:#33455C; --solid-info:#0369A1; --solid-success:#047857; --solid-warning:#8A4B08; --solid-danger:#BE123C; --solid-violet:#6D28D9; --solid-teal:#115E59;
+  /* Typographie */
+  --font-title:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-text:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-brand:Lora, Georgia, serif; --font-mono:ui-monospace, SFMono-Regular, Menlo, monospace;
+  --fs-doc-xs:8px; --fs-doc-sm:9px; --fs-doc-md:10px; --fs-doc-lg:10.5px; --fs-2xs:11px; --fs-xs:12px; --fs-sm:13px; --fs-base:14px; --fs-md:16px; --fs-lg:18px; --fs-xl:20px; --fs-2xl:26px; --fs-3xl:34px;
+  /* Rayons */
+  --r-xs:4px; --r-sm:6px; --r-md:8px; --r-lg:12px; --r-full:9999px;
+  /* Ombres */
+  --shadow-sm:0 1px 2px 0 rgba(0,27,77,0.06); --shadow-md:0 10px 15px -3px rgba(0,27,77,0.10), 0 4px 6px -4px rgba(0,27,77,0.10); --shadow-lg:0 20px 25px -5px rgba(0,27,77,0.18), 0 8px 10px -6px rgba(0,27,77,0.12);
+  --shadow-knob:0 1px 2px rgba(0,27,77,0.25); --overlay:rgba(0,27,77,0.55);
+  /* Espacements (grille de 4 px) */
+  --sp-0h:2px; --sp-1:4px; --sp-1h:6px; --sp-2:8px; --sp-2h:10px; --sp-3:12px; --sp-3h:14px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px; --sp-10:40px; --sp-11:44px; --sp-12:48px;
+  /* Hauteurs de contrôles */
+  --control-xs:28px; --control-sm:36px; --control-md:40px; --control-lg:44px;
+  /* Voiles et anneaux (surfaces sombres, animations) */
+  --veil-8:rgba(255,255,255,0.08); --veil-18:rgba(255,255,255,0.18); --veil-25:rgba(255,255,255,0.25); --veil-35:rgba(255,255,255,0.35); --veil-80:rgba(255,255,255,0.8); --veil-85:rgba(255,255,255,0.85); --on-success-veil:rgba(5,46,22,0.35); --success-ring:rgba(16,185,129,0.55); --success-ring-0:rgba(16,185,129,0);
+  /* Cibles tactiles */
+  --target:44px;
+}
+body{font-family:var(--font-text);font-feature-settings:"cv11";-webkit-font-smoothing:antialiased}
+h1,h2{font-family:var(--font-title);font-weight:700;color:var(--marine);overflow-wrap:break-word;letter-spacing:-0.015em}
+[data-brand] h1,[data-brand] h2{font-family:var(--font-brand);letter-spacing:0}
+td,th,li,h3{overflow-wrap:break-word}
+:focus-visible{outline:2px solid var(--marine);outline-offset:2px}
+[data-dark] :focus-visible{outline-color:var(--or)}
+button:disabled,[aria-disabled="true"]{cursor:not-allowed !important;opacity:.55}
+button:not(:disabled):hover,a[href][style*="border-radius"]:hover{filter:brightness(.96)}
+tbody tr:hover{background-color:var(--surface-2)}
+[data-table-scroll]{max-height:min(68vh,720px);overflow:auto !important}
+[data-table-scroll] thead th{position:sticky;top:0;z-index:2;background:var(--surface-2);box-shadow:inset 0 -1px 0 var(--border)}
+[data-skeleton]{display:block;border-radius:var(--r-xs);background:linear-gradient(90deg,var(--surface-3) 25%,var(--bleu-pale) 50%,var(--surface-3) 75%);background-size:200% 100%;animation:lg-sk 1.2s ease-in-out infinite}
+@keyframes lg-sk{from{background-position:200% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+@media (pointer: coarse), (max-width: 767px){
+  button,select,input:not([type=checkbox]):not([type=radio]):not([type=range]),[role=tab],[role=menuitem],a[href][style*="display: inline-flex"],a[href][style*="height:"]{min-height:var(--target)}
+  input[type=checkbox],input[type=radio]{min-width:22px;min-height:22px}
+}
+/* Mode sombre : data-theme="dark" sur <html> */
+:root[data-theme="dark"]{
+  --marine:#2E5FC0; --marine-hover:#2A57B0; --marine-text:#9DB8F0; --app-icon-bg:#0A1A3F; --nuit:#071028; --or-clair:#3A2F0A; --ardoise:#9AA9BD;
+  --bleu-pale:#1B2A4A; --gris-clair:#0A1020; --bleu-200:#2B3E63; --white:#16203A;
+  --text:#E6ECF5; --text-2:#C3CEDD; --text-3:#9AA9BD;
+  --surface:#0F1729; --surface-2:#0A1020; --surface-3:#1A2438; --border:#26324A; --border-strong:#67778F;
+  --surface-dark:#050B1A; --surface-dark-2:#101C36; --border-dark:#24365A;
+  --data-1:#2B3E63; --data-2:#4F73B8; --data-3:#7F9CD0;
+  --success-bg:#0B2E22; --success-border:#14532D; --success-fg:#6EE7B7;
+  --warning-bg:#3A2F0A; --warning-border:#6B5310; --warning-fg:#FCD34D;
+  --danger-bg:#3B0D17; --danger-border:#7F1D2E; --danger-fg:#FDA4AF;
+  --info-bg:#0B2540; --info-border:#164E63; --info-fg:#7DD3FC;
+  --violet-bg:#24164A; --violet-border:#4C1D95; --violet-fg:#C4B5FD;
+  --teal-bg:#0B302C; --teal-fg:#5EEAD4;
+  --shadow-sm:0 1px 2px 0 rgba(0,0,0,0.4); --shadow-md:0 10px 15px -3px rgba(0,0,0,0.5); --shadow-lg:0 20px 25px -5px rgba(0,0,0,0.6); --overlay:rgba(0,0,0,0.65);
+  color-scheme:dark;
+}
+:root[data-theme="dark"] body{background:var(--surface-2);color:var(--text)}
+:root[data-theme="dark"] :focus-visible{outline-color:#9DB8F0}
+:root[data-theme="dark"] [data-dark]{border:1px solid var(--border-dark)}
+:root[data-theme="dark"] h1,:root[data-theme="dark"] h2,:root[data-theme="dark"] a[href]:not([style*="background"]){color:var(--marine-text)}
+:root[data-theme="dark"] [style*="color: var(--marine)"]:not([style*="background: var(--marine)"]){color:var(--marine-text) !important}
+:root[data-theme="dark"] img[src*="_blob"]{background:var(--white);border-radius:var(--r-sm)}
+/* Mode malvoyant : data-a11y="malvoyant" sur <html> — texte agrandi, contraste renforcé, cibles plus grandes */
+:root[data-a11y="malvoyant"]{
+  --fs-2xs:13px; --fs-xs:14px; --fs-sm:15px; --fs-base:17px; --fs-md:19px; --fs-lg:21px; --fs-xl:24px; --fs-2xl:30px; --fs-3xl:38px;
+  --control-xs:36px; --control-sm:44px; --control-md:48px; --control-lg:52px; --target:48px;
+  --text-3:var(--text-2); --ardoise:var(--text-2); --border:var(--border-strong);
+}
+:root[data-a11y="malvoyant"] body{line-height:1.6}
+:root[data-a11y="malvoyant"] [data-sb-nav][style*="width: 264px"]{width:312px !important}
+:root[data-a11y="malvoyant"] :focus-visible{outline:3px solid var(--or);outline-offset:3px;box-shadow:0 0 0 6px var(--marine)}
+:root[data-a11y="malvoyant"] a[href]:not([style*="background"]){text-decoration:underline;text-underline-offset:3px}
+:root[data-a11y="malvoyant"] button,:root[data-a11y="malvoyant"] select,:root[data-a11y="malvoyant"] input:not([type=checkbox]):not([type=radio]){min-height:var(--target)}
+:root[data-a11y="malvoyant"] input[type=checkbox],:root[data-a11y="malvoyant"] input[type=radio]{min-width:24px;min-height:24px}
+:root[data-a11y="malvoyant"][data-theme="dark"]{--text-3:#E6ECF5;--text-2:#E6ECF5}
+/* tokens:end */
+body{margin:0;font-family:var(--font-text);color:var(--text);background:var(--surface-2)}
+a{color:var(--marine)}a:hover{color:var(--marine)}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--marine);outline-offset:1px}
+@media (min-width: 1280px){[data-callws]{flex-wrap:nowrap !important}[data-callws] > [data-queue]{flex:0 0 280px !important}[data-callws] > [data-callmid]{flex:1.15 1 0 !important}[data-callws] > [data-qualif]{flex:1 1 0 !important;min-width:380px !important;position:sticky;top:var(--sp-4);max-height:calc(100vh - 32px);overflow:auto}}
+[data-qfoot]{position:sticky;bottom:0;z-index:2;background:var(--surface);margin:0 calc(-1 * var(--sp-5)) calc(-1 * var(--sp-4));padding:var(--sp-3) var(--sp-5) var(--sp-4) !important;box-shadow:0 -8px 16px -12px rgba(0,27,77,.35)}
+@media (max-width: 1023px){[data-queue-rail]{display:none !important}}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; background: var(--surface-2); font-family: var(--font-text); color: var(--text)">
+
+<div data-sb-wrap style="flex: 0 0 auto; max-width: 100%; display: flex; background: var(--surface-2); border-right: 1px solid var(--border)">
+<dc-import name="Sidebar" active="Telephonie.dc.html" accent="{{accent}}" hint-size="264px,1100px"></dc-import>
+</div>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: var(--sp-8); box-sizing: border-box; display: flex; flex-direction: column; gap: var(--sp-6)">
+<dc-import name="Topbar" accent="{{accent}}" trail="Communication|Appels" hint-size="100%,64px"></dc-import>
+<div data-page-body style="width: 100%; max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--sp-6)">
+
+<dc-import name="PageHeader" title="Appels" description="Campagne « Retards 60 j + » · téléphonie 3CX · ligne 01 87 88 02 98 · votre poste 101" accent="{{accent}}" status="{{headStatus}}" actions="{{headActions}}" stats="{{headStatsShown}}" stats-label="Ma session d'appels" hint-size="100%,170px"></dc-import>
+
+<dc-import name="Toolbar" label="Filtrer la file d'appels" tabs="{{qTabs}}" tabs-label="File d'appels" placeholder="Débiteur, SIRET, numéro…" filters="{{tbFilters}}" digit-keys="{{ false }}" query="{{q}}" on-query="{{onQuery}}" hint-size="100%,48px"></dc-import>
+
+<div data-callws style="display: flex; flex-wrap: wrap; gap: var(--sp-6); align-items: flex-start">
+
+<sc-if value="{{qCollapsed}}" hint-placeholder-val="{{ false }}"><button data-queue-rail type="button" onClick="{{toggleQueue}}" aria-expanded="false" aria-label="Afficher la file d'appels ({{queueCount}})" title="Afficher la file d'appels" style="flex: 0 0 56px; align-self: stretch; min-height: 240px; display: flex; flex-direction: column; align-items: center; gap: var(--sp-3); padding: var(--sp-3) 0; border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--shadow-sm); cursor: pointer; font: inherit; color: var(--text-2)"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg><span style="min-width: 22px; height: 22px; border-radius: var(--r-full); background: var(--marine); color: var(--on-primary); font-size: var(--fs-xs); font-weight: 600; display: inline-flex; align-items: center; justify-content: center">{{queueCount}}</span><span style="writing-mode: vertical-rl; transform: rotate(180deg); font-size: var(--fs-sm); font-weight: 600">File d'appels</span></button></sc-if>
+<sc-if value="{{qOpen}}" hint-placeholder-val="{{ true }}">
+<section data-queue aria-labelledby="file-titre" style="flex: 1 1 260px; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; overflow: hidden">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: var(--sp-2); padding: var(--sp-3h) var(--sp-4); border-bottom: 1px solid var(--border)">
+<h2 id="file-titre" style="margin: 0; font-size: var(--fs-md); font-weight: 600">File d'appels</h2>
+<span style="display: flex; align-items: center; gap: var(--sp-1)"><dc-import name="Badge" label="{{queueCount}} affichés" tone="marine" size="sm" style="display: contents" hint-size="80px,22px"></dc-import><span data-queue-rail style="display: contents"><dc-import name="Bouton" label="Réduire la file d'appels" icon="chevron-left" icon-only="{{ true }}" variant="ghost" size="xs" on-press="{{toggleQueue}}" style="display: contents" hint-size="28px,28px"></dc-import></span></span>
+</div>
+<ul style="list-style: none; margin: 0; padding: var(--sp-2); display: flex; flex-direction: column; gap: var(--sp-1)">
+<sc-for list="{{queue}}" as="q" hint-placeholder-count="5">
+<li>
+<button type="button" onClick="{{q.pick}}" aria-pressed="{{q.pressed}}" style="width: 100%; text-align: left; display: flex; flex-direction: column; gap: var(--sp-1); padding: var(--sp-3); border-radius: var(--r-md); font: inherit; cursor: pointer; border: {{q.border}}; background: {{q.bg}}">
+<span style="display: flex; justify-content: space-between; gap: var(--sp-2); width: 100%"><span style="font-size: var(--fs-base); font-weight: 600; color: var(--text)">{{q.name}}</span><span style="font-size: var(--fs-base); font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums">{{q.amount}}</span></span>
+<span style="font-size: var(--fs-xs); color: var(--text-3); font-variant-numeric: tabular-nums">SIRET {{q.siret}}</span>
+<span style="font-size: var(--fs-xs); font-weight: 600; color: var(--marine)">{{q.mandant}}</span>
+<span style="font-size: var(--fs-sm); color: var(--text-2)">{{q.reason}}</span>
+<span style="display: flex; justify-content: space-between; gap: var(--sp-2); width: 100%; font-size: var(--fs-xs); color: var(--text-3)"><span style="display: inline-flex; align-items: center; gap: var(--sp-1h)"><span style="font-size: var(--fs-xs); font-weight: 600; padding: 1px 7px; border-radius: var(--r-full); background: {{q.kindBg}}; color: {{q.kindFg}}">{{q.kindLabel}}</span>{{q.slot}}</span><span style="font-weight: 600; color: {{q.prioColor}}">{{q.prio}}</span></span>
+<sc-if value="{{q.done}}" hint-placeholder-val="{{ false }}"><span style="font-size: var(--fs-xs); font-weight: 600; color: var(--success-fg)">✓ {{q.doneLabel}}</span></sc-if>
+</button>
+</li>
+</sc-for>
+</ul>
+<sc-if value="{{lst.show}}" hint-placeholder-val="{{ false }}"><dc-import name="EtatListe" kind="{{lst.kind}}" title="{{lst.title}}" text="{{lst.text}}" action-label="{{lst.actionLabel}}" on-action="{{lst.action}}" count="{{lst.count}}" hint-size="100%,220px"></dc-import></sc-if>
+</section>
+</sc-if>
+
+<div data-callmid style="flex: 2 1 420px; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-6)">
+
+<section data-dark aria-label="Appel en cours" style="background: var(--surface-dark); color: var(--on-dark); border-radius: var(--r-lg); padding: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-5)">
+<sc-if value="{{previewShow}}" hint-placeholder-val="{{ false }}">
+<div role="status" aria-live="polite" style="display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-4); border-radius: var(--r-md); background: var(--surface-dark-2); border: 1px solid var(--border-dark)">
+<span style="font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--or)">Composition prévisualisée · 3CX</span>
+<span style="font-size: var(--fs-md); font-weight: 600">{{previewText}}</span>
+<dc-import name="Progression" value="{{previewPct}}" tone="or" label="Temps avant la composition" hint-size="100%,4px"></dc-import>
+<span style="display: flex; flex-wrap: wrap; gap: var(--sp-2)"><dc-import name="Bouton" label="Appeler maintenant" icon="phone" variant="success" size="sm" on-press="{{previewNow}}" style="display: contents" hint-size="170px,36px"></dc-import><dc-import name="Bouton" label="Passer ce débiteur" variant="dark" size="sm" on-press="{{previewSkip}}" style="display: contents" hint-size="150px,36px"></dc-import><dc-import name="Bouton" label="{{previewPauseLabel}}" icon="pause" variant="dark" size="sm" on-press="{{previewPause}}" style="display: contents" hint-size="170px,36px"></dc-import></span>
+</div>
+</sc-if>
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-4)">
+<div style="display: flex; align-items: center; gap: var(--sp-4); min-width: 0">
+<div style="width: 56px; height: 56px; flex-shrink: 0; border-radius: var(--r-full); background: var(--surface-dark-2); display: flex; align-items: center; justify-content: center; font-size: var(--fs-lg); font-weight: 700">{{current.initials}}</div>
+<div style="display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0">
+<span style="font-size: var(--fs-lg); font-weight: 600">{{current.name}}</span>
+<span style="font-size: var(--fs-base); color: var(--on-dark-2); font-variant-numeric: tabular-nums">{{current.contact}} · {{phoneShown}}</span>
+<span style="font-size: var(--fs-sm); color: var(--on-dark-accent); font-weight: 500">Pour le compte de {{current.mandant}} · SIRET {{current.siret}}</span>
+<span style="font-size: var(--fs-xs); color: var(--on-dark-muted)">Via 3CX · poste 101 · présentation 01 87 88 02 98</span>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; align-items: flex-end; gap: var(--sp-1)">
+<span role="status" style="font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-1) var(--sp-2h); border-radius: var(--r-full); background: {{callPillBg}}; color: {{callPillFg}}">{{callStatus}}</span>
+<span style="font-size: var(--fs-2xl); font-weight: 700; font-variant-numeric: tabular-nums">{{timer}}</span>
+</div>
+</div>
+<div data-keep-cols style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); background: var(--surface-dark-2); border-radius: var(--r-lg); padding: var(--sp-3h) var(--sp-4)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-size: var(--fs-xs); color: var(--on-dark-muted)">Montant dû</span><span style="font-size: var(--fs-md); font-weight: 600">{{current.amount}}</span></div>
+<div style="display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-size: var(--fs-xs); color: var(--on-dark-muted)">Retard max.</span><span style="font-size: var(--fs-md); font-weight: 600">{{current.late}}</span></div>
+<div style="display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-size: var(--fs-xs); color: var(--on-dark-muted)">Dossier</span><a href="Dossier.dc.html" style="font-size: var(--fs-md); font-weight: 600; color: var(--on-dark-accent); text-decoration: none">{{current.ref}}</a></div>
+</div>
+<sc-if value="{{tcxDown}}" hint-placeholder-val="{{ false }}"><dc-import name="Alerte" tone="danger" title="3CX injoignable" text="Le poste 101 n’est plus enregistré. Les appels sont désactivés : appelez depuis le téléphone fixe et qualifiez la fiche normalement (mode manuel)." action-label="Réessayer la connexion" on-action="{{tcxRetry}}" hint-size="100%,120px"></dc-import></sc-if>
+<sc-if value="{{failShow}}" hint-placeholder-val="{{ false }}"><dc-import name="Alerte" tone="warning" title="{{failTitle}}" text="{{failText}}" action-label="{{failAction}}" on-action="{{failPick}}" hint-size="100%,120px"></dc-import></sc-if>
+<sc-if value="{{holdShow}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); background: var(--warning-bg); color: var(--warning-fg)">
+<span style="display: flex; flex-direction: column; gap: var(--sp-0h)"><strong style="font-size: var(--fs-base)">Débiteur en attente · {{holdTime}}</strong><span style="font-size: var(--fs-xs)">Musique d’attente 3CX · au-delà de 1 min, reprenez ou prévenez le débiteur</span></span>
+<dc-import name="Bouton" label="Reprendre l’appel" icon="play" variant="success" kbd="A" on-press="{{toggleHold}}" style="display: contents" hint-size="190px,40px"></dc-import>
+</div>
+</sc-if>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2h)">
+<button type="button" onClick="{{toggleMute}}" aria-pressed="{{mutedPressed}}" title="Raccourci : M" style="height: var(--control-lg); padding: 0 var(--sp-3h); border-radius: var(--r-full); border: 1px solid var(--border-dark); font: inherit; font-size: var(--fs-base); font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: var(--sp-2); background: {{muteBg}}; color: {{muteFg}}"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"></rect><path d="M5 10a7 7 0 0 0 14 0M12 17v5"></path></svg>{{muteLabel}}</button>
+<button type="button" onClick="{{toggleHold}}" aria-pressed="{{holdPressed}}" title="Raccourci : A" style="height: var(--control-lg); padding: 0 var(--sp-3h); border-radius: var(--r-full); border: 1px solid var(--border-dark); font: inherit; font-size: var(--fs-base); font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: var(--sp-2); background: {{holdBg}}; color: {{holdFg}}"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5v14M15 5v14"></path></svg>{{holdLabel}}</button>
+<div style="position: relative">
+<button type="button" onClick="{{toggleXfer}}" aria-expanded="{{xferExpanded}}" title="Raccourci : T" style="height: var(--control-lg); padding: 0 var(--sp-3h); border-radius: var(--r-full); border: 1px solid var(--border-dark); background: var(--surface-dark-2); color: var(--on-dark); font: inherit; font-size: var(--fs-base); font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: var(--sp-2)"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4M21 7H9M7 21l-4-4 4-4M3 17h12"></path></svg>Transférer</button>
+<sc-if value="{{xferOpen}}" hint-placeholder-val="{{ false }}">
+<div role="menu" aria-label="Transférer vers un poste 3CX" style="position: absolute; left: 0; top: 52px; z-index: 40; width: 280px; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-md); padding: var(--sp-1h); display: flex; flex-direction: column">
+<span style="padding: var(--sp-1h) var(--sp-2); font-size: var(--fs-xs); color: var(--on-dark-muted)">Transférer via 3CX</span>
+<dc-import name="Onglets" items="{{xferModes}}" label="Type de transfert" style="display: contents" hint-size="260px,44px"></dc-import>
+<span style="font-size: var(--fs-xs); color: var(--on-dark-muted)">{{xferModeHelp}}</span>
+<sc-for list="{{xferList}}" as="x" hint-placeholder-count="4"><button type="button" role="menuitem" onClick="{{x.pick}}" disabled="{{x.off}}" title="{{x.tip}}" style="display: flex; align-items: center; gap: var(--sp-2h); min-height: 40px; padding: var(--sp-1h) var(--sp-2); border: 0; border-radius: var(--r-sm); background: transparent; font: inherit; text-align: left; cursor: pointer"><span style="width: 8px; height: 8px; border-radius: var(--r-full); background: {{x.dot}}"></span><span style="flex: 1; display: flex; flex-direction: column"><span style="font-size: var(--fs-base); font-weight: 500">{{x.name}}</span><span style="font-size: var(--fs-xs); color: var(--on-dark-muted)">Poste {{x.ext}} · {{x.state}}</span></span></button></sc-for>
+</div>
+</sc-if>
+</div>
+<button type="button" onClick="{{toggleCall}}" title="Raccourci : H" style="margin-left: auto; height: var(--control-lg); padding: 0 var(--sp-6); border-radius: var(--r-full); border: 0; font: inherit; font-size: var(--fs-md); font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: var(--sp-2); color: {{callBtnFg}}; background: {{callBtnBg}}"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"></path></svg>{{callBtnLabel}}</button>
+</div>
+<label style="display: flex; align-items: flex-start; gap: var(--sp-2); font-size: var(--fs-sm); color: var(--on-dark-2); cursor: pointer"><input type="checkbox" checked="{{announced}}" onChange="{{toggleAnnounced}}" style="width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--or); flex-shrink: 0"><span>Annonce de l’enregistrement faite au débiteur <span style="color: var(--on-dark-muted)">· obligatoire · enregistrement 3CX rattaché au dossier, conservé 6 mois</span></span></label>
+<label style="display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-xs); color: var(--on-dark-muted)">Démonstration : simuler <select value="{{simVal}}" onChange="{{onSim}}" style="height: var(--control-xs); border: 1px solid var(--border-dark); border-radius: var(--r-sm); background: var(--surface-dark-2); color: var(--on-dark); font: inherit; font-size: var(--fs-xs); padding: 0 var(--sp-1h)"><sc-for list="{{simOpts}}" as="o" hint-placeholder-count="5"><option value="{{o.value}}">{{o.label}}</option></sc-for></select></label>
+<sc-if value="{{xferDone}}" hint-placeholder-val="{{ false }}"><div role="status" style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); font-size: var(--fs-sm); color: var(--or)"><span style="flex: 1 1 220px">{{xferText}}</span><sc-if value="{{xferPending}}" hint-placeholder-val="{{ false }}"><dc-import name="Bouton" label="Finaliser le transfert" variant="success" size="sm" on-press="{{xferFinish}}" style="display: contents" hint-size="170px,36px"></dc-import><dc-import name="Bouton" label="Reprendre le débiteur" variant="dark" size="sm" on-press="{{xferCancel}}" style="display: contents" hint-size="170px,36px"></dc-import></sc-if></div></sc-if>
+<span style="display: none"></span>
+</section>
+
+<section aria-label="Outils d'appel" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden">
+<div role="tablist" aria-label="Outils" style="display: flex; gap: var(--sp-1); padding: 0 var(--sp-3); border-bottom: 1px solid var(--border); overflow-x: auto">
+<sc-for list="{{toolTabs}}" as="t" hint-placeholder-count="3"><button type="button" role="tab" aria-selected="{{t.selected}}" onClick="{{t.pick}}" style="height: var(--control-lg); padding: 0 var(--sp-2h); border: 0; background: transparent; font: inherit; font-size: var(--fs-base); font-weight: 500; white-space: nowrap; cursor: pointer; color: {{t.color}}; box-shadow: {{t.bar}}">{{t.label}}</button></sc-for>
+</div>
+<div style="padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-3h)">
+<sc-if value="{{tool.script}}" hint-placeholder-val="{{ true }}"><ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--sp-2h)">
+<sc-for list="{{script}}" as="p" hint-placeholder-count="4"><li style="display: flex; gap: var(--sp-3); font-size: var(--fs-base); line-height: 1.5"><span style="width: 24px; height: 24px; border-radius: var(--r-full); flex-shrink: 0; background: var(--bleu-pale); color: var(--marine); font-size: var(--fs-xs); font-weight: 700; display: flex; align-items: center; justify-content: center">{{p.n}}</span><span><strong style="font-weight: 600">{{p.t}}.</strong> <span style="color: var(--text-2)">{{p.d}}</span></span></li></sc-for>
+</ol></sc-if>
+<sc-if value="{{tool.clavier}}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; gap: var(--sp-3h)">
+<div style="display: flex; align-items: center; gap: var(--sp-2); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 0 var(--sp-2) 0 var(--sp-4); height: 56px">
+<span style="flex: 1; font-size: var(--fs-2xl); font-weight: 600; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; color: var(--text)">{{dialDisplay}}</span>
+<button type="button" aria-label="Effacer le dernier chiffre" onClick="{{backspace}}" style="width: 44px; height: var(--control-lg); border: 0; background: transparent; color: var(--text-3); cursor: pointer; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM18 9l-6 6M12 9l6 6"></path></svg></button>
+</div>
+<div data-keep-cols style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2h)">
+<sc-for list="{{keys}}" as="k" hint-placeholder-count="12">
+<button type="button" onClick="{{k.press}}" style="height: 56px; border-radius: var(--r-lg); border: 1px solid var(--border); background: var(--surface-2); font: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; color: var(--text)"><span style="font-size: var(--fs-xl); font-weight: 600; line-height: 1.1">{{k.d}}</span><span style="font-size: var(--fs-2xs); letter-spacing: 0.08em; color: var(--text-3)">{{k.l}}</span></button>
+</sc-for>
+</div>
+<span style="font-size: var(--fs-xs); color: var(--text-3)">Les touches du clavier envoient des tonalités pendant l'appel (serveurs vocaux).</span>
+</div></sc-if>
+<sc-if value="{{tool.historique}}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; gap: var(--sp-1)"><ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+<sc-for list="{{history}}" as="h" hint-placeholder-count="4"><li style="display: flex; gap: var(--sp-2h); padding: var(--sp-2h) 0; border-top: 1px solid var(--surface-3); font-size: var(--fs-sm)"><span style="font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-0h) var(--sp-2); border-radius: var(--r-full); height: fit-content; white-space: nowrap; background: {{h.bg}}; color: {{h.fg}}">{{h.ch}}</span><span style="flex: 1; color: var(--text-2)">{{h.text}}</span><span style="color: var(--text-3); white-space: nowrap">{{h.when}}</span></li></sc-for>
+</ul>
+<a href="Dossier.dc.html" style="font-size: var(--fs-sm); font-weight: 500; text-decoration: none">Ouvrir la fiche complète →</a></div></sc-if>
+</div>
+</section>
+
+</div>
+
+<section data-qualif aria-labelledby="qualif-titre" style="flex: 1.3 1 360px; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); display: flex; flex-direction: column">
+<div style="display: flex; flex-direction: column; gap: var(--sp-2h); padding: var(--sp-4) var(--sp-5); border-bottom: 1px solid var(--border)">
+<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: var(--sp-3)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-0h); min-width: 0"><h2 id="qualif-titre" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Qualifier l'appel</h2><span style="font-size: var(--fs-sm); color: var(--text-3)">{{current.name}} · {{contactName}}</span></div>
+<span style="font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-1) var(--sp-2h); border-radius: var(--r-full); white-space: nowrap; background: {{qualifBadgeBg}}; color: {{qualifBadgeFg}}">{{qualifBadge}}</span>
+</div>
+<ol data-keep-cols aria-label="Étapes de la qualification" style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-1h)">
+<sc-for list="{{steps}}" as="s" hint-placeholder-count="3"><li style="display: flex; flex-direction: column; gap: var(--sp-1)"><span style="display: block; height: 4px; border-radius: var(--r-full); background: {{s.bar}}"></span><span style="font-size: var(--fs-xs); font-weight: 600; color: {{s.color}}">{{s.label}}</span></li></sc-for>
+</ol>
+<sc-if value="{{acwShow}}" hint-placeholder-val="{{ false }}"><div role="status" style="display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-2) var(--sp-2h); border-radius: var(--r-sm); background: var(--warning-bg); font-size: var(--fs-xs); color: var(--warning-fg)"><span style="width: 8px; height: 8px; border-radius: var(--r-full); background: var(--warning)"></span><span style="flex: 1">Post-appel 3CX · {{acwText}} · vous ne recevez pas d'appel tant que la fiche n'est pas enregistrée</span></div></sc-if>
+</div>
+
+<div style="padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-5)">
+
+<sc-if value="{{hasSaved}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="display: flex; gap: var(--sp-2h); padding: var(--sp-2h) var(--sp-3); border-radius: var(--r-md); background: var(--success-bg); border: 1px solid var(--success-border); font-size: var(--fs-sm); color: var(--success-fg)"><span aria-hidden="true">✓</span><span>{{saved}}</span></div>
+</sc-if>
+
+<section data-ia aria-labelledby="ia-titre" style="display: flex; flex-direction: column; gap: var(--sp-2h); padding: var(--sp-3) var(--sp-3h); border-radius: var(--r-md); border: 1px solid var(--violet-border); border-left: 4px solid var(--violet); background: var(--violet-bg)">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2)">
+<h3 id="ia-titre" style="margin: 0; display: flex; align-items: center; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 600; color: var(--violet-fg)"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="M12 3l1.8 4.9L19 10l-5.2 2.1L12 17l-1.8-4.9L5 10l5.2-2.1zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"></path></svg>Assistant IA · {{aiTitle}}</h3>
+<span style="font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--violet-fg)">Suggestion</span>
+</div>
+<sc-if value="{{aiPaused}}" hint-placeholder-val="{{ false }}">
+<p style="margin: 0; font-size: var(--fs-sm); color: var(--text-2); line-height: 1.45">Transcription en pause : rien n'est enregistré ni analysé tant que l'annonce de l'enregistrement n'a pas été faite au débiteur.</p>
+<dc-import name="Bouton" variant="secondary" size="sm" label="L’annonce a été faite" on-press="{{toggleAnnounced}}" style="display: contents" hint-size="160px,32px"></dc-import>
+</sc-if>
+<sc-if value="{{aiLive}}" hint-placeholder-val="{{ true }}">
+<ol aria-label="Transcription en direct, derniers échanges" style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-1); font-size: var(--fs-sm); line-height: 1.45">
+<sc-for list="{{aiLines}}" as="l" hint-placeholder-count="3"><li><b style="font-weight: 600; color: {{l.color}}">{{l.who}} :</b> <span style="color: var(--text)">{{l.text}}</span></li></sc-for>
+</ol>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-1h)"><span style="font-size: var(--fs-xs); color: var(--text-3); align-self: center">Relevé :</span><sc-for list="{{aiChips}}" as="c" hint-placeholder-count="3"><span style="font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-0h) var(--sp-2); border-radius: var(--r-full); background: var(--surface); color: var(--violet-fg); border: 1px solid var(--violet-border)">{{c}}</span></sc-for></div>
+</sc-if>
+<sc-if value="{{aiPost}}" hint-placeholder-val="{{ false }}">
+<p style="margin: 0; font-size: var(--fs-sm); color: var(--text); line-height: 1.5">{{aiSummary}}</p>
+<dl style="margin: 0; display: grid; grid-template-columns: auto 1fr; gap: var(--sp-1) var(--sp-3); font-size: var(--fs-sm)"><sc-for list="{{aiSugg}}" as="g" hint-placeholder-count="3"><dt style="color: var(--text-3)">{{g.k}}</dt><dd style="margin: 0; font-weight: 600">{{g.v}}</dd></sc-for></dl>
+<sc-if value="{{aiCanApply}}" hint-placeholder-val="{{ true }}"><div style="display: flex; flex-wrap: wrap; gap: var(--sp-2)">
+<dc-import name="Bouton" variant="primary" size="sm" label="Appliquer à la fiche" on-press="{{aiApply}}" style="display: contents" hint-size="150px,32px"></dc-import>
+<dc-import name="Bouton" variant="ghost" size="sm" label="Ignorer" on-press="{{aiIgnore}}" style="display: contents" hint-size="80px,32px"></dc-import>
+</div></sc-if>
+<sc-if value="{{aiApplied}}" hint-placeholder-val="{{ false }}"><div role="status" style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); font-size: var(--fs-sm); color: var(--violet-fg)"><span style="flex: 1 1 200px">Suggestion appliquée : vérifiez le résultat, le montant et les notes avant d’enregistrer.</span><dc-import name="Bouton" variant="ghost" size="sm" label="Annuler" on-press="{{aiUndo}}" style="display: contents" hint-size="80px,32px"></dc-import></div></sc-if>
+</sc-if>
+<sc-if value="{{aiIgnored}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; font-size: var(--fs-sm); color: var(--text-3)">Suggestion ignorée. Qualifiez l’appel manuellement.</p></sc-if>
+<span style="font-size: var(--fs-xs); color: var(--text-3)">Proposé par l’IA, à vérifier. Rien n’est enregistré sans votre validation.</span>
+</section>
+
+<div style="display: flex; flex-direction: column; gap: var(--sp-2)">
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">1. Interlocuteur
+<select value="{{who}}" onChange="{{onWho}}" style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-2h); font: inherit; font-size: var(--fs-base); background: var(--surface); color: var(--text)"><option value="main">{{current.contact}} · {{current.role}}</option><option value="other">Autre personne de l'entreprise</option><option value="desk">Standard / accueil</option><option value="none">Personne non identifiée</option></select>
+</label>
+<sc-if value="{{whoOther}}" hint-placeholder-val="{{ false }}">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2)">
+<input type="text" aria-label="Nom de l'interlocuteur" placeholder="Nom et prénom" style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); box-sizing: border-box; min-width: 0">
+<input type="text" aria-label="Fonction" placeholder="Fonction (ex. comptable)" style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); box-sizing: border-box; min-width: 0">
+<label style="grid-column: 1 / -1; display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-sm); color: var(--text-2)"><input type="checkbox" checked style="width: 16px; height: 16px; accent-color: var(--marine)">Ajouter aux contacts du débiteur</label>
+</div>
+</sc-if>
+</div>
+
+<fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: var(--sp-2)">
+<legend style="padding: 0; margin-bottom: var(--sp-2); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">2. Résultat de l'appel <span style="font-weight: 400; color: var(--text-3)">· touches 1 à 8</span></legend>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--sp-1h)">
+<sc-for list="{{outcomes}}" as="o" hint-placeholder-count="8">
+<button type="button" onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="min-height: 44px; text-align: left; padding: var(--sp-2) var(--sp-2h); border-radius: var(--r-sm); font: inherit; font-size: var(--fs-sm); font-weight: 500; line-height: 1.3; cursor: pointer; display: flex; align-items: center; gap: var(--sp-2); border: {{o.border}}; background: {{o.bg}}; color: var(--text)"><kbd style="font-family: inherit; font-size: var(--fs-xs); font-weight: 600; width: 18px; height: 18px; flex-shrink: 0; border-radius: var(--r-xs); display: inline-flex; align-items: center; justify-content: center; background: {{o.kbdBg}}; color: {{o.kbdFg}}">{{o.n}}</kbd><span style="flex: 1">{{o.label}}</span><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: var(--r-full); flex-shrink: 0; background: {{o.dot}}"></span></button>
+</sc-for>
+</div>
+</fieldset>
+
+<sc-if value="{{is.promesse}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-3h); border-radius: var(--r-md); background: var(--surface-2); border: 1px solid var(--surface-3)">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3)">
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Montant promis<input type="text" inputmode="decimal" value="{{promiseAmount}}" onChange="{{onPromiseAmount}}" aria-invalid="{{err.amountAttr}}" style="height: var(--control-md); border: 1px solid {{err.amountBorder}}; border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); color: var(--text); box-sizing: border-box; min-width: 0; background: var(--surface)"></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Date de paiement<input type="date" value="2026-11-28" style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-2h); font: inherit; font-size: var(--fs-base); color: var(--text); box-sizing: border-box; min-width: 0; background: var(--surface)"></label>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-1h)"><sc-for list="{{amountChips}}" as="a" hint-placeholder-count="3"><button type="button" onClick="{{a.pick}}" style="height: var(--control-xs); padding: 0 var(--sp-2h); border-radius: var(--r-full); border: 1px solid var(--border); background: var(--surface); font: inherit; font-size: var(--fs-xs); font-weight: 500; cursor: pointer">{{a.label}}</button></sc-for></div>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Moyen de paiement
+<select style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-2h); font: inherit; font-size: var(--fs-base); background: var(--surface); color: var(--text)"><option>Virement</option><option>Carte bancaire (lien de paiement)</option><option>Prélèvement SEPA</option><option>Chèque</option></select>
+</label>
+<div role="group" aria-label="Factures concernées" style="display: flex; flex-direction: column; gap: var(--sp-1)">
+<span style="font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Factures concernées</span>
+<sc-for list="{{invoices}}" as="f" hint-placeholder-count="3"><label style="display: flex; align-items: center; gap: var(--sp-2); min-height: 32px; font-size: var(--fs-sm); color: var(--text-2)"><input type="checkbox" checked="{{f.checked}}" onChange="{{f.toggle}}" style="width: 16px; height: 16px; accent-color: var(--marine)"><span style="flex: 1">{{f.ref}} <span style="color: var(--text-3)">· échue le {{f.due}}</span></span><span style="font-variant-numeric: tabular-nums; font-weight: 500">{{f.amount}}</span></label></sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{is.echeancier}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-3h); border-radius: var(--r-md); background: var(--surface-2); border: 1px solid var(--surface-3)">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3)">
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Mensualités souhaitées<select value="{{planMonths}}" onChange="{{onPlanMonths}}" style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-2h); font: inherit; font-size: var(--fs-base); background: var(--surface); color: var(--text)"><option value="3">3</option><option value="6">6</option><option value="8">8</option><option value="12">12</option></select></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Première échéance<input type="date" value="2026-12-15" style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-2h); font: inherit; font-size: var(--fs-base); color: var(--text); box-sizing: border-box; min-width: 0; background: var(--surface)"></label>
+</div>
+<span style="font-size: var(--fs-sm); color: var(--text-2)">{{planText}}</span>
+<span style="font-size: var(--fs-xs); color: {{planNoteColor}}">{{planNote}} <a href="Echeanciers.dc.html" style="font-weight: 500; text-decoration: none">Ouvrir le simulateur →</a></span>
+</div>
+</sc-if>
+
+<sc-if value="{{is.rappel}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: var(--sp-2h); padding: var(--sp-3h); border-radius: var(--r-md); background: var(--surface-2); border: 1px solid var(--surface-3)">
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-1h)"><sc-for list="{{recallChips}}" as="r" hint-placeholder-count="4"><button type="button" onClick="{{r.pick}}" aria-pressed="{{r.pressed}}" style="height: var(--control-sm); padding: 0 var(--sp-3); border-radius: var(--r-full); border: {{r.border}}; background: {{r.bg}}; font: inherit; font-size: var(--fs-xs); font-weight: 500; cursor: pointer">{{r.label}}</button></sc-for></div>
+<span style="font-size: var(--fs-sm); color: var(--text-2)">Rappel prévu : <strong style="font-weight: 600">{{recallLabel}}</strong> · ajouté à votre file et à l'agenda</span>
+</div>
+</sc-if>
+
+<sc-if value="{{is.litige}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: var(--sp-2h); padding: var(--sp-3h); border-radius: var(--r-md); background: var(--surface-2); border: 1px solid var(--surface-3)">
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Motif de la contestation<select style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-2h); font: inherit; font-size: var(--fs-base); background: var(--surface); color: var(--text)"><option>Marchandise ou prestation non conforme</option><option>Montant erroné</option><option>Facture non reçue</option><option>Avoir en attente</option><option>Autre motif</option></select></label>
+<label style="display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-sm); color: var(--text-2)"><input type="checkbox" checked style="width: 16px; height: 16px; accent-color: var(--marine)">Suspendre les relances automatiques le temps de l'analyse</label>
+<label style="display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-sm); color: var(--text-2)"><input type="checkbox" checked style="width: 16px; height: 16px; accent-color: var(--marine)">Demander l'avis du créancier dans son espace</label>
+</div>
+</sc-if>
+
+<sc-if value="{{is.paye}}" hint-placeholder-val="{{ false }}">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); padding: var(--sp-3h); border-radius: var(--r-md); background: var(--surface-2); border: 1px solid var(--surface-3)">
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Payé le<input type="date" value="2026-11-18" style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-2h); font: inherit; font-size: var(--fs-base); color: var(--text); box-sizing: border-box; min-width: 0; background: var(--surface)"></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Référence du paiement<input type="text" value="{{payRef}}" onChange="{{onPayRef}}" placeholder="N° de virement, chèque…" aria-invalid="{{err.refAttr}}" style="height: var(--control-md); border: 1px solid {{err.refBorder}}; border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); color: var(--text); box-sizing: border-box; min-width: 0; background: var(--surface)"></label>
+</div>
+</sc-if>
+
+<sc-if value="{{is.absent}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-3h); border-radius: var(--r-md); background: var(--surface-2); border: 1px solid var(--surface-3)">
+<label style="display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-sm); color: var(--text-2)"><input type="checkbox" checked style="width: 16px; height: 16px; accent-color: var(--marine)">Message vocal laissé (sans mention du montant ni de la dette)</label>
+<label style="display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-sm); color: var(--text-2)"><input type="checkbox" checked style="width: 16px; height: 16px; accent-color: var(--marine)">Envoyer un SMS avec le lien de paiement au mobile</label>
+</div>
+</sc-if>
+
+<sc-if value="{{is.faux}}" hint-placeholder-val="{{ false }}">
+<div role="note" style="padding: var(--sp-3) var(--sp-3h); border-radius: var(--r-md); background: var(--danger-bg); border: 1px solid var(--danger-border); font-size: var(--fs-sm); color: var(--danger-fg)">Le numéro appelé est marqué invalide ci-dessous. Saisissez le bon numéro s'il vous a été donné, ou choisissez un autre numéro du débiteur.</div>
+</sc-if>
+
+<section aria-labelledby="coord-titre" style="display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--sp-2); padding: var(--sp-2h) var(--sp-3); background: var(--surface-2); border-bottom: 1px solid var(--border)">
+<h3 id="coord-titre" style="margin: 0; font-size: var(--fs-sm); font-weight: 600">3. Coordonnées du débiteur</h3>
+<span style="display: inline-flex; align-items: center; gap: var(--sp-1h); font-size: var(--fs-xs); color: var(--success-fg)"><span style="width: 6px; height: 6px; border-radius: var(--r-full); background: var(--success)"></span>Synchronisées avec 3CX</span>
+</div>
+<sc-for list="{{coordGroups}}" as="g" hint-placeholder-count="2">
+<div style="display: flex; flex-direction: column; border-top: 1px solid var(--surface-3)">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: var(--sp-2); padding: var(--sp-2h) var(--sp-3) var(--sp-1)"><span style="font-size: var(--fs-xs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-3)">{{g.label}}</span><dc-import name="Bouton" variant="link" size="xs" label="{{g.addLabel}}" on-press="{{g.add}}" style="display: contents" hint-size="120px,40px"></dc-import></div>
+<sc-for list="{{g.items}}" as="c" hint-placeholder-count="2">
+<div style="display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3) var(--sp-2h)">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1h) var(--sp-2h)">
+<span style="min-width: 0; flex: 1 1 160px; display: flex; flex-direction: column; gap: 1px"><span style="font-size: var(--fs-base); font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; text-decoration: {{c.strike}}; color: {{c.valueColor}}">{{c.value}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{c.kindLabel}}{{c.primaryNote}}</span></span>
+<span style="font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-0h) var(--sp-2); border-radius: var(--r-full); white-space: nowrap; background: {{c.stBg}}; color: {{c.stFg}}">{{c.status}}</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-1h)">
+<sc-for list="{{c.actions}}" as="x" hint-placeholder-count="3"><button type="button" onClick="{{x.run}}" style="height: var(--control-xs); padding: 0 var(--sp-2h); border-radius: var(--r-sm); border: 1px solid {{x.border}}; background: var(--surface); color: {{x.color}}; font: inherit; font-size: var(--fs-xs); font-weight: 500; cursor: pointer">{{x.label}}</button></sc-for>
+</div>
+</div>
+</sc-for>
+<sc-if value="{{g.editing}}" hint-placeholder-val="{{ false }}">
+<div style="margin: 0 var(--sp-3) var(--sp-3); display: flex; flex-direction: column; gap: var(--sp-2h); padding: var(--sp-3); border-radius: var(--r-sm); background: var(--bleu-pale); border: 1px solid var(--bleu-200)">
+<span style="font-size: var(--fs-sm); font-weight: 600; color: var(--marine)">{{editTitle}}</span>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2)">
+<label style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">{{g.newLabel}}<input data-coord-input type="{{g.inputType}}" value="{{draft}}" onChange="{{onDraft}}" placeholder="{{g.placeholder}}" aria-invalid="{{draftInvalid}}" style="height: var(--control-md); border: 1px solid {{draftBorder}}; border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); color: var(--text); box-sizing: border-box; min-width: 0; background: var(--surface)"></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Type<select value="{{draftKind}}" onChange="{{onDraftKind}}" style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-2h); font: inherit; font-size: var(--fs-base); background: var(--surface)"><sc-for list="{{g.kinds}}" as="k" hint-placeholder-count="3"><option value="{{k}}">{{k}}</option></sc-for></select></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Origine<select value="{{src}}" onChange="{{onSrc}}" style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-2h); font: inherit; font-size: var(--fs-base); background: var(--surface)"><option value="call">Donnée pendant l'appel</option><option value="import">Erreur de saisie à l'import</option><option value="doc">Document du débiteur</option><option value="creditor">Transmise par le créancier</option></select></label>
+</div>
+<sc-if value="{{hasDraftError}}" hint-placeholder-val="{{ false }}"><span role="alert" style="font-size: var(--fs-xs); color: var(--danger-fg)">{{draftError}}</span></sc-if>
+<sc-if value="{{hasDraftHint}}" hint-placeholder-val="{{ false }}"><span style="font-size: var(--fs-xs); color: var(--success-fg)">{{draftHint}}</span></sc-if>
+<label style="display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-sm); color: var(--text-2)"><input type="checkbox" checked="{{makePrimary}}" onChange="{{toggleMakePrimary}}" style="width: 16px; height: 16px; accent-color: var(--marine)">En faire la coordonnée principale</label>
+<sc-if value="{{isReplace}}" hint-placeholder-val="{{ true }}"><label style="display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-sm); color: var(--text-2)"><input type="checkbox" checked="{{invalidateOld}}" onChange="{{toggleInvalidateOld}}" style="width: 16px; height: 16px; accent-color: var(--marine)">Marquer l'ancienne valeur comme invalide (gardée dans l'historique)</label></sc-if>
+<div style="display: flex; justify-content: flex-end; gap: var(--sp-2)">
+<dc-import name="Bouton" variant="secondary" size="sm" label="Annuler" on-press="{{cancelEdit}}" style="display: contents" hint-size="120px,40px"></dc-import>
+<dc-import name="Bouton" variant="primary" size="sm" label="Enregistrer" on-press="{{askSaveCoord}}" accent="{{accent}}" style="display: contents" hint-size="120px,40px"></dc-import>
+</div>
+</div>
+</sc-if>
+</div>
+</sc-for>
+<details style="border-top: 1px solid var(--border)">
+<summary style="padding: var(--sp-2h) var(--sp-3); font-size: var(--fs-xs); font-weight: 600; color: var(--text-2); cursor: pointer">Historique des coordonnées ({{histCount}})</summary>
+<ul style="list-style: none; margin: 0; padding: 0 var(--sp-3) var(--sp-2h); display: flex; flex-direction: column; gap: var(--sp-1h)">
+<sc-for list="{{hist}}" as="h" hint-placeholder-count="2"><li style="display: flex; gap: var(--sp-2); font-size: var(--fs-xs); color: var(--text-2)"><span style="color: var(--text-3); white-space: nowrap; font-variant-numeric: tabular-nums">{{h.when}}</span><span>{{h.text}}</span></li></sc-for>
+</ul>
+</details>
+</section>
+
+<div style="display: flex; gap: var(--sp-2h); padding: var(--sp-3); border-radius: var(--r-md); background: var(--bleu-pale); font-size: var(--fs-sm); color: var(--marine)"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px"><path d="M5 12h14M12 5l7 7-7 7"></path></svg><span><strong style="font-weight: 600">Prochaine action :</strong> {{nextAction}}</span></div>
+
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Notes d'appel
+<textarea rows="3" style="border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: var(--sp-2h) var(--sp-3); font: inherit; font-size: var(--fs-base); color: var(--text); resize: vertical; line-height: 1.5">{{noteText}}</textarea>
+</label>
+
+<sc-if value="{{hasErrors}}" hint-placeholder-val="{{ false }}">
+<div role="alert" style="display: flex; flex-direction: column; gap: var(--sp-1); padding: var(--sp-2h) var(--sp-3); border-radius: var(--r-md); background: var(--danger-bg); border: 1px solid var(--danger-border); font-size: var(--fs-sm); color: var(--danger-fg)"><strong style="font-weight: 600">À compléter avant d'enregistrer :</strong><sc-for list="{{errors}}" as="e" hint-placeholder-count="1"><span>· {{e}}</span></sc-for></div>
+</sc-if>
+
+<div data-qfoot style="display: flex; flex-direction: column; gap: var(--sp-2h); border-top: 1px solid var(--surface-3)">
+<span style="font-size: var(--fs-xs); color: var(--text-3)">{{summary}}</span>
+<label style="display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-sm); color: var(--text-2)"><input type="checkbox" checked style="width: 16px; height: 16px; accent-color: var(--marine)">{{confirmMailLabel}}</label>
+<button type="button" onClick="{{saveQualif}}" style="height: var(--control-lg); border-radius: var(--r-sm); border: 0; background: {{accent}}; color: var(--on-primary); font: inherit; font-size: var(--fs-base); font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: var(--sp-2h); opacity: {{saveOpacity}}">Enregistrer et appel suivant <kbd style="font-family: inherit; font-size: var(--fs-xs); font-weight: 500; padding: var(--sp-0h) var(--sp-1); border-radius: var(--r-xs); border: 1px solid var(--veil-35); color: var(--veil-85)">Ctrl Entrée</kbd></button>
+</div>
+
+</div>
+</section>
+
+
+</div>
+
+</div>
+</main>
+<dc-import name="Toast" open="{{toastOpen}}" message="{{toastMsg}}" tone="success" action-label="Annuler" on-action="{{toastUndo}}" on-close="{{toastClose}}" hint-size="0px,0px"></dc-import>
+<dc-import name="Confirm" open="{{cf.open}}" title="{{cf.title}}" body="{{cf.body}}" details="{{cf.details}}" confirm-label="{{cf.label}}" on-confirm="{{cf.confirm}}" on-cancel="{{cf.cancel}}" accent="{{accent}}" hint-size="0px,0px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#002B74","options":["#002B74","#001B4D","#5D7087"]},"$preview":{"width":1440,"height":1380}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { loading: true, q: '', sel: 0, qtab: 'all', tool: 'script', inCall: true, muted: false, hold: false, xfer: false, xferTo: null, outcome: 'promesse', dial: '0472184590', secs: 272, acw: 0, who: 'main',
+      cmap: {}, hmap: {}, edit: null, draft: '', draftKind: '', src: 'call', makePrimary: true, invalidateOld: true, tried: false, confirm: false,
+      saved: '', done: {}, promise: '18 600 €', inv: { a: true, b: false, c: false }, months: '6', recall: 'tomorrow', payRef: '', qtried: false, holdSecs: 0, xferMode: 'annonce', xferPending: false, announced: true, preview: 0, previewPaused: false, qCollapsed: false, tcx: 'ok', fail: null, toast: null };
+  }
+  componentDidMount() {
+    this.lt = setTimeout(() => this.setState({ loading: false }), 700);
+    try { if (window.innerWidth >= 1024 && window.innerWidth < 1440) this.setState({ qCollapsed: true }); } catch (e) {}
+    this.t = setInterval(() => {
+      const s0 = this.state;
+      if (s0.preview > 0 && !s0.previewPaused) { if (s0.preview <= 1) this.setState({ preview: 0, inCall: true, secs: 0, acw: 0, announced: false }); else this.setState({ preview: s0.preview - 1 }); return; }
+      if (this.state.inCall && this.state.hold) this.setState({ holdSecs: this.state.holdSecs + 1 });
+      if (this.state.inCall && !this.state.hold) this.setState({ secs: this.state.secs + 1 });
+      else if (!this.state.inCall && this.state.secs > 0) this.setState({ acw: this.state.acw + 1 });
+    }, 1000);
+    this.onKey = (e) => {
+      if (e.defaultPrevented || e.altKey) return;
+      const t = e.target;
+      const typing = t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); this.save(); return; }
+      if (typing || e.ctrlKey || e.metaKey || document.querySelector('[data-modal-open="true"]')) return;
+      const m = /^Digit([1-8])$/.exec(e.code || '');
+      if (m && this.state.tool !== 'clavier') { e.preventDefault(); this.pickOutcome(this.outcomeIds[Number(m[1]) - 1]); return; }
+      const k = (e.key || '').toLowerCase();
+      if (k === 'm') { e.preventDefault(); this.setState({ muted: !this.state.muted }); }
+      else if (k === 'a') { e.preventDefault(); this.setState({ hold: !this.state.hold, holdSecs: 0 }); }
+      else if (k === 't') { e.preventDefault(); this.setState({ xfer: !this.state.xfer }); }
+      else if (k === 'h') { e.preventDefault(); this.toggleCall(); }
+    };
+    document.addEventListener('keydown', this.onKey);
+  }
+  componentWillUnmount() { clearInterval(this.t); document.removeEventListener('keydown', this.onKey); }
+  fmt(d) { const x = String(d).replace(/\s/g, ''); return /^0\d{9}$/.test(x) ? x.replace(/(\d{2})(?=\d)/g, '$1 ') : d; }
+  now() { return '21/11 ' + new Date().toTimeString().slice(0, 5); }
+  toggleCall() {
+    const st = this.state;
+    if (st.tcx === 'down' && !st.inCall) return;
+    if (st.inCall) this.setState({ inCall: false, muted: false, hold: false, xfer: false, acw: 0 });
+    else this.setState({ inCall: true, secs: 0, acw: 0 });
+  }
+  coordsOf(i) {
+    if (this.state.cmap[i]) return this.state.cmap[i];
+    const q = this.queue[i];
+    return {
+      phone: q.phones.map((p, k) => ({ id: 'p' + k, ...p })),
+      email: q.emails.map((p, k) => ({ id: 'e' + k, ...p }))
+    };
+  }
+  histOf(i) { return this.state.hmap[i] || this.queue[i].hist; }
+  setCoords(kind, list, histText) {
+    const st = this.state;
+    const c = this.coordsOf(st.sel);
+    const patch = { cmap: { ...st.cmap, [st.sel]: { ...c, [kind]: list } } };
+    if (histText) patch.hmap = { ...st.hmap, [st.sel]: [{ when: this.now(), text: histText }].concat(this.histOf(st.sel)) };
+    this.setState(patch);
+  }
+  pickOutcome(id) {
+    if (!id) return;
+    const patch = { outcome: id, qtried: false };
+    if (id === 'faux') {
+      const c = this.coordsOf(this.state.sel);
+      const called = c.phone.find((p) => p.primary) || c.phone[0];
+      if (called && called.status !== 'bad') {
+        this.setCoords('phone', c.phone.map((p) => (p.id === called.id ? { ...p, status: 'bad', primary: false } : p)), 'Camille Laurent · ' + this.fmt(called.value) + ' signalé « mauvais numéro » pendant l’appel');
+      }
+      Object.assign(patch, { edit: { kind: 'phone', id: null }, draft: '', draftKind: 'Mobile', tried: false, makePrimary: true });
+    }
+    this.setState(patch);
+  }
+  validDraft(kind, v, list, selfId) {
+    const x = (v || '').trim();
+    if (!x) return 'Saisissez une valeur.';
+    if (kind === 'phone') {
+      if (!/^(\+33\s?|0)[1-9](\s?\d{2}){4}$/.test(x)) return 'Numéro français attendu, par exemple 06 12 34 56 78 ou +33 6 12 34 56 78.';
+      const n = x.replace(/\s/g, '').replace(/^\+33/, '0');
+      if (list.some((p) => p.id !== selfId && p.value.replace(/\s/g, '') === n)) return 'Ce numéro est déjà enregistré pour ce débiteur.';
+      return '';
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(x)) return 'Adresse e-mail invalide, par exemple nom@entreprise.fr.';
+    if (list.some((p) => p.id !== selfId && p.value.toLowerCase() === x.toLowerCase())) return 'Cette adresse est déjà enregistrée pour ce débiteur.';
+    return '';
+  }
+  qualErrors() {
+    const st = this.state;
+    const e = [];
+    if (!st.outcome) e.push('choisir un résultat d’appel (touches 1 à 8)');
+    if (st.outcome === 'promesse') {
+      const n = Number(String(st.promise).replace(/[^\d,]/g, '').replace(',', '.'));
+      if (!n) e.push('indiquer le montant promis');
+      if (!Object.values(st.inv).some(Boolean)) e.push('cocher au moins une facture concernée');
+    }
+    if (st.outcome === 'paye' && !st.payRef.trim()) e.push('indiquer la référence du paiement annoncé');
+    if (st.edit) e.push('terminer ou annuler la modification des coordonnées en cours');
+    if (st.secs > 0 && !st.announced) e.push('confirmer que l’annonce de l’enregistrement a été faite');
+    return e;
+  }
+  save() {
+    const st = this.state;
+    const errs = this.qualErrors();
+    if (errs.length) { this.setState({ qtried: true }); return; }
+    const q = this.queue[st.sel];
+    const label = (this.outcomeDef.find((o) => o[0] === st.outcome) || [])[1] || '';
+    const next = (st.sel + 1) % this.queue.length;
+    const snap = { sel: st.sel, outcome: st.outcome, done: st.done, inCall: st.inCall, secs: st.secs, acw: st.acw, announced: st.announced, preview: 0 };
+    clearTimeout(this.toastT); this.toastT = setTimeout(() => this.setState({ toast: null }), 6000);
+    this.setState({
+      toast: { msg: 'Fiche enregistrée pour ' + q.name + ' : ' + label.toLowerCase() + '.', snap },
+      done: { ...st.done, [st.sel]: label },
+      saved: 'Fiche enregistrée et transmise à 3CX pour ' + q.name + ' : ' + label.toLowerCase() + '. Appel suivant : ' + this.queue[next].name + '.',
+      sel: next, outcome: null, aiApplied: false, aiNote: null, aiIgnored: false, edit: null, inCall: false, secs: 0, acw: 0, muted: false, hold: false, holdSecs: 0, xfer: false, xferTo: null, xferPending: false, preview: 5, previewPaused: false, announced: false, dial: this.queue[next].phones[0].value, who: 'main', qtried: false, payRef: ''
+    });
+  }
+  renderVals() {
+    const v = this._rv();
+    const st = this.state;
+    const q = (st.q || '').toLowerCase().trim();
+    const qs = q.replace(/\s/g, '');
+    const hit = (o) => {
+      if (!q) return true;
+      const t = JSON.stringify(o, (k, x) => (typeof x === 'function' ? undefined : x)).toLowerCase();
+      return t.includes(q) || (qs.length >= 3 && t.replace(/\s/g, '').includes(qs));
+    };
+    const list = (v.queue || []).filter(hit);
+    v.queue = st.loading ? [] : list;
+    v.headStatsShown = st.inCall ? [] : v.headStats;
+    // Assistant IA (maquette) : transcription en direct, puis résumé et qualification proposée après l'appel.
+    {
+      const cur = v.current || {};
+      const demo = st.sel === 0;
+      const live = !!st.announced && st.inCall;
+      const post = !!st.announced && !st.inCall && st.secs > 0 && !st.aiIgnored;
+      v.aiPaused = !st.announced && (st.inCall || st.secs > 0);
+      v.aiLive = live;
+      v.aiPost = post;
+      v.aiIgnored = !!st.aiIgnored && !st.inCall;
+      v.aiTitle = v.aiPaused ? 'en attente du consentement' : live ? 'transcription en direct' : post ? 'résumé de l’appel' : 'prêt';
+      v.aiLines = (demo ? [
+        ['Vous', 'Je vous appelle au sujet des trois factures Matériaux Delta, pour 48 200 € au total.'],
+        [cur.contact || 'Débiteur', 'On a eu un gros retard de chantier. Je peux régler la F-2026-0712 tout de suite.'],
+        [cur.contact || 'Débiteur', 'Les 18 600 € partent par virement d’ici vendredi 28, pour le reste il me faut un échéancier.']
+      ] : [
+        ['Vous', 'Je vous appelle au sujet des factures ' + (cur.mandant || '') + '.'],
+        [cur.contact || 'Débiteur', 'Je ne peux pas vous répondre maintenant, rappelez-moi demain matin.']
+      ]).map(([who, text]) => ({ who, text, color: who === 'Vous' ? 'var(--marine)' : 'var(--violet-fg)' }));
+      v.aiChips = demo ? ['Promesse 18 600 €', 'Paiement le 28/11', 'F-2026-0712', 'Demande d’échéancier pour le solde'] : ['Rappel demandé', 'Demain matin'];
+      v.aiSummary = demo
+        ? (cur.contact || 'Le débiteur') + ' reconnaît la dette et explique le retard par un décalage de chantier. Il s’engage à virer 18 600 € (facture F-2026-0712) au plus tard le 28/11 et demande un échéancier pour le solde de 29 600 €.'
+        : (cur.contact || 'Le débiteur') + ' n’était pas disponible et demande à être rappelé demain matin.';
+      v.aiSugg = (demo ? [['Résultat', 'Promesse de paiement'], ['Montant', '18 600 € · virement'], ['Date', '28/11/2026'], ['Factures', 'F-2026-0712'], ['Prochaine action', 'Vérifier le virement le 29/11, proposer un échéancier pour 29 600 €']]
+        : [['Résultat', 'Rappel demandé'], ['Quand', 'Demain 10:00'], ['Prochaine action', 'Rappeler ' + (cur.contact || 'le débiteur')]]).map(([k, val]) => ({ k, v: val }));
+      v.aiApplied = !!st.aiApplied && post;
+      v.aiCanApply = post && !st.aiApplied;
+      v.aiApply = () => this.setState(demo
+        ? { aiApplied: true, outcome: 'promesse', promise: '18 600 €', inv: { a: true, b: false, c: false }, aiNote: v.aiSummary }
+        : { aiApplied: true, outcome: 'rappel', recall: 'tomorrow', aiNote: v.aiSummary });
+      v.aiUndo = () => this.setState({ aiApplied: false, aiNote: null });
+      v.aiIgnore = () => this.setState({ aiIgnored: true });
+      v.noteText = st.aiNote || cur.note || '';
+    }
+    v.qCollapsed = !!st.qCollapsed; v.qOpen = !st.qCollapsed;
+    v.toggleQueue = () => this.setState({ qCollapsed: !st.qCollapsed });
+    const FAIL = { busy: ['Ligne occupée', 'Le débiteur est déjà en ligne. 3CX propose un nouvel essai dans 15 minutes.', 'sansrep', 'Qualifier : pas de réponse'], noanswer: ['Pas de réponse', 'Aucune réponse après 30 secondes, pas de messagerie détectée.', 'sansrep', 'Qualifier : pas de réponse'], invalid: ['Numéro invalide', 'L’opérateur indique que ce numéro n’est pas attribué.', 'faux', 'Qualifier : mauvais numéro'] };
+    const fl = FAIL[st.fail];
+    v.tcxDown = st.tcx === 'down';
+    v.tcxRetry = () => this.setState({ tcx: 'ok' });
+    v.failShow = !!fl;
+    v.failTitle = fl ? 'Appel non abouti : ' + fl[0].toLowerCase() : '';
+    v.failText = fl ? fl[1] : '';
+    v.failAction = fl ? fl[3] : '';
+    v.failPick = () => { if (fl) { this.pickOutcome(fl[2]); this.setState({ fail: null }); } };
+    v.simOpts = [['', 'Aucun incident'], ['down', '3CX indisponible'], ['busy', 'Ligne occupée'], ['noanswer', 'Pas de réponse'], ['invalid', 'Numéro invalide']].map(([value, label]) => ({ value, label }));
+    v.simVal = st.tcx === 'down' ? 'down' : (st.fail || '');
+    v.onSim = (e) => { const x = e.target.value; if (x === 'down') this.setState({ tcx: 'down', fail: null, inCall: false, hold: false, secs: 0 }); else if (x) this.setState({ tcx: 'ok', fail: x, inCall: false, hold: false, secs: 0 }); else this.setState({ tcx: 'ok', fail: null }); };
+    if (st.tcx === 'down') v.headStatus = { label: '3CX injoignable · mode manuel', color: 'var(--danger)' };
+    v.toastOpen = !!st.toast;
+    v.toastMsg = st.toast ? st.toast.msg : '';
+    v.toastUndo = () => { if (st.toast) { this.setState({ ...st.toast.snap, toast: null }); } };
+    v.toastClose = () => this.setState({ toast: null });
+    v.queueCount = String(list.length);
+    v.q = st.q || '';
+    v.onQuery = (e) => this.setState({ q: e.target.value });
+    v.lst = {
+      show: !!st.loading || list.length === 0,
+      kind: st.loading ? 'loading' : q ? 'noresult' : 'empty',
+      title: st.loading ? '' : q ? 'Aucun résultat pour « ' + (st.q || '').trim() + ' »' : 'File d\u2019appels terminée',
+      text: st.loading ? '' : q ? 'Vérifiez l\u2019orthographe, ou cherchez par numéro SIRET, SIREN ou de facture.' : 'Plus aucun appel prévu dans ce filtre. Les rappels du jour s\u2019ajouteront automatiquement.',
+      actionLabel: q ? 'Effacer la recherche' : '',
+      action: () => this.setState({ q: '' }),
+      count: 4
+    };
+    return v;
+  }
+  _rv() {
+    const accent = this.props.accent ?? 'var(--marine)';
+    const st = this.state;
+    const queue = [
+      { kind: 'appel', name: 'Bâtiplus SAS', siret: '512 334 871 00088', mandant: 'Matériaux Delta', initials: 'BP', contact: 'Julien Ferrand', role: 'gérant', amount: '48 200 €', amountN: 48200, late: '64 j', ref: 'DOS-2026-0142', reason: 'Promesse non tenue · relance n°3', slot: 'Maintenant', prio: 'Haute',
+        phones: [{ kind: 'Standard', value: '0472184590', status: 'ok', primary: true, note: 'vérifié le 19/11' }, { kind: 'Mobile', value: '0612487703', status: 'unverified', primary: false, note: 'importé de l’ERP du créancier' }],
+        emails: [{ kind: 'Dirigeant', value: 'j.ferrand@batiplus.fr', status: 'bad', primary: true, note: 'rebond Resend le 12/11' }, { kind: 'Comptabilité', value: 'compta@batiplus.fr', status: 'ok', primary: false, note: 'dernière ouverture le 05/11' }],
+        hist: [{ when: '19/11 10:12', text: 'Camille Laurent · standard 04 72 18 45 90 vérifié par appel' }, { when: '12/11 08:03', text: 'Resend · e-mail non remis à j.ferrand@batiplus.fr (boîte inexistante)' }, { when: '02/09 14:40', text: 'Import Matériaux Delta · création des coordonnées' }],
+        note: 'M. Ferrand confirme un virement de 18 600 € pour F-2026-0712 d’ici le 28/11. Demande un échéancier pour le solde.' },
+      { kind: 'appel', name: 'Garage Valmont', siret: '193 786 571 00094', mandant: 'TransAlp Leasing', initials: 'GV', contact: 'Paul Valmont', role: 'dirigeant', amount: '23 900 €', amountN: 23900, late: '97 j', ref: 'DOS-2026-0098', reason: 'Avant mise en demeure', slot: '10:30', prio: 'Haute',
+        phones: [{ kind: 'Standard', value: '0472112233', status: 'ok', primary: true, note: '' }], emails: [{ kind: 'Contact', value: 'contact@garage-valmont.fr', status: 'ok', primary: true, note: '' }], hist: [{ when: '14/10 09:00', text: 'Import TransAlp Leasing · création des coordonnées' }], note: '' },
+      { kind: 'rappel', name: 'Groupe Hélio', siret: '319 935 185 00011', mandant: 'Médiatel', initials: 'GH', contact: 'Nadia Roussel', role: 'responsable comptable', amount: '36 750 €', amountN: 36750, late: '38 j', ref: 'DOS-2026-0151', reason: 'Rappel demandé par le client', slot: '11:00', prio: 'Moyenne',
+        phones: [{ kind: 'Ligne directe', value: '0145678901', status: 'ok', primary: true, note: '' }], emails: [{ kind: 'Comptabilité', value: 'n.roussel@groupe-helio.fr', status: 'ok', primary: true, note: '' }], hist: [], note: '' },
+      { kind: 'appel', name: 'Fromagerie Durand', siret: '655 979 714 00012', mandant: 'Énergies Rhône', initials: 'FD', contact: 'Marc Durand', role: 'gérant', amount: '6 240 €', amountN: 6240, late: '21 j', ref: 'DOS-2026-0181', reason: 'Premier contact téléphonique', slot: '14:00', prio: 'Normale',
+        phones: [{ kind: 'Standard', value: '0385223344', status: 'unverified', primary: true, note: '' }], emails: [{ kind: 'Comptabilité', value: 'compta@fromagerie-durand.fr', status: 'ok', primary: true, note: '' }], hist: [], note: '' },
+      { kind: 'manque', name: 'Cabinet Orsay', siret: '725 276 018 00084', mandant: 'Médiatel', initials: 'CO', contact: 'Léa Martin', role: 'associée', amount: '14 800 €', amountN: 14800, late: '12 j', ref: 'DOS-2026-0177', reason: 'Appel manqué à 09:12 · rappeler', slot: '15:30', prio: 'Normale',
+        phones: [{ kind: 'Standard', value: '0156789012', status: 'ok', primary: true, note: '' }], emails: [{ kind: 'Associée', value: 'l.martin@cabinet-orsay.fr', status: 'ok', primary: true, note: '' }], hist: [], note: '' }
+    ];
+    this.queue = queue;
+    const prioColor = { Haute: 'var(--danger-fg)', Moyenne: 'var(--warning-fg)', Normale: 'var(--text-3)' };
+    const KIND = { appel: ['Appel', 'var(--surface-3)', 'var(--text-2)'], rappel: ['Rappel', 'var(--warning-bg)', 'var(--warning-fg)'], manque: ['Manqué', 'var(--danger-bg)', 'var(--danger-fg)'] };
+    const cur = queue[st.sel];
+    const outcomeDef = [
+      ['promesse', 'Promesse de paiement', 'var(--success)', 'PROMESSE'],
+      ['echeancier', 'Demande d’échéancier', 'var(--warning)', 'ECHEANCIER'],
+      ['rappel', 'Rappel demandé', 'var(--info)', 'RAPPEL'],
+      ['litige', 'Litige', 'var(--violet)', 'LITIGE'],
+      ['paye', 'Déjà payé', 'var(--success-fg)', 'DEJA_PAYE'],
+      ['absent', 'Absent', 'var(--text-3)', 'ABSENT'],
+      ['sansrep', 'Pas de réponse', 'var(--text-3)', 'NON_REPONSE'],
+      ['faux', 'Mauvais numéro', 'var(--danger)', 'FAUX_NUMERO']
+    ];
+    this.outcomeDef = outcomeDef;
+    this.outcomeIds = outcomeDef.map((o) => o[0]);
+    const recallDef = [['1h', 'Dans 1 h', 'aujourd’hui à 16:30'], ['tomorrow', 'Demain 10:00', 'demain 24/11 à 10:00'], ['friday', 'Vendredi 9:00', 'vendredi 27/11 à 9:00'], ['custom', 'Autre date…', 'date à choisir dans l’agenda']];
+    const recallLabel = (recallDef.find((r) => r[0] === st.recall) || recallDef[1])[2];
+    const months = Number(st.months);
+    const NEXT = {
+      promesse: 'contrôle du paiement le 28/11 · relance automatique à J+2 si rien n’est reçu.',
+      echeancier: 'proposition de ' + months + ' mensualités à envoyer' + (months > 6 ? ' après validation d’un responsable.' : ' au débiteur pour signature.'),
+      rappel: 'rappel ' + recallLabel + ', ajouté à votre file 3CX et à l’agenda.',
+      litige: 'relances suspendues · dossier transmis à ' + cur.mandant + ' pour avis sous 8 jours.',
+      paye: 'rapprochement bancaire sous 48 h · justificatif demandé par e-mail.',
+      absent: 'nouvel essai demain à 10:00 · SMS avec lien de paiement envoyé au mobile.',
+      sansrep: 'nouvel essai dans 2 h (3 tentatives maximum par jour).',
+      faux: 'appeler un autre numéro du débiteur, ou lancer une recherche de coordonnées.'
+    };
+    const keysDef = [['1', ''], ['2', 'ABC'], ['3', 'DEF'], ['4', 'GHI'], ['5', 'JKL'], ['6', 'MNO'], ['7', 'PQRS'], ['8', 'TUV'], ['9', 'WXYZ'], ['*', ''], ['0', '+'], ['#', '']];
+    const mm = (n) => String(Math.floor(n / 60)).padStart(2, '0') + ':' + String(n % 60).padStart(2, '0');
+
+    // coordinates
+    const coords = this.coordsOf(st.sel);
+    const ST = { ok: ['Vérifié', 'var(--success-bg)', 'var(--success-fg)'], bad: ['Invalide', 'var(--danger-bg)', 'var(--danger-fg)'], unverified: ['Non vérifié', 'var(--surface-3)', 'var(--text-2)'], new: ['Nouveau · à vérifier', 'var(--bleu-pale)', 'var(--marine)'], pending: ['Vérification envoyée', 'var(--warning-bg)', 'var(--warning-fg)'] };
+    const primaryPhone = coords.phone.find((p) => p.primary && p.status !== 'bad') || coords.phone.find((p) => p.status !== 'bad');
+    const ed = st.edit;
+    const edList = ed ? coords[ed.kind] : [];
+    const edItem = ed && ed.id ? edList.find((x) => x.id === ed.id) : null;
+    const err = ed ? this.validDraft(ed.kind, st.draft, edList, ed.id) : '';
+    const showErr = st.tried && !!err;
+    const GROUPS = {
+      phone: { label: 'Téléphones', addLabel: '+ Ajouter un numéro', newLabel: 'Numéro', inputType: 'tel', placeholder: '06 12 34 56 78', kinds: ['Standard', 'Mobile', 'Ligne directe', 'Comptabilité'] },
+      email: { label: 'E-mails', addLabel: '+ Ajouter une adresse', newLabel: 'Adresse e-mail', inputType: 'email', placeholder: 'nom@entreprise.fr', kinds: ['Dirigeant', 'Comptabilité', 'Contact', 'Autre'] }
+    };
+    const act = (label, run, danger) => ({ label, run, border: danger ? 'var(--danger-border)' : 'var(--border)', color: danger ? 'var(--danger-fg)' : 'var(--text)' });
+    const coordGroups = ['phone', 'email'].map((kind) => {
+      const G = GROUPS[kind];
+      const list = coords[kind];
+      return {
+        ...G,
+        editing: !!ed && ed.kind === kind,
+        add: () => this.setState({ edit: { kind, id: null }, draft: '', draftKind: G.kinds[kind === 'phone' ? 1 : 1], tried: false, makePrimary: false, invalidateOld: true }),
+        items: list.map((c) => {
+          const actions = [];
+          if (kind === 'phone' && c.status !== 'bad') actions.push(act('Appeler', () => this.setState({ dial: c.value, inCall: true, secs: 0, acw: 0 })));
+          if (kind === 'email' && (c.status === 'new' || c.status === 'unverified')) actions.push(act('Envoyer un e-mail de vérification', () => this.setCoords('email', list.map((x) => (x.id === c.id ? { ...x, status: 'pending' } : x)), 'Camille Laurent · e-mail de vérification envoyé à ' + c.value + ' (Resend)')));
+          if (kind === 'phone' && (c.status === 'new' || c.status === 'unverified')) actions.push(act('Confirmer (joint à ce numéro)', () => this.setCoords('phone', list.map((x) => (x.id === c.id ? { ...x, status: 'ok' } : x)), 'Camille Laurent · ' + this.fmt(c.value) + ' vérifié par appel')));
+          if (!c.primary && c.status !== 'bad') actions.push(act('Définir principal', () => this.setCoords(kind, list.map((x) => ({ ...x, primary: x.id === c.id })), 'Camille Laurent · ' + this.fmt(c.value) + ' défini comme principal')));
+          actions.push(act('Corriger', () => this.setState({ edit: { kind, id: c.id }, draft: kind === 'phone' ? this.fmt(c.value) : c.value, draftKind: c.kind, tried: false, makePrimary: c.primary, invalidateOld: true })));
+          if (c.status === 'bad') actions.push(act('Rétablir', () => this.setCoords(kind, list.map((x) => (x.id === c.id ? { ...x, status: 'unverified' } : x)), 'Camille Laurent · ' + this.fmt(c.value) + ' rétabli')));
+          else actions.push(act('Marquer invalide', () => this.setCoords(kind, list.map((x) => (x.id === c.id ? { ...x, status: 'bad', primary: false } : x)), 'Camille Laurent · ' + this.fmt(c.value) + ' marqué invalide'), true));
+          return {
+            value: kind === 'phone' ? this.fmt(c.value) : c.value,
+            kindLabel: c.kind + (c.note ? ' · ' + c.note : ''),
+            primaryNote: c.primary ? ' · principal' : '',
+            status: ST[c.status][0], stBg: ST[c.status][1], stFg: ST[c.status][2],
+            strike: c.status === 'bad' ? 'line-through' : 'none',
+            valueColor: c.status === 'bad' ? 'var(--text-3)' : 'var(--text)',
+            actions
+          };
+        })
+      };
+    });
+    const hist = this.histOf(st.sel);
+    const draftNorm = ed && ed.kind === 'phone' ? this.fmt(st.draft.trim().replace(/^\+33\s?/, '0').replace(/\s/g, '')) : st.draft.trim();
+    const errs = this.qualErrors();
+    const outcomeLabel = (outcomeDef.find((o) => o[0] === st.outcome) || [])[1];
+    const code3cx = (outcomeDef.find((o) => o[0] === st.outcome) || [])[3];
+    const stepsDone = [st.who !== 'none' || !!st.outcome, !!st.outcome, !!st.outcome && !st.edit];
+    const invDef = [['a', 'F-2026-0712', '14/09', '18 600 €'], ['b', 'F-2026-0745', '27/09', '16 400 €'], ['c', 'F-2026-0790', '10/10', '13 200 €']];
+    const xferDef = [['102', 'Hugo Benali', 'Disponible', 'var(--success)'], ['103', 'Sarah Morel', 'En pause', 'var(--warning)'], ['104', 'Thomas Giraud', 'Absent', 'var(--text-3)'], ['800', 'File « Recouvrement »', '2 agents libres', 'var(--success)']];
+    return {
+      accent,
+      headStatus: st.inCall ? { label: st.hold ? '3CX · appel en attente' : '3CX · en communication · poste 101', color: st.hold ? 'var(--warning)' : 'var(--success)' } : { label: st.secs > 0 ? '3CX · post-appel · poste 101' : '3CX connecté · poste 101', color: st.secs > 0 ? 'var(--warning)' : 'var(--success)' },
+      headActions: [
+        { label: 'Changer de campagne' },
+        { label: 'Ouvrir 3CX', href: 'https://legarec.on3cx.fr' },
+        { label: 'Appel suivant', primary: true, kbd: 'N', onClick: () => this.save() }
+      ],
+      headStats: [
+        { label: 'Objectif du jour', value: '18 / 40 appels', bar: '45%', barColor: 'var(--marine)', sub: '22 restants avant 18:00' },
+        { label: 'Débiteurs joints', value: '11', sub: '61 % des appels passés' },
+        { label: 'Promesses obtenues', value: '4 · 31 200 €', color: 'var(--success-fg)', sub: '2 à contrôler cette semaine' },
+        { label: 'Durée moyenne', value: '3 min 42', sub: 'Équipe : 4 min 05' },
+        { label: 'Coordonnées corrigées', value: '3', sub: 'aujourd’hui, dont 1 e-mail' }
+      ],
+      qTabs: [['all', 'Tous'], ['rappel', 'Rappels'], ['manque', 'Manqués'], ['haute', 'Priorité haute']].map(([id, label]) => ({
+        label,
+        count: String(id === 'all' ? queue.length : id === 'haute' ? queue.filter((q) => q.prio === 'Haute').length : queue.filter((q) => q.kind === id).length),
+        selected: st.qtab === id,
+        pick: () => this.setState({ qtab: id })
+      })),
+      tbFilters: [{ label: 'Créancier', options: ['Tous les créanciers', 'Matériaux Delta', 'Énergies Rhône', 'Médiatel', 'TransAlp Leasing', 'Crédit Horizon'] }],
+      toolTabs: [['script', 'Script'], ['historique', 'Historique du débiteur'], ['clavier', 'Clavier']].map(([id, label]) => ({
+        label, selected: st.tool === id ? 'true' : 'false',
+        color: st.tool === id ? 'var(--text)' : 'var(--text-3)', bar: st.tool === id ? 'inset 0 -2px 0 ' + accent : 'none',
+        pick: () => this.setState({ tool: id })
+      })),
+      tool: { script: st.tool === 'script', historique: st.tool === 'historique', clavier: st.tool === 'clavier' },
+      script: [
+        ['Se présenter', 'Au nom de Legarec, pour le compte de ' + cur.mandant + '. Vérifier que l’on parle à ' + cur.contact + ' et annoncer l’enregistrement.'],
+        ['Rappeler la créance', cur.amount + ' restent dus, retard maximal de ' + cur.late + '. Citer les numéros de facture si demandé.'],
+        ['Vérifier les coordonnées', 'Confirmer le numéro et l’adresse e-mail. Corriger dans « Coordonnées du débiteur » en cas d’erreur.'],
+        ['Obtenir un engagement', 'Une date et un montant précis. Sinon, proposer un échéancier (6 mois maximum sans validation).'],
+        ['Conclure', 'Reformuler l’engagement et annoncer l’e-mail de confirmation avec le lien de paiement.']
+      ].map(([t, d], i) => ({ n: i + 1, t, d })),
+      history: [
+        { ch: 'E-mail', text: 'Relance n°2 non remise : adresse e-mail en erreur', when: '12/11', bg: 'var(--danger-bg)', fg: 'var(--danger-fg)' },
+        { ch: 'Appel', text: 'Sans réponse, message laissé', when: '19/11', bg: 'var(--bleu-200)', fg: 'var(--marine)' },
+        { ch: 'Promesse', text: 'Promesse non tenue (paiement annoncé le 31/10)', when: '03/11', bg: 'var(--warning-bg)', fg: 'var(--warning-fg)' },
+        { ch: 'SMS', text: 'Relance avec lien de paiement, distribué', when: '05/10', bg: 'var(--teal-bg)', fg: 'var(--teal-fg)' }
+      ],
+      current: cur,
+      contactName: st.who === 'main' ? cur.contact : st.who === 'other' ? 'autre interlocuteur' : st.who === 'desk' ? 'standard' : 'interlocuteur non identifié',
+      phoneShown: this.fmt(st.dial || (primaryPhone ? primaryPhone.value : '')),
+      queueCount: String(queue.filter((q) => st.qtab === 'all' || (st.qtab === 'haute' ? q.prio === 'Haute' : q.kind === st.qtab)).length),
+      queue: queue.map((q, i) => ({
+        ...q, siret: q.siret,
+        kindLabel: KIND[q.kind][0], kindBg: KIND[q.kind][1], kindFg: KIND[q.kind][2],
+        prioColor: prioColor[q.prio],
+        done: !!st.done[i], doneLabel: st.done[i] || '',
+        pressed: i === st.sel ? 'true' : 'false',
+        border: i === st.sel ? '1px solid ' + accent : '1px solid transparent',
+        bg: i === st.sel ? 'var(--bleu-pale)' : 'var(--white)',
+        pick: () => this.setState({ aiApplied: false, aiNote: null, aiIgnored: false, sel: i, dial: q.phones[0].value, inCall: false, secs: 0, acw: 0, muted: false, hold: false, xfer: false, edit: null, outcome: null, who: 'main', qtried: false })
+      })).filter((q, i) => st.qtab === 'all' || (st.qtab === 'haute' ? queue[i].prio === 'Haute' : queue[i].kind === st.qtab)),
+      queueEmpty: false,
+      timer: st.inCall ? mm(st.secs) : '00:00',
+      callStatus: st.inCall ? (st.hold ? 'En attente' : 'En communication') : st.secs > 0 ? 'Post-appel' : 'Prêt à appeler',
+      callPillBg: st.inCall ? (st.hold ? 'var(--warning-bg)' : 'var(--success-bg)') : 'var(--text-2)',
+      callPillFg: st.inCall ? (st.hold ? 'var(--warning-fg)' : 'var(--success-fg)') : 'var(--border)',
+      callBtnLabel: st.inCall ? 'Raccrocher' : 'Appeler',
+      callBtnBg: st.inCall ? 'var(--danger)' : 'var(--success-strong)',
+      callBtnFg: st.inCall ? 'var(--on-primary)' : 'var(--on-success)',
+      toggleCall: () => this.toggleCall(),
+      muteLabel: st.muted ? 'Micro coupé' : 'Muet',
+      mutedPressed: st.muted ? 'true' : 'false',
+      muteBg: st.muted ? 'var(--white)' : 'var(--surface-dark-2)',
+      muteFg: st.muted ? 'var(--text)' : 'var(--on-primary)',
+      toggleMute: () => this.setState({ muted: !st.muted }),
+      holdLabel: st.hold ? 'Reprendre' : 'Attente',
+      holdPressed: st.hold ? 'true' : 'false',
+      holdBg: st.hold ? 'var(--white)' : 'var(--surface-dark-2)',
+      holdFg: st.hold ? 'var(--text)' : 'var(--on-primary)',
+      toggleHold: () => this.setState({ hold: !st.hold, holdSecs: 0 }),
+      holdShow: st.inCall && st.hold && !st.xferPending,
+      holdTime: mm(st.holdSecs),
+      xferOpen: st.xfer,
+      xferExpanded: st.xfer ? 'true' : 'false',
+      toggleXfer: () => this.setState({ xfer: !st.xfer }),
+      xferDone: !!st.xferTo,
+      xferText: !st.xferTo ? '' : st.xferPending ? 'Transfert annoncé vers ' + st.xferTo + ' : présentez le dossier, le débiteur est en attente.' : 'Débiteur transféré vers ' + st.xferTo + '. Complétez la fiche.',
+      xferPending: !!st.xferPending,
+      xferFinish: () => this.setState({ xferPending: false, inCall: false, hold: false, acw: 0 }),
+      xferCancel: () => this.setState({ xferPending: false, xferTo: null, hold: false, holdSecs: 0 }),
+      xferModes: [['annonce', 'Annoncé'], ['direct', 'Direct']].map(([id, label]) => ({ label, selected: st.xferMode === id, pick: () => this.setState({ xferMode: id }) })),
+      xferModeHelp: st.xferMode === 'direct' ? 'Le débiteur est transféré tout de suite, sans présentation.' : 'Vous parlez d’abord au collègue, puis vous finalisez le transfert.',
+      announced: !!st.announced,
+      toggleAnnounced: () => this.setState({ announced: !st.announced }),
+      previewShow: st.preview > 0,
+      previewText: (this.queue[st.sel] ? this.queue[st.sel].name : '') + ' · composition dans ' + st.preview + ' s' + (st.previewPaused ? ' (en pause)' : ''),
+      previewPct: Math.round(((5 - st.preview) / 5) * 100),
+      previewNow: () => this.setState({ preview: 0, inCall: true, secs: 0, acw: 0, announced: false }),
+      previewSkip: () => { const n = (st.sel + 1) % this.queue.length; this.setState({ sel: n, preview: 5, previewPaused: false, dial: this.queue[n].phones[0].value }); },
+      previewPause: () => this.setState({ previewPaused: !st.previewPaused }),
+      previewPauseLabel: st.previewPaused ? 'Reprendre' : 'Mettre en pause',
+      xferList: xferDef.map(([ext, name, state, dot]) => { const off = state === 'Absent' || state === 'En appel'; return { ext, name, state, dot, off: off || undefined, tip: off ? 'Indisponible dans 3CX' : undefined, pick: () => { if (off) return; if (st.xferMode === 'direct') this.setState({ xfer: false, xferTo: name + ' (poste ' + ext + ')', xferPending: false, inCall: false, hold: false, acw: 0 }); else this.setState({ xfer: false, xferTo: name + ' (poste ' + ext + ')', xferPending: true, hold: true, holdSecs: 0 }); } }; }),
+      dialDisplay: st.dial ? this.fmt(st.dial) : 'Composer un numéro',
+      backspace: () => this.setState({ dial: st.dial.slice(0, -1) }),
+      keys: keysDef.map(([d, l]) => ({ d, l, press: () => this.setState({ dial: (this.state.dial + d).slice(0, 15) }) })),
+      acwShow: !st.inCall && st.secs > 0,
+      acwText: st.acw <= 60 ? 'reste ' + mm(60 - st.acw) : 'temps dépassé de ' + mm(st.acw - 60),
+      steps: [['Interlocuteur', stepsDone[0]], ['Résultat', stepsDone[1]], ['Coordonnées', stepsDone[2]]].map(([label, ok]) => ({ label, bar: ok ? 'var(--success)' : 'var(--border)', color: ok ? 'var(--success-fg)' : 'var(--text-3)' })),
+      who: st.who,
+      onWho: (e) => this.setState({ who: e.target.value }),
+      whoOther: st.who === 'other',
+      outcomes: outcomeDef.map(([id, label, dot], i) => ({
+        label, dot, n: String(i + 1),
+        pressed: id === st.outcome ? 'true' : 'false',
+        border: id === st.outcome ? '1px solid ' + accent : '1px solid var(--border)',
+        bg: id === st.outcome ? 'var(--bleu-pale)' : 'var(--white)',
+        kbdBg: id === st.outcome ? accent : 'var(--surface-3)',
+        kbdFg: id === st.outcome ? 'var(--on-primary)' : 'var(--text-2)',
+        pick: () => this.pickOutcome(id)
+      })),
+      is: Object.fromEntries(this.outcomeIds.map((id) => [id, st.outcome === id])),
+      qualifBadge: outcomeLabel ? 'Code 3CX : ' + code3cx : 'À qualifier',
+      qualifBadgeBg: outcomeLabel ? 'var(--success-bg)' : 'var(--warning-bg)',
+      qualifBadgeFg: outcomeLabel ? 'var(--success-fg)' : 'var(--warning-fg)',
+      hasSaved: !!st.saved,
+      saved: st.saved,
+      promiseAmount: st.promise,
+      onPromiseAmount: (e) => this.setState({ promise: e.target.value }),
+      amountChips: [['Facture F-2026-0712', '18 600 €'], ['La moitié', Math.round(cur.amountN / 2).toLocaleString('fr-FR') + ' €'], ['Totalité', cur.amount]].map(([l, v]) => ({ label: l + ' · ' + v, pick: () => this.setState({ promise: v }) })),
+      invoices: invDef.map(([id, ref, due, amount]) => ({ ref, due, amount, checked: !!st.inv[id], toggle: () => this.setState({ inv: { ...this.state.inv, [id]: !this.state.inv[id] } }) })),
+      planMonths: st.months,
+      onPlanMonths: (e) => this.setState({ months: e.target.value }),
+      planText: months + ' mensualités de ' + Math.ceil(cur.amountN / months).toLocaleString('fr-FR') + ' € pour ' + cur.amount,
+      planNote: months > 6 ? 'Plus de 6 mois : validation d’un responsable puis accord du créancier.' : 'Dans la limite autorisée : envoi direct au débiteur.',
+      planNoteColor: months > 6 ? 'var(--warning-fg)' : 'var(--success-fg)',
+      recallChips: recallDef.map(([id, label]) => ({ label, pressed: st.recall === id ? 'true' : 'false', border: st.recall === id ? '1px solid ' + accent : '1px solid var(--border)', bg: st.recall === id ? 'var(--bleu-pale)' : 'var(--white)', pick: () => this.setState({ recall: id }) })),
+      recallLabel,
+      payRef: st.payRef,
+      onPayRef: (e) => this.setState({ payRef: e.target.value }),
+      err: {
+        amountAttr: st.qtried && st.outcome === 'promesse' && !Number(String(st.promise).replace(/[^\d]/g, '')) ? 'true' : 'false',
+        amountBorder: st.qtried && st.outcome === 'promesse' && !Number(String(st.promise).replace(/[^\d]/g, '')) ? 'var(--danger)' : 'var(--border)',
+        refAttr: st.qtried && !st.payRef.trim() ? 'true' : 'false',
+        refBorder: st.qtried && !st.payRef.trim() ? 'var(--danger)' : 'var(--border)'
+      },
+      coordGroups,
+      editTitle: ed ? (edItem ? 'Corriger ' + (ed.kind === 'phone' ? this.fmt(edItem.value) : edItem.value) : (ed.kind === 'phone' ? 'Nouveau numéro' : 'Nouvelle adresse e-mail')) : '',
+      isReplace: !!edItem,
+      draft: st.draft,
+      onDraft: (e) => this.setState({ draft: e.target.value }),
+      draftKind: st.draftKind,
+      onDraftKind: (e) => this.setState({ draftKind: e.target.value }),
+      src: st.src,
+      onSrc: (e) => this.setState({ src: e.target.value }),
+      makePrimary: st.makePrimary,
+      toggleMakePrimary: () => this.setState({ makePrimary: !st.makePrimary }),
+      invalidateOld: st.invalidateOld,
+      toggleInvalidateOld: () => this.setState({ invalidateOld: !st.invalidateOld }),
+      hasDraftError: showErr,
+      draftError: err,
+      hasDraftHint: !!ed && !err && !!st.draft.trim(),
+      draftHint: ed && ed.kind === 'phone' ? 'Format reconnu : ' + draftNorm + (/^0[67]/.test(draftNorm.replace(/\s/g, '')) ? ' (mobile, SMS possibles)' : ' (fixe)') : 'Une vérification sera proposée après l’enregistrement.',
+      draftInvalid: showErr ? 'true' : 'false',
+      draftBorder: showErr ? 'var(--danger)' : 'var(--border)',
+      cancelEdit: () => this.setState({ edit: null, draft: '', tried: false }),
+      askSaveCoord: () => { if (err) { this.setState({ tried: true }); return; } this.setState({ confirm: true }); },
+      histCount: String(hist.length),
+      hist,
+      nextAction: st.outcome ? NEXT[st.outcome] : 'choisissez un résultat (touches 1 à 8) pour générer l’action suivante.',
+      summary: outcomeLabel ? 'Récapitulatif : ' + outcomeLabel.toLowerCase() + ' · ' + (st.who === 'main' ? cur.contact : 'autre interlocuteur') + ' · durée ' + mm(st.secs) + ' · code 3CX ' + code3cx : 'Le résumé et le code 3CX apparaissent ici une fois le résultat choisi.',
+      hasErrors: st.qtried && errs.length > 0,
+      errors: errs,
+      confirmMailLabel: st.outcome === 'promesse' ? 'Envoyer l’e-mail de confirmation de promesse avec lien de paiement' : 'Envoyer un récapitulatif de l’échange par e-mail',
+      saveOpacity: errs.length ? '0.75' : '1',
+      saveQualif: () => this.save(),
+      cf: {
+        open: !!st.confirm && !!ed,
+        title: ed ? (edItem ? (ed.kind === 'phone' ? 'Remplacer ce numéro ?' : 'Remplacer cette adresse e-mail ?') : (ed.kind === 'phone' ? 'Ajouter ce numéro ?' : 'Ajouter cette adresse e-mail ?')) : '',
+        body: 'La modification est enregistrée dans le dossier, synchronisée avec la fiche contact 3CX et utilisée pour les prochains appels, SMS et relances de ' + cur.name + '.',
+        details: ed ? [
+          { k: 'Débiteur', v: cur.name + ' · SIRET ' + cur.siret },
+          { k: 'Ancienne valeur', v: edItem ? (ed.kind === 'phone' ? this.fmt(edItem.value) : edItem.value) + (st.invalidateOld ? ' → invalide' : ' → conservée') : '—' },
+          { k: 'Nouvelle valeur', v: draftNorm + ' (' + st.draftKind + ')' + (st.makePrimary ? ', principale' : '') },
+          { k: 'Origine', v: { call: 'Donnée pendant l’appel', import: 'Erreur de saisie à l’import', doc: 'Document du débiteur', creditor: 'Transmise par le créancier' }[st.src] }
+        ] : [],
+        label: edItem ? 'Remplacer' : 'Ajouter',
+        confirm: () => {
+          if (!ed) return;
+          const list = coords[ed.kind];
+          const val = ed.kind === 'phone' ? draftNorm.replace(/\s/g, '') : st.draft.trim();
+          let next = list.map((x) => (st.makePrimary ? { ...x, primary: false } : x));
+          if (edItem) {
+            next = next.map((x) => (x.id === edItem.id ? (st.invalidateOld ? { ...x, status: 'bad', primary: false } : x) : x));
+            if (!st.invalidateOld) next = next.filter((x) => x.id !== edItem.id);
+          }
+          next = next.concat([{ id: ed.kind[0] + Date.now(), kind: st.draftKind, value: val, status: 'new', primary: st.makePrimary || !next.some((x) => x.primary && x.status !== 'bad'), note: 'ajouté le 21/11' }]);
+          const shown = ed.kind === 'phone' ? this.fmt(val) : val;
+          this.setCoords(ed.kind, next, 'Camille Laurent · ' + (edItem ? (ed.kind === 'phone' ? this.fmt(edItem.value) : edItem.value) + ' remplacé par ' : 'ajout de ') + shown + ' (' + st.draftKind.toLowerCase() + ')');
+          this.setState({ edit: null, draft: '', confirm: false, tried: false });
+        },
+        cancel: () => this.setState({ confirm: false })
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

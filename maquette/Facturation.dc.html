@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Legarec – Facturation</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Lora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+/* tokens:start — charte graphique LEGAREC v1.0 (octobre 2026). Ne pas modifier à la main : généré depuis tools/tokens.css */
+:root{
+  /* Marque */
+  --marine:#002B74; --marine-hover:#00225C; --marine-text:#002B74; --app-icon-bg:#002B74; --app-icon-fg:#FCBE03; --nuit:#001B4D; --or:#FCBE03; --or-clair:#FFF3C4; --ardoise:#5D7087;
+  --bleu-pale:#EEF2F8; --gris-clair:#F6F8FB; --bleu-200:#D6E0F0; --white:#FFFFFF;
+  /* Texte */
+  --text:#0F1B2D; --text-2:#33455C; --text-3:#5D7087; --on-primary:#FFFFFF;
+  /* Surfaces et bordures */
+  --surface:#FFFFFF; --surface-2:#F6F8FB; --surface-3:#EEF2F7; --border:#E1E7EF; --border-strong:#7D8DA1;
+  /* Surfaces sombres (carte d'appel, barre d'actions groupées) */
+  --surface-dark:#001B4D; --surface-dark-2:#0B2D63; --border-dark:#2A4A7D; --on-dark:#FFFFFF; --on-dark-2:#D5DEEB; --on-dark-muted:#A9B8CC; --on-dark-accent:#B8CBEA;
+  /* Données (graphiques, balance âgée) */
+  --data-1:#C9D6EC; --data-2:#7F9CD0; --data-3:#345DA8;
+  /* Tons sémantiques : fond, bordure, point, texte */
+  --success-bg:#ECFDF5; --success-border:#A7F3D0; --success:#059669; --success-strong:#10B981; --success-fg:#047857; --on-success:#052E16;
+  --warning-bg:#FFF3C4; --warning-border:#F5D77A; --warning:#D97706; --warning-fg:#8A4B08;
+  --danger-bg:#FFF1F2; --danger-border:#FECDD3; --danger:#E11D48; --danger-fg:#BE123C; --danger-dark:#7F1D1D; --danger-on-dark:#FDA4AF;
+  --info-bg:#F0F9FF; --info-border:#BAE6FD; --info:#0284C7; --info-fg:#0369A1;
+  --violet-bg:#F5F3FF; --violet-border:#DDD6FE; --violet:#7C3AED; --violet-fg:#6D28D9;
+  --teal-bg:#CCFBF1; --teal:#0D9488; --teal-fg:#115E59;
+  /* Fonds pleins (badges pleins, texte --on-primary ≥ 5:1 dans les deux modes) */
+  --solid-neutral:#33455C; --solid-info:#0369A1; --solid-success:#047857; --solid-warning:#8A4B08; --solid-danger:#BE123C; --solid-violet:#6D28D9; --solid-teal:#115E59;
+  /* Typographie */
+  --font-title:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-text:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-brand:Lora, Georgia, serif; --font-mono:ui-monospace, SFMono-Regular, Menlo, monospace;
+  --fs-doc-xs:8px; --fs-doc-sm:9px; --fs-doc-md:10px; --fs-doc-lg:10.5px; --fs-2xs:11px; --fs-xs:12px; --fs-sm:13px; --fs-base:14px; --fs-md:16px; --fs-lg:18px; --fs-xl:20px; --fs-2xl:26px; --fs-3xl:34px;
+  /* Rayons */
+  --r-xs:4px; --r-sm:6px; --r-md:8px; --r-lg:12px; --r-full:9999px;
+  /* Ombres */
+  --shadow-sm:0 1px 2px 0 rgba(0,27,77,0.06); --shadow-md:0 10px 15px -3px rgba(0,27,77,0.10), 0 4px 6px -4px rgba(0,27,77,0.10); --shadow-lg:0 20px 25px -5px rgba(0,27,77,0.18), 0 8px 10px -6px rgba(0,27,77,0.12);
+  --shadow-knob:0 1px 2px rgba(0,27,77,0.25); --overlay:rgba(0,27,77,0.55);
+  /* Espacements (grille de 4 px) */
+  --sp-0h:2px; --sp-1:4px; --sp-1h:6px; --sp-2:8px; --sp-2h:10px; --sp-3:12px; --sp-3h:14px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px; --sp-10:40px; --sp-11:44px; --sp-12:48px;
+  /* Hauteurs de contrôles */
+  --control-xs:28px; --control-sm:36px; --control-md:40px; --control-lg:44px;
+  /* Voiles et anneaux (surfaces sombres, animations) */
+  --veil-8:rgba(255,255,255,0.08); --veil-18:rgba(255,255,255,0.18); --veil-25:rgba(255,255,255,0.25); --veil-35:rgba(255,255,255,0.35); --veil-80:rgba(255,255,255,0.8); --veil-85:rgba(255,255,255,0.85); --on-success-veil:rgba(5,46,22,0.35); --success-ring:rgba(16,185,129,0.55); --success-ring-0:rgba(16,185,129,0);
+  /* Cibles tactiles */
+  --target:44px;
+}
+body{font-family:var(--font-text);font-feature-settings:"cv11";-webkit-font-smoothing:antialiased}
+h1,h2{font-family:var(--font-title);font-weight:700;color:var(--marine);overflow-wrap:break-word;letter-spacing:-0.015em}
+[data-brand] h1,[data-brand] h2{font-family:var(--font-brand);letter-spacing:0}
+td,th,li,h3{overflow-wrap:break-word}
+:focus-visible{outline:2px solid var(--marine);outline-offset:2px}
+[data-dark] :focus-visible{outline-color:var(--or)}
+button:disabled,[aria-disabled="true"]{cursor:not-allowed !important;opacity:.55}
+button:not(:disabled):hover,a[href][style*="border-radius"]:hover{filter:brightness(.96)}
+tbody tr:hover{background-color:var(--surface-2)}
+[data-table-scroll]{max-height:min(68vh,720px);overflow:auto !important}
+[data-table-scroll] thead th{position:sticky;top:0;z-index:2;background:var(--surface-2);box-shadow:inset 0 -1px 0 var(--border)}
+[data-skeleton]{display:block;border-radius:var(--r-xs);background:linear-gradient(90deg,var(--surface-3) 25%,var(--bleu-pale) 50%,var(--surface-3) 75%);background-size:200% 100%;animation:lg-sk 1.2s ease-in-out infinite}
+@keyframes lg-sk{from{background-position:200% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+@media (pointer: coarse), (max-width: 767px){
+  button,select,input:not([type=checkbox]):not([type=radio]):not([type=range]),[role=tab],[role=menuitem],a[href][style*="display: inline-flex"],a[href][style*="height:"]{min-height:var(--target)}
+  input[type=checkbox],input[type=radio]{min-width:22px;min-height:22px}
+}
+/* Mode sombre : data-theme="dark" sur <html> */
+:root[data-theme="dark"]{
+  --marine:#2E5FC0; --marine-hover:#2A57B0; --marine-text:#9DB8F0; --app-icon-bg:#0A1A3F; --nuit:#071028; --or-clair:#3A2F0A; --ardoise:#9AA9BD;
+  --bleu-pale:#1B2A4A; --gris-clair:#0A1020; --bleu-200:#2B3E63; --white:#16203A;
+  --text:#E6ECF5; --text-2:#C3CEDD; --text-3:#9AA9BD;
+  --surface:#0F1729; --surface-2:#0A1020; --surface-3:#1A2438; --border:#26324A; --border-strong:#67778F;
+  --surface-dark:#050B1A; --surface-dark-2:#101C36; --border-dark:#24365A;
+  --data-1:#2B3E63; --data-2:#4F73B8; --data-3:#7F9CD0;
+  --success-bg:#0B2E22; --success-border:#14532D; --success-fg:#6EE7B7;
+  --warning-bg:#3A2F0A; --warning-border:#6B5310; --warning-fg:#FCD34D;
+  --danger-bg:#3B0D17; --danger-border:#7F1D2E; --danger-fg:#FDA4AF;
+  --info-bg:#0B2540; --info-border:#164E63; --info-fg:#7DD3FC;
+  --violet-bg:#24164A; --violet-border:#4C1D95; --violet-fg:#C4B5FD;
+  --teal-bg:#0B302C; --teal-fg:#5EEAD4;
+  --shadow-sm:0 1px 2px 0 rgba(0,0,0,0.4); --shadow-md:0 10px 15px -3px rgba(0,0,0,0.5); --shadow-lg:0 20px 25px -5px rgba(0,0,0,0.6); --overlay:rgba(0,0,0,0.65);
+  color-scheme:dark;
+}
+:root[data-theme="dark"] body{background:var(--surface-2);color:var(--text)}
+:root[data-theme="dark"] :focus-visible{outline-color:#9DB8F0}
+:root[data-theme="dark"] [data-dark]{border:1px solid var(--border-dark)}
+:root[data-theme="dark"] h1,:root[data-theme="dark"] h2,:root[data-theme="dark"] a[href]:not([style*="background"]){color:var(--marine-text)}
+:root[data-theme="dark"] [style*="color: var(--marine)"]:not([style*="background: var(--marine)"]){color:var(--marine-text) !important}
+:root[data-theme="dark"] img[src*="_blob"]{background:var(--white);border-radius:var(--r-sm)}
+/* Mode malvoyant : data-a11y="malvoyant" sur <html> — texte agrandi, contraste renforcé, cibles plus grandes */
+:root[data-a11y="malvoyant"]{
+  --fs-2xs:13px; --fs-xs:14px; --fs-sm:15px; --fs-base:17px; --fs-md:19px; --fs-lg:21px; --fs-xl:24px; --fs-2xl:30px; --fs-3xl:38px;
+  --control-xs:36px; --control-sm:44px; --control-md:48px; --control-lg:52px; --target:48px;
+  --text-3:var(--text-2); --ardoise:var(--text-2); --border:var(--border-strong);
+}
+:root[data-a11y="malvoyant"] body{line-height:1.6}
+:root[data-a11y="malvoyant"] [data-sb-nav][style*="width: 264px"]{width:312px !important}
+:root[data-a11y="malvoyant"] :focus-visible{outline:3px solid var(--or);outline-offset:3px;box-shadow:0 0 0 6px var(--marine)}
+:root[data-a11y="malvoyant"] a[href]:not([style*="background"]){text-decoration:underline;text-underline-offset:3px}
+:root[data-a11y="malvoyant"] button,:root[data-a11y="malvoyant"] select,:root[data-a11y="malvoyant"] input:not([type=checkbox]):not([type=radio]){min-height:var(--target)}
+:root[data-a11y="malvoyant"] input[type=checkbox],:root[data-a11y="malvoyant"] input[type=radio]{min-width:24px;min-height:24px}
+:root[data-a11y="malvoyant"][data-theme="dark"]{--text-3:#E6ECF5;--text-2:#E6ECF5}
+/* tokens:end */
+body{margin:0;font-family:var(--font-text);color:var(--text);background:var(--surface-2)}
+a{color:var(--marine)}a:hover{color:var(--marine)}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--marine);outline-offset:1px}
+@media (max-width: 767px){[data-line]{grid-template-columns:minmax(0, 1fr) minmax(0, 1fr) 36px !important}[data-line] > input:first-child{grid-column:1 / -1}}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; background: var(--surface-2); font-family: var(--font-text); color: var(--text)">
+
+<div data-sb-wrap style="flex: 0 0 auto; max-width: 100%; display: flex; background: var(--surface-2); border-right: 1px solid var(--border)">
+<dc-import name="Sidebar" active="Facturation.dc.html" accent="{{accent}}" hint-size="264px,1100px"></dc-import>
+</div>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: var(--sp-8); box-sizing: border-box; display: flex; flex-direction: column; gap: var(--sp-6)">
+<dc-import name="Topbar" accent="{{accent}}" trail="Pilotage|Facturation" hint-size="100%,64px"></dc-import>
+<div data-page-body style="width: 100%; max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--sp-6)">
+
+<dc-import name="PageHeader" title="Facturation" description="Factures, devis et contrats du cabinet envers ses créanciers et prospects · créés à partir de modèles" accent="{{accent}}" actions="{{headActions}}" stats="{{headStats}}" stats-label="Facturation du cabinet" hint-size="100%,170px"></dc-import>
+
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-2h) var(--sp-3h); border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--border)">
+<span style="display: inline-flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-sm); color: var(--text-2)"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" style="stroke: var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Accès réservé aux rôles <strong style="font-weight: 600">Responsable du recouvrement</strong> et <strong style="font-weight: 600">Dirigeant</strong></span>
+<div style="display: flex; align-items: center; gap: var(--sp-2)"><span style="font-size: var(--fs-xs); color: var(--text-3)">Voir en tant que</span>
+<div role="group" aria-label="Voir en tant que" style="display: flex; gap: var(--sp-0h); background: var(--surface-3); padding: var(--sp-1); border-radius: var(--r-md)">
+<sc-for list="{{asRoles}}" as="r" hint-placeholder-count="3"><button type="button" onClick="{{r.pick}}" aria-pressed="{{r.pressed}}" style="height: var(--control-xs); padding: 0 var(--sp-2h); border: 0; border-radius: var(--r-sm); font: inherit; font-size: var(--fs-xs); font-weight: 500; cursor: pointer; background: {{r.bg}}; color: {{r.color}}; box-shadow: {{r.shadow}}">{{r.label}}</button></sc-for>
+</div></div>
+</div>
+
+<sc-if value="{{denied}}" hint-placeholder-val="{{ false }}">
+<section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-12) var(--sp-6); display: flex; flex-direction: column; align-items: center; gap: var(--sp-3); text-align: center">
+<span aria-hidden="true" style="width: 48px; height: 48px; border-radius: var(--r-full); background: var(--surface-3); display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" style="stroke: var(--text-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></span>
+<h2 style="margin: 0; font-size: var(--fs-lg); font-weight: 600">Vous n'avez pas accès à la facturation</h2>
+<p style="margin: 0; max-width: 460px; font-size: var(--fs-base); line-height: 1.5; color: var(--text-3)">Les gestionnaires de créances ne voient pas les factures, devis et contrats du cabinet. Demandez à un responsable du recouvrement si vous avez besoin d'un document.</p>
+</section>
+</sc-if>
+
+<sc-if value="{{allowed}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: var(--sp-6)">
+
+<sc-if value="{{hasNotice}}" hint-placeholder-val="{{ false }}"><div role="status" style="display: flex; align-items: center; gap: var(--sp-2h); padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); background: var(--success-bg); border: 1px solid var(--success-border); color: var(--success-fg); font-size: var(--fs-base)"><span aria-hidden="true">✓</span><span style="flex: 1">{{notice}}</span><dc-import name="Bouton" variant="ghost" size="xs" icon="x" icon-only="{{ true }}" label="Fermer" on-press="{{clearNotice}}" style="display: contents" hint-size="120px,40px"></dc-import></div></sc-if>
+
+<sc-if value="{{creating}}" hint-placeholder-val="{{ false }}">
+<section aria-labelledby="crea-titre" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); display: flex; flex-direction: column">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5); border-bottom: 1px solid var(--border)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-0h)"><h2 id="crea-titre" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Créer depuis un modèle</h2><span style="font-size: var(--fs-sm); color: var(--text-3)">Choisissez le type, le modèle et le client : l'aperçu se met à jour au fur et à mesure.</span></div>
+<dc-import name="Bouton" variant="secondary" size="sm" label="Fermer" on-press="{{closeCreate}}" style="display: contents" hint-size="120px,40px"></dc-import>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-6); padding: var(--sp-5); align-items: flex-start">
+
+<div style="flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-5)">
+<fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: var(--sp-2)">
+<legend style="padding: 0; margin-bottom: var(--sp-2); font-size: var(--fs-sm); font-weight: 600; color: var(--text-2)">1. Type de document</legend>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2)">
+<sc-for list="{{types}}" as="t" hint-placeholder-count="3"><button type="button" onClick="{{t.pick}}" aria-pressed="{{t.pressed}}" style="padding: var(--sp-3); border-radius: var(--r-md); text-align: left; font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: var(--sp-0h); border: {{t.border}}; background: {{t.bg}}"><span style="font-size: var(--fs-base); font-weight: 600; color: var(--text)">{{t.label}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{t.hint}}</span></button></sc-for>
+</div>
+</fieldset>
+
+<fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: var(--sp-1h)">
+<legend style="padding: 0; margin-bottom: var(--sp-2); font-size: var(--fs-sm); font-weight: 600; color: var(--text-2)">2. Modèle</legend>
+<sc-for list="{{templates}}" as="m" hint-placeholder-count="3"><label style="display: flex; align-items: flex-start; gap: var(--sp-2h); padding: var(--sp-2h) var(--sp-3); border-radius: var(--r-md); cursor: pointer; border: {{m.border}}; background: {{m.bg}}"><input type="radio" name="modele" checked="{{m.checked}}" onChange="{{m.pick}}" style="margin-top: var(--sp-0h); width: 16px; height: 16px; accent-color: var(--marine)"><span style="display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-size: var(--fs-base); font-weight: 500">{{m.label}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{m.hint}}</span></span></label></sc-for>
+<a href="Modele.dc.html" onClick="{{editTpl}}" style="font-size: var(--fs-xs); font-weight: 500; text-decoration: none">Voir le modèle et son fichier HTML →</a>
+</fieldset>
+
+<div style="display: flex; flex-direction: column; gap: var(--sp-2)">
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 600; color: var(--text-2)">3. Client
+<select value="{{client}}" onChange="{{onClient}}" style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-2h); font: inherit; font-size: var(--fs-base); font-weight: 400; background: var(--surface); color: var(--text)"><sc-for list="{{clients}}" as="c" hint-placeholder-count="5"><option value="{{c.id}}">{{c.name}}</option></sc-for></select>
+</label>
+<span style="font-size: var(--fs-xs); color: var(--text-3); font-variant-numeric: tabular-nums">{{cl.idLine}}</span>
+</div>
+
+<sc-if value="{{hasLines}}" hint-placeholder-val="{{ true }}">
+<fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: var(--sp-2)">
+<legend style="padding: 0; margin-bottom: var(--sp-2); font-size: var(--fs-sm); font-weight: 600; color: var(--text-2)">4. Lignes</legend>
+<sc-for list="{{lineRows}}" as="l" hint-placeholder-count="2">
+<div data-line style="display: grid; grid-template-columns: minmax(0, 1fr) 64px 104px 36px; gap: var(--sp-1h); align-items: center">
+<input type="text" value="{{l.label}}" onChange="{{l.onLabel}}" aria-label="Désignation" style="height: var(--control-sm); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-2h); font: inherit; font-size: var(--fs-sm); box-sizing: border-box; min-width: 0">
+<input type="text" inputmode="decimal" value="{{l.qty}}" onChange="{{l.onQty}}" aria-label="Quantité" style="height: var(--control-sm); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-2); font: inherit; font-size: var(--fs-sm); text-align: right; box-sizing: border-box; min-width: 0">
+<input type="text" inputmode="decimal" value="{{l.pu}}" onChange="{{l.onPu}}" aria-label="Prix unitaire HT" style="height: var(--control-sm); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-2); font: inherit; font-size: var(--fs-sm); text-align: right; box-sizing: border-box; min-width: 0">
+<dc-import name="Bouton" variant="secondary" size="sm" icon="x" icon-only="{{ true }}" label="Supprimer la ligne" on-press="{{l.remove}}" style="display: contents" hint-size="120px,40px"></dc-import>
+</div>
+</sc-for>
+<div style="display: flex; justify-content: space-between; align-items: center; gap: var(--sp-2)"><dc-import name="Bouton" variant="link" size="sm" label="+ Ajouter une ligne" on-press="{{addLine}}" style="display: contents" hint-size="120px,40px"></dc-import><span style="font-size: var(--fs-xs); color: var(--text-3)">Quantité · prix unitaire HT · TVA 20 %</span></div>
+</fieldset>
+</sc-if>
+
+<sc-if value="{{isContract}}" hint-placeholder-val="{{ false }}">
+<fieldset style="margin: 0; padding: 0; border: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3)">
+<legend style="padding: 0; margin-bottom: var(--sp-2); font-size: var(--fs-sm); font-weight: 600; color: var(--text-2)">4. Conditions</legend>
+<sc-for list="{{vars}}" as="v" hint-placeholder-count="6"><label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">{{v.label}}<input type="text" value="{{v.value}}" onChange="{{v.onChange}}" style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); font-weight: 400; box-sizing: border-box; min-width: 0"></label></sc-for>
+</fieldset>
+</sc-if>
+
+<div style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--surface-3)">
+<dc-import name="Bouton" variant="secondary" size="md" label="Enregistrer le brouillon" on-press="{{saveDraft}}" style="display: contents" hint-size="120px,40px"></dc-import>
+<dc-import name="Bouton" variant="primary" size="md" label="{{issueLabel}}" on-press="{{askIssue}}" accent="{{accent}}" style="display: contents" hint-size="120px,40px"></dc-import>
+</div>
+</div>
+
+<article aria-label="Aperçu du document" style="flex: 1 1 420px; min-width: 0; background: var(--surface-3); border-radius: var(--r-lg); padding: var(--sp-4); box-sizing: border-box">
+<div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-xs); box-shadow: var(--shadow-md); padding: var(--sp-8); display: flex; flex-direction: column; gap: var(--sp-4); font-size: var(--fs-xs); line-height: 1.5; color: var(--text); min-height: 560px">
+<div style="display: flex; justify-content: space-between; gap: var(--sp-4)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-size: var(--fs-lg); font-weight: 700; letter-spacing: -0.01em; color: var(--marine)">LEGAREC</span><span>Cabinet de recouvrement de créances</span><span>42 rue Monge, 75005 Paris · 01 87 88 02 98</span><span style="color: var(--text-3)">SIREN [à compléter] · TVA FR[à compléter]</span></div>
+<div style="display: flex; flex-direction: column; align-items: flex-end; gap: var(--sp-0h); text-align: right"><span style="font-size: var(--fs-md); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em">{{pv.kind}}</span><span style="font-variant-numeric: tabular-nums">{{pv.number}}</span><span style="color: var(--text-3)">{{pv.date}}</span></div>
+</div>
+<div style="display: flex; justify-content: flex-end"><div style="min-width: 220px; padding: var(--sp-2h) var(--sp-3); border-radius: var(--r-xs); background: var(--surface-2); display: flex; flex-direction: column; gap: 1px"><span style="font-weight: 600">{{cl.legal}}</span><span>{{cl.address}}</span><span style="color: var(--text-3); font-variant-numeric: tabular-nums">{{cl.idLine}}</span></div></div>
+<span style="font-weight: 600">Objet : {{pv.subject}}</span>
+<sc-if value="{{hasLines}}" hint-placeholder-val="{{ true }}">
+<table style="width: 100%; border-collapse: collapse; font-size: var(--fs-xs)">
+<thead><tr style="border-bottom: 1px solid var(--border-strong); text-align: left; color: var(--text-2)"><th scope="col" style="padding: var(--sp-1h) 0; font-weight: 600">Désignation</th><th scope="col" style="padding: var(--sp-1h); font-weight: 600; text-align: right">Qté</th><th scope="col" style="padding: var(--sp-1h); font-weight: 600; text-align: right">PU HT</th><th scope="col" style="padding: var(--sp-1h) 0; font-weight: 600; text-align: right">Total HT</th></tr></thead>
+<tbody><sc-for list="{{pvLines}}" as="l" hint-placeholder-count="2"><tr style="border-bottom: 1px solid var(--surface-3)"><td style="padding: var(--sp-1h) 0">{{l.label}}</td><td style="padding: var(--sp-1h); text-align: right; font-variant-numeric: tabular-nums">{{l.qty}}</td><td style="padding: var(--sp-1h); text-align: right; font-variant-numeric: tabular-nums">{{l.pu}}</td><td style="padding: var(--sp-1h) 0; text-align: right; font-variant-numeric: tabular-nums">{{l.total}}</td></tr></sc-for></tbody>
+</table>
+<div style="display: flex; justify-content: flex-end"><dl style="margin: 0; min-width: 220px; display: grid; grid-template-columns: 1fr auto; gap: var(--sp-1) var(--sp-4); font-variant-numeric: tabular-nums"><dt>Total HT</dt><dd style="margin: 0; text-align: right">{{pv.ht}}</dd><dt>TVA 20 %</dt><dd style="margin: 0; text-align: right">{{pv.tva}}</dd><dt style="font-weight: 700">Total TTC</dt><dd style="margin: 0; text-align: right; font-weight: 700">{{pv.ttc}}</dd></dl></div>
+</sc-if>
+<sc-if value="{{isContract}}" hint-placeholder-val="{{ false }}">
+<ol style="margin: 0; padding-left: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-2)"><sc-for list="{{articles}}" as="a" hint-placeholder-count="5"><li><strong style="font-weight: 600">{{a.t}}.</strong> {{a.d}}</li></sc-for></ol>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); margin-top: var(--sp-2)"><div style="padding: var(--sp-3); border: 1px dashed var(--border-strong); border-radius: var(--r-xs); display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="color: var(--text-3)">Pour le créancier</span><span style="font-weight: 600">{{cl.signer}}</span><span style="color: var(--text-3)">Signature électronique</span></div><div style="padding: var(--sp-3); border: 1px dashed var(--border-strong); border-radius: var(--r-xs); display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="color: var(--text-3)">Pour Legarec</span><span style="font-weight: 600">Marie Dubreuil, dirigeante</span><span style="color: var(--text-3)">Signature électronique</span></div></div>
+</sc-if>
+<p style="margin: auto 0 0; padding-top: var(--sp-3); border-top: 1px solid var(--surface-3); font-size: var(--fs-doc-lg); line-height: 1.5; color: var(--text-3)">{{pv.legal}}</p>
+</div>
+</article>
+
+</div>
+</section>
+</sc-if>
+
+<dc-import name="Toolbar" label="Filtrer les documents" tabs="{{tbTabs}}" tabs-label="Type de document" placeholder="N°, client, SIREN…" filters="{{tbFilters}}" query="{{q}}" on-query="{{onQuery}}" hint-size="100%,48px"></dc-import>
+
+<section aria-labelledby="liste-titre" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3); padding: var(--sp-3h) var(--sp-5); border-bottom: 1px solid var(--border)"><h2 id="liste-titre" style="margin: 0; font-size: var(--fs-md); font-weight: 600">{{listTitle}}</h2><span style="font-size: var(--fs-sm); color: var(--text-3)">{{listCount}}</span></div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 860px; border-collapse: collapse; font-size: var(--fs-base)">
+<thead style="background: var(--surface-2)"><tr style="text-align: left; color: var(--text-3); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.04em"><th scope="col" style="padding: var(--sp-3) var(--sp-5); font-weight: 600">Numéro</th><th scope="col" style="padding: var(--sp-3) var(--sp-2); font-weight: 600">Client</th><th scope="col" style="padding: var(--sp-3) var(--sp-2); font-weight: 600">Objet</th><th scope="col" style="padding: var(--sp-3) var(--sp-2); font-weight: 600">Date</th><th scope="col" style="padding: var(--sp-3) var(--sp-2); font-weight: 600; text-align: right">{{amountCol}}</th><th scope="col" style="padding: var(--sp-3) var(--sp-2); font-weight: 600">Statut</th><th scope="col" style="padding: var(--sp-3) var(--sp-5); font-weight: 600; text-align: right">Actions</th></tr></thead>
+<tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+<tr style="border-top: 1px solid var(--surface-3); background: {{r.rowBg}}">
+<td style="padding: var(--sp-3) var(--sp-5); font-weight: 600; font-variant-numeric: tabular-nums">{{r.no}}</td>
+<td style="padding: var(--sp-3) var(--sp-2)"><div style="display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-weight: 500">{{r.client}}</span><span style="font-size: var(--fs-xs); color: var(--text-3); font-variant-numeric: tabular-nums">{{r.idLine}}</span></div></td>
+<td style="padding: var(--sp-3) var(--sp-2); color: var(--text-2)">{{r.subject}}</td>
+<td style="padding: var(--sp-3) var(--sp-2); color: var(--text-2); font-variant-numeric: tabular-nums">{{r.date}}</td>
+<td style="padding: var(--sp-3) var(--sp-2); text-align: right; font-weight: 600; font-variant-numeric: tabular-nums">{{r.amount}}</td>
+<td style="padding: var(--sp-3) var(--sp-2)"><span style="font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-1) var(--sp-2h); border-radius: var(--r-full); white-space: nowrap; background: {{r.bg}}; color: {{r.fg}}">{{r.status}}</span></td>
+<td style="padding: var(--sp-3) var(--sp-5)"><div style="display: flex; justify-content: flex-end; gap: var(--sp-1h)"><dc-import name="Bouton" variant="secondary" size="sm" label="PDF" href="Documents.dc.html" style="display: contents" hint-size="120px,40px"></dc-import><dc-import name="Bouton" variant="secondary" size="sm" label="Dupliquer" on-press="{{r.duplicate}}" style="display: contents" hint-size="120px,40px"></dc-import></div></td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+<sc-if value="{{lst.show}}" hint-placeholder-val="{{ false }}"><dc-import name="EtatListe" kind="{{lst.kind}}" title="{{lst.title}}" text="{{lst.text}}" action-label="{{lst.actionLabel}}" on-action="{{lst.action}}" count="{{lst.count}}" hint-size="100%,220px"></dc-import></sc-if>
+</section>
+
+</div>
+</sc-if>
+
+</div>
+</main>
+<dc-import name="Confirm" open="{{cf.open}}" tone="primary" title="{{cf.title}}" body="{{cf.body}}" details="{{cf.details}}" confirm-label="{{cf.label}}" on-confirm="{{cf.confirm}}" on-cancel="{{cf.cancel}}" accent="{{accent}}" hint-size="0px,0px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#002B74","options":["#002B74","#001B4D","#5D7087"]},"$preview":{"width":1440,"height":1700}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { loading: true, q: '', me: 'RESP', tab: 'fac', creating: true, type: 'fac', tpl: 'com', client: 'md', lines: null, vars: {}, ask: false, notice: '', extra: [] };
+  }
+  defaults(tpl) {
+    const L = {
+      com: [['Commission de recouvrement · 8 % de 62 180,00 € encaissés en novembre 2026', 1, 4974.4], ['Frais d’ouverture de dossier · nouveaux débiteurs', 3, 15]],
+      frais: [['Frais de commissaire de justice · signification (Charpentes Bellet)', 1, 89.67], ['Frais de greffe · requête en injonction de payer', 1, 35.21]],
+      forfait: [['Mise en place du portefeuille et import des factures depuis l’ERP', 1, 450]],
+      amiable: [['Frais d’ouverture de dossier', 40, 15], ['Commission de 8 % sur encaissements (estimation sur 120 000 €)', 1, 9600]],
+      judiciaire: [['Honoraires · procédure d’injonction de payer', 1, 350], ['Frais de commissaire de justice (estimation)', 1, 180]],
+      audit: [['Audit de portefeuille · jusqu’à 500 factures', 1, 1200]]
+    };
+    return (L[tpl] || []).map(([label, qty, pu]) => ({ label, qty: String(qty), pu: String(pu).replace('.', ',') }));
+  }
+  num(v) { const n = Number(String(v).replace(/\s/g, '').replace(',', '.')); return isFinite(n) ? n : 0; }
+  eur(n) { return n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; }
+  componentDidMount() { this.lt = setTimeout(() => this.setState({ loading: false }), 700); }
+  componentWillUnmount() { clearTimeout(this.lt); }
+  renderVals() {
+    const v = this._rv();
+    const st = this.state;
+    const q = (st.q || '').toLowerCase().trim();
+    const qs = q.replace(/\s/g, '');
+    const hit = (o) => {
+      if (!q) return true;
+      const t = JSON.stringify(o, (k, x) => (typeof x === 'function' ? undefined : x)).toLowerCase();
+      return t.includes(q) || (qs.length >= 3 && t.replace(/\s/g, '').includes(qs));
+    };
+    const list = (v.rows || []).filter(hit);
+    v.rows = st.loading ? [] : list;
+    v.q = st.q || '';
+    v.onQuery = (e) => this.setState({ q: e.target.value });
+    v.lst = {
+      show: !!st.loading || list.length === 0,
+      kind: st.loading ? 'loading' : q ? 'noresult' : 'empty',
+      title: st.loading ? '' : q ? 'Aucun résultat pour « ' + (st.q || '').trim() + ' »' : 'Aucun document',
+      text: st.loading ? '' : q ? 'Vérifiez l\u2019orthographe, ou cherchez par numéro SIRET, SIREN ou de facture.' : 'Créez une facture, un devis ou un contrat depuis un modèle.',
+      actionLabel: q ? 'Effacer la recherche' : '',
+      action: () => this.setState({ q: '' }),
+      count: 5
+    };
+    return v;
+  }
+  _rv() {
+    const accent = this.props.accent ?? 'var(--marine)';
+    const st = this.state;
+    const allowed = st.me !== 'GEST';
+    const tvaKey = (siren) => String((12 + 3 * (Number(siren.replace(/\s/g, '')) % 97)) % 97).padStart(2, '0');
+    const clientsDef = [
+      ['md', 'Matériaux Delta', 'Matériaux Delta SAS', '401 228 975', '14 rue des Tanneurs, 69007 Lyon', 'Claire Besson, directrice financière'],
+      ['er', 'Énergies Rhône', 'Énergies Rhône SA', '626 018 154', '8 quai Perrache, 69002 Lyon', 'Olivier Marchal, DAF'],
+      ['mt', 'Médiatel', 'Médiatel SAS', '183 016 617', '41 avenue Jean Jaurès, 69007 Lyon', 'Inès Carpentier, responsable crédit client'],
+      ['tl', 'TransAlp Leasing', 'TransAlp Leasing SAS', '418 609 137', '3 place Grenette, 38000 Grenoble', 'Bruno Vial, directeur des risques'],
+      ['ch', 'Crédit Horizon', 'Crédit Horizon SA', '199 603 085', '22 cours Lafayette, 69003 Lyon', 'Nathalie Roy, responsable contentieux'],
+      ['px', 'Nouveau prospect…', 'Prospect à renseigner', '', 'Adresse à compléter', 'Signataire à compléter']
+    ];
+    const c0 = clientsDef.find((c) => c[0] === st.client) || clientsDef[0];
+    const cl = { name: c0[1], legal: c0[2], address: c0[4], signer: c0[5], idLine: c0[3] ? 'SIREN ' + c0[3] + ' · TVA FR' + tvaKey(c0[3]) + ' ' + c0[3] : 'SIREN à renseigner (9 chiffres)' };
+    const TYPES = {
+      fac: { label: 'Facture', hint: 'Commission, frais refacturés', prefix: 'FA-2026-0118', issue: 'Émettre la facture', tpls: [['com', 'Facture de commission mensuelle', 'Commission sur les sommes recouvrées, déduite du reversement'], ['frais', 'Refacturation de frais de procédure', 'Frais de commissaire de justice et de greffe avancés'], ['forfait', 'Facture forfaitaire', 'Mise en place ou traitement spécifique']] },
+      dev: { label: 'Devis', hint: 'Prospects et nouveaux mandats', prefix: 'DE-2026-0043', issue: 'Envoyer le devis', tpls: [['amiable', 'Devis recouvrement amiable', 'Commission et frais de dossier'], ['judiciaire', 'Devis recouvrement judiciaire', 'Honoraires et frais de procédure estimés'], ['audit', 'Devis audit de portefeuille', 'Analyse des créances avant mandat']] },
+      con: { label: 'Contrat', hint: 'Convention, avenant, mandat', prefix: 'CT-2026-0010', issue: 'Envoyer pour signature', tpls: [['convention', 'Convention de recouvrement amiable', 'Contrat cadre avec un créancier'], ['avenant', 'Avenant tarifaire', 'Modifie le taux ou les frais d’une convention'], ['mandat', 'Mandat de recouvrement judiciaire', 'Autorise les procédures pour un dossier']] }
+    };
+    const T = TYPES[st.type];
+    const tplDef = T.tpls.find((t) => t[0] === st.tpl) || T.tpls[0];
+    const lines = st.lines || this.defaults(tplDef[0]);
+    const setLines = (ls) => this.setState({ lines: ls });
+    const computed = lines.map((l) => ({ ...l, n: this.num(l.qty) * this.num(l.pu) }));
+    const ht = computed.reduce((a, l) => a + l.n, 0);
+    const varsDef = [['rate', 'Taux de commission', '8 % HT'], ['fee', 'Frais d’ouverture par dossier', '15 € HT'], ['start', 'Date d’effet', '01/01/2027'], ['term', 'Durée', '12 mois, reconductible'], ['notice', 'Préavis de résiliation', '3 mois'], ['plan', 'Échéancier sans accord du créancier', 'jusqu’à 6 mois']];
+    const V = Object.fromEntries(varsDef.map(([k, , d]) => [k, st.vars[k] ?? d]));
+    const isContract = st.type === 'con';
+    const subject = isContract ? tplDef[1] + ' entre Legarec et ' + cl.legal : tplDef[1] + (st.type === 'fac' && tplDef[0] === 'com' ? ' · novembre 2026' : '');
+    const legal = st.type === 'fac'
+      ? 'Paiement à 30 jours, soit le 21/12/2026' + (tplDef[0] === 'com' ? ', ou par déduction du reversement du 30/11/2026' : '') + '. Pénalités de retard : trois fois le taux d’intérêt légal. Indemnité forfaitaire pour frais de recouvrement : 40 € (article L441-10 du Code de commerce). Pas d’escompte pour paiement anticipé.'
+      : st.type === 'dev' ? 'Devis valable 30 jours. Bon pour accord : signature électronique ou retour du devis signé. Les frais de procédure réels sont refacturés sur justificatif.'
+      : 'Le cabinet agit au nom et pour le compte du créancier, dans le respect des articles R124-1 et suivants du Code des procédures civiles d’exécution. Les fonds encaissés sont reversés sur un compte dédié.';
+    const ROWS = {
+      fac: [
+        ['FA-2026-0117', 'er', 'Commission octobre 2026', '02/11/2026', '9 845,28 €', 'Payée', 'ok'],
+        ['FA-2026-0116', 'md', 'Commission octobre 2026', '02/11/2026', '5 312,64 €', 'Déduite du reversement', 'ok'],
+        ['FA-2026-0115', 'mt', 'Commission octobre 2026', '02/11/2026', '3 902,40 €', 'Envoyée', 'info'],
+        ['FA-2026-0114', 'tl', 'Refacturation de frais de procédure', '28/10/2026', '1 284,00 €', 'En retard', 'bad'],
+        ['FA-2026-0113', 'ch', 'Commission septembre 2026', '02/10/2026', '2 196,00 €', 'En retard', 'bad']
+      ],
+      dev: [
+        ['DE-2026-0042', 'px', 'Recouvrement amiable · Boulangeries Rivaud', '18/11/2026', '12 240,00 €', 'En attente', 'warn'],
+        ['DE-2026-0041', 'px', 'Audit de portefeuille · Cliniques Saône', '12/11/2026', '1 440,00 €', 'Accepté', 'ok'],
+        ['DE-2026-0040', 'tl', 'Recouvrement judiciaire', '05/11/2026', '636,00 €', 'En attente', 'warn'],
+        ['DE-2026-0039', 'px', 'Recouvrement amiable · Atelier Nova', '21/10/2026', '4 800,00 €', 'Refusé', 'muted']
+      ],
+      con: [
+        ['CT-2026-0009', 'tl', 'Avenant tarifaire · taux 7,5 %', '16/11/2026', '12 mois', 'En attente de signature', 'warn'],
+        ['CT-2026-0008', 'md', 'Convention de recouvrement amiable', '01/01/2026', 'jusqu’au 31/12/2026', 'À renouveler', 'bad'],
+        ['CT-2026-0007', 'er', 'Convention de recouvrement amiable', '15/02/2026', '12 mois', 'Signée', 'ok'],
+        ['CT-2026-0006', 'mt', 'Convention de recouvrement amiable', '01/03/2026', '12 mois', 'Signée', 'ok'],
+        ['CT-2026-0005', 'ch', 'Convention et mandat judiciaire', '10/04/2026', '24 mois', 'Signée', 'ok']
+      ]
+    };
+    const TONE = { ok: ['var(--success-bg)', 'var(--success-fg)'], info: ['var(--bleu-pale)', 'var(--marine)'], warn: ['var(--warning-bg)', 'var(--warning-fg)'], bad: ['var(--danger-bg)', 'var(--danger-fg)'], muted: ['var(--surface-3)', 'var(--text-3)'] };
+    const extra = st.extra.filter((x) => x[7] === st.tab);
+    const rowsDef = extra.concat(ROWS[st.tab]);
+    const clientOf = (id) => clientsDef.find((c) => c[0] === id) || clientsDef[0];
+    const ttc = ht * 1.2;
+    return {
+      accent,
+      asRoles: [['RESP', 'Responsable (vous)'], ['DIR', 'Dirigeant'], ['GEST', 'Gestionnaire']].map(([k, label]) => ({
+        label, pressed: st.me === k ? 'true' : 'false',
+        bg: st.me === k ? 'var(--white)' : 'transparent', color: st.me === k ? 'var(--text)' : 'var(--text-3)',
+        shadow: st.me === k ? 'var(--shadow-sm)' : 'none',
+        pick: () => this.setState({ me: k })
+      })),
+      allowed, denied: !allowed,
+      headActions: allowed ? [
+        { label: 'Modèles', href: 'Reglages.dc.html', onClick: () => { try { localStorage.setItem('lg-settings', 'user'); localStorage.setItem('lg-settings-open', 'modeles'); localStorage.setItem('lg-settings-cat', 'fac'); } catch (e) {} } },
+        { label: st.creating ? 'Fermer la création' : '+ Créer depuis un modèle', primary: !st.creating, kbd: 'N', onClick: () => this.setState({ creating: !this.state.creating }) }
+      ] : [],
+      headStats: allowed ? [
+        { label: 'Facturé en 2026', value: '131 860 € HT', sub: 'commissions et frais refacturés' },
+        { label: 'Facturé en novembre', value: '15 627 € HT', sub: '5 factures de commission' },
+        { label: 'À encaisser', value: '3 480 €', color: 'var(--danger-fg)', sub: '2 factures en retard' },
+        { label: 'Devis en attente', value: '2 · 12 876 €', color: 'var(--warning-fg)', sub: 'relance automatique à J+7' },
+        { label: 'Contrats', value: '5 actifs', sub: '1 à renouveler, 1 à signer' }
+      ] : [],
+      hasNotice: !!st.notice, notice: st.notice,
+      clearNotice: () => this.setState({ notice: '' }),
+      creating: st.creating,
+      closeCreate: () => this.setState({ creating: false }),
+      types: Object.keys(TYPES).map((k) => ({ label: TYPES[k].label, hint: TYPES[k].hint, pressed: st.type === k ? 'true' : 'false', border: st.type === k ? '1px solid ' + accent : '1px solid var(--border)', bg: st.type === k ? 'var(--bleu-pale)' : 'var(--white)', pick: () => this.setState({ type: k, tpl: TYPES[k].tpls[0][0], lines: null, client: k === 'dev' ? 'px' : (this.state.client === 'px' ? 'md' : this.state.client) }) })),
+      editTpl: () => { const M = { fac: { com: 'fac_com', frais: 'fac_frais', forfait: 'fac_forfait' }, dev: {}, con: {} }; const id = (M[st.type] || {})[tplDef[0]] || (st.type === 'dev' ? 'dev_amiable' : st.type === 'con' ? 'con_convention' : 'fac_com'); try { localStorage.setItem('lg-tpl', id); } catch (e) {} },
+      templates: T.tpls.map(([id, label, hint]) => ({ label, hint, checked: tplDef[0] === id, border: tplDef[0] === id ? '1px solid ' + accent : '1px solid var(--border)', bg: tplDef[0] === id ? 'var(--bleu-pale)' : 'var(--white)', pick: () => this.setState({ tpl: id, lines: null }) })),
+      client: st.client,
+      onClient: (e) => this.setState({ client: e.target.value }),
+      clients: clientsDef.map(([id, name]) => ({ id, name })),
+      cl,
+      hasLines: !isContract,
+      isContract,
+      lineRows: lines.map((l, i) => ({
+        ...l,
+        onLabel: (e) => setLines(lines.map((x, j) => (j === i ? { ...x, label: e.target.value } : x))),
+        onQty: (e) => setLines(lines.map((x, j) => (j === i ? { ...x, qty: e.target.value } : x))),
+        onPu: (e) => setLines(lines.map((x, j) => (j === i ? { ...x, pu: e.target.value } : x))),
+        remove: () => setLines(lines.filter((x, j) => j !== i))
+      })),
+      addLine: () => setLines(lines.concat([{ label: 'Nouvelle ligne', qty: '1', pu: '0' }])),
+      vars: varsDef.map(([k, label]) => ({ label, value: V[k], onChange: (e) => this.setState({ vars: { ...this.state.vars, [k]: e.target.value } }) })),
+      articles: [
+        { t: 'Objet', d: 'Le créancier confie à Legarec le recouvrement amiable de ses factures impayées, transmises par import ou depuis son espace en ligne.' },
+        { t: 'Rémunération', d: 'Commission de ' + V.rate + ' sur les sommes effectivement encaissées, et frais d’ouverture de ' + V.fee + ' par dossier.' },
+        { t: 'Reversements', d: 'Les sommes encaissées sont reversées chaque mois, déduction faite de la commission, avec un relevé détaillé.' },
+        { t: 'Échéanciers', d: 'Legarec peut accorder un échéancier ' + V.plan + ' ; au-delà, l’accord écrit du créancier est requis.' },
+        { t: 'Durée', d: 'À compter du ' + V.start + ', pour ' + V.term + ', résiliable avec un préavis de ' + V.notice + '.' },
+        { t: 'Données personnelles', d: 'Legarec traite les données des débiteurs en qualité de sous-traitant, conformément au RGPD.' }
+      ],
+      pv: {
+        kind: T.label, number: T.prefix + ' (provisoire)', date: 'Paris, le 21 novembre 2026', subject, legal,
+        ht: this.eur(ht), tva: this.eur(ht * 0.2), ttc: this.eur(ttc)
+      },
+      pvLines: computed.map((l) => ({ label: l.label, qty: l.qty, pu: this.eur(this.num(l.pu)), total: this.eur(l.n) })),
+      issueLabel: T.issue,
+      saveDraft: () => this.setState({ notice: T.label + ' enregistré' + (st.type === 'fac' ? 'e' : '') + ' en brouillon pour ' + cl.name + '.' }),
+      askIssue: () => this.setState({ ask: true }),
+      tbTabs: [['fac', 'Factures', 5], ['dev', 'Devis', 4], ['con', 'Contrats', 5]].map(([id, label, n]) => ({ label, count: String(n + st.extra.filter((x) => x[7] === id).length), selected: st.tab === id, pick: () => this.setState({ tab: id }) })),
+      tbFilters: [{ label: 'Statut', options: ['Tous les statuts', 'Brouillon', 'Envoyé', 'Payé ou signé', 'En retard'] }, { label: 'Client', options: ['Tous les clients', 'Matériaux Delta', 'Énergies Rhône', 'Médiatel', 'TransAlp Leasing', 'Crédit Horizon', 'Prospects'] }],
+      listTitle: { fac: 'Factures', dev: 'Devis', con: 'Contrats' }[st.tab],
+      listCount: rowsDef.length + ' documents',
+      amountCol: st.tab === 'con' ? 'Durée' : 'Montant TTC',
+      rows: rowsDef.map(([no, cid, subj, date, amount, status, tone, , isNew]) => {
+        const c = clientOf(cid);
+        return {
+          no, subject: subj, date, amount, status, bg: TONE[tone][0], fg: TONE[tone][1],
+          client: cid === 'px' ? 'Prospect' : c[1], idLine: c[3] ? 'SIREN ' + c[3] : 'SIREN à renseigner',
+          rowBg: isNew ? 'var(--bleu-pale)' : 'var(--white)',
+          duplicate: () => this.setState({ creating: true, type: st.tab, tpl: TYPES[st.tab].tpls[0][0], client: cid, lines: null, notice: 'Copie de ' + no + ' ouverte dans le créateur.' })
+        };
+      }),
+      cf: {
+        open: st.ask,
+        title: st.type === 'fac' ? 'Émettre la facture ' + T.prefix + ' ?' : st.type === 'dev' ? 'Envoyer le devis à ' + cl.name + ' ?' : 'Envoyer le contrat pour signature ?',
+        body: st.type === 'fac' ? 'Le numéro devient définitif et la facture ne peut plus être modifiée : toute correction passera par un avoir. Elle est envoyée par e-mail (Resend) et ajoutée à l’espace du créancier.'
+          : st.type === 'dev' ? 'Le devis est envoyé par e-mail avec un lien de signature électronique, valable 30 jours.'
+          : 'Les deux signataires reçoivent un lien de signature électronique. Le contrat s’applique dès la seconde signature.',
+        details: (isContract ? [{ k: 'Modèle', v: tplDef[1] }, { k: 'Créancier', v: cl.legal }, { k: 'Signataires', v: cl.signer + ' ; Marie Dubreuil' }, { k: 'Taux', v: V.rate }]
+          : [{ k: 'Client', v: cl.legal + (c0[3] ? ' · SIREN ' + c0[3] : '') }, { k: 'Objet', v: subject }, { k: 'Total HT', v: this.eur(ht) }, { k: 'Total TTC', v: this.eur(ttc) }]),
+        label: T.issue,
+        confirm: () => {
+          const row = [T.prefix, st.client, subject, '21/11/2026', isContract ? V.term : this.eur(ttc), st.type === 'fac' ? 'Envoyée' : st.type === 'dev' ? 'Envoyé' : 'En attente de signature', st.type === 'fac' ? 'info' : 'warn', st.type, true];
+          this.setState({ ask: false, creating: false, tab: st.type, extra: [row].concat(this.state.extra), notice: (st.type === 'fac' ? 'Facture ' + T.prefix + ' émise et envoyée à ' : st.type === 'dev' ? 'Devis ' + T.prefix + ' envoyé à ' : 'Contrat ' + T.prefix + ' envoyé pour signature à ') + cl.name + '.' });
+        },
+        cancel: () => this.setState({ ask: false })
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,602 @@
+{
+  "accent": "var(--marine)",
+  "headStatus": {
+    "label": "3 gestionnaires en ligne sur 4",
+    "color": "var(--success)"
+  },
+  "headActions": [
+    {
+      "label": "Exporter le rapport"
+    },
+    {
+      "label": "Objectifs de l’équipe",
+      "primary": true,
+      "kbd": "N",
+      "href": "Reglages.dc.html"
+    }
+  ],
+  "headStats": [
+    {
+      "label": "Appels passés",
+      "value": "75 / 120",
+      "bar": "63%",
+      "barColor": "var(--marine)",
+      "sub": "objectif de l’équipe"
+    },
+    {
+      "label": "Taux de joignabilité",
+      "value": "59 %",
+      "sub": "44 débiteurs joints"
+    },
+    {
+      "label": "Promesses obtenues",
+      "value": "15 · 92 700 €",
+      "color": "var(--success-fg)",
+      "sub": "78 % tenues sur 30 jours"
+    },
+    {
+      "label": "Encaissé",
+      "value": "24 900 €",
+      "sub": "paiements reçus sur la période"
+    },
+    {
+      "label": "Durée moyenne",
+      "value": "4 min 05",
+      "sub": "par appel abouti"
+    }
+  ],
+  "tbTabs": [
+    {
+      "label": "Aujourd’hui",
+      "selected": true
+    },
+    {
+      "label": "7 jours",
+      "selected": false
+    },
+    {
+      "label": "30 jours",
+      "selected": false
+    }
+  ],
+  "tbFilters": [
+    {
+      "label": "Créancier",
+      "options": [
+        "Tous les créanciers",
+        "Matériaux Delta",
+        "Énergies Rhône",
+        "Médiatel",
+        "TransAlp Leasing",
+        "Crédit Horizon"
+      ]
+    }
+  ],
+  "periodNote": "Aujourd’hui, samedi 21 novembre",
+  "agents": [
+    {
+      "id": "cl",
+      "ini": "CL",
+      "name": "Camille Laurent",
+      "role": "Responsable du recouvrement",
+      "scope": "Tous les créanciers",
+      "s": "call",
+      "calls": 18,
+      "goal": 40,
+      "reached": "11 · 61 %",
+      "prom": 4,
+      "promAmt": 31200,
+      "cash": 8300,
+      "avg": "3 min 42",
+      "book": "24 dossiers prioritaires · 186 300 €",
+      "kept": "78 %",
+      "login": "8:02",
+      "pause": "18 min",
+      "live": "En communication avec Bâtiplus SAS depuis 04:32",
+      "hours": [
+        2,
+        3,
+        2,
+        1,
+        0,
+        2,
+        3,
+        3,
+        2,
+        0,
+        0
+      ],
+      "presence": "call",
+      "status": "En appel · 04:32",
+      "dot": "var(--success)",
+      "stBg": "var(--success-bg)",
+      "stColor": "var(--success-fg)",
+      "anim": "eq-pulse 1.4s infinite",
+      "callsLabel": "18 / 40",
+      "callsW": "45%",
+      "barColor": "var(--or)",
+      "promises": "4 · 31 200 €",
+      "cashed": "8 300 €",
+      "pressed": "true",
+      "rowBg": "var(--bleu-pale)"
+    },
+    {
+      "id": "hb",
+      "ini": "HB",
+      "name": "Hugo Benali",
+      "role": "Gestionnaire de créances",
+      "scope": "Médiatel",
+      "s": "dispo",
+      "calls": 31,
+      "goal": 40,
+      "reached": "17 · 55 %",
+      "prom": 6,
+      "promAmt": 38900,
+      "cash": 4100,
+      "avg": "4 min 18",
+      "book": "52 débiteurs · 244 900 €",
+      "kept": "71 %",
+      "login": "7:55",
+      "pause": "25 min",
+      "live": "",
+      "hours": [
+        3,
+        4,
+        4,
+        3,
+        1,
+        3,
+        4,
+        5,
+        4,
+        0,
+        0
+      ],
+      "presence": "dispo",
+      "status": "Disponible",
+      "dot": "var(--info)",
+      "stBg": "var(--info-bg)",
+      "stColor": "var(--info-fg)",
+      "anim": "none",
+      "callsLabel": "31 / 40",
+      "callsW": "78%",
+      "barColor": "var(--success)",
+      "promises": "6 · 38 900 €",
+      "cashed": "4 100 €",
+      "pressed": "false",
+      "rowBg": "var(--white)"
+    },
+    {
+      "id": "sm",
+      "ini": "SM",
+      "name": "Sarah Morel",
+      "role": "Gestionnaire de créances",
+      "scope": "Énergies Rhône, Crédit Horizon",
+      "s": "pause",
+      "calls": 26,
+      "goal": 40,
+      "reached": "16 · 62 %",
+      "prom": 5,
+      "promAmt": 22600,
+      "cash": 12500,
+      "avg": "4 min 21",
+      "book": "99 débiteurs · 421 650 €",
+      "kept": "83 %",
+      "login": "8:10",
+      "pause": "41 min (en pause depuis 9 min)",
+      "live": "",
+      "hours": [
+        2,
+        4,
+        3,
+        3,
+        1,
+        2,
+        4,
+        3,
+        4,
+        0,
+        0
+      ],
+      "presence": "pause",
+      "status": "En pause · 9 min",
+      "dot": "var(--warning)",
+      "stBg": "var(--warning-bg)",
+      "stColor": "var(--warning-fg)",
+      "anim": "none",
+      "callsLabel": "26 / 40",
+      "callsW": "65%",
+      "barColor": "var(--or)",
+      "promises": "5 · 22 600 €",
+      "cashed": "12 500 €",
+      "pressed": "false",
+      "rowBg": "var(--white)"
+    },
+    {
+      "id": "tg",
+      "ini": "TG",
+      "name": "Thomas Giraud",
+      "role": "Gestionnaire de créances",
+      "scope": "Matériaux Delta, TransAlp Leasing",
+      "s": "off",
+      "calls": 0,
+      "goal": 0,
+      "reached": "—",
+      "prom": 0,
+      "promAmt": 0,
+      "cash": 0,
+      "avg": "—",
+      "book": "97 débiteurs · 618 010 €",
+      "kept": "74 %",
+      "login": "—",
+      "pause": "—",
+      "live": "",
+      "hours": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "presence": "off",
+      "status": "En congé · retour lundi",
+      "dot": "var(--text-3)",
+      "stBg": "var(--surface-3)",
+      "stColor": "var(--text-2)",
+      "anim": "none",
+      "callsLabel": "Absent",
+      "callsW": "0%",
+      "barColor": "var(--or)",
+      "promises": "—",
+      "cashed": "—",
+      "pressed": "false",
+      "rowBg": "var(--white)"
+    }
+  ],
+  "cur": {
+    "id": "cl",
+    "ini": "CL",
+    "name": "Camille Laurent",
+    "role": "Responsable du recouvrement",
+    "scope": "Tous les créanciers",
+    "s": "call",
+    "calls": 18,
+    "goal": 40,
+    "reached": "11 · 61 %",
+    "prom": 4,
+    "promAmt": 31200,
+    "cash": 8300,
+    "avg": "3 min 42",
+    "book": "24 dossiers prioritaires · 186 300 €",
+    "kept": "78 %",
+    "login": "8:02",
+    "pause": "18 min",
+    "live": true,
+    "hours": [
+      {
+        "label": "8",
+        "h": "67%",
+        "tip": "8 h : 2 appels",
+        "color": "var(--marine)"
+      },
+      {
+        "label": "9",
+        "h": "100%",
+        "tip": "9 h : 3 appels",
+        "color": "var(--marine)"
+      },
+      {
+        "label": "10",
+        "h": "67%",
+        "tip": "10 h : 2 appels",
+        "color": "var(--marine)"
+      },
+      {
+        "label": "11",
+        "h": "33%",
+        "tip": "11 h : 1 appel",
+        "color": "var(--marine)"
+      },
+      {
+        "label": "12",
+        "h": "0%",
+        "tip": "12 h : 0 appel",
+        "color": "var(--border)"
+      },
+      {
+        "label": "13",
+        "h": "67%",
+        "tip": "13 h : 2 appels",
+        "color": "var(--marine)"
+      },
+      {
+        "label": "14",
+        "h": "100%",
+        "tip": "14 h : 3 appels",
+        "color": "var(--marine)"
+      },
+      {
+        "label": "15",
+        "h": "100%",
+        "tip": "15 h : 3 appels",
+        "color": "var(--marine)"
+      },
+      {
+        "label": "16",
+        "h": "67%",
+        "tip": "16 h : 2 appels",
+        "color": "var(--marine)"
+      },
+      {
+        "label": "17",
+        "h": "0%",
+        "tip": "17 h : 0 appel",
+        "color": "var(--border)"
+      },
+      {
+        "label": "18",
+        "h": "0%",
+        "tip": "18 h : 0 appel",
+        "color": "var(--border)"
+      }
+    ],
+    "presence": "call",
+    "status": "En appel · 04:32",
+    "dot": "var(--success)",
+    "stBg": "var(--success-bg)",
+    "stColor": "var(--success-fg)",
+    "anim": "eq-pulse 1.4s infinite",
+    "callsLabel": "18 / 40",
+    "callsW": "45%",
+    "barColor": "var(--or)",
+    "promises": "4 · 31 200 €",
+    "cashed": "8 300 €",
+    "pressed": "true",
+    "rowBg": "var(--bleu-pale)",
+    "liveText": "En communication avec Bâtiplus SAS depuis 04:32",
+    "chartLabel": "Appels par heure de Camille Laurent, de 8 h à 18 h"
+  },
+  "alerts": [
+    {
+      "text": "Sarah Morel est en pause depuis 9 min (41 min cumulées aujourd’hui).",
+      "color": "var(--warning)"
+    },
+    {
+      "text": "Camille Laurent : 18 appels sur 40, sous les 50 % de l’objectif à midi.",
+      "color": "var(--danger)"
+    },
+    {
+      "text": "Thomas Giraud est en congé : ses 4 rappels du jour sont à réattribuer.",
+      "color": "var(--info)"
+    },
+    {
+      "text": "2 appels entrants manqués à rappeler (Cabinet Orsay, Garage Valmont).",
+      "color": "var(--text-3)"
+    }
+  ],
+  "logNote": "9 appels · toute l’équipe · aujourd’hui",
+  "logTabs": [
+    {
+      "label": "Tous",
+      "pressed": "true",
+      "bg": "var(--white)",
+      "color": "var(--text)",
+      "shadow": "var(--shadow-sm)"
+    },
+    {
+      "label": "Camille",
+      "pressed": "false",
+      "bg": "transparent",
+      "color": "var(--text-2)",
+      "shadow": "none"
+    },
+    {
+      "label": "Hugo",
+      "pressed": "false",
+      "bg": "transparent",
+      "color": "var(--text-2)",
+      "shadow": "none"
+    },
+    {
+      "label": "Sarah",
+      "pressed": "false",
+      "bg": "transparent",
+      "color": "var(--text-2)",
+      "shadow": "none"
+    }
+  ],
+  "calls": [
+    {
+      "time": "11:48",
+      "agent": "Camille Laurent",
+      "debtor": "Bâtiplus SAS",
+      "creditor": "Matériaux Delta",
+      "siret": "512 334 871 00088",
+      "dir": "Sortant",
+      "dur": "En cours",
+      "result": "En cours",
+      "bg": "var(--success-bg)",
+      "fg": "var(--success-fg)",
+      "hasRec": false,
+      "noRec": true,
+      "recNote": "Disponible après l’appel",
+      "playing": "false",
+      "playLabel": "Écouter",
+      "playBg": "var(--white)",
+      "icon": "M7 4v16l13-8z"
+    },
+    {
+      "time": "11:42",
+      "agent": "Hugo Benali",
+      "debtor": "Groupe Hélio",
+      "creditor": "Médiatel",
+      "siret": "319 935 185 00011",
+      "dir": "Sortant",
+      "dur": "6 min 12",
+      "result": "Échéancier",
+      "bg": "var(--warning-bg)",
+      "fg": "var(--warning-fg)",
+      "hasRec": true,
+      "noRec": false,
+      "recNote": "Non enregistré (refus ou messagerie)",
+      "playing": "false",
+      "playLabel": "Écouter",
+      "playBg": "var(--white)",
+      "icon": "M7 4v16l13-8z"
+    },
+    {
+      "time": "11:31",
+      "agent": "Sarah Morel",
+      "debtor": "Nordis Logistique",
+      "creditor": "Énergies Rhône",
+      "siret": "854 323 193 00045",
+      "dir": "Entrant",
+      "dur": "3 min 05",
+      "result": "Déjà payé",
+      "bg": "var(--success-bg)",
+      "fg": "var(--success-fg)",
+      "hasRec": true,
+      "noRec": false,
+      "recNote": "Non enregistré (refus ou messagerie)",
+      "playing": "false",
+      "playLabel": "Écouter",
+      "playBg": "var(--white)",
+      "icon": "M7 4v16l13-8z"
+    },
+    {
+      "time": "11:20",
+      "agent": "Camille Laurent",
+      "debtor": "Cabinet Orsay",
+      "creditor": "Médiatel",
+      "siret": "725 276 018 00084",
+      "dir": "Sortant",
+      "dur": "0 min 40",
+      "result": "Messagerie",
+      "bg": "var(--surface-3)",
+      "fg": "var(--text-2)",
+      "hasRec": false,
+      "noRec": true,
+      "recNote": "Non enregistré (refus ou messagerie)",
+      "playing": "false",
+      "playLabel": "Écouter",
+      "playBg": "var(--white)",
+      "icon": "M7 4v16l13-8z"
+    },
+    {
+      "time": "11:12",
+      "agent": "Hugo Benali",
+      "debtor": "Studio Pixelia",
+      "creditor": "Médiatel",
+      "siret": "979 217 429 00013",
+      "dir": "Sortant",
+      "dur": "4 min 47",
+      "result": "Litige",
+      "bg": "var(--violet-bg)",
+      "fg": "var(--violet-fg)",
+      "hasRec": true,
+      "noRec": false,
+      "recNote": "Non enregistré (refus ou messagerie)",
+      "playing": "false",
+      "playLabel": "Écouter",
+      "playBg": "var(--white)",
+      "icon": "M7 4v16l13-8z"
+    },
+    {
+      "time": "10:58",
+      "agent": "Sarah Morel",
+      "debtor": "Fromagerie Durand",
+      "creditor": "Énergies Rhône",
+      "siret": "655 979 714 00012",
+      "dir": "Sortant",
+      "dur": "5 min 30",
+      "result": "Promesse",
+      "bg": "var(--success-bg)",
+      "fg": "var(--success-fg)",
+      "hasRec": true,
+      "noRec": false,
+      "recNote": "Non enregistré (refus ou messagerie)",
+      "playing": "false",
+      "playLabel": "Écouter",
+      "playBg": "var(--white)",
+      "icon": "M7 4v16l13-8z"
+    },
+    {
+      "time": "10:41",
+      "agent": "Camille Laurent",
+      "debtor": "Garage Valmont",
+      "creditor": "TransAlp Leasing",
+      "siret": "193 786 571 00094",
+      "dir": "Sortant",
+      "dur": "2 min 18",
+      "result": "Rappel demandé",
+      "bg": "var(--info-bg)",
+      "fg": "var(--info-fg)",
+      "hasRec": true,
+      "noRec": false,
+      "recNote": "Non enregistré (refus ou messagerie)",
+      "playing": "false",
+      "playLabel": "Écouter",
+      "playBg": "var(--white)",
+      "icon": "M7 4v16l13-8z"
+    },
+    {
+      "time": "10:26",
+      "agent": "Hugo Benali",
+      "debtor": "Électricité Fabre",
+      "creditor": "Énergies Rhône",
+      "siret": "887 789 329 00018",
+      "dir": "Sortant",
+      "dur": "0 min 25",
+      "result": "Mauvais numéro",
+      "bg": "var(--danger-bg)",
+      "fg": "var(--danger-fg)",
+      "hasRec": false,
+      "noRec": true,
+      "recNote": "Non enregistré (refus ou messagerie)",
+      "playing": "false",
+      "playLabel": "Écouter",
+      "playBg": "var(--white)",
+      "icon": "M7 4v16l13-8z"
+    },
+    {
+      "time": "10:09",
+      "agent": "Sarah Morel",
+      "debtor": "Boulangerie Morin",
+      "creditor": "Crédit Horizon",
+      "siret": "181 003 393 00012",
+      "dir": "Entrant",
+      "dur": "3 min 51",
+      "result": "Promesse",
+      "bg": "var(--success-bg)",
+      "fg": "var(--success-fg)",
+      "hasRec": true,
+      "noRec": false,
+      "recNote": "Non enregistré (refus ou messagerie)",
+      "playing": "false",
+      "playLabel": "Écouter",
+      "playBg": "var(--white)",
+      "icon": "M7 4v16l13-8z"
+    }
+  ],
+  "q": "",
+  "pg": {
+    "show": true,
+    "total": 75,
+    "page": 1,
+    "size": 25
+  },
+  "lst": {
+    "show": false,
+    "kind": "empty",
+    "title": "Aucun appel",
+    "text": "Aucun appel passé sur la période pour ce gestionnaire.",
+    "actionLabel": "",
+    "count": 6
+  }
+}

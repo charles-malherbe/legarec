@@ -1,0 +1,329 @@
+{
+  "accent": "var(--marine)",
+  "headActions": [
+    {
+      "label": "Préférences de notification",
+      "href": "Compte.dc.html"
+    },
+    {
+      "label": "Tout marquer comme lu",
+      "primary": true,
+      "kbd": "N"
+    }
+  ],
+  "unreadText": "4 non lues · 11 notifications sur 7 jours",
+  "_ids": [
+    "n1",
+    "n2",
+    "n3",
+    "n4",
+    "n5",
+    "n6",
+    "n7",
+    "n8",
+    "n9",
+    "n10",
+    "n11"
+  ],
+  "onlyUnread": false,
+  "cats": [
+    {
+      "label": "Toutes",
+      "count": 11,
+      "pressed": "true",
+      "border": "1px solid var(--marine)",
+      "bg": "var(--bleu-pale)",
+      "color": "var(--marine)",
+      "countColor": "var(--marine)"
+    },
+    {
+      "label": "Paiements",
+      "count": 1,
+      "pressed": "false",
+      "border": "1px solid var(--border)",
+      "bg": "var(--white)",
+      "color": "var(--text-2)",
+      "countColor": "var(--text-3)"
+    },
+    {
+      "label": "Messages",
+      "count": 2,
+      "pressed": "false",
+      "border": "1px solid var(--border)",
+      "bg": "var(--white)",
+      "color": "var(--text-2)",
+      "countColor": "var(--text-3)"
+    },
+    {
+      "label": "Échéances et relances",
+      "count": 2,
+      "pressed": "false",
+      "border": "1px solid var(--border)",
+      "bg": "var(--white)",
+      "color": "var(--text-2)",
+      "countColor": "var(--text-3)"
+    },
+    {
+      "label": "Contentieux",
+      "count": 2,
+      "pressed": "false",
+      "border": "1px solid var(--border)",
+      "bg": "var(--white)",
+      "color": "var(--text-2)",
+      "countColor": "var(--text-3)"
+    },
+    {
+      "label": "Créanciers",
+      "count": 2,
+      "pressed": "false",
+      "border": "1px solid var(--border)",
+      "bg": "var(--white)",
+      "color": "var(--text-2)",
+      "countColor": "var(--text-3)"
+    },
+    {
+      "label": "Système",
+      "count": 2,
+      "pressed": "false",
+      "border": "1px solid var(--border)",
+      "bg": "var(--white)",
+      "color": "var(--text-2)",
+      "countColor": "var(--text-3)"
+    }
+  ],
+  "days": [
+    {
+      "label": "Aujourd’hui",
+      "items": [
+        {
+          "id": "n1",
+          "day": 0,
+          "k": "paiement",
+          "unread": true,
+          "time": "11:07",
+          "text": "Nordis Logistique a versé 12 500 € : promesse de paiement tenue",
+          "meta": "Énergies Rhône",
+          "href": "Dossier.dc.html",
+          "cta": "Rapprocher",
+          "catLabel": "Paiement",
+          "icon": "€",
+          "iconBg": "var(--success-bg)",
+          "iconFg": "var(--success-fg)",
+          "bg": "var(--surface-2)",
+          "bar": "inset 3px 0 0 var(--marine)",
+          "weight": "600",
+          "toggleLabel": "Marquer comme lue"
+        },
+        {
+          "id": "n2",
+          "day": 0,
+          "k": "message",
+          "unread": true,
+          "time": "10:52",
+          "text": "Julien Ferrand (Bâtiplus SAS) demande un échéancier pour le solde de 29 600 €",
+          "meta": "Matériaux Delta",
+          "href": "Messagerie.dc.html",
+          "cta": "Répondre",
+          "catLabel": "Message",
+          "icon": "@",
+          "iconBg": "var(--info-bg)",
+          "iconFg": "var(--info-fg)",
+          "bg": "var(--surface-2)",
+          "bar": "inset 3px 0 0 var(--marine)",
+          "weight": "600",
+          "toggleLabel": "Marquer comme lue"
+        },
+        {
+          "id": "n3",
+          "day": 0,
+          "k": "contentieux",
+          "unread": true,
+          "time": "10:15",
+          "text": "Le délai de mise en demeure de Charpentes Bellet expire dans 9 jours",
+          "meta": "Matériaux Delta",
+          "href": "Contentieux.dc.html",
+          "cta": "Voir la procédure",
+          "catLabel": "Contentieux",
+          "icon": "!",
+          "iconBg": "var(--danger-bg)",
+          "iconFg": "var(--danger-fg)",
+          "bg": "var(--surface-2)",
+          "bar": "inset 3px 0 0 var(--marine)",
+          "weight": "600",
+          "toggleLabel": "Marquer comme lue"
+        },
+        {
+          "id": "n4",
+          "day": 0,
+          "k": "mandant",
+          "unread": true,
+          "time": "09:30",
+          "text": "Matériaux Delta a validé l’échéancier de 8 mois pour Bâtiplus SAS",
+          "meta": "Accord du créancier",
+          "href": "Echeanciers.dc.html",
+          "cta": "Envoyer au débiteur",
+          "catLabel": "Créancier",
+          "icon": "M",
+          "iconBg": "var(--bleu-200)",
+          "iconFg": "var(--marine)",
+          "bg": "var(--surface-2)",
+          "bar": "inset 3px 0 0 var(--marine)",
+          "weight": "600",
+          "toggleLabel": "Marquer comme lue"
+        },
+        {
+          "id": "n5",
+          "day": 0,
+          "k": "echeance",
+          "unread": false,
+          "time": "08:00",
+          "text": "7 relances automatiques envoyées ce matin",
+          "meta": "Scénario B2B standard",
+          "href": "Relances.dc.html",
+          "cta": "Voir l’agenda",
+          "catLabel": "Échéance",
+          "icon": "J",
+          "iconBg": "var(--warning-bg)",
+          "iconFg": "var(--warning-fg)",
+          "bg": "var(--white)",
+          "bar": "none",
+          "weight": "400",
+          "toggleLabel": "Marquer comme non lue"
+        }
+      ]
+    },
+    {
+      "label": "Hier",
+      "items": [
+        {
+          "id": "n6",
+          "day": 1,
+          "k": "message",
+          "unread": false,
+          "time": "16:41",
+          "text": "E-mail non remis à Garage Valmont : adresse invalide",
+          "meta": "TransAlp Leasing",
+          "href": "Messagerie.dc.html",
+          "cta": "Corriger le contact",
+          "catLabel": "Message",
+          "icon": "@",
+          "iconBg": "var(--info-bg)",
+          "iconFg": "var(--info-fg)",
+          "bg": "var(--white)",
+          "bar": "none",
+          "weight": "400",
+          "toggleLabel": "Marquer comme non lue"
+        },
+        {
+          "id": "n7",
+          "day": 1,
+          "k": "systeme",
+          "unread": false,
+          "time": "14:20",
+          "text": "Import terminé : 96 nouvelles factures pour Médiatel",
+          "meta": "Import CSV",
+          "href": "Mandant.dc.html",
+          "cta": "Voir le créancier",
+          "catLabel": "Système",
+          "icon": "i",
+          "iconBg": "var(--surface-3)",
+          "iconFg": "var(--text-2)",
+          "bg": "var(--white)",
+          "bar": "none",
+          "weight": "400",
+          "toggleLabel": "Marquer comme non lue"
+        },
+        {
+          "id": "n8",
+          "day": 1,
+          "k": "mandant",
+          "unread": false,
+          "time": "11:05",
+          "text": "Médiatel : mandat à renouveler avant le 31/12/2026",
+          "meta": "Convention",
+          "href": "Mandants.dc.html",
+          "cta": "Ouvrir le mandat",
+          "catLabel": "Créancier",
+          "icon": "M",
+          "iconBg": "var(--bleu-200)",
+          "iconFg": "var(--marine)",
+          "bg": "var(--white)",
+          "bar": "none",
+          "weight": "400",
+          "toggleLabel": "Marquer comme non lue"
+        }
+      ]
+    },
+    {
+      "label": "Plus tôt",
+      "items": [
+        {
+          "id": "n9",
+          "day": 2,
+          "k": "echeance",
+          "unread": false,
+          "time": "19 nov.",
+          "text": "Échéance impayée : Transports Lemaire (5 250 €), deuxième incident",
+          "meta": "TransAlp Leasing",
+          "href": "Echeanciers.dc.html",
+          "cta": "Voir le plan",
+          "catLabel": "Échéance",
+          "icon": "J",
+          "iconBg": "var(--warning-bg)",
+          "iconFg": "var(--warning-fg)",
+          "bg": "var(--white)",
+          "bar": "none",
+          "weight": "400",
+          "toggleLabel": "Marquer comme non lue"
+        },
+        {
+          "id": "n10",
+          "day": 2,
+          "k": "contentieux",
+          "unread": false,
+          "time": "17 nov.",
+          "text": "Saisie-attribution effectuée sur le compte de Transports Lemaire",
+          "meta": "Étude Garnier",
+          "href": "Contentieux.dc.html",
+          "cta": "Voir l’acte",
+          "catLabel": "Contentieux",
+          "icon": "!",
+          "iconBg": "var(--danger-bg)",
+          "iconFg": "var(--danger-fg)",
+          "bg": "var(--white)",
+          "bar": "none",
+          "weight": "400",
+          "toggleLabel": "Marquer comme non lue"
+        },
+        {
+          "id": "n11",
+          "day": 2,
+          "k": "systeme",
+          "unread": false,
+          "time": "15 nov.",
+          "text": "Reversement de 38 420 € effectué à Matériaux Delta",
+          "meta": "Relevé envoyé au créancier",
+          "href": "Mandant.dc.html",
+          "cta": "Voir le relevé",
+          "catLabel": "Système",
+          "icon": "i",
+          "iconBg": "var(--surface-3)",
+          "iconFg": "var(--text-2)",
+          "bg": "var(--white)",
+          "bar": "none",
+          "weight": "400",
+          "toggleLabel": "Marquer comme non lue"
+        }
+      ]
+    }
+  ],
+  "empty": false,
+  "lst": {
+    "show": false,
+    "kind": "empty",
+    "title": "",
+    "text": "",
+    "actionLabel": "",
+    "count": 5
+  }
+}

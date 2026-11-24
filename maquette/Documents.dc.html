@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Legarec – Documents</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Lora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+/* tokens:start — charte graphique LEGAREC v1.0 (octobre 2026). Ne pas modifier à la main : généré depuis tools/tokens.css */
+:root{
+  /* Marque */
+  --marine:#002B74; --marine-hover:#00225C; --marine-text:#002B74; --app-icon-bg:#002B74; --app-icon-fg:#FCBE03; --nuit:#001B4D; --or:#FCBE03; --or-clair:#FFF3C4; --ardoise:#5D7087;
+  --bleu-pale:#EEF2F8; --gris-clair:#F6F8FB; --bleu-200:#D6E0F0; --white:#FFFFFF;
+  /* Texte */
+  --text:#0F1B2D; --text-2:#33455C; --text-3:#5D7087; --on-primary:#FFFFFF;
+  /* Surfaces et bordures */
+  --surface:#FFFFFF; --surface-2:#F6F8FB; --surface-3:#EEF2F7; --border:#E1E7EF; --border-strong:#7D8DA1;
+  /* Surfaces sombres (carte d'appel, barre d'actions groupées) */
+  --surface-dark:#001B4D; --surface-dark-2:#0B2D63; --border-dark:#2A4A7D; --on-dark:#FFFFFF; --on-dark-2:#D5DEEB; --on-dark-muted:#A9B8CC; --on-dark-accent:#B8CBEA;
+  /* Données (graphiques, balance âgée) */
+  --data-1:#C9D6EC; --data-2:#7F9CD0; --data-3:#345DA8;
+  /* Tons sémantiques : fond, bordure, point, texte */
+  --success-bg:#ECFDF5; --success-border:#A7F3D0; --success:#059669; --success-strong:#10B981; --success-fg:#047857; --on-success:#052E16;
+  --warning-bg:#FFF3C4; --warning-border:#F5D77A; --warning:#D97706; --warning-fg:#8A4B08;
+  --danger-bg:#FFF1F2; --danger-border:#FECDD3; --danger:#E11D48; --danger-fg:#BE123C; --danger-dark:#7F1D1D; --danger-on-dark:#FDA4AF;
+  --info-bg:#F0F9FF; --info-border:#BAE6FD; --info:#0284C7; --info-fg:#0369A1;
+  --violet-bg:#F5F3FF; --violet-border:#DDD6FE; --violet:#7C3AED; --violet-fg:#6D28D9;
+  --teal-bg:#CCFBF1; --teal:#0D9488; --teal-fg:#115E59;
+  /* Fonds pleins (badges pleins, texte --on-primary ≥ 5:1 dans les deux modes) */
+  --solid-neutral:#33455C; --solid-info:#0369A1; --solid-success:#047857; --solid-warning:#8A4B08; --solid-danger:#BE123C; --solid-violet:#6D28D9; --solid-teal:#115E59;
+  /* Typographie */
+  --font-title:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-text:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-brand:Lora, Georgia, serif; --font-mono:ui-monospace, SFMono-Regular, Menlo, monospace;
+  --fs-doc-xs:8px; --fs-doc-sm:9px; --fs-doc-md:10px; --fs-doc-lg:10.5px; --fs-2xs:11px; --fs-xs:12px; --fs-sm:13px; --fs-base:14px; --fs-md:16px; --fs-lg:18px; --fs-xl:20px; --fs-2xl:26px; --fs-3xl:34px;
+  /* Rayons */
+  --r-xs:4px; --r-sm:6px; --r-md:8px; --r-lg:12px; --r-full:9999px;
+  /* Ombres */
+  --shadow-sm:0 1px 2px 0 rgba(0,27,77,0.06); --shadow-md:0 10px 15px -3px rgba(0,27,77,0.10), 0 4px 6px -4px rgba(0,27,77,0.10); --shadow-lg:0 20px 25px -5px rgba(0,27,77,0.18), 0 8px 10px -6px rgba(0,27,77,0.12);
+  --shadow-knob:0 1px 2px rgba(0,27,77,0.25); --overlay:rgba(0,27,77,0.55);
+  /* Espacements (grille de 4 px) */
+  --sp-0h:2px; --sp-1:4px; --sp-1h:6px; --sp-2:8px; --sp-2h:10px; --sp-3:12px; --sp-3h:14px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px; --sp-10:40px; --sp-11:44px; --sp-12:48px;
+  /* Hauteurs de contrôles */
+  --control-xs:28px; --control-sm:36px; --control-md:40px; --control-lg:44px;
+  /* Voiles et anneaux (surfaces sombres, animations) */
+  --veil-8:rgba(255,255,255,0.08); --veil-18:rgba(255,255,255,0.18); --veil-25:rgba(255,255,255,0.25); --veil-35:rgba(255,255,255,0.35); --veil-80:rgba(255,255,255,0.8); --veil-85:rgba(255,255,255,0.85); --on-success-veil:rgba(5,46,22,0.35); --success-ring:rgba(16,185,129,0.55); --success-ring-0:rgba(16,185,129,0);
+  /* Cibles tactiles */
+  --target:44px;
+}
+body{font-family:var(--font-text);font-feature-settings:"cv11";-webkit-font-smoothing:antialiased}
+h1,h2{font-family:var(--font-title);font-weight:700;color:var(--marine);overflow-wrap:break-word;letter-spacing:-0.015em}
+[data-brand] h1,[data-brand] h2{font-family:var(--font-brand);letter-spacing:0}
+td,th,li,h3{overflow-wrap:break-word}
+:focus-visible{outline:2px solid var(--marine);outline-offset:2px}
+[data-dark] :focus-visible{outline-color:var(--or)}
+button:disabled,[aria-disabled="true"]{cursor:not-allowed !important;opacity:.55}
+button:not(:disabled):hover,a[href][style*="border-radius"]:hover{filter:brightness(.96)}
+tbody tr:hover{background-color:var(--surface-2)}
+[data-table-scroll]{max-height:min(68vh,720px);overflow:auto !important}
+[data-table-scroll] thead th{position:sticky;top:0;z-index:2;background:var(--surface-2);box-shadow:inset 0 -1px 0 var(--border)}
+[data-skeleton]{display:block;border-radius:var(--r-xs);background:linear-gradient(90deg,var(--surface-3) 25%,var(--bleu-pale) 50%,var(--surface-3) 75%);background-size:200% 100%;animation:lg-sk 1.2s ease-in-out infinite}
+@keyframes lg-sk{from{background-position:200% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+@media (pointer: coarse), (max-width: 767px){
+  button,select,input:not([type=checkbox]):not([type=radio]):not([type=range]),[role=tab],[role=menuitem],a[href][style*="display: inline-flex"],a[href][style*="height:"]{min-height:var(--target)}
+  input[type=checkbox],input[type=radio]{min-width:22px;min-height:22px}
+}
+/* Mode sombre : data-theme="dark" sur <html> */
+:root[data-theme="dark"]{
+  --marine:#2E5FC0; --marine-hover:#2A57B0; --marine-text:#9DB8F0; --app-icon-bg:#0A1A3F; --nuit:#071028; --or-clair:#3A2F0A; --ardoise:#9AA9BD;
+  --bleu-pale:#1B2A4A; --gris-clair:#0A1020; --bleu-200:#2B3E63; --white:#16203A;
+  --text:#E6ECF5; --text-2:#C3CEDD; --text-3:#9AA9BD;
+  --surface:#0F1729; --surface-2:#0A1020; --surface-3:#1A2438; --border:#26324A; --border-strong:#67778F;
+  --surface-dark:#050B1A; --surface-dark-2:#101C36; --border-dark:#24365A;
+  --data-1:#2B3E63; --data-2:#4F73B8; --data-3:#7F9CD0;
+  --success-bg:#0B2E22; --success-border:#14532D; --success-fg:#6EE7B7;
+  --warning-bg:#3A2F0A; --warning-border:#6B5310; --warning-fg:#FCD34D;
+  --danger-bg:#3B0D17; --danger-border:#7F1D2E; --danger-fg:#FDA4AF;
+  --info-bg:#0B2540; --info-border:#164E63; --info-fg:#7DD3FC;
+  --violet-bg:#24164A; --violet-border:#4C1D95; --violet-fg:#C4B5FD;
+  --teal-bg:#0B302C; --teal-fg:#5EEAD4;
+  --shadow-sm:0 1px 2px 0 rgba(0,0,0,0.4); --shadow-md:0 10px 15px -3px rgba(0,0,0,0.5); --shadow-lg:0 20px 25px -5px rgba(0,0,0,0.6); --overlay:rgba(0,0,0,0.65);
+  color-scheme:dark;
+}
+:root[data-theme="dark"] body{background:var(--surface-2);color:var(--text)}
+:root[data-theme="dark"] :focus-visible{outline-color:#9DB8F0}
+:root[data-theme="dark"] [data-dark]{border:1px solid var(--border-dark)}
+:root[data-theme="dark"] h1,:root[data-theme="dark"] h2,:root[data-theme="dark"] a[href]:not([style*="background"]){color:var(--marine-text)}
+:root[data-theme="dark"] [style*="color: var(--marine)"]:not([style*="background: var(--marine)"]){color:var(--marine-text) !important}
+:root[data-theme="dark"] img[src*="_blob"]{background:var(--white);border-radius:var(--r-sm)}
+/* Mode malvoyant : data-a11y="malvoyant" sur <html> — texte agrandi, contraste renforcé, cibles plus grandes */
+:root[data-a11y="malvoyant"]{
+  --fs-2xs:13px; --fs-xs:14px; --fs-sm:15px; --fs-base:17px; --fs-md:19px; --fs-lg:21px; --fs-xl:24px; --fs-2xl:30px; --fs-3xl:38px;
+  --control-xs:36px; --control-sm:44px; --control-md:48px; --control-lg:52px; --target:48px;
+  --text-3:var(--text-2); --ardoise:var(--text-2); --border:var(--border-strong);
+}
+:root[data-a11y="malvoyant"] body{line-height:1.6}
+:root[data-a11y="malvoyant"] [data-sb-nav][style*="width: 264px"]{width:312px !important}
+:root[data-a11y="malvoyant"] :focus-visible{outline:3px solid var(--or);outline-offset:3px;box-shadow:0 0 0 6px var(--marine)}
+:root[data-a11y="malvoyant"] a[href]:not([style*="background"]){text-decoration:underline;text-underline-offset:3px}
+:root[data-a11y="malvoyant"] button,:root[data-a11y="malvoyant"] select,:root[data-a11y="malvoyant"] input:not([type=checkbox]):not([type=radio]){min-height:var(--target)}
+:root[data-a11y="malvoyant"] input[type=checkbox],:root[data-a11y="malvoyant"] input[type=radio]{min-width:24px;min-height:24px}
+:root[data-a11y="malvoyant"][data-theme="dark"]{--text-3:#E6ECF5;--text-2:#E6ECF5}
+/* tokens:end */
+body{margin:0;font-family:var(--font-text);color:var(--text);background:var(--surface-2)}
+a{color:var(--marine)}a:hover{color:var(--marine)}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; background: var(--surface-2); font-family: var(--font-text); color: var(--text)">
+
+<div data-sb-wrap style="flex: 0 0 auto; max-width: 100%; display: flex; background: var(--surface-2); border-right: 1px solid var(--border)">
+<dc-import name="Sidebar" active="Documents.dc.html" accent="{{accent}}" hint-size="264px,1100px"></dc-import>
+</div>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: var(--sp-8); box-sizing: border-box; display: flex; flex-direction: column; gap: var(--sp-6)">
+<dc-import name="Topbar" accent="{{accent}}" trail="Documents|Tous les documents" hint-size="100%,64px"></dc-import>
+<div data-page-body style="width: 100%; max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--sp-6)">
+
+<dc-import name="PageHeader" title="Documents" description="3 482 documents · 2,4 Go · classés par créancier et par débiteur" accent="{{accent}}" actions="{{headActions}}" hint-size="100%,110px"></dc-import>
+
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-6); align-items: flex-start">
+
+<nav aria-label="Catégories de documents" style="flex: 1 1 220px; max-width: 100%; display: flex; flex-direction: column; gap: var(--sp-4)">
+<div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-2); display: flex; flex-direction: column; gap: var(--sp-0h)">
+<sc-for list="{{cats}}" as="c" hint-placeholder-count="8">
+<button type="button" onClick="{{c.pick}}" aria-pressed="{{c.pressed}}" style="min-height: 40px; display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); border: 0; border-radius: var(--r-sm); font: inherit; font-size: var(--fs-base); font-weight: 500; cursor: pointer; text-align: left; background: {{c.bg}}; color: {{c.color}}"><span style="display: flex; align-items: center; gap: var(--sp-2h)"><span style="width: 10px; height: 10px; border-radius: var(--r-xs); background: {{c.swatch}}"></span>{{c.label}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{c.count}}</span></button>
+</sc-for>
+</div>
+<div style="border: 2px dashed var(--border-strong); border-radius: var(--r-lg); padding: var(--sp-5); display: flex; flex-direction: column; align-items: center; gap: var(--sp-2); text-align: center; background: var(--surface)">
+<svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" style="stroke: var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"></path></svg>
+<span style="font-size: var(--fs-base); font-weight: 500">Déposez vos fichiers ici</span>
+<span style="font-size: var(--fs-xs); color: var(--text-3)">PDF, Word, images · 25 Mo max. Rattachement automatique au dossier par n° de facture.</span>
+</div>
+</nav>
+
+<section aria-label="Liste des documents" style="flex: 999 1 520px; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--border)">
+<label style="display: flex; align-items: center; gap: var(--sp-2); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 0 var(--sp-3); height: 40px; box-sizing: border-box; color: var(--text-3); flex: 1 1 220px">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Filtrer les documents</span>
+<input type="search" value="{{q}}" onChange="{{onQuery}}" placeholder="Nom, débiteur, n° de facture…" style="border: 0; outline: none; font: inherit; font-size: var(--fs-base); width: 100%; background: transparent; color: var(--text)">
+</label>
+<label style="display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-sm); color: var(--text-2)">Créancier
+<select style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-2h); font: inherit; font-size: var(--fs-sm); background: var(--surface); color: var(--text)"><option>Tous</option><option>Matériaux Delta</option><option>Énergies Rhône</option><option>Médiatel</option><option>TransAlp Leasing</option><option>Crédit Horizon</option></select>
+</label>
+<div role="group" aria-label="Affichage" style="display: flex; gap: var(--sp-1); background: var(--surface-3); padding: var(--sp-1); border-radius: var(--r-lg)">
+<sc-for list="{{views}}" as="v" hint-placeholder-count="2">
+<button type="button" onClick="{{v.pick}}" aria-pressed="{{v.pressed}}" style="height: var(--control-sm); padding: 0 var(--sp-2h); border: 0; border-radius: var(--r-sm); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer; background: {{v.bg}}; color: {{v.color}}">{{v.label}}</button>
+</sc-for>
+</div>
+</div>
+
+<sc-if value="{{isList}}" hint-placeholder-val="{{ true }}">
+<div data-table-scroll style="overflow-x: auto">
+<table style="width: 100%; min-width: 640px; border-collapse: collapse; font-size: var(--fs-base)">
+<thead style="background: var(--surface-2)"><tr style="text-align: left; color: var(--text-3); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.04em"><th scope="col" style="padding: var(--sp-2h) var(--sp-4); font-weight: 600">Document</th><th scope="col" style="padding: var(--sp-2h) var(--sp-2); font-weight: 600">Débiteur · créancier</th><th scope="col" style="padding: var(--sp-2h) var(--sp-2); font-weight: 600">Statut</th><th scope="col" style="padding: var(--sp-2h) var(--sp-4); font-weight: 600">Date</th></tr></thead>
+<tbody>
+<sc-for list="{{docs}}" as="d" hint-placeholder-count="8">
+<tr style="border-top: 1px solid var(--surface-3); background: {{d.rowBg}}">
+<td style="padding: var(--sp-2h) var(--sp-4)"><button type="button" onClick="{{d.pick}}" aria-pressed="{{d.pressed}}" style="border: 0; background: transparent; padding: 0; font: inherit; text-align: left; cursor: pointer; display: flex; align-items: center; gap: var(--sp-3); min-height: 44px"><span style="width: 32px; height: 40px; border-radius: var(--r-xs); flex-shrink: 0; display: flex; align-items: flex-end; justify-content: center; padding-bottom: var(--sp-1); box-sizing: border-box; font-size: var(--fs-doc-sm); font-weight: 700; background: {{d.thumbBg}}; color: {{d.thumbFg}}">{{d.ext}}</span><span style="display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-weight: 600; color: var(--text)">{{d.name}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{d.catLabel}} · {{d.size}}</span></span></button></td>
+<td style="padding: var(--sp-2h) var(--sp-2)"><div style="display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="color: var(--text)">{{d.debtor}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{d.mandant}}</span></div></td>
+<td style="padding: var(--sp-2h) var(--sp-2)"><span style="font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-1) var(--sp-2h); border-radius: var(--r-full); white-space: nowrap; background: {{d.stBg}}; color: {{d.stFg}}">{{d.status}}</span></td>
+<td style="padding: var(--sp-2h) var(--sp-4); color: var(--text-2); white-space: nowrap">{{d.date}}</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</sc-if>
+
+<sc-if value="{{isGrid}}" hint-placeholder-val="{{ false }}">
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: var(--sp-3); padding: var(--sp-4)">
+<sc-for list="{{docs}}" as="d" hint-placeholder-count="8">
+<button type="button" onClick="{{d.pick}}" aria-pressed="{{d.pressed}}" style="text-align: left; font: inherit; cursor: pointer; background: var(--surface); border-radius: var(--r-lg); padding: var(--sp-2h); display: flex; flex-direction: column; gap: var(--sp-2); border: {{d.cardBorder}}">
+<span style="display: flex; flex-direction: column; gap: var(--sp-1); height: 120px; border-radius: var(--r-sm); background: var(--surface-2); border: 1px solid var(--border); padding: var(--sp-3h) var(--sp-3); box-sizing: border-box; overflow: hidden">
+<span style="display: block; width: 40%; height: 6px; border-radius: var(--r-xs); background: {{d.thumbFg}}"></span>
+<span style="display: block; width: 90%; height: 4px; border-radius: var(--r-xs); background: var(--border); margin-top: var(--sp-1h)"></span>
+<span style="display: block; width: 80%; height: 4px; border-radius: var(--r-xs); background: var(--border)"></span>
+<span style="display: block; width: 85%; height: 4px; border-radius: var(--r-xs); background: var(--border)"></span>
+<span style="display: block; width: 60%; height: 4px; border-radius: var(--r-xs); background: var(--border)"></span>
+</span>
+<span style="font-size: var(--fs-sm); font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{d.name}}</span>
+<span style="font-size: var(--fs-xs); color: var(--text-3)">{{d.debtor}} · {{d.date}}</span>
+</button>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{lst.show}}" hint-placeholder-val="{{ false }}"><dc-import name="EtatListe" kind="{{lst.kind}}" title="{{lst.title}}" text="{{lst.text}}" action-label="{{lst.actionLabel}}" on-action="{{lst.action}}" count="{{lst.count}}" hint-size="100%,220px"></dc-import></sc-if>
+<sc-if value="{{pg.show}}" hint-placeholder-val="{{ true }}"><dc-import name="Pagination" total="{{pg.total}}" page="{{pg.page}}" size="{{pg.size}}" unit="documents" label="Pagination des documents" on-page="{{pg.onPage}}" on-size="{{pg.onSize}}" hint-size="100%,60px"></dc-import></sc-if>
+<sc-if value="{{empty}}" hint-placeholder-val="{{ false }}">
+<p style="margin: 0; padding: var(--sp-8) var(--sp-4); text-align: center; font-size: var(--fs-base); color: var(--text-3)">Aucun document ne correspond.</p>
+</sc-if>
+</section>
+
+<aside aria-label="Aperçu du document" style="flex: 1 1 300px; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-4)">
+<div style="aspect-ratio: 210 / 297; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow-sm); padding: var(--sp-6) var(--sp-5); box-sizing: border-box; display: flex; flex-direction: column; gap: var(--sp-2); overflow: hidden">
+<span style="display: flex; justify-content: space-between"><span style="font-size: var(--fs-doc-sm); font-weight: 700; letter-spacing: 0.04em; color: var(--marine)">LEGAREC</span><span style="font-size: var(--fs-doc-xs); color: var(--text-3)">{{cur.date}}</span></span>
+<span style="font-size: var(--fs-doc-xs); color: var(--text-2); align-self: flex-end; text-align: right; white-space: pre-line">{{cur.debtor}}</span>
+<span style="font-size: var(--fs-doc-md); font-weight: 700; color: {{cur.thumbFg}}; margin-top: var(--sp-2)">{{cur.docTitle}}</span>
+<span style="font-size: var(--fs-doc-xs); color: var(--text-2)">Pour le compte de {{cur.mandant}}</span>
+<span style="display: block; width: 100%; height: 3px; border-radius: var(--r-xs); background: var(--border); margin-top: var(--sp-1h)"></span>
+<span style="display: block; width: 94%; height: 3px; border-radius: var(--r-xs); background: var(--border)"></span>
+<span style="display: block; width: 97%; height: 3px; border-radius: var(--r-xs); background: var(--border)"></span>
+<span style="display: block; width: 70%; height: 3px; border-radius: var(--r-xs); background: var(--border)"></span>
+<span style="display: block; width: 100%; height: 3px; border-radius: var(--r-xs); background: var(--border); margin-top: var(--sp-1h)"></span>
+<span style="display: block; width: 88%; height: 3px; border-radius: var(--r-xs); background: var(--border)"></span>
+<span style="display: block; width: 60%; height: 3px; border-radius: var(--r-xs); background: var(--border)"></span>
+</div>
+<div style="display: flex; flex-direction: column; gap: var(--sp-1)">
+<h2 style="margin: 0; font-size: var(--fs-md); font-weight: 600; word-break: break-word">{{cur.name}}</h2>
+<span style="font-size: var(--fs-xs); color: var(--text-3)">{{cur.catLabel}} · {{cur.ext}} · {{cur.size}}</span>
+</div>
+<dl style="margin: 0; display: flex; flex-direction: column; gap: var(--sp-2); font-size: var(--fs-sm)">
+<div style="display: flex; justify-content: space-between; gap: var(--sp-3)"><dt style="color: var(--text-3)">Dossier</dt><dd style="margin: 0; text-align: right"><a href="Dossier.dc.html" style="text-decoration: none; font-weight: 500">{{cur.debtor}}</a></dd></div>
+<div style="display: flex; justify-content: space-between; gap: var(--sp-3)"><dt style="color: var(--text-3)">Créancier</dt><dd style="margin: 0; text-align: right">{{cur.mandant}}</dd></div>
+<div style="display: flex; justify-content: space-between; gap: var(--sp-3)"><dt style="color: var(--text-3)">Créé par</dt><dd style="margin: 0; text-align: right">{{cur.author}}</dd></div>
+<div style="display: flex; justify-content: space-between; gap: var(--sp-3)"><dt style="color: var(--text-3)">Statut</dt><dd style="margin: 0; text-align: right; font-weight: 600; color: {{cur.stFg}}">{{cur.status}}</dd></div>
+<div style="display: flex; justify-content: space-between; gap: var(--sp-3)"><dt style="color: var(--text-3)">Suivi</dt><dd style="margin: 0; text-align: right">{{cur.track}}</dd></div>
+</dl>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2)">
+<button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="height: var(--control-md); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer">Télécharger</button>
+<button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="height: var(--control-md); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer">Partager au créancier</button>
+<button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="height: var(--control-md); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer">Envoyer</button>
+<button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="height: var(--control-md); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer">Historique (2)</button>
+</div>
+</aside>
+
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#002B74","options":["#002B74","#001B4D","#5D7087"]},"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { loading: true, cat: 'all', sel: 'd1', view: 'list', q: '' };
+  }
+  componentDidMount() { this.lt = setTimeout(() => this.setState({ loading: false }), 700); }
+  componentWillUnmount() { clearTimeout(this.lt); }
+  renderVals() {
+    const v = this._rv();
+    const st = this.state;
+    const list = v.docs || [];
+    v.docs = st.loading ? [] : list;
+    const pgTotal = st.q ? list.length : 3482;
+    v.pg = { show: !st.loading && list.length > 0, total: pgTotal, page: st.pgPage || 1, size: st.pgSize || 25, onPage: (n) => this.setState({ pgPage: n }), onSize: (n) => this.setState({ pgSize: n, pgPage: 1 }) };
+    v.lst = {
+      show: !!st.loading || list.length === 0,
+      kind: st.loading ? 'loading' : (st.q ? 'noresult' : 'empty'),
+      title: st.loading ? '' : st.q ? 'Aucun résultat pour « ' + String(st.q).trim() + ' »' : 'Aucun document',
+      text: st.loading ? '' : 'Importez des fichiers ou générez un courrier : ils sont classés automatiquement par dossier.',
+      actionLabel: st.q ? 'Effacer la recherche' : '',
+      action: () => this.setState({ q: '' }),
+      count: 6
+    };
+    return v;
+  }
+  _rv() {
+    const accent = this.props.accent ?? 'var(--marine)';
+    const st = this.state;
+    const CAT = {
+      courrier: { label: 'Courriers de relance', swatch: 'var(--info)', thumbBg: 'var(--info-bg)', thumbFg: 'var(--info-fg)', n: 1284 },
+      demeure: { label: 'Mises en demeure', swatch: 'var(--warning)', thumbBg: 'var(--warning-bg)', thumbFg: 'var(--warning-fg)', n: 212 },
+      echeancier: { label: 'Échéanciers signés', swatch: 'var(--success)', thumbBg: 'var(--success-bg)', thumbFg: 'var(--success-fg)', n: 96 },
+      facture: { label: 'Factures du créancier', swatch: 'var(--marine)', thumbBg: 'var(--bleu-200)', thumbFg: 'var(--marine)', n: 1386 },
+      justif: { label: 'Justificatifs et preuves', swatch: 'var(--text-3)', thumbBg: 'var(--surface-3)', thumbFg: 'var(--text-2)', n: 318 },
+      acte: { label: 'Actes judiciaires', swatch: 'var(--danger)', thumbBg: 'var(--danger-bg)', thumbFg: 'var(--danger-fg)', n: 74 },
+      reversement: { label: 'Relevés de reversement', swatch: 'var(--teal)', thumbBg: 'var(--teal-bg)', thumbFg: 'var(--teal-fg)', n: 112 }
+    };
+    const S = {
+      envoye: ['var(--info-bg)', 'var(--info-fg)'], ar: ['var(--success-bg)', 'var(--success-fg)'], signe: ['var(--success-bg)', 'var(--success-fg)'], brouillon: ['var(--surface-3)', 'var(--text-2)'], recu: ['var(--bleu-pale)', 'var(--marine)'], attente: ['var(--warning-bg)', 'var(--warning-fg)']
+    };
+    const docs = [
+      { id: 'd1', k: 'demeure', name: 'Mise en demeure – Charpentes Bellet.pdf', docTitle: 'MISE EN DEMEURE', debtor: 'Charpentes Bellet', mandant: 'Matériaux Delta', date: '16/11/2026', size: '182 Ko', ext: 'PDF', s: 'ar', status: 'AR signé', track: 'LRAR · AR reçu le 18/11', author: 'Camille Laurent' },
+      { id: 'd2', k: 'courrier', name: 'Relance n°2 – Bâtiplus SAS.pdf', docTitle: 'RELANCE', debtor: 'Bâtiplus SAS', mandant: 'Matériaux Delta', date: '12/11/2026', size: '96 Ko', ext: 'PDF', s: 'envoye', status: 'Envoyé', track: 'E-mail · ouvert le 13/11', author: 'Automatique' },
+      { id: 'd3', k: 'echeancier', name: 'Échéancier 4 mois – SCI Les Tilleuls.pdf', docTitle: 'PLAN DE PAIEMENT', debtor: 'SCI Les Tilleuls', mandant: 'Matériaux Delta', date: '02/10/2026', size: '140 Ko', ext: 'PDF', s: 'signe', status: 'Signé', track: 'Signature électronique le 03/10', author: 'Camille Laurent' },
+      { id: 'd4', k: 'facture', name: 'F-2026-0712.pdf', docTitle: 'FACTURE', debtor: 'Bâtiplus SAS', mandant: 'Matériaux Delta', date: '15/08/2026', size: '74 Ko', ext: 'PDF', s: 'recu', status: 'Reçue du créancier', track: 'Import CSV du 15/09', author: 'Matériaux Delta' },
+      { id: 'd5', k: 'justif', name: 'BL-2026-10-02 (contestation).pdf', docTitle: 'BON DE LIVRAISON', debtor: 'Atelier Mistral', mandant: 'Matériaux Delta', date: '21/11/2026', size: '84 Ko', ext: 'PDF', s: 'recu', status: 'Reçu du débiteur', track: 'Pièce jointe d’e-mail', author: 'Sophie Arnaud' },
+      { id: 'd6', k: 'acte', name: 'Ordonnance IP – Menuiserie Arnal.pdf', docTitle: 'ORDONNANCE', debtor: 'Menuiserie Arnal', mandant: 'Matériaux Delta', date: '20/10/2026', size: '320 Ko', ext: 'PDF', s: 'recu', status: 'Signifiée', track: 'Signification le 02/11', author: 'Étude Garnier' },
+      { id: 'd7', k: 'reversement', name: 'Relevé de reversement – novembre.pdf', docTitle: 'RELEVÉ DE REVERSEMENT', debtor: '12 débiteurs', mandant: 'Matériaux Delta', date: '15/11/2026', size: '210 Ko', ext: 'PDF', s: 'envoye', status: 'Envoyé', track: 'Espace créancier + e-mail', author: 'Automatique' },
+      { id: 'd8', k: 'courrier', name: 'Proposition d’échéancier – Bâtiplus SAS.docx', docTitle: 'PROPOSITION D’ÉCHÉANCIER', debtor: 'Bâtiplus SAS', mandant: 'Matériaux Delta', date: '21/11/2026', size: '48 Ko', ext: 'DOCX', s: 'brouillon', status: 'Brouillon', track: 'Non envoyé', author: 'Camille Laurent' },
+      { id: 'd9', k: 'acte', name: 'PV saisie-attribution – Transports Lemaire.pdf', docTitle: 'PROCÈS-VERBAL', debtor: 'Transports Lemaire', mandant: 'TransAlp Leasing', date: '17/11/2026', size: '268 Ko', ext: 'PDF', s: 'recu', status: 'Reçu', track: 'Transmis par l’étude', author: 'Étude Garnier' },
+      { id: 'd10', k: 'justif', name: 'Avis de virement 20-11-2026.pdf', docTitle: 'AVIS DE VIREMENT', debtor: 'Nordis Logistique', mandant: 'Énergies Rhône', date: '20/11/2026', size: '62 Ko', ext: 'PDF', s: 'recu', status: 'Rapproché', track: 'Paiement de 12 500 €', author: 'Nordis Logistique' }
+    ];
+    const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const q = norm(st.q.trim());
+    const filtered = docs.filter((d) => (st.cat === 'all' || d.k === st.cat) && (!q || norm(d.name + ' ' + d.debtor + ' ' + d.mandant).includes(q)));
+    const deco = (d) => ({ ...d, ...CAT[d.k], catLabel: CAT[d.k].label, stBg: S[d.s][0], stFg: S[d.s][1] });
+    const curRaw = docs.find((d) => d.id === st.sel) || docs[0];
+    const catKeys = Object.keys(CAT);
+    return {
+      accent,
+      headActions: [{ label: 'Importer des fichiers' }, { label: '+ Nouveau courrier', primary: true, kbd: 'N', href: 'Generer.dc.html' }],
+      q: st.q,
+      onQuery: (e) => this.setState({ q: e.target.value }),
+      cats: [{ id: 'all', label: 'Tous les documents', swatch: 'var(--text)', n: '3 482' }].concat(catKeys.map((k) => ({ id: k, label: CAT[k].label, swatch: CAT[k].swatch, n: CAT[k].n.toLocaleString('fr-FR') }))).map((c) => ({
+        label: c.label, swatch: c.swatch, count: c.n,
+        pressed: st.cat === c.id ? 'true' : 'false',
+        bg: st.cat === c.id ? 'var(--bleu-pale)' : 'transparent', color: st.cat === c.id ? 'var(--marine)' : 'var(--text)',
+        pick: () => this.setState({ cat: c.id })
+      })),
+      views: [['list', 'Liste'], ['grid', 'Vignettes']].map(([id, label]) => ({
+        label, pressed: st.view === id ? 'true' : 'false',
+        bg: st.view === id ? 'var(--white)' : 'transparent', color: st.view === id ? 'var(--text)' : 'var(--text-2)',
+        pick: () => this.setState({ view: id })
+      })),
+      isList: st.view === 'list' && filtered.length > 0,
+      isGrid: st.view === 'grid' && filtered.length > 0,
+      empty: filtered.length === 0,
+      docs: filtered.map((d) => ({
+        ...deco(d),
+        pressed: d.id === st.sel ? 'true' : 'false',
+        rowBg: d.id === st.sel ? 'var(--bleu-pale)' : 'var(--white)',
+        cardBorder: d.id === st.sel ? '2px solid ' + accent : '1px solid var(--border)',
+        pick: () => this.setState({ sel: d.id })
+      })),
+      cur: deco(curRaw)
+    };
+  }
+}
+</script>
+</body>
+</html>

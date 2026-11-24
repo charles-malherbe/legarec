@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Legarec – Espace créancier</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Lora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+/* tokens:start — charte graphique LEGAREC v1.0 (octobre 2026). Ne pas modifier à la main : généré depuis tools/tokens.css */
+:root{
+  /* Marque */
+  --marine:#002B74; --marine-hover:#00225C; --marine-text:#002B74; --app-icon-bg:#002B74; --app-icon-fg:#FCBE03; --nuit:#001B4D; --or:#FCBE03; --or-clair:#FFF3C4; --ardoise:#5D7087;
+  --bleu-pale:#EEF2F8; --gris-clair:#F6F8FB; --bleu-200:#D6E0F0; --white:#FFFFFF;
+  /* Texte */
+  --text:#0F1B2D; --text-2:#33455C; --text-3:#5D7087; --on-primary:#FFFFFF;
+  /* Surfaces et bordures */
+  --surface:#FFFFFF; --surface-2:#F6F8FB; --surface-3:#EEF2F7; --border:#E1E7EF; --border-strong:#7D8DA1;
+  /* Surfaces sombres (carte d'appel, barre d'actions groupées) */
+  --surface-dark:#001B4D; --surface-dark-2:#0B2D63; --border-dark:#2A4A7D; --on-dark:#FFFFFF; --on-dark-2:#D5DEEB; --on-dark-muted:#A9B8CC; --on-dark-accent:#B8CBEA;
+  /* Données (graphiques, balance âgée) */
+  --data-1:#C9D6EC; --data-2:#7F9CD0; --data-3:#345DA8;
+  /* Tons sémantiques : fond, bordure, point, texte */
+  --success-bg:#ECFDF5; --success-border:#A7F3D0; --success:#059669; --success-strong:#10B981; --success-fg:#047857; --on-success:#052E16;
+  --warning-bg:#FFF3C4; --warning-border:#F5D77A; --warning:#D97706; --warning-fg:#8A4B08;
+  --danger-bg:#FFF1F2; --danger-border:#FECDD3; --danger:#E11D48; --danger-fg:#BE123C; --danger-dark:#7F1D1D; --danger-on-dark:#FDA4AF;
+  --info-bg:#F0F9FF; --info-border:#BAE6FD; --info:#0284C7; --info-fg:#0369A1;
+  --violet-bg:#F5F3FF; --violet-border:#DDD6FE; --violet:#7C3AED; --violet-fg:#6D28D9;
+  --teal-bg:#CCFBF1; --teal:#0D9488; --teal-fg:#115E59;
+  /* Fonds pleins (badges pleins, texte --on-primary ≥ 5:1 dans les deux modes) */
+  --solid-neutral:#33455C; --solid-info:#0369A1; --solid-success:#047857; --solid-warning:#8A4B08; --solid-danger:#BE123C; --solid-violet:#6D28D9; --solid-teal:#115E59;
+  /* Typographie */
+  --font-title:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-text:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-brand:Lora, Georgia, serif; --font-mono:ui-monospace, SFMono-Regular, Menlo, monospace;
+  --fs-doc-xs:8px; --fs-doc-sm:9px; --fs-doc-md:10px; --fs-doc-lg:10.5px; --fs-2xs:11px; --fs-xs:12px; --fs-sm:13px; --fs-base:14px; --fs-md:16px; --fs-lg:18px; --fs-xl:20px; --fs-2xl:26px; --fs-3xl:34px;
+  /* Rayons */
+  --r-xs:4px; --r-sm:6px; --r-md:8px; --r-lg:12px; --r-full:9999px;
+  /* Ombres */
+  --shadow-sm:0 1px 2px 0 rgba(0,27,77,0.06); --shadow-md:0 10px 15px -3px rgba(0,27,77,0.10), 0 4px 6px -4px rgba(0,27,77,0.10); --shadow-lg:0 20px 25px -5px rgba(0,27,77,0.18), 0 8px 10px -6px rgba(0,27,77,0.12);
+  --shadow-knob:0 1px 2px rgba(0,27,77,0.25); --overlay:rgba(0,27,77,0.55);
+  /* Espacements (grille de 4 px) */
+  --sp-0h:2px; --sp-1:4px; --sp-1h:6px; --sp-2:8px; --sp-2h:10px; --sp-3:12px; --sp-3h:14px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px; --sp-10:40px; --sp-11:44px; --sp-12:48px;
+  /* Hauteurs de contrôles */
+  --control-xs:28px; --control-sm:36px; --control-md:40px; --control-lg:44px;
+  /* Voiles et anneaux (surfaces sombres, animations) */
+  --veil-8:rgba(255,255,255,0.08); --veil-18:rgba(255,255,255,0.18); --veil-25:rgba(255,255,255,0.25); --veil-35:rgba(255,255,255,0.35); --veil-80:rgba(255,255,255,0.8); --veil-85:rgba(255,255,255,0.85); --on-success-veil:rgba(5,46,22,0.35); --success-ring:rgba(16,185,129,0.55); --success-ring-0:rgba(16,185,129,0);
+  /* Cibles tactiles */
+  --target:44px;
+}
+body{font-family:var(--font-text);font-feature-settings:"cv11";-webkit-font-smoothing:antialiased}
+h1,h2{font-family:var(--font-title);font-weight:700;color:var(--marine);overflow-wrap:break-word;letter-spacing:-0.015em}
+[data-brand] h1,[data-brand] h2{font-family:var(--font-brand);letter-spacing:0}
+td,th,li,h3{overflow-wrap:break-word}
+:focus-visible{outline:2px solid var(--marine);outline-offset:2px}
+[data-dark] :focus-visible{outline-color:var(--or)}
+button:disabled,[aria-disabled="true"]{cursor:not-allowed !important;opacity:.55}
+button:not(:disabled):hover,a[href][style*="border-radius"]:hover{filter:brightness(.96)}
+tbody tr:hover{background-color:var(--surface-2)}
+[data-table-scroll]{max-height:min(68vh,720px);overflow:auto !important}
+[data-table-scroll] thead th{position:sticky;top:0;z-index:2;background:var(--surface-2);box-shadow:inset 0 -1px 0 var(--border)}
+[data-skeleton]{display:block;border-radius:var(--r-xs);background:linear-gradient(90deg,var(--surface-3) 25%,var(--bleu-pale) 50%,var(--surface-3) 75%);background-size:200% 100%;animation:lg-sk 1.2s ease-in-out infinite}
+@keyframes lg-sk{from{background-position:200% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+@media (pointer: coarse), (max-width: 767px){
+  button,select,input:not([type=checkbox]):not([type=radio]):not([type=range]),[role=tab],[role=menuitem],a[href][style*="display: inline-flex"],a[href][style*="height:"]{min-height:var(--target)}
+  input[type=checkbox],input[type=radio]{min-width:22px;min-height:22px}
+}
+/* Mode sombre : data-theme="dark" sur <html> */
+:root[data-theme="dark"]{
+  --marine:#2E5FC0; --marine-hover:#2A57B0; --marine-text:#9DB8F0; --app-icon-bg:#0A1A3F; --nuit:#071028; --or-clair:#3A2F0A; --ardoise:#9AA9BD;
+  --bleu-pale:#1B2A4A; --gris-clair:#0A1020; --bleu-200:#2B3E63; --white:#16203A;
+  --text:#E6ECF5; --text-2:#C3CEDD; --text-3:#9AA9BD;
+  --surface:#0F1729; --surface-2:#0A1020; --surface-3:#1A2438; --border:#26324A; --border-strong:#67778F;
+  --surface-dark:#050B1A; --surface-dark-2:#101C36; --border-dark:#24365A;
+  --data-1:#2B3E63; --data-2:#4F73B8; --data-3:#7F9CD0;
+  --success-bg:#0B2E22; --success-border:#14532D; --success-fg:#6EE7B7;
+  --warning-bg:#3A2F0A; --warning-border:#6B5310; --warning-fg:#FCD34D;
+  --danger-bg:#3B0D17; --danger-border:#7F1D2E; --danger-fg:#FDA4AF;
+  --info-bg:#0B2540; --info-border:#164E63; --info-fg:#7DD3FC;
+  --violet-bg:#24164A; --violet-border:#4C1D95; --violet-fg:#C4B5FD;
+  --teal-bg:#0B302C; --teal-fg:#5EEAD4;
+  --shadow-sm:0 1px 2px 0 rgba(0,0,0,0.4); --shadow-md:0 10px 15px -3px rgba(0,0,0,0.5); --shadow-lg:0 20px 25px -5px rgba(0,0,0,0.6); --overlay:rgba(0,0,0,0.65);
+  color-scheme:dark;
+}
+:root[data-theme="dark"] body{background:var(--surface-2);color:var(--text)}
+:root[data-theme="dark"] :focus-visible{outline-color:#9DB8F0}
+:root[data-theme="dark"] [data-dark]{border:1px solid var(--border-dark)}
+:root[data-theme="dark"] h1,:root[data-theme="dark"] h2,:root[data-theme="dark"] a[href]:not([style*="background"]){color:var(--marine-text)}
+:root[data-theme="dark"] [style*="color: var(--marine)"]:not([style*="background: var(--marine)"]){color:var(--marine-text) !important}
+:root[data-theme="dark"] img[src*="_blob"]{background:var(--white);border-radius:var(--r-sm)}
+/* Mode malvoyant : data-a11y="malvoyant" sur <html> — texte agrandi, contraste renforcé, cibles plus grandes */
+:root[data-a11y="malvoyant"]{
+  --fs-2xs:13px; --fs-xs:14px; --fs-sm:15px; --fs-base:17px; --fs-md:19px; --fs-lg:21px; --fs-xl:24px; --fs-2xl:30px; --fs-3xl:38px;
+  --control-xs:36px; --control-sm:44px; --control-md:48px; --control-lg:52px; --target:48px;
+  --text-3:var(--text-2); --ardoise:var(--text-2); --border:var(--border-strong);
+}
+:root[data-a11y="malvoyant"] body{line-height:1.6}
+:root[data-a11y="malvoyant"] [data-sb-nav][style*="width: 264px"]{width:312px !important}
+:root[data-a11y="malvoyant"] :focus-visible{outline:3px solid var(--or);outline-offset:3px;box-shadow:0 0 0 6px var(--marine)}
+:root[data-a11y="malvoyant"] a[href]:not([style*="background"]){text-decoration:underline;text-underline-offset:3px}
+:root[data-a11y="malvoyant"] button,:root[data-a11y="malvoyant"] select,:root[data-a11y="malvoyant"] input:not([type=checkbox]):not([type=radio]){min-height:var(--target)}
+:root[data-a11y="malvoyant"] input[type=checkbox],:root[data-a11y="malvoyant"] input[type=radio]{min-width:24px;min-height:24px}
+:root[data-a11y="malvoyant"][data-theme="dark"]{--text-3:#E6ECF5;--text-2:#E6ECF5}
+/* tokens:end */
+body{margin:0;font-family:var(--font-text);color:var(--text);background:var(--surface-2)}
+a{color:var(--marine)}a:hover{color:var(--marine)}
+</style>
+</helmet>
+<div data-brand style="min-height: 100vh; background: var(--surface-2); font-family: var(--font-text); color: var(--text); display: flex; flex-direction: column">
+
+<header style="background: var(--surface); border-bottom: 1px solid var(--border)">
+<div style="max-width: 1320px; margin: 0 auto; padding: 0 var(--sp-6); box-sizing: border-box">
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-4); min-height: 64px">
+<div style="display: flex; align-items: center; gap: var(--sp-3h)">
+<div style="display: flex; align-items: center; gap: var(--sp-2h)"><span aria-hidden="true" style="width: 32px; height: 32px; flex-shrink: 0; border-radius: var(--r-md); background: var(--app-icon-bg); color: var(--app-icon-fg); display: flex; align-items: center; justify-content: center; font-family: var(--font-title); font-size: var(--fs-xl); font-weight: 700; line-height: 1">L</span><div style="display: flex; flex-direction: column; line-height: 1.2"><span style="font-size: var(--fs-lg); font-weight: 700; color: var(--marine)">Legarec</span><span style="font-size: var(--fs-xs); color: var(--text-3)">Espace créancier</span></div></div>
+<span aria-hidden="true" style="width: 1px; height: 28px; background: var(--border)"></span>
+<span style="display: flex; align-items: center; gap: var(--sp-2h)"><span style="width: 30px; height: 30px; border-radius: var(--r-sm); background: var(--marine); color: var(--on-primary); font-size: var(--fs-xs); font-weight: 700; display: flex; align-items: center; justify-content: center">MD</span><span style="display: flex; flex-direction: column; line-height: 1.2"><span style="font-size: var(--fs-base); font-weight: 600">Matériaux Delta</span><span style="font-size: var(--fs-xs); color: var(--text-3)">SIREN 401 228 975</span></span></span>
+</div>
+<div style="display: flex; align-items: center; gap: var(--sp-2h)">
+<dc-import name="Bouton" variant="primary" size="md" label="+ Déposer des créances" on-press="{{goDeposit}}" accent="{{accent}}" style="display: contents" hint-size="120px,40px"></dc-import>
+<span role="group" aria-label="Affichage" style="display: inline-flex; gap: var(--sp-1)"><button type="button" onClick="{{toggleLgA11y}}" aria-pressed="{{lgA11y}}" title="Texte agrandi et contraste renforcé" style="height: var(--control-sm); padding: 0 var(--sp-2h); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-size: var(--fs-sm); font-weight: 600; cursor: pointer">Aa<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)"> Texte agrandi</span></button><button type="button" onClick="{{toggleLgDark}}" aria-pressed="{{lgDark}}" title="Mode sombre" style="height: var(--control-sm); width: var(--control-sm); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Mode sombre</span></button></span>
+<span style="display: flex; align-items: center; gap: var(--sp-2h); padding-left: var(--sp-2)"><span style="width: 36px; height: 36px; border-radius: var(--r-full); background: var(--warning-bg); color: var(--warning-fg); font-size: var(--fs-sm); font-weight: 600; display: flex; align-items: center; justify-content: center">CB</span><span style="display: flex; flex-direction: column; line-height: 1.2"><span style="font-size: var(--fs-sm); font-weight: 600">Claire Besson</span><a href="Connexion.dc.html" style="font-size: var(--fs-xs); color: var(--text-3); text-decoration: none">Se déconnecter</a></span></span>
+</div>
+</div>
+<nav aria-label="Sections de l'espace créancier" style="display: flex; gap: var(--sp-1); overflow-x: auto">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="6">
+<button type="button" onClick="{{t.pick}}" aria-current="{{t.current}}" style="height: var(--control-lg); padding: 0 var(--sp-3); border: 0; background: transparent; font: inherit; font-size: var(--fs-base); font-weight: 500; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: var(--sp-1h); color: {{t.color}}; box-shadow: {{t.bar}}">{{t.label}}<sc-if value="{{t.hasBadge}}" hint-placeholder-val="{{ false }}"><span style="min-width: 18px; height: 18px; border-radius: var(--r-full); background: var(--or); color: var(--text); font-size: var(--fs-xs); font-weight: 700; display: inline-flex; align-items: center; justify-content: center; padding: 0 var(--sp-1); box-sizing: border-box">{{t.badge}}</span></sc-if></button>
+</sc-for>
+</nav>
+</div>
+</header>
+
+<main style="flex: 1; width: 100%; max-width: 1320px; margin: 0 auto; padding: var(--sp-8) var(--sp-6) var(--sp-10); box-sizing: border-box; display: flex; flex-direction: column; gap: var(--sp-6)">
+
+<sc-if value="{{is.dash}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: var(--sp-6)">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: var(--sp-3)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h1 style="margin: 0; font-size: var(--fs-2xl); font-weight: 700; letter-spacing: -0.01em">Bonjour Claire</h1><p style="margin: 0; font-size: var(--fs-base); color: var(--text-3)">Suivi de vos créances confiées à Legarec · année 2026</p></div>
+<span style="font-size: var(--fs-sm); color: var(--text-3)">Votre gestionnaire : <strong style="color: var(--text)">Thomas Giraud</strong></span>
+</div>
+<section aria-label="Indicateurs" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--sp-4)">
+<sc-for list="{{kpis}}" as="k" hint-placeholder-count="4">
+<div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-1h)"><span style="font-size: var(--fs-sm); color: var(--text-3)">{{k.label}}</span><span style="font-size: var(--fs-2xl); font-weight: 700; font-variant-numeric: tabular-nums">{{k.value}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{k.hint}}</span></div>
+</sc-for>
+</section>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-6); align-items: stretch">
+<section aria-labelledby="rep-titre" style="flex: 1 1 380px; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-4)">
+<h2 id="rep-titre" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Vos 64 dossiers par statut</h2>
+<div role="img" aria-label="{{statusAria}}" style="display: flex; height: 12px; border-radius: var(--r-full); overflow: hidden; gap: var(--sp-0h)">
+<sc-for list="{{statusBar}}" as="b" hint-placeholder-count="6"><span style="display: block; height: 100%; width: {{b.w}}; background: {{b.color}}"></span></sc-for>
+</div>
+<ul style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2h)">
+<sc-for list="{{statusBar}}" as="b" hint-placeholder-count="6">
+<li><button type="button" onClick="{{b.open}}" style="width: 100%; display: flex; align-items: center; gap: var(--sp-2); border: 0; background: transparent; padding: var(--sp-1) 0; font: inherit; font-size: var(--fs-base); cursor: pointer; text-align: left; color: var(--text)"><span style="width: 10px; height: 10px; border-radius: var(--r-xs); background: {{b.color}}"></span><span style="flex: 1">{{b.label}}</span><span style="font-weight: 600; font-variant-numeric: tabular-nums">{{b.n}}</span></button></li>
+</sc-for>
+</ul>
+</section>
+<section aria-labelledby="mois-titre" style="flex: 2 1 480px; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-4)">
+<h2 id="mois-titre" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Sommes recouvrées par mois</h2>
+<div role="img" aria-label="Recouvré par mois, de juin à novembre : 38, 41, 33, 46, 44 et 52 milliers d'euros" style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--sp-3h); align-items: end; height: 180px">
+<sc-for list="{{months}}" as="m" hint-placeholder-count="6">
+<div style="display: flex; flex-direction: column; align-items: center; gap: var(--sp-1h); height: 100%; justify-content: flex-end"><span style="font-size: var(--fs-xs); font-weight: 600; color: var(--text-2)">{{m.v}}</span><div style="width: 100%; max-width: 48px; border-radius: var(--r-sm) var(--r-sm) 0 0; height: {{m.h}}; background: {{m.c}}"></div><span style="font-size: var(--fs-xs); color: var(--text-3)">{{m.l}}</span></div>
+</sc-for>
+</div>
+</section>
+</div>
+<section aria-labelledby="act-titre" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); display: flex; flex-direction: column">
+<h2 id="act-titre" style="margin: 0; padding: var(--sp-4) var(--sp-6); font-size: var(--fs-md); font-weight: 600; border-bottom: 1px solid var(--border)">Dernières actions sur vos dossiers</h2>
+<ul style="list-style: none; margin: 0; padding: 0">
+<sc-for list="{{activity}}" as="a" hint-placeholder-count="4">
+<li style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); padding: var(--sp-3h) var(--sp-6); border-top: 1px solid var(--surface-3); font-size: var(--fs-base)"><span style="width: 8px; height: 8px; border-radius: var(--r-full); background: {{a.dot}}"></span><span style="flex: 1; min-width: 220px"><strong>{{a.who}}</strong> · {{a.what}}</span><span style="font-size: var(--fs-sm); color: var(--text-3)">{{a.when}}</span></li>
+</sc-for>
+</ul>
+</section>
+</div>
+</sc-if>
+
+<sc-if value="{{is.files}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: var(--sp-4)">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: var(--sp-3)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h1 style="margin: 0; font-size: var(--fs-2xl); font-weight: 700">Mes dossiers</h1><p style="margin: 0; font-size: var(--fs-base); color: var(--text-3)">Vous ne voyez que les dossiers de Matériaux Delta.</p></div>
+<button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="height: var(--control-md); padding: 0 var(--sp-3h); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font: inherit; font-size: var(--fs-base); font-weight: 500; cursor: pointer">Exporter (CSV)</button>
+</div>
+<div role="group" aria-label="Filtrer par statut" style="display: flex; flex-wrap: wrap; gap: var(--sp-2)">
+<sc-for list="{{chips}}" as="c" hint-placeholder-count="7">
+<button type="button" onClick="{{c.pick}}" aria-pressed="{{c.pressed}}" style="height: var(--control-sm); padding: 0 var(--sp-3); border-radius: var(--r-full); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: var(--sp-1h); border: {{c.border}}; background: {{c.bg}}; color: {{c.color}}">{{c.label}}<span style="font-size: var(--fs-xs); color: var(--text-3)">{{c.n}}</span></button>
+</sc-for>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-6); align-items: flex-start">
+<section aria-label="Liste des dossiers" style="flex: 999 1 560px; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden">
+<div data-table-scroll style="overflow-x: auto">
+<table style="width: 100%; min-width: 760px; border-collapse: collapse; font-size: var(--fs-base)">
+<thead style="background: var(--surface-2)"><tr style="text-align: left; color: var(--text-3); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.04em"><th scope="col" style="padding: var(--sp-3) var(--sp-5); font-weight: 600">Débiteur</th><th scope="col" style="padding: var(--sp-3) var(--sp-2); font-weight: 600; text-align: right">Confié</th><th scope="col" style="padding: var(--sp-3) var(--sp-2); font-weight: 600; text-align: right">Recouvré</th><th scope="col" style="padding: var(--sp-3) var(--sp-2); font-weight: 600">Statut</th><th scope="col" style="padding: var(--sp-3) var(--sp-5); font-weight: 600">Dernière action</th></tr></thead>
+<tbody>
+<sc-for list="{{files}}" as="d" hint-placeholder-count="7">
+<tr style="border-top: 1px solid var(--surface-3); background: {{d.rowBg}}">
+<td style="padding: var(--sp-2h) var(--sp-5)"><button type="button" onClick="{{d.pick}}" aria-pressed="{{d.pressed}}" style="border: 0; background: transparent; padding: 0; font: inherit; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: var(--sp-0h); min-height: 40px; justify-content: center"><span style="font-weight: 600; color: var(--text)">{{d.name}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">Réf. client {{d.ext}}</span></button></td>
+<td style="padding: var(--sp-2h) var(--sp-2); text-align: right; font-variant-numeric: tabular-nums">{{d.total}}</td>
+<td style="padding: var(--sp-2h) var(--sp-2); text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; color: {{d.recColor}}">{{d.rec}}</td>
+<td style="padding: var(--sp-2h) var(--sp-2)"><span style="font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-1) var(--sp-2h); border-radius: var(--r-full); white-space: nowrap; background: {{d.bg}}; color: {{d.fg}}">{{d.status}}</span></td>
+<td style="padding: var(--sp-2h) var(--sp-5); color: var(--text-2)">{{d.last}}</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</section>
+<aside aria-label="Détail du dossier" style="flex: 1 1 300px; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-3h)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h2 style="margin: 0; font-size: var(--fs-md); font-weight: 600">{{cur.name}}</h2><span style="font-size: var(--fs-sm); color: var(--text-3)">{{cur.ref}} · {{cur.invoices}}</span></div>
+<dl style="margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2h); font-size: var(--fs-sm)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-0h)"><dt style="color: var(--text-3)">Confié</dt><dd style="margin: 0; font-weight: 600">{{cur.total}}</dd></div>
+<div style="display: flex; flex-direction: column; gap: var(--sp-0h)"><dt style="color: var(--text-3)">Recouvré</dt><dd style="margin: 0; font-weight: 600; color: var(--success-fg)">{{cur.rec}}</dd></div>
+</dl>
+<h3 style="margin: var(--sp-1) 0 0; font-size: var(--fs-sm); font-weight: 600; color: var(--text-2)">Actions menées</h3>
+<ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+<sc-for list="{{cur.steps}}" as="s" hint-placeholder-count="4">
+<li style="display: flex; gap: var(--sp-3)"><span style="display: flex; flex-direction: column; align-items: center"><span style="width: 10px; height: 10px; border-radius: var(--r-full); margin-top: var(--sp-1); background: var(--marine)"></span><span style="flex: 1; width: 2px; background: var(--border); min-height: 18px"></span></span><span style="display: flex; flex-direction: column; padding-bottom: var(--sp-3)"><span style="font-size: var(--fs-sm); font-weight: 500">{{s.t}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{s.d}}</span></span></li>
+</sc-for>
+</ol>
+<dc-import name="Bouton" variant="secondary" size="md" label="Écrire au gestionnaire à propos de ce dossier" on-press="{{goMessages}}" style="display: contents" hint-size="120px,40px"></dc-import>
+</aside>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{is.deposit}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: var(--sp-4); max-width: 980px">
+<div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h1 style="margin: 0; font-size: var(--fs-2xl); font-weight: 700">Déposer des créances</h1><p style="margin: 0; font-size: var(--fs-base); color: var(--text-3)">Joignez les factures : elles sont transmises au gestionnaire et visibles par le débiteur dans son espace de paiement.</p></div>
+<div role="tablist" aria-label="Mode de dépôt" style="display: inline-flex; align-self: flex-start; gap: var(--sp-1); background: var(--surface-3); padding: var(--sp-1); border-radius: var(--r-md)">
+<sc-for list="{{depModes}}" as="m" hint-placeholder-count="2">
+<button type="button" role="tab" aria-selected="{{m.selected}}" onClick="{{m.pick}}" style="height: var(--control-sm); padding: 0 var(--sp-3h); border: 0; border-radius: var(--r-sm); font: inherit; font-size: var(--fs-base); font-weight: 500; cursor: pointer; background: {{m.bg}}; color: {{m.color}}; box-shadow: {{m.shadow}}">{{m.label}}</button>
+</sc-for>
+</div>
+<sc-if value="{{depOne}}" hint-placeholder-val="{{ true }}">
+<section aria-label="Nouvelle créance" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-5)">
+<fieldset style="border: 0; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3h)">
+<legend style="font-size: var(--fs-md); font-weight: 600; margin-bottom: var(--sp-3)">Débiteur</legend>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Nom ou raison sociale<input type="text" placeholder="Ex. : Menuiserie Arnal" style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); box-sizing: border-box; min-width: 0"></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">SIRET du débiteur (si professionnel)<input type="text" inputmode="numeric" placeholder="14 chiffres, ex. 512 334 871 00088" style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); box-sizing: border-box; min-width: 0"></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">E-mail<input type="email" style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); box-sizing: border-box; min-width: 0"></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Téléphone<input type="tel" style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); box-sizing: border-box; min-width: 0"></label>
+<label style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Adresse<input type="text" style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); box-sizing: border-box"></label>
+</fieldset>
+<fieldset style="border: 0; margin: 0; padding: var(--sp-4) 0 0; border-top: 1px solid var(--surface-3); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-3h)">
+<legend style="font-size: var(--fs-md); font-weight: 600; margin-bottom: var(--sp-3); padding-top: var(--sp-4)">Facture</legend>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">N° de facture<input type="text" style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); box-sizing: border-box; min-width: 0"></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Date d'émission<input type="text" placeholder="jj/mm/aaaa" style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); box-sizing: border-box; min-width: 0"></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Échéance<input type="text" placeholder="jj/mm/aaaa" style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); box-sizing: border-box; min-width: 0"></label>
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">Montant TTC (€)<input type="text" inputmode="decimal" style="height: var(--control-md); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-base); box-sizing: border-box; min-width: 0"></label>
+</fieldset>
+<div style="border: 2px dashed var(--border-strong); border-radius: var(--r-lg); padding: var(--sp-5); display: flex; flex-direction: column; align-items: center; gap: var(--sp-1h); text-align: center"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" style="stroke: var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"></path></svg><span style="font-size: var(--fs-base); font-weight: 500">Déposez la facture (PDF) et ses justificatifs</span><span style="font-size: var(--fs-xs); color: var(--text-3)">Bon de commande, bon de livraison, relances déjà envoyées…</span></div>
+<sc-if value="{{depDone}}" hint-placeholder-val="{{ false }}"><div role="status" style="background: var(--success-bg); border: 1px solid var(--success-border); border-radius: var(--r-md); padding: var(--sp-3) var(--sp-3h); font-size: var(--fs-base); color: var(--success-fg)">Créance déposée. Statut « Nouveau » : Thomas Giraud la prendra en charge sous 24 h ouvrées.</div></sc-if>
+<div style="display: flex; justify-content: flex-end; gap: var(--sp-2)"><button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="height: var(--control-md); padding: 0 var(--sp-3h); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font: inherit; font-size: var(--fs-base); font-weight: 500; cursor: pointer">Ajouter une autre facture</button><dc-import name="Bouton" variant="primary" size="md" label="Déposer la créance" on-press="{{deposit}}" accent="{{accent}}" style="display: contents" hint-size="120px,40px"></dc-import></div>
+</section>
+</sc-if>
+<sc-if value="{{depBatch}}" hint-placeholder-val="{{ false }}">
+<section aria-label="Import en lot" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-4)">
+<div style="border: 2px dashed var(--border-strong); border-radius: var(--r-lg); padding: var(--sp-6); display: flex; flex-direction: column; align-items: center; gap: var(--sp-1h); text-align: center"><span style="font-size: var(--fs-base); font-weight: 500">Déposez votre fichier CSV ou Excel</span><span style="font-size: var(--fs-xs); color: var(--text-3)">Une ligne par facture · <a href="#">Télécharger le modèle</a> · Les PDF des factures peuvent être joints dans un fichier .zip</span></div>
+<div style="display: flex; flex-direction: column; gap: var(--sp-2h); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-4)">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--sp-2); font-size: var(--fs-base)"><span style="font-weight: 600">impayes-novembre.xlsx</span><span style="color: var(--text-3)">24 lignes analysées</span></div>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-4); font-size: var(--fs-sm)"><span style="color: var(--success-fg); font-weight: 600">22 prêtes à importer · 48 310 €</span><span style="color: var(--danger-fg); font-weight: 600">2 à corriger</span></div>
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); color: var(--text-2)">
+<li style="display: flex; gap: var(--sp-2)"><span style="color: var(--danger-fg); font-weight: 600">Ligne 7</span>Échéance manquante pour la facture MD-73102</li>
+<li style="display: flex; gap: var(--sp-2)"><span style="color: var(--danger-fg); font-weight: 600">Ligne 19</span>Montant illisible (« 1.2OO,00 »)</li>
+</ul>
+</div>
+<sc-if value="{{depDone}}" hint-placeholder-val="{{ false }}"><div role="status" style="background: var(--success-bg); border: 1px solid var(--success-border); border-radius: var(--r-md); padding: var(--sp-3) var(--sp-3h); font-size: var(--fs-base); color: var(--success-fg)">22 créances importées avec le statut « Nouveau ». Les 2 lignes à corriger restent en attente.</div></sc-if>
+<div style="display: flex; justify-content: flex-end; gap: var(--sp-2)"><button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="height: var(--control-md); padding: 0 var(--sp-3h); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font: inherit; font-size: var(--fs-base); font-weight: 500; cursor: pointer">Corriger les 2 lignes</button><dc-import name="Bouton" variant="primary" size="md" label="Importer les 22 créances" on-press="{{deposit}}" accent="{{accent}}" style="display: contents" hint-size="120px,40px"></dc-import></div>
+</section>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{is.payouts}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: var(--sp-4)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h1 style="margin: 0; font-size: var(--fs-2xl); font-weight: 700">Reversements</h1><p style="margin: 0; font-size: var(--fs-base); color: var(--text-3)">Sommes encaissées pour votre compte, commission de 8 % HT retenue, versées le 15 de chaque mois.</p></div>
+<section aria-label="Prochain reversement" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--sp-4)">
+<div style="background: var(--marine); color: var(--on-primary); border-radius: var(--r-lg); padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-1h)"><span style="font-size: var(--fs-sm); color: var(--bleu-200)">Prochain reversement · 15 déc. 2026</span><span style="font-size: var(--fs-2xl); font-weight: 700">22 910 €</span><span style="font-size: var(--fs-xs); color: var(--bleu-200)">24 902 € encaissés − 1 992 € de commission</span></div>
+<div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-1h)"><span style="font-size: var(--fs-sm); color: var(--text-3)">Reversé en 2026</span><span style="font-size: var(--fs-2xl); font-weight: 700">414 276 €</span><span style="font-size: var(--fs-xs); color: var(--text-3)">sur 450 300 € recouvrés</span></div>
+<div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-1h)"><span style="font-size: var(--fs-sm); color: var(--text-3)">Commissions 2026</span><span style="font-size: var(--fs-2xl); font-weight: 700">36 024 €</span><span style="font-size: var(--fs-xs); color: var(--text-3)">8 % HT des sommes recouvrées</span></div>
+</section>
+<section aria-label="Historique des reversements" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden">
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 640px; border-collapse: collapse; font-size: var(--fs-base)">
+<thead style="background: var(--surface-2)"><tr style="text-align: left; color: var(--text-3); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.04em"><th scope="col" style="padding: var(--sp-3) var(--sp-5); font-weight: 600">Date</th><th scope="col" style="padding: var(--sp-3) var(--sp-2); font-weight: 600; text-align: right">Encaissé</th><th scope="col" style="padding: var(--sp-3) var(--sp-2); font-weight: 600; text-align: right">Commission</th><th scope="col" style="padding: var(--sp-3) var(--sp-2); font-weight: 600; text-align: right">Net reversé</th><th scope="col" style="padding: var(--sp-3) var(--sp-5); font-weight: 600">Relevé</th></tr></thead>
+<tbody>
+<sc-for list="{{payouts}}" as="p" hint-placeholder-count="4">
+<tr style="border-top: 1px solid var(--surface-3)"><td style="padding: var(--sp-3) var(--sp-5)"><div style="display: flex; flex-direction: column"><span style="font-weight: 500">{{p.date}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{p.n}} encaissements</span></div></td><td style="padding: var(--sp-3) var(--sp-2); text-align: right; font-variant-numeric: tabular-nums">{{p.gross}}</td><td style="padding: var(--sp-3) var(--sp-2); text-align: right; font-variant-numeric: tabular-nums; color: var(--text-2)">− {{p.fee}}</td><td style="padding: var(--sp-3) var(--sp-2); text-align: right; font-variant-numeric: tabular-nums; font-weight: 700">{{p.net}}</td><td style="padding: var(--sp-3) var(--sp-5)"><a href="#" style="font-weight: 500; text-decoration: none">PDF</a> · <a href="#" style="font-weight: 500; text-decoration: none">CSV</a></td></tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</section>
+</div>
+</sc-if>
+
+<sc-if value="{{is.messages}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: var(--sp-4)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h1 style="margin: 0; font-size: var(--fs-2xl); font-weight: 700">Messages</h1><p style="margin: 0; font-size: var(--fs-base); color: var(--text-3)">Échangez avec votre gestionnaire, Thomas Giraud. Réponse sous un jour ouvré.</p></div>
+<div style="display: flex; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden; min-height: 460px">
+<ul style="list-style: none; margin: 0; padding: 0; flex: 1 1 260px; border-right: 1px solid var(--border)">
+<sc-for list="{{convs}}" as="c" hint-placeholder-count="3">
+<li><button type="button" onClick="{{c.pick}}" aria-pressed="{{c.pressed}}" style="width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--surface-3); font: inherit; cursor: pointer; padding: var(--sp-3h) var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-1); background: {{c.bg}}; box-shadow: {{c.bar}}"><span style="display: flex; justify-content: space-between; gap: var(--sp-2)"><span style="font-size: var(--fs-base); font-weight: 600; color: var(--text)">{{c.subject}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{c.time}}</span></span><span style="font-size: var(--fs-xs); color: var(--marine); font-weight: 500">{{c.ref}}</span><span style="font-size: var(--fs-sm); color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{c.preview}}</span></button></li>
+</sc-for>
+</ul>
+<div style="flex: 2 1 420px; min-width: 0; display: flex; flex-direction: column">
+<div style="flex: 1; padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-3); background: var(--surface-2)">
+<sc-for list="{{conv.msgs}}" as="m" hint-placeholder-count="3">
+<div style="display: flex; flex-direction: column; gap: var(--sp-1); max-width: 80%; align-self: {{m.align}}; align-items: {{m.align}}"><span style="font-size: var(--fs-xs); color: var(--text-3)">{{m.who}} · {{m.when}}</span><div style="padding: var(--sp-2h) var(--sp-3h); font-size: var(--fs-base); line-height: 1.5; border-radius: {{m.radius}}; background: {{m.bg}}; color: {{m.fg}}; border: {{m.border}}">{{m.text}}</div></div>
+</sc-for>
+</div>
+<div style="border-top: 1px solid var(--border); padding: var(--sp-3) var(--sp-4); display: flex; gap: var(--sp-2); align-items: flex-end; background: var(--surface)">
+<label style="flex: 1"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Votre message</span><textarea rows="2" value="{{draft}}" onChange="{{onDraft}}" placeholder="Écrire à Thomas Giraud…" style="width: 100%; box-sizing: border-box; border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: var(--sp-2h) var(--sp-3); font: inherit; font-size: var(--fs-base); resize: vertical"></textarea></label>
+<dc-import name="Bouton" variant="primary" size="md" label="Envoyer" on-press="{{sendMsg}}" accent="{{accent}}" style="display: contents" hint-size="120px,40px"></dc-import>
+</div>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{is.docs}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: var(--sp-4); max-width: 900px">
+<div style="display: flex; flex-direction: column; gap: var(--sp-1)"><h1 style="margin: 0; font-size: var(--fs-2xl); font-weight: 700">Relevés et rapports</h1><p style="margin: 0; font-size: var(--fs-base); color: var(--text-3)">Rapport mensuel disponible le 5 de chaque mois, relevé de reversement le 15.</p></div>
+<ul style="list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden">
+<sc-for list="{{docs}}" as="d" hint-placeholder-count="6">
+<li style="display: flex; align-items: center; gap: var(--sp-3h); padding: var(--sp-3h) var(--sp-5); border-top: 1px solid var(--surface-3)"><span style="width: 32px; height: 40px; border-radius: var(--r-xs); flex-shrink: 0; display: flex; align-items: flex-end; justify-content: center; padding-bottom: var(--sp-1); box-sizing: border-box; font-size: var(--fs-2xs); font-weight: 700; background: {{d.bg}}; color: {{d.fg}}">{{d.ext}}</span><span style="flex: 1; display: flex; flex-direction: column"><span style="font-size: var(--fs-base); font-weight: 500">{{d.name}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{d.meta}}</span></span><a href="#" style="height: var(--control-sm); padding: 0 var(--sp-3); border-radius: var(--r-sm); border: 1px solid var(--border); color: var(--text); font-size: var(--fs-sm); font-weight: 500; text-decoration: none; display: inline-flex; align-items: center">Télécharger</a></li>
+</sc-for>
+</ul>
+</div>
+</sc-if>
+
+</main>
+<dc-import name="PiedDePage" maxWidth="1320px" aide="true" style="display: contents" hint-size="100%,72px"></dc-import>
+<dc-import name="Confirm" open="{{gcf.open}}" tone="{{gcf.tone}}" title="{{gcf.title}}" body="{{gcf.body}}" details="{{gcf.details}}" confirm-label="{{gcf.label}}" on-confirm="{{gcf.confirm}}" on-cancel="{{gcf.cancel}}" accent="{{accent}}" hint-size="0px,0px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#002B74","options":["#002B74","#001B4D","#5D7087"]},"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { tab: 'dash', filter: 'all', sel: 'f1', dep: 'one', depDone: false, conv: 'c1', draft: '', sent: {} };
+  }
+  componentDidMount() { const lp = this.lgPrefs(); this.lgApply(lp); this.setState({ prefs: lp }); }
+  lgPrefs() { try { return { theme: localStorage.getItem('lg-theme') || 'light', a11y: localStorage.getItem('lg-a11y') === '1' }; } catch (e) { return { theme: 'light', a11y: false }; } }
+  lgApply(p) { const d = document.documentElement; const dark = p.theme === 'dark' || (p.theme === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches); d.setAttribute('data-theme', dark ? 'dark' : 'light'); d.setAttribute('data-a11y', p.a11y ? 'malvoyant' : 'standard'); }
+  lgSave(p) { try { localStorage.setItem('lg-theme', p.theme); localStorage.setItem('lg-a11y', p.a11y ? '1' : '0'); } catch (e) {} this.lgApply(p); this.setState({ prefs: p }); }
+  renderVals() {
+    const v = this._rv0();
+    const g = this.state.gask;
+    v.gcf = { open: !!g, tone: (g && g.tone) || 'primary', title: g ? g.title : '', body: g ? g.body : '', details: (g && g.details) || [], label: g ? g.label : '', confirm: () => { const go = g && g.go; this.setState({ gask: null }); if (go) go(); }, cancel: () => this.setState({ gask: null }) };
+    return v;
+  }
+  _rv0() {
+    const accent = this.props.accent ?? 'var(--marine)';
+    const st = this.state;
+    const ST = {
+      nouveau: ['Nouveau', 'var(--surface-3)', 'var(--text-2)', 'var(--text-3)', 6],
+      relance: ['En relance', 'var(--info-bg)', 'var(--info-fg)', 'var(--info)', 31],
+      echeancier: ['Échéancier', 'var(--warning-bg)', 'var(--warning-fg)', 'var(--warning)', 9],
+      contentieux: ['Contentieux', 'var(--danger-bg)', 'var(--danger-fg)', 'var(--danger)', 4],
+      solde: ['Soldé', 'var(--success-bg)', 'var(--success-fg)', 'var(--success)', 12],
+      irrecouvrable: ['Irrécouvrable', 'var(--surface-3)', 'var(--text-2)', 'var(--text-2)', 2]
+    };
+    const tabsDef = [['dash', 'Tableau de bord'], ['files', 'Mes dossiers'], ['deposit', 'Déposer des créances'], ['payouts', 'Reversements'], ['messages', 'Messages', '1'], ['docs', 'Relevés et rapports']];
+    const is = {}; tabsDef.forEach(([id]) => { is[id] = st.tab === id; });
+    const files = [
+      { id: 'f1', k: 'relance', name: 'Bâtiplus SAS', ext: 'CLI-08812', ref: 'DOS-2026-0142', invoices: '3 factures', total: '48 200 €', rec: '0 €', last: 'Appel le 21/11 : promesse de 18 600 €', steps: [{ t: 'Rappel amiable par e-mail', d: '21/09' }, { t: 'Relance ferme', d: '12/11' }, { t: 'Appel : promesse de paiement', d: '21/11' }, { t: 'Échéancier 8 mois validé par Legarec', d: '21/11' }] },
+      { id: 'f2', k: 'contentieux', name: 'Charpentes Bellet', ext: 'CLI-07740', ref: 'DOS-2026-0109', invoices: '4 factures', total: '29 300 €', rec: '2 000 €', last: 'Mise en demeure reçue le 18/11', steps: [{ t: 'Relances amiables (3)', d: '14/09 → 28/10' }, { t: 'Votre accord pour le contentieux', d: '05/11' }, { t: 'Mise en demeure LRAR', d: '16/11' }] },
+      { id: 'f3', k: 'echeancier', name: 'SCI Les Tilleuls', ext: 'CLI-09120', ref: 'DOS-2026-0175', invoices: '2 factures', total: '14 070 €', rec: '7 034 €', last: 'Échéance 2/4 payée le 05/11', steps: [{ t: 'Échéancier signé (4 mois)', d: '03/10' }, { t: 'Échéance 1/4 payée', d: '05/10' }, { t: 'Échéance 2/4 payée', d: '05/11' }] },
+      { id: 'f4', k: 'relance', name: 'Menuiserie Rivoire', ext: 'CLI-09311', ref: 'DOS-2026-0188', invoices: '5 factures', total: '15 640 €', rec: '0 €', last: 'Relance n°1 envoyée le 18/11', steps: [{ t: 'Prise en charge', d: '14/11' }, { t: 'Relance n°1 par e-mail', d: '18/11' }] },
+      { id: 'f5', k: 'solde', name: 'Menuiserie Arnal', ext: 'CLI-06655', ref: 'DOS-2026-0061', invoices: '2 factures', total: '9 800 €', rec: '9 800 €', last: 'Soldé le 30/10', steps: [{ t: 'Relance ferme', d: '02/10' }, { t: 'Paiement intégral', d: '30/10' }] },
+      { id: 'f6', k: 'nouveau', name: 'Bâtir Sud Rénovation', ext: 'CLI-09402', ref: 'DOS-2026-0199', invoices: '1 facture', total: '4 380 €', rec: '0 €', last: 'Déposé le 20/11', steps: [{ t: 'Créance déposée par vous', d: '20/11' }] },
+      { id: 'f7', k: 'irrecouvrable', name: 'Atelier Corbin', ext: 'CLI-05120', ref: 'DOS-2026-0033', invoices: '1 facture', total: '2 150 €', rec: '0 €', last: 'Liquidation judiciaire du débiteur', steps: [{ t: 'Procédure collective constatée', d: '12/09' }, { t: 'Déclaration de créance conseillée', d: '13/09' }] }
+    ];
+    const list = files.filter((f) => st.filter === 'all' || f.k === st.filter);
+    const curRaw = files.find((f) => f.id === st.sel) || files[0];
+    const convDef = [
+      { id: 'c1', subject: 'Échéancier Bâtiplus SAS', ref: 'DOS-2026-0142', time: '10:02', msgs: [
+        { me: false, who: 'Thomas Giraud', when: 'aujourd’hui 09:40', text: 'Bonjour Claire, Bâtiplus propose de régler 18 600 € le 28/11 puis le solde en 8 mensualités. Cela dépasse les 6 mois prévus au mandat : validez-vous ?' },
+        { me: true, who: 'Vous', when: '10:02', text: 'Bonjour Thomas, c’est d’accord pour 8 mois, à condition que le premier versement soit bien reçu le 28/11.' }
+      ] },
+      { id: 'c2', subject: 'Contestation Atelier Mistral', ref: 'DOS-2026-0170', time: 'Hier', msgs: [
+        { me: false, who: 'Thomas Giraud', when: 'hier 15:10', text: 'Le débiteur indique 2 palettes manquantes sur la livraison du 02/10. Pouvez-vous nous transmettre le bon de livraison signé ?' }
+      ] },
+      { id: 'c3', subject: 'Nouveau lot de créances', ref: 'Import du 20/11', time: '20 nov.', msgs: [
+        { me: true, who: 'Vous', when: '20/11 16:00', text: 'Je viens de déposer le lot de novembre (22 factures).' },
+        { me: false, who: 'Thomas Giraud', when: '20/11 16:45', text: 'Bien reçu, la prise en charge démarre lundi.' }
+      ] }
+    ];
+    const conv = convDef.find((c) => c.id === st.conv) || convDef[0];
+    const msgs = conv.msgs.concat(st.sent[conv.id] || []).map((m) => ({
+      ...m, align: m.me ? 'flex-end' : 'flex-start',
+      bg: m.me ? accent : 'var(--white)', fg: m.me ? 'var(--on-primary)' : 'var(--text)', border: m.me ? '0' : '1px solid var(--border)',
+      radius: m.me ? '14px 14px 4px 14px' : '14px 14px 14px 4px'
+    }));
+    const monthsDef = [['Juin', 38], ['Juil.', 41], ['Août', 33], ['Sept.', 46], ['Oct.', 44], ['Nov.', 52]];
+    const totalN = 64;
+    return {
+      accent, is,
+      lgA11y: (this.state.prefs || {}).a11y ? 'true' : 'false',
+      lgDark: (this.state.prefs || {}).theme === 'dark' ? 'true' : 'false',
+      toggleLgA11y: () => this.lgSave({ ...(this.state.prefs || { theme: 'light' }), a11y: !(this.state.prefs || {}).a11y }),
+      toggleLgDark: () => this.lgSave({ ...(this.state.prefs || { a11y: false }), theme: (this.state.prefs || {}).theme === 'dark' ? 'light' : 'dark' }),
+      tabs: tabsDef.map(([id, label, badge]) => ({
+        label, hasBadge: !!badge, badge: badge || '',
+        current: st.tab === id ? 'page' : 'false',
+        color: st.tab === id ? 'var(--text)' : 'var(--text-3)',
+        bar: st.tab === id ? 'inset 0 -2px 0 ' + accent : 'none',
+        pick: () => this.setState({ tab: id })
+      })),
+      goDeposit: () => this.setState({ tab: 'deposit', depDone: false }),
+      goMessages: () => this.setState({ tab: 'messages' }),
+      kpis: [
+        { label: 'Montant confié en 2026', value: '836 700 €', hint: '412 factures · 64 débiteurs' },
+        { label: 'Montant recouvré', value: '450 300 €', hint: 'dont 52 340 € en novembre' },
+        { label: 'Taux de recouvrement', value: '54 %', hint: 'sur les dossiers ouverts en 2026' },
+        { label: 'Délai moyen de recouvrement', value: '38 jours', hint: 'de la prise en charge au paiement' }
+      ],
+      statusBar: Object.keys(ST).map((k) => ({
+        label: ST[k][0], n: ST[k][4], color: ST[k][3], w: (ST[k][4] / totalN * 100).toFixed(1) + '%',
+        open: () => this.setState({ tab: 'files', filter: k })
+      })),
+      statusAria: Object.keys(ST).map((k) => ST[k][0] + ' ' + ST[k][4]).join(', '),
+      months: monthsDef.map(([l, v], i) => ({ l, v: v + ' k€', h: Math.round(v / 60 * 140) + 'px', c: i === monthsDef.length - 1 ? accent : 'var(--data-1)' })),
+      activity: [
+        { who: 'Bâtiplus SAS', what: 'promesse de paiement de 18 600 € pour le 28/11', when: 'Aujourd’hui 09:12', dot: 'var(--warning)' },
+        { who: 'Charpentes Bellet', what: 'accusé de réception de la mise en demeure', when: '18/11', dot: 'var(--danger)' },
+        { who: 'Reversement', what: '38 420 € versés sur votre compte', when: '15/11', dot: 'var(--success)' },
+        { who: 'SCI Les Tilleuls', what: 'échéance 2/4 de 3 517 € payée', when: '05/11', dot: 'var(--success)' }
+      ],
+      chips: [{ id: 'all', label: 'Tous', n: 64 }].concat(Object.keys(ST).map((k) => ({ id: k, label: ST[k][0], n: ST[k][4] }))).map((c) => ({
+        label: c.label, n: c.n, pressed: st.filter === c.id ? 'true' : 'false',
+        border: st.filter === c.id ? '1px solid ' + accent : '1px solid var(--border)',
+        bg: st.filter === c.id ? 'var(--bleu-pale)' : 'var(--white)', color: st.filter === c.id ? 'var(--marine)' : 'var(--text-2)',
+        pick: () => this.setState({ filter: c.id })
+      })),
+      files: list.map((f) => ({
+        ...f, status: ST[f.k][0], bg: ST[f.k][1], fg: ST[f.k][2],
+        recColor: f.rec === '0 €' ? 'var(--text-3)' : 'var(--success-fg)',
+        pressed: f.id === curRaw.id ? 'true' : 'false',
+        rowBg: f.id === curRaw.id ? 'var(--bleu-pale)' : 'var(--white)',
+        pick: () => this.setState({ sel: f.id })
+      })),
+      cur: curRaw,
+      depModes: [['one', 'Une créance'], ['batch', 'En lot (CSV ou Excel)']].map(([id, label]) => ({
+        label, selected: st.dep === id ? 'true' : 'false',
+        bg: st.dep === id ? 'var(--white)' : 'transparent', color: st.dep === id ? 'var(--text)' : 'var(--text-3)',
+        shadow: st.dep === id ? 'var(--shadow-sm)' : 'none',
+        pick: () => this.setState({ dep: id, depDone: false })
+      })),
+      depOne: st.dep === 'one', depBatch: st.dep === 'batch',
+      depDone: st.depDone,
+      deposit: () => { const batch = st.dep === 'batch'; this.setState({ gask: { title: batch ? 'Confier 22 créances à Legarec ?' : 'Confier cette créance à Legarec ?', body: (batch ? 'Les 22 dossiers sont ouverts aussitôt' : 'Le dossier est ouvert aussitôt') + ' et les relances démarrent selon les conditions de votre convention. Vous suivez l’avancement dans cet espace.' + (batch ? ' Les 2 lignes en erreur ne sont pas importées.' : ''), label: batch ? 'Confier les 22 créances' : 'Confier la créance', go: () => this.setState({ depDone: true }) } }); },
+      payouts: [
+        { date: '15 nov. 2026', n: 12, gross: '41 761 €', fee: '3 341 €', net: '38 420 €' },
+        { date: '15 oct. 2026', n: 15, gross: '44 837 €', fee: '3 587 €', net: '41 250 €' },
+        { date: '15 sept. 2026', n: 9, gross: '30 880 €', fee: '2 470 €', net: '28 410 €' },
+        { date: '15 août 2026', n: 11, gross: '36 210 €', fee: '2 897 €', net: '33 313 €' }
+      ],
+      convs: convDef.map((c) => {
+        const last = (st.sent[c.id] || []).slice(-1)[0] || c.msgs[c.msgs.length - 1];
+        return {
+          ...c, preview: (last.me ? 'Vous : ' : '') + last.text,
+          pressed: c.id === conv.id ? 'true' : 'false',
+          bg: c.id === conv.id ? 'var(--surface-3)' : 'var(--white)', bar: c.id === conv.id ? 'inset 3px 0 0 var(--or)' : 'none',
+          pick: () => this.setState({ conv: c.id, draft: '' })
+        };
+      }),
+      conv: { ...conv, msgs },
+      draft: st.draft,
+      onDraft: (e) => this.setState({ draft: e.target.value }),
+      sendMsg: () => {
+        if (!st.draft.trim()) return;
+        const arr = (st.sent[conv.id] || []).concat([{ me: true, who: 'Vous', when: 'à l’instant', text: st.draft }]);
+        this.setState({ sent: { ...st.sent, [conv.id]: arr }, draft: '' });
+      },
+      docs: [
+        { name: 'Rapport mensuel – novembre 2026', meta: 'Disponible le 05/12/2026', ext: 'PDF', bg: 'var(--surface-3)', fg: 'var(--text-3)' },
+        { name: 'Relevé de reversement – 15/11/2026', meta: 'PDF · 210 Ko', ext: 'PDF', bg: 'var(--bleu-200)', fg: 'var(--marine)' },
+        { name: 'Rapport mensuel – octobre 2026', meta: 'PDF · 340 Ko', ext: 'PDF', bg: 'var(--bleu-200)', fg: 'var(--marine)' },
+        { name: 'Relevé de reversement – 15/10/2026', meta: 'PDF · 196 Ko', ext: 'PDF', bg: 'var(--bleu-200)', fg: 'var(--marine)' },
+        { name: 'Détail des dossiers au 21/11/2026', meta: 'Excel · généré à la demande', ext: 'XLSX', bg: 'var(--success-bg)', fg: 'var(--success-fg)' },
+        { name: 'Convention de mandat signée', meta: 'PDF · 12/03/2024', ext: 'PDF', bg: 'var(--bleu-200)', fg: 'var(--marine)' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

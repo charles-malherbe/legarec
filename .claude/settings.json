@@ -1,0 +1,82 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm install *)",
+      "Bash(pnpm add *)",
+      "Bash(pnpm remove *)",
+      "Bash(pnpm dev *)",
+      "Bash(pnpm build *)",
+      "Bash(pnpm verifier *)",
+      "Bash(pnpm test *)",
+      "Bash(pnpm lint *)",
+      "Bash(pnpm typecheck *)",
+      "Bash(pnpm comparer *)",
+      "Bash(pnpm exec playwright *)",
+      "Bash(pnpm exec vitest *)",
+      "Bash(pnpm exec prisma *)",
+      "Bash(pnpm --filter *)",
+      "Bash(node scripts/comparer-ecran.mjs *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git switch *)",
+      "Bash(git checkout -b *)",
+      "Bash(git branch *)",
+      "Bash(git stash *)",
+      "Bash(git fetch *)",
+      "Bash(git pull *)",
+      "Bash(git push -u origin *)",
+      "Bash(docker compose ps *)",
+      "Bash(docker compose logs *)",
+      "WebFetch(domain:mantine.dev)",
+      "WebFetch(domain:tanstack.com)",
+      "WebFetch(domain:fullcalendar.io)",
+      "WebFetch(domain:docs.nestjs.com)",
+      "WebFetch(domain:www.prisma.io)",
+      "WebFetch(domain:playwright.dev)",
+      "WebFetch(domain:docs.bullmq.io)",
+      "WebFetch(domain:handlebarsjs.com)",
+      "WebFetch(domain:code.claude.com)",
+      "WebFetch(domain:docs.claude.com)"
+    ],
+    "deny": [
+      "Bash(pnpm deployer *)",
+      "Bash(git push origin main *)",
+      "Bash(git push * main)",
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(git reset --hard *)",
+      "Bash(rm -rf *)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Edit(./.env)",
+      "Edit(./.env.*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/apres-modif.mjs\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/avant-fin.mjs\""
+          }
+        ]
+      }
+    ]
+  }
+}

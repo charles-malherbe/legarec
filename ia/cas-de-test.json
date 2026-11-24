@@ -1,0 +1,214 @@
+{
+  "_note": "Jeu de cas de test des fonctions IA (docs/ia.md). Chaque prompt doit produire la sortie attendue (champs structurés). Exécuté en mode simulé par pnpm verifier, et à la demande contre l'API réelle. Ajouter un cas pour chaque erreur signalée en production (journal de l'IA).",
+  "tri_emails": [
+    {
+      "id": "m1",
+      "entree": {
+        "de": "Julien Ferrand",
+        "objet": "Re: Relance – factures F-2026-0712, 0745, 0790",
+        "corps": "Bonjour Madame Laurent,\n\nSuite à notre échange téléphonique de ce matin, je vous confirme le virement de 18 600 € correspondant à la facture F-2026-0712, au plus tard le 28 novembre.\n\nPour le solde de 29 600 €, nous traversons une période de trésorerie tendue. Serait-il possible de l’étaler sur quatre mensualités à partir de décembre ?\n\nBien cordialement,\nJulien Ferrand\nDirecteur administratif et financier"
+      },
+      "attendu": {
+        "categorie": "echeancier",
+        "dossier": "DOS-2026-0142",
+        "montants": [
+          "18 600 €",
+          "29 600 €"
+        ],
+        "dates": [
+          "2026-11-28"
+        ],
+        "factures": [
+          "F-2026-0712"
+        ],
+        "demande": "échéancier 4 mensualités"
+      }
+    },
+    {
+      "id": "m2",
+      "entree": {
+        "de": "Sophie Arnaud",
+        "objet": "Contestation facture F-2026-0874",
+        "corps": "Bonjour,\n\nNous contestons la facture F-2026-0874 : la livraison du 2 octobre était incomplète (2 palettes manquantes sur 6, voir bon de livraison joint).\n\nNous réglerons la partie livrée dès réception d’un avoir pour le reste.\n\nCordialement,\nSophie Arnaud"
+      },
+      "attendu": {
+        "categorie": "litige",
+        "dossier": "DOS-2026-0170",
+        "montants": [],
+        "dates": [],
+        "factures": [
+          "F-2026-0874"
+        ],
+        "demande": "avoir pour la partie non livrée"
+      }
+    },
+    {
+      "id": "m3",
+      "entree": {
+        "de": "Nordis Logistique",
+        "objet": "Avis de virement – 12 500 €",
+        "corps": "Bonjour,\n\nVeuillez trouver ci-joint l’avis de virement de 12 500 € émis ce jour, en règlement partiel du dossier DOS-2026-0163.\n\nLe solde de 8 900 € sera réglé le 15 décembre comme convenu.\n\nService comptabilité fournisseurs"
+      },
+      "attendu": {
+        "categorie": "paiement",
+        "dossier": "DOS-2026-0163",
+        "montants": [
+          "12 500 €",
+          "8 900 €"
+        ],
+        "dates": [
+          "2026-12-15"
+        ],
+        "factures": [],
+        "demande": null
+      }
+    },
+    {
+      "id": "m4",
+      "entree": {
+        "de": "Nadia Roussel",
+        "objet": "Re: Relance n°2",
+        "corps": "Bonjour,\n\nLe règlement de vos deux factures est en cours de validation par notre direction financière. Il devrait partir dans le prochain cycle de paiement, le 30 novembre.\n\nJe reviens vers vous dès confirmation.\n\nNadia Roussel"
+      },
+      "attendu": {
+        "categorie": "promesse",
+        "dossier": "DOS-2026-0151",
+        "montants": [],
+        "dates": [
+          "2026-11-30"
+        ],
+        "factures": [],
+        "demande": null
+      }
+    },
+    {
+      "id": "m5",
+      "entree": {
+        "de": "Mail Delivery System",
+        "objet": "Échec de remise : compta@garagevalmont.example",
+        "corps": "Votre message « Relance n°3 – DOS-2026-0098 » n’a pas pu être remis à compta@garagevalmont.example.\n\nMotif : boîte aux lettres inexistante (550 5.1.1)."
+      },
+      "attendu": {
+        "categorie": "rebond",
+        "dossier": "DOS-2026-0098",
+        "montants": [],
+        "dates": [],
+        "factures": [],
+        "demande": "adresse e-mail invalide"
+      }
+    },
+    {
+      "id": "m6",
+      "entree": {
+        "de": "Marc Durand",
+        "objet": "Question sur la facture F-2026-0902",
+        "corps": "Bonjour,\n\nPouvez-vous me renvoyer votre RIB ? Je souhaite régler la facture F-2026-0902 cette semaine.\n\nMerci,\nMarc Durand"
+      },
+      "attendu": {
+        "categorie": "paiement",
+        "dossier": "DOS-2026-0181",
+        "montants": [],
+        "dates": [],
+        "factures": [
+          "F-2026-0902"
+        ],
+        "demande": "RIB"
+      }
+    }
+  ],
+  "resume_appel": [
+    {
+      "id": "a1",
+      "entree": {
+        "consentement": true,
+        "transcription": [
+          [
+            "gestionnaire",
+            "Je vous appelle au sujet des trois factures Matériaux Delta, pour 48 200 € au total."
+          ],
+          [
+            "debiteur",
+            "On a eu un gros retard de chantier. Je peux régler la F-2026-0712 tout de suite."
+          ],
+          [
+            "debiteur",
+            "Les 18 600 € partent par virement d’ici vendredi 28, pour le reste il me faut un échéancier."
+          ]
+        ]
+      },
+      "attendu": {
+        "resultat": "PROMESSE",
+        "montant": "18 600 €",
+        "moyen": "virement",
+        "date": "2026-11-28",
+        "factures": [
+          "F-2026-0712"
+        ],
+        "prochaine_action_contient": "échéancier"
+      }
+    },
+    {
+      "id": "a2",
+      "entree": {
+        "consentement": true,
+        "transcription": [
+          [
+            "gestionnaire",
+            "Je vous appelle au sujet des factures Médiatel."
+          ],
+          [
+            "debiteur",
+            "Je ne peux pas vous répondre maintenant, rappelez-moi demain matin."
+          ]
+        ]
+      },
+      "attendu": {
+        "resultat": "RAPPEL",
+        "quand": "demain matin"
+      }
+    },
+    {
+      "id": "a3",
+      "entree": {
+        "consentement": false,
+        "transcription": []
+      },
+      "attendu": {
+        "aucun_appel_ia": true
+      }
+    }
+  ],
+  "synthese_dossier": [
+    {
+      "id": "s1",
+      "dossier": "Bâtiplus SAS",
+      "source": "maquette/donnees-demo/Dossier.json",
+      "attendu_contient": [
+        "48 200 €",
+        "68 jours",
+        "18 600 €",
+        "28/11",
+        "29 600 €"
+      ],
+      "interdit": [
+        "IBAN",
+        "score",
+        "menace"
+      ]
+    }
+  ],
+  "garde_fous": [
+    {
+      "id": "g1",
+      "regle": "Un brouillon ne contient jamais de menace ni de pression (procédure présentée comme certaine, frais non dus, contact de l'employeur ou de la famille)."
+    },
+    {
+      "id": "g2",
+      "regle": "Aucune donnée bancaire (IBAN complet) ni pièce d'identité n'est envoyée à l'IA."
+    },
+    {
+      "id": "g3",
+      "regle": "Les mentions obligatoires ne sont jamais générées par l'IA."
+    }
+  ]
+}

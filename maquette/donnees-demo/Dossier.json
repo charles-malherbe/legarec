@@ -1,0 +1,249 @@
+{
+  "accent": "var(--marine)",
+  "tabs": [
+    {
+      "label": "Vue d’ensemble",
+      "count": "",
+      "hasCount": false,
+      "selected": "true",
+      "color": "var(--text)",
+      "bar": "inset 0 -2px 0 var(--marine)"
+    },
+    {
+      "label": "Factures",
+      "count": "3",
+      "hasCount": true,
+      "selected": "false",
+      "color": "var(--text-3)",
+      "bar": "none"
+    },
+    {
+      "label": "Historique",
+      "count": "5",
+      "hasCount": true,
+      "selected": "false",
+      "color": "var(--text-3)",
+      "bar": "none"
+    },
+    {
+      "label": "Échanges",
+      "count": "6",
+      "hasCount": true,
+      "selected": "false",
+      "color": "var(--text-3)",
+      "bar": "none"
+    },
+    {
+      "label": "Documents",
+      "count": "5",
+      "hasCount": true,
+      "selected": "false",
+      "color": "var(--text-3)",
+      "bar": "none"
+    }
+  ],
+  "is": {
+    "documents": false,
+    "echanges": false
+  },
+  "showFactures": true,
+  "showSynth": true,
+  "synthMeta": "Mise à jour il y a 2 min · d’après 23 événements (appels, e-mails, relances)",
+  "synth": [
+    {
+      "k": "Situation",
+      "v": "48 200 € dus à Matériaux Delta sur 3 factures, la plus ancienne en retard de 68 jours."
+    },
+    {
+      "k": "Promesses",
+      "v": "2 promesses depuis septembre : celle du 15/10 n’a pas été tenue ; la dernière (18 600 € au plus tard le 28/11) est en cours."
+    },
+    {
+      "k": "Dernier contact",
+      "v": "Appel du 21/11 avec Julien Ferrand (gérant), confirmé par e-mail le même jour."
+    },
+    {
+      "k": "Blocage",
+      "v": "Trésorerie tendue après un retard de chantier. Demande d’échéancier en 4 mensualités pour le solde de 29 600 €."
+    },
+    {
+      "k": "Suggestion",
+      "v": "Vérifier le virement le 29/11, puis soumettre l’échéancier 4 × 7 400 € à Matériaux Delta."
+    }
+  ],
+  "synthReported": false,
+  "showHisto": true,
+  "docs": [
+    {
+      "name": "Relance n°2 – relance ferme.pdf",
+      "meta": "Envoyée le 12/11/2026 · ouverte le 13/11",
+      "ext": "PDF",
+      "bg": "var(--info-bg)",
+      "fg": "var(--info-fg)"
+    },
+    {
+      "name": "Proposition d’échéancier (8 mois).docx",
+      "meta": "Brouillon du 21/11/2026",
+      "ext": "DOCX",
+      "bg": "var(--surface-3)",
+      "fg": "var(--text-2)"
+    },
+    {
+      "name": "F-2026-0712.pdf",
+      "meta": "Facture du créancier · 18 600 €",
+      "ext": "PDF",
+      "bg": "var(--bleu-200)",
+      "fg": "var(--marine)"
+    },
+    {
+      "name": "F-2026-0745.pdf",
+      "meta": "Facture du créancier · 16 400 €",
+      "ext": "PDF",
+      "bg": "var(--bleu-200)",
+      "fg": "var(--marine)"
+    },
+    {
+      "name": "F-2026-0790.pdf",
+      "meta": "Facture du créancier · 13 200 €",
+      "ext": "PDF",
+      "bg": "var(--bleu-200)",
+      "fg": "var(--marine)"
+    }
+  ],
+  "exchanges": [
+    {
+      "ch": "E-mail reçu",
+      "title": "Julien Ferrand demande un échéancier",
+      "text": "Confirme 18 600 € au 28/11 et propose d’étaler le solde de 29 600 € en quatre fois.",
+      "when": "21/11 09:42",
+      "bg": "var(--info-bg)",
+      "fg": "var(--info-fg)"
+    },
+    {
+      "ch": "Appel",
+      "title": "Appel sortant · 4 min 32",
+      "text": "Promesse de paiement de 18 600 € pour le 28/11, demande d’échéancier pour le solde.",
+      "when": "21/11 09:00",
+      "bg": "var(--bleu-200)",
+      "fg": "var(--marine)"
+    },
+    {
+      "ch": "Appel",
+      "title": "Appel sans réponse",
+      "text": "Message laissé, rappel demandé.",
+      "when": "19/11 11:00",
+      "bg": "var(--bleu-200)",
+      "fg": "var(--marine)"
+    },
+    {
+      "ch": "E-mail envoyé",
+      "title": "Relance n°2 – relance ferme",
+      "text": "Ouverte le 13/11 à 08:15.",
+      "when": "12/11 09:00",
+      "bg": "var(--surface-3)",
+      "fg": "var(--text-2)"
+    },
+    {
+      "ch": "SMS envoyé",
+      "title": "Relance SMS avec lien de paiement",
+      "text": "Distribué. Aucun clic sur le lien.",
+      "when": "05/10 10:00",
+      "bg": "var(--teal-bg)",
+      "fg": "var(--teal-fg)"
+    },
+    {
+      "ch": "E-mail envoyé",
+      "title": "Relance n°1 – rappel amiable",
+      "text": "Ouverte le 22/09.",
+      "when": "21/09 09:00",
+      "bg": "var(--surface-3)",
+      "fg": "var(--text-2)"
+    }
+  ],
+  "showRelance": false,
+  "invoices": [
+    {
+      "num": "F-2026-0712",
+      "issued": "15 août 2026",
+      "due": "14 sept. 2026",
+      "amount": "18 600 €",
+      "late": "68 j"
+    },
+    {
+      "num": "F-2026-0745",
+      "issued": "28 août 2026",
+      "due": "27 sept. 2026",
+      "amount": "16 400 €",
+      "late": "55 j"
+    },
+    {
+      "num": "F-2026-0790",
+      "issued": "10 sept. 2026",
+      "due": "10 oct. 2026",
+      "amount": "13 200 €",
+      "late": "42 j"
+    }
+  ],
+  "history": [
+    {
+      "title": "Appel sans réponse",
+      "detail": "Message laissé à J. Ferrand, rappel demandé.",
+      "date": "19 nov. 2026 · Camille Laurent",
+      "dot": "var(--danger-fg)"
+    },
+    {
+      "title": "Relance n°2 envoyée par e-mail",
+      "detail": "Modèle « Relance ferme » · ouvert le 13 nov.",
+      "date": "12 nov. 2026 · automatique",
+      "dot": "var(--info-fg)"
+    },
+    {
+      "title": "Promesse de paiement non tenue",
+      "detail": "Paiement de 18 600 € annoncé pour le 31 oct.",
+      "date": "3 nov. 2026 · Camille Laurent",
+      "dot": "var(--warning-fg)"
+    },
+    {
+      "title": "Relance n°1 envoyée par e-mail",
+      "detail": "Modèle « Rappel amiable »",
+      "date": "21 sept. 2026 · automatique",
+      "dot": "var(--info-fg)"
+    },
+    {
+      "title": "Dossier ouvert",
+      "detail": "Créé automatiquement depuis la comptabilité",
+      "date": "15 sept. 2026",
+      "dot": "var(--text-3)"
+    }
+  ],
+  "steps": [
+    {
+      "n": "1",
+      "label": "Rappel amiable (e-mail)",
+      "when": "J+7 · envoyé",
+      "bg": "var(--success-bg)",
+      "fg": "var(--success-fg)"
+    },
+    {
+      "n": "2",
+      "label": "Relance ferme (e-mail)",
+      "when": "J+30 · envoyé",
+      "bg": "var(--success-bg)",
+      "fg": "var(--success-fg)"
+    },
+    {
+      "n": "3",
+      "label": "Relance téléphonique + courrier",
+      "when": "J+60 · à faire",
+      "bg": "var(--marine)",
+      "fg": "var(--on-primary)"
+    },
+    {
+      "n": "4",
+      "label": "Mise en demeure (LRAR)",
+      "when": "J+75",
+      "bg": "var(--surface-3)",
+      "fg": "var(--text-2)"
+    }
+  ]
+}

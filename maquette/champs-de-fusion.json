@@ -1,0 +1,392 @@
+{
+  "groupes": [
+    {
+      "id": "debiteur",
+      "libelle": "Débiteur",
+      "perimetre": "Recouvrement",
+      "champs": [
+        {
+          "code": "debiteur.raison_sociale",
+          "description": "Raison sociale",
+          "type": "texte",
+          "exemple": "Bâtiplus SAS"
+        },
+        {
+          "code": "debiteur.adresse",
+          "description": "Adresse postale (plusieurs lignes)",
+          "type": "texte",
+          "exemple": "14 rue des Forges, 69007 Lyon"
+        },
+        {
+          "code": "debiteur.siret",
+          "description": "SIRET",
+          "type": "texte",
+          "exemple": "512 384 920 00027"
+        },
+        {
+          "code": "debiteur.contact",
+          "description": "Interlocuteur",
+          "type": "texte",
+          "exemple": "M. Julien Garnier"
+        },
+        {
+          "code": "debiteur.email",
+          "description": "E-mail",
+          "type": "texte",
+          "exemple": "compta@batiplus.fr"
+        },
+        {
+          "code": "debiteur.telephone",
+          "description": "Téléphone",
+          "type": "texte",
+          "exemple": "04 78 61 22 90"
+        }
+      ]
+    },
+    {
+      "id": "creance",
+      "libelle": "Créance",
+      "perimetre": "Recouvrement",
+      "champs": [
+        {
+          "code": "creance.principal",
+          "description": "Montant en principal",
+          "type": "montant",
+          "exemple": "48 200,00 €"
+        },
+        {
+          "code": "creance.interets",
+          "description": "Intérêts de retard",
+          "type": "montant",
+          "exemple": "1 128,40 €"
+        },
+        {
+          "code": "creance.indemnites",
+          "description": "Indemnités forfaitaires (40 € par facture)",
+          "type": "montant",
+          "exemple": "120,00 €"
+        },
+        {
+          "code": "creance.frais",
+          "description": "Frais de procédure refacturables",
+          "type": "montant",
+          "exemple": "0,00 €"
+        },
+        {
+          "code": "creance.total",
+          "description": "Total dû",
+          "type": "montant",
+          "exemple": "49 448,40 €"
+        },
+        {
+          "code": "creance.deja_paye",
+          "description": "Déjà réglé",
+          "type": "montant",
+          "exemple": "0,00 €"
+        },
+        {
+          "code": "creance.anciennete",
+          "description": "Ancienneté de la plus vieille facture",
+          "type": "texte",
+          "exemple": "70 jours"
+        },
+        {
+          "code": "creance.factures",
+          "description": "Liste des factures (boucle)",
+          "type": "liste",
+          "exemple": "3 factures"
+        },
+        {
+          "code": "facture.numero",
+          "description": "Dans la boucle : numéro de la facture",
+          "type": "texte",
+          "exemple": "F-2026-0712"
+        },
+        {
+          "code": "facture.date",
+          "description": "Dans la boucle : date d’émission",
+          "type": "date",
+          "exemple": "14/08/2026"
+        },
+        {
+          "code": "facture.echeance",
+          "description": "Dans la boucle : date d’échéance",
+          "type": "date",
+          "exemple": "14/09/2026"
+        },
+        {
+          "code": "facture.montant",
+          "description": "Dans la boucle : montant restant dû",
+          "type": "montant",
+          "exemple": "18 600,00 €"
+        }
+      ]
+    },
+    {
+      "id": "creancier",
+      "libelle": "Créancier",
+      "perimetre": "Recouvrement",
+      "champs": [
+        {
+          "code": "creancier.nom",
+          "description": "Nom du créancier",
+          "type": "texte",
+          "exemple": "Matériaux Delta"
+        },
+        {
+          "code": "creancier.adresse",
+          "description": "Adresse du créancier",
+          "type": "texte",
+          "exemple": "ZI des Platanes, 38070 Saint-Quentin-Fallavier"
+        },
+        {
+          "code": "creancier.siren",
+          "description": "SIREN du créancier",
+          "type": "texte",
+          "exemple": "401 228 975"
+        }
+      ]
+    },
+    {
+      "id": "dossier",
+      "libelle": "Dossier et paiement",
+      "perimetre": "Recouvrement",
+      "champs": [
+        {
+          "code": "dossier.reference",
+          "description": "Référence du dossier",
+          "type": "texte",
+          "exemple": "LGR-2026-04812"
+        },
+        {
+          "code": "dossier.gestionnaire",
+          "description": "Gestionnaire",
+          "type": "texte",
+          "exemple": "Camille Laurent"
+        },
+        {
+          "code": "dossier.gestionnaire_telephone",
+          "description": "Ligne directe du gestionnaire",
+          "type": "texte",
+          "exemple": "01 87 88 02 98"
+        },
+        {
+          "code": "date.jour",
+          "description": "Date du jour (en lettres)",
+          "type": "date",
+          "exemple": "23 novembre 2026"
+        },
+        {
+          "code": "date.limite",
+          "description": "Date limite de paiement",
+          "type": "date",
+          "exemple": "1er décembre 2026"
+        },
+        {
+          "code": "paiement.lien",
+          "description": "Lien de paiement en ligne",
+          "type": "lien",
+          "exemple": "paiement.legarec.fr/7F3A2C"
+        },
+        {
+          "code": "paiement.iban",
+          "description": "IBAN du compte de cantonnement",
+          "type": "texte",
+          "exemple": "FR76 •••• •••• 0142"
+        },
+        {
+          "code": "echeancier.mensualites",
+          "description": "Nombre de mensualités",
+          "type": "nombre",
+          "exemple": "4"
+        },
+        {
+          "code": "echeancier.montant",
+          "description": "Montant d’une mensualité",
+          "type": "montant",
+          "exemple": "12 362,10 €"
+        },
+        {
+          "code": "echeancier.premiere_date",
+          "description": "Date de la première mensualité",
+          "type": "date",
+          "exemple": "5 janvier 2027"
+        }
+      ]
+    },
+    {
+      "id": "facturation",
+      "libelle": "Facturation du cabinet",
+      "perimetre": "Facturation",
+      "champs": [
+        {
+          "code": "document.numero",
+          "description": "Numéro de facture, devis ou contrat",
+          "type": "texte",
+          "exemple": "FA-2026-0118"
+        },
+        {
+          "code": "document.date",
+          "description": "Date d’émission",
+          "type": "date",
+          "exemple": "23 novembre 2026"
+        },
+        {
+          "code": "document.echeance",
+          "description": "Date d’échéance",
+          "type": "date",
+          "exemple": "23 décembre 2026"
+        },
+        {
+          "code": "document.periode",
+          "description": "Période facturée",
+          "type": "texte",
+          "exemple": "octobre 2026"
+        },
+        {
+          "code": "document.lignes",
+          "description": "Lignes du document (boucle)",
+          "type": "liste",
+          "exemple": "2 lignes"
+        },
+        {
+          "code": "ligne.designation",
+          "description": "Dans la boucle : désignation",
+          "type": "texte",
+          "exemple": "Commission de recouvrement"
+        },
+        {
+          "code": "ligne.detail",
+          "description": "Dans la boucle : précision",
+          "type": "texte",
+          "exemple": "Sommes recouvrées : 45 200,00 €"
+        },
+        {
+          "code": "ligne.montant_ht",
+          "description": "Dans la boucle : montant HT",
+          "type": "montant",
+          "exemple": "5 424,00 €"
+        },
+        {
+          "code": "document.total_ht",
+          "description": "Total HT",
+          "type": "montant",
+          "exemple": "5 447,40 €"
+        },
+        {
+          "code": "document.tva",
+          "description": "Montant de TVA (20 %)",
+          "type": "montant",
+          "exemple": "1 089,48 €"
+        },
+        {
+          "code": "document.total_ttc",
+          "description": "Total TTC",
+          "type": "montant",
+          "exemple": "6 536,88 €"
+        },
+        {
+          "code": "client.nom",
+          "description": "Client (créancier facturé)",
+          "type": "texte",
+          "exemple": "Matériaux Delta"
+        },
+        {
+          "code": "client.adresse",
+          "description": "Adresse du client",
+          "type": "texte",
+          "exemple": "ZI des Platanes, 38070 Saint-Quentin-Fallavier"
+        },
+        {
+          "code": "client.siren",
+          "description": "SIREN du client",
+          "type": "texte",
+          "exemple": "401 228 975"
+        },
+        {
+          "code": "client.tva",
+          "description": "N° de TVA intracommunautaire du client",
+          "type": "texte",
+          "exemple": "FR52 401 228 975"
+        },
+        {
+          "code": "client.contact",
+          "description": "Contact chez le client",
+          "type": "texte",
+          "exemple": "Mme Sophie Delattre"
+        },
+        {
+          "code": "commission.taux",
+          "description": "Taux de commission",
+          "type": "texte",
+          "exemple": "12 %"
+        }
+      ]
+    },
+    {
+      "id": "cabinet",
+      "libelle": "Cabinet Legarec",
+      "perimetre": "Tous",
+      "champs": [
+        {
+          "code": "cabinet.nom",
+          "description": "Raison sociale",
+          "type": "texte",
+          "exemple": "Legarec"
+        },
+        {
+          "code": "cabinet.adresse",
+          "description": "Adresse",
+          "type": "texte",
+          "exemple": "[adresse du cabinet], Paris"
+        },
+        {
+          "code": "cabinet.telephone",
+          "description": "Téléphone",
+          "type": "texte",
+          "exemple": "01 87 88 02 98"
+        },
+        {
+          "code": "cabinet.email",
+          "description": "E-mail",
+          "type": "texte",
+          "exemple": "administratif@legarec.fr"
+        },
+        {
+          "code": "cabinet.siren",
+          "description": "SIREN",
+          "type": "texte",
+          "exemple": "[SIREN]"
+        },
+        {
+          "code": "cabinet.tva",
+          "description": "N° de TVA intracommunautaire",
+          "type": "texte",
+          "exemple": "[n° TVA]"
+        }
+      ]
+    }
+  ],
+  "blocs_imposes": [
+    {
+      "code": "{{> mentions_recouvrement}}",
+      "obligatoire_dans": "Courriers, LRAR et e-mails de recouvrement",
+      "contenu": "Mentions de l’article R. 124-4 du CPCE : cabinet, créancier, détail principal / intérêts / accessoires, modalités de paiement, alinéas 3 et 4 de l’article L. 111-8 du CPCE, information RGPD."
+    },
+    {
+      "code": "{{> mentions_facture}}",
+      "obligatoire_dans": "Factures et devis",
+      "contenu": "Numéro, SIREN et TVA, échéance, absence d’escompte, pénalités de retard, indemnité forfaitaire de 40 € (art. L. 441-9 et L. 441-10 du Code de commerce)."
+    },
+    {
+      "code": "{{> mention_sms}}",
+      "obligatoire_dans": "SMS",
+      "contenu": "Mention « STOP au 36173 ». Compte dans la longueur du SMS."
+    },
+    {
+      "code": "{{> en_tete}}",
+      "obligatoire_dans": "Courriers, factures, contrats",
+      "contenu": "En-tête Legarec (nom, coordonnées). Le logo n’est pas utilisé dans les documents."
+    }
+  ]
+}

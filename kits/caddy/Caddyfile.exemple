@@ -1,0 +1,83 @@
+# Caddyfile de référence LEGAREC (production), à adapter par Claude Code dans infra/caddy/Caddyfile.
+# Valeurs entre crochets : à confirmer. Aucun secret dans ce fichier.
+
+{
+	email [ADRESSE DE CONTACT LET'S ENCRYPT]
+	log {
+		output stdout
+		format json
+	}
+}
+
+# En-têtes communs à tous les sites
+(securite) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+	encode zstd gzip
+}
+
+# Portails (fichiers statiques produits par pnpm build), repli sur index.html pour les routes du front
+(portail) {
+	import securite
+	try_files {path} /index.html
+	file_server
+}
+
+espace.legarec.fr {
+	root * /srv/espace
+	import portail
+	# CSP propre au portail, définie par Claude Code (aucune ressource externe)
+}
+
+partenaires.legarec.fr {
+	root * /srv/partenaires
+	import portail
+}
+
+paiement.legarec.fr {
+	root * /srv/paiement
+	import portail
+}
+
+api.legarec.fr {
+	import securite
+	redir / https://status.legarec.fr 302
+	reverse_proxy api:3000
+}
+
+status.legarec.fr {
+	import securite
+	# Page publique : portails et API ; contrôles internes réservés aux adresses autorisées (configuration Gatus)
+	reverse_proxy gatus:8080
+}
+
+n8n.legarec.fr {
+	import securite
+	@interdit not remote_ip [ADRESSES IP AUTORISÉES]
+	respond @interdit 403
+	reverse_proxy n8n:5678
+}
+
+media.legarec.fr {
+	import securite
+	redir / https://legarec.fr 302
+	# Relais vers le bucket public Scaleway (liste du contenu désactivée côté bucket)
+	reverse_proxy https://legarec-media.s3.[RÉGION].scw.cloud {
+		header_up Host legarec-media.s3.[RÉGION].scw.cloud
+	}
+	header Cache-Control "public, max-age=31536000, immutable"
+}
+
+# Redirections
+www.espace.legarec.fr, www.partenaires.legarec.fr, www.paiement.legarec.fr {
+	redir https://{labels.2}.legarec.fr{uri} permanent
+}
+
+mail.legarec.fr {
+	redir https://legarec.fr permanent
+}

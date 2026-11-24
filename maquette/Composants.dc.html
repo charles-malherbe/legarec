@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Composants de base et tokens</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Lora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+/* tokens:start — charte graphique LEGAREC v1.0 (octobre 2026). Ne pas modifier à la main : généré depuis tools/tokens.css */
+:root{
+  /* Marque */
+  --marine:#002B74; --marine-hover:#00225C; --marine-text:#002B74; --app-icon-bg:#002B74; --app-icon-fg:#FCBE03; --nuit:#001B4D; --or:#FCBE03; --or-clair:#FFF3C4; --ardoise:#5D7087;
+  --bleu-pale:#EEF2F8; --gris-clair:#F6F8FB; --bleu-200:#D6E0F0; --white:#FFFFFF;
+  /* Texte */
+  --text:#0F1B2D; --text-2:#33455C; --text-3:#5D7087; --on-primary:#FFFFFF;
+  /* Surfaces et bordures */
+  --surface:#FFFFFF; --surface-2:#F6F8FB; --surface-3:#EEF2F7; --border:#E1E7EF; --border-strong:#7D8DA1;
+  /* Surfaces sombres (carte d'appel, barre d'actions groupées) */
+  --surface-dark:#001B4D; --surface-dark-2:#0B2D63; --border-dark:#2A4A7D; --on-dark:#FFFFFF; --on-dark-2:#D5DEEB; --on-dark-muted:#A9B8CC; --on-dark-accent:#B8CBEA;
+  /* Données (graphiques, balance âgée) */
+  --data-1:#C9D6EC; --data-2:#7F9CD0; --data-3:#345DA8;
+  /* Tons sémantiques : fond, bordure, point, texte */
+  --success-bg:#ECFDF5; --success-border:#A7F3D0; --success:#059669; --success-strong:#10B981; --success-fg:#047857; --on-success:#052E16;
+  --warning-bg:#FFF3C4; --warning-border:#F5D77A; --warning:#D97706; --warning-fg:#8A4B08;
+  --danger-bg:#FFF1F2; --danger-border:#FECDD3; --danger:#E11D48; --danger-fg:#BE123C; --danger-dark:#7F1D1D; --danger-on-dark:#FDA4AF;
+  --info-bg:#F0F9FF; --info-border:#BAE6FD; --info:#0284C7; --info-fg:#0369A1;
+  --violet-bg:#F5F3FF; --violet-border:#DDD6FE; --violet:#7C3AED; --violet-fg:#6D28D9;
+  --teal-bg:#CCFBF1; --teal:#0D9488; --teal-fg:#115E59;
+  /* Fonds pleins (badges pleins, texte --on-primary ≥ 5:1 dans les deux modes) */
+  --solid-neutral:#33455C; --solid-info:#0369A1; --solid-success:#047857; --solid-warning:#8A4B08; --solid-danger:#BE123C; --solid-violet:#6D28D9; --solid-teal:#115E59;
+  /* Typographie */
+  --font-title:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-text:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-brand:Lora, Georgia, serif; --font-mono:ui-monospace, SFMono-Regular, Menlo, monospace;
+  --fs-doc-xs:8px; --fs-doc-sm:9px; --fs-doc-md:10px; --fs-doc-lg:10.5px; --fs-2xs:11px; --fs-xs:12px; --fs-sm:13px; --fs-base:14px; --fs-md:16px; --fs-lg:18px; --fs-xl:20px; --fs-2xl:26px; --fs-3xl:34px;
+  /* Rayons */
+  --r-xs:4px; --r-sm:6px; --r-md:8px; --r-lg:12px; --r-full:9999px;
+  /* Ombres */
+  --shadow-sm:0 1px 2px 0 rgba(0,27,77,0.06); --shadow-md:0 10px 15px -3px rgba(0,27,77,0.10), 0 4px 6px -4px rgba(0,27,77,0.10); --shadow-lg:0 20px 25px -5px rgba(0,27,77,0.18), 0 8px 10px -6px rgba(0,27,77,0.12);
+  --shadow-knob:0 1px 2px rgba(0,27,77,0.25); --overlay:rgba(0,27,77,0.55);
+  /* Espacements (grille de 4 px) */
+  --sp-0h:2px; --sp-1:4px; --sp-1h:6px; --sp-2:8px; --sp-2h:10px; --sp-3:12px; --sp-3h:14px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px; --sp-10:40px; --sp-11:44px; --sp-12:48px;
+  /* Hauteurs de contrôles */
+  --control-xs:28px; --control-sm:36px; --control-md:40px; --control-lg:44px;
+  /* Voiles et anneaux (surfaces sombres, animations) */
+  --veil-8:rgba(255,255,255,0.08); --veil-18:rgba(255,255,255,0.18); --veil-25:rgba(255,255,255,0.25); --veil-35:rgba(255,255,255,0.35); --veil-80:rgba(255,255,255,0.8); --veil-85:rgba(255,255,255,0.85); --on-success-veil:rgba(5,46,22,0.35); --success-ring:rgba(16,185,129,0.55); --success-ring-0:rgba(16,185,129,0);
+  /* Cibles tactiles */
+  --target:44px;
+}
+body{font-family:var(--font-text);font-feature-settings:"cv11";-webkit-font-smoothing:antialiased}
+h1,h2{font-family:var(--font-title);font-weight:700;color:var(--marine);overflow-wrap:break-word;letter-spacing:-0.015em}
+[data-brand] h1,[data-brand] h2{font-family:var(--font-brand);letter-spacing:0}
+td,th,li,h3{overflow-wrap:break-word}
+:focus-visible{outline:2px solid var(--marine);outline-offset:2px}
+[data-dark] :focus-visible{outline-color:var(--or)}
+button:disabled,[aria-disabled="true"]{cursor:not-allowed !important;opacity:.55}
+button:not(:disabled):hover,a[href][style*="border-radius"]:hover{filter:brightness(.96)}
+tbody tr:hover{background-color:var(--surface-2)}
+[data-table-scroll]{max-height:min(68vh,720px);overflow:auto !important}
+[data-table-scroll] thead th{position:sticky;top:0;z-index:2;background:var(--surface-2);box-shadow:inset 0 -1px 0 var(--border)}
+[data-skeleton]{display:block;border-radius:var(--r-xs);background:linear-gradient(90deg,var(--surface-3) 25%,var(--bleu-pale) 50%,var(--surface-3) 75%);background-size:200% 100%;animation:lg-sk 1.2s ease-in-out infinite}
+@keyframes lg-sk{from{background-position:200% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+@media (pointer: coarse), (max-width: 767px){
+  button,select,input:not([type=checkbox]):not([type=radio]):not([type=range]),[role=tab],[role=menuitem],a[href][style*="display: inline-flex"],a[href][style*="height:"]{min-height:var(--target)}
+  input[type=checkbox],input[type=radio]{min-width:22px;min-height:22px}
+}
+/* Mode sombre : data-theme="dark" sur <html> */
+:root[data-theme="dark"]{
+  --marine:#2E5FC0; --marine-hover:#2A57B0; --marine-text:#9DB8F0; --app-icon-bg:#0A1A3F; --nuit:#071028; --or-clair:#3A2F0A; --ardoise:#9AA9BD;
+  --bleu-pale:#1B2A4A; --gris-clair:#0A1020; --bleu-200:#2B3E63; --white:#16203A;
+  --text:#E6ECF5; --text-2:#C3CEDD; --text-3:#9AA9BD;
+  --surface:#0F1729; --surface-2:#0A1020; --surface-3:#1A2438; --border:#26324A; --border-strong:#67778F;
+  --surface-dark:#050B1A; --surface-dark-2:#101C36; --border-dark:#24365A;
+  --data-1:#2B3E63; --data-2:#4F73B8; --data-3:#7F9CD0;
+  --success-bg:#0B2E22; --success-border:#14532D; --success-fg:#6EE7B7;
+  --warning-bg:#3A2F0A; --warning-border:#6B5310; --warning-fg:#FCD34D;
+  --danger-bg:#3B0D17; --danger-border:#7F1D2E; --danger-fg:#FDA4AF;
+  --info-bg:#0B2540; --info-border:#164E63; --info-fg:#7DD3FC;
+  --violet-bg:#24164A; --violet-border:#4C1D95; --violet-fg:#C4B5FD;
+  --teal-bg:#0B302C; --teal-fg:#5EEAD4;
+  --shadow-sm:0 1px 2px 0 rgba(0,0,0,0.4); --shadow-md:0 10px 15px -3px rgba(0,0,0,0.5); --shadow-lg:0 20px 25px -5px rgba(0,0,0,0.6); --overlay:rgba(0,0,0,0.65);
+  color-scheme:dark;
+}
+:root[data-theme="dark"] body{background:var(--surface-2);color:var(--text)}
+:root[data-theme="dark"] :focus-visible{outline-color:#9DB8F0}
+:root[data-theme="dark"] [data-dark]{border:1px solid var(--border-dark)}
+:root[data-theme="dark"] h1,:root[data-theme="dark"] h2,:root[data-theme="dark"] a[href]:not([style*="background"]){color:var(--marine-text)}
+:root[data-theme="dark"] [style*="color: var(--marine)"]:not([style*="background: var(--marine)"]){color:var(--marine-text) !important}
+:root[data-theme="dark"] img[src*="_blob"]{background:var(--white);border-radius:var(--r-sm)}
+/* Mode malvoyant : data-a11y="malvoyant" sur <html> — texte agrandi, contraste renforcé, cibles plus grandes */
+:root[data-a11y="malvoyant"]{
+  --fs-2xs:13px; --fs-xs:14px; --fs-sm:15px; --fs-base:17px; --fs-md:19px; --fs-lg:21px; --fs-xl:24px; --fs-2xl:30px; --fs-3xl:38px;
+  --control-xs:36px; --control-sm:44px; --control-md:48px; --control-lg:52px; --target:48px;
+  --text-3:var(--text-2); --ardoise:var(--text-2); --border:var(--border-strong);
+}
+:root[data-a11y="malvoyant"] body{line-height:1.6}
+:root[data-a11y="malvoyant"] [data-sb-nav][style*="width: 264px"]{width:312px !important}
+:root[data-a11y="malvoyant"] :focus-visible{outline:3px solid var(--or);outline-offset:3px;box-shadow:0 0 0 6px var(--marine)}
+:root[data-a11y="malvoyant"] a[href]:not([style*="background"]){text-decoration:underline;text-underline-offset:3px}
+:root[data-a11y="malvoyant"] button,:root[data-a11y="malvoyant"] select,:root[data-a11y="malvoyant"] input:not([type=checkbox]):not([type=radio]){min-height:var(--target)}
+:root[data-a11y="malvoyant"] input[type=checkbox],:root[data-a11y="malvoyant"] input[type=radio]{min-width:24px;min-height:24px}
+:root[data-a11y="malvoyant"][data-theme="dark"]{--text-3:#E6ECF5;--text-2:#E6ECF5}
+/* tokens:end */
+body{margin:0;background:var(--surface-2)}
+</style>
+</helmet>
+<div style="font-family: var(--font-text); color: var(--text); background: var(--surface-2); padding: var(--sp-8); display: flex; flex-direction: column; gap: var(--sp-8); max-width: 1376px">
+
+<header style="display: flex; flex-direction: column; gap: var(--sp-2)">
+<span style="font-size: var(--fs-xs); font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3)">Système de design · charte LEGAREC v1.0</span>
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-3)"><h1 style="margin: 0; font-size: var(--fs-3xl); line-height: 1.2">Composants de base et tokens</h1><span style="display: inline-flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-sm); color: var(--text-3)">Prévisualiser les modes <span role="group" aria-label="Affichage" style="display: inline-flex; gap: var(--sp-1)"><button type="button" onClick="{{toggleLgA11y}}" aria-pressed="{{lgA11y}}" title="Texte agrandi et contraste renforcé" style="height: var(--control-sm); padding: 0 var(--sp-2h); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-size: var(--fs-sm); font-weight: 600; cursor: pointer">Aa<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)"> Texte agrandi</span></button><button type="button" onClick="{{toggleLgDark}}" aria-pressed="{{lgDark}}" title="Mode sombre" style="height: var(--control-sm); width: var(--control-sm); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Mode sombre</span></button></span></span></div>
+<span aria-hidden="true" style="width: 44px; height: 4px; border-radius: var(--r-full); background: var(--or)"></span>
+<p style="margin: 0; max-width: 760px; font-size: var(--fs-base); line-height: 1.6; color: var(--text-2)">Référence pour l'implémentation. Toutes les valeurs passent par des variables CSS (bloc « tokens » présent dans chaque écran). Les états survol et focus sont montrés figés ici ; dans les écrans, ils sont produits par les règles globales.</p>
+</header>
+
+<section aria-labelledby="t-couleurs" style="display: flex; flex-direction: column; gap: var(--sp-4)">
+<h2 id="t-couleurs" style="margin: 0; font-size: var(--fs-xl)">Couleurs</h2>
+<sc-for list="{{colorGroups}}" as="g" hint-placeholder-count="3">
+<div style="display: flex; flex-direction: column; gap: var(--sp-2)">
+<span style="font-size: var(--fs-sm); font-weight: 600; color: var(--text-2)">{{g.label}}</span>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--sp-3)">
+<sc-for list="{{g.items}}" as="c" hint-placeholder-count="6"><div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden"><div style="height: 56px; background: {{c.v}}; border-bottom: 1px solid var(--border)"></div><div style="padding: var(--sp-2) var(--sp-3); display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-family: var(--font-mono); font-size: var(--fs-xs); font-weight: 600">{{c.n}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{c.d}}</span></div></div></sc-for>
+</div>
+</div>
+</sc-for>
+</section>
+
+<section aria-labelledby="t-typo" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: var(--sp-6)">
+<div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-3)">
+<h2 id="t-typo" style="margin: 0; font-size: var(--fs-xl)">Typographie</h2>
+<sc-for list="{{type}}" as="t" hint-placeholder-count="8"><div style="display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-4); border-top: 1px solid var(--border); padding-top: var(--sp-2)"><span style="font-family: {{t.family}}; font-weight: {{t.weight}}; font-size: {{t.size}}; color: {{t.color}}">{{t.sample}}</span><span style="font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3); white-space: nowrap">{{t.token}}</span></div></sc-for>
+</div>
+<div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-4)">
+<h2 style="margin: 0; font-size: var(--fs-xl)">Rayons, ombres, espacements</h2>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-3)"><sc-for list="{{radii}}" as="r" hint-placeholder-count="5"><div style="display: flex; flex-direction: column; align-items: center; gap: var(--sp-1)"><span style="width: 56px; height: 56px; background: var(--bleu-pale); border: 1px solid var(--bleu-200); border-radius: {{r.v}}"></span><span style="font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3)">{{r.n}}</span></div></sc-for></div>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-5)"><sc-for list="{{shadows}}" as="r" hint-placeholder-count="3"><div style="display: flex; flex-direction: column; align-items: center; gap: var(--sp-2)"><span style="width: 96px; height: 56px; background: var(--surface); border-radius: var(--r-lg); box-shadow: {{r.v}}"></span><span style="font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3)">{{r.n}}</span></div></sc-for></div>
+<div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--sp-3)"><sc-for list="{{controls}}" as="c" hint-placeholder-count="4"><div style="display: flex; flex-direction: column; gap: 4px"><span style="height: {{c.v}}; width: 96px; border-radius: var(--r-sm); border: 1px solid var(--border-strong); background: var(--surface)"></span><span style="font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-3)">{{c.n}}</span><span style="font-size: var(--fs-2xs); color: var(--text-3)">{{c.d}}</span></div></sc-for></div>
+<div style="display: flex; align-items: flex-end; flex-wrap: wrap; gap: var(--sp-2)"><sc-for list="{{spaces}}" as="r" hint-placeholder-count="7"><div style="display: flex; flex-direction: column; align-items: center; gap: var(--sp-1)"><span style="width: {{r.v}}; height: {{r.v}}; background: var(--or)"></span><span style="font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-3)">{{r.n}}</span></div></sc-for></div>
+</div>
+</section>
+
+<section aria-labelledby="t-boutons" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-4)">
+<h2 id="t-boutons" style="margin: 0; font-size: var(--fs-xl)">Bouton · 4 variantes × 5 états</h2>
+<p style="margin: 0; font-size: var(--fs-sm); color: var(--text-3)">Hauteur 40 px (44 px sur mobile), rayon --r-sm, texte 14 px medium. Pendant un envoi : libellé « … en cours », bouton désactivé, indicateur à gauche.</p>
+<div style="overflow-x: auto"><table style="border-collapse: separate; border-spacing: var(--sp-3) var(--sp-2); font-size: var(--fs-xs); color: var(--text-3)">
+<thead><tr><th scope="col" style="text-align: left; font-weight: 500"></th><sc-for list="{{states}}" as="s" hint-placeholder-count="5"><th scope="col" style="text-align: left; font-weight: 500">{{s}}</th></sc-for></tr></thead>
+<tbody><sc-for list="{{buttons}}" as="b" hint-placeholder-count="4"><tr><th scope="row" style="text-align: left; font-weight: 600; color: var(--text-2); padding-right: var(--sp-3)">{{b.name}}</th>
+<sc-for list="{{b.cells}}" as="c" hint-placeholder-count="5"><td><span style="height: 40px; padding: 0 var(--sp-3h); border-radius: var(--r-sm); display: inline-flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-base); font-weight: 500; white-space: nowrap; box-sizing: border-box; background: {{c.bg}}; color: {{c.fg}}; border: {{c.border}}; outline: {{c.outline}}; outline-offset: 2px; opacity: {{c.opacity}}; box-shadow: var(--shadow-sm)"><sc-if value="{{c.spin}}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="width: 14px; height: 14px; border-radius: var(--r-full); border: 2px solid currentColor; border-right-color: transparent"></span></sc-if>{{c.label}}</span></td></sc-for>
+</tr></sc-for></tbody>
+</table></div>
+</section>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: var(--sp-6)">
+<section aria-labelledby="t-champs" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-4)">
+<h2 id="t-champs" style="margin: 0; font-size: var(--fs-xl)">Champ de saisie · 4 états</h2>
+<sc-for list="{{fields}}" as="f" hint-placeholder-count="4">
+<label style="display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); font-weight: 500; color: var(--text-2)">{{f.label}}
+<span style="height: 40px; padding: 0 var(--sp-3); display: flex; align-items: center; border-radius: var(--r-sm); background: {{f.bg}}; border: {{f.border}}; outline: {{f.outline}}; outline-offset: 2px; font-size: var(--fs-base); font-weight: 400; color: {{f.color}}">{{f.value}}</span>
+<sc-if value="{{f.hasHelp}}" hint-placeholder-val="{{ true }}"><span style="font-size: var(--fs-xs); font-weight: 400; color: {{f.helpColor}}">{{f.help}}</span></sc-if>
+</label>
+</sc-for>
+</section>
+<section aria-labelledby="t-badges" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-4)">
+<h2 id="t-badges" style="margin: 0; font-size: var(--fs-xl)">Badge de statut · 7 tons</h2>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-2)"><sc-for list="{{badges}}" as="b" hint-placeholder-count="7"><span style="font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-1) var(--sp-2h); border-radius: var(--r-full); background: {{b.bg}}; color: {{b.fg}}">{{b.label}}</span></sc-for></div>
+<p style="margin: 0; font-size: var(--fs-sm); color: var(--text-3)">Un statut = un ton fixe : Payé/Réglé/Signé → succès · En attente/Promesse/À valider → alerte · En retard/Urgent/Invalide → danger · Relance/Envoyé → info · Litige → violet · SMS → sarcelle · Brouillon/Archivé → neutre.</p>
+<h2 style="margin: var(--sp-2) 0 0; font-size: var(--fs-xl)">Onglets, interrupteur, case</h2>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-4)">
+<div style="display: flex; gap: var(--sp-0h); background: var(--surface-3); padding: var(--sp-1); border-radius: var(--r-md)"><span style="height: 34px; padding: 0 var(--sp-3); border-radius: var(--r-sm); display: flex; align-items: center; gap: var(--sp-1h); background: var(--surface); box-shadow: var(--shadow-sm); font-size: var(--fs-sm); font-weight: 500">Tous <span style="min-width: 18px; height: 18px; border-radius: var(--r-full); background: var(--marine); color: var(--on-primary); font-size: var(--fs-2xs); display: inline-flex; align-items: center; justify-content: center">8</span></span><span style="height: 34px; padding: 0 var(--sp-3); display: flex; align-items: center; font-size: var(--fs-sm); color: var(--text-2)">En retard</span><span style="height: 34px; padding: 0 var(--sp-3); display: flex; align-items: center; font-size: var(--fs-sm); color: var(--text-2); outline: 2px solid var(--marine); outline-offset: 2px; border-radius: var(--r-sm)">Focus</span></div>
+<span style="width: 44px; height: 24px; border-radius: var(--r-full); background: var(--marine); padding: var(--sp-0h); display: flex; justify-content: flex-end; box-sizing: border-box"><span style="width: 20px; height: 20px; border-radius: var(--r-full); background: var(--white); box-shadow: var(--shadow-knob)"></span></span>
+<span style="width: 44px; height: 24px; border-radius: var(--r-full); background: var(--border-strong); padding: var(--sp-0h); display: flex; box-sizing: border-box; opacity: .55"><span style="width: 20px; height: 20px; border-radius: var(--r-full); background: var(--white)"></span></span>
+<span style="width: 18px; height: 18px; border-radius: var(--r-xs); background: var(--marine); color: var(--on-primary); display: flex; align-items: center; justify-content: center; font-size: var(--fs-xs)">✓</span>
+</div>
+</section>
+</div>
+
+<section aria-labelledby="t-etats" style="display: flex; flex-direction: column; gap: var(--sp-4)">
+<h2 id="t-etats" style="margin: 0; font-size: var(--fs-xl)">États de liste · composant « EtatListe »</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: var(--sp-4)">
+<div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg)"><dc-import name="EtatListe" kind="loading" count="{{ 3 }}" hint-size="100%,160px"></dc-import></div>
+<div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg)"><dc-import name="EtatListe" kind="empty" title="Aucun échéancier" text="Les plans de paiement apparaissent ici." hint-size="100%,220px"></dc-import></div>
+<div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg)"><dc-import name="EtatListe" kind="noresult" title="Aucun résultat pour « Dupont »" hint-size="100%,220px"></dc-import></div>
+<div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg)"><dc-import name="EtatListe" kind="error" hint-size="100%,220px"></dc-import></div>
+</div>
+</section>
+
+<section aria-labelledby="t-retours" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: var(--sp-4)">
+<h2 id="t-retours" style="grid-column: 1 / -1; margin: 0; font-size: var(--fs-xl)">Notifications et messages d'erreur</h2>
+<sc-for list="{{toasts}}" as="t" hint-placeholder-count="4"><div role="status" style="display: flex; gap: var(--sp-3); align-items: flex-start; padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); background: {{t.bg}}; border: 1px solid {{t.border}}; color: {{t.fg}}; font-size: var(--fs-base)"><span aria-hidden="true" style="font-weight: 700">{{t.icon}}</span><span style="display: flex; flex-direction: column; gap: var(--sp-0h)"><strong style="font-weight: 600">{{t.title}}</strong><span style="font-size: var(--fs-sm)">{{t.text}}</span></span></div></sc-for>
+</section>
+
+<section aria-labelledby="t-regles" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-3)">
+<h2 id="t-regles" style="margin: 0; font-size: var(--fs-xl)">Règles globales</h2>
+<ul style="margin: 0; padding-left: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-1h); font-size: var(--fs-sm); line-height: 1.5; color: var(--text-2)">
+<sc-for list="{{rules}}" as="r" hint-placeholder-count="6"><li>{{r}}</li></sc-for>
+</ul>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2600}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { prefs: null }; }
+  componentDidMount() { const lp = this.lgPrefs(); this.lgApply(lp); this.setState({ prefs: lp }); }
+  lgPrefs() { try { return { theme: localStorage.getItem('lg-theme') || 'light', a11y: localStorage.getItem('lg-a11y') === '1' }; } catch (e) { return { theme: 'light', a11y: false }; } }
+  lgApply(p) { const d = document.documentElement; const dark = p.theme === 'dark' || (p.theme === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches); d.setAttribute('data-theme', dark ? 'dark' : 'light'); d.setAttribute('data-a11y', p.a11y ? 'malvoyant' : 'standard'); }
+  lgSave(p) { try { localStorage.setItem('lg-theme', p.theme); localStorage.setItem('lg-a11y', p.a11y ? '1' : '0'); } catch (e) {} this.lgApply(p); this.setState({ prefs: p }); }
+  renderVals() {
+    const C = (n, d) => ({ n: '--' + n, v: 'var(--' + n + ')', d });
+    const states = ['Défaut', 'Survol', 'Focus clavier', 'Désactivé', 'Envoi en cours'];
+    const V = {
+      Principal: ['var(--marine)', 'var(--on-primary)', '1px solid var(--marine)', 'var(--marine-hover)'],
+      Secondaire: ['var(--surface)', 'var(--text)', '1px solid var(--border)', 'var(--surface-2)'],
+      Discret: ['transparent', 'var(--marine)', '1px solid transparent', 'var(--bleu-pale)'],
+      Danger: ['var(--danger-fg)', 'var(--on-primary)', '1px solid var(--danger-fg)', 'var(--danger-dark)']
+    };
+    return {
+      lgA11y: (this.state.prefs || {}).a11y ? 'true' : 'false',
+      lgDark: (this.state.prefs || {}).theme === 'dark' ? 'true' : 'false',
+      toggleLgA11y: () => this.lgSave({ ...(this.state.prefs || { theme: 'light' }), a11y: !(this.state.prefs || {}).a11y }),
+      toggleLgDark: () => this.lgSave({ ...(this.state.prefs || { a11y: false }), theme: (this.state.prefs || {}).theme === 'dark' ? 'light' : 'dark' }),
+      colorGroups: [
+        { label: 'Marque (charte)', items: [C('marine', 'Principale · titres, actions'), C('nuit', 'Fonds forts'), C('or', 'Accent · jamais en texte sur blanc'), C('or-clair', 'Fond d’alerte'), C('ardoise', 'Texte secondaire'), C('bleu-pale', 'Fond sélection'), C('gris-clair', 'Fond de page')] },
+        { label: 'Texte, surfaces, bordures', items: [C('text', 'Texte principal'), C('text-2', 'Texte fort secondaire'), C('text-3', 'Légendes (ardoise)'), C('surface', 'Cartes'), C('surface-3', 'Pistes, onglets'), C('border', 'Bordures'), C('border-strong', 'Bordures de champ'), C('surface-dark', 'Carte d’appel')] },
+        { label: 'Tons sémantiques', items: [C('success-fg', 'Succès · texte'), C('success-bg', 'Succès · fond'), C('warning-fg', 'Alerte · texte'), C('warning-bg', 'Alerte · fond'), C('danger-fg', 'Danger · texte'), C('danger-bg', 'Danger · fond'), C('info-fg', 'Info · texte'), C('info-bg', 'Info · fond'), C('violet-fg', 'Litige · texte'), C('teal-fg', 'SMS · texte')] }
+      ],
+      type: [
+        ['var(--font-title)', 700, 'var(--fs-3xl)', 'var(--marine)', 'Titre 1 · Inter', '--fs-3xl 34'],
+        ['var(--font-title)', 700, 'var(--fs-2xl)', 'var(--marine)', 'Titre de page · Inter', '--fs-2xl 26'],
+        ['var(--font-title)', 700, 'var(--fs-xl)', 'var(--marine)', 'Titre de carte', '--fs-xl 20'],
+        ['var(--font-text)', 600, 'var(--fs-lg)', 'var(--text)', 'Sous-titre Inter', '--fs-lg 18'],
+        ['var(--font-text)', 700, 'var(--fs-xl)', 'var(--text)', '1 284 560,00 €', 'chiffre clé'],
+        ['var(--font-text)', 400, 'var(--fs-base)', 'var(--text)', 'Texte courant Inter', '--fs-base 14'],
+        ['var(--font-text)', 400, 'var(--fs-sm)', 'var(--text-2)', 'Texte secondaire', '--fs-sm 13'],
+        ['var(--font-text)', 500, 'var(--fs-xs)', 'var(--text-3)', 'Légende, badge', '--fs-xs 12']
+      ].map(([family, weight, size, color, sample, token]) => ({ family, weight, size, color, sample, token })),
+      radii: ['r-xs', 'r-sm', 'r-md', 'r-lg', 'r-full'].map((n) => ({ n: '--' + n, v: 'var(--' + n + ')' })),
+      shadows: ['shadow-sm', 'shadow-md', 'shadow-lg'].map((n) => ({ n: '--' + n, v: 'var(--' + n + ')' })),
+      spaces: ['sp-0h', 'sp-1', 'sp-1h', 'sp-2', 'sp-2h', 'sp-3', 'sp-3h', 'sp-4', 'sp-5', 'sp-6', 'sp-8', 'sp-10', 'sp-12'].map((n) => ({ n: n.replace('sp-', ''), v: 'var(--' + n + ')' })),
+      controls: [['control-xs', '28 · puces, actions de ligne'], ['control-sm', '36 · boutons compacts'], ['control-md', '40 · boutons et champs'], ['control-lg', '44 · mobile, actions principales']].map(([n, d]) => ({ n: '--' + n, d, v: 'var(--' + n + ')' })),
+      states,
+      buttons: Object.keys(V).map((name) => {
+        const [bg, fg, border, hover] = V[name];
+        return {
+          name,
+          cells: states.map((st) => ({
+            label: st === 'Envoi en cours' ? 'Envoi en cours…' : name === 'Danger' ? 'Révoquer' : 'Enregistrer',
+            bg: st === 'Survol' ? hover : bg, fg, border,
+            outline: st === 'Focus clavier' ? '2px solid var(--marine)' : 'none',
+            opacity: st === 'Désactivé' || st === 'Envoi en cours' ? '0.55' : '1',
+            spin: st === 'Envoi en cours'
+          }))
+        };
+      }),
+      fields: [
+        { label: 'Défaut', value: 'Bâtiplus SAS', bg: 'var(--surface)', border: '1px solid var(--border-strong)', outline: 'none', color: 'var(--text)', hasHelp: false, help: '', helpColor: '' },
+        { label: 'Focus', value: '06 12 34 56 78', bg: 'var(--surface)', border: '1px solid var(--marine)', outline: '2px solid var(--marine)', color: 'var(--text)', hasHelp: true, help: 'Format reconnu : mobile, SMS possibles', helpColor: 'var(--success-fg)' },
+        { label: 'Erreur', value: 'j.ferrand@batiplus', bg: 'var(--surface)', border: '1px solid var(--danger)', outline: 'none', color: 'var(--text)', hasHelp: true, help: 'Adresse e-mail invalide, par exemple nom@entreprise.fr.', helpColor: 'var(--danger-fg)' },
+        { label: 'Désactivé (lecture seule)', value: 're_••••••••3d9f', bg: 'var(--surface-3)', border: '1px solid var(--border)', outline: 'none', color: 'var(--text-3)', hasHelp: true, help: 'Modifiable par le rôle Développeur uniquement.', helpColor: 'var(--text-3)' }
+      ],
+      badges: [['Payée', 'success'], ['À valider', 'warning'], ['En retard', 'danger'], ['Envoyé', 'info'], ['Litige', 'violet'], ['SMS', 'teal'], ['Brouillon', 'neutral']].map(([label, t]) => ({ label, bg: t === 'neutral' ? 'var(--surface-3)' : 'var(--' + t + '-bg)', fg: t === 'neutral' ? 'var(--text-2)' : 'var(--' + t + '-fg)' })),
+      toasts: [
+        { icon: '✓', title: 'Échéancier validé', text: 'Envoyé à Bâtiplus SAS pour signature électronique.', bg: 'var(--success-bg)', border: 'var(--success-border)', fg: 'var(--success-fg)' },
+        { icon: '!', title: 'E-mail non envoyé', text: 'Resend n’a pas accepté l’envoi (adresse refusée). Corrigez l’adresse du débiteur puis renvoyez.', bg: 'var(--danger-bg)', border: 'var(--danger-border)', fg: 'var(--danger-fg)' },
+        { icon: '!', title: 'Appel impossible', text: '3CX ne répond pas. Vérifiez votre connexion ; vos fiches restent enregistrées.', bg: 'var(--danger-bg)', border: 'var(--danger-border)', fg: 'var(--danger-fg)' },
+        { icon: 'i', title: 'Session bientôt expirée', text: 'Vous serez déconnecté dans 2 min sans activité.', bg: 'var(--warning-bg)', border: 'var(--warning-border)', fg: 'var(--warning-fg)' }
+      ],
+      rules: [
+        'Focus clavier : contour 2 px marine décalé de 2 px (or sur les surfaces sombres).',
+        'Survol : assombrissement léger (filtre 96 %) des boutons et liens-boutons ; lignes de tableau sur --surface-2.',
+        'Désactivé : opacité 55 %, curseur interdit ; un bouton n’est jamais désactivé sans explication visible à proximité.',
+        'Cibles tactiles : 44 px minimum sur écran tactile ou sous 768 px (boutons, champs, onglets, éléments de menu).',
+        'Chargement : squelettes (attribut data-skeleton) pendant le premier affichage ; animation coupée si l’utilisateur réduit les animations.',
+        'L’or n’est jamais utilisé pour du texte sur fond clair (contraste 1,7:1) : seulement en filet, barre de progression ou fond.',
+        'Typographie française : espace insécable avant « : ; ! ? », montants au format 1 250,00 €, dates en toutes lettres dans les courriers.'
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

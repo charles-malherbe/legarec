@@ -1,0 +1,333 @@
+{
+  "accent": "var(--marine)",
+  "headActions": [
+    {
+      "label": "Importer des factures",
+      "href": "Mandant.dc.html"
+    },
+    {
+      "label": "Exporter"
+    },
+    {
+      "label": "+ Nouveau débiteur",
+      "primary": true,
+      "kbd": "N"
+    }
+  ],
+  "headStats": [
+    {
+      "label": "Encours total",
+      "value": "1 284 560 €",
+      "sub": "1 942 factures"
+    },
+    {
+      "label": "En retard",
+      "value": "86",
+      "color": "var(--danger-fg)",
+      "sub": "412 300 € à plus de 60 j"
+    },
+    {
+      "label": "Promesses à contrôler",
+      "value": "7",
+      "color": "var(--warning-fg)",
+      "sub": "dont 2 aujourd’hui"
+    },
+    {
+      "label": "Recouvré en novembre",
+      "value": "186 420 €",
+      "color": "var(--success-fg)",
+      "sub": "107 % de l’objectif"
+    }
+  ],
+  "tbTabs": [
+    {
+      "label": "Tous",
+      "count": "248",
+      "selected": true
+    },
+    {
+      "label": "En retard",
+      "count": "86",
+      "selected": false
+    },
+    {
+      "label": "En relance",
+      "count": "72",
+      "selected": false
+    },
+    {
+      "label": "Promesse / échéancier",
+      "count": "41",
+      "selected": false
+    },
+    {
+      "label": "Litige",
+      "count": "14",
+      "selected": false
+    },
+    {
+      "label": "Réglés",
+      "count": "35",
+      "selected": false
+    }
+  ],
+  "tbFilters": [
+    {
+      "label": "Créancier",
+      "options": [
+        "Tous les créanciers",
+        "Matériaux Delta",
+        "Énergies Rhône",
+        "Médiatel",
+        "TransAlp Leasing",
+        "Crédit Horizon"
+      ]
+    },
+    {
+      "label": "Ancienneté",
+      "options": [
+        "Toute ancienneté",
+        "0 – 30 j",
+        "31 – 60 j",
+        "61 – 90 j",
+        "+ 90 j"
+      ]
+    },
+    {
+      "label": "Gestionnaire",
+      "options": [
+        "Tous les gestionnaires",
+        "Camille Laurent",
+        "Hugo Benali",
+        "Sarah Morel",
+        "Thomas Giraud"
+      ]
+    }
+  ],
+  "allChecked": false,
+  "hasSel": false,
+  "selLabel": "0 sélectionné · 0 €",
+  "hasNotice": false,
+  "notice": "",
+  "cf": {
+    "open": false,
+    "title": "",
+    "body": "",
+    "details": [],
+    "label": "",
+    "tone": "primary",
+    "reason": ""
+  },
+  "rows": [
+    {
+      "k": "retard",
+      "name": "Bâtiplus SAS",
+      "mandant": "Matériaux Delta",
+      "ref": "DOS-2026-0142 · SIRET 512 334 871 00088",
+      "invoices": "3 factures",
+      "amount": "48 200 €",
+      "late": "64 j",
+      "status": "En retard",
+      "next": "Appel téléphonique",
+      "nextDate": "Aujourd’hui",
+      "owner": "CL",
+      "bg": "var(--danger-bg)",
+      "fg": "var(--danger-fg)",
+      "lateColor": "var(--danger-fg)",
+      "checked": false,
+      "rowBg": "var(--white)"
+    },
+    {
+      "k": "relance",
+      "name": "Groupe Hélio",
+      "mandant": "Médiatel",
+      "ref": "DOS-2026-0151 · SIRET 319 935 185 00011",
+      "invoices": "2 factures",
+      "amount": "36 750 €",
+      "late": "38 j",
+      "status": "Relance 2",
+      "next": "Relance n°3 (ferme)",
+      "nextDate": "25 nov.",
+      "owner": "HB",
+      "bg": "var(--info-bg)",
+      "fg": "var(--info-fg)",
+      "lateColor": "var(--text-2)",
+      "checked": false,
+      "rowBg": "var(--white)"
+    },
+    {
+      "k": "retard",
+      "name": "Garage Valmont",
+      "mandant": "TransAlp Leasing",
+      "ref": "DOS-2026-0098 · SIRET 193 786 571 00094",
+      "invoices": "4 factures",
+      "amount": "23 900 €",
+      "late": "97 j",
+      "status": "Mise en demeure",
+      "next": "Transfert contentieux",
+      "nextDate": "28 nov.",
+      "owner": "CL",
+      "bg": "var(--danger-bg)",
+      "fg": "var(--danger-fg)",
+      "lateColor": "var(--danger-fg)",
+      "checked": false,
+      "rowBg": "var(--white)"
+    },
+    {
+      "k": "promesse",
+      "name": "Nordis Logistique",
+      "mandant": "Énergies Rhône",
+      "ref": "DOS-2026-0163 · SIRET 854 323 193 00045",
+      "invoices": "1 facture",
+      "amount": "21 400 €",
+      "late": "45 j",
+      "status": "Promesse",
+      "next": "Contrôler paiement",
+      "nextDate": "Aujourd’hui",
+      "owner": "SM",
+      "bg": "var(--warning-bg)",
+      "fg": "var(--warning-fg)",
+      "lateColor": "var(--text-2)",
+      "checked": false,
+      "rowBg": "var(--white)"
+    },
+    {
+      "k": "litige",
+      "name": "Atelier Mistral",
+      "mandant": "Matériaux Delta",
+      "ref": "DOS-2026-0170 · SIRET 975 749 110 00089",
+      "invoices": "1 facture",
+      "amount": "18 320 €",
+      "late": "52 j",
+      "status": "Litige",
+      "next": "Réponse au litige",
+      "nextDate": "22 nov.",
+      "owner": "HB",
+      "bg": "var(--violet-bg)",
+      "fg": "var(--violet-fg)",
+      "lateColor": "var(--text-2)",
+      "checked": false,
+      "rowBg": "var(--white)"
+    },
+    {
+      "k": "promesse",
+      "name": "Cabinet Orsay",
+      "mandant": "Médiatel",
+      "ref": "DOS-2026-0177 · SIRET 725 276 018 00084",
+      "invoices": "Échéancier 2/6",
+      "amount": "14 800 €",
+      "late": "12 j",
+      "status": "Échéancier",
+      "next": "Échéance n°3",
+      "nextDate": "5 déc.",
+      "owner": "SM",
+      "bg": "var(--warning-bg)",
+      "fg": "var(--warning-fg)",
+      "lateColor": "var(--text-2)",
+      "checked": false,
+      "rowBg": "var(--white)"
+    },
+    {
+      "k": "relance",
+      "name": "Fromagerie Durand",
+      "mandant": "Énergies Rhône",
+      "ref": "DOS-2026-0181 · SIRET 655 979 714 00012",
+      "invoices": "2 factures",
+      "amount": "6 240 €",
+      "late": "21 j",
+      "status": "Relance 1",
+      "next": "Relance n°2",
+      "nextDate": "24 nov.",
+      "owner": "CL",
+      "bg": "var(--info-bg)",
+      "fg": "var(--info-fg)",
+      "lateColor": "var(--text-2)",
+      "checked": false,
+      "rowBg": "var(--white)"
+    },
+    {
+      "k": "regle",
+      "name": "Imprimerie Castel",
+      "mandant": "TransAlp Leasing",
+      "ref": "DOS-2026-0119 · SIRET 571 049 741 00069",
+      "invoices": "1 facture",
+      "amount": "0 €",
+      "late": "—",
+      "status": "Réglé",
+      "next": "Clôturer le dossier",
+      "nextDate": "—",
+      "owner": "HB",
+      "bg": "var(--success-bg)",
+      "fg": "var(--success-fg)",
+      "lateColor": "var(--text-2)",
+      "checked": false,
+      "rowBg": "var(--white)"
+    }
+  ],
+  "shownTotal": 248,
+  "tabs": [
+    {
+      "id": "all",
+      "label": "Tous",
+      "count": 248,
+      "selected": "true",
+      "color": "var(--text)",
+      "border": "2px solid var(--marine)"
+    },
+    {
+      "id": "retard",
+      "label": "En retard",
+      "count": 86,
+      "selected": "false",
+      "color": "var(--text-3)",
+      "border": "2px solid transparent"
+    },
+    {
+      "id": "relance",
+      "label": "En relance",
+      "count": 72,
+      "selected": "false",
+      "color": "var(--text-3)",
+      "border": "2px solid transparent"
+    },
+    {
+      "id": "promesse",
+      "label": "Promesse / échéancier",
+      "count": 41,
+      "selected": "false",
+      "color": "var(--text-3)",
+      "border": "2px solid transparent"
+    },
+    {
+      "id": "litige",
+      "label": "Litige",
+      "count": 14,
+      "selected": "false",
+      "color": "var(--text-3)",
+      "border": "2px solid transparent"
+    },
+    {
+      "id": "regle",
+      "label": "Réglés",
+      "count": 35,
+      "selected": "false",
+      "color": "var(--text-3)",
+      "border": "2px solid transparent"
+    }
+  ],
+  "q": "",
+  "pg": {
+    "show": true,
+    "total": 248,
+    "page": 1,
+    "size": 25
+  },
+  "lst": {
+    "show": false,
+    "kind": "empty",
+    "title": "Aucun débiteur dans ce statut",
+    "text": "Les débiteurs apparaissent ici dès que leurs factures sont importées.",
+    "actionLabel": "",
+    "count": 6
+  }
+}

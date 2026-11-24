@@ -1,0 +1,493 @@
+{
+  "accent": "var(--marine)",
+  "t": {
+    "name": "Mise en demeure",
+    "cat": "rec",
+    "channel": "LRAR",
+    "kind": "lettre",
+    "lrar": true,
+    "v": 4,
+    "date": "03/10/2026",
+    "author": "Camille Laurent",
+    "uses": 21,
+    "used": "Scénario standard, étape J+60, après accord du créancier",
+    "subject": "Mise en demeure de payer – dossier {dossier.reference}",
+    "body": "Madame, Monsieur,\n\nMalgré nos relances, les factures {creance.factures} émises par {creancier.nom} demeurent impayées.\n\nPar la présente, nous vous mettons en demeure de régler la somme de {creance.total} au plus tard le {date.limite}, soit :\n– principal : {creance.principal}\n– intérêts de retard : {creance.interets}\n– indemnités forfaitaires : {creance.indemnites}\n\nVous pouvez payer par virement ou en ligne sur {paiement.lien}.\n\nÀ défaut de paiement dans ce délai, {creancier.nom} pourra saisir la juridiction compétente sans nouvel avis."
+  },
+  "noStats": [],
+  "trail": "Paramètres>Reglages.dc.html|Modèles de documents>Reglages.dc.html|Mise en demeure",
+  "headDesc": "LRAR · Recouvrement · utilisé 21 fois ce mois · Scénario standard, étape J+60, après accord du créancier",
+  "headStatus": {
+    "label": "Version 4 publiée",
+    "color": "var(--success)"
+  },
+  "headActions": [
+    {
+      "label": "Liste des champs de fusion",
+      "href": "champs-de-fusion.html"
+    },
+    {
+      "label": "Télécharger le fichier HTML",
+      "primary": true
+    }
+  ],
+  "example": "{{debiteur.raison_sociale}}",
+  "fileExt": "HTML",
+  "fileName": "mise-en-demeure-v4.html",
+  "fileMeta": "v4 · 6,4 Ko · importé le 03/10/2026 par Camille Laurent",
+  "showDrop": true,
+  "showCheck": false,
+  "checkOk": false,
+  "checkKo": false,
+  "checkTitle": "Fichier conforme, prêt à être soumis",
+  "checkBorder": "var(--success-border, var(--border))",
+  "checkBg": "var(--success-bg)",
+  "importName": "mise-en-demeure-v5.html",
+  "checks": [
+    {
+      "icon": "✓",
+      "color": "var(--success-fg)",
+      "label": "Fichier HTML valide, encodé en UTF-8",
+      "detail": "",
+      "hasDetail": false
+    },
+    {
+      "icon": "✓",
+      "color": "var(--success-fg)",
+      "label": "11 champs de fusion reconnus",
+      "detail": "",
+      "hasDetail": false
+    },
+    {
+      "icon": "✓",
+      "color": "var(--success-fg)",
+      "label": "Bloc imposé présent",
+      "detail": "{{> mentions_recouvrement}}",
+      "hasDetail": true
+    },
+    {
+      "icon": "✓",
+      "color": "var(--success-fg)",
+      "label": "Aucun script, formulaire ni ressource externe",
+      "detail": "",
+      "hasDetail": false
+    }
+  ],
+  "used": [
+    {
+      "code": "{{dossier.reference}}",
+      "ex": "LGR-2026-04812"
+    },
+    {
+      "code": "{{creance.factures}}",
+      "ex": "3 factures"
+    },
+    {
+      "code": "{{creancier.nom}}",
+      "ex": "Matériaux Delta"
+    },
+    {
+      "code": "{{creance.total}}",
+      "ex": "49 448,40 €"
+    },
+    {
+      "code": "{{date.limite}}",
+      "ex": "1er décembre 2026"
+    },
+    {
+      "code": "{{creance.principal}}",
+      "ex": "48 200,00 €"
+    },
+    {
+      "code": "{{creance.interets}}",
+      "ex": "1 128,40 €"
+    },
+    {
+      "code": "{{creance.indemnites}}",
+      "ex": "120,00 €"
+    },
+    {
+      "code": "{{paiement.lien}}",
+      "ex": "paiement.legarec.fr/7F3A2C"
+    },
+    {
+      "code": "{{debiteur.raison_sociale}}",
+      "ex": "Bâtiplus SAS"
+    },
+    {
+      "code": "{{debiteur.adresse}}",
+      "ex": "14 rue des Forges, 69007 Lyon"
+    }
+  ],
+  "usedCount": "11",
+  "partial": "{{> mentions_recouvrement}}",
+  "isWaiting": false,
+  "waitText": "Marie Dubreuil (Dirigeante) a été prévenue. La version 4 reste utilisée jusqu’à sa validation.",
+  "groups": [
+    {
+      "label": "Recouvrement",
+      "items": [
+        {
+          "id": "amiable",
+          "name": "Relance amiable"
+        },
+        {
+          "id": "ferme",
+          "name": "Relance ferme"
+        },
+        {
+          "id": "demeure",
+          "name": "Mise en demeure",
+          "sel": "selected"
+        },
+        {
+          "id": "echeancier",
+          "name": "Proposition d’échéancier"
+        },
+        {
+          "id": "attestation",
+          "name": "Attestation de solde"
+        },
+        {
+          "id": "rappel",
+          "name": "Rappel avant échéance"
+        },
+        {
+          "id": "sms21",
+          "name": "Relance SMS J+21"
+        }
+      ]
+    },
+    {
+      "label": "Facturation",
+      "items": [
+        {
+          "id": "fac_com",
+          "name": "Facture de commission mensuelle"
+        },
+        {
+          "id": "fac_frais",
+          "name": "Refacturation de frais de procédure"
+        },
+        {
+          "id": "fac_forfait",
+          "name": "Facture forfaitaire"
+        },
+        {
+          "id": "dev_amiable",
+          "name": "Devis recouvrement amiable"
+        },
+        {
+          "id": "con_convention",
+          "name": "Convention de recouvrement amiable"
+        }
+      ]
+    }
+  ],
+  "chips": [
+    {
+      "k": "Type",
+      "v": "LRAR"
+    },
+    {
+      "k": "Catégorie",
+      "v": "Recouvrement"
+    },
+    {
+      "k": "Version en service",
+      "v": "v4 du 03/10/2026"
+    },
+    {
+      "k": "Validation",
+      "v": "Dirigeante"
+    }
+  ],
+  "hasSubject": true,
+  "subjectParts": [
+    {
+      "parts": [
+        {
+          "t": "Mise en demeure de payer – dossier ",
+          "f": "off",
+          "tip": ""
+        },
+        {
+          "t": "LGR-2026-04812",
+          "f": "on",
+          "tip": "{dossier.reference}"
+        }
+      ]
+    }
+  ],
+  "paras": [
+    {
+      "parts": [
+        {
+          "t": "Madame, Monsieur,",
+          "f": "off",
+          "tip": ""
+        }
+      ]
+    },
+    {
+      "parts": [
+        {
+          "t": "Malgré nos relances, les factures ",
+          "f": "off",
+          "tip": ""
+        },
+        {
+          "t": "F-2026-0712, F-2026-0745 et F-2026-0790",
+          "f": "on",
+          "tip": "{creance.factures}"
+        },
+        {
+          "t": " émises par ",
+          "f": "off",
+          "tip": ""
+        },
+        {
+          "t": "Matériaux Delta",
+          "f": "on",
+          "tip": "{creancier.nom}"
+        },
+        {
+          "t": " demeurent impayées.",
+          "f": "off",
+          "tip": ""
+        }
+      ]
+    },
+    {
+      "parts": [
+        {
+          "t": "Par la présente, nous vous mettons en demeure de régler la somme de ",
+          "f": "off",
+          "tip": ""
+        },
+        {
+          "t": "49 448,40 €",
+          "f": "on",
+          "tip": "{creance.total}"
+        },
+        {
+          "t": " au plus tard le ",
+          "f": "off",
+          "tip": ""
+        },
+        {
+          "t": "1er décembre 2026",
+          "f": "on",
+          "tip": "{date.limite}"
+        },
+        {
+          "t": ", soit :\n– principal : ",
+          "f": "off",
+          "tip": ""
+        },
+        {
+          "t": "48 200,00 €",
+          "f": "on",
+          "tip": "{creance.principal}"
+        },
+        {
+          "t": "\n– intérêts de retard : ",
+          "f": "off",
+          "tip": ""
+        },
+        {
+          "t": "1 128,40 €",
+          "f": "on",
+          "tip": "{creance.interets}"
+        },
+        {
+          "t": "\n– indemnités forfaitaires : ",
+          "f": "off",
+          "tip": ""
+        },
+        {
+          "t": "120,00 €",
+          "f": "on",
+          "tip": "{creance.indemnites}"
+        }
+      ]
+    },
+    {
+      "parts": [
+        {
+          "t": "Vous pouvez payer par virement ou en ligne sur ",
+          "f": "off",
+          "tip": ""
+        },
+        {
+          "t": "paiement.legarec.fr/7F3A2C",
+          "f": "on",
+          "tip": "{paiement.lien}"
+        },
+        {
+          "t": ".",
+          "f": "off",
+          "tip": ""
+        }
+      ]
+    },
+    {
+      "parts": [
+        {
+          "t": "À défaut de paiement dans ce délai, ",
+          "f": "off",
+          "tip": ""
+        },
+        {
+          "t": "Matériaux Delta",
+          "f": "on",
+          "tip": "{creancier.nom}"
+        },
+        {
+          "t": " pourra saisir la juridiction compétente sans nouvel avis.",
+          "f": "off",
+          "tip": ""
+        }
+      ]
+    }
+  ],
+  "lockedIntro": "Ajoutées automatiquement en bas de chaque courrier envoyé pour le compte d’un créancier. Modifiables uniquement par la Dirigeante.",
+  "locked": [
+    "Identité et adresse du cabinet, et mention qu’il agit pour le compte du créancier",
+    "Nom ou dénomination sociale du créancier et son adresse",
+    "Fondement et montant de la somme due, en distinguant principal, intérêts et accessoires",
+    "Indication d’avoir à payer et modalités de paiement",
+    "Reproduction des alinéas 3 et 4 de l’article L. 111-8 du CPCE",
+    "Information sur le traitement des données personnelles (RGPD) et contact du DPO"
+  ],
+  "versions": [
+    {
+      "no": "v4",
+      "what": "Version en service",
+      "who": "Camille Laurent · 03/10/2026 · validée par Marie Dubreuil",
+      "state": "Publiée",
+      "tone": "success",
+      "canRestore": false
+    },
+    {
+      "no": "v3",
+      "what": "Délai de paiement passé de 15 à 8 jours",
+      "who": "Hugo Benali · 14/08/2026",
+      "state": "Archivée",
+      "tone": "neutral",
+      "canRestore": true
+    },
+    {
+      "no": "v2",
+      "what": "Ajout du lien de paiement en ligne",
+      "who": "Camille Laurent · 02/05/2026",
+      "state": "Archivée",
+      "tone": "neutral",
+      "canRestore": true
+    }
+  ],
+  "samples": [
+    {
+      "id": "bp",
+      "label": "Bâtiplus SAS · Matériaux Delta",
+      "sel": "selected"
+    },
+    {
+      "id": "gh",
+      "label": "Groupe Hélio · Médiatel"
+    }
+  ],
+  "hl": true,
+  "isLetter": true,
+  "isInvoice": false,
+  "isEmail": false,
+  "isSms": false,
+  "isLrar": true,
+  "addr": [
+    {
+      "parts": [
+        {
+          "t": "Bâtiplus SAS",
+          "f": "on",
+          "tip": "{debiteur.raison_sociale}"
+        }
+      ]
+    },
+    {
+      "parts": [
+        {
+          "t": "M. Julien Garnier",
+          "f": "on",
+          "tip": "{debiteur.contact}"
+        }
+      ]
+    },
+    {
+      "parts": [
+        {
+          "t": "14 rue des Forges\n69007 Lyon",
+          "f": "on",
+          "tip": "{debiteur.adresse}"
+        }
+      ]
+    }
+  ],
+  "placeDate": "Paris, le 23 novembre 2026",
+  "sign": [
+    {
+      "parts": [
+        {
+          "t": "Camille Laurent",
+          "f": "on",
+          "tip": "{dossier.gestionnaire}"
+        }
+      ]
+    },
+    {
+      "parts": [
+        {
+          "t": "Gestionnaire de votre dossier · 01 87 88 02 98",
+          "f": "off",
+          "tip": ""
+        }
+      ]
+    }
+  ],
+  "footLines": [
+    "Legarec, cabinet de recouvrement amiable, Paris · SIREN [SIREN] · agissant pour le compte de Matériaux Delta, ZI des Platanes, 38070 Saint-Quentin-Fallavier.",
+    "Somme réclamée : principal 48 200,00 €, intérêts 1 128,40 €, indemnités forfaitaires 120,00 € (art. L. 441-10 du Code de commerce). Fondement : factures F-2026-0712, F-2026-0745 et F-2026-0790 restées impayées.",
+    "[Reproduction des alinéas 3 et 4 de l’article L. 111-8 du Code des procédures civiles d’exécution : frais de recouvrement amiable.]",
+    "Vos données sont traitées pour le recouvrement de cette créance. Vos droits : dpo@legarec.fr."
+  ],
+  "docTitle": "Facture",
+  "docMeta": "FA-2026-0118 · 23 novembre 2026",
+  "lines": [],
+  "totals": [],
+  "cf": {
+    "open": false,
+    "title": "Soumettre « Mise en demeure » pour validation ?",
+    "body": "La Dirigeante reçoit une notification. Tant qu’il n’a pas validé, la version 4 reste utilisée par les scénarios et les envois.",
+    "details": [
+      {
+        "k": "Modèle",
+        "v": "Mise en demeure (LRAR)"
+      },
+      {
+        "k": "Nouvelle version",
+        "v": "v5"
+      },
+      {
+        "k": "Validation",
+        "v": "Marie Dubreuil, Dirigeante"
+      },
+      {
+        "k": "Utilisé par",
+        "v": "Scénario standard, étape J+60, après accord du créancier"
+      }
+    ],
+    "label": "Soumettre"
+  },
+  "toastOpen": false,
+  "toastMsg": "",
+  "toastAction": ""
+}

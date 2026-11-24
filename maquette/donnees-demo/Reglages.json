@@ -1,0 +1,2707 @@
+{
+  "accent": "var(--marine)",
+  "is": {
+    "cabinet": false,
+    "users": true,
+    "roles": false,
+    "kitmedia": false,
+    "scenarios": false,
+    "regles": false,
+    "modeles": false,
+    "sms": false,
+    "reversements": false,
+    "ia": false,
+    "rgpd": false
+  },
+  "resendToggles": [
+    {
+      "title": "Suivi des ouvertures",
+      "detail": "Affiche « ouvert le… » dans l’historique du dossier",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Suivi des ouvertures",
+        "description": "Affiche « ouvert le… » dans l’historique du dossier",
+        "checked": true,
+        "locked": false
+      }
+    },
+    {
+      "title": "Suivi des clics",
+      "detail": "Indique si le lien de paiement a été ouvert",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Suivi des clics",
+        "description": "Indique si le lien de paiement a été ouvert",
+        "checked": true,
+        "locked": false
+      }
+    },
+    {
+      "title": "Basculer sur OVH en cas d’incident Resend",
+      "detail": "Les reçus et codes de connexion restent envoyés",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Basculer sur OVH en cas d’incident Resend",
+        "description": "Les reçus et codes de connexion restent envoyés",
+        "checked": true,
+        "locked": false
+      }
+    }
+  ],
+  "mailCols": [
+    {
+      "key": "type",
+      "label": "Type d’e-mail"
+    },
+    {
+      "key": "via",
+      "label": "Envoyé par",
+      "type": "badge"
+    },
+    {
+      "key": "from",
+      "label": "Adresse d’expédition",
+      "mono": true
+    }
+  ],
+  "mailRows": [
+    {
+      "type": "Relances automatiques des scénarios",
+      "via": {
+        "text": "Resend",
+        "tone": "neutral"
+      },
+      "from": {
+        "text": "no-reply@mail.legarec.fr",
+        "mono": true
+      }
+    },
+    {
+      "type": "Liens vers l’espace de paiement",
+      "via": {
+        "text": "Resend",
+        "tone": "neutral"
+      },
+      "from": {
+        "text": "no-reply@mail.legarec.fr",
+        "mono": true
+      }
+    },
+    {
+      "type": "Reçus de paiement",
+      "via": {
+        "text": "Resend",
+        "tone": "neutral"
+      },
+      "from": {
+        "text": "no-reply@mail.legarec.fr",
+        "mono": true
+      }
+    },
+    {
+      "type": "Réinitialisation du mot de passe et codes",
+      "via": {
+        "text": "Resend",
+        "tone": "neutral"
+      },
+      "from": {
+        "text": "no-reply@mail.legarec.fr",
+        "mono": true
+      }
+    },
+    {
+      "type": "Relevés de reversement et rapports créanciers",
+      "via": {
+        "text": "Resend",
+        "tone": "neutral"
+      },
+      "from": {
+        "text": "no-reply@mail.legarec.fr",
+        "mono": true
+      }
+    },
+    {
+      "type": "Notifications de l’équipe",
+      "via": {
+        "text": "Resend",
+        "tone": "neutral"
+      },
+      "from": {
+        "text": "no-reply@mail.legarec.fr",
+        "mono": true
+      }
+    },
+    {
+      "type": "E-mails écrits par un gestionnaire",
+      "via": {
+        "text": "OVH MX Plan",
+        "tone": "marine"
+      },
+      "from": {
+        "text": "adresse du collaborateur (ex. mo@legarec.fr)",
+        "mono": true
+      }
+    },
+    {
+      "type": "Réponses aux débiteurs et créanciers",
+      "via": {
+        "text": "OVH MX Plan",
+        "tone": "marine"
+      },
+      "from": {
+        "text": "adresse du collaborateur (ex. mo@legarec.fr)",
+        "mono": true
+      }
+    }
+  ],
+  "mailRoutes": [
+    {
+      "type": "Relances automatiques des scénarios",
+      "via": "Resend",
+      "from": "no-reply@mail.legarec.fr",
+      "bg": "var(--surface-3)",
+      "fg": "var(--text)"
+    },
+    {
+      "type": "Liens vers l’espace de paiement",
+      "via": "Resend",
+      "from": "no-reply@mail.legarec.fr",
+      "bg": "var(--surface-3)",
+      "fg": "var(--text)"
+    },
+    {
+      "type": "Reçus de paiement",
+      "via": "Resend",
+      "from": "no-reply@mail.legarec.fr",
+      "bg": "var(--surface-3)",
+      "fg": "var(--text)"
+    },
+    {
+      "type": "Réinitialisation du mot de passe et codes",
+      "via": "Resend",
+      "from": "no-reply@mail.legarec.fr",
+      "bg": "var(--surface-3)",
+      "fg": "var(--text)"
+    },
+    {
+      "type": "Relevés de reversement et rapports créanciers",
+      "via": "Resend",
+      "from": "no-reply@mail.legarec.fr",
+      "bg": "var(--surface-3)",
+      "fg": "var(--text)"
+    },
+    {
+      "type": "Notifications de l’équipe",
+      "via": "Resend",
+      "from": "no-reply@mail.legarec.fr",
+      "bg": "var(--surface-3)",
+      "fg": "var(--text)"
+    },
+    {
+      "type": "E-mails écrits par un gestionnaire",
+      "via": "OVH MX Plan",
+      "from": "adresse du collaborateur (ex. mo@legarec.fr)",
+      "bg": "var(--bleu-200)",
+      "fg": "var(--marine)"
+    },
+    {
+      "type": "Réponses aux débiteurs et créanciers",
+      "via": "OVH MX Plan",
+      "from": "adresse du collaborateur (ex. mo@legarec.fr)",
+      "bg": "var(--bleu-200)",
+      "fg": "var(--marine)"
+    }
+  ],
+  "ovhBoxes": [
+    {
+      "mail": "recouvrement@legarec.fr",
+      "user": "Boîte partagée · réception, accessible à tous les utilisateurs",
+      "state": "Synchronisée",
+      "dot": "var(--success)",
+      "color": "var(--success-fg)"
+    },
+    {
+      "mail": "cl@legarec.fr",
+      "user": "Camille Laurent",
+      "state": "Synchronisée",
+      "dot": "var(--success)",
+      "color": "var(--success-fg)"
+    },
+    {
+      "mail": "tg@legarec.fr",
+      "user": "Thomas Giraud",
+      "state": "Synchronisée",
+      "dot": "var(--success)",
+      "color": "var(--success-fg)"
+    },
+    {
+      "mail": "hb@legarec.fr",
+      "user": "Hugo Benali",
+      "state": "Mot de passe à mettre à jour",
+      "dot": "var(--warning)",
+      "color": "var(--warning-fg)"
+    }
+  ],
+  "secretsRoleNote": "Seul le rôle Développeur peut afficher, renouveler ou révoquer un secret.",
+  "roOpacity": "1",
+  "newSecret": false,
+  "secretsSummary": "10 secrets actifs · 2 à renouveler bientôt",
+  "secrets": [
+    {
+      "name": "RESEND_API_KEY",
+      "service": "Resend",
+      "env": "Production",
+      "used": "il y a 2 min",
+      "shown": "re_••••••••3d9f",
+      "rotated": "02/10/2026",
+      "status": "Valide",
+      "stBg": "var(--success-bg)",
+      "stFg": "var(--success-fg)",
+      "revealed": "false",
+      "revealLabel": "Afficher"
+    },
+    {
+      "name": "OVH_SMTP_PASSWORD",
+      "service": "OVH MX Plan",
+      "env": "Production",
+      "used": "il y a 1 min",
+      "shown": "••••••••••••",
+      "rotated": "24/08/2026",
+      "status": "Expire sous 15 j",
+      "stBg": "var(--warning-bg)",
+      "stFg": "var(--warning-fg)",
+      "revealed": "false",
+      "revealLabel": "Afficher"
+    },
+    {
+      "name": "PAYMENT_SECRET_KEY",
+      "service": "Prestataire de paiement",
+      "env": "Production",
+      "used": "il y a 6 min",
+      "shown": "sk_live_••••81aa",
+      "rotated": "15/09/2026",
+      "status": "Valide",
+      "stBg": "var(--success-bg)",
+      "stFg": "var(--success-fg)",
+      "revealed": "false",
+      "revealLabel": "Afficher"
+    },
+    {
+      "name": "PAYMENT_WEBHOOK_SECRET",
+      "service": "Prestataire de paiement",
+      "env": "Production",
+      "used": "il y a 6 min",
+      "shown": "whsec_••••c27e",
+      "rotated": "15/09/2026",
+      "status": "Valide",
+      "stBg": "var(--success-bg)",
+      "stFg": "var(--success-fg)",
+      "revealed": "false",
+      "revealLabel": "Afficher"
+    },
+    {
+      "name": "MYSENDINGBOX_API_KEY",
+      "service": "MySendingBox (lettres recommandées)",
+      "env": "Production",
+      "used": "il y a 4 min",
+      "shown": "msb_live_••••8d21",
+      "rotated": "15/09/2026",
+      "status": "Valide",
+      "stBg": "var(--success-bg)",
+      "stFg": "var(--success-fg)",
+      "revealed": "false",
+      "revealLabel": "Afficher"
+    },
+    {
+      "name": "SCW_SECRET_KEY",
+      "service": "Scaleway Object Storage (fichiers)",
+      "env": "Production",
+      "used": "il y a 3 min",
+      "shown": "••••••••a41d",
+      "rotated": "15/09/2026",
+      "status": "Valide",
+      "stBg": "var(--success-bg)",
+      "stFg": "var(--success-fg)",
+      "revealed": "false",
+      "revealLabel": "Afficher"
+    },
+    {
+      "name": "OVH_SMS_APP_SECRET",
+      "service": "OVHcloud SMS",
+      "env": "Production",
+      "used": "il y a 14 min",
+      "shown": "••••••••5b10",
+      "rotated": "30/09/2026",
+      "status": "Valide",
+      "stBg": "var(--success-bg)",
+      "stFg": "var(--success-fg)",
+      "revealed": "false",
+      "revealLabel": "Afficher"
+    },
+    {
+      "name": "TCX_API_CLIENT_SECRET",
+      "service": "3CX (API Call Control)",
+      "env": "Production",
+      "used": "en continu",
+      "shown": "••••••••••••",
+      "rotated": "01/09/2026",
+      "status": "Expire sous 15 j",
+      "stBg": "var(--warning-bg)",
+      "stFg": "var(--warning-fg)",
+      "revealed": "false",
+      "revealLabel": "Afficher"
+    },
+    {
+      "name": "SESSION_SIGNING_KEY",
+      "service": "Plateforme Legarec",
+      "env": "Production",
+      "used": "en continu",
+      "shown": "••••••••••••",
+      "rotated": "06/11/2026",
+      "status": "Valide",
+      "stBg": "var(--success-bg)",
+      "stFg": "var(--success-fg)",
+      "revealed": "false",
+      "revealLabel": "Afficher"
+    },
+    {
+      "name": "API_KEY_MATERIAUX_DELTA",
+      "service": "Import ERP Matériaux Delta",
+      "env": "Production",
+      "used": "hier, 23:02",
+      "shown": "lgr_live_••••a41e",
+      "rotated": "18/10/2026",
+      "status": "Valide",
+      "stBg": "var(--success-bg)",
+      "stFg": "var(--success-fg)",
+      "revealed": "false",
+      "revealLabel": "Afficher"
+    }
+  ],
+  "secretToggles": [
+    {
+      "title": "Rotation automatique",
+      "detail": "Les clés compatibles sont renouvelées tous les 90 jours, sans interruption de service",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Rotation automatique",
+        "description": "Les clés compatibles sont renouvelées tous les 90 jours, sans interruption de service",
+        "checked": true,
+        "locked": false
+      }
+    },
+    {
+      "title": "Alerte avant expiration",
+      "detail": "Les développeurs sont prévenus 15 jours avant l’expiration d’un secret",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Alerte avant expiration",
+        "description": "Les développeurs sont prévenus 15 jours avant l’expiration d’un secret",
+        "checked": true,
+        "locked": false
+      }
+    },
+    {
+      "title": "Double validation pour révoquer",
+      "detail": "Une révocation en production demande l’accord d’un second développeur",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Double validation pour révoquer",
+        "description": "Une révocation en production demande l’accord d’un second développeur",
+        "checked": true,
+        "locked": false
+      }
+    }
+  ],
+  "scf": {
+    "open": false,
+    "title": "",
+    "body": "",
+    "details": [],
+    "label": "",
+    "tone": "primary"
+  },
+  "kitPageLabel": "Copier le lien du kit",
+  "kitLogos": [
+    {
+      "name": "Logo horizontal",
+      "use": "Usage principal : site, e-mails, documents",
+      "src": "/_blob/51643287c78f23747afb5d585ed071a2",
+      "bg": "var(--white)",
+      "alt": "Logo horizontal Legarec",
+      "url": "https://media.legarec.fr/kit/legarec-logo-horizontal.svg",
+      "formats": [
+        {
+          "label": "SVG",
+          "href": "https://media.legarec.fr/kit/legarec-logo-horizontal.svg",
+          "file": "legarec-logo-horizontal.svg"
+        },
+        {
+          "label": "PNG",
+          "href": "/_blob/51643287c78f23747afb5d585ed071a2",
+          "file": "legarec-logo-horizontal.png"
+        },
+        {
+          "label": "PDF",
+          "href": "https://media.legarec.fr/kit/legarec-logo-horizontal.pdf",
+          "file": "legarec-logo-horizontal.pdf"
+        }
+      ],
+      "copyLabel": "Copier l’URL",
+      "copyBg": "var(--white)",
+      "copyFg": "var(--text)"
+    },
+    {
+      "name": "Logo vertical",
+      "use": "Formats carrés, réseaux sociaux, signalétique",
+      "src": "/_blob/2b1757703b6a08527257db6a3c071902",
+      "bg": "var(--white)",
+      "alt": "Logo vertical Legarec",
+      "url": "https://media.legarec.fr/kit/legarec-logo-vertical.svg",
+      "formats": [
+        {
+          "label": "SVG",
+          "href": "https://media.legarec.fr/kit/legarec-logo-vertical.svg",
+          "file": "legarec-logo-vertical.svg"
+        },
+        {
+          "label": "PNG",
+          "href": "/_blob/2b1757703b6a08527257db6a3c071902",
+          "file": "legarec-logo-vertical.png"
+        },
+        {
+          "label": "PDF",
+          "href": "https://media.legarec.fr/kit/legarec-logo-vertical.pdf",
+          "file": "legarec-logo-vertical.pdf"
+        }
+      ],
+      "copyLabel": "Copier l’URL",
+      "copyBg": "var(--white)",
+      "copyFg": "var(--text)"
+    },
+    {
+      "name": "Emblème",
+      "use": "Favicon, avatar, petits formats",
+      "src": "/_blob/5d8564b85080db4c67a3b8c1fba9f81b",
+      "bg": "var(--white)",
+      "alt": "Emblème Legarec",
+      "url": "https://media.legarec.fr/kit/legarec-embleme.svg",
+      "formats": [
+        {
+          "label": "SVG",
+          "href": "https://media.legarec.fr/kit/legarec-embleme.svg",
+          "file": "legarec-embleme.svg"
+        },
+        {
+          "label": "PNG",
+          "href": "/_blob/5d8564b85080db4c67a3b8c1fba9f81b",
+          "file": "legarec-embleme.png"
+        },
+        {
+          "label": "PDF",
+          "href": "https://media.legarec.fr/kit/legarec-embleme.pdf",
+          "file": "legarec-embleme.pdf"
+        }
+      ],
+      "copyLabel": "Copier l’URL",
+      "copyBg": "var(--white)",
+      "copyFg": "var(--text)"
+    },
+    {
+      "name": "Logo négatif",
+      "use": "Sur fond bleu Legarec ou fond foncé",
+      "src": "/_blob/b7da0bfc2f50577a4c5b06ebfbf1d98e",
+      "bg": "var(--marine)",
+      "alt": "Logo négatif Legarec",
+      "url": "https://media.legarec.fr/kit/legarec-logo-negatif.svg",
+      "formats": [
+        {
+          "label": "SVG",
+          "href": "https://media.legarec.fr/kit/legarec-logo-negatif.svg",
+          "file": "legarec-logo-negatif.svg"
+        },
+        {
+          "label": "PNG",
+          "href": "/_blob/b7da0bfc2f50577a4c5b06ebfbf1d98e",
+          "file": "legarec-logo-negatif.png"
+        },
+        {
+          "label": "PDF",
+          "href": "https://media.legarec.fr/kit/legarec-logo-negatif.pdf",
+          "file": "legarec-logo-negatif.pdf"
+        }
+      ],
+      "copyLabel": "Copier l’URL",
+      "copyBg": "var(--white)",
+      "copyFg": "var(--text)"
+    }
+  ],
+  "kitColors": [
+    {
+      "name": "Bleu Legarec",
+      "hex": "#002B74",
+      "rgb": "rgb(0, 43, 116)",
+      "note": "Cliquer pour copier",
+      "noteColor": "var(--text-3)"
+    },
+    {
+      "name": "Jaune Legarec",
+      "hex": "#FCBE03",
+      "rgb": "rgb(252, 190, 3)",
+      "note": "Cliquer pour copier",
+      "noteColor": "var(--text-3)"
+    },
+    {
+      "name": "Ardoise",
+      "hex": "#5D7087",
+      "rgb": "rgb(93, 112, 135)",
+      "note": "Cliquer pour copier",
+      "noteColor": "var(--text-3)"
+    },
+    {
+      "name": "Bleu nuit",
+      "hex": "#001B4D",
+      "rgb": "rgb(0, 27, 77)",
+      "note": "Cliquer pour copier",
+      "noteColor": "var(--text-3)"
+    }
+  ],
+  "pageTitle": "Paramètres du cabinet",
+  "pageDesc": "Cabinet, équipe, rôles, relances, modèles, SMS, reversements et données personnelles",
+  "showTechLink": false,
+  "showUserLink": false,
+  "denied": false,
+  "allowed": true,
+  "trailText": "Paramètres",
+  "secLabel": "Comptes utilisateurs",
+  "yes": true,
+  "inHub": true,
+  "inSection": false,
+  "headTitle": "Paramètres du cabinet",
+  "headDesc": "Choisissez un thème. Les réglages techniques sont réservés au rôle Développeur.",
+  "backLabel": "Paramètres du cabinet",
+  "showClean": false,
+  "hq": "",
+  "hubGroups": [
+    {
+      "label": "Organisation",
+      "tiles": [
+        {
+          "title": "Cabinet",
+          "description": "Identité et obligations légales",
+          "icon": "building",
+          "status": "RC professionnelle à renouveler dans 40 jours",
+          "statusTone": "warning",
+          "badge": "",
+          "badgeTone": "neutral"
+        },
+        {
+          "title": "Comptes utilisateurs",
+          "description": "Équipe Legarec, accès des créanciers et invitations",
+          "icon": "users",
+          "status": "8 comptes actifs · 1 sans double authentification",
+          "statusTone": "warning",
+          "badge": "",
+          "badgeTone": "neutral"
+        },
+        {
+          "title": "Rôles et permissions",
+          "description": "Qui peut faire quoi",
+          "icon": "shield",
+          "status": "5 rôles",
+          "statusTone": "neutral",
+          "badge": "",
+          "badgeTone": "neutral"
+        },
+        {
+          "title": "Kit média",
+          "description": "Logos, couleurs et typographie à télécharger ou à partager par URL",
+          "icon": "image",
+          "status": "4 logos, 4 couleurs, 2 polices",
+          "statusTone": "neutral",
+          "badge": "",
+          "badgeTone": "neutral"
+        }
+      ]
+    },
+    {
+      "label": "Recouvrement",
+      "tiles": [
+        {
+          "title": "Scénarios de relance",
+          "description": "Étapes automatiques après l’échéance",
+          "icon": "route",
+          "status": "Scénario B2B actif · 6 étapes",
+          "statusTone": "success",
+          "badge": "",
+          "badgeTone": "neutral"
+        },
+        {
+          "title": "Règles et validations",
+          "description": "Frais, pénalités, seuils de validation",
+          "icon": "scale",
+          "status": "3 validations obligatoires",
+          "statusTone": "neutral",
+          "badge": "",
+          "badgeTone": "neutral"
+        },
+        {
+          "title": "Modèles de documents",
+          "description": "Courriers, SMS, factures et contrats",
+          "icon": "file",
+          "status": "12 modèles",
+          "statusTone": "neutral",
+          "badge": "",
+          "badgeTone": "neutral"
+        }
+      ]
+    },
+    {
+      "label": "Communication",
+      "tiles": [
+        {
+          "title": "SMS",
+          "description": "OVHcloud : expéditeur, plages, crédits",
+          "icon": "sms",
+          "status": "OVHcloud connecté · 1 196 SMS ce mois",
+          "statusTone": "success",
+          "badge": "",
+          "badgeTone": "neutral"
+        }
+      ]
+    },
+    {
+      "label": "Paiements",
+      "tiles": [
+        {
+          "title": "Reversements",
+          "description": "Fréquence et commissions",
+          "icon": "euro",
+          "status": "Prochain reversement le 1er décembre",
+          "statusTone": "info",
+          "badge": "",
+          "badgeTone": "neutral"
+        }
+      ]
+    },
+    {
+      "label": "Intelligence artificielle",
+      "tiles": [
+        {
+          "title": "Assistant IA",
+          "description": "Fonctions activées, garde-fous, budget et journal",
+          "icon": "sparkle",
+          "status": "4 fonctions actives · 38,40 € sur 150 € ce mois",
+          "statusTone": "info",
+          "badge": "",
+          "badgeTone": "neutral"
+        }
+      ]
+    },
+    {
+      "label": "Plateforme",
+      "tiles": [
+        {
+          "title": "Données personnelles",
+          "description": "Conservation et droits RGPD",
+          "icon": "database",
+          "status": "Conservation : 5 ans après clôture",
+          "statusTone": "neutral",
+          "badge": "",
+          "badgeTone": "neutral"
+        }
+      ]
+    }
+  ],
+  "hubEmpty": false,
+  "hasSiblings": true,
+  "siblingsLabel": "Sections : Organisation",
+  "siblings": [
+    {
+      "label": "Cabinet",
+      "selected": false
+    },
+    {
+      "label": "Comptes utilisateurs",
+      "selected": true
+    },
+    {
+      "label": "Rôles et permissions",
+      "selected": false
+    },
+    {
+      "label": "Kit média",
+      "selected": false
+    }
+  ],
+  "secDesc": "Équipe Legarec, accès des créanciers et invitations",
+  "ro": false,
+  "groups": [
+    {
+      "label": "Organisation",
+      "items": [
+        {
+          "label": "Cabinet",
+          "lock": false,
+          "current": "false",
+          "bg": "transparent",
+          "color": "var(--text-2)",
+          "weight": "500"
+        },
+        {
+          "label": "Comptes utilisateurs",
+          "lock": false,
+          "current": "page",
+          "bg": "var(--surface-3)",
+          "color": "var(--text)",
+          "weight": "600"
+        },
+        {
+          "label": "Rôles et permissions",
+          "lock": false,
+          "current": "false",
+          "bg": "transparent",
+          "color": "var(--text-2)",
+          "weight": "500"
+        },
+        {
+          "label": "Kit média",
+          "lock": false,
+          "current": "false",
+          "bg": "transparent",
+          "color": "var(--text-2)",
+          "weight": "500"
+        }
+      ]
+    },
+    {
+      "label": "Recouvrement",
+      "items": [
+        {
+          "label": "Scénarios de relance",
+          "lock": false,
+          "current": "false",
+          "bg": "transparent",
+          "color": "var(--text-2)",
+          "weight": "500"
+        },
+        {
+          "label": "Règles et validations",
+          "lock": false,
+          "current": "false",
+          "bg": "transparent",
+          "color": "var(--text-2)",
+          "weight": "500"
+        },
+        {
+          "label": "Modèles de documents",
+          "lock": false,
+          "current": "false",
+          "bg": "transparent",
+          "color": "var(--text-2)",
+          "weight": "500"
+        }
+      ]
+    },
+    {
+      "label": "Communication",
+      "items": [
+        {
+          "label": "SMS",
+          "lock": false,
+          "current": "false",
+          "bg": "transparent",
+          "color": "var(--text-2)",
+          "weight": "500"
+        }
+      ]
+    },
+    {
+      "label": "Paiements",
+      "items": [
+        {
+          "label": "Reversements",
+          "lock": false,
+          "current": "false",
+          "bg": "transparent",
+          "color": "var(--text-2)",
+          "weight": "500"
+        }
+      ]
+    },
+    {
+      "label": "Intelligence artificielle",
+      "items": [
+        {
+          "label": "Assistant IA",
+          "lock": false,
+          "current": "false",
+          "bg": "transparent",
+          "color": "var(--text-2)",
+          "weight": "500"
+        }
+      ]
+    },
+    {
+      "label": "Plateforme",
+      "items": [
+        {
+          "label": "Données personnelles",
+          "lock": false,
+          "current": "false",
+          "bg": "transparent",
+          "color": "var(--text-2)",
+          "weight": "500"
+        }
+      ]
+    }
+  ],
+  "asRoles": [
+    {
+      "label": "Responsable (vous)",
+      "selected": true
+    },
+    {
+      "label": "Dirigeant",
+      "selected": false
+    },
+    {
+      "label": "Développeur",
+      "selected": false
+    }
+  ],
+  "dirty": false,
+  "clean": true,
+  "savedText": "Tout est à jour",
+  "ruleToggles": [
+    {
+      "title": "Échéancier au-delà de la durée maximale",
+      "detail": "Validation par un Responsable du recouvrement ou le Dirigeant",
+      "checked": "true",
+      "locked": true,
+      "opacity": "0.55",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Échéancier au-delà de la durée maximale",
+        "description": "Validation par un Responsable du recouvrement ou le Dirigeant",
+        "checked": true,
+        "locked": true
+      }
+    },
+    {
+      "title": "Remise ou abandon de créance",
+      "detail": "Toujours soumis à validation, quel que soit le montant",
+      "checked": "true",
+      "locked": true,
+      "opacity": "0.55",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Remise ou abandon de créance",
+        "description": "Toujours soumis à validation, quel que soit le montant",
+        "checked": true,
+        "locked": true
+      }
+    },
+    {
+      "title": "Passage en contentieux",
+      "detail": "Nécessite aussi l’accord écrit du créancier",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Passage en contentieux",
+        "description": "Nécessite aussi l’accord écrit du créancier",
+        "checked": true,
+        "locked": false
+      }
+    }
+  ],
+  "smsToggles": [
+    {
+      "title": "Mention « STOP » obligatoire",
+      "detail": "Ajoutée automatiquement à la fin de chaque SMS",
+      "checked": "true",
+      "locked": true,
+      "opacity": "0.55",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Mention « STOP » obligatoire",
+        "description": "Ajoutée automatiquement à la fin de chaque SMS",
+        "checked": true,
+        "locked": true
+      }
+    },
+    {
+      "title": "Lien de paiement raccourci",
+      "detail": "Inséré dans les SMS de relance",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Lien de paiement raccourci",
+        "description": "Inséré dans les SMS de relance",
+        "checked": true,
+        "locked": false
+      }
+    },
+    {
+      "title": "Accusés de distribution",
+      "detail": "Les SMS non distribués apparaissent en rouge dans la conversation",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Accusés de distribution",
+        "description": "Les SMS non distribués apparaissent en rouge dans la conversation",
+        "checked": true,
+        "locked": false
+      }
+    }
+  ],
+  "iaToggles": [
+    {
+      "title": "Transcription et résumé des appels",
+      "detail": "Résumé et qualification proposés après l’appel (Appels). Uniquement si l’enregistrement a été annoncé.",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Transcription et résumé des appels",
+        "description": "Résumé et qualification proposés après l’appel (Appels). Uniquement si l’enregistrement a été annoncé.",
+        "checked": true,
+        "locked": false
+      }
+    },
+    {
+      "title": "Tri et analyse des e-mails",
+      "detail": "Catégorie, dossier rattaché, montants et dates extraits (E-mails)",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Tri et analyse des e-mails",
+        "description": "Catégorie, dossier rattaché, montants et dates extraits (E-mails)",
+        "checked": true,
+        "locked": false
+      }
+    },
+    {
+      "title": "Brouillons de réponse",
+      "detail": "Proposés dans le ton du cabinet, à relire avant envoi (E-mails, SMS)",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Brouillons de réponse",
+        "description": "Proposés dans le ton du cabinet, à relire avant envoi (E-mails, SMS)",
+        "checked": true,
+        "locked": false
+      }
+    },
+    {
+      "title": "Synthèse des dossiers",
+      "detail": "Résumé en 5 lignes en tête de la fiche débiteur",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Synthèse des dossiers",
+        "description": "Résumé en 5 lignes en tête de la fiche débiteur",
+        "checked": true,
+        "locked": false
+      }
+    },
+    {
+      "title": "Lecture des factures importées",
+      "detail": "Pré-remplissage des créances déposées en PDF par les créanciers",
+      "checked": "false",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--border-strong)",
+      "justify": "flex-start",
+      "reg": {
+        "kind": "switch",
+        "label": "Lecture des factures importées",
+        "description": "Pré-remplissage des créances déposées en PDF par les créanciers",
+        "checked": false,
+        "locked": false
+      }
+    },
+    {
+      "title": "Recherche en langage courant",
+      "detail": "Dans la recherche rapide (touche /)",
+      "checked": "false",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--border-strong)",
+      "justify": "flex-start",
+      "reg": {
+        "kind": "switch",
+        "label": "Recherche en langage courant",
+        "description": "Dans la recherche rapide (touche /)",
+        "checked": false,
+        "locked": false
+      }
+    }
+  ],
+  "iaGuards": [
+    {
+      "title": "Validation humaine obligatoire",
+      "detail": "Aucun envoi, échéancier, procédure ou enregistrement ne part sans le clic d’un collaborateur",
+      "checked": "true",
+      "locked": true,
+      "opacity": "0.55",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Validation humaine obligatoire",
+        "description": "Aucun envoi, échéancier, procédure ou enregistrement ne part sans le clic d’un collaborateur",
+        "checked": true,
+        "locked": true
+      }
+    },
+    {
+      "title": "Pas de décision automatique sur les débiteurs",
+      "detail": "L’IA suggère et explique, elle ne décide jamais (RGPD, article 22)",
+      "checked": "true",
+      "locked": true,
+      "opacity": "0.55",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Pas de décision automatique sur les débiteurs",
+        "description": "L’IA suggère et explique, elle ne décide jamais (RGPD, article 22)",
+        "checked": true,
+        "locked": true
+      }
+    },
+    {
+      "title": "Transcription liée au consentement",
+      "detail": "Rien n’est enregistré ni analysé tant que l’annonce de l’enregistrement n’est pas cochée",
+      "checked": "true",
+      "locked": true,
+      "opacity": "0.55",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Transcription liée au consentement",
+        "description": "Rien n’est enregistré ni analysé tant que l’annonce de l’enregistrement n’est pas cochée",
+        "checked": true,
+        "locked": true
+      }
+    },
+    {
+      "title": "Données minimisées",
+      "detail": "IBAN, données bancaires et pièces d’identité masqués avant envoi à l’IA",
+      "checked": "true",
+      "locked": true,
+      "opacity": "0.55",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Données minimisées",
+        "description": "IBAN, données bancaires et pièces d’identité masqués avant envoi à l’IA",
+        "checked": true,
+        "locked": true
+      }
+    },
+    {
+      "title": "Mentions obligatoires hors IA",
+      "detail": "Les mentions légales des courriers et e-mails viennent toujours des modèles validés",
+      "checked": "true",
+      "locked": true,
+      "opacity": "0.55",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Mentions obligatoires hors IA",
+        "description": "Les mentions légales des courriers et e-mails viennent toujours des modèles validés",
+        "checked": true,
+        "locked": true
+      }
+    }
+  ],
+  "iaLogCols": [
+    {
+      "key": "date",
+      "label": "Date",
+      "width": "120px"
+    },
+    {
+      "key": "fn",
+      "label": "Fonction"
+    },
+    {
+      "key": "dossier",
+      "label": "Dossier"
+    },
+    {
+      "key": "user",
+      "label": "Collaborateur"
+    },
+    {
+      "key": "decision",
+      "label": "Décision",
+      "type": "badge"
+    }
+  ],
+  "iaLogRows": [
+    {
+      "date": "23/11 10:42",
+      "fn": "Résumé d’appel",
+      "dossier": "Bâtiplus SAS",
+      "user": "Camille Laurent",
+      "decision": {
+        "text": "Acceptée",
+        "tone": "success"
+      }
+    },
+    {
+      "date": "23/11 10:15",
+      "fn": "Brouillon de réponse",
+      "dossier": "Atelier Mistral",
+      "user": "Camille Laurent",
+      "decision": {
+        "text": "Modifiée",
+        "tone": "info"
+      }
+    },
+    {
+      "date": "23/11 09:58",
+      "fn": "Tri des e-mails",
+      "dossier": "Groupe Hélio",
+      "user": "Thomas Giraud",
+      "decision": {
+        "text": "Acceptée",
+        "tone": "success"
+      }
+    },
+    {
+      "date": "22/11 17:20",
+      "fn": "Synthèse du dossier",
+      "dossier": "Garage Valmont",
+      "user": "Hugo Benali",
+      "decision": {
+        "text": "Signalée",
+        "tone": "warning"
+      }
+    },
+    {
+      "date": "22/11 16:03",
+      "fn": "Tri des e-mails",
+      "dossier": "Fromagerie Durand",
+      "user": "Sarah Morel",
+      "decision": {
+        "text": "Corrigée",
+        "tone": "info"
+      }
+    },
+    {
+      "date": "22/11 14:47",
+      "fn": "Résumé d’appel",
+      "dossier": "Cabinet Orsay",
+      "user": "Thomas Giraud",
+      "decision": {
+        "text": "Ignorée",
+        "tone": "neutral"
+      }
+    }
+  ],
+  "payToggles": [
+    {
+      "title": "Carte bancaire",
+      "detail": "Paiement immédiat depuis l’espace débiteur",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Carte bancaire",
+        "description": "Paiement immédiat depuis l’espace débiteur",
+        "checked": true,
+        "locked": false
+      }
+    },
+    {
+      "title": "Virement",
+      "detail": "Avec la référence du dossier, rapproché automatiquement",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Virement",
+        "description": "Avec la référence du dossier, rapproché automatiquement",
+        "checked": true,
+        "locked": false
+      }
+    },
+    {
+      "title": "Prélèvement SEPA",
+      "detail": "Utilisé aussi pour les échéanciers",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Prélèvement SEPA",
+        "description": "Utilisé aussi pour les échéanciers",
+        "checked": true,
+        "locked": false
+      }
+    },
+    {
+      "title": "Paiement partiel",
+      "detail": "Le débiteur peut régler une partie du solde",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Paiement partiel",
+        "description": "Le débiteur peut régler une partie du solde",
+        "checked": true,
+        "locked": false
+      }
+    },
+    {
+      "title": "Reçu automatique par e-mail",
+      "detail": "Envoyé à chaque paiement",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Reçu automatique par e-mail",
+        "description": "Envoyé à chaque paiement",
+        "checked": true,
+        "locked": false
+      }
+    }
+  ],
+  "payoutToggles": [
+    {
+      "title": "Validation du Dirigeant avant virement",
+      "detail": "Le lot de reversements attend son accord",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Validation du Dirigeant avant virement",
+        "description": "Le lot de reversements attend son accord",
+        "checked": true,
+        "locked": false
+      }
+    },
+    {
+      "title": "Relevé envoyé au créancier",
+      "detail": "PDF et CSV, disponibles aussi dans son espace",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Relevé envoyé au créancier",
+        "description": "PDF et CSV, disponibles aussi dans son espace",
+        "checked": true,
+        "locked": false
+      }
+    }
+  ],
+  "rgpdToggles": [
+    {
+      "title": "Mention d’information dans chaque relance",
+      "detail": "Rappelle au débiteur ses droits et le contact du DPO",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Mention d’information dans chaque relance",
+        "description": "Rappelle au débiteur ses droits et le contact du DPO",
+        "checked": true,
+        "locked": false
+      }
+    },
+    {
+      "title": "Anonymisation automatique",
+      "detail": "À l’expiration de la durée de conservation",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Anonymisation automatique",
+        "description": "À l’expiration de la durée de conservation",
+        "checked": true,
+        "locked": false
+      }
+    }
+  ],
+  "tcats": [
+    {
+      "label": "Tous",
+      "count": "12",
+      "pressed": "true",
+      "bg": "var(--marine)",
+      "fg": "var(--on-primary)",
+      "border": "var(--marine)"
+    },
+    {
+      "label": "Recouvrement",
+      "count": "7",
+      "pressed": "false",
+      "bg": "var(--surface)",
+      "fg": "var(--text-2)",
+      "border": "var(--border)"
+    },
+    {
+      "label": "Facturation",
+      "count": "5",
+      "pressed": "false",
+      "bg": "var(--surface)",
+      "fg": "var(--text-2)",
+      "border": "var(--border)"
+    }
+  ],
+  "templates": [
+    {
+      "channel": "Courrier",
+      "name": "Relance amiable",
+      "date": "12/09/2026",
+      "uses": 214,
+      "bg": "var(--warning-bg)",
+      "fg": "var(--warning-fg)"
+    },
+    {
+      "channel": "Courrier",
+      "name": "Relance ferme",
+      "date": "12/09/2026",
+      "uses": 128,
+      "bg": "var(--warning-bg)",
+      "fg": "var(--warning-fg)"
+    },
+    {
+      "channel": "LRAR",
+      "name": "Mise en demeure",
+      "date": "03/10/2026",
+      "uses": 21,
+      "bg": "var(--danger-bg)",
+      "fg": "var(--danger-fg)"
+    },
+    {
+      "channel": "Courrier",
+      "name": "Proposition d’échéancier",
+      "date": "18/10/2026",
+      "uses": 37,
+      "bg": "var(--warning-bg)",
+      "fg": "var(--warning-fg)"
+    },
+    {
+      "channel": "Courrier",
+      "name": "Attestation de solde",
+      "date": "02/06/2026",
+      "uses": 19,
+      "bg": "var(--warning-bg)",
+      "fg": "var(--warning-fg)"
+    },
+    {
+      "channel": "E-mail",
+      "name": "Rappel avant échéance",
+      "date": "30/08/2026",
+      "uses": 402,
+      "bg": "var(--info-bg)",
+      "fg": "var(--info-fg)"
+    },
+    {
+      "channel": "SMS",
+      "name": "Relance SMS J+21",
+      "date": "05/11/2026",
+      "uses": 1196,
+      "bg": "var(--teal-bg)",
+      "fg": "var(--teal-fg)"
+    },
+    {
+      "channel": "Facture",
+      "name": "Facture de commission mensuelle",
+      "date": "28/09/2026",
+      "uses": 5,
+      "bg": "var(--violet-bg)",
+      "fg": "var(--violet-fg)"
+    },
+    {
+      "channel": "Facture",
+      "name": "Refacturation de frais de procédure",
+      "date": "14/10/2026",
+      "uses": 2,
+      "bg": "var(--violet-bg)",
+      "fg": "var(--violet-fg)"
+    },
+    {
+      "channel": "Facture",
+      "name": "Facture forfaitaire",
+      "date": "05/05/2026",
+      "uses": 1,
+      "bg": "var(--violet-bg)",
+      "fg": "var(--violet-fg)"
+    },
+    {
+      "channel": "Devis",
+      "name": "Devis recouvrement amiable",
+      "date": "21/09/2026",
+      "uses": 3,
+      "bg": "var(--bleu-200)",
+      "fg": "var(--marine)"
+    },
+    {
+      "channel": "Contrat",
+      "name": "Convention de recouvrement amiable",
+      "date": "12/03/2026",
+      "uses": 1,
+      "bg": "var(--surface-3)",
+      "fg": "var(--text-2)"
+    }
+  ],
+  "audit": [
+    {
+      "date": "21/11/2026 11:58",
+      "who": "Camille Laurent",
+      "what": "Validation d’un échéancier de 8 mois (Bâtiplus SAS)",
+      "dot": "var(--marine)",
+      "ip": "91.168.•••.12"
+    },
+    {
+      "date": "21/11/2026 10:44",
+      "who": "Marie Dubreuil",
+      "what": "Export des données (Rapports)",
+      "dot": "var(--warning)",
+      "ip": "91.168.•••.40"
+    },
+    {
+      "date": "21/11/2026 09:02",
+      "who": "Camille Laurent",
+      "what": "Connexion réussie (2FA)",
+      "dot": "var(--success)",
+      "ip": "91.168.•••.12"
+    },
+    {
+      "date": "21/11/2026 08:57",
+      "who": "Inconnu",
+      "what": "3 tentatives de connexion échouées (hb@legarec.fr)",
+      "dot": "var(--danger)",
+      "ip": "185.22.•••.7"
+    },
+    {
+      "date": "20/11/2026 18:30",
+      "who": "Julien Martin",
+      "what": "Modification de la configuration des webhooks",
+      "dot": "var(--text-2)",
+      "ip": "10.0.•••.3"
+    },
+    {
+      "date": "20/11/2026 16:12",
+      "who": "Marie Dubreuil",
+      "what": "Création du compte de Lucas Perrin",
+      "dot": "var(--marine)",
+      "ip": "91.168.•••.40"
+    },
+    {
+      "date": "20/11/2026 14:05",
+      "who": "Claire Besson",
+      "what": "Connexion à l’espace créancier",
+      "dot": "var(--success)",
+      "ip": "78.192.•••.88"
+    }
+  ],
+  "cantManage": true,
+  "inviteTip": "Réservé aux rôles Dirigeant et Développeur",
+  "invBg": "var(--surface-3)",
+  "invFg": "var(--text-3)",
+  "invCursor": "not-allowed",
+  "uStats": [
+    {
+      "label": "Équipe active",
+      "value": "6 / 7",
+      "hint": "comptes internes",
+      "color": "var(--text)"
+    },
+    {
+      "label": "Accès créanciers",
+      "value": "1",
+      "hint": "espace créancier",
+      "color": "var(--text)"
+    },
+    {
+      "label": "2FA à activer",
+      "value": "2",
+      "hint": "dont 0 obligatoire",
+      "color": "var(--warning-fg)"
+    },
+    {
+      "label": "Invitations",
+      "value": "1",
+      "hint": "en attente d’activation",
+      "color": "var(--text)"
+    }
+  ],
+  "uKinds": [
+    {
+      "label": "Équipe",
+      "count": 7,
+      "selected": "true",
+      "bg": "var(--white)",
+      "color": "var(--text)",
+      "shadow": "var(--shadow-sm)"
+    },
+    {
+      "label": "Créanciers",
+      "count": 1,
+      "selected": "false",
+      "bg": "transparent",
+      "color": "var(--text-3)",
+      "shadow": "none"
+    },
+    {
+      "label": "Invitations",
+      "count": 1,
+      "selected": "false",
+      "bg": "transparent",
+      "color": "var(--text-3)",
+      "shadow": "none"
+    }
+  ],
+  "uq": "",
+  "uEmpty": false,
+  "uRows": [
+    {
+      "name": "Julien Martin",
+      "email": "jm@legarec.fr",
+      "ini": "JM",
+      "avBg": "var(--bleu-200)",
+      "avFg": "var(--marine)",
+      "me": "",
+      "role": "Dév.",
+      "bg": "var(--text)",
+      "fg": "var(--white)",
+      "tfa": "2FA : Activée",
+      "tfaShort": "Activée",
+      "tfaColor": "var(--success-fg)",
+      "status": "Actif",
+      "stDot": "var(--success)",
+      "pressed": "false",
+      "rowBg": "var(--white)",
+      "bar": "none"
+    },
+    {
+      "name": "Marie Dubreuil",
+      "email": "md@legarec.fr",
+      "ini": "MD",
+      "avBg": "var(--bleu-200)",
+      "avFg": "var(--marine)",
+      "me": "",
+      "role": "Dirigeant",
+      "bg": "var(--marine)",
+      "fg": "var(--white)",
+      "tfa": "2FA : Activée",
+      "tfaShort": "Activée",
+      "tfaColor": "var(--success-fg)",
+      "status": "Actif",
+      "stDot": "var(--success)",
+      "pressed": "false",
+      "rowBg": "var(--white)",
+      "bar": "none"
+    },
+    {
+      "name": "Camille Laurent",
+      "email": "cl@legarec.fr",
+      "ini": "CL",
+      "avBg": "var(--bleu-200)",
+      "avFg": "var(--marine)",
+      "me": "(vous)",
+      "role": "Resp. recouvrement",
+      "bg": "var(--bleu-200)",
+      "fg": "var(--marine)",
+      "tfa": "2FA : Activée",
+      "tfaShort": "Activée",
+      "tfaColor": "var(--success-fg)",
+      "status": "Actif",
+      "stDot": "var(--success)",
+      "pressed": "false",
+      "rowBg": "var(--white)",
+      "bar": "none"
+    },
+    {
+      "name": "Thomas Giraud",
+      "email": "tg@legarec.fr",
+      "ini": "TG",
+      "avBg": "var(--bleu-200)",
+      "avFg": "var(--marine)",
+      "me": "",
+      "role": "Gestionnaire",
+      "bg": "var(--surface-3)",
+      "fg": "var(--text-2)",
+      "tfa": "2FA : Activée",
+      "tfaShort": "Activée",
+      "tfaColor": "var(--success-fg)",
+      "status": "Actif",
+      "stDot": "var(--success)",
+      "pressed": "false",
+      "rowBg": "var(--white)",
+      "bar": "none"
+    },
+    {
+      "name": "Hugo Benali",
+      "email": "hb@legarec.fr",
+      "ini": "HB",
+      "avBg": "var(--bleu-200)",
+      "avFg": "var(--marine)",
+      "me": "",
+      "role": "Gestionnaire",
+      "bg": "var(--surface-3)",
+      "fg": "var(--text-2)",
+      "tfa": "2FA : Recommandée, non activée",
+      "tfaShort": "Non",
+      "tfaColor": "var(--warning-fg)",
+      "status": "Actif",
+      "stDot": "var(--success)",
+      "pressed": "true",
+      "rowBg": "var(--surface-3)",
+      "bar": "inset 3px 0 0 var(--or)"
+    },
+    {
+      "name": "Sarah Morel",
+      "email": "sm@legarec.fr",
+      "ini": "SM",
+      "avBg": "var(--bleu-200)",
+      "avFg": "var(--marine)",
+      "me": "",
+      "role": "Gestionnaire",
+      "bg": "var(--surface-3)",
+      "fg": "var(--text-2)",
+      "tfa": "2FA : Activée",
+      "tfaShort": "Activée",
+      "tfaColor": "var(--success-fg)",
+      "status": "Actif",
+      "stDot": "var(--success)",
+      "pressed": "false",
+      "rowBg": "var(--white)",
+      "bar": "none"
+    },
+    {
+      "name": "Lucas Perrin",
+      "email": "lp@legarec.fr",
+      "ini": "LP",
+      "avBg": "var(--bleu-200)",
+      "avFg": "var(--marine)",
+      "me": "",
+      "role": "Gestionnaire",
+      "bg": "var(--surface-3)",
+      "fg": "var(--text-2)",
+      "tfa": "2FA : Recommandée, non activée",
+      "tfaShort": "Non",
+      "tfaColor": "var(--warning-fg)",
+      "status": "Inactif",
+      "stDot": "var(--text-3)",
+      "pressed": "false",
+      "rowBg": "var(--white)",
+      "bar": "none"
+    }
+  ],
+  "hasSel": true,
+  "sel": {
+    "name": "Hugo Benali",
+    "email": "hb@legarec.fr",
+    "ini": "HB",
+    "avBg": "var(--bleu-200)",
+    "avFg": "var(--marine)",
+    "role": "Gestionnaire de créances",
+    "code": "GESTIONNAIRE_CREANCES",
+    "bg": "var(--surface-3)",
+    "fg": "var(--text-2)",
+    "mission": "Traitement des dossiers au quotidien.",
+    "roleOpts": [
+      {
+        "label": "Gestionnaire de créances",
+        "selected": true
+      },
+      {
+        "label": "Responsable du recouvrement",
+        "selected": false
+      },
+      {
+        "label": "Dirigeant",
+        "selected": false
+      },
+      {
+        "label": "Développeur",
+        "selected": false
+      },
+      {
+        "label": "Créancier",
+        "selected": false
+      }
+    ],
+    "status": "Actif",
+    "stDot": "var(--success)",
+    "tfa": "Recommandée, non activée",
+    "tfaColor": "var(--warning-fg)",
+    "last": "Hier",
+    "sessions": "1",
+    "hasScope": true,
+    "scopeLocked": false,
+    "scopes": [
+      {
+        "name": "Matériaux Delta",
+        "n": 64,
+        "on": false
+      },
+      {
+        "name": "Énergies Rhône",
+        "n": 71,
+        "on": false
+      },
+      {
+        "name": "Médiatel",
+        "n": 52,
+        "on": true
+      },
+      {
+        "name": "TransAlp Leasing",
+        "n": 33,
+        "on": false
+      },
+      {
+        "name": "Crédit Horizon",
+        "n": 28,
+        "on": false
+      }
+    ],
+    "activity": [
+      {
+        "what": "3 tentatives échouées depuis une IP inconnue",
+        "when": "21/11 08:57"
+      },
+      {
+        "what": "Connexion réussie",
+        "when": "20/11 08:41"
+      }
+    ],
+    "done": null,
+    "doneText": "",
+    "noDeactivate": true,
+    "activeLabel": "Désactiver le compte"
+  },
+  "inviteOpen": false,
+  "invName": "",
+  "invMail": "",
+  "invRoles": [
+    {
+      "label": "Gestionnaire de créances",
+      "desc": "Traite ses dossiers au quotidien",
+      "checked": "true",
+      "bg": "var(--bleu-pale)",
+      "border": "2px solid var(--marine)"
+    },
+    {
+      "label": "Responsable du recouvrement",
+      "desc": "Encadre l’équipe, valide les actions sensibles",
+      "checked": "false",
+      "bg": "var(--white)",
+      "border": "1px solid var(--border)"
+    },
+    {
+      "label": "Dirigeant",
+      "desc": "Pilotage global, gestion des comptes",
+      "checked": "false",
+      "bg": "var(--white)",
+      "border": "1px solid var(--border)"
+    },
+    {
+      "label": "Développeur",
+      "desc": "Configuration technique de la plateforme",
+      "checked": "false",
+      "bg": "var(--white)",
+      "border": "1px solid var(--border)"
+    },
+    {
+      "label": "Créancier",
+      "desc": "Accès à l’espace créancier, ses dossiers uniquement",
+      "checked": "false",
+      "bg": "var(--white)",
+      "border": "1px solid var(--border)"
+    }
+  ],
+  "invNeeds2fa": false,
+  "roleMission": "Responsable du recouvrement : Encadrement de l’équipe et validation des actions sensibles.",
+  "roles": [
+    {
+      "short": "Dév.",
+      "pressed": "false",
+      "bg": "transparent",
+      "color": "var(--text-3)",
+      "shadow": "none",
+      "colBg": "transparent",
+      "colFg": "var(--text-3)"
+    },
+    {
+      "short": "Dirigeant",
+      "pressed": "false",
+      "bg": "transparent",
+      "color": "var(--text-3)",
+      "shadow": "none",
+      "colBg": "transparent",
+      "colFg": "var(--text-3)"
+    },
+    {
+      "short": "Resp. recouvrement",
+      "pressed": "true",
+      "bg": "var(--white)",
+      "color": "var(--text)",
+      "shadow": "var(--shadow-sm)",
+      "colBg": "var(--bleu-pale)",
+      "colFg": "var(--marine)"
+    },
+    {
+      "short": "Gestionnaire",
+      "pressed": "false",
+      "bg": "transparent",
+      "color": "var(--text-3)",
+      "shadow": "none",
+      "colBg": "transparent",
+      "colFg": "var(--text-3)"
+    }
+  ],
+  "perms": [
+    {
+      "label": "Configuration technique (API, paiement, e-mails, journaux)",
+      "cells": [
+        {
+          "yes": true,
+          "no": false,
+          "note": "",
+          "colBg": "transparent"
+        },
+        {
+          "yes": false,
+          "no": true,
+          "note": "n",
+          "colBg": "transparent"
+        },
+        {
+          "yes": false,
+          "no": true,
+          "note": "n",
+          "colBg": "var(--bleu-pale)"
+        },
+        {
+          "yes": false,
+          "no": true,
+          "note": "n",
+          "colBg": "transparent"
+        }
+      ]
+    },
+    {
+      "label": "Créer ou supprimer des comptes utilisateurs",
+      "cells": [
+        {
+          "yes": true,
+          "no": false,
+          "note": "",
+          "colBg": "transparent"
+        },
+        {
+          "yes": true,
+          "no": false,
+          "note": "",
+          "colBg": "transparent"
+        },
+        {
+          "yes": false,
+          "no": true,
+          "note": "n",
+          "colBg": "var(--bleu-pale)"
+        },
+        {
+          "yes": false,
+          "no": true,
+          "note": "n",
+          "colBg": "transparent"
+        }
+      ]
+    },
+    {
+      "label": "Voir les tableaux de bord globaux (CA, taux de recouvrement)",
+      "cells": [
+        {
+          "yes": true,
+          "no": false,
+          "note": "",
+          "colBg": "transparent"
+        },
+        {
+          "yes": true,
+          "no": false,
+          "note": "",
+          "colBg": "transparent"
+        },
+        {
+          "yes": true,
+          "no": false,
+          "note": "",
+          "colBg": "var(--bleu-pale)"
+        },
+        {
+          "yes": false,
+          "no": true,
+          "note": "n",
+          "colBg": "transparent"
+        }
+      ]
+    },
+    {
+      "label": "Gérer les créanciers (clients)",
+      "cells": [
+        {
+          "yes": false,
+          "no": true,
+          "note": "n",
+          "colBg": "transparent"
+        },
+        {
+          "yes": true,
+          "no": false,
+          "note": "",
+          "colBg": "transparent"
+        },
+        {
+          "yes": true,
+          "no": false,
+          "note": "",
+          "colBg": "var(--bleu-pale)"
+        },
+        {
+          "yes": true,
+          "no": false,
+          "note": "Lecture",
+          "colBg": "transparent"
+        }
+      ]
+    },
+    {
+      "label": "Affecter les dossiers aux gestionnaires",
+      "cells": [
+        {
+          "yes": false,
+          "no": true,
+          "note": "n",
+          "colBg": "transparent"
+        },
+        {
+          "yes": true,
+          "no": false,
+          "note": "",
+          "colBg": "transparent"
+        },
+        {
+          "yes": true,
+          "no": false,
+          "note": "",
+          "colBg": "var(--bleu-pale)"
+        },
+        {
+          "yes": false,
+          "no": true,
+          "note": "n",
+          "colBg": "transparent"
+        }
+      ]
+    },
+    {
+      "label": "Valider un échéancier, une remise ou un abandon de créance",
+      "cells": [
+        {
+          "yes": false,
+          "no": true,
+          "note": "n",
+          "colBg": "transparent"
+        },
+        {
+          "yes": true,
+          "no": false,
+          "note": "",
+          "colBg": "transparent"
+        },
+        {
+          "yes": true,
+          "no": false,
+          "note": "",
+          "colBg": "var(--bleu-pale)"
+        },
+        {
+          "yes": false,
+          "no": true,
+          "note": "n",
+          "colBg": "transparent"
+        }
+      ]
+    },
+    {
+      "label": "Traiter un dossier (relances, notes, appels)",
+      "cells": [
+        {
+          "yes": false,
+          "no": true,
+          "note": "n",
+          "colBg": "transparent"
+        },
+        {
+          "yes": false,
+          "no": true,
+          "note": "n",
+          "colBg": "transparent"
+        },
+        {
+          "yes": true,
+          "no": false,
+          "note": "",
+          "colBg": "var(--bleu-pale)"
+        },
+        {
+          "yes": true,
+          "no": false,
+          "note": "Ses dossiers",
+          "colBg": "transparent"
+        }
+      ]
+    },
+    {
+      "label": "Proposer un échéancier",
+      "cells": [
+        {
+          "yes": false,
+          "no": true,
+          "note": "n",
+          "colBg": "transparent"
+        },
+        {
+          "yes": false,
+          "no": true,
+          "note": "n",
+          "colBg": "transparent"
+        },
+        {
+          "yes": true,
+          "no": false,
+          "note": "",
+          "colBg": "var(--bleu-pale)"
+        },
+        {
+          "yes": true,
+          "no": false,
+          "note": "",
+          "colBg": "transparent"
+        }
+      ]
+    },
+    {
+      "label": "Exporter les données",
+      "cells": [
+        {
+          "yes": true,
+          "no": false,
+          "note": "",
+          "colBg": "transparent"
+        },
+        {
+          "yes": true,
+          "no": false,
+          "note": "",
+          "colBg": "transparent"
+        },
+        {
+          "yes": true,
+          "no": false,
+          "note": "",
+          "colBg": "var(--bleu-pale)"
+        },
+        {
+          "yes": false,
+          "no": true,
+          "note": "n",
+          "colBg": "transparent"
+        }
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "title": "Rappel avant échéance",
+      "detail": "Modèle « Rappel courtois »",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Rappel avant échéance",
+        "description": "Modèle « Rappel courtois »",
+        "checked": true,
+        "locked": false
+      },
+      "when": "J−3",
+      "channel": "E-mail",
+      "chipBg": "var(--info-bg)",
+      "chipFg": "var(--info-fg)",
+      "bg": "var(--white)",
+      "textColor": "var(--text)"
+    },
+    {
+      "title": "Relance n°1 — rappel amiable",
+      "detail": "Avec relevé de compte et lien de paiement",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Relance n°1 — rappel amiable",
+        "description": "Avec relevé de compte et lien de paiement",
+        "checked": true,
+        "locked": false
+      },
+      "when": "J+7",
+      "channel": "E-mail",
+      "chipBg": "var(--info-bg)",
+      "chipFg": "var(--info-fg)",
+      "bg": "var(--white)",
+      "textColor": "var(--text)"
+    },
+    {
+      "title": "Relance SMS",
+      "detail": "Lien de paiement court",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Relance SMS",
+        "description": "Lien de paiement court",
+        "checked": true,
+        "locked": false
+      },
+      "when": "J+21",
+      "channel": "SMS",
+      "chipBg": "var(--teal-bg)",
+      "chipFg": "var(--teal-fg)",
+      "bg": "var(--white)",
+      "textColor": "var(--text)"
+    },
+    {
+      "title": "Relance n°2 — relance ferme",
+      "detail": "Mention des pénalités de retard",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Relance n°2 — relance ferme",
+        "description": "Mention des pénalités de retard",
+        "checked": true,
+        "locked": false
+      },
+      "when": "J+30",
+      "channel": "E-mail",
+      "chipBg": "var(--info-bg)",
+      "chipFg": "var(--info-fg)",
+      "bg": "var(--white)",
+      "textColor": "var(--text)"
+    },
+    {
+      "title": "Appel du gestionnaire",
+      "detail": "Tâche ajoutée à la file d’appels",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Appel du gestionnaire",
+        "description": "Tâche ajoutée à la file d’appels",
+        "checked": true,
+        "locked": false
+      },
+      "when": "J+45",
+      "channel": "Appel",
+      "chipBg": "var(--bleu-200)",
+      "chipFg": "var(--marine)",
+      "bg": "var(--white)",
+      "textColor": "var(--text)"
+    },
+    {
+      "title": "Mise en demeure",
+      "detail": "Seulement si le créancier l’autorise",
+      "checked": "false",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--border-strong)",
+      "justify": "flex-start",
+      "reg": {
+        "kind": "switch",
+        "label": "Mise en demeure",
+        "description": "Seulement si le créancier l’autorise",
+        "checked": false,
+        "locked": false
+      },
+      "when": "J+60",
+      "channel": "LRAR",
+      "chipBg": "var(--danger-bg)",
+      "chipFg": "var(--danger-fg)",
+      "bg": "var(--surface-2)",
+      "textColor": "var(--text-3)"
+    }
+  ],
+  "cx": {
+    "facts": [
+      {
+        "k": "Instance",
+        "v": "legarec.on3cx.fr · 3CX V20 hébergée"
+      },
+      {
+        "k": "Numéro principal",
+        "v": "01 87 88 02 98 · 4 lignes simultanées"
+      },
+      {
+        "k": "File entrante",
+        "v": "800 « Recouvrement » · distribution au plus disponible"
+      },
+      {
+        "k": "Post-appel",
+        "v": "60 s de pause pour qualifier"
+      },
+      {
+        "k": "Enregistrements",
+        "v": "Récupérés de 3CX et rattachés au dossier · 6 mois"
+      },
+      {
+        "k": "Dernière synchronisation",
+        "v": "il y a 20 s"
+      }
+    ],
+    "exts": [
+      {
+        "name": "Camille Laurent",
+        "ext": "101",
+        "queues": "800",
+        "state": "En appel",
+        "dot": "var(--success)"
+      },
+      {
+        "name": "Hugo Benali",
+        "ext": "102",
+        "queues": "800",
+        "state": "Disponible",
+        "dot": "var(--info)"
+      },
+      {
+        "name": "Sarah Morel",
+        "ext": "103",
+        "queues": "800",
+        "state": "Pause",
+        "dot": "var(--warning)"
+      },
+      {
+        "name": "Thomas Giraud",
+        "ext": "104",
+        "queues": "800",
+        "state": "Absent",
+        "dot": "var(--text-3)"
+      }
+    ],
+    "codes": [
+      "PROMESSE",
+      "ECHEANCIER",
+      "RAPPEL",
+      "LITIGE",
+      "DEJA_PAYE",
+      "ABSENT",
+      "NON_REPONSE",
+      "FAUX_NUMERO"
+    ]
+  },
+  "telToggles": [
+    {
+      "title": "Enregistrer les appels",
+      "detail": "Message d’information diffusé au début de chaque appel",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Enregistrer les appels",
+        "description": "Message d’information diffusé au début de chaque appel",
+        "checked": true,
+        "locked": false
+      }
+    },
+    {
+      "title": "Composition automatique",
+      "detail": "Le numéro suivant de la file est appelé à la fin de la qualification",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Composition automatique",
+        "description": "Le numéro suivant de la file est appelé à la fin de la qualification",
+        "checked": true,
+        "locked": false
+      }
+    },
+    {
+      "title": "Fiche débiteur à l’appel entrant",
+      "detail": "3CX reconnaît le numéro et ouvre le dossier du débiteur",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Fiche débiteur à l’appel entrant",
+        "description": "3CX reconnaît le numéro et ouvre le dossier du débiteur",
+        "checked": true,
+        "locked": false
+      }
+    },
+    {
+      "title": "Transcription des appels",
+      "detail": "Résumé ajouté à l’historique du dossier",
+      "checked": "false",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--border-strong)",
+      "justify": "flex-start",
+      "reg": {
+        "kind": "switch",
+        "label": "Transcription des appels",
+        "description": "Résumé ajouté à l’historique du dossier",
+        "checked": false,
+        "locked": false
+      }
+    }
+  ],
+  "signature": "Camille Laurent\nChargée de recouvrement\nAgissant pour le compte de nos créanciers",
+  "integrations": [
+    {
+      "title": "Logiciel comptable des créanciers",
+      "detail": "Import automatique des factures échues",
+      "status": "Connecté",
+      "bg": "var(--success-bg)",
+      "fg": "var(--success-fg)",
+      "cta": "Configurer"
+    },
+    {
+      "title": "Synchronisation bancaire",
+      "detail": "Rapprochement des virements reçus",
+      "status": "Connecté",
+      "bg": "var(--success-bg)",
+      "fg": "var(--success-fg)",
+      "cta": "Configurer"
+    },
+    {
+      "title": "Prélèvement SEPA",
+      "detail": "Encaissement des échéanciers",
+      "status": "Connecté",
+      "bg": "var(--success-bg)",
+      "fg": "var(--success-fg)",
+      "cta": "Configurer"
+    },
+    {
+      "title": "Paiement par carte",
+      "detail": "Liens de paiement dans les relances",
+      "status": "Connecté",
+      "bg": "var(--success-bg)",
+      "fg": "var(--success-fg)",
+      "cta": "Configurer"
+    },
+    {
+      "title": "Resend",
+      "detail": "E-mails transactionnels : reçus, liens de paiement, relances automatiques, codes",
+      "status": "Connecté",
+      "bg": "var(--success-bg)",
+      "fg": "var(--success-fg)",
+      "cta": "Configurer"
+    },
+    {
+      "title": "OVH MX Plan",
+      "detail": "Messagerie de l’équipe en SMTP / IMAP",
+      "status": "Connecté",
+      "bg": "var(--success-bg)",
+      "fg": "var(--success-fg)",
+      "cta": "Configurer"
+    },
+    {
+      "title": "MySendingBox",
+      "detail": "Lettres recommandées et courriers postaux · comptes test et production",
+      "status": "Connecté",
+      "bg": "var(--success-bg)",
+      "fg": "var(--success-fg)",
+      "cta": "Configurer"
+    },
+    {
+      "title": "Scaleway Object Storage",
+      "detail": "Stockage S3 des documents, pièces et courriers",
+      "status": "Connecté",
+      "bg": "var(--success-bg)",
+      "fg": "var(--success-fg)",
+      "cta": "Configurer"
+    },
+    {
+      "title": "Signature électronique",
+      "detail": "Signature des échéanciers par le débiteur",
+      "status": "Non connecté",
+      "bg": "var(--surface-3)",
+      "fg": "var(--text-2)",
+      "cta": "Connecter"
+    },
+    {
+      "title": "Données entreprises",
+      "detail": "Vérification SIREN, procédures collectives",
+      "status": "Non connecté",
+      "bg": "var(--surface-3)",
+      "fg": "var(--text-2)",
+      "cta": "Connecter"
+    }
+  ],
+  "secToggles": [
+    {
+      "title": "Double authentification obligatoire pour Développeur et Dirigeant",
+      "detail": "Ces comptes ne peuvent pas se connecter sans 2FA",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Double authentification obligatoire pour Développeur et Dirigeant",
+        "description": "Ces comptes ne peuvent pas se connecter sans 2FA",
+        "checked": true,
+        "locked": false
+      }
+    },
+    {
+      "title": "Recommander la 2FA aux autres rôles",
+      "detail": "Rappel affiché à chaque connexion tant qu’elle n’est pas activée",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Recommander la 2FA aux autres rôles",
+        "description": "Rappel affiché à chaque connexion tant qu’elle n’est pas activée",
+        "checked": true,
+        "locked": false
+      }
+    },
+    {
+      "title": "Bloquer le compte après 5 tentatives échouées",
+      "detail": "Blocage de 15 minutes, alerte envoyée à l’utilisateur",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Bloquer le compte après 5 tentatives échouées",
+        "description": "Blocage de 15 minutes, alerte envoyée à l’utilisateur",
+        "checked": true,
+        "locked": false
+      }
+    },
+    {
+      "title": "Déconnexion automatique après 30 minutes d’inactivité",
+      "detail": "S’applique à tous les comptes, créanciers compris",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Déconnexion automatique après 30 minutes d’inactivité",
+        "description": "S’applique à tous les comptes, créanciers compris",
+        "checked": true,
+        "locked": false
+      }
+    },
+    {
+      "title": "Journal d’audit",
+      "detail": "Chaque connexion et chaque action sensible est enregistrée (utilisateur, action, date, adresse IP)",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Journal d’audit",
+        "description": "Chaque connexion et chaque action sensible est enregistrée (utilisateur, action, date, adresse IP)",
+        "checked": true,
+        "locked": false
+      }
+    },
+    {
+      "title": "Cloisonnement par créancier",
+      "detail": "Un gestionnaire ne voit que ses dossiers, un créancier que les siens",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Cloisonnement par créancier",
+        "description": "Un gestionnaire ne voit que ses dossiers, un créancier que les siens",
+        "checked": true,
+        "locked": false
+      }
+    },
+    {
+      "title": "Masquer les IBAN des débiteurs",
+      "detail": "Visibles seulement par les rôles Dirigeant et Développeur",
+      "checked": "true",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--marine)",
+      "justify": "flex-end",
+      "reg": {
+        "kind": "switch",
+        "label": "Masquer les IBAN des débiteurs",
+        "description": "Visibles seulement par les rôles Dirigeant et Développeur",
+        "checked": true,
+        "locked": false
+      }
+    },
+    {
+      "title": "Connexion par SSO",
+      "detail": "Authentification unique de l’entreprise",
+      "checked": "false",
+      "locked": false,
+      "opacity": "1",
+      "track": "var(--border-strong)",
+      "justify": "flex-start",
+      "reg": {
+        "kind": "switch",
+        "label": "Connexion par SSO",
+        "description": "Authentification unique de l’entreprise",
+        "checked": false,
+        "locked": false
+      }
+    }
+  ],
+  "gcf": {
+    "open": false,
+    "tone": "primary",
+    "title": "",
+    "body": "",
+    "details": [],
+    "label": ""
+  }
+}

@@ -1,0 +1,418 @@
+{
+  "accent": "var(--marine)",
+  "folderLabel": "Boîte de réception",
+  "folders": [
+    {
+      "label": "Boîte de réception",
+      "count": "12",
+      "pressed": "true",
+      "bg": "var(--bleu-200)",
+      "color": "var(--marine)"
+    },
+    {
+      "label": "Envoyés",
+      "count": "",
+      "pressed": "false",
+      "bg": "transparent",
+      "color": "var(--text-2)"
+    },
+    {
+      "label": "Brouillons",
+      "count": "3",
+      "pressed": "false",
+      "bg": "transparent",
+      "color": "var(--text-2)"
+    },
+    {
+      "label": "Relances auto.",
+      "count": "48",
+      "pressed": "false",
+      "bg": "transparent",
+      "color": "var(--text-2)"
+    },
+    {
+      "label": "Archivés",
+      "count": "",
+      "pressed": "false",
+      "bg": "transparent",
+      "color": "var(--text-2)"
+    }
+  ],
+  "threads": [
+    {
+      "id": "m1",
+      "k": "echeancier",
+      "unread": true,
+      "from": "Julien Ferrand",
+      "initials": "JF",
+      "email": "j.ferrand@batiplus.example",
+      "company": "Bâtiplus SAS",
+      "mandant": "Matériaux Delta",
+      "ref": "DOS-2026-0142",
+      "due": "48 200 €",
+      "time": "09:42",
+      "date": "sam. 21 nov. 2026, 09:42",
+      "subject": "Re: Relance – factures F-2026-0712, 0745, 0790",
+      "preview": "Suite à notre échange téléphonique, je vous confirme le virement…",
+      "body": "Bonjour Madame Laurent,\n\nSuite à notre échange téléphonique de ce matin, je vous confirme le virement de 18 600 € correspondant à la facture F-2026-0712, au plus tard le 28 novembre.\n\nPour le solde de 29 600 €, nous traversons une période de trésorerie tendue. Serait-il possible de l’étaler sur quatre mensualités à partir de décembre ?\n\nBien cordialement,\nJulien Ferrand\nDirecteur administratif et financier",
+      "actions": [
+        "Créer un échéancier",
+        "Enregistrer la promesse"
+      ],
+      "reply": "Bonjour Monsieur Ferrand,\n\nMerci pour votre retour. Nous pouvons vous proposer un échéancier en 4 mensualités de 7 400 €, la première au 15 décembre…",
+      "attachment": "",
+      "tag": "Échéancier",
+      "tagBg": "var(--warning-bg)",
+      "tagFg": "var(--warning-fg)",
+      "dot": "var(--marine)",
+      "weight": "600",
+      "pressed": "true",
+      "bg": "var(--bleu-pale)",
+      "bar": "inset 3px 0 0 var(--marine)"
+    },
+    {
+      "id": "m2",
+      "k": "litige",
+      "unread": true,
+      "from": "Sophie Arnaud",
+      "initials": "SA",
+      "email": "compta@ateliermistral.example",
+      "company": "Atelier Mistral",
+      "mandant": "Matériaux Delta",
+      "ref": "DOS-2026-0170",
+      "due": "18 320 €",
+      "time": "08:15",
+      "date": "sam. 21 nov. 2026, 08:15",
+      "subject": "Contestation facture F-2026-0874",
+      "preview": "La livraison du 2 octobre était incomplète, nous contestons…",
+      "body": "Bonjour,\n\nNous contestons la facture F-2026-0874 : la livraison du 2 octobre était incomplète (2 palettes manquantes sur 6, voir bon de livraison joint).\n\nNous réglerons la partie livrée dès réception d’un avoir pour le reste.\n\nCordialement,\nSophie Arnaud",
+      "actions": [
+        "Ouvrir un litige",
+        "Demander un avoir"
+      ],
+      "reply": "Bonjour Madame Arnaud,\n\nNous avons bien reçu votre contestation et transmettons le bon de livraison à notre service logistique…",
+      "attachment": "BL-2026-10-02.pdf",
+      "tag": "Litige",
+      "tagBg": "var(--violet-bg)",
+      "tagFg": "var(--violet-fg)",
+      "dot": "var(--marine)",
+      "weight": "600",
+      "pressed": "false",
+      "bg": "var(--white)",
+      "bar": "none"
+    },
+    {
+      "id": "m3",
+      "k": "paiement",
+      "unread": false,
+      "from": "Nordis Logistique",
+      "initials": "NL",
+      "email": "paiements@nordis.example",
+      "company": "Nordis Logistique",
+      "mandant": "Énergies Rhône",
+      "ref": "DOS-2026-0163",
+      "due": "21 400 €",
+      "time": "Hier",
+      "date": "ven. 20 nov. 2026, 17:03",
+      "subject": "Avis de virement – 12 500 €",
+      "preview": "Veuillez trouver ci-joint l’avis de virement émis ce jour…",
+      "body": "Bonjour,\n\nVeuillez trouver ci-joint l’avis de virement de 12 500 € émis ce jour, en règlement partiel du dossier DOS-2026-0163.\n\nLe solde de 8 900 € sera réglé le 15 décembre comme convenu.\n\nService comptabilité fournisseurs",
+      "actions": [
+        "Rapprocher le paiement",
+        "Accuser réception"
+      ],
+      "reply": "Bonjour,\n\nNous accusons bonne réception de votre avis de virement de 12 500 € et vous en remercions…",
+      "attachment": "Avis-virement-20112026.pdf",
+      "tag": "Paiement",
+      "tagBg": "var(--success-bg)",
+      "tagFg": "var(--success-fg)",
+      "dot": "transparent",
+      "weight": "400",
+      "pressed": "false",
+      "bg": "var(--white)",
+      "bar": "none"
+    },
+    {
+      "id": "m4",
+      "k": "promesse",
+      "unread": true,
+      "from": "Nadia Roussel",
+      "initials": "NR",
+      "email": "n.roussel@groupehelio.example",
+      "company": "Groupe Hélio",
+      "mandant": "Médiatel",
+      "ref": "DOS-2026-0151",
+      "due": "36 750 €",
+      "time": "Hier",
+      "date": "ven. 20 nov. 2026, 11:20",
+      "subject": "Re: Relance n°2",
+      "preview": "Le règlement est en cours de validation par notre direction…",
+      "body": "Bonjour,\n\nLe règlement de vos deux factures est en cours de validation par notre direction financière. Il devrait partir dans le prochain cycle de paiement, le 30 novembre.\n\nJe reviens vers vous dès confirmation.\n\nNadia Roussel",
+      "actions": [
+        "Enregistrer la promesse",
+        "Programmer un rappel"
+      ],
+      "reply": "Bonjour Madame Roussel,\n\nMerci pour cette information. Nous notons un règlement prévu le 30 novembre…",
+      "attachment": "",
+      "tag": "Promesse",
+      "tagBg": "var(--warning-bg)",
+      "tagFg": "var(--warning-fg)",
+      "dot": "var(--marine)",
+      "weight": "600",
+      "pressed": "false",
+      "bg": "var(--white)",
+      "bar": "none"
+    },
+    {
+      "id": "m5",
+      "k": "rebond",
+      "unread": false,
+      "from": "Mail Delivery System",
+      "initials": "MD",
+      "email": "mailer-daemon@legarec.fr",
+      "company": "Garage Valmont",
+      "mandant": "TransAlp Leasing",
+      "ref": "DOS-2026-0098",
+      "due": "23 900 €",
+      "time": "19 nov.",
+      "date": "jeu. 19 nov. 2026, 14:51",
+      "subject": "Échec de remise : compta@garagevalmont.example",
+      "preview": "Le message n’a pas pu être remis au destinataire…",
+      "body": "Votre message « Relance n°3 – DOS-2026-0098 » n’a pas pu être remis à compta@garagevalmont.example.\n\nMotif : boîte aux lettres inexistante (550 5.1.1).",
+      "actions": [
+        "Mettre à jour le contact",
+        "Envoyer par courrier"
+      ],
+      "reply": "",
+      "attachment": "",
+      "tag": "Rebond",
+      "tagBg": "var(--danger-bg)",
+      "tagFg": "var(--danger-fg)",
+      "dot": "transparent",
+      "weight": "400",
+      "pressed": "false",
+      "bg": "var(--white)",
+      "bar": "none"
+    },
+    {
+      "id": "m6",
+      "k": "paiement",
+      "unread": false,
+      "from": "Marc Durand",
+      "initials": "MD",
+      "email": "contact@fromagerie-durand.example",
+      "company": "Fromagerie Durand",
+      "mandant": "Énergies Rhône",
+      "ref": "DOS-2026-0181",
+      "due": "6 240 €",
+      "time": "18 nov.",
+      "date": "mer. 18 nov. 2026, 10:07",
+      "subject": "Question sur la facture F-2026-0902",
+      "preview": "Pouvez-vous me renvoyer le RIB pour le règlement ?",
+      "body": "Bonjour,\n\nPouvez-vous me renvoyer votre RIB ? Je souhaite régler la facture F-2026-0902 cette semaine.\n\nMerci,\nMarc Durand",
+      "actions": [
+        "Envoyer le RIB"
+      ],
+      "reply": "Bonjour Monsieur Durand,\n\nVous trouverez ci-joint notre RIB…",
+      "attachment": "",
+      "tag": "Paiement",
+      "tagBg": "var(--success-bg)",
+      "tagFg": "var(--success-fg)",
+      "dot": "transparent",
+      "weight": "400",
+      "pressed": "false",
+      "bg": "var(--white)",
+      "bar": "none"
+    }
+  ],
+  "ai": {
+    "summary": "Julien Ferrand confirme le virement de 18 600 € (F-2026-0712) au plus tard le 28/11 et demande d’étaler le solde de 29 600 € sur quatre mensualités dès décembre.",
+    "facts": [
+      {
+        "k": "Dossier rattaché",
+        "v": "Bâtiplus SAS · DOS-2026-0142"
+      },
+      {
+        "k": "Promesse",
+        "v": "18 600 € le 28/11/2026"
+      },
+      {
+        "k": "Demande",
+        "v": "Échéancier 4 × 7 400 € pour 29 600 €"
+      }
+    ]
+  },
+  "aiCats": [
+    {
+      "id": "echeancier",
+      "label": "Demande d’échéancier",
+      "sel": "selected"
+    },
+    {
+      "id": "litige",
+      "label": "Litige"
+    },
+    {
+      "id": "paiement",
+      "label": "Paiement ou justificatif"
+    },
+    {
+      "id": "promesse",
+      "label": "Promesse de paiement"
+    },
+    {
+      "id": "rebond",
+      "label": "E-mail non remis"
+    },
+    {
+      "id": "autre",
+      "label": "Autre"
+    }
+  ],
+  "aiRecatDone": false,
+  "hasDraft": false,
+  "draftBtn": "Brouillon IA",
+  "replyText": "",
+  "compose": false,
+  "headStatus": {
+    "label": "Synchronisée il y a 1 min",
+    "color": "var(--success)"
+  },
+  "headActions": [
+    {
+      "label": "Modèles",
+      "href": "Reglages.dc.html"
+    },
+    {
+      "label": "+ Rédiger",
+      "primary": true,
+      "kbd": "N"
+    }
+  ],
+  "headStats": [
+    {
+      "label": "Non lus",
+      "value": "12",
+      "sub": "dans la boîte partagée"
+    },
+    {
+      "label": "À traiter",
+      "value": "4",
+      "color": "var(--warning-fg)",
+      "sub": "échéancier, litige, rebond"
+    },
+    {
+      "label": "Délai de réponse moyen",
+      "value": "3 h 20",
+      "sub": "sur 7 jours"
+    },
+    {
+      "label": "Envoyés automatiquement",
+      "value": "34",
+      "sub": "cette semaine, via Resend"
+    }
+  ],
+  "tbTabs": [
+    {
+      "label": "Tous",
+      "selected": true,
+      "count": "6"
+    },
+    {
+      "label": "Non lus",
+      "selected": false,
+      "count": "3"
+    },
+    {
+      "label": "À traiter",
+      "selected": false,
+      "count": "3"
+    }
+  ],
+  "tbFilters": [
+    {
+      "label": "Créancier",
+      "options": [
+        "Tous les créanciers",
+        "Matériaux Delta",
+        "Énergies Rhône",
+        "Médiatel",
+        "TransAlp Leasing",
+        "Crédit Horizon"
+      ]
+    },
+    {
+      "label": "Étiquette",
+      "options": [
+        "Toutes les étiquettes",
+        "Paiement",
+        "Échéancier",
+        "Litige",
+        "Rebond"
+      ]
+    }
+  ],
+  "threadCount": "6",
+  "mFilters": [
+    {
+      "label": "Tous",
+      "pressed": "true",
+      "bg": "var(--white)",
+      "color": "var(--text)",
+      "shadow": "var(--shadow-sm)"
+    },
+    {
+      "label": "Non lus",
+      "pressed": "false",
+      "bg": "transparent",
+      "color": "var(--text-3)",
+      "shadow": "none"
+    },
+    {
+      "label": "À traiter",
+      "pressed": "false",
+      "bg": "transparent",
+      "color": "var(--text-3)",
+      "shadow": "none"
+    }
+  ],
+  "cur": {
+    "id": "m1",
+    "k": "echeancier",
+    "unread": true,
+    "from": "Julien Ferrand",
+    "initials": "JF",
+    "email": "j.ferrand@batiplus.example",
+    "company": "Bâtiplus SAS",
+    "mandant": "Matériaux Delta",
+    "ref": "DOS-2026-0142",
+    "due": "48 200 €",
+    "time": "09:42",
+    "date": "sam. 21 nov. 2026, 09:42",
+    "subject": "Re: Relance – factures F-2026-0712, 0745, 0790",
+    "preview": "Suite à notre échange téléphonique, je vous confirme le virement…",
+    "body": "Bonjour Madame Laurent,\n\nSuite à notre échange téléphonique de ce matin, je vous confirme le virement de 18 600 € correspondant à la facture F-2026-0712, au plus tard le 28 novembre.\n\nPour le solde de 29 600 €, nous traversons une période de trésorerie tendue. Serait-il possible de l’étaler sur quatre mensualités à partir de décembre ?\n\nBien cordialement,\nJulien Ferrand\nDirecteur administratif et financier",
+    "reply": "Bonjour Monsieur Ferrand,\n\nMerci pour votre retour. Nous pouvons vous proposer un échéancier en 4 mensualités de 7 400 €, la première au 15 décembre…",
+    "attachment": "",
+    "tag": "Échéancier",
+    "tagBg": "var(--warning-bg)",
+    "tagFg": "var(--warning-fg)",
+    "dot": "var(--warning-fg)",
+    "hasAttachment": false
+  },
+  "q": "",
+  "pg": {
+    "show": true,
+    "total": 128,
+    "page": 1,
+    "size": 25
+  },
+  "lst": {
+    "show": false,
+    "kind": "empty",
+    "title": "Boîte vide",
+    "text": "Aucun e-mail dans ce dossier pour le moment.",
+    "actionLabel": "",
+    "count": 5
+  }
+}

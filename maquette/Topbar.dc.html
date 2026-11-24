@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Barre supérieure</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Lora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+/* tokens:start — charte graphique LEGAREC v1.0 (octobre 2026). Ne pas modifier à la main : généré depuis tools/tokens.css */
+:root{
+  /* Marque */
+  --marine:#002B74; --marine-hover:#00225C; --marine-text:#002B74; --app-icon-bg:#002B74; --app-icon-fg:#FCBE03; --nuit:#001B4D; --or:#FCBE03; --or-clair:#FFF3C4; --ardoise:#5D7087;
+  --bleu-pale:#EEF2F8; --gris-clair:#F6F8FB; --bleu-200:#D6E0F0; --white:#FFFFFF;
+  /* Texte */
+  --text:#0F1B2D; --text-2:#33455C; --text-3:#5D7087; --on-primary:#FFFFFF;
+  /* Surfaces et bordures */
+  --surface:#FFFFFF; --surface-2:#F6F8FB; --surface-3:#EEF2F7; --border:#E1E7EF; --border-strong:#7D8DA1;
+  /* Surfaces sombres (carte d'appel, barre d'actions groupées) */
+  --surface-dark:#001B4D; --surface-dark-2:#0B2D63; --border-dark:#2A4A7D; --on-dark:#FFFFFF; --on-dark-2:#D5DEEB; --on-dark-muted:#A9B8CC; --on-dark-accent:#B8CBEA;
+  /* Données (graphiques, balance âgée) */
+  --data-1:#C9D6EC; --data-2:#7F9CD0; --data-3:#345DA8;
+  /* Tons sémantiques : fond, bordure, point, texte */
+  --success-bg:#ECFDF5; --success-border:#A7F3D0; --success:#059669; --success-strong:#10B981; --success-fg:#047857; --on-success:#052E16;
+  --warning-bg:#FFF3C4; --warning-border:#F5D77A; --warning:#D97706; --warning-fg:#8A4B08;
+  --danger-bg:#FFF1F2; --danger-border:#FECDD3; --danger:#E11D48; --danger-fg:#BE123C; --danger-dark:#7F1D1D; --danger-on-dark:#FDA4AF;
+  --info-bg:#F0F9FF; --info-border:#BAE6FD; --info:#0284C7; --info-fg:#0369A1;
+  --violet-bg:#F5F3FF; --violet-border:#DDD6FE; --violet:#7C3AED; --violet-fg:#6D28D9;
+  --teal-bg:#CCFBF1; --teal:#0D9488; --teal-fg:#115E59;
+  /* Fonds pleins (badges pleins, texte --on-primary ≥ 5:1 dans les deux modes) */
+  --solid-neutral:#33455C; --solid-info:#0369A1; --solid-success:#047857; --solid-warning:#8A4B08; --solid-danger:#BE123C; --solid-violet:#6D28D9; --solid-teal:#115E59;
+  /* Typographie */
+  --font-title:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-text:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-brand:Lora, Georgia, serif; --font-mono:ui-monospace, SFMono-Regular, Menlo, monospace;
+  --fs-doc-xs:8px; --fs-doc-sm:9px; --fs-doc-md:10px; --fs-doc-lg:10.5px; --fs-2xs:11px; --fs-xs:12px; --fs-sm:13px; --fs-base:14px; --fs-md:16px; --fs-lg:18px; --fs-xl:20px; --fs-2xl:26px; --fs-3xl:34px;
+  /* Rayons */
+  --r-xs:4px; --r-sm:6px; --r-md:8px; --r-lg:12px; --r-full:9999px;
+  /* Ombres */
+  --shadow-sm:0 1px 2px 0 rgba(0,27,77,0.06); --shadow-md:0 10px 15px -3px rgba(0,27,77,0.10), 0 4px 6px -4px rgba(0,27,77,0.10); --shadow-lg:0 20px 25px -5px rgba(0,27,77,0.18), 0 8px 10px -6px rgba(0,27,77,0.12);
+  --shadow-knob:0 1px 2px rgba(0,27,77,0.25); --overlay:rgba(0,27,77,0.55);
+  /* Espacements (grille de 4 px) */
+  --sp-0h:2px; --sp-1:4px; --sp-1h:6px; --sp-2:8px; --sp-2h:10px; --sp-3:12px; --sp-3h:14px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px; --sp-10:40px; --sp-11:44px; --sp-12:48px;
+  /* Hauteurs de contrôles */
+  --control-xs:28px; --control-sm:36px; --control-md:40px; --control-lg:44px;
+  /* Voiles et anneaux (surfaces sombres, animations) */
+  --veil-8:rgba(255,255,255,0.08); --veil-18:rgba(255,255,255,0.18); --veil-25:rgba(255,255,255,0.25); --veil-35:rgba(255,255,255,0.35); --veil-80:rgba(255,255,255,0.8); --veil-85:rgba(255,255,255,0.85); --on-success-veil:rgba(5,46,22,0.35); --success-ring:rgba(16,185,129,0.55); --success-ring-0:rgba(16,185,129,0);
+  /* Cibles tactiles */
+  --target:44px;
+}
+body{font-family:var(--font-text);font-feature-settings:"cv11";-webkit-font-smoothing:antialiased}
+h1,h2{font-family:var(--font-title);font-weight:700;color:var(--marine);overflow-wrap:break-word;letter-spacing:-0.015em}
+[data-brand] h1,[data-brand] h2{font-family:var(--font-brand);letter-spacing:0}
+td,th,li,h3{overflow-wrap:break-word}
+:focus-visible{outline:2px solid var(--marine);outline-offset:2px}
+[data-dark] :focus-visible{outline-color:var(--or)}
+button:disabled,[aria-disabled="true"]{cursor:not-allowed !important;opacity:.55}
+button:not(:disabled):hover,a[href][style*="border-radius"]:hover{filter:brightness(.96)}
+tbody tr:hover{background-color:var(--surface-2)}
+[data-table-scroll]{max-height:min(68vh,720px);overflow:auto !important}
+[data-table-scroll] thead th{position:sticky;top:0;z-index:2;background:var(--surface-2);box-shadow:inset 0 -1px 0 var(--border)}
+[data-skeleton]{display:block;border-radius:var(--r-xs);background:linear-gradient(90deg,var(--surface-3) 25%,var(--bleu-pale) 50%,var(--surface-3) 75%);background-size:200% 100%;animation:lg-sk 1.2s ease-in-out infinite}
+@keyframes lg-sk{from{background-position:200% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+@media (pointer: coarse), (max-width: 767px){
+  button,select,input:not([type=checkbox]):not([type=radio]):not([type=range]),[role=tab],[role=menuitem],a[href][style*="display: inline-flex"],a[href][style*="height:"]{min-height:var(--target)}
+  input[type=checkbox],input[type=radio]{min-width:22px;min-height:22px}
+}
+/* Mode sombre : data-theme="dark" sur <html> */
+:root[data-theme="dark"]{
+  --marine:#2E5FC0; --marine-hover:#2A57B0; --marine-text:#9DB8F0; --app-icon-bg:#0A1A3F; --nuit:#071028; --or-clair:#3A2F0A; --ardoise:#9AA9BD;
+  --bleu-pale:#1B2A4A; --gris-clair:#0A1020; --bleu-200:#2B3E63; --white:#16203A;
+  --text:#E6ECF5; --text-2:#C3CEDD; --text-3:#9AA9BD;
+  --surface:#0F1729; --surface-2:#0A1020; --surface-3:#1A2438; --border:#26324A; --border-strong:#67778F;
+  --surface-dark:#050B1A; --surface-dark-2:#101C36; --border-dark:#24365A;
+  --data-1:#2B3E63; --data-2:#4F73B8; --data-3:#7F9CD0;
+  --success-bg:#0B2E22; --success-border:#14532D; --success-fg:#6EE7B7;
+  --warning-bg:#3A2F0A; --warning-border:#6B5310; --warning-fg:#FCD34D;
+  --danger-bg:#3B0D17; --danger-border:#7F1D2E; --danger-fg:#FDA4AF;
+  --info-bg:#0B2540; --info-border:#164E63; --info-fg:#7DD3FC;
+  --violet-bg:#24164A; --violet-border:#4C1D95; --violet-fg:#C4B5FD;
+  --teal-bg:#0B302C; --teal-fg:#5EEAD4;
+  --shadow-sm:0 1px 2px 0 rgba(0,0,0,0.4); --shadow-md:0 10px 15px -3px rgba(0,0,0,0.5); --shadow-lg:0 20px 25px -5px rgba(0,0,0,0.6); --overlay:rgba(0,0,0,0.65);
+  color-scheme:dark;
+}
+:root[data-theme="dark"] body{background:var(--surface-2);color:var(--text)}
+:root[data-theme="dark"] :focus-visible{outline-color:#9DB8F0}
+:root[data-theme="dark"] [data-dark]{border:1px solid var(--border-dark)}
+:root[data-theme="dark"] h1,:root[data-theme="dark"] h2,:root[data-theme="dark"] a[href]:not([style*="background"]){color:var(--marine-text)}
+:root[data-theme="dark"] [style*="color: var(--marine)"]:not([style*="background: var(--marine)"]){color:var(--marine-text) !important}
+:root[data-theme="dark"] img[src*="_blob"]{background:var(--white);border-radius:var(--r-sm)}
+/* Mode malvoyant : data-a11y="malvoyant" sur <html> — texte agrandi, contraste renforcé, cibles plus grandes */
+:root[data-a11y="malvoyant"]{
+  --fs-2xs:13px; --fs-xs:14px; --fs-sm:15px; --fs-base:17px; --fs-md:19px; --fs-lg:21px; --fs-xl:24px; --fs-2xl:30px; --fs-3xl:38px;
+  --control-xs:36px; --control-sm:44px; --control-md:48px; --control-lg:52px; --target:48px;
+  --text-3:var(--text-2); --ardoise:var(--text-2); --border:var(--border-strong);
+}
+:root[data-a11y="malvoyant"] body{line-height:1.6}
+:root[data-a11y="malvoyant"] [data-sb-nav][style*="width: 264px"]{width:312px !important}
+:root[data-a11y="malvoyant"] :focus-visible{outline:3px solid var(--or);outline-offset:3px;box-shadow:0 0 0 6px var(--marine)}
+:root[data-a11y="malvoyant"] a[href]:not([style*="background"]){text-decoration:underline;text-underline-offset:3px}
+:root[data-a11y="malvoyant"] button,:root[data-a11y="malvoyant"] select,:root[data-a11y="malvoyant"] input:not([type=checkbox]):not([type=radio]){min-height:var(--target)}
+:root[data-a11y="malvoyant"] input[type=checkbox],:root[data-a11y="malvoyant"] input[type=radio]{min-width:24px;min-height:24px}
+:root[data-a11y="malvoyant"][data-theme="dark"]{--text-3:#E6ECF5;--text-2:#E6ECF5}
+/* tokens:end */
+body{margin:0}
+@keyframes ic-ring{0%{box-shadow:0 0 0 0 var(--success-ring)}70%{box-shadow:0 0 0 14px var(--success-ring-0)}100%{box-shadow:0 0 0 0 var(--success-ring-0)}}
+@keyframes sb-fade{from{opacity:0}to{opacity:1}}
+@keyframes ic-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+[data-ic-btn]:focus-visible,[data-kb-close]:focus-visible{outline:2px solid var(--or);outline-offset:2px}
+@media (max-width: 1023px){
+  [data-tb-daytext],[data-tb-searchkbd]{display:none !important}
+  [data-page-body] [style*="repeat(6, minmax(0, 1fr))"]:not([data-keep-cols]){grid-template-columns:repeat(3, minmax(0, 1fr)) !important}
+  [data-page-body] [style*="repeat(4, minmax(0, 1fr))"]:not([data-keep-cols]),[data-page-body] [style*="repeat(5, minmax(0, 1fr))"]:not([data-keep-cols]){grid-template-columns:repeat(2, minmax(0, 1fr)) !important}
+}
+@media (max-width: 767px){
+  main{padding:var(--sp-4) !important;gap:var(--sp-4) !important}
+  [data-topbar]{margin:-16px -16px 0 !important;padding:0 12px !important;gap:8px !important}
+  [data-tb-crumbs],[data-tb-divider],[data-tb-help],[data-tb-createtext]{display:none !important}
+  [data-tb-searchbox]{min-width:0 !important;flex:1 1 120px !important}
+  [data-search-panel]{position:fixed !important;left:12px !important;right:12px !important;top:124px !important;width:auto !important;max-width:none !important;max-height:calc(100vh - 140px);overflow-y:auto}
+  [data-page-body]{gap:var(--sp-4) !important}
+  [data-page-body] [style*="repeat(2, minmax(0, 1fr))"]:not([data-keep-cols]),[data-page-body] [style*="repeat(3, minmax(0, 1fr))"]:not([data-keep-cols]),[data-page-body] [style*="repeat(4, minmax(0, 1fr))"]:not([data-keep-cols]),[data-page-body] [style*="repeat(5, minmax(0, 1fr))"]:not([data-keep-cols]),[data-page-body] [style*="repeat(6, minmax(0, 1fr))"]:not([data-keep-cols]){grid-template-columns:minmax(0, 1fr) !important}
+  [data-page-body] [style*="min-height: 640px"]{min-height:0 !important}
+  [data-hide-sm]{display:none !important}
+  [data-page-body] [style*="padding: 24px"]{padding:var(--sp-4) !important}
+  [data-ic-card]{right:12px !important;left:12px !important;bottom:12px !important;width:auto !important}
+}
+</style>
+</helmet>
+<div data-topbar-root>
+<sc-if value="{{searchOpen}}" hint-placeholder-val="{{ false }}"><div data-search-backdrop aria-hidden="true" onMouseDown="{{closeSearch}}" style="position: fixed; inset: 0; z-index: 75; background: transparent"></div></sc-if>
+<header data-topbar style="position: relative; z-index: {{headerZ}}; margin: -32px -32px 0; padding: 0 var(--sp-8); min-height: 64px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3) var(--sp-4); background: var(--surface); border-bottom: 1px solid var(--border); font-family: var(--font-text); color: var(--text)">
+
+<nav data-tb-crumbs aria-label="Fil d'Ariane" style="flex: 1 1 240px; min-width: 0; padding: var(--sp-3) 0; overflow: hidden">
+<ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: nowrap; align-items: center; gap: var(--sp-1h); font-size: var(--fs-base); white-space: nowrap; min-width: 0">
+<sc-for list="{{crumbs}}" as="c" hint-placeholder-count="2">
+<li style="display: flex; align-items: center; gap: var(--sp-1h); min-width: 0; flex: {{c.flex}}">
+<sc-if value="{{c.sep}}" hint-placeholder-val="{{ false }}"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" style="stroke: var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="m9 18 6-6-6-6"></path></svg></sc-if>
+<sc-if value="{{c.isLink}}" hint-placeholder-val="{{ false }}"><a href="{{c.href}}" style="color: var(--text-3); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{c.label}}</a></sc-if>
+<sc-if value="{{c.isText}}" hint-placeholder-val="{{ true }}"><span style="color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{c.label}}</span></sc-if>
+<sc-if value="{{c.isCurrent}}" hint-placeholder-val="{{ false }}"><span aria-current="page" style="color: var(--text); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{c.label}}</span></sc-if>
+</li>
+</sc-for>
+</ol>
+</nav>
+
+<div data-tb-searchbox role="search" style="position: relative; flex: 1 1 280px; max-width: 420px; min-width: 200px">
+<label style="display: flex; align-items: center; gap: var(--sp-2); border-radius: var(--r-md); padding: 0 var(--sp-2h); height: 40px; box-sizing: border-box; color: var(--text-3); background: {{searchBg}}; border: {{searchBorder}}; box-shadow: {{searchShadow}}">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Rechercher dans Legarec</span>
+<input data-global-search type="search" value="{{q}}" onChange="{{onQuery}}" onFocus="{{openSearch}}" onBlur="{{blurSearch}}" onKeyDown="{{onKey}}" placeholder="Débiteur, SIRET, SIREN, facture…" aria-expanded="{{searchExpanded}}" aria-controls="resultats-recherche" style="flex: 1; min-width: 0; border: 0; outline: none; font: inherit; font-size: var(--fs-base); background: transparent; color: var(--text)">
+<kbd data-tb-searchkbd style="font-family: inherit; font-size: var(--fs-xs); font-weight: 500; color: var(--text-3); border: 1px solid var(--border); border-radius: var(--r-xs); padding: 1px var(--sp-1); background: var(--surface-2)">/</kbd>
+</label>
+<sc-if value="{{searchOpen}}" hint-placeholder-val="{{ false }}">
+<div id="resultats-recherche" data-search-panel style="position: absolute; top: 46px; right: 0; width: 440px; max-width: calc(100vw - 32px); background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow-md); padding: var(--sp-1); display: flex; flex-direction: column; max-height: 460px; overflow-y: auto">
+<sc-if value="{{noResults}}" hint-placeholder-val="{{ false }}">
+<p style="margin: 0; padding: var(--sp-6) var(--sp-3); font-size: var(--fs-base); color: var(--text-3); text-align: center">Aucun résultat pour « {{q}} ».</p>
+</sc-if>
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+<div style="display: flex; flex-direction: column; padding-bottom: var(--sp-1)">
+<span style="padding: var(--sp-2) var(--sp-2) var(--sp-1); font-size: var(--fs-xs); font-weight: 500; color: var(--text-3)">{{g.label}}</span>
+<sc-for list="{{g.items}}" as="r" hint-placeholder-count="3">
+<a href="{{r.href}}" style="display: flex; align-items: center; gap: var(--sp-2h); padding: var(--sp-1h) var(--sp-2); border-radius: var(--r-sm); text-decoration: none; color: var(--text); min-height: 40px; box-sizing: border-box">
+<span style="width: 28px; height: 28px; border-radius: var(--r-sm); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: var(--fs-xs); font-weight: 700; background: {{r.iconBg}}; color: {{r.iconFg}}">{{r.icon}}</span>
+<span style="display: flex; flex-direction: column; min-width: 0; flex: 1"><span style="font-size: var(--fs-base)">{{r.title}}</span><span style="font-size: var(--fs-xs); color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.sub}}</span></span>
+</a>
+</sc-for>
+</div>
+</sc-for>
+<div style="display: flex; gap: var(--sp-3); padding: var(--sp-2) var(--sp-2) var(--sp-1); border-top: 1px solid var(--surface-3); font-size: var(--fs-xs); color: var(--text-3)"><span><kbd style="font-family: inherit; border: 1px solid var(--border); border-radius: var(--r-xs); padding: 0 var(--sp-1)">Entrée</kbd> ouvrir</span><span><kbd style="font-family: inherit; border: 1px solid var(--border); border-radius: var(--r-xs); padding: 0 var(--sp-1)">Échap</kbd> fermer</span></div>
+</div>
+</sc-if>
+</div>
+
+<div style="display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-3) 0">
+<div style="position: relative">
+<button type="button" onClick="{{toggleCreate}}" aria-expanded="{{createExpanded}}" aria-haspopup="menu" style="height: var(--control-md); padding: 0 var(--sp-3); border-radius: var(--r-sm); border: 0; background: {{accent}}; color: var(--on-primary); font: inherit; font-size: var(--fs-base); font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: var(--sp-1h); box-shadow: var(--shadow-sm)"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg><span data-tb-createtext>Créer</span></button>
+<sc-if value="{{createOpen}}" hint-placeholder-val="{{ false }}">
+<div role="menu" aria-label="Créer" style="position: absolute; z-index: 10; top: 48px; right: 0; width: 260px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow-md); padding: var(--sp-1); display: flex; flex-direction: column">
+<span style="padding: var(--sp-1h) var(--sp-2) var(--sp-1); font-size: var(--fs-xs); font-weight: 500; color: var(--text-3)">Créer</span>
+<sc-for list="{{createItems}}" as="c" hint-placeholder-count="6">
+<a role="menuitem" href="{{c.href}}" style="display: flex; align-items: center; gap: var(--sp-2h); padding: var(--sp-2); min-height: 40px; box-sizing: border-box; border-radius: var(--r-sm); font-size: var(--fs-base); color: var(--text); text-decoration: none"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" style="stroke: var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{c.d}}"></path></svg><span style="flex: 1">{{c.label}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{c.key}}</span></a>
+</sc-for>
+</div>
+</sc-if>
+</div>
+<span data-tb-divider aria-hidden="true" style="width: 1px; height: 24px; background: var(--border); margin: 0 var(--sp-1)"></span>
+<a data-tb-help href="Aide.dc.html" aria-label="Centre d'aide" title="Centre d'aide" style="width: 40px; height: var(--control-md); border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; color: var(--text-2)"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"></path></svg></a>
+<div style="position: relative">
+<button type="button" onClick="{{toggleNotif}}" aria-expanded="{{notifExpanded}}" aria-label="{{bellLabel}}" style="position: relative; width: 40px; height: var(--control-md); border-radius: var(--r-sm); border: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-2); background: {{notifBtnBg}}">
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
+<sc-if value="{{hasUnread}}" hint-placeholder-val="{{ true }}"><span style="position: absolute; top: 4px; right: 4px; min-width: 18px; height: 18px; padding: 0 var(--sp-1); box-sizing: border-box; border-radius: var(--r-full); background: var(--danger); color: var(--on-primary); font-size: var(--fs-2xs); font-weight: 700; display: flex; align-items: center; justify-content: center; border: 2px solid var(--surface-2)">{{unread}}</span></sc-if>
+</button>
+<sc-if value="{{notifOpen}}" hint-placeholder-val="{{ false }}">
+<section aria-label="Notifications" style="position: absolute; z-index: 10; top: 48px; right: 0; width: 400px; max-width: calc(100vw - 32px); background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow-md); display: flex; flex-direction: column">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: var(--sp-2); padding: var(--sp-3) var(--sp-3h); border-bottom: 1px solid var(--surface-3)">
+<span style="font-size: var(--fs-base); font-weight: 600">Notifications</span>
+<dc-import name="Bouton" variant="link" size="sm" label="Tout marquer comme lu" on-press="{{markAll}}" style="display: contents" hint-size="120px,40px"></dc-import>
+</div>
+<div role="group" aria-label="Filtrer" style="display: flex; gap: var(--sp-1); padding: var(--sp-2) var(--sp-3h) 0">
+<sc-for list="{{notifTabs}}" as="t" hint-placeholder-count="2">
+<button type="button" onClick="{{t.pick}}" aria-pressed="{{t.pressed}}" style="height: var(--control-xs); padding: 0 var(--sp-2h); border: 0; border-radius: var(--r-sm); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer; background: {{t.bg}}; color: {{t.color}}">{{t.label}}</button>
+</sc-for>
+</div>
+<ul style="list-style: none; margin: 0; padding: var(--sp-1h); display: flex; flex-direction: column; gap: var(--sp-0h); max-height: 380px; overflow-y: auto">
+<sc-for list="{{notifs}}" as="n" hint-placeholder-count="5">
+<li>
+<a href="{{n.href}}" onClick="{{n.read}}" style="display: flex; gap: var(--sp-2h); padding: var(--sp-2h) var(--sp-2); border-radius: var(--r-sm); text-decoration: none; color: var(--text); background: {{n.bg}}">
+<span style="width: 30px; height: 30px; border-radius: var(--r-full); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: var(--fs-xs); font-weight: 700; background: {{n.iconBg}}; color: {{n.iconFg}}">{{n.icon}}</span>
+<span style="display: flex; flex-direction: column; gap: var(--sp-0h); flex: 1; min-width: 0"><span style="font-size: var(--fs-sm); line-height: 1.4; font-weight: {{n.weight}}">{{n.text}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{n.meta}}</span></span>
+<span style="width: 8px; height: 8px; border-radius: var(--r-full); margin-top: var(--sp-1h); flex-shrink: 0; background: {{n.dot}}"></span>
+</a>
+</li>
+</sc-for>
+</ul>
+<div style="display: flex; justify-content: space-between; gap: var(--sp-2); padding: var(--sp-2h) var(--sp-3h); border-top: 1px solid var(--surface-3); font-size: var(--fs-sm)">
+<a href="Notifications.dc.html" style="font-weight: 500; color: var(--marine); text-decoration: none">Toutes les notifications</a>
+<a href="Compte.dc.html" style="color: var(--text-2); text-decoration: none">Préférences</a>
+</div>
+</section>
+</sc-if>
+</div>
+<div style="position: relative">
+<button type="button" onClick="{{toggleAccount}}" aria-expanded="{{accountExpanded}}" aria-haspopup="menu" aria-label="Compte de Camille Laurent, statut {{status.label}}" style="width: 40px; height: var(--control-md); border-radius: var(--r-full); border: 0; padding: 0; cursor: pointer; background: transparent; display: flex; align-items: center; justify-content: center; box-shadow: {{accountRing}}">
+<span style="position: relative; width: 36px; height: 36px; border-radius: var(--r-full); background: var(--marine); color: var(--on-primary); display: flex; align-items: center; justify-content: center; font-size: var(--fs-sm); font-weight: 600">CL<span style="position: absolute; right: -1px; bottom: -1px; width: 11px; height: 11px; border-radius: var(--r-full); border: 2px solid var(--surface-2); background: {{status.dot}}"></span></span>
+</button>
+<sc-if value="{{accountOpen}}" hint-placeholder-val="{{ false }}">
+<div role="menu" aria-label="Compte" style="position: absolute; z-index: 10; top: 48px; right: 0; width: 280px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow-md); padding: var(--sp-1); display: flex; flex-direction: column">
+<div style="display: flex; flex-direction: column; padding: var(--sp-2)">
+<span style="font-size: var(--fs-base); font-weight: 600">Camille Laurent</span>
+<span style="font-size: var(--fs-xs); color: var(--text-3)">cl@legarec.fr</span>
+<dc-import name="Badge" label="Responsable du recouvrement" tone="marine" size="sm" layout="align-self: flex-start; margin-top: var(--sp-1h)" style="display: contents" hint-size="80px,22px"></dc-import>
+</div>
+<div style="height: 1px; background: var(--border); margin: var(--sp-1) 0"></div>
+<span style="padding: var(--sp-1h) var(--sp-2) var(--sp-0h); font-size: var(--fs-xs); font-weight: 500; color: var(--text-3)">Statut 3CX · poste 101</span>
+<div role="group" aria-label="Statut téléphonique" style="display: flex; flex-direction: column">
+<sc-for list="{{statuses}}" as="st" hint-placeholder-count="3">
+<button type="button" role="menuitemradio" aria-checked="{{st.checked}}" onClick="{{st.pick}}" style="display: flex; align-items: center; gap: var(--sp-2h); padding: var(--sp-1h) var(--sp-2); min-height: 40px; border: 0; border-radius: var(--r-sm); background: {{st.bg}}; font: inherit; font-size: var(--fs-base); color: var(--text); cursor: pointer; text-align: left"><span style="width: 8px; height: 8px; border-radius: var(--r-full); flex-shrink: 0; background: {{st.dot}}"></span><span style="flex: 1; display: flex; flex-direction: column"><span>{{st.label}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{st.hint}}</span></span><sc-if value="{{st.isOn}}" hint-placeholder-val="{{ false }}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" style="stroke: var(--marine)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if></button>
+</sc-for>
+</div>
+<div style="height: 1px; background: var(--border); margin: var(--sp-1) 0"></div>
+<sc-for list="{{accountLinks}}" as="l" hint-placeholder-count="4">
+<a role="menuitem" href="{{l.href}}" onClick="{{l.onNav}}" style="display: flex; align-items: center; gap: var(--sp-2h); padding: var(--sp-2); min-height: 40px; box-sizing: border-box; border-radius: var(--r-sm); font-size: var(--fs-base); color: var(--text); text-decoration: none"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" style="stroke: var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{l.d}}"></path></svg><span style="flex: 1">{{l.label}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{l.hint}}</span></a>
+</sc-for>
+<div role="group" aria-label="Démonstration" style="display: flex; flex-direction: column; gap: var(--sp-1); padding: var(--sp-2); border-bottom: 1px solid var(--surface-3)"><span style="font-size: var(--fs-xs); font-weight: 500; color: var(--text-3)">Démonstration (maquette)</span><button type="button" role="menuitem" onClick="{{demoSession}}" style="text-align: left; min-height: 36px; padding: 0 var(--sp-2); border: 0; border-radius: var(--r-sm); background: transparent; font: inherit; font-size: var(--fs-sm); color: var(--text); cursor: pointer">Simuler la fin de session</button><button type="button" role="menuitem" onClick="{{demoOffline}}" style="text-align: left; min-height: 36px; padding: 0 var(--sp-2); border: 0; border-radius: var(--r-sm); background: transparent; font: inherit; font-size: var(--fs-sm); color: var(--text); cursor: pointer">{{demoOfflineLabel}}</button></div>
+<div role="group" aria-label="Affichage" style="display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-2)">
+<span style="font-size: var(--fs-xs); font-weight: 500; color: var(--text-3)">Affichage</span>
+<div role="radiogroup" aria-label="Thème" style="display: flex; gap: 2px; background: var(--surface-3); padding: 3px; border-radius: var(--r-md)">
+<sc-for list="{{themeOpts}}" as="t" hint-placeholder-count="3"><button type="button" role="radio" aria-checked="{{t.checked}}" onClick="{{t.pick}}" style="flex: 1; height: var(--control-xs); border: 0; border-radius: var(--r-sm); font: inherit; font-size: var(--fs-xs); font-weight: 500; cursor: pointer; background: {{t.bg}}; color: {{t.color}}; box-shadow: {{t.shadow}}">{{t.label}}</button></sc-for>
+</div>
+<button type="button" role="switch" aria-checked="{{a11yOn}}" onClick="{{toggleA11y}}" style="display: flex; align-items: center; gap: var(--sp-2h); min-height: var(--control-md); padding: 0 var(--sp-1); border: 0; border-radius: var(--r-sm); background: transparent; font: inherit; font-size: var(--fs-base); color: var(--text); cursor: pointer; text-align: left"><span style="flex: 1; display: flex; flex-direction: column"><span>Mode malvoyant</span><span style="font-size: var(--fs-xs); color: var(--text-3)">Texte agrandi, contraste renforcé</span></span><span aria-hidden="true" style="width: 40px; height: 22px; border-radius: var(--r-full); padding: 2px; box-sizing: border-box; display: flex; justify-content: {{a11yJustify}}; background: {{a11yTrack}}"><span style="width: 18px; height: 18px; border-radius: var(--r-full); background: var(--surface); box-shadow: var(--shadow-knob)"></span></span></button>
+</div>
+<div style="height: 1px; background: var(--border); margin: var(--sp-1) 0"></div>
+<button type="button" role="menuitem" onClick="{{openKeys}}" style="display: flex; align-items: center; gap: var(--sp-2h); padding: var(--sp-2); min-height: 40px; box-sizing: border-box; border: 0; border-radius: var(--r-sm); background: transparent; font: inherit; font-size: var(--fs-base); color: var(--text); cursor: pointer; text-align: left"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" style="stroke: var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2zM6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"></path></svg><span style="flex: 1">Raccourcis clavier</span><kbd style="font-family: inherit; font-size: var(--fs-xs); color: var(--text-3); border: 1px solid var(--border); border-radius: var(--r-xs); padding: 1px var(--sp-1)">?</kbd></button>
+<div style="height: 1px; background: var(--border); margin: var(--sp-1) 0"></div>
+<a role="menuitem" href="Connexion.dc.html" style="display: flex; align-items: center; gap: var(--sp-2h); padding: var(--sp-2); min-height: 40px; box-sizing: border-box; border-radius: var(--r-sm); font-size: var(--fs-base); color: var(--danger-fg); text-decoration: none"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"></path></svg>Se déconnecter</a>
+</div>
+</sc-if>
+</div>
+</div>
+
+</header>
+<sc-if value="{{offline}}" hint-placeholder-val="{{ false }}"><div role="status" aria-live="polite" style="margin: 0 -32px; padding: var(--sp-2h) var(--sp-8); display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); background: var(--warning-bg); border-bottom: 1px solid var(--warning-border); color: var(--warning-fg); font-family: var(--font-text); font-size: var(--fs-sm)"><strong style="font-weight: 600">Connexion perdue.</strong><span>Vos saisies sont gardées sur cet ordinateur et seront envoyées dès le retour du réseau. Les appels 3CX restent possibles depuis le téléphone.</span><span style="margin-left: auto"><dc-import name="Bouton" label="Réessayer" icon="refresh" variant="secondary" size="xs" on-press="{{retryOnline}}" style="display: contents" hint-size="100px,28px"></dc-import></span></div></sc-if>
+
+<sc-if value="{{callRinging}}" hint-placeholder-val="{{ false }}">
+<div data-dark data-ic-card role="alertdialog" aria-labelledby="ic-nom" aria-describedby="ic-ctx" style="position: fixed; right: 24px; bottom: 24px; z-index: 450; width: 380px; box-sizing: border-box; background: var(--surface-dark); color: var(--on-dark); border-radius: var(--r-lg); box-shadow: var(--shadow-lg); padding: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-3h); animation: ic-in .2s ease-out">
+<div style="display: flex; align-items: center; gap: var(--sp-3)">
+<span aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: var(--r-full); background: var(--success-strong); color: var(--on-dark); display: flex; align-items: center; justify-content: center; animation: ic-ring 1.4s infinite"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{phoneIcon}}"></path></svg></span>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-0h)">
+<span style="font-size: var(--fs-xs); color: var(--on-dark-muted)">Appel entrant · 3CX · file Recouvrement (800)</span>
+<span id="ic-nom" style="font-size: var(--fs-md); font-weight: 600">{{caller.name}}</span>
+<span style="font-size: var(--fs-sm); color: var(--on-dark-2); font-variant-numeric: tabular-nums">{{caller.company}} · {{caller.phone}}</span>
+</div>
+</div>
+<div id="ic-ctx" style="display: flex; flex-direction: column; gap: var(--sp-1); padding: var(--sp-2h) var(--sp-3); border-radius: var(--r-md); background: var(--surface-dark-2); border: 1px solid var(--border-dark); font-size: var(--fs-sm); color: var(--on-dark-2)">
+<span><span style="color: var(--or); font-weight: 600">{{caller.amount}}</span> dus à {{caller.creditor}} · retard {{caller.late}}</span>
+<span style="color: var(--on-dark-muted)">{{caller.last}}</span>
+</div>
+<div style="display: flex; gap: var(--sp-2)">
+<button data-ic-btn type="button" onClick="{{declineCall}}" style="flex: 1; height: var(--control-lg); border-radius: var(--r-md); border: 1px solid var(--border-dark); background: var(--surface-dark-2); color: var(--danger-on-dark); font: inherit; font-size: var(--fs-base); font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: var(--sp-2)">Refuser <kbd style="font-family: inherit; font-size: var(--fs-xs); border: 1px solid var(--border-dark); border-radius: var(--r-xs); padding: 1px var(--sp-1); color: var(--on-dark-muted)">X</kbd></button>
+<button data-ic-btn type="button" onClick="{{answerCall}}" style="flex: 1.4; height: var(--control-lg); border-radius: var(--r-md); border: 0; background: var(--success-strong); color: var(--on-success); font: inherit; font-size: var(--fs-base); font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: var(--sp-2)">Décrocher <kbd style="font-family: inherit; font-size: var(--fs-xs); border: 1px solid var(--on-success-veil); border-radius: var(--r-xs); padding: 1px var(--sp-1)">D</kbd></button>
+</div>
+<span style="font-size: var(--fs-xs); color: var(--on-dark-muted)">Renvoi vers la messagerie vocale dans 20 s · numéro reconnu dans le dossier {{caller.ref}}</span>
+</div>
+</sc-if>
+
+<sc-if value="{{callActive}}" hint-placeholder-val="{{ false }}">
+<div data-dark data-ic-card role="region" aria-label="Appel en cours" style="position: fixed; right: 24px; bottom: 24px; z-index: 450; width: 380px; box-sizing: border-box; background: var(--surface-dark); color: var(--on-dark); border-radius: var(--r-lg); box-shadow: var(--shadow-lg); padding: var(--sp-3h) var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-3); animation: ic-in .2s ease-out">
+<div style="display: flex; align-items: center; gap: var(--sp-2h)">
+<span style="width: 10px; height: 10px; border-radius: var(--r-full); background: var(--success-strong)"></span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column"><span style="font-size: var(--fs-base); font-weight: 600">{{caller.name}} · {{caller.company}}</span><span style="font-size: var(--fs-xs); color: var(--on-dark-muted)">En communication · <span style="font-variant-numeric: tabular-nums">{{callTimer}}</span>{{muteNote}}</span></span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-2)">
+<button data-ic-btn type="button" onClick="{{toggleMute}}" aria-pressed="{{mutedAttr}}" style="height: var(--control-sm); padding: 0 var(--sp-3); border-radius: var(--r-sm); border: 1px solid var(--border-dark); background: {{muteBg}}; color: var(--on-dark); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer">{{muteLabel}} <kbd style="font-family: inherit; font-size: var(--fs-xs); color: var(--on-dark-muted)">M</kbd></button>
+<a data-ic-btn href="Dossier.dc.html" style="height: var(--control-sm); padding: 0 var(--sp-3); border-radius: var(--r-sm); border: 1px solid var(--border-dark); background: var(--surface-dark-2); color: var(--on-dark); font-size: var(--fs-sm); font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; box-sizing: border-box">Fiche débiteur</a>
+<a data-ic-btn href="Telephonie.dc.html" style="height: var(--control-sm); padding: 0 var(--sp-3); border-radius: var(--r-sm); border: 1px solid var(--border-dark); background: var(--surface-dark-2); color: var(--on-dark); font-size: var(--fs-sm); font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; box-sizing: border-box">Qualifier</a>
+<button data-ic-btn type="button" onClick="{{hangUp}}" style="margin-left: auto; height: var(--control-sm); padding: 0 var(--sp-3); border-radius: var(--r-sm); border: 0; background: var(--danger); color: var(--on-dark); font: inherit; font-size: var(--fs-sm); font-weight: 600; cursor: pointer">Raccrocher <kbd style="font-family: inherit; font-size: var(--fs-xs); color: var(--veil-80)">H</kbd></button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{callEnded}}" hint-placeholder-val="{{ false }}">
+<div data-dark data-ic-card role="status" style="position: fixed; right: 24px; bottom: 24px; z-index: 450; width: 380px; box-sizing: border-box; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-md); padding: var(--sp-3h) var(--sp-4); display: flex; align-items: center; gap: var(--sp-3); animation: ic-in .2s ease-out">
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-size: var(--fs-base); font-weight: 600">{{endTitle}}</span><span style="font-size: var(--fs-sm); color: var(--on-dark-muted)">{{endText}}</span></span>
+<a href="Telephonie.dc.html" style="height: var(--control-sm); padding: 0 var(--sp-3); border-radius: var(--r-sm); background: {{accent}}; color: var(--on-dark); font-size: var(--fs-sm); font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; box-sizing: border-box">Qualifier</a>
+<dc-import name="Bouton" variant="ghost" size="sm" icon="x" icon-only="{{ true }}" label="Fermer" on-press="{{dismissCall}}" style="display: contents" hint-size="120px,40px"></dc-import>
+</div>
+</sc-if>
+
+<div data-modal-open="{{idleAttr}}">
+<sc-if value="{{idleOpen}}" hint-placeholder-val="{{ false }}">
+<div style="position: fixed; inset: 0; z-index: 430; background: var(--overlay); display: flex; align-items: center; justify-content: center; padding: var(--sp-4); box-sizing: border-box">
+<div data-tb-dialog role="alertdialog" aria-modal="true" aria-labelledby="idle-titre" aria-describedby="idle-texte" style="width: 100%; max-width: 420px; background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--shadow-lg); padding: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-4); font-family: var(--font-text)">
+<h2 id="idle-titre" style="margin: 0; font-size: var(--fs-xl)">Votre session va expirer</h2>
+<p id="idle-texte" style="margin: 0; font-size: var(--fs-base); line-height: 1.5; color: var(--text-2)">Sans activité, vous serez déconnecté dans <strong style="font-variant-numeric: tabular-nums">{{idleLeft}}</strong>. Les fiches en cours de saisie sont conservées en brouillon.</p>
+<div style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--sp-2)">
+<dc-import name="Bouton" variant="secondary" size="lg" label="Se déconnecter" href="Connexion.dc.html" style="display: contents" hint-size="120px,40px"></dc-import>
+<button data-idle-stay type="button" onClick="{{stayIn}}" style="height: var(--control-lg); padding: 0 var(--sp-3h); border-radius: var(--r-sm); border: 0; background: var(--marine); color: var(--on-primary); font: inherit; font-size: var(--fs-base); font-weight: 600; cursor: pointer">Rester connecté</button>
+</div>
+</div>
+</div>
+</sc-if>
+</div>
+<div data-modal-open="{{keysAttr}}">
+<sc-if value="{{keysOpen}}" hint-placeholder-val="{{ false }}">
+<div onClick="{{closeKeys}}" style="position: fixed; inset: 0; z-index: 420; background: var(--overlay); display: flex; align-items: center; justify-content: center; padding: var(--sp-4); box-sizing: border-box">
+<div data-tb-dialog role="dialog" aria-modal="true" aria-labelledby="kb-titre" onClick="{{stop}}" style="width: 100%; max-width: 720px; max-height: calc(100vh - 32px); overflow-y: auto; background: var(--surface); border-radius: var(--r-lg); border: 1px solid var(--border); box-shadow: var(--shadow-lg); display: flex; flex-direction: column">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5); border-bottom: 1px solid var(--border)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-0h)"><h2 id="kb-titre" style="margin: 0; font-size: var(--fs-lg); font-weight: 600">Raccourcis clavier</h2><span style="font-size: var(--fs-sm); color: var(--text-3)">Inactifs pendant la saisie dans un champ</span></div>
+<button data-kb-close type="button" onClick="{{closeKeys}}" aria-label="Fermer" style="width: 36px; height: var(--control-sm); border: 0; border-radius: var(--r-sm); background: transparent; color: var(--text-3); cursor: pointer; font-size: var(--fs-xl)">×</button>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--sp-2) var(--sp-8); padding: var(--sp-4) var(--sp-5) var(--sp-5)">
+<sc-for list="{{keyGroups}}" as="g" hint-placeholder-count="4">
+<section style="display: flex; flex-direction: column; gap: var(--sp-0h)">
+<h3 style="margin: var(--sp-2) 0 var(--sp-1h); font-size: var(--fs-xs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-3)">{{g.label}}</h3>
+<sc-for list="{{g.items}}" as="k" hint-placeholder-count="4">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); min-height: 32px; font-size: var(--fs-base); border-bottom: 1px solid var(--surface-3)"><span>{{k.label}}</span><span style="display: flex; gap: var(--sp-1); flex-shrink: 0"><sc-for list="{{k.keys}}" as="c" hint-placeholder-count="1"><kbd style="font-family: inherit; font-size: var(--fs-xs); font-weight: 500; min-width: 22px; text-align: center; padding: var(--sp-0h) var(--sp-1h); border-radius: var(--r-xs); border: 1px solid var(--border); border-bottom-width: 2px; background: var(--surface-2); color: var(--text-2)">{{c}}</kbd></sc-for></span></div>
+</sc-for>
+</section>
+</sc-for>
+</div>
+</div>
+</div>
+</sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#002B74"},"trail":{"editor":"text","default":"Pilotage|Tableau de bord"},"ringing":{"editor":"boolean","default":false},"expiring":{"editor":"boolean","default":false},"$preview":{"width":1200,"height":64}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { q: '', search: false, panel: null, ntab: 'all', read: {}, status: 'dispo', call: null, callAt: 0, muted: false, keys: false, ended: '' };
+  }
+  componentDidMount() {
+    const lp = this.lgPrefs(); this.lgApply(lp); this.setState({ prefs: lp });
+    const ring = this.props.ringing === true || this.props.ringing === 'true';
+    if (ring) this.rt = setTimeout(() => { if (!this.state.call) this.setState({ call: 'ringing' }); }, 3500);
+    this.tick = setInterval(() => { if (this.state.call === 'active') this.forceUpdate(); }, 1000);
+    const NAV = { d: 'Main.dc.html', b: 'Dossiers.dc.html', c: 'Mandants.dc.html', e: 'Echeanciers.dc.html', r: 'Relances.dc.html', a: 'Telephonie.dc.html', m: 'Messagerie.dc.html', s: 'Sms.dc.html', j: 'Contentieux.dc.html', t: 'Equipe.dc.html', o: 'Documents.dc.html', p: 'Reglages.dc.html', h: 'Aide.dc.html' };
+    this.onKey = (e) => {
+      const t = e.target;
+      const typing = t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+      const k = (e.key || '').toLowerCase();
+      if (e.key === 'Tab' && (this.state.keys || this.state.idle)) {
+        const box = document.querySelector('[data-tb-dialog]');
+        if (box) {
+          const els = [...box.querySelectorAll('button:not([disabled]), a[href], input, select, textarea')];
+          if (els.length) {
+            const first = els[0], last = els[els.length - 1];
+            if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+            else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+            else if (!box.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+          }
+        }
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && k === 'k') { e.preventDefault(); this.focusSearch(); return; }
+      const call = this.state.call;
+      if (!typing && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (call === 'ringing' && (k === 'd' || k === 'x')) { e.preventDefault(); k === 'd' ? this.answer() : this.decline(); return; }
+        if (call === 'active' && (k === 'm' || k === 'h')) { e.preventDefault(); k === 'm' ? this.setState({ muted: !this.state.muted }) : this.hang(); return; }
+      }
+      if (e.key === 'Escape') {
+        if (this.state.keys) { e.preventDefault(); this.setState({ keys: false }); return; }
+        if (this.state.panel) { this.setState({ panel: null }); return; }
+      }
+      if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (document.querySelector('[data-modal-open="true"]') && !this.state.keys) return;
+      if (e.key === '?') { e.preventDefault(); this.setState({ keys: !this.state.keys, panel: null }); return; }
+      if (this.state.keys) return;
+      if (e.key === '/') { e.preventDefault(); this.focusSearch(); return; }
+      if (this.gAt && Date.now() - this.gAt < 1200 && NAV[k]) {
+        e.preventDefault(); this.gAt = 0;
+        const a = document.querySelector('[data-sb-nav] a[href="' + NAV[k] + '"]') || document.querySelector('a[href="' + NAV[k] + '"]');
+        if (a) a.click();
+        return;
+      }
+      if (k === 'g') { this.gAt = Date.now(); e.preventDefault(); return; }
+      if (k === 'n' && e.shiftKey) { e.preventDefault(); this.setState({ panel: this.state.panel === 'notif' ? null : 'notif' }); }
+    };
+    document.addEventListener('keydown', this.onKey, true);
+    this.onAct = () => { if (!this.state.idle) this.armIdle(); };
+    document.addEventListener('mousedown', this.onAct, true);
+    document.addEventListener('keydown', this.onAct, true);
+    try { this.setState({ offline: navigator.onLine === false }); } catch (e) {}
+    this.onNet = () => { try { this.setState({ offline: navigator.onLine === false }); } catch (e) {} };
+    window.addEventListener('online', this.onNet); window.addEventListener('offline', this.onNet);
+    this.armIdle();
+    this.idleTick = setInterval(() => { if (this.state.idle) { if (Date.now() >= this.state.idleEnd) { const a = document.querySelector('a[href="Connexion.dc.html"]'); if (a) a.click(); } else this.forceUpdate(); } }, 1000);
+  }
+  lgPrefs() { try { return { theme: localStorage.getItem('lg-theme') || 'light', a11y: localStorage.getItem('lg-a11y') === '1' }; } catch (e) { return { theme: 'light', a11y: false }; } }
+  lgApply(p) { const d = document.documentElement; const dark = p.theme === 'dark' || (p.theme === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches); d.setAttribute('data-theme', dark ? 'dark' : 'light'); d.setAttribute('data-a11y', p.a11y ? 'malvoyant' : 'standard'); }
+  lgSave(p) { try { localStorage.setItem('lg-theme', p.theme); localStorage.setItem('lg-a11y', p.a11y ? '1' : '0'); } catch (e) {} this.lgApply(p); this.setState({ prefs: p }); }
+  armIdle() {
+    clearTimeout(this.idleT);
+    if (this.state.idle) return;
+    this.idleT = setTimeout(() => {
+      this.setState({ idle: true, idleEnd: Date.now() + 120000 });
+      setTimeout(() => { const b = document.querySelector('[data-idle-stay]'); if (b) b.focus(); }, 30);
+    }, this.props.expiring === true || this.props.expiring === 'true' ? 1500 : 28 * 60 * 1000);
+  }
+  focusSearch() { const el = document.querySelector('[data-global-search]'); if (el) el.focus(); }
+  answer() { this.setState({ call: 'active', callAt: Date.now(), muted: false }); }
+  decline() { this.setState({ call: 'ended', ended: 'declined' }); }
+  hang() { const s = Math.max(1, Math.round((Date.now() - this.state.callAt) / 1000)); this.setState({ call: 'ended', ended: 'done', dur: s }); }
+  componentWillUnmount() { clearTimeout(this.bt); clearTimeout(this.rt); clearInterval(this.tick); clearTimeout(this.idleT); clearInterval(this.idleTick); document.removeEventListener('keydown', this.onKey, true); document.removeEventListener('mousedown', this.onAct, true); document.removeEventListener('keydown', this.onAct, true); }
+  renderVals() {
+    const accent = this.props.accent ?? 'var(--marine)';
+    const trail = (this.props.trail ?? 'Pilotage|Tableau de bord').split('|');
+    const st = this.state;
+    const D = { iconBg: 'var(--bleu-pale)', iconFg: 'var(--marine)' };
+    const Mn = { iconBg: 'var(--text)', iconFg: 'var(--on-primary)' };
+    const F = { iconBg: 'var(--surface-3)', iconFg: 'var(--text-2)' };
+    const P = { iconBg: 'var(--surface-3)', iconFg: 'var(--text-2)' };
+    const index = [
+      { g: 'Débiteurs', title: 'Bâtiplus SAS', sub: 'SIRET 512 334 871 00088 · Matériaux Delta · 48 200 € · retard 64 j', href: 'Dossier.dc.html', icon: 'BP', kind: 'Débiteur', ...D },
+      { g: 'Débiteurs', title: 'Groupe Hélio', sub: 'SIRET 319 935 185 00011 · Médiatel · 36 750 € · relance 2', href: 'Dossier.dc.html', icon: 'GH', kind: 'Débiteur', ...D },
+      { g: 'Débiteurs', title: 'Garage Valmont', sub: 'SIRET 193 786 571 00094 · TransAlp Leasing · 23 900 € · mise en demeure', href: 'Dossier.dc.html', icon: 'GV', kind: 'Débiteur', ...D },
+      { g: 'Débiteurs', title: 'Nordis Logistique', sub: 'SIRET 854 323 193 00045 · Énergies Rhône · 21 400 € · promesse', href: 'Dossier.dc.html', icon: 'NL', kind: 'Débiteur', ...D },
+      { g: 'Débiteurs', title: 'Atelier Mistral', sub: 'SIRET 975 749 110 00089 · Matériaux Delta · 18 320 € · litige', href: 'Dossier.dc.html', icon: 'AM', kind: 'Débiteur', ...D },
+      { g: 'Débiteurs', title: 'Charpentes Bellet', sub: 'SIRET 607 529 179 00006 · Matériaux Delta · 27 300 € · contentieux', href: 'Dossier.dc.html', icon: 'CB', kind: 'Débiteur', ...D },
+      { g: 'Créanciers', title: 'Matériaux Delta', sub: 'SIREN 401 228 975 · 64 débiteurs · 386 400 € confiés', href: 'Mandant.dc.html', icon: 'MD', kind: 'Créancier', ...Mn },
+      { g: 'Créanciers', title: 'Énergies Rhône', sub: 'SIREN 626 018 154 · 71 débiteurs · 298 150 € confiés', href: 'Mandant.dc.html', icon: 'ER', kind: 'Créancier', ...Mn },
+      { g: 'Créanciers', title: 'Médiatel', sub: 'SIREN 183 016 617 · 52 débiteurs · 244 900 € confiés', href: 'Mandant.dc.html', icon: 'MT', kind: 'Créancier', ...Mn },
+      { g: 'Créanciers', title: 'TransAlp Leasing', sub: 'SIREN 418 609 137 · 33 débiteurs · 231 610 € confiés', href: 'Mandant.dc.html', icon: 'TL', kind: 'Créancier', ...Mn },
+      { g: 'Créanciers', title: 'Crédit Horizon', sub: 'SIREN 199 603 085 · 28 débiteurs · 123 500 € confiés', href: 'Mandant.dc.html', icon: 'CH', kind: 'Créancier', ...Mn },
+      { g: 'Factures', title: 'F-2026-0712', sub: 'Bâtiplus SAS · 18 600 € · échue le 14/09', href: 'Dossier.dc.html', icon: 'F', kind: 'Facture', ...F },
+      { g: 'Factures', title: 'F-2026-0745', sub: 'Bâtiplus SAS · 16 400 € · échue le 27/09', href: 'Dossier.dc.html', icon: 'F', kind: 'Facture', ...F },
+      { g: 'Factures', title: 'F-2026-0790', sub: 'Bâtiplus SAS · 13 200 € · échue le 10/10', href: 'Dossier.dc.html', icon: 'F', kind: 'Facture', ...F },
+      { g: 'Factures', title: 'F-2026-0874', sub: 'Atelier Mistral · 18 320 € · contestée', href: 'Dossier.dc.html', icon: 'F', kind: 'Facture', ...F },
+      { g: 'Pages', title: 'Tableau de bord', sub: 'Vue d’ensemble', href: 'Main.dc.html', icon: '→', kind: 'Page', ...P },
+      { g: 'Pages', title: 'Débiteurs', sub: 'Tous les dossiers', href: 'Dossiers.dc.html', icon: '→', kind: 'Page', ...P },
+      { g: 'Pages', title: 'Relances', sub: 'Agenda des relances planifiées', href: 'Relances.dc.html', icon: '→', kind: 'Page', ...P },
+      { g: 'Pages', title: 'Échéanciers', sub: 'Plans de paiement', href: 'Echeanciers.dc.html', icon: '→', kind: 'Page', ...P },
+      { g: 'Pages', title: 'Contentieux', sub: 'Procédures judiciaires', href: 'Contentieux.dc.html', icon: '→', kind: 'Page', ...P },
+      { g: 'Pages', title: 'Facturation', sub: 'Factures, devis, contrats · responsables et direction', href: 'Facturation.dc.html', icon: '→', kind: 'Page', ...P },
+      { g: 'Pages', title: 'Équipe', sub: 'Activité et appels des gestionnaires', href: 'Equipe.dc.html', icon: '→', kind: 'Page', ...P },
+      { g: 'Pages', title: 'Rapports', sub: 'Statistiques et exports', href: 'Rapports.dc.html', icon: '→', kind: 'Page', ...P },
+      { g: 'Pages', title: 'Appels', sub: 'Dialer et file d’appels', href: 'Telephonie.dc.html', icon: '→', kind: 'Page', ...P },
+      { g: 'Pages', title: 'E-mails', sub: 'Messages des débiteurs', href: 'Messagerie.dc.html', icon: '→', kind: 'Page', ...P },
+      { g: 'Pages', title: 'Tous les documents', sub: 'Courriers, actes, justificatifs', href: 'Documents.dc.html', icon: '→', kind: 'Page', ...P },
+      { g: 'Pages', title: 'Rédiger un courrier', sub: 'Relance, mise en demeure, échéancier…', href: 'Generer.dc.html', icon: '→', kind: 'Page', ...P },
+      { g: 'Pages', title: 'Centre d\u2019aide', sub: 'Guides, questions fréquentes, support', href: 'Aide.dc.html', icon: '?', kind: 'Page', ...P },
+      { g: 'Pages', title: 'Aide : proposer un échéancier', sub: 'Article du centre d\u2019aide', href: 'AideArticle.dc.html', icon: '?', kind: 'Page', ...P },
+      { g: 'Pages', title: 'SMS', sub: 'Conversations SMS avec les débiteurs', href: 'Sms.dc.html', icon: '→', kind: 'Page', ...P },
+      { g: 'Pages', title: 'Paramètres du cabinet', sub: 'Utilisateurs, scénarios, intégrations', href: 'Reglages.dc.html', icon: '→', kind: 'Page', ...P },
+      { g: 'Pages', title: 'Mon compte', sub: 'Profil, sécurité, notifications', href: 'Compte.dc.html', icon: '→', kind: 'Page', ...P }
+    ];
+    const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const q = norm(st.q.trim());
+    let groups;
+    if (!q) {
+      groups = [
+        { label: 'Consultés récemment', items: [index[0], index[6], index[11]] },
+        { label: 'Accès rapide', items: index.filter((r) => r.g === 'Pages').slice(0, 4) }
+      ];
+    } else {
+      const qs = q.replace(/\s/g, '');
+      const hits = index.filter((r) => { const h = norm(r.title + ' ' + r.sub); return h.includes(q) || (qs.length >= 3 && /^\d+$/.test(qs) && h.replace(/\s/g, '').includes(qs)); });
+      groups = ['Débiteurs', 'Créanciers', 'Factures', 'Pages']
+        .map((g) => ({ label: g, items: hits.filter((r) => r.g === g).slice(0, 4) }))
+        .filter((g) => g.items.length);
+    }
+    const NT = {
+      paiement: { icon: '€', iconBg: 'var(--success-bg)', iconFg: 'var(--success-fg)' },
+      message: { icon: '@', iconBg: 'var(--info-bg)', iconFg: 'var(--info-fg)' },
+      delai: { icon: '!', iconBg: 'var(--danger-bg)', iconFg: 'var(--danger-fg)' },
+      mandant: { icon: 'M', iconBg: 'var(--bleu-200)', iconFg: 'var(--marine)' },
+      systeme: { icon: 'i', iconBg: 'var(--surface-3)', iconFg: 'var(--text-2)' }
+    };
+    const all = [
+      { id: 'n1', k: 'paiement', unread: true, text: 'Nordis Logistique a versé 12 500 € (promesse tenue)', meta: 'Énergies Rhône · il y a 10 min', href: 'Dossier.dc.html' },
+      { id: 'n2', k: 'message', unread: true, text: 'Julien Ferrand (Bâtiplus SAS) demande un échéancier', meta: 'Matériaux Delta · il y a 25 min', href: 'Messagerie.dc.html' },
+      { id: 'n3', k: 'delai', unread: true, text: 'Le délai de mise en demeure de Charpentes Bellet expire dans 9 jours', meta: 'Contentieux · il y a 1 h', href: 'Contentieux.dc.html' },
+      { id: 'n4', k: 'mandant', unread: true, text: 'Matériaux Delta a validé l’échéancier de 8 mois pour Bâtiplus SAS', meta: 'Accord créancier · il y a 2 h', href: 'Echeanciers.dc.html' },
+      { id: 'n5', k: 'message', unread: false, text: 'E-mail non remis à Garage Valmont : adresse invalide', meta: 'TransAlp Leasing · hier', href: 'Messagerie.dc.html' },
+      { id: 'n6', k: 'systeme', unread: false, text: 'Import terminé : 96 nouvelles factures pour Médiatel', meta: 'Import · hier', href: 'Mandant.dc.html' },
+      { id: 'n7', k: 'paiement', unread: false, text: 'Échéance impayée : Transports Lemaire (5 250 €)', meta: 'TransAlp Leasing · 19 nov.', href: 'Echeanciers.dc.html' }
+    ];
+    
+    const isUnread = (n) => n.unread && !st.read[n.id];
+    const unread = all.filter(isUnread).length;
+    const list = all.filter((n) => st.ntab === 'all' || isUnread(n));
+    const panel = st.panel;
+    const toggle = (p) => () => this.setState({ panel: panel === p ? null : p, search: false });
+    const STAT = {
+      dispo: ['Disponible', 'var(--success)', 'Reçoit les appels de la file'],
+      pause: ['En pause', 'var(--warning)', 'Appels mis en attente'],
+      absent: ['Absent', 'var(--text-3)', 'Appels renvoyés au remplaçant']
+    };
+    const crumbs = trail.map((t, i) => {
+      const [label, href] = t.split('>');
+      const last = i === trail.length - 1;
+      return { label, href: href || '', sep: i > 0, isCurrent: last, isLink: !last && !!href, isText: !last && !href, flex: last ? '0 1 auto' : '0 2 auto' };
+    });
+    const caller = { name: 'Julien Ferrand', company: 'Bâtiplus SAS', phone: '04 72 18 45 90', creditor: 'Matériaux Delta', amount: '48 200 €', late: '64 j', ref: 'DOS-2026-0142', last: 'Dernier échange : demande d’échéancier par e-mail ce matin, 10:24' };
+    const secs = st.call === 'active' ? Math.floor((Date.now() - st.callAt) / 1000) : 0;
+    const mmss = (n) => String(Math.floor(n / 60)).padStart(2, '0') + ':' + String(n % 60).padStart(2, '0');
+    const K = (label, ...keys) => ({ label, keys });
+    return {
+      accent,
+      caller,
+      phoneIcon: 'M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z',
+      callRinging: st.call === 'ringing',
+      callActive: st.call === 'active',
+      callEnded: st.call === 'ended',
+      callTimer: mmss(secs),
+      muteNote: st.muted ? ' · micro coupé' : '',
+      muteLabel: st.muted ? 'Réactiver le micro' : 'Couper le micro',
+      mutedAttr: st.muted ? 'true' : 'false',
+      muteBg: st.muted ? 'var(--danger-dark)' : 'var(--surface-dark-2)',
+      endTitle: st.ended === 'declined' ? 'Appel refusé · Julien Ferrand' : 'Appel terminé · ' + mmss(st.dur || 0),
+      endText: st.ended === 'declined' ? 'Message vocal possible · rappel ajouté à votre file' : 'Bâtiplus SAS · à qualifier avant le prochain appel',
+      answerCall: () => this.answer(),
+      declineCall: () => this.decline(),
+      hangUp: () => this.hang(),
+      toggleMute: () => this.setState({ muted: !st.muted }),
+      dismissCall: () => this.setState({ call: null }),
+      idleOpen: !!st.idle,
+      idleAttr: st.idle ? 'true' : 'false',
+      idleLeft: (() => { const n = Math.max(0, Math.ceil(((st.idleEnd || 0) - Date.now()) / 1000)); return Math.floor(n / 60) + ' min ' + String(n % 60).padStart(2, '0') + ' s'; })(),
+      stayIn: () => { this.setState({ idle: false }); setTimeout(() => this.armIdle(), 0); },
+      offline: !!this.state.offline,
+      retryOnline: () => { try { this.setState({ offline: navigator.onLine === false }); } catch (e) { this.setState({ offline: false }); } },
+      demoOffline: () => this.setState({ offline: !this.state.offline, menu: null, panel: null }),
+      demoOfflineLabel: this.state.offline ? 'Rétablir la connexion' : 'Simuler une coupure réseau',
+      demoSession: () => { clearTimeout(this.idleT); this.setState({ idle: true, idleEnd: Date.now() + 120000, menu: null, panel: null }); },
+      themeOpts: [['light', 'Clair'], ['dark', 'Sombre'], ['system', 'Système']].map(([id, label]) => {
+        const on = (st.prefs || {}).theme === id || (!(st.prefs || {}).theme && id === 'light');
+        return { label, checked: on ? 'true' : 'false', bg: on ? 'var(--surface)' : 'transparent', color: on ? 'var(--text)' : 'var(--text-2)', shadow: on ? 'var(--shadow-sm)' : 'none', pick: () => this.lgSave({ ...(this.state.prefs || { a11y: false }), theme: id }) };
+      }),
+      a11yOn: (st.prefs || {}).a11y ? 'true' : 'false',
+      a11yJustify: (st.prefs || {}).a11y ? 'flex-end' : 'flex-start',
+      a11yTrack: (st.prefs || {}).a11y ? 'var(--marine)' : 'var(--border-strong)',
+      toggleA11y: () => this.lgSave({ ...(this.state.prefs || { theme: 'light' }), a11y: !(this.state.prefs || {}).a11y }),
+      keysOpen: st.keys,
+      keysAttr: st.keys ? 'true' : 'false',
+      openKeys: () => { this.prevFocus = document.activeElement; this.setState({ keys: true, panel: null }); setTimeout(() => { const b = document.querySelector('[data-kb-close]'); if (b) b.focus(); }, 30); },
+      closeKeys: () => { this.setState({ keys: false }); const el = this.prevFocus; if (el && el.focus) setTimeout(() => el.focus(), 0); },
+      stop: (e) => e.stopPropagation(),
+      keyGroups: [
+        { label: 'Partout', items: [K('Rechercher', '/'), K('Rechercher (alternative)', 'Ctrl', 'K'), K('Notifications', 'Maj', 'N'), K('Afficher cette aide', '?'), K('Fermer un menu ou une fenêtre', 'Échap')] },
+        { label: 'Aller à', items: [K('Tableau de bord', 'G', 'D'), K('Débiteurs', 'G', 'B'), K('Échéanciers', 'G', 'E'), K('Relances', 'G', 'R'), K('Appels', 'G', 'A'), K('E-mails', 'G', 'M'), K('SMS', 'G', 'S'), K('Contentieux', 'G', 'J'), K('Équipe', 'G', 'T'), K('Paramètres', 'G', 'P')] },
+        { label: 'Dans une page', items: [K('Action principale (bouton bleu)', 'N'), K('Rechercher dans la liste', 'F'), K('Choisir l’onglet 1 à 9', '1…9'), K('Valider une fenêtre de confirmation', 'Entrée')] },
+        { label: 'Téléphone', items: [K('Décrocher un appel entrant', 'D'), K('Refuser un appel entrant', 'X'), K('Couper / réactiver le micro', 'M'), K('Raccrocher', 'H'), K('Qualifier : choisir un résultat', '1…8'), K('Enregistrer la qualification', 'Ctrl', 'Entrée')] }
+      ],
+      crumbs,
+      q: st.q,
+      onQuery: (e) => this.setState({ q: e.target.value, search: true, panel: null }),
+      openSearch: () => { clearTimeout(this.bt); this.setState({ search: true, panel: null }); },
+      blurSearch: () => { this.bt = setTimeout(() => this.setState({ search: false }), 180); },
+      onKey: (e) => { if (e.key === 'Escape') { this.setState({ search: false }); e.target.blur(); } },
+      searchOpen: st.search,
+      headerZ: st.search ? '80' : '50',
+      closeSearch: () => { clearTimeout(this.bt); this.setState({ search: false }); const el = document.querySelector('[data-global-search]'); if (el) el.blur(); },
+      searchExpanded: st.search ? 'true' : 'false',
+      searchBg: st.search ? 'var(--white)' : 'var(--surface-3)',
+      searchBorder: st.search ? '1px solid var(--text-3)' : '1px solid transparent',
+      searchShadow: st.search ? '0 0 0 3px var(--bleu-200)' : 'none',
+      groups,
+      noResults: !!q && groups.length === 0,
+      createOpen: panel === 'create',
+      createExpanded: panel === 'create' ? 'true' : 'false',
+      toggleCreate: toggle('create'),
+      createItems: [
+        { label: 'Débiteur', href: 'Dossiers.dc.html', key: 'D', d: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM19 8v6M22 11h-6' },
+        { label: 'Créancier', href: 'Mandants.dc.html', key: 'M', d: 'M3 21h18M5 21V7l7-4 7 4v14M9 9h1M14 9h1M9 13h1M14 13h1' },
+        { label: 'Relance planifiée', href: 'Relances.dc.html', key: 'R', d: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM12 14v4M10 16h4' },
+        { label: 'Courrier', href: 'Generer.dc.html', key: 'C', d: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M12 12v6M9 15h6' },
+        { label: 'Échéancier', href: 'Echeanciers.dc.html', key: 'E', d: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM9 16l2 2 4-4' },
+        { label: 'Import de factures', href: 'Mandant.dc.html', key: 'I', d: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12' }
+      ],
+      status: { label: STAT[st.status][0], dot: STAT[st.status][1] },
+      dayOpen: panel === 'day',
+      dayExpanded: panel === 'day' ? 'true' : 'false',
+      dayBtnBg: panel === 'day' ? 'var(--surface-3)' : 'var(--white)',
+      toggleDay: toggle('day'),
+      dayDone: 25, dayTotal: 52,
+      dayDash: Math.round(2 * Math.PI * 14 * 25 / 52) + ' 200',
+      dayItems: [
+        { label: 'Appels passés', value: '18 / 40', w: '45%', color: 'var(--marine)', href: 'Telephonie.dc.html' },
+        { label: 'Relances traitées', value: '4 / 7', w: '57%', color: 'var(--or)', href: 'Relances.dc.html' },
+        { label: 'Promesses vérifiées', value: '2 / 3', w: '67%', color: 'var(--success)', href: 'Echeanciers.dc.html' },
+        { label: 'Délais judiciaires à traiter', value: '1 / 2', w: '50%', color: 'var(--danger)', href: 'Contentieux.dc.html' }
+      ],
+      statuses: Object.keys(STAT).map((k) => ({
+        label: STAT[k][0], dot: STAT[k][1], hint: STAT[k][2],
+        checked: st.status === k ? 'true' : 'false',
+        isOn: st.status === k,
+        bg: st.status === k ? 'var(--surface-3)' : 'transparent',
+        pick: () => this.setState({ status: k, panel: null })
+      })),
+      unread,
+      hasUnread: unread > 0,
+      bellLabel: 'Notifications, ' + unread + ' non lues',
+      notifOpen: panel === 'notif',
+      notifExpanded: panel === 'notif' ? 'true' : 'false',
+      notifBtnBg: panel === 'notif' ? 'var(--surface-3)' : 'transparent',
+      toggleNotif: toggle('notif'),
+      accountOpen: panel === 'account',
+      accountExpanded: panel === 'account' ? 'true' : 'false',
+      accountRing: panel === 'account' ? '0 0 0 2px var(--white), 0 0 0 4px var(--border-strong)' : 'none',
+      toggleAccount: toggle('account'),
+      markAll: () => { const r = {}; all.forEach((n) => { r[n.id] = true; }); this.setState({ read: r }); },
+      notifTabs: [['all', 'Toutes'], ['unread', 'Non lues (' + unread + ')']].map(([id, label]) => ({
+        label, pressed: st.ntab === id ? 'true' : 'false',
+        bg: st.ntab === id ? 'var(--surface-3)' : 'transparent', color: st.ntab === id ? 'var(--text)' : 'var(--text-3)',
+        pick: () => this.setState({ ntab: id })
+      })),
+      notifs: list.map((n) => ({
+        ...n, ...NT[n.k],
+        bg: isUnread(n) ? 'var(--surface-2)' : 'var(--white)',
+        weight: isUnread(n) ? '600' : '400',
+        dot: isUnread(n) ? accent : 'transparent',
+        read: () => this.setState({ read: { ...this.state.read, [n.id]: true } })
+      })),
+      accountLinks: [
+        { label: 'Mon profil', hint: '', href: 'Compte.dc.html', d: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z' },
+        { label: 'Sécurité et connexion', hint: '2FA', href: 'Compte.dc.html', d: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' },
+        { label: 'Préférences de notification', hint: '', href: 'Compte.dc.html', d: 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0' },
+        { label: 'Paramètres du cabinet', hint: '', href: 'Reglages.dc.html', onNav: () => { try { localStorage.setItem('lg-settings', 'user'); } catch (e) {} }, d: 'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

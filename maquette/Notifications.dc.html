@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Legarec – Notifications</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Lora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+/* tokens:start — charte graphique LEGAREC v1.0 (octobre 2026). Ne pas modifier à la main : généré depuis tools/tokens.css */
+:root{
+  /* Marque */
+  --marine:#002B74; --marine-hover:#00225C; --marine-text:#002B74; --app-icon-bg:#002B74; --app-icon-fg:#FCBE03; --nuit:#001B4D; --or:#FCBE03; --or-clair:#FFF3C4; --ardoise:#5D7087;
+  --bleu-pale:#EEF2F8; --gris-clair:#F6F8FB; --bleu-200:#D6E0F0; --white:#FFFFFF;
+  /* Texte */
+  --text:#0F1B2D; --text-2:#33455C; --text-3:#5D7087; --on-primary:#FFFFFF;
+  /* Surfaces et bordures */
+  --surface:#FFFFFF; --surface-2:#F6F8FB; --surface-3:#EEF2F7; --border:#E1E7EF; --border-strong:#7D8DA1;
+  /* Surfaces sombres (carte d'appel, barre d'actions groupées) */
+  --surface-dark:#001B4D; --surface-dark-2:#0B2D63; --border-dark:#2A4A7D; --on-dark:#FFFFFF; --on-dark-2:#D5DEEB; --on-dark-muted:#A9B8CC; --on-dark-accent:#B8CBEA;
+  /* Données (graphiques, balance âgée) */
+  --data-1:#C9D6EC; --data-2:#7F9CD0; --data-3:#345DA8;
+  /* Tons sémantiques : fond, bordure, point, texte */
+  --success-bg:#ECFDF5; --success-border:#A7F3D0; --success:#059669; --success-strong:#10B981; --success-fg:#047857; --on-success:#052E16;
+  --warning-bg:#FFF3C4; --warning-border:#F5D77A; --warning:#D97706; --warning-fg:#8A4B08;
+  --danger-bg:#FFF1F2; --danger-border:#FECDD3; --danger:#E11D48; --danger-fg:#BE123C; --danger-dark:#7F1D1D; --danger-on-dark:#FDA4AF;
+  --info-bg:#F0F9FF; --info-border:#BAE6FD; --info:#0284C7; --info-fg:#0369A1;
+  --violet-bg:#F5F3FF; --violet-border:#DDD6FE; --violet:#7C3AED; --violet-fg:#6D28D9;
+  --teal-bg:#CCFBF1; --teal:#0D9488; --teal-fg:#115E59;
+  /* Fonds pleins (badges pleins, texte --on-primary ≥ 5:1 dans les deux modes) */
+  --solid-neutral:#33455C; --solid-info:#0369A1; --solid-success:#047857; --solid-warning:#8A4B08; --solid-danger:#BE123C; --solid-violet:#6D28D9; --solid-teal:#115E59;
+  /* Typographie */
+  --font-title:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-text:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-brand:Lora, Georgia, serif; --font-mono:ui-monospace, SFMono-Regular, Menlo, monospace;
+  --fs-doc-xs:8px; --fs-doc-sm:9px; --fs-doc-md:10px; --fs-doc-lg:10.5px; --fs-2xs:11px; --fs-xs:12px; --fs-sm:13px; --fs-base:14px; --fs-md:16px; --fs-lg:18px; --fs-xl:20px; --fs-2xl:26px; --fs-3xl:34px;
+  /* Rayons */
+  --r-xs:4px; --r-sm:6px; --r-md:8px; --r-lg:12px; --r-full:9999px;
+  /* Ombres */
+  --shadow-sm:0 1px 2px 0 rgba(0,27,77,0.06); --shadow-md:0 10px 15px -3px rgba(0,27,77,0.10), 0 4px 6px -4px rgba(0,27,77,0.10); --shadow-lg:0 20px 25px -5px rgba(0,27,77,0.18), 0 8px 10px -6px rgba(0,27,77,0.12);
+  --shadow-knob:0 1px 2px rgba(0,27,77,0.25); --overlay:rgba(0,27,77,0.55);
+  /* Espacements (grille de 4 px) */
+  --sp-0h:2px; --sp-1:4px; --sp-1h:6px; --sp-2:8px; --sp-2h:10px; --sp-3:12px; --sp-3h:14px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px; --sp-10:40px; --sp-11:44px; --sp-12:48px;
+  /* Hauteurs de contrôles */
+  --control-xs:28px; --control-sm:36px; --control-md:40px; --control-lg:44px;
+  /* Voiles et anneaux (surfaces sombres, animations) */
+  --veil-8:rgba(255,255,255,0.08); --veil-18:rgba(255,255,255,0.18); --veil-25:rgba(255,255,255,0.25); --veil-35:rgba(255,255,255,0.35); --veil-80:rgba(255,255,255,0.8); --veil-85:rgba(255,255,255,0.85); --on-success-veil:rgba(5,46,22,0.35); --success-ring:rgba(16,185,129,0.55); --success-ring-0:rgba(16,185,129,0);
+  /* Cibles tactiles */
+  --target:44px;
+}
+body{font-family:var(--font-text);font-feature-settings:"cv11";-webkit-font-smoothing:antialiased}
+h1,h2{font-family:var(--font-title);font-weight:700;color:var(--marine);overflow-wrap:break-word;letter-spacing:-0.015em}
+[data-brand] h1,[data-brand] h2{font-family:var(--font-brand);letter-spacing:0}
+td,th,li,h3{overflow-wrap:break-word}
+:focus-visible{outline:2px solid var(--marine);outline-offset:2px}
+[data-dark] :focus-visible{outline-color:var(--or)}
+button:disabled,[aria-disabled="true"]{cursor:not-allowed !important;opacity:.55}
+button:not(:disabled):hover,a[href][style*="border-radius"]:hover{filter:brightness(.96)}
+tbody tr:hover{background-color:var(--surface-2)}
+[data-table-scroll]{max-height:min(68vh,720px);overflow:auto !important}
+[data-table-scroll] thead th{position:sticky;top:0;z-index:2;background:var(--surface-2);box-shadow:inset 0 -1px 0 var(--border)}
+[data-skeleton]{display:block;border-radius:var(--r-xs);background:linear-gradient(90deg,var(--surface-3) 25%,var(--bleu-pale) 50%,var(--surface-3) 75%);background-size:200% 100%;animation:lg-sk 1.2s ease-in-out infinite}
+@keyframes lg-sk{from{background-position:200% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+@media (pointer: coarse), (max-width: 767px){
+  button,select,input:not([type=checkbox]):not([type=radio]):not([type=range]),[role=tab],[role=menuitem],a[href][style*="display: inline-flex"],a[href][style*="height:"]{min-height:var(--target)}
+  input[type=checkbox],input[type=radio]{min-width:22px;min-height:22px}
+}
+/* Mode sombre : data-theme="dark" sur <html> */
+:root[data-theme="dark"]{
+  --marine:#2E5FC0; --marine-hover:#2A57B0; --marine-text:#9DB8F0; --app-icon-bg:#0A1A3F; --nuit:#071028; --or-clair:#3A2F0A; --ardoise:#9AA9BD;
+  --bleu-pale:#1B2A4A; --gris-clair:#0A1020; --bleu-200:#2B3E63; --white:#16203A;
+  --text:#E6ECF5; --text-2:#C3CEDD; --text-3:#9AA9BD;
+  --surface:#0F1729; --surface-2:#0A1020; --surface-3:#1A2438; --border:#26324A; --border-strong:#67778F;
+  --surface-dark:#050B1A; --surface-dark-2:#101C36; --border-dark:#24365A;
+  --data-1:#2B3E63; --data-2:#4F73B8; --data-3:#7F9CD0;
+  --success-bg:#0B2E22; --success-border:#14532D; --success-fg:#6EE7B7;
+  --warning-bg:#3A2F0A; --warning-border:#6B5310; --warning-fg:#FCD34D;
+  --danger-bg:#3B0D17; --danger-border:#7F1D2E; --danger-fg:#FDA4AF;
+  --info-bg:#0B2540; --info-border:#164E63; --info-fg:#7DD3FC;
+  --violet-bg:#24164A; --violet-border:#4C1D95; --violet-fg:#C4B5FD;
+  --teal-bg:#0B302C; --teal-fg:#5EEAD4;
+  --shadow-sm:0 1px 2px 0 rgba(0,0,0,0.4); --shadow-md:0 10px 15px -3px rgba(0,0,0,0.5); --shadow-lg:0 20px 25px -5px rgba(0,0,0,0.6); --overlay:rgba(0,0,0,0.65);
+  color-scheme:dark;
+}
+:root[data-theme="dark"] body{background:var(--surface-2);color:var(--text)}
+:root[data-theme="dark"] :focus-visible{outline-color:#9DB8F0}
+:root[data-theme="dark"] [data-dark]{border:1px solid var(--border-dark)}
+:root[data-theme="dark"] h1,:root[data-theme="dark"] h2,:root[data-theme="dark"] a[href]:not([style*="background"]){color:var(--marine-text)}
+:root[data-theme="dark"] [style*="color: var(--marine)"]:not([style*="background: var(--marine)"]){color:var(--marine-text) !important}
+:root[data-theme="dark"] img[src*="_blob"]{background:var(--white);border-radius:var(--r-sm)}
+/* Mode malvoyant : data-a11y="malvoyant" sur <html> — texte agrandi, contraste renforcé, cibles plus grandes */
+:root[data-a11y="malvoyant"]{
+  --fs-2xs:13px; --fs-xs:14px; --fs-sm:15px; --fs-base:17px; --fs-md:19px; --fs-lg:21px; --fs-xl:24px; --fs-2xl:30px; --fs-3xl:38px;
+  --control-xs:36px; --control-sm:44px; --control-md:48px; --control-lg:52px; --target:48px;
+  --text-3:var(--text-2); --ardoise:var(--text-2); --border:var(--border-strong);
+}
+:root[data-a11y="malvoyant"] body{line-height:1.6}
+:root[data-a11y="malvoyant"] [data-sb-nav][style*="width: 264px"]{width:312px !important}
+:root[data-a11y="malvoyant"] :focus-visible{outline:3px solid var(--or);outline-offset:3px;box-shadow:0 0 0 6px var(--marine)}
+:root[data-a11y="malvoyant"] a[href]:not([style*="background"]){text-decoration:underline;text-underline-offset:3px}
+:root[data-a11y="malvoyant"] button,:root[data-a11y="malvoyant"] select,:root[data-a11y="malvoyant"] input:not([type=checkbox]):not([type=radio]){min-height:var(--target)}
+:root[data-a11y="malvoyant"] input[type=checkbox],:root[data-a11y="malvoyant"] input[type=radio]{min-width:24px;min-height:24px}
+:root[data-a11y="malvoyant"][data-theme="dark"]{--text-3:#E6ECF5;--text-2:#E6ECF5}
+/* tokens:end */
+body{margin:0;font-family:var(--font-text);color:var(--text);background:var(--surface-2)}
+a{color:var(--marine)}a:hover{color:var(--marine)}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; background: var(--surface-2); font-family: var(--font-text); color: var(--text)">
+
+<div data-sb-wrap style="flex: 0 0 auto; max-width: 100%; display: flex; background: var(--surface-2); border-right: 1px solid var(--border)">
+<dc-import name="Sidebar" active="" accent="{{accent}}" hint-size="264px,1100px"></dc-import>
+</div>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: var(--sp-8); box-sizing: border-box; display: flex; flex-direction: column; gap: var(--sp-6)">
+<dc-import name="Topbar" accent="{{accent}}" trail="Compte|Notifications" hint-size="100%,64px"></dc-import>
+<div data-page-body style="width: 100%; max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--sp-6)">
+
+<dc-import name="PageHeader" title="Centre de notifications" description="{{unreadText}}" accent="{{accent}}" actions="{{headActions}}" hint-size="100%,110px"></dc-import>
+
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-3)">
+<div role="group" aria-label="Catégories" style="display: flex; flex-wrap: wrap; gap: var(--sp-2)">
+<sc-for list="{{cats}}" as="c" hint-placeholder-count="6">
+<button type="button" onClick="{{c.pick}}" aria-pressed="{{c.pressed}}" style="height: var(--control-sm); padding: 0 var(--sp-3h); border-radius: var(--r-full); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: var(--sp-1h); border: {{c.border}}; background: {{c.bg}}; color: {{c.color}}">{{c.label}}<span style="font-size: var(--fs-xs); color: {{c.countColor}}">{{c.count}}</span></button>
+</sc-for>
+</div>
+<label style="display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-base); color: var(--text-2)"><input type="checkbox" checked="{{onlyUnread}}" onChange="{{toggleUnread}}" style="width: 18px; height: 18px; accent-color: var(--marine)">Non lues uniquement</label>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: var(--sp-5)">
+<sc-if value="{{empty}}" hint-placeholder-val="{{ false }}">
+<div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-12) var(--sp-6); text-align: center; color: var(--text-3); font-size: var(--fs-base)">Aucune notification dans cette catégorie.</div>
+</sc-if>
+<sc-for list="{{days}}" as="d" hint-placeholder-count="3">
+<section style="display: flex; flex-direction: column; gap: var(--sp-2)">
+<h2 style="margin: 0; font-size: var(--fs-sm); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-3)">{{d.label}}</h2>
+<ul style="list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden">
+<sc-for list="{{d.items}}" as="n" hint-placeholder-count="3">
+<li style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-4); padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--surface-3); background: {{n.bg}}; box-shadow: {{n.bar}}">
+<span style="width: 40px; height: 40px; border-radius: var(--r-full); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: var(--fs-base); font-weight: 700; background: {{n.iconBg}}; color: {{n.iconFg}}">{{n.icon}}</span>
+<div style="flex: 1; min-width: 240px; display: flex; flex-direction: column; gap: var(--sp-1)">
+<span style="font-size: var(--fs-base); line-height: 1.4; font-weight: {{n.weight}}">{{n.text}}</span>
+<span style="font-size: var(--fs-xs); color: var(--text-3)">{{n.catLabel}} · {{n.meta}} · {{n.time}}</span>
+</div>
+<div style="display: flex; align-items: center; gap: var(--sp-2)">
+<dc-import name="Bouton" variant="secondary" size="sm" label="{{n.cta}}" href="{{n.href}}" on-press="{{n.read}}" style="display: contents" hint-size="120px,40px"></dc-import>
+<dc-import name="Bouton" variant="link" size="sm" label="{{n.toggleLabel}}" on-press="{{n.toggle}}" style="display: contents" hint-size="120px,40px"></dc-import>
+</div>
+</li>
+</sc-for>
+<sc-if value="{{lst.show}}" hint-placeholder-val="{{ false }}"><dc-import name="EtatListe" kind="{{lst.kind}}" title="{{lst.title}}" text="{{lst.text}}" action-label="{{lst.actionLabel}}" on-action="{{lst.action}}" count="{{lst.count}}" hint-size="100%,220px"></dc-import></sc-if>
+</ul>
+</section>
+</sc-for>
+</div>
+
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#002B74","options":["#002B74","#001B4D","#5D7087"]},"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { loading: true, cat: 'all', onlyUnread: false, read: {}, unreadForced: {} };
+  }
+  componentDidMount() { this.lt = setTimeout(() => this.setState({ loading: false }), 700); }
+  componentWillUnmount() { clearTimeout(this.lt); }
+  renderVals() {
+    const v = this._rv();
+    const st = this.state;
+    const list = v.days || [];
+    v.days = st.loading ? [] : list;
+    v.empty = !st.loading && list.length === 0;
+    v.lst = {
+      show: !!st.loading,
+      kind: st.loading ? 'loading' : (st.q ? 'noresult' : 'empty'),
+      title: st.loading ? '' : st.q ? 'Aucun résultat pour « ' + String(st.q).trim() + ' »' : '',
+      text: st.loading ? '' : '',
+      actionLabel: st.q ? 'Effacer la recherche' : '',
+      action: () => this.setState({ q: '' }),
+      count: 5
+    };
+    return v;
+  }
+  _rv() {
+    const accent = this.props.accent ?? 'var(--marine)';
+    const st = this.state;
+    const C = {
+      paiement: { catLabel: 'Paiement', icon: '€', iconBg: 'var(--success-bg)', iconFg: 'var(--success-fg)' },
+      message: { catLabel: 'Message', icon: '@', iconBg: 'var(--info-bg)', iconFg: 'var(--info-fg)' },
+      echeance: { catLabel: 'Échéance', icon: 'J', iconBg: 'var(--warning-bg)', iconFg: 'var(--warning-fg)' },
+      contentieux: { catLabel: 'Contentieux', icon: '!', iconBg: 'var(--danger-bg)', iconFg: 'var(--danger-fg)' },
+      mandant: { catLabel: 'Créancier', icon: 'M', iconBg: 'var(--bleu-200)', iconFg: 'var(--marine)' },
+      systeme: { catLabel: 'Système', icon: 'i', iconBg: 'var(--surface-3)', iconFg: 'var(--text-2)' }
+    };
+    const all = [
+      { id: 'n1', day: 0, k: 'paiement', unread: true, time: '11:07', text: 'Nordis Logistique a versé 12 500 € : promesse de paiement tenue', meta: 'Énergies Rhône', href: 'Dossier.dc.html', cta: 'Rapprocher' },
+      { id: 'n2', day: 0, k: 'message', unread: true, time: '10:52', text: 'Julien Ferrand (Bâtiplus SAS) demande un échéancier pour le solde de 29 600 €', meta: 'Matériaux Delta', href: 'Messagerie.dc.html', cta: 'Répondre' },
+      { id: 'n3', day: 0, k: 'contentieux', unread: true, time: '10:15', text: 'Le délai de mise en demeure de Charpentes Bellet expire dans 9 jours', meta: 'Matériaux Delta', href: 'Contentieux.dc.html', cta: 'Voir la procédure' },
+      { id: 'n4', day: 0, k: 'mandant', unread: true, time: '09:30', text: 'Matériaux Delta a validé l’échéancier de 8 mois pour Bâtiplus SAS', meta: 'Accord du créancier', href: 'Echeanciers.dc.html', cta: 'Envoyer au débiteur' },
+      { id: 'n5', day: 0, k: 'echeance', unread: false, time: '08:00', text: '7 relances automatiques envoyées ce matin', meta: 'Scénario B2B standard', href: 'Relances.dc.html', cta: 'Voir l\u2019agenda' },
+      { id: 'n6', day: 1, k: 'message', unread: false, time: '16:41', text: 'E-mail non remis à Garage Valmont : adresse invalide', meta: 'TransAlp Leasing', href: 'Messagerie.dc.html', cta: 'Corriger le contact' },
+      { id: 'n7', day: 1, k: 'systeme', unread: false, time: '14:20', text: 'Import terminé : 96 nouvelles factures pour Médiatel', meta: 'Import CSV', href: 'Mandant.dc.html', cta: 'Voir le créancier' },
+      { id: 'n8', day: 1, k: 'mandant', unread: false, time: '11:05', text: 'Médiatel : mandat à renouveler avant le 31/12/2026', meta: 'Convention', href: 'Mandants.dc.html', cta: 'Ouvrir le mandat' },
+      { id: 'n9', day: 2, k: 'echeance', unread: false, time: '19 nov.', text: 'Échéance impayée : Transports Lemaire (5 250 €), deuxième incident', meta: 'TransAlp Leasing', href: 'Echeanciers.dc.html', cta: 'Voir le plan' },
+      { id: 'n10', day: 2, k: 'contentieux', unread: false, time: '17 nov.', text: 'Saisie-attribution effectuée sur le compte de Transports Lemaire', meta: 'Étude Garnier', href: 'Contentieux.dc.html', cta: 'Voir l’acte' },
+      { id: 'n11', day: 2, k: 'systeme', unread: false, time: '15 nov.', text: 'Reversement de 38 420 € effectué à Matériaux Delta', meta: 'Relevé envoyé au créancier', href: 'Mandant.dc.html', cta: 'Voir le relevé' }
+    ];
+    const isUnread = (n) => st.unreadForced[n.id] || (n.unread && !st.read[n.id]);
+    const unreadCount = all.filter(isUnread).length;
+    const catsDef = [['all', 'Toutes'], ['paiement', 'Paiements'], ['message', 'Messages'], ['echeance', 'Échéances et relances'], ['contentieux', 'Contentieux'], ['mandant', 'Créanciers'], ['systeme', 'Système']];
+    const filtered = all.filter((n) => (st.cat === 'all' || n.k === st.cat) && (!st.onlyUnread || isUnread(n)));
+    const dayLabels = ['Aujourd’hui', 'Hier', 'Plus tôt'];
+    const days = [0, 1, 2].map((d) => ({
+      label: dayLabels[d],
+      items: filtered.filter((n) => n.day === d).map((n) => {
+        const u = isUnread(n);
+        return {
+          ...n, ...C[n.k],
+          bg: u ? 'var(--surface-2)' : 'var(--white)',
+          bar: u ? 'inset 3px 0 0 ' + accent : 'none',
+          weight: u ? '600' : '400',
+          toggleLabel: u ? 'Marquer comme lue' : 'Marquer comme non lue',
+          read: () => this.setState({ read: { ...this.state.read, [n.id]: true }, unreadForced: { ...this.state.unreadForced, [n.id]: false } }),
+          toggle: () => u
+            ? this.setState({ read: { ...this.state.read, [n.id]: true }, unreadForced: { ...this.state.unreadForced, [n.id]: false } })
+            : this.setState({ unreadForced: { ...this.state.unreadForced, [n.id]: true } })
+        };
+      })
+    })).filter((d) => d.items.length);
+    return {
+      accent,
+      headActions: [{ label: 'Préférences de notification', href: 'Compte.dc.html' }, { label: 'Tout marquer comme lu', primary: true, kbd: 'N', onClick: () => { const r = {}; this.allIds.forEach((id) => { r[id] = true; }); this.setState({ read: r, unreadForced: {} }); } }],
+      unreadText: unreadCount + ' non lue' + (unreadCount > 1 ? 's' : '') + ' · ' + all.length + ' notifications sur 7 jours',
+      _ids: (this.allIds = all.map((n) => n.id)),
+      markAll: () => { const r = {}; all.forEach((n) => { r[n.id] = true; }); this.setState({ read: r, unreadForced: {} }); },
+      onlyUnread: st.onlyUnread,
+      toggleUnread: () => this.setState({ onlyUnread: !st.onlyUnread }),
+      cats: catsDef.map(([id, label]) => {
+        const on = st.cat === id;
+        const count = all.filter((n) => (id === 'all' || n.k === id)).length;
+        return {
+          label, count, pressed: on ? 'true' : 'false',
+          border: on ? '1px solid ' + accent : '1px solid var(--border)',
+          bg: on ? 'var(--bleu-pale)' : 'var(--white)', color: on ? 'var(--marine)' : 'var(--text-2)', countColor: on ? 'var(--marine)' : 'var(--text-3)',
+          pick: () => this.setState({ cat: id })
+        };
+      }),
+      days,
+      empty: days.length === 0
+    };
+  }
+}
+</script>
+</body>
+</html>

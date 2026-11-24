@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Legarec – Fiche créancier</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Lora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+/* tokens:start — charte graphique LEGAREC v1.0 (octobre 2026). Ne pas modifier à la main : généré depuis tools/tokens.css */
+:root{
+  /* Marque */
+  --marine:#002B74; --marine-hover:#00225C; --marine-text:#002B74; --app-icon-bg:#002B74; --app-icon-fg:#FCBE03; --nuit:#001B4D; --or:#FCBE03; --or-clair:#FFF3C4; --ardoise:#5D7087;
+  --bleu-pale:#EEF2F8; --gris-clair:#F6F8FB; --bleu-200:#D6E0F0; --white:#FFFFFF;
+  /* Texte */
+  --text:#0F1B2D; --text-2:#33455C; --text-3:#5D7087; --on-primary:#FFFFFF;
+  /* Surfaces et bordures */
+  --surface:#FFFFFF; --surface-2:#F6F8FB; --surface-3:#EEF2F7; --border:#E1E7EF; --border-strong:#7D8DA1;
+  /* Surfaces sombres (carte d'appel, barre d'actions groupées) */
+  --surface-dark:#001B4D; --surface-dark-2:#0B2D63; --border-dark:#2A4A7D; --on-dark:#FFFFFF; --on-dark-2:#D5DEEB; --on-dark-muted:#A9B8CC; --on-dark-accent:#B8CBEA;
+  /* Données (graphiques, balance âgée) */
+  --data-1:#C9D6EC; --data-2:#7F9CD0; --data-3:#345DA8;
+  /* Tons sémantiques : fond, bordure, point, texte */
+  --success-bg:#ECFDF5; --success-border:#A7F3D0; --success:#059669; --success-strong:#10B981; --success-fg:#047857; --on-success:#052E16;
+  --warning-bg:#FFF3C4; --warning-border:#F5D77A; --warning:#D97706; --warning-fg:#8A4B08;
+  --danger-bg:#FFF1F2; --danger-border:#FECDD3; --danger:#E11D48; --danger-fg:#BE123C; --danger-dark:#7F1D1D; --danger-on-dark:#FDA4AF;
+  --info-bg:#F0F9FF; --info-border:#BAE6FD; --info:#0284C7; --info-fg:#0369A1;
+  --violet-bg:#F5F3FF; --violet-border:#DDD6FE; --violet:#7C3AED; --violet-fg:#6D28D9;
+  --teal-bg:#CCFBF1; --teal:#0D9488; --teal-fg:#115E59;
+  /* Fonds pleins (badges pleins, texte --on-primary ≥ 5:1 dans les deux modes) */
+  --solid-neutral:#33455C; --solid-info:#0369A1; --solid-success:#047857; --solid-warning:#8A4B08; --solid-danger:#BE123C; --solid-violet:#6D28D9; --solid-teal:#115E59;
+  /* Typographie */
+  --font-title:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-text:Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; --font-brand:Lora, Georgia, serif; --font-mono:ui-monospace, SFMono-Regular, Menlo, monospace;
+  --fs-doc-xs:8px; --fs-doc-sm:9px; --fs-doc-md:10px; --fs-doc-lg:10.5px; --fs-2xs:11px; --fs-xs:12px; --fs-sm:13px; --fs-base:14px; --fs-md:16px; --fs-lg:18px; --fs-xl:20px; --fs-2xl:26px; --fs-3xl:34px;
+  /* Rayons */
+  --r-xs:4px; --r-sm:6px; --r-md:8px; --r-lg:12px; --r-full:9999px;
+  /* Ombres */
+  --shadow-sm:0 1px 2px 0 rgba(0,27,77,0.06); --shadow-md:0 10px 15px -3px rgba(0,27,77,0.10), 0 4px 6px -4px rgba(0,27,77,0.10); --shadow-lg:0 20px 25px -5px rgba(0,27,77,0.18), 0 8px 10px -6px rgba(0,27,77,0.12);
+  --shadow-knob:0 1px 2px rgba(0,27,77,0.25); --overlay:rgba(0,27,77,0.55);
+  /* Espacements (grille de 4 px) */
+  --sp-0h:2px; --sp-1:4px; --sp-1h:6px; --sp-2:8px; --sp-2h:10px; --sp-3:12px; --sp-3h:14px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px; --sp-10:40px; --sp-11:44px; --sp-12:48px;
+  /* Hauteurs de contrôles */
+  --control-xs:28px; --control-sm:36px; --control-md:40px; --control-lg:44px;
+  /* Voiles et anneaux (surfaces sombres, animations) */
+  --veil-8:rgba(255,255,255,0.08); --veil-18:rgba(255,255,255,0.18); --veil-25:rgba(255,255,255,0.25); --veil-35:rgba(255,255,255,0.35); --veil-80:rgba(255,255,255,0.8); --veil-85:rgba(255,255,255,0.85); --on-success-veil:rgba(5,46,22,0.35); --success-ring:rgba(16,185,129,0.55); --success-ring-0:rgba(16,185,129,0);
+  /* Cibles tactiles */
+  --target:44px;
+}
+body{font-family:var(--font-text);font-feature-settings:"cv11";-webkit-font-smoothing:antialiased}
+h1,h2{font-family:var(--font-title);font-weight:700;color:var(--marine);overflow-wrap:break-word;letter-spacing:-0.015em}
+[data-brand] h1,[data-brand] h2{font-family:var(--font-brand);letter-spacing:0}
+td,th,li,h3{overflow-wrap:break-word}
+:focus-visible{outline:2px solid var(--marine);outline-offset:2px}
+[data-dark] :focus-visible{outline-color:var(--or)}
+button:disabled,[aria-disabled="true"]{cursor:not-allowed !important;opacity:.55}
+button:not(:disabled):hover,a[href][style*="border-radius"]:hover{filter:brightness(.96)}
+tbody tr:hover{background-color:var(--surface-2)}
+[data-table-scroll]{max-height:min(68vh,720px);overflow:auto !important}
+[data-table-scroll] thead th{position:sticky;top:0;z-index:2;background:var(--surface-2);box-shadow:inset 0 -1px 0 var(--border)}
+[data-skeleton]{display:block;border-radius:var(--r-xs);background:linear-gradient(90deg,var(--surface-3) 25%,var(--bleu-pale) 50%,var(--surface-3) 75%);background-size:200% 100%;animation:lg-sk 1.2s ease-in-out infinite}
+@keyframes lg-sk{from{background-position:200% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+@media (pointer: coarse), (max-width: 767px){
+  button,select,input:not([type=checkbox]):not([type=radio]):not([type=range]),[role=tab],[role=menuitem],a[href][style*="display: inline-flex"],a[href][style*="height:"]{min-height:var(--target)}
+  input[type=checkbox],input[type=radio]{min-width:22px;min-height:22px}
+}
+/* Mode sombre : data-theme="dark" sur <html> */
+:root[data-theme="dark"]{
+  --marine:#2E5FC0; --marine-hover:#2A57B0; --marine-text:#9DB8F0; --app-icon-bg:#0A1A3F; --nuit:#071028; --or-clair:#3A2F0A; --ardoise:#9AA9BD;
+  --bleu-pale:#1B2A4A; --gris-clair:#0A1020; --bleu-200:#2B3E63; --white:#16203A;
+  --text:#E6ECF5; --text-2:#C3CEDD; --text-3:#9AA9BD;
+  --surface:#0F1729; --surface-2:#0A1020; --surface-3:#1A2438; --border:#26324A; --border-strong:#67778F;
+  --surface-dark:#050B1A; --surface-dark-2:#101C36; --border-dark:#24365A;
+  --data-1:#2B3E63; --data-2:#4F73B8; --data-3:#7F9CD0;
+  --success-bg:#0B2E22; --success-border:#14532D; --success-fg:#6EE7B7;
+  --warning-bg:#3A2F0A; --warning-border:#6B5310; --warning-fg:#FCD34D;
+  --danger-bg:#3B0D17; --danger-border:#7F1D2E; --danger-fg:#FDA4AF;
+  --info-bg:#0B2540; --info-border:#164E63; --info-fg:#7DD3FC;
+  --violet-bg:#24164A; --violet-border:#4C1D95; --violet-fg:#C4B5FD;
+  --teal-bg:#0B302C; --teal-fg:#5EEAD4;
+  --shadow-sm:0 1px 2px 0 rgba(0,0,0,0.4); --shadow-md:0 10px 15px -3px rgba(0,0,0,0.5); --shadow-lg:0 20px 25px -5px rgba(0,0,0,0.6); --overlay:rgba(0,0,0,0.65);
+  color-scheme:dark;
+}
+:root[data-theme="dark"] body{background:var(--surface-2);color:var(--text)}
+:root[data-theme="dark"] :focus-visible{outline-color:#9DB8F0}
+:root[data-theme="dark"] [data-dark]{border:1px solid var(--border-dark)}
+:root[data-theme="dark"] h1,:root[data-theme="dark"] h2,:root[data-theme="dark"] a[href]:not([style*="background"]){color:var(--marine-text)}
+:root[data-theme="dark"] [style*="color: var(--marine)"]:not([style*="background: var(--marine)"]){color:var(--marine-text) !important}
+:root[data-theme="dark"] img[src*="_blob"]{background:var(--white);border-radius:var(--r-sm)}
+/* Mode malvoyant : data-a11y="malvoyant" sur <html> — texte agrandi, contraste renforcé, cibles plus grandes */
+:root[data-a11y="malvoyant"]{
+  --fs-2xs:13px; --fs-xs:14px; --fs-sm:15px; --fs-base:17px; --fs-md:19px; --fs-lg:21px; --fs-xl:24px; --fs-2xl:30px; --fs-3xl:38px;
+  --control-xs:36px; --control-sm:44px; --control-md:48px; --control-lg:52px; --target:48px;
+  --text-3:var(--text-2); --ardoise:var(--text-2); --border:var(--border-strong);
+}
+:root[data-a11y="malvoyant"] body{line-height:1.6}
+:root[data-a11y="malvoyant"] [data-sb-nav][style*="width: 264px"]{width:312px !important}
+:root[data-a11y="malvoyant"] :focus-visible{outline:3px solid var(--or);outline-offset:3px;box-shadow:0 0 0 6px var(--marine)}
+:root[data-a11y="malvoyant"] a[href]:not([style*="background"]){text-decoration:underline;text-underline-offset:3px}
+:root[data-a11y="malvoyant"] button,:root[data-a11y="malvoyant"] select,:root[data-a11y="malvoyant"] input:not([type=checkbox]):not([type=radio]){min-height:var(--target)}
+:root[data-a11y="malvoyant"] input[type=checkbox],:root[data-a11y="malvoyant"] input[type=radio]{min-width:24px;min-height:24px}
+:root[data-a11y="malvoyant"][data-theme="dark"]{--text-3:#E6ECF5;--text-2:#E6ECF5}
+/* tokens:end */
+body{margin:0;font-family:var(--font-text);color:var(--text);background:var(--surface-2)}
+a{color:var(--marine)}a:hover{color:var(--marine)}
+@media (max-width: 767px){[data-sub-pad]{padding:4px 12px 12px !important}}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; background: var(--surface-2); font-family: var(--font-text); color: var(--text)">
+
+<div data-sb-wrap style="flex: 0 0 auto; max-width: 100%; display: flex; background: var(--surface-2); border-right: 1px solid var(--border)">
+<dc-import name="Sidebar" active="Mandants.dc.html" accent="{{accent}}" hint-size="264px,1100px"></dc-import>
+</div>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: var(--sp-8); box-sizing: border-box; display: flex; flex-direction: column; gap: var(--sp-6)">
+<dc-import name="Topbar" accent="{{accent}}" trail="Portefeuille|Créanciers>Mandants.dc.html|Matériaux Delta" hint-size="100%,64px"></dc-import>
+<div data-page-body style="width: 100%; max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--sp-6)">
+
+
+<section aria-label="Créancier" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden">
+<div style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--sp-4); padding: var(--sp-5) var(--sp-6)">
+<div style="display: flex; align-items: center; gap: var(--sp-4)">
+<div style="width: 56px; height: 56px; border-radius: var(--r-lg); background: var(--nuit); color: var(--on-primary); display: flex; align-items: center; justify-content: center; font-size: var(--fs-xl); font-weight: 700">MD</div>
+<div style="display: flex; flex-direction: column; gap: var(--sp-1h)">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3)">
+<h1 style="margin: 0; font-size: var(--fs-2xl); font-weight: 700; letter-spacing: -0.01em">Matériaux Delta</h1>
+<dc-import name="Badge" label="Mandat actif" tone="success" size="sm" style="display: contents" hint-size="80px,22px"></dc-import>
+</div>
+<p style="margin: 0; font-size: var(--fs-base); color: var(--text-3)">Négoce de matériaux BTP · SIREN 401 228 975 · Mandat signé le 12/03/2024 · Gestionnaire : Camille Laurent</p>
+</div>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-3)">
+<button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="height: var(--control-md); padding: 0 var(--sp-3h); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font: inherit; font-size: var(--fs-base); font-weight: 500; cursor: pointer">Importer des factures (CSV)</button>
+<button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="height: var(--control-md); padding: 0 var(--sp-3h); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font: inherit; font-size: var(--fs-base); font-weight: 500; cursor: pointer">Rapport créancier</button>
+<button data-hors-perimetre title="Hors périmètre du prototype" type="button" style="height: var(--control-md); padding: 0 var(--sp-3h); border-radius: var(--r-sm); border: 0; background: {{accent}}; color: var(--on-primary); font: inherit; font-size: var(--fs-base); font-weight: 600; cursor: pointer">+ Ajouter un débiteur</button>
+</div>
+</div>
+<dl style="margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); border-top: 1px solid var(--surface-3)"><div style="display: flex; flex-direction: column; gap: var(--sp-0h); padding: var(--sp-3h) var(--sp-6); border-right: 1px solid var(--surface-3)"><dt style="font-size: var(--fs-xs); color: var(--text-3)">Débiteurs</dt><dd style="margin: 0; font-size: var(--fs-lg); font-weight: 700; font-variant-numeric: tabular-nums">64</dd></div><div style="display: flex; flex-direction: column; gap: var(--sp-0h); padding: var(--sp-3h) var(--sp-6); border-right: 1px solid var(--surface-3)"><dt style="font-size: var(--fs-xs); color: var(--text-3)">Factures impayées</dt><dd style="margin: 0; font-size: var(--fs-lg); font-weight: 700; font-variant-numeric: tabular-nums">412</dd></div><div style="display: flex; flex-direction: column; gap: var(--sp-0h); padding: var(--sp-3h) var(--sp-6); border-right: 1px solid var(--surface-3)"><dt style="font-size: var(--fs-xs); color: var(--text-3)">Encours confié</dt><dd style="margin: 0; font-size: var(--fs-lg); font-weight: 700; font-variant-numeric: tabular-nums">386 400 €</dd></div><div style="display: flex; flex-direction: column; gap: var(--sp-0h); padding: var(--sp-3h) var(--sp-6); border-right: 1px solid var(--surface-3)"><dt style="font-size: var(--fs-xs); color: var(--text-3)">Recouvré en 2026</dt><dd style="margin: 0; font-size: var(--fs-lg); font-weight: 700; font-variant-numeric: tabular-nums">450 300 €</dd></div><div style="display: flex; flex-direction: column; gap: var(--sp-0h); padding: var(--sp-3h) var(--sp-6); border-right: 1px solid var(--surface-3)"><dt style="font-size: var(--fs-xs); color: var(--text-3)">Taux de recouvrement</dt><dd style="margin: 0; font-size: var(--fs-lg); font-weight: 700; font-variant-numeric: tabular-nums">54 %</dd></div></dl>
+<div role="tablist" aria-label="Sections du créancier" style="display: flex; gap: var(--sp-1); padding: 0 var(--sp-4); border-top: 1px solid var(--border); overflow-x: auto">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="4">
+<button type="button" role="tab" aria-selected="{{t.selected}}" onClick="{{t.pick}}" style="height: var(--control-lg); padding: 0 var(--sp-2h); border: 0; background: transparent; font: inherit; font-size: var(--fs-base); font-weight: 500; cursor: pointer; white-space: nowrap; color: {{t.color}}; box-shadow: {{t.bar}}">{{t.label}}</button>
+</sc-for>
+</div>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: var(--sp-6); align-items: flex-start">
+
+<sc-if value="{{is.portefeuille}}" hint-placeholder-val="{{ true }}">
+<section aria-labelledby="deb-titre" style="flex: 999 1 560px; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--sp-3); padding: var(--sp-5) var(--sp-6); border-bottom: 1px solid var(--border)">
+<div style="display: flex; flex-direction: column; gap: var(--sp-0h)">
+<h2 id="deb-titre" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Débiteurs et factures</h2>
+<span style="font-size: var(--fs-sm); color: var(--text-3)">Dépliez un débiteur pour voir ses factures impayées</span>
+</div>
+<dc-import name="Bouton" variant="secondary" size="sm" label="{{toggleAllLabel}}" on-press="{{toggleAll}}" style="display: contents" hint-size="120px,40px"></dc-import>
+</div>
+<div style="overflow-x: auto">
+<div style="min-width: 720px">
+<div style="display: grid; grid-template-columns: 44px minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.8fr) minmax(0, 1.2fr); gap: var(--sp-2); padding: var(--sp-2h) var(--sp-4); background: var(--surface-2); font-size: var(--fs-xs); font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.04em">
+<span></span><span>Débiteur</span><span>Factures</span><span style="text-align: right">Montant dû</span><span style="text-align: right">Retard max.</span><span>Statut</span>
+</div>
+<sc-for list="{{debtors}}" as="d" hint-placeholder-count="5">
+<div style="border-top: 1px solid var(--surface-3)">
+<div style="display: grid; grid-template-columns: 44px minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.8fr) minmax(0, 1.2fr); gap: var(--sp-2); align-items: center; padding: var(--sp-2) var(--sp-4); font-size: var(--fs-base); background: {{d.rowBg}}">
+<button type="button" onClick="{{d.toggle}}" aria-expanded="{{d.expanded}}" aria-label="Afficher les factures" style="width: 44px; height: var(--control-lg); border: 0; background: transparent; color: var(--text-2); cursor: pointer; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{d.chev}}"></path></svg></button>
+<div style="display: flex; flex-direction: column; gap: var(--sp-0h); min-width: 0"><a href="Dossier.dc.html" style="color: var(--text); font-weight: 600; text-decoration: none">{{d.name}}</a><span style="font-size: var(--fs-xs); color: var(--text-3)">{{d.ref}}</span></div>
+<span style="color: var(--text-2)">{{d.count}}</span>
+<span style="text-align: right; font-weight: 600; font-variant-numeric: tabular-nums">{{d.amount}}</span>
+<span style="text-align: right; font-variant-numeric: tabular-nums; color: var(--text-2)">{{d.late}}</span>
+<span><span style="font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-1) var(--sp-2h); border-radius: var(--r-full); white-space: nowrap; background: {{d.bg}}; color: {{d.fg}}">{{d.status}}</span></span>
+</div>
+<sc-if value="{{d.open}}" hint-placeholder-val="{{ false }}">
+<div data-sub-pad style="padding: var(--sp-1) var(--sp-4) var(--sp-4) 68px; background: var(--surface-2)">
+<div style="border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); overflow-x: auto">
+<div data-keep-cols style="min-width: 560px; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--sp-2); padding: var(--sp-2) var(--sp-3h); font-size: var(--fs-xs); font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--surface-3)">
+<span>N° facture</span><span>Réf. créancier</span><span>Échéance</span><span style="text-align: right">Montant TTC</span><span style="text-align: right">Reste dû</span><span>État</span>
+</div>
+<sc-for list="{{d.invoices}}" as="f" hint-placeholder-count="3">
+<div data-keep-cols style="min-width: 560px; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--sp-2); padding: var(--sp-2h) var(--sp-3h); font-size: var(--fs-sm); border-top: 1px solid var(--surface-2); align-items: center">
+<span style="font-weight: 500">{{f.num}}</span>
+<span style="color: var(--text-3)">{{f.ext}}</span>
+<span style="color: var(--text-2)">{{f.due}}</span>
+<span style="text-align: right; font-variant-numeric: tabular-nums">{{f.total}}</span>
+<span style="text-align: right; font-variant-numeric: tabular-nums; font-weight: 600">{{f.left}}</span>
+<span><span style="font-size: var(--fs-xs); font-weight: 600; padding: var(--sp-0h) var(--sp-2); border-radius: var(--r-full); background: {{f.bg}}; color: {{f.fg}}">{{f.state}}</span></span>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</div>
+<div style="padding: var(--sp-3) var(--sp-4); border-top: 1px solid var(--border); font-size: var(--fs-sm); color: var(--text-3)">5 débiteurs affichés sur 64 · <a href="Dossiers.dc.html" style="font-weight: 500; text-decoration: none">Voir tous les débiteurs de ce créancier →</a></div>
+</section>
+</sc-if>
+<sc-if value="{{is.reversements}}" hint-placeholder-val="{{ false }}">
+<section aria-labelledby="revt-titre" style="flex: 999 1 560px; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5); border-bottom: 1px solid var(--border)"><div style="display: flex; flex-direction: column; gap: var(--sp-0h)"><h2 id="revt-titre" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Reversements</h2><span style="font-size: var(--fs-sm); color: var(--text-3)">Commission de 8 % HT retenue · versement le 15 de chaque mois</span></div><span style="font-size: var(--fs-sm); color: var(--marine); font-weight: 600; background: var(--bleu-pale); padding: var(--sp-1h) var(--sp-2h); border-radius: var(--r-sm)">Prochain : 22 910 € le 15/12</span></div>
+<div data-table-scroll style="overflow-x: auto"><table style="width: 100%; min-width: 620px; border-collapse: collapse; font-size: var(--fs-base)">
+<thead style="background: var(--surface-2)"><tr style="text-align: left; color: var(--text-3); font-size: var(--fs-xs)"><th scope="col" style="padding: var(--sp-2h) var(--sp-5); font-weight: 600">Date</th><th scope="col" style="padding: var(--sp-2h) var(--sp-2); font-weight: 600; text-align: right">Encaissé</th><th scope="col" style="padding: var(--sp-2h) var(--sp-2); font-weight: 600; text-align: right">Commission</th><th scope="col" style="padding: var(--sp-2h) var(--sp-2); font-weight: 600; text-align: right">Net reversé</th><th scope="col" style="padding: var(--sp-2h) var(--sp-5); font-weight: 600">Relevé</th></tr></thead>
+<tbody><sc-for list="{{payouts}}" as="p" hint-placeholder-count="4"><tr style="border-top: 1px solid var(--surface-3)"><td style="padding: var(--sp-3) var(--sp-5)"><span style="display: flex; flex-direction: column"><span style="font-weight: 500">{{p.date}}</span><span style="font-size: var(--fs-xs); color: var(--text-3)">{{p.n}} encaissements</span></span></td><td style="padding: var(--sp-3) var(--sp-2); text-align: right; font-variant-numeric: tabular-nums">{{p.gross}}</td><td style="padding: var(--sp-3) var(--sp-2); text-align: right; color: var(--text-2); font-variant-numeric: tabular-nums">− {{p.fee}}</td><td style="padding: var(--sp-3) var(--sp-2); text-align: right; font-weight: 700; font-variant-numeric: tabular-nums">{{p.net}}</td><td style="padding: var(--sp-3) var(--sp-5)"><a href="Documents.dc.html" style="font-weight: 500; text-decoration: none">PDF</a></td></tr></sc-for></tbody>
+</table></div>
+</section>
+</sc-if>
+<sc-if value="{{is.activite}}" hint-placeholder-val="{{ false }}">
+<section aria-labelledby="act-titre" style="flex: 999 1 560px; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden">
+<div style="padding: var(--sp-4) var(--sp-5); border-bottom: 1px solid var(--border)"><h2 id="act-titre" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Activité sur le portefeuille</h2></div>
+<ul style="list-style: none; margin: 0; padding: 0"><sc-for list="{{activity}}" as="a" hint-placeholder-count="6"><li style="display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3) var(--sp-5); border-top: 1px solid var(--surface-3); font-size: var(--fs-base)"><span style="width: 8px; height: 8px; border-radius: var(--r-full); flex-shrink: 0; background: {{a.dot}}"></span><span style="flex: 1; min-width: 0"><strong>{{a.who}}</strong> · {{a.what}}</span><span style="font-size: var(--fs-xs); color: var(--text-3); white-space: nowrap">{{a.when}}</span></li></sc-for></ul>
+</section>
+</sc-if>
+
+<sc-if value="{{showAside}}" hint-placeholder-val="{{ true }}">
+<aside style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-6)">
+
+<section aria-labelledby="conv-titre" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-3h)">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: var(--sp-2)">
+<h2 id="conv-titre" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Convention de mandat</h2>
+<a href="#" style="font-size: var(--fs-sm); font-weight: 500; text-decoration: none">Modifier</a>
+</div>
+<dl style="margin: 0; display: flex; flex-direction: column; gap: var(--sp-2h); font-size: var(--fs-sm)">
+<div style="display: flex; justify-content: space-between; gap: var(--sp-3)"><dt style="color: var(--text-3)">Honoraires amiable</dt><dd style="margin: 0; font-weight: 500; text-align: right">8 % HT du recouvré</dd></div>
+<div style="display: flex; justify-content: space-between; gap: var(--sp-3)"><dt style="color: var(--text-3)">Honoraires judiciaire</dt><dd style="margin: 0; font-weight: 500; text-align: right">12 % HT</dd></div>
+<div style="display: flex; justify-content: space-between; gap: var(--sp-3)"><dt style="color: var(--text-3)">Indemnité forfaitaire</dt><dd style="margin: 0; font-weight: 500; text-align: right">40 € / facture</dd></div>
+<div style="display: flex; justify-content: space-between; gap: var(--sp-3)"><dt style="color: var(--text-3)">Échéancier sans accord</dt><dd style="margin: 0; font-weight: 500; text-align: right">≤ 6 mois</dd></div>
+<div style="display: flex; justify-content: space-between; gap: var(--sp-3)"><dt style="color: var(--text-3)">Remise autorisée</dt><dd style="margin: 0; font-weight: 500; text-align: right">≤ 5 %</dd></div>
+<div style="display: flex; justify-content: space-between; gap: var(--sp-3)"><dt style="color: var(--text-3)">Passage en contentieux</dt><dd style="margin: 0; font-weight: 500; text-align: right">Sur accord écrit</dd></div>
+<div style="display: flex; justify-content: space-between; gap: var(--sp-3)"><dt style="color: var(--text-3)">Reporting</dt><dd style="margin: 0; font-weight: 500; text-align: right">Mensuel, le 5</dd></div>
+</dl>
+</section>
+
+<section aria-labelledby="rev-titre" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-3h)">
+<h2 id="rev-titre" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Reversements au créancier</h2>
+<div style="background: var(--bleu-pale); border-radius: var(--r-lg); padding: var(--sp-3h) var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-1)">
+<span style="font-size: var(--fs-xs); color: var(--marine); font-weight: 600">Prochain reversement · 15 déc. 2026</span>
+<span style="font-size: var(--fs-xl); font-weight: 700; color: var(--nuit)">22 910 €</span>
+<span style="font-size: var(--fs-xs); color: var(--marine)">24 902 € encaissés − 1 992 € d'honoraires</span>
+</div>
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+<sc-for list="{{transfers}}" as="t" hint-placeholder-count="3">
+<li style="display: flex; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-2h) 0; border-top: 1px solid var(--surface-3); font-size: var(--fs-sm)">
+<span style="display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-weight: 500">{{t.date}}</span><span style="color: var(--text-3)">{{t.detail}}</span></span>
+<span style="font-weight: 600; font-variant-numeric: tabular-nums">{{t.amount}}</span>
+</li>
+</sc-for>
+</ul>
+</section>
+
+<section aria-labelledby="ctc-titre" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-3)">
+<h2 id="ctc-titre" style="margin: 0; font-size: var(--fs-md); font-weight: 600">Interlocuteur créancier</h2>
+<div style="display: flex; flex-direction: column; gap: var(--sp-0h)"><span style="font-size: var(--fs-base); font-weight: 600">Claire Besson</span><span style="font-size: var(--fs-sm); color: var(--text-3)">Credit manager</span></div>
+<div style="display: flex; flex-direction: column; gap: var(--sp-1); font-size: var(--fs-base)"><a href="#" style="text-decoration: none">04 72 00 00 00</a><a href="#" style="text-decoration: none">c.besson@materiauxdelta.example</a></div>
+<a href="#" style="font-size: var(--fs-sm); color: var(--text-2)">Accès espace créancier : activé</a>
+</section>
+
+</aside>
+</sc-if>
+</div>
+
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#002B74","options":["#002B74","#001B4D","#5D7087"]},"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { open: { d1: true }, tab: 'portefeuille' };
+  }
+  renderVals() {
+    const accent = this.props.accent ?? 'var(--marine)';
+    const S = {
+      retard: { bg: 'var(--danger-bg)', fg: 'var(--danger-fg)' },
+      promesse: { bg: 'var(--warning-bg)', fg: 'var(--warning-fg)' },
+      relance: { bg: 'var(--info-bg)', fg: 'var(--info-fg)' },
+      litige: { bg: 'var(--violet-bg)', fg: 'var(--violet-fg)' },
+      regle: { bg: 'var(--success-bg)', fg: 'var(--success-fg)' }
+    };
+    const F = {
+      impayee: { state: 'Impayée', ...S.retard },
+      partiel: { state: 'Partiel', ...S.promesse },
+      contestee: { state: 'Contestée', ...S.litige },
+      relance: { state: 'En relance', ...S.relance },
+      echeancier: { state: 'Échéancier', ...S.promesse }
+    };
+    const debtors = [
+      { id: 'd1', name: 'Bâtiplus SAS', ref: 'DOS-2026-0142', count: '3 factures', amount: '48 200 €', late: '68 j', status: 'En retard', k: 'retard', invoices: [
+        { num: 'F-2026-0712', ext: 'MD-71204', due: '14/09/2026', total: '18 600 €', left: '18 600 €', f: 'impayee' },
+        { num: 'F-2026-0745', ext: 'MD-71388', due: '27/09/2026', total: '16 400 €', left: '16 400 €', f: 'impayee' },
+        { num: 'F-2026-0790', ext: 'MD-71502', due: '10/10/2026', total: '13 200 €', left: '13 200 €', f: 'relance' }
+      ] },
+      { id: 'd2', name: 'Charpentes Bellet', ref: 'DOS-2026-0109', count: '4 factures', amount: '27 300 €', late: '81 j', status: 'Mise en demeure', k: 'retard', invoices: [
+        { num: 'F-2026-0601', ext: 'MD-70114', due: '31/08/2026', total: '9 800 €', left: '9 800 €', f: 'impayee' },
+        { num: 'F-2026-0633', ext: 'MD-70290', due: '07/09/2026', total: '7 400 €', left: '7 400 €', f: 'impayee' },
+        { num: 'F-2026-0688', ext: 'MD-70842', due: '21/09/2026', total: '6 900 €', left: '6 900 €', f: 'impayee' },
+        { num: 'F-2026-0721', ext: 'MD-71240', due: '05/10/2026', total: '5 200 €', left: '3 200 €', f: 'partiel' }
+      ] },
+      { id: 'd3', name: 'Atelier Mistral', ref: 'DOS-2026-0170', count: '1 facture', amount: '18 320 €', late: '52 j', status: 'Litige', k: 'litige', invoices: [
+        { num: 'F-2026-0874', ext: 'MD-72011', due: '30/09/2026', total: '18 320 €', left: '18 320 €', f: 'contestee' }
+      ] },
+      { id: 'd4', name: 'Menuiserie Rivoire', ref: 'DOS-2026-0188', count: '5 factures', amount: '15 640 €', late: '34 j', status: 'Relance 1', k: 'relance', invoices: [
+        { num: 'F-2026-0902', ext: 'MD-72230', due: '18/10/2026', total: '4 120 €', left: '4 120 €', f: 'relance' },
+        { num: 'F-2026-0915', ext: 'MD-72301', due: '22/10/2026', total: '3 860 €', left: '3 860 €', f: 'relance' },
+        { num: 'F-2026-0931', ext: 'MD-72377', due: '29/10/2026', total: '2 940 €', left: '2 940 €', f: 'relance' },
+        { num: 'F-2026-0948', ext: 'MD-72455', due: '05/11/2026', total: '2 610 €', left: '2 610 €', f: 'relance' },
+        { num: 'F-2026-0960', ext: 'MD-72519', due: '12/11/2026', total: '2 110 €', left: '2 110 €', f: 'relance' }
+      ] },
+      { id: 'd5', name: 'SCI Les Tilleuls', ref: 'DOS-2026-0175', count: '2 factures', amount: '9 870 €', late: '12 j', status: 'Échéancier 2/4', k: 'promesse', invoices: [
+        { num: 'F-2026-0811', ext: 'MD-71760', due: '20/10/2026', total: '8 400 €', left: '4 200 €', f: 'echeancier' },
+        { num: 'F-2026-0866', ext: 'MD-71955', due: '09/11/2026', total: '5 670 €', left: '5 670 €', f: 'echeancier' }
+      ] }
+    ];
+    const open = this.state.open;
+    const allOpen = debtors.every((d) => open[d.id]);
+    return {
+      tabs: [['portefeuille', 'Portefeuille'], ['reversements', 'Reversements'], ['activite', 'Activité'], ['convention', 'Convention et contacts']].map(([id, label]) => ({
+        label, selected: this.state.tab === id ? 'true' : 'false',
+        color: this.state.tab === id ? 'var(--text)' : 'var(--text-3)',
+        bar: this.state.tab === id ? 'inset 0 -2px 0 ' + accent : 'none',
+        pick: () => this.setState({ tab: id })
+      })),
+      is: { portefeuille: this.state.tab === 'portefeuille', reversements: this.state.tab === 'reversements', activite: this.state.tab === 'activite' },
+      showAside: this.state.tab === 'portefeuille' || this.state.tab === 'convention',
+      payouts: [
+        { date: '15 nov. 2026', n: 12, gross: '41 761 €', fee: '3 341 €', net: '38 420 €' },
+        { date: '15 oct. 2026', n: 15, gross: '44 837 €', fee: '3 587 €', net: '41 250 €' },
+        { date: '15 sept. 2026', n: 9, gross: '30 880 €', fee: '2 470 €', net: '28 410 €' },
+        { date: '15 août 2026', n: 11, gross: '36 210 €', fee: '2 897 €', net: '33 313 €' }
+      ],
+      activity: [
+        { who: 'Bâtiplus SAS', what: 'échéancier de 8 mois validé par Camille Laurent', when: '21/11 11:58', dot: 'var(--marine)' },
+        { who: 'Bâtiplus SAS', what: 'promesse de 18 600 € pour le 28/11', when: '21/11 09:00', dot: 'var(--warning)' },
+        { who: 'Atelier Mistral', what: 'contestation reçue (livraison incomplète)', when: '21/11 08:15', dot: 'var(--violet)' },
+        { who: 'Charpentes Bellet', what: 'accusé de réception de la mise en demeure', when: '18/11', dot: 'var(--danger)' },
+        { who: 'Import', what: '22 nouvelles créances déposées par Claire Besson', when: '20/11', dot: 'var(--text-3)' },
+        { who: 'Reversement', what: '38 420 € versés au créancier', when: '15/11', dot: 'var(--success)' }
+      ],
+      accent,
+      toggleAllLabel: allOpen ? 'Tout replier' : 'Tout déplier',
+      toggleAll: () => {
+        const next = {};
+        if (!allOpen) debtors.forEach((d) => { next[d.id] = true; });
+        this.setState({ open: next });
+      },
+      debtors: debtors.map((d) => ({
+        ...d, ...S[d.k],
+        open: !!open[d.id],
+        expanded: open[d.id] ? 'true' : 'false',
+        rowBg: open[d.id] ? 'var(--surface-2)' : 'var(--white)',
+        chev: open[d.id] ? 'm6 9 6 6 6-6' : 'm9 6 6 6-6 6',
+        toggle: () => this.setState({ open: { ...this.state.open, [d.id]: !this.state.open[d.id] } }),
+        invoices: d.invoices.map((f) => ({ ...f, ...F[f.f] }))
+      })),
+      transfers: [
+        { date: '15 nov. 2026', detail: '12 encaissements · honoraires 3 341 €', amount: '38 420 €' },
+        { date: '15 oct. 2026', detail: '15 encaissements · honoraires 3 587 €', amount: '41 250 €' },
+        { date: '15 sept. 2026', detail: '9 encaissements · honoraires 2 470 €', amount: '28 410 €' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

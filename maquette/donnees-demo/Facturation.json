@@ -1,0 +1,381 @@
+{
+  "accent": "var(--marine)",
+  "asRoles": [
+    {
+      "label": "Responsable (vous)",
+      "pressed": "true",
+      "bg": "var(--white)",
+      "color": "var(--text)",
+      "shadow": "var(--shadow-sm)"
+    },
+    {
+      "label": "Dirigeant",
+      "pressed": "false",
+      "bg": "transparent",
+      "color": "var(--text-3)",
+      "shadow": "none"
+    },
+    {
+      "label": "Gestionnaire",
+      "pressed": "false",
+      "bg": "transparent",
+      "color": "var(--text-3)",
+      "shadow": "none"
+    }
+  ],
+  "allowed": true,
+  "denied": false,
+  "headActions": [
+    {
+      "label": "Modèles",
+      "href": "Reglages.dc.html"
+    },
+    {
+      "label": "Fermer la création",
+      "primary": false,
+      "kbd": "N"
+    }
+  ],
+  "headStats": [
+    {
+      "label": "Facturé en 2026",
+      "value": "131 860 € HT",
+      "sub": "commissions et frais refacturés"
+    },
+    {
+      "label": "Facturé en novembre",
+      "value": "15 627 € HT",
+      "sub": "5 factures de commission"
+    },
+    {
+      "label": "À encaisser",
+      "value": "3 480 €",
+      "color": "var(--danger-fg)",
+      "sub": "2 factures en retard"
+    },
+    {
+      "label": "Devis en attente",
+      "value": "2 · 12 876 €",
+      "color": "var(--warning-fg)",
+      "sub": "relance automatique à J+7"
+    },
+    {
+      "label": "Contrats",
+      "value": "5 actifs",
+      "sub": "1 à renouveler, 1 à signer"
+    }
+  ],
+  "hasNotice": false,
+  "notice": "",
+  "creating": true,
+  "types": [
+    {
+      "label": "Facture",
+      "hint": "Commission, frais refacturés",
+      "pressed": "true",
+      "border": "1px solid var(--marine)",
+      "bg": "var(--bleu-pale)"
+    },
+    {
+      "label": "Devis",
+      "hint": "Prospects et nouveaux mandats",
+      "pressed": "false",
+      "border": "1px solid var(--border)",
+      "bg": "var(--white)"
+    },
+    {
+      "label": "Contrat",
+      "hint": "Convention, avenant, mandat",
+      "pressed": "false",
+      "border": "1px solid var(--border)",
+      "bg": "var(--white)"
+    }
+  ],
+  "templates": [
+    {
+      "label": "Facture de commission mensuelle",
+      "hint": "Commission sur les sommes recouvrées, déduite du reversement",
+      "checked": true,
+      "border": "1px solid var(--marine)",
+      "bg": "var(--bleu-pale)"
+    },
+    {
+      "label": "Refacturation de frais de procédure",
+      "hint": "Frais de commissaire de justice et de greffe avancés",
+      "checked": false,
+      "border": "1px solid var(--border)",
+      "bg": "var(--white)"
+    },
+    {
+      "label": "Facture forfaitaire",
+      "hint": "Mise en place ou traitement spécifique",
+      "checked": false,
+      "border": "1px solid var(--border)",
+      "bg": "var(--white)"
+    }
+  ],
+  "client": "md",
+  "clients": [
+    {
+      "id": "md",
+      "name": "Matériaux Delta"
+    },
+    {
+      "id": "er",
+      "name": "Énergies Rhône"
+    },
+    {
+      "id": "mt",
+      "name": "Médiatel"
+    },
+    {
+      "id": "tl",
+      "name": "TransAlp Leasing"
+    },
+    {
+      "id": "ch",
+      "name": "Crédit Horizon"
+    },
+    {
+      "id": "px",
+      "name": "Nouveau prospect…"
+    }
+  ],
+  "cl": {
+    "name": "Matériaux Delta",
+    "legal": "Matériaux Delta SAS",
+    "address": "14 rue des Tanneurs, 69007 Lyon",
+    "signer": "Claire Besson, directrice financière",
+    "idLine": "SIREN 401 228 975 · TVA FR66 401 228 975"
+  },
+  "hasLines": true,
+  "isContract": false,
+  "lineRows": [
+    {
+      "label": "Commission de recouvrement · 8 % de 62 180,00 € encaissés en novembre 2026",
+      "qty": "1",
+      "pu": "4974,4"
+    },
+    {
+      "label": "Frais d’ouverture de dossier · nouveaux débiteurs",
+      "qty": "3",
+      "pu": "15"
+    }
+  ],
+  "vars": [
+    {
+      "label": "Taux de commission",
+      "value": "8 % HT"
+    },
+    {
+      "label": "Frais d’ouverture par dossier",
+      "value": "15 € HT"
+    },
+    {
+      "label": "Date d’effet",
+      "value": "01/01/2027"
+    },
+    {
+      "label": "Durée",
+      "value": "12 mois, reconductible"
+    },
+    {
+      "label": "Préavis de résiliation",
+      "value": "3 mois"
+    },
+    {
+      "label": "Échéancier sans accord du créancier",
+      "value": "jusqu’à 6 mois"
+    }
+  ],
+  "articles": [
+    {
+      "t": "Objet",
+      "d": "Le créancier confie à Legarec le recouvrement amiable de ses factures impayées, transmises par import ou depuis son espace en ligne."
+    },
+    {
+      "t": "Rémunération",
+      "d": "Commission de 8 % HT sur les sommes effectivement encaissées, et frais d’ouverture de 15 € HT par dossier."
+    },
+    {
+      "t": "Reversements",
+      "d": "Les sommes encaissées sont reversées chaque mois, déduction faite de la commission, avec un relevé détaillé."
+    },
+    {
+      "t": "Échéanciers",
+      "d": "Legarec peut accorder un échéancier jusqu’à 6 mois ; au-delà, l’accord écrit du créancier est requis."
+    },
+    {
+      "t": "Durée",
+      "d": "À compter du 01/01/2027, pour 12 mois, reconductible, résiliable avec un préavis de 3 mois."
+    },
+    {
+      "t": "Données personnelles",
+      "d": "Legarec traite les données des débiteurs en qualité de sous-traitant, conformément au RGPD."
+    }
+  ],
+  "pv": {
+    "kind": "Facture",
+    "number": "FA-2026-0118 (provisoire)",
+    "date": "Paris, le 21 novembre 2026",
+    "subject": "Facture de commission mensuelle · novembre 2026",
+    "legal": "Paiement à 30 jours, soit le 21/12/2026, ou par déduction du reversement du 30/11/2026. Pénalités de retard : trois fois le taux d’intérêt légal. Indemnité forfaitaire pour frais de recouvrement : 40 € (article L441-10 du Code de commerce). Pas d’escompte pour paiement anticipé.",
+    "ht": "5 019,40 €",
+    "tva": "1 003,88 €",
+    "ttc": "6 023,28 €"
+  },
+  "pvLines": [
+    {
+      "label": "Commission de recouvrement · 8 % de 62 180,00 € encaissés en novembre 2026",
+      "qty": "1",
+      "pu": "4 974,40 €",
+      "total": "4 974,40 €"
+    },
+    {
+      "label": "Frais d’ouverture de dossier · nouveaux débiteurs",
+      "qty": "3",
+      "pu": "15,00 €",
+      "total": "45,00 €"
+    }
+  ],
+  "issueLabel": "Émettre la facture",
+  "tbTabs": [
+    {
+      "label": "Factures",
+      "count": "5",
+      "selected": true
+    },
+    {
+      "label": "Devis",
+      "count": "4",
+      "selected": false
+    },
+    {
+      "label": "Contrats",
+      "count": "5",
+      "selected": false
+    }
+  ],
+  "tbFilters": [
+    {
+      "label": "Statut",
+      "options": [
+        "Tous les statuts",
+        "Brouillon",
+        "Envoyé",
+        "Payé ou signé",
+        "En retard"
+      ]
+    },
+    {
+      "label": "Client",
+      "options": [
+        "Tous les clients",
+        "Matériaux Delta",
+        "Énergies Rhône",
+        "Médiatel",
+        "TransAlp Leasing",
+        "Crédit Horizon",
+        "Prospects"
+      ]
+    }
+  ],
+  "listTitle": "Factures",
+  "listCount": "5 documents",
+  "amountCol": "Montant TTC",
+  "rows": [
+    {
+      "no": "FA-2026-0117",
+      "subject": "Commission octobre 2026",
+      "date": "02/11/2026",
+      "amount": "9 845,28 €",
+      "status": "Payée",
+      "bg": "var(--success-bg)",
+      "fg": "var(--success-fg)",
+      "client": "Énergies Rhône",
+      "idLine": "SIREN 626 018 154",
+      "rowBg": "var(--white)"
+    },
+    {
+      "no": "FA-2026-0116",
+      "subject": "Commission octobre 2026",
+      "date": "02/11/2026",
+      "amount": "5 312,64 €",
+      "status": "Déduite du reversement",
+      "bg": "var(--success-bg)",
+      "fg": "var(--success-fg)",
+      "client": "Matériaux Delta",
+      "idLine": "SIREN 401 228 975",
+      "rowBg": "var(--white)"
+    },
+    {
+      "no": "FA-2026-0115",
+      "subject": "Commission octobre 2026",
+      "date": "02/11/2026",
+      "amount": "3 902,40 €",
+      "status": "Envoyée",
+      "bg": "var(--bleu-pale)",
+      "fg": "var(--marine)",
+      "client": "Médiatel",
+      "idLine": "SIREN 183 016 617",
+      "rowBg": "var(--white)"
+    },
+    {
+      "no": "FA-2026-0114",
+      "subject": "Refacturation de frais de procédure",
+      "date": "28/10/2026",
+      "amount": "1 284,00 €",
+      "status": "En retard",
+      "bg": "var(--danger-bg)",
+      "fg": "var(--danger-fg)",
+      "client": "TransAlp Leasing",
+      "idLine": "SIREN 418 609 137",
+      "rowBg": "var(--white)"
+    },
+    {
+      "no": "FA-2026-0113",
+      "subject": "Commission septembre 2026",
+      "date": "02/10/2026",
+      "amount": "2 196,00 €",
+      "status": "En retard",
+      "bg": "var(--danger-bg)",
+      "fg": "var(--danger-fg)",
+      "client": "Crédit Horizon",
+      "idLine": "SIREN 199 603 085",
+      "rowBg": "var(--white)"
+    }
+  ],
+  "cf": {
+    "open": false,
+    "title": "Émettre la facture FA-2026-0118 ?",
+    "body": "Le numéro devient définitif et la facture ne peut plus être modifiée : toute correction passera par un avoir. Elle est envoyée par e-mail (Resend) et ajoutée à l’espace du créancier.",
+    "details": [
+      {
+        "k": "Client",
+        "v": "Matériaux Delta SAS · SIREN 401 228 975"
+      },
+      {
+        "k": "Objet",
+        "v": "Facture de commission mensuelle · novembre 2026"
+      },
+      {
+        "k": "Total HT",
+        "v": "5 019,40 €"
+      },
+      {
+        "k": "Total TTC",
+        "v": "6 023,28 €"
+      }
+    ],
+    "label": "Émettre la facture"
+  },
+  "q": "",
+  "lst": {
+    "show": false,
+    "kind": "empty",
+    "title": "Aucun document",
+    "text": "Créez une facture, un devis ou un contrat depuis un modèle.",
+    "actionLabel": "",
+    "count": 5
+  }
+}
