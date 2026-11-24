@@ -1,0 +1,55 @@
+.root {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  --size: 40px;
+  --fs: var(--fs-sm);
+  --dot: 12px;
+}
+.root[data-size='24'] {
+  --size: 24px;
+  --fs: var(--fs-2xs);
+  --dot: 10px;
+}
+.root[data-size='32'] {
+  --size: 32px;
+  --fs: var(--fs-xs);
+  --dot: 10px;
+}
+.root[data-size='48'] {
+  --size: 48px;
+  --fs: var(--fs-base);
+}
+.disc {
+  width: var(--size);
+  height: var(--size);
+  border-radius: var(--r-full);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--t-bg);
+  color: var(--t-fg);
+  font-size: var(--fs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.presence {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  box-sizing: border-box;
+  width: var(--dot);
+  height: var(--dot);
+  border-radius: var(--r-full);
+  border: 2px solid var(--surface);
+  background: var(--text-3);
+}
+.presence[data-presence='call'] {
+  background: var(--danger);
+}
+.presence[data-presence='dispo'] {
+  background: var(--success);
+}
+.presence[data-presence='pause'] {
+  background: var(--warning);
+}

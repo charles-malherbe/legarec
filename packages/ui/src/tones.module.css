@@ -1,0 +1,63 @@
+.tone {
+  --t-bg: var(--surface-3);
+  --t-fg: var(--text-2);
+  --t-border: var(--border);
+  --t-dot: var(--text-3);
+  --t-solid: var(--solid-neutral);
+}
+.tone[data-tone='marine'] {
+  --t-bg: var(--bleu-200);
+  --t-fg: var(--marine-text);
+  --t-border: var(--data-1);
+  --t-dot: var(--marine);
+  --t-solid: var(--app-icon-bg);
+}
+.tone[data-tone='info'] {
+  --t-bg: var(--info-bg);
+  --t-fg: var(--info-fg);
+  --t-border: var(--info-border);
+  --t-dot: var(--info);
+  --t-solid: var(--solid-info);
+}
+.tone[data-tone='success'] {
+  --t-bg: var(--success-bg);
+  --t-fg: var(--success-fg);
+  --t-border: var(--success-border);
+  --t-dot: var(--success);
+  --t-solid: var(--solid-success);
+}
+.tone[data-tone='warning'] {
+  --t-bg: var(--warning-bg);
+  --t-fg: var(--warning-fg);
+  --t-border: var(--warning-border);
+  --t-dot: var(--warning);
+  --t-solid: var(--solid-warning);
+}
+.tone[data-tone='danger'] {
+  --t-bg: var(--danger-bg);
+  --t-fg: var(--danger-fg);
+  --t-border: var(--danger-border);
+  --t-dot: var(--danger);
+  --t-solid: var(--solid-danger);
+}
+.tone[data-tone='violet'] {
+  --t-bg: var(--violet-bg);
+  --t-fg: var(--violet-fg);
+  --t-border: var(--violet-border);
+  --t-dot: var(--violet);
+  --t-solid: var(--solid-violet);
+}
+.tone[data-tone='teal'] {
+  --t-bg: var(--teal-bg);
+  --t-fg: var(--teal-fg);
+  --t-border: var(--teal-bg);
+  --t-dot: var(--teal);
+  --t-solid: var(--solid-teal);
+}
+.tone[data-tone='or'] {
+  --t-bg: var(--or-clair);
+  --t-fg: var(--warning-fg);
+  --t-border: var(--warning-border);
+  --t-dot: var(--or);
+  --t-solid: var(--solid-warning);
+}

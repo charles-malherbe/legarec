@@ -1,0 +1,47 @@
+.root {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2h);
+}
+.label {
+  font-size: var(--fs-base);
+  color: var(--text);
+}
+.track {
+  box-sizing: border-box;
+  flex-shrink: 0;
+  width: 44px;
+  height: var(--control-xs);
+  border-radius: var(--r-full);
+  padding: 3px;
+  display: flex;
+  align-items: center;
+  background: var(--border-strong);
+  transition: background 0.15s;
+}
+.track[data-on] {
+  background: var(--marine);
+  justify-content: flex-end;
+}
+.track[data-size='sm'] {
+  width: 36px;
+  height: 22px;
+}
+.track[data-locked] {
+  opacity: 0.6;
+}
+.knob {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-full);
+  background: var(--white);
+  box-shadow: var(--shadow-knob);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-3);
+}
+.track[data-size='sm'] .knob {
+  width: 16px;
+  height: 16px;
+}

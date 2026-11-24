@@ -1,0 +1,43 @@
+.root {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.track {
+  flex: 1;
+  display: block;
+  height: 4px;
+  border-radius: var(--r-full);
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.track[data-size='md'] {
+  height: 8px;
+}
+.bar {
+  display: block;
+  height: 100%;
+  border-radius: var(--r-full);
+  background: var(--or);
+}
+.bar[data-tone='marine'] {
+  background: var(--marine);
+}
+.bar[data-tone='success'] {
+  background: var(--success);
+}
+.bar[data-tone='warning'] {
+  background: var(--warning);
+}
+.bar[data-tone='danger'] {
+  background: var(--danger);
+}
+.bar[data-tone='info'] {
+  background: var(--info);
+}
+.value {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}

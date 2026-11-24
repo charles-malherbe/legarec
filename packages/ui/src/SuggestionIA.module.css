@@ -1,0 +1,65 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-3h) var(--sp-4);
+  border: 1px solid var(--violet-border);
+  border-radius: var(--r-lg);
+  background: var(--violet-bg);
+  color: var(--text);
+}
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.icon {
+  display: flex;
+  color: var(--violet-fg);
+}
+.title {
+  font-size: var(--fs-base);
+  font-weight: 600;
+  color: var(--violet-fg);
+}
+.facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--sp-1) var(--sp-3);
+  font-size: var(--fs-sm);
+}
+.fact {
+  display: contents;
+}
+.fact dt {
+  color: var(--text-2);
+}
+.fact dd {
+  margin: 0;
+  font-weight: 600;
+}
+.actions,
+.applied {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.applied {
+  font-size: var(--fs-sm);
+  color: var(--violet-fg);
+}
+.applied > span {
+  flex: 1 1 200px;
+}
+.muted {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+.note {
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+}
