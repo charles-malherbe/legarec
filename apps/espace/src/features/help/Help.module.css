@@ -252,3 +252,8 @@
   text-align: left;
   cursor: pointer;
 }
+
+.steps strong,
+.steps li div > :first-child {
+  font-size: var(--fs-md);
+}

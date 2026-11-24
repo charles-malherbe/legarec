@@ -91,17 +91,17 @@ await resend.emails.send({
 | `config.logo_url` | Adresse de l'image du logo ; si vide, l'en-tête affiche le nom en texte (facultatif) | https://media.legarec.fr/e-mails/v1/legarec-logo-en-tete.png |
 | `config.logo_width` | Largeur d'affichage du logo en pixels (260 par défaut) (facultatif) | 260 |
 | `config.logo_dark_url` | Adresse du logo négatif, affiché à la place du logo par Outlook en mode sombre (facultatif) | https://media.legarec.fr/e-mails/v1/legarec-logo-en-tete-negatif.png |
-| `config.firm_siren` | SIREN du cabinet | [SIREN] |
+| `config.firm_siren` | SIREN du cabinet | 107 794 018 |
 | `config.phone` | Téléphone affiché | 01 87 88 02 98 |
 | `config.phone_href` | Téléphone au format international, pour les liens tel: | +33187880298 |
 | `config.collection_email` | Adresse e-mail du service recouvrement (adresse de réponse des relances) | recouvrement@legarec.fr |
 | `config.support_email` | Adresse e-mail de support (créanciers et collaborateurs) | administratif@legarec.fr |
 | `config.portal_url` | Adresse complète de l'espace débiteur | https://paiement.legarec.fr |
 | `config.portal_label` | Adresse de l'espace débiteur telle qu'affichée | paiement.legarec.fr |
-| `config.account_holder` | Titulaire du compte bancaire de règlement | [TITULAIRE] |
+| `config.account_holder` | Titulaire du compte bancaire de règlement | LEGAREC |
 | `config.bank_name` | Nom de la banque (facultatif) | Banque Populaire Méditerranée |
-| `config.iban` | IBAN du compte de règlement | [IBAN DU COMPTE DÉDIÉ] |
-| `config.bic` | BIC du compte de règlement | [BIC] |
+| `config.iban` | IBAN du compte de règlement | FR76 1460 7000 2071 3215 1266 527 |
+| `config.bic` | BIC du compte de règlement | CCBPFRPPMAR |
 | `config.cheque_payee` | Ordre des chèques | LEGAREC |
 | `config.cheque_address` | Adresse d'envoi des chèques | LEGAREC, 42 rue Monge, 75005 Paris |
 | `config.plan_approval_threshold` | Durée au-delà de laquelle un échéancier exige l'accord du créancier | 6 mois |

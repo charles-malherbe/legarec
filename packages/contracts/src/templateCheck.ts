@@ -216,7 +216,7 @@ export function checkTemplate(
       return null;
     }
     if (path.original === ACCESS_CODE && template.kind !== 'LETTER') {
-      fail(`Code d’accès interdit, ligne ${line}`, 'Le code d’accès ne figure que dans un courrier');
+      fail(`Code d’accès interdit, ligne ${line}`, 'Le code d’accès n’est pas autorisé dans un modèle importé de ce type');
       return null;
     }
     return path.original;

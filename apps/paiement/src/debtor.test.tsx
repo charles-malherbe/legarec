@@ -81,7 +81,7 @@ it('sends the code by SMS after confirmation, with a limit', async () => {
 it('reveals nothing about the debt in the limited access', async () => {
   open('/acces-limite');
   expect(await screen.findByText('[IBAN DU COMPTE DÉDIÉ]')).toBeVisible();
-  expect(document.body.textContent).not.toMatch(/Énergies Rhône|agissant pour le compte|5 320|Durand|DOS-2026/);
+  expect(document.body.textContent).not.toMatch(/Énergies Rhône|agissant pour le compte|5 320|Durand|LGR-2026/);
   await userEvent.type(screen.getByLabelText('Votre nom'), 'Test');
   await userEvent.type(screen.getByLabelText('Votre message'), 'Bonjour');
   await userEvent.click(screen.getByRole('button', { name: 'Envoyer' }));

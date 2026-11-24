@@ -1,4 +1,4 @@
-import { letterTotals, letterSchedule, type LetterRecipient } from '@legarec/contracts';
+import { letterAmount, letterTotals, letterSchedule, type LetterRecipient } from '@legarec/contracts';
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { expect, it } from 'vitest';
@@ -12,6 +12,33 @@ it('never adds the 40 € indemnity for an individual', () => {
   expect(letterTotals(recipient, true)).toEqual({ principal: 3000, interest: 100, indemnity: 8000, total: 11100 });
   expect(letterTotals({ ...recipient, isIndividual: true }, true).indemnity).toBe(0);
   expect(letterSchedule(100033, 4).reduce((sum, item) => sum + item.amount, 0)).toBe(100033);
+});
+it('confirms the very amount of the letter', async () => {
+  const recipient = { isIndividual: false, interest: 100, invoices: [{ amount: 1000 }] } as LetterRecipient;
+  expect(letterAmount('FORMAL_NOTICE', recipient, true)).toBe(5100);
+  expect(letterAmount('FIRM', recipient, true)).toBe(5000);
+  for (const template of ['FRIENDLY', 'PAYMENT_PLAN', 'CLEARANCE'] as const) expect(letterAmount(template, recipient, true)).toBe(1000);
+  openAs('cl', '/documents/rediger');
+  await userEvent.click(await screen.findByRole('radio', { name: /Relance amiable/ }));
+  await userEvent.click(screen.getByRole('button', { name: 'Générer et envoyer' }));
+  expect((await inDialog()).getByText(/^48.200.€$/)).toBeVisible();
+});
+it('keeps the 40 € option of a batch whatever the example shown', async () => {
+  openAs('cl', '/documents/rediger');
+  await userEvent.click(await screen.findByRole('tab', { name: 'Envoi groupé' }));
+  for (let index = 0; index < 4; index += 1) await userEvent.click(screen.getByRole('button', { name: 'Destinataire suivant' }));
+  expect(screen.getByText('Exemple 5 sur 5')).toBeVisible();
+  expect(screen.getByRole('switch', { name: /indemnité/ })).toBeChecked();
+  expect(screen.queryByRole('button', { name: 'Enregistrer le brouillon' })).toBeNull();
+  await userEvent.click(screen.getByRole('button', { name: /Générer et envoyer/ }));
+  expect((await inDialog()).getByText('Oui, professionnels seulement')).toBeVisible();
+});
+it('never sends a clearance certificate for an unpaid case', async () => {
+  openAs('cl', '/documents/rediger');
+  await userEvent.click(await screen.findByRole('radio', { name: /Attestation de solde/ }));
+  expect(screen.getByText(/n’est pas soldé/)).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Générer et envoyer' })).toBeDisabled();
+  expect((await call('cl', '/documents/compose', { caseIds: ['demo'], template: 'CLEARANCE' })).status).toBe(422);
 });
 it('confirms a registered letter and recalls the first letter', async () => {
   openAs('cl', '/documents/rediger');

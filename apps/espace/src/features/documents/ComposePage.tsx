@@ -6,6 +6,7 @@ import {
   formatLongDate,
   L111_8,
   LETTER_TEMPLATES,
+  letterAmount,
   letterSchedule,
   letterTemplate,
   letterTotals,
@@ -14,7 +15,7 @@ import {
   type LetterTemplate,
 } from '@legarec/contracts';
 import { Alerte, Bouton, Carte, Case, Champ, EtatListe, Interrupteur, Onglets, PageHeader, useConfirm, useToast } from '@legarec/ui';
-import { useState } from 'react';
+import { useState, type KeyboardEvent } from 'react';
 import { Link } from 'react-router';
 import type { z } from 'zod';
 import { useApi, useChange } from '../../app/data';
@@ -110,10 +111,15 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
   const [marked, setMarked] = useState(true);
   const [done, setDone] = useState<string | null>(null);
   const batch = mode === 'batch' && data.batch;
-  const recipient = data.recipients[index] ?? data.recipients[0]!;
+  const creditorName = batch ? batch.creditors.find((item) => item.id === filters.creditor)?.name : undefined;
+  // In a batch, the examples belong to the selection; the API counts all of it.
+  const examples = creditorName ? data.recipients.filter((item) => item.creditor === creditorName) : data.recipients;
+  const position = examples.length > 0 ? index % examples.length : 0;
+  const recipient = examples[position] ?? data.recipients[0]!;
   const definition = LETTER_TEMPLATES[template];
   const reminder = template === 'FRIENDLY' || template === 'FIRM' || template === 'FORMAL_NOTICE';
-  const allowsIndemnity = (template === 'FIRM' || template === 'FORMAL_NOTICE') && fixedIndemnity(recipient) > 0;
+  const allowsIndemnity = (template === 'FIRM' || template === 'FORMAL_NOTICE') && (!!batch || fixedIndemnity(recipient) > 0);
+  const notSettled = template === 'CLEARANCE' && (!!batch || !recipient.settled);
   const recallsFirstLetter = reminder && template !== 'FRIENDLY';
   const missingFirstLetter = !batch && recallsFirstLetter && !recipient.firstLetter;
   const excluded = batch && recallsFirstLetter ? batch.withoutFirstLetter : 0;
@@ -122,9 +128,18 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
     setChannel(LETTER_TEMPLATES[next].channel);
     setDone(null);
   };
+  const move = (event: KeyboardEvent<HTMLDivElement>) => {
+    const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+    if (!step) return;
+    event.preventDefault();
+    const ids = letterTemplate.options;
+    const next = (ids.indexOf(template) + step + ids.length) % ids.length;
+    pick(ids[next]!);
+    event.currentTarget.querySelectorAll<HTMLElement>('[role=radio]')[next]?.focus();
+  };
   const count = batch ? batch.debtors - excluded : 1;
   const downloadOnly = channel === 'Télécharger seulement';
-  const blocked = missingFirstLetter || (!!batch && (!filters.fresh || count <= 0));
+  const blocked = missingFirstLetter || notSettled || (!!batch && (!filters.fresh || count <= 0));
   const AGES: Record<string, string> = { '31-60': '31 – 60 jours', '0-30': '0 – 30 jours', '60+': '+ 60 jours' };
   const selection = batch
     ? [
@@ -132,6 +147,10 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
         { k: 'Ancienneté', v: AGES[filters.age] ?? filters.age },
       ]
     : [];
+  const options = [
+    ...(reminder ? [{ k: 'Délai', v: `${delay} jours` }] : []),
+    ...(allowsIndemnity ? [{ k: 'Indemnité de 40 €', v: indemnity ? (batch ? 'Oui, professionnels seulement' : 'Oui') : 'Non' }] : []),
+  ];
   const compose = (target: string) => ({
     template,
     caseIds: batch ? null : [recipient.caseId],
@@ -159,7 +178,8 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
         ...selection,
         { k: 'Envoi', v: channel },
         ...(excluded > 0 ? [{ k: 'Exclus', v: `${excluded} débiteurs sans premier courrier` }] : []),
-        ...(batch ? [] : [{ k: 'Montant', v: formatCents(letterTotals(recipient, indemnity && allowsIndemnity).total) }]),
+        ...options,
+        ...(batch ? [] : [{ k: 'Montant', v: formatCents(letterAmount(template, recipient, indemnity && allowsIndemnity)) }]),
       ],
       onConfirm: async () => {
         await change('/documents/compose', { body: compose(channel) });
@@ -213,9 +233,17 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
           <Carte>
             <StepTitle number={1} label="Modèle" />
             <div className={layout.stack}>
-              <div role="radiogroup" aria-label="Modèle" className={css.choices}>
+              <div role="radiogroup" aria-label="Modèle" className={css.choices} onKeyDown={move}>
                 {letterTemplate.options.map((id) => (
-                  <button key={id} type="button" role="radio" aria-checked={template === id} className={css.choice} onClick={() => pick(id)}>
+                  <button
+                    key={id}
+                    type="button"
+                    role="radio"
+                    tabIndex={template === id ? 0 : -1}
+                    aria-checked={template === id}
+                    className={css.choice}
+                    onClick={() => pick(id)}
+                  >
                     <strong>{LETTER_TEMPLATES[id].label}</strong>
                     <span className={layout.hint}>{LETTER_TEMPLATES[id].hint}</span>
                   </button>
@@ -316,10 +344,13 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
               {reminder && (
                 <div className={layout.between}>
                   <span className={layout.muted}>Délai de paiement accordé</span>
-                  <Onglets
-                    label="Délai de paiement accordé"
-                    items={[8, 15, 30].map((value) => ({ label: `${value} j`, selected: delay === value, pick: () => setDelay(value) }))}
-                  />
+                  <span role="group" aria-label="Délai de paiement accordé" className={css.segment}>
+                    {[8, 15, 30].map((value) => (
+                      <button key={value} type="button" aria-pressed={delay === value} onClick={() => setDelay(value)}>
+                        {value} j
+                      </button>
+                    ))}
+                  </span>
                 </div>
               )}
               {template === 'PAYMENT_PLAN' && (
@@ -348,7 +379,11 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
               )}
               <div className={layout.between}>
                 <span className={layout.muted}>{template === 'PAYMENT_PLAN' ? 'Joindre le calendrier' : 'Joindre le détail des factures'}</span>
-                <Interrupteur label="Joindre le détail" checked={table} onToggle={setTable} />
+                <Interrupteur
+                  label={template === 'PAYMENT_PLAN' ? 'Joindre le calendrier' : 'Joindre le détail des factures'}
+                  checked={table}
+                  onToggle={setTable}
+                />
               </div>
               <div className={layout.between}>
                 <span className={layout.muted}>Ajouter les moyens de paiement</span>
@@ -357,7 +392,7 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
               {allowsIndemnity && (
                 <div className={layout.between}>
                   <span className={layout.muted}>Ajouter l’indemnité forfaitaire (40 € / facture)</span>
-                  <Interrupteur label="Ajouter l’indemnité forfaitaire" checked={indemnity} onToggle={setIndemnity} />
+                  <Interrupteur label="Ajouter l’indemnité forfaitaire (40 € / facture)" checked={indemnity} onToggle={setIndemnity} />
                 </div>
               )}
               {recipient.isIndividual && reminder && <span className={layout.hint}>Particulier : pas d’indemnité forfaitaire de 40 €.</span>}
@@ -379,7 +414,26 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
           )}
           {batch && filters.fresh && count <= 0 && <Alerte tone="info" compact text="Aucun débiteur ne correspond à cette sélection." />}
           {excluded > 0 && (
-            <Alerte tone="warning" compact text={`${excluded} débiteurs n’ont aucun premier courrier enregistré : ils sont exclus de cet envoi.`} />
+            <Alerte
+              tone="warning"
+              compact
+              text={
+                excluded > 1
+                  ? `${excluded} débiteurs n’ont aucun premier courrier enregistré : ils sont exclus de cet envoi.`
+                  : 'Un débiteur n’a aucun premier courrier enregistré : il est exclu de cet envoi.'
+              }
+            />
+          )}
+          {notSettled && (
+            <Alerte
+              tone="danger"
+              compact
+              text={
+                batch
+                  ? 'L’attestation de solde ne s’envoie pas en groupe : choisissez un dossier soldé.'
+                  : 'Ce dossier n’est pas soldé : l’attestation ne peut pas être envoyée.'
+              }
+            />
           )}
           {missingFirstLetter && (
             <Alerte
@@ -389,7 +443,7 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
             />
           )}
           <div className={css.actions}>
-            <Bouton variant="secondary" label="Enregistrer le brouillon" onPress={() => void draft()} />
+            {!batch && <Bouton variant="secondary" label="Enregistrer le brouillon" onPress={() => void draft()} />}
             {!downloadOnly && <Bouton variant="secondary" label="Générer le PDF" disabled={blocked} onPress={generate} />}
             <Bouton
               full
@@ -403,7 +457,7 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
           <div className={css.previewHead}>
             <span className={layout.inline}>
               <strong>Aperçu</strong>
-              {batch && (
+              {batch && examples.length > 0 && (
                 <>
                   <Bouton
                     variant="secondary"
@@ -411,10 +465,10 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
                     icon="chevron-left"
                     iconOnly
                     label="Destinataire précédent"
-                    onPress={() => setIndex((index + data.recipients.length - 1) % data.recipients.length)}
+                    onPress={() => setIndex((position + examples.length - 1) % examples.length)}
                   />
                   <span className={layout.hint}>
-                    {index + 1} / {count}
+                    Exemple {position + 1} sur {examples.length}
                   </span>
                   <Bouton
                     variant="secondary"
@@ -422,7 +476,7 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
                     icon="chevron-right"
                     iconOnly
                     label="Destinataire suivant"
-                    onPress={() => setIndex((index + 1) % data.recipients.length)}
+                    onPress={() => setIndex((position + 1) % examples.length)}
                   />
                 </>
               )}
@@ -430,18 +484,22 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
             <Case label="Surligner les champs remplis automatiquement" checked={marked} onToggle={setMarked} />
           </div>
           <div className={css.paper}>
-            <Letter
-              firm={data.firm}
-              recipient={recipient}
-              template={template}
-              delay={delay}
-              months={months}
-              table={table}
-              pay={pay && template !== 'CLEARANCE'}
-              indemnity={indemnity && allowsIndemnity}
-              marked={marked}
-              registered={channel.startsWith('Lettre recommandée')}
-            />
+            {examples.length === 0 ? (
+              <Alerte tone="info" compact text="Aucun exemple à afficher pour cette sélection." />
+            ) : (
+              <Letter
+                firm={data.firm}
+                recipient={recipient}
+                template={template}
+                delay={delay}
+                months={months}
+                table={table}
+                pay={pay && template !== 'CLEARANCE'}
+                indemnity={indemnity && allowsIndemnity && fixedIndemnity(recipient) > 0}
+                marked={marked}
+                registered={channel.startsWith('Lettre recommandée')}
+              />
+            )}
           </div>
         </section>
       </div>
@@ -606,7 +664,7 @@ function Letter({ firm, recipient, template, delay, months, table, pay, indemnit
                 <strong>{template === 'CLEARANCE' ? 'Total réglé' : `Total dû${parts.length > 0 ? ` (dont ${parts.join(', ')})` : ''}`}</strong>
               </td>
               <td className={css.filled}>
-                <strong>{formatCents(template === 'FORMAL_NOTICE' ? totals.total : totals.principal + totals.indemnity)}</strong>
+                <strong>{formatCents(letterAmount(template, recipient, indemnity))}</strong>
               </td>
             </tr>
           </tbody>
@@ -631,8 +689,8 @@ function Letter({ firm, recipient, template, delay, months, table, pay, indemnit
         {template !== 'CLEARANCE' && (
           <>
             Fondement : factures {recipient.invoices.map((item) => item.number).join(', ')}. Somme à payer :{' '}
-            {formatCents(template === 'FORMAL_NOTICE' ? totals.total : totals.principal + totals.indemnity)}, selon les modalités indiquées dans ce courrier.
-            Article L111-8 du Code des procédures civiles d’exécution : {L111_8}
+            {formatCents(letterAmount(template, recipient, indemnity))}, selon les modalités indiquées dans ce courrier. Article L111-8 du Code des procédures
+            civiles d’exécution : {L111_8}
           </>
         )}
       </div>

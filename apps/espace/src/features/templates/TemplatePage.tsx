@@ -28,7 +28,7 @@ const LEGAL = {
     'Legarec · SIREN [SIREN] · TVA intracommunautaire [N° TVA] · [CAPITAL ET RCS]',
   ],
   contract: [
-    'Legarec · SIREN [SIREN] · RCS Paris · représentée par la direction',
+    'Legarec · SIREN [SIREN] · [CAPITAL ET RCS] · représentée par la direction',
     'Données personnelles : Legarec agit en sous-traitant de {client.nom} pour les données des dossiers (art. 28 du RGPD), et en responsable du traitement pour sa comptabilité, sa sécurité, son personnel et sa téléphonie.',
   ],
   sms: ['STOP : répondez STOP'],
@@ -341,7 +341,7 @@ function Template({ item }: { item: TemplateDetail }) {
           <Carte
             title="Mentions imposées"
             description={`${kind === 'sms' ? 'Ajoutées à chaque SMS ; elles comptent dans la longueur du message.' : kind === 'collection' ? 'Ajoutées automatiquement en bas de chaque courrier envoyé pour le compte d’un créancier. Modifiables uniquement par le Directeur.' : 'Ajoutées automatiquement à chaque facture et devis. Modifiables uniquement par le Directeur.'} Bloc à placer dans le fichier : {{> ${item.block}}}`}
-            footer="Textes à faire valider par votre juriste avant mise en production."
+            footer="Textes validés par le cabinet."
           >
             <ul className={layout.body}>
               {MANDATORY[kind].map((text) => (

@@ -51,7 +51,7 @@
   min-width: 0;
   padding: var(--sp-4);
   border-radius: var(--r-lg);
-  background: var(--border);
+  background: var(--surface-3);
 }
 .docHead {
   display: flex;
@@ -64,6 +64,9 @@
 .kind {
   font-size: var(--fs-md);
   text-transform: uppercase;
+}
+.totals > :last-child {
+  font-weight: 700;
 }
 .totals {
   align-self: flex-end;
@@ -121,7 +124,7 @@
   flex-direction: column;
   gap: var(--sp-2);
 }
-@media (max-width: 1023px) {
+@media (max-width: 1199px) {
   .creator {
     grid-template-columns: minmax(0, 1fr);
   }

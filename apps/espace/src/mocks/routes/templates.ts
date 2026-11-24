@@ -235,6 +235,7 @@ const SAMPLES: TemplateDetail['samples'] = [
     label: 'Bâtiplus SAS · Matériaux Delta',
     values: {
       ...example,
+      'creance.factures': 'F-2026-0712, F-2026-0745 et F-2026-0790',
       'debiteur.adresse': '14 rue des Forges\n69007 Lyon',
       'debiteur.contact': 'M. Julien Garnier',
       'creance.total': '49 448,40 €',

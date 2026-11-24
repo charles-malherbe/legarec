@@ -1,6 +1,6 @@
 import { FIRM_IDENTITY_FIELDS, firmIdentity, settingsSection, type SettingTable } from '@legarec/contracts';
 import { saveFile } from '@legarec/platform';
-import { Alerte, Badge, Bouton, Carte, Champ, EtatListe, Reglage, Statut, Tableau, useConfirm, useToast } from '@legarec/ui';
+import { Badge, Bouton, Carte, Champ, EtatListe, Reglage, Statut, Tableau, useConfirm, useToast } from '@legarec/ui';
 import { useState } from 'react';
 import { useApi, useChange } from '../../app/data';
 import { toCsv } from '../../shared/csv';
@@ -20,7 +20,7 @@ export function SectionBody({ scope, id, label }: { scope: string; id: string; l
   const toast = useToast();
   const [draft, setDraft] = useState<Record<string, string | boolean>>({});
   const [saving, setSaving] = useState(false);
-  const [problem, setProblem] = useState('');
+  const [problems, setProblems] = useState<Record<string, string>>({});
   const confirm = useConfirm();
   if (!data)
     return (
@@ -31,12 +31,15 @@ export function SectionBody({ scope, id, label }: { scope: string; id: string; l
   const fields = data.blocks.flatMap((item) => item.fields);
   const before = Object.fromEntries(fields.filter((item) => item.id in draft).map((item) => [item.id, item.kind === 'switch' ? item.checked : item.value]));
   const dirty = Object.keys(draft).some((key) => draft[key] !== before[key]);
-  const set = (key: string, value: string | boolean) => setDraft((current) => ({ ...current, [key]: value }));
+  const set = (key: string, value: string | boolean) => {
+    setDraft((current) => ({ ...current, [key]: value }));
+    setProblems({});
+  };
   const identity = FIRM_IDENTITY_FIELDS.filter((key) => id === 'cabinet' && key in draft && draft[key] !== before[key]);
   const askSave = () => {
     const parsed = firmIdentity.partial().safeParse(Object.fromEntries(identity.map((key) => [key, draft[key]])));
-    if (!parsed.success) return setProblem(parsed.error.issues.map((issue) => issue.message).join(' '));
-    setProblem('');
+    if (!parsed.success) return setProblems(Object.fromEntries(parsed.error.issues.map((issue) => [String(issue.path[0]), issue.message])));
+    setProblems({});
     if (identity.length === 0) return void save();
     confirm({
       tone: 'danger',
@@ -87,6 +90,7 @@ export function SectionBody({ scope, id, label }: { scope: string; id: string; l
               disabled={!data.canEdit || (field.locked && field.kind === 'text')}
               status={field.status ?? undefined}
               statusTone={field.statusTone}
+              error={problems[field.id]}
               onChange={(value) => set(field.id, value)}
               onToggle={(value) => set(field.id, value)}
             />
@@ -100,12 +104,19 @@ export function SectionBody({ scope, id, label }: { scope: string; id: string; l
           {note}
         </p>
       ))}
-      {problem && <Alerte tone="danger" text={problem} />}
       {dirty && (
         <div role="status" className={css.bar}>
           <span>Modifications non enregistrées dans « {label} »</span>
           <span className={layout.inline}>
-            <Bouton label="Annuler" variant="dark" size="sm" onPress={() => setDraft({})} />
+            <Bouton
+              label="Annuler"
+              variant="dark"
+              size="sm"
+              onPress={() => {
+                setDraft({});
+                setProblems({});
+              }}
+            />
             <Bouton label="Enregistrer" size="sm" loading={saving} onPress={askSave} />
           </span>
         </div>

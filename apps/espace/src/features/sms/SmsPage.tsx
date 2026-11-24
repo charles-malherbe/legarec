@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { useCreditorScope } from '../../app/creditorScope';
 import { useApi, useChange } from '../../app/data';
+import { useCurrentUser } from '../../app/session';
 import layout from '@legarec/ui/layout.module.css';
 import { pageOf } from '../../shared/paging';
 import { listState, matches } from '../../shared/listState';
@@ -32,6 +33,7 @@ const FILTERS: [Filter, string, (item: SmsThread) => boolean][] = [
 ];
 
 export function SmsPage() {
+  const user = useCurrentUser();
   const scope = useCreditorScope();
   const change = useChange();
   const confirm = useConfirm();
@@ -98,15 +100,19 @@ export function SmsPage() {
         loading={isPending}
         description="Conversations avec les débiteurs · réponses reçues dans l’application · réponse STOP gérée automatiquement"
         statsLabel="Indicateurs SMS"
-        stats={[
-          { label: 'Envoyés en novembre', value: s ? s.sent.toLocaleString('fr-FR') : '', sub: 'dont 1 196 automatiques' },
-          { label: 'Taux de réponse', value: s ? `${s.answers} %` : '', sub: '▲ 3 pts', tone: 'success' },
-          { label: 'Distribués', value: s ? `${s.delivered.toLocaleString('fr-FR')} %` : '', sub: 'sur 30 jours' },
-          { label: 'Désinscriptions (STOP)', value: String(s?.stops ?? ''), sub: 'numéros ce mois' },
-        ]}
+        stats={
+          s === null
+            ? undefined
+            : [
+                { label: 'Envoyés en novembre', value: s ? s.sent.toLocaleString('fr-FR') : '', sub: 'dont 1 196 automatiques' },
+                { label: 'Taux de réponse', value: s ? `${s.answers} %` : '', sub: '▲ 3 pts', tone: 'success' },
+                { label: 'Distribués', value: s ? `${s.delivered.toLocaleString('fr-FR')} %` : '', sub: 'sur 30 jours' },
+                { label: 'Désinscriptions (STOP)', value: String(s?.stops ?? ''), sub: 'numéros ce mois' },
+              ]
+        }
         actions={[
           { label: 'Modèles de SMS', href: '/parametres/modeles/sms' },
-          { label: 'Envoi groupé', href: '/documents/rediger' },
+          ...(user.role === 'COLLECTION_MANAGER' ? [{ label: 'Envoi groupé', href: '/documents/rediger' }] : []),
         ]}
       />
       <Toolbar
@@ -132,7 +138,9 @@ export function SmsPage() {
         <section aria-label="Conversations" className={css.list}>
           <div className={css.head}>
             <strong>Conversations</strong>
-            <span className={layout.hint}>{rows.length} affichées</span>
+            <span className={layout.hint}>
+              {rows.length} affichée{rows.length > 1 ? 's' : ''}
+            </span>
           </div>
           {state ? (
             <EtatListe {...state} />
@@ -183,7 +191,7 @@ export function SmsPage() {
                   </span>
                 </span>
                 <span className={layout.inline}>
-                  <Bouton variant="secondary" size="sm" label="Appeler" icon="phone" href="/appels" />
+                  {current.canAct !== false && <Bouton variant="secondary" size="sm" label="Appeler" icon="phone" href="/appels" />}
                   {current.caseId && <Bouton variant="secondary" size="sm" label="Ouvrir le dossier" href={`/debiteurs/${current.caseId}`} />}
                 </span>
               </div>
@@ -200,7 +208,9 @@ export function SmsPage() {
                 ))}
               </ol>
               {current.canAct === false ? (
-                <Alerte tone="info" compact icon="lock" text="Lecture seule : ce dossier est suivi par un autre collaborateur." />
+                <div className={css.composer}>
+                  <Alerte tone="info" compact icon="lock" text="Lecture seule : ce dossier est suivi par un autre collaborateur." />
+                </div>
               ) : current.linked ? (
                 <div className={css.composer}>
                   <div className={layout.chips}>
@@ -222,10 +232,11 @@ export function SmsPage() {
                         <span className={layout.danger}>{`Les caractères ${size_.unicodeChars.join(' ')} font passer le SMS de 160 à 70 caractères.`}</span>
                       )}
                       <span className={layout.hint}>Mention « STOP » ajoutée automatiquement</span>
+                      {draft.includes('[DATE]') && <span className={layout.danger}>Remplacez [DATE] avant l’envoi.</span>}
                     </span>
                     <span className={layout.inline}>
                       <Bouton variant="secondary" label="Programmer" disabled />
-                      <Bouton label="Envoyer" icon="send" disabled={!draft.trim()} onPress={() => send(current)} />
+                      <Bouton label="Envoyer" icon="send" disabled={!draft.trim() || draft.includes('[DATE]')} onPress={() => send(current)} />
                     </span>
                   </div>
                 </div>
@@ -268,18 +279,20 @@ export function SmsPage() {
                     </div>
                   </dl>
                 </section>
-                <section>
-                  <h2>Actions</h2>
-                  <Link to="/echeanciers" className={css.action}>
-                    Enregistrer une promesse
-                  </Link>
-                  <Link to="/echeanciers" className={css.action}>
-                    Proposer un échéancier
-                  </Link>
-                  <Link to="/relances" className={css.action}>
-                    Planifier un rappel
-                  </Link>
-                </section>
+                {current.canAct !== false && (
+                  <section>
+                    <h2>Actions</h2>
+                    <Link to="/echeanciers" className={css.action}>
+                      Enregistrer une promesse
+                    </Link>
+                    <Link to="/echeanciers" className={css.action}>
+                      Proposer un échéancier
+                    </Link>
+                    <Link to="/relances" className={css.action}>
+                      Planifier un rappel
+                    </Link>
+                  </section>
+                )}
                 <section>
                   <h2>Prochain SMS automatique</h2>
                   <p className={layout.body}>{current.next}</p>

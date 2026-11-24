@@ -253,7 +253,7 @@ function Agenda({ today, items, weekly }: { today: string; items: Reminder[]; we
                   </span>
                 ) : null;
               }}
-              dayHeaderClass={css.dayHeader}
+              dayHeaderInnerClass={css.dayHeader}
               dayCellClass={(info) => (info.date.toISOString().slice(0, 10) === selected ? (css.selected ?? '') : '')}
               dateClick={(info) => setSelected(info.dateStr.slice(0, 10))}
               eventClick={(info) => {
