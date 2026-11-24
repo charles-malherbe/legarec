@@ -4,6 +4,7 @@
   flex-direction: column;
   background: var(--surface-2);
   color: var(--text);
+  font-size: var(--fs-base);
 }
 .skip {
   position: absolute;
@@ -216,7 +217,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--sp-2) var(--sp-3);
-  padding: var(--sp-3) var(--sp-6);
+  padding: var(--sp-3h) var(--sp-6);
   border-top: 1px solid var(--surface-3);
   font-size: var(--fs-base);
 }

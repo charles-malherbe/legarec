@@ -38,7 +38,7 @@ Claude Code : ajoute ici toute question que la maquette, `HANDOFF.md` ou `DECISI
 | 38 | SSO de l'entreprise (hors périmètre dans la maquette) | Bouton affiché mais désactivé | Ouverte |
 | 39 | « Activer mon compte » sans lien d'invitation | L'activation passe par le lien reçu par e-mail ; texte adapté | Ouverte |
 | 40 | Tableau de bord du Développeur, absent de la maquette | Accueil technique sans aucune donnée de dossier | Ouverte |
-| 41 | Connexion SSH à GitHub refusée sur la machine de développement | Branches gardées en local ; aucune PR ouverte | À corriger par le cabinet |
+| 41 | Connexion SSH à GitHub refusée sur la machine de développement | Dépôt distant passé en HTTPS par le cabinet | Réglée le 24/11/2026 |
 | 42 | Boîte OVH à l'invitation d'un collaborateur : le Responsable invite (délégation administrative), la boîte relève du technique | L'invitation part d'Équipe, le Développeur ou le Directeur crée la boîte dans Paramètres techniques | Ouverte |
 | 43 | Notifications par SMS (Compte) : aucun portable n'est stocké | Colonne SMS retirée ; restent l'application et l'e-mail | Ouverte |
 | 44 | Photo de profil, langue anglaise et page d'accueil au choix (Compte) | Non repris : initiales, français, tableau de bord | Ouverte |
@@ -49,3 +49,11 @@ Claude Code : ajoute ici toute question que la maquette, `HANDOFF.md` ou `DECISI
 | 49 | Adresse du siège : la maquette donne une adresse | [ADRESSE DU CABINET] tant qu'elle n'est pas confirmée | Ouverte |
 | 50 | Triple accolade dans un modèle importé (texte non protégé) | Refusée, en plus des contrôles demandés | Ouverte |
 | 51 | Articles d'aide : un seul est rédigé dans la maquette | Les 17 autres affichent « Article en cours de rédaction » | Ouverte |
+| 52 | Accord du créancier sur un échéancier long : emplacement (absent de la maquette) | Bandeau en tête du tableau de bord du portail partenaires, Accepter ou Refuser avec motif | Ouverte |
+| 53 | Code par SMS : afficher le numéro masqué révèle qu'un dossier existe pour cet identifiant | Numéro masqué affiché comme demandé, 3 envois par heure ; à revoir si le risque est jugé trop élevé | Ouverte |
+| 54 | Accès débiteur d'une entreprise sans SIRET sous la main | Identifiant SIRET seulement ; sinon appel ou accès limité | Ouverte |
+| 55 | Accès limité : « Référence du dossier » facultative dans le message | Champ facultatif, message reçu avec la mention « non vérifié » | Ouverte |
+| 56 | Format de la référence de dossier : DOS-2026-0181 et LGR-2026-04812 coexistent dans la maquette | Les deux formats sont acceptés | Ouverte |
+| 57 | Textes légaux (mentions légales, confidentialité, cookies) absents du dépôt | [TEXTE À FOURNIR] sur les trois portails | Ouverte |
+| 58 | Téléchargements PDF (RIB, quittances, relevés) : générés par l'API | Boutons présents mais désactivés tant que l'API n'existe pas | Ouverte |
+| 59 | Import de créances : corriger une ligne à l'écran | Les lignes en erreur se redéposent dans un nouveau fichier | Ouverte |

@@ -4,6 +4,7 @@
   flex-direction: column;
   background: var(--surface-2);
   color: var(--text);
+  font-size: var(--fs-base);
 }
 .skip {
   position: absolute;
@@ -110,7 +111,7 @@
   font-weight: 400;
   color: var(--text-3);
 }
-.balance strong {
+.balance h2 + strong {
   display: block;
   font-size: var(--fs-3xl);
   line-height: 1.2;
@@ -265,4 +266,7 @@
   .panel {
     padding: var(--sp-5);
   }
+}
+.panel a:not([class]) {
+  color: var(--marine-text);
 }

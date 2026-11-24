@@ -89,7 +89,7 @@
   justify-content: center;
   border-radius: var(--r-full);
   background: var(--or);
-  color: var(--on-or);
+  color: var(--nuit);
   font-size: var(--fs-xs);
   font-weight: 700;
 }
