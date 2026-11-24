@@ -128,9 +128,14 @@ const TRAILS: [string, { label: string; href?: string }[]][] = [
   ['/sms', [{ label: 'Communication' }, { label: 'SMS' }]],
   ['/documents/rediger', [{ label: 'Documents' }, { label: 'Rédiger un courrier' }]],
   ['/documents', [{ label: 'Documents' }, { label: 'Tous les documents' }]],
+  ['/parametres/techniques/', [{ label: 'Paramètres techniques', href: '/parametres/techniques' }, { label: 'Détail' }]],
+  ['/parametres/techniques', [{ label: 'Paramètres techniques' }]],
+  ['/parametres/modeles/', [{ label: 'Paramètres', href: '/parametres' }, { label: 'Modèles de documents', href: '/parametres/modeles' }, { label: 'Modèle' }]],
+  ['/parametres/', [{ label: 'Paramètres', href: '/parametres' }, { label: 'Détail' }]],
   ['/parametres', [{ label: 'Paramètres' }]],
-  ['/compte', [{ label: 'Mon compte' }]],
-  ['/aide', [{ label: 'Centre d’aide' }]],
+  ['/compte', [{ label: 'Compte' }, { label: 'Mon compte' }]],
+  ['/aide/', [{ label: 'Aide', href: '/aide' }, { label: 'Article' }]],
+  ['/aide', [{ label: 'Aide' }, { label: 'Centre d’aide' }]],
   ['/', [{ label: 'Pilotage' }, { label: 'Tableau de bord' }]],
 ];
 
@@ -313,7 +318,8 @@ export function Shell() {
           onLogout={() => void logout()}
         />
         <main id="contenu" className={css.page} tabIndex={-1}>
-          {canOpen(pathname, user) ? <Outlet /> : <AccessDenied />}
+          {/* The technical settings show their own refusal, with the wording of the mockup. */}
+          {canOpen(pathname, user) || pathname.startsWith('/parametres/techniques') ? <Outlet /> : <AccessDenied />}
         </main>
       </div>
       <IncomingCall />

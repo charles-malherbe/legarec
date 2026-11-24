@@ -6,12 +6,14 @@ import {
   type CaseDetail,
   type CaseFilter,
   type CaseListItem,
+  type GdprRequest,
   type Payment,
   type Role,
   type Session,
 } from '@legarec/contracts';
 import { http, HttpResponse } from 'msw';
 import { done, forbidden, guarded, notFound, staffWithCases } from '../http';
+import { addGdprRequest } from './settings';
 
 export const OFFICERS: Record<string, { name: string; role: Role }> = {
   cl: { name: 'Camille Laurent', role: 'COLLECTION_MANAGER' },
@@ -672,6 +674,12 @@ export const caseHandlers = [
   ),
   http.post(
     '/api/gdpr/requests',
-    guarded<Info>(staffWithCases, () => done()),
+    guarded<Info>(staffWithCases, async ({ request }, session) => {
+      const { caseId, kind, origin } = (await request.json()) as { caseId: string; kind: GdprRequest['kind']; origin: string };
+      const item = readable(session).find((entry) => entry.id === caseId);
+      if (!item) return notFound();
+      addGdprRequest({ caseId, kind, origin, debtor: item.name });
+      return done();
+    }),
   ),
 ];

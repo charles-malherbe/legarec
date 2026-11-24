@@ -1,0 +1,51 @@
+export const CATEGORIES = [
+  { id: 'start', label: 'Prise en main', text: 'Premiers pas, navigation, recherche et raccourcis', icon: 'layers', tone: 'bleu-pale|marine-text' },
+  { id: 'cases', label: 'Dossiers et débiteurs', text: 'Créer, affecter et suivre un dossier', icon: 'user', tone: 'surface-3|text-2' },
+  { id: 'reminders', label: 'Relances et scénarios', text: 'Agenda, relances automatiques, modèles', icon: 'calendar', tone: 'info-bg|info-fg' },
+  { id: 'channels', label: 'Appels, e-mails et SMS', text: 'Dialer, boîte de réception, conversations SMS', icon: 'sms', tone: 'teal-bg|teal-fg' },
+  { id: 'payments', label: 'Échéanciers et paiements', text: 'Plans de paiement, espace débiteur, quittances', icon: 'card', tone: 'success-bg|success-fg' },
+  { id: 'litigation', label: 'Contentieux', text: 'Mise en demeure, injonction de payer, délais', icon: 'scale', tone: 'danger-bg|danger-fg' },
+  {
+    id: 'creditors',
+    label: 'Créanciers et reversements',
+    text: 'Mandats, commissions, relevés, espace créancier',
+    icon: 'building',
+    tone: 'warning-bg|warning-fg',
+  },
+  {
+    id: 'security',
+    label: 'Comptes, rôles et sécurité',
+    text: 'Connexion, 2FA, permissions, données personnelles',
+    icon: 'shield',
+    tone: 'violet-bg|violet-fg',
+  },
+] as const;
+const a = (slug: string, category: (typeof CATEGORIES)[number]['id'], title: string, time: string, role = '', popular = false) => ({
+  slug,
+  category,
+  title,
+  time,
+  role,
+  popular,
+});
+export const ARTICLES = [
+  a('decouvrir-legarec', 'start', 'Découvrir Legarec en 10 minutes', '6 min', '', true),
+  a('recherche-et-raccourcis', 'start', 'Utiliser la recherche et les raccourcis clavier', '2 min'),
+  a('creer-un-dossier', 'cases', 'Créer un dossier et l’affecter à un gestionnaire', '4 min', 'Responsable'),
+  a('statuts-dossier', 'cases', 'Comprendre les statuts d’un dossier', '3 min', '', true),
+  a('parametrer-un-scenario', 'reminders', 'Paramétrer un scénario de relance', '5 min', 'Responsable'),
+  a('agenda-des-relances', 'reminders', 'Organiser sa journée avec l’agenda des relances', '3 min'),
+  a('qualifier-un-appel', 'channels', 'Passer et qualifier un appel', '4 min', '', true),
+  a('sms-de-relance', 'channels', 'Envoyer un SMS de relance avec lien de paiement', '3 min'),
+  a('proposer-un-echeancier', 'payments', 'Proposer et faire valider un échéancier', '5 min', '', true),
+  a('lien-de-paiement', 'payments', 'Envoyer un lien de paiement au débiteur', '2 min'),
+  a('remise-ou-abandon', 'payments', 'Valider une remise ou un abandon de créance', '3 min', 'Responsable'),
+  a('passer-en-contentieux', 'litigation', 'Passer un dossier en contentieux', '6 min', 'Responsable', true),
+  a('injonction-de-payer', 'litigation', 'Suivre les délais d’une injonction de payer', '4 min'),
+  a('importer-des-creances', 'creditors', 'Importer des créances en lot (CSV ou Excel)', '4 min', '', true),
+  a('releve-de-reversement', 'creditors', 'Comprendre un relevé de reversement', '3 min'),
+  a('double-authentification', 'security', 'Activer la double authentification', '2 min', '', true),
+  a('roles-et-permissions', 'security', 'Rôles et permissions : qui peut faire quoi ?', '4 min', '', true),
+  a('demande-rgpd', 'security', 'Répondre à une demande RGPD d’un débiteur', '5 min', 'Directeur'),
+];
+export const categoryLabel = (id: string) => CATEGORIES.find((item) => item.id === id)?.label ?? '';
