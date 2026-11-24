@@ -155,9 +155,9 @@ function CaseView({ data }: { data: CaseDetail }) {
           {data.risk && (
             <div>
               <dt>Score de risque</dt>
-              <dd className={layout.danger} title={data.risk.reason}>
-                {data.risk.label}
-                <span className={layout.hint}> · Indicatif, aucune décision automatique</span>
+              <dd>
+                <span className={layout.danger}>{data.risk.label}</span>
+                <span className={layout.hint}> · {data.risk.reason}. Indicatif, aucune décision automatique</span>
               </dd>
             </div>
           )}

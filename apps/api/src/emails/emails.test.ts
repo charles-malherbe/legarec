@@ -84,6 +84,10 @@ describe('kit', () => {
     expect(subject).not.toContain('KXPM');
     expect(html).not.toMatch(/href="[^"]*KXPM/u);
   });
+  it.each(REPLY_ACCEPTED)('refuses %s for an individual, who has no SIREN', (name) => {
+    const sample = SAMPLES[name] as { debtor: object };
+    for (const siren of ['', 'LGR-2026-00181']) expect(() => renderer.renderAutomatic(name, { ...sample, debtor: { ...sample.debtor, siren } })).toThrow();
+  });
   it('refuses incomplete data and links that are not https', () => {
     expect(() => renderer.renderAutomatic('receipt', {})).toThrow();
     expect(() => renderer.renderAutomatic('staff-password-reset', { ...SAMPLES['staff-password-reset'], reset_url: 'javascript:alert(1)' })).toThrow();

@@ -60,6 +60,12 @@ it('shows the same answer for an unknown debtor and a wrong code', async () => {
   const wrong = await (await access('732829320', 'ZZZZ')).json();
   expect(unknown).toEqual(wrong);
 });
+it('stops a sweep over many debtors from one address', async () => {
+  const codes: number[] = [];
+  for (let index = 0; index < 22; index += 1) codes.push((await access(`LGR-2026-${String(10000 + index)}`, 'ZZZZ', 'REFERENCE')).status);
+  expect(codes[0]).toBe(401);
+  expect(codes.at(-1)).toBe(429);
+});
 it('sends the code by SMS after confirmation, with a limit', async () => {
   open();
   await userEvent.type(await screen.findByLabelText('SIREN'), '732829320');

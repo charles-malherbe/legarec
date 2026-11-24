@@ -43,6 +43,12 @@ describe('settings', () => {
     expect((await call('dev', '/settings/firm/regles', {}, 'PUT')).status).toBe(403);
     expect((await call('ad', '/settings/firm/regles', { duration: '3 mois' }, 'PUT')).status).toBe(204);
   });
+  it('refuses an option out of the list and never takes a text between brackets for bank details', async () => {
+    expect((await call('ad', '/settings/firm/regles', { duration: 'illimitée' }, 'PUT')).status).toBe(422);
+    for (const iban of ['[AUTRE]', 'FR7612345']) expect((await call('ad', '/settings/firm/cabinet', { iban }, 'PUT')).status).toBe(422);
+    expect((await call('ad', '/settings/firm/cabinet', { iban: '[IBAN DU COMPTE DÉDIÉ]' }, 'PUT')).status).toBe(204);
+    expect(await (await call('ad', '/settings/technical/audit')).text()).not.toContain('Identifiants du cabinet modifiés');
+  });
   it('keeps technical settings for the Developer and the Director', async () => {
     openAs('cl', '/parametres/techniques');
     expect(await screen.findByText('Réservé au rôle Développeur')).toBeVisible();
@@ -134,6 +140,31 @@ describe('mailboxes', () => {
     await userEvent.click(dialog.getByRole('button', { name: 'Créer la boîte' }));
     expect((await screen.findByTestId('issued-password')).textContent).toHaveLength(16);
     expect(screen.queryByText('Demandes de boîte')).toBeNull();
+  });
+  it('keeps reserved addresses and the request as the only source of a new mailbox', async () => {
+    const person = { firstName: 'Ana', lastName: 'Costa', role: 'CLAIMS_OFFICER' };
+    for (const email of ['Recouvrement@legarec.fr', 'dpo@legarec.fr', 'x@exemple.fr'])
+      expect((await call('cl', '/members', { ...person, email })).status).toBe(422);
+    const box = { holderId: null, sizeMb: 5000 };
+    expect((await call('dev', '/mailboxes', { ...box, local: 'Recouvrement' })).status).toBe(422);
+    expect((await call('dev', '/mailboxes', { ...box, local: 'recouvrement' })).status).toBe(422);
+    expect((await call('dev', '/mailboxes', { ...box, local: 'nouvelle', sizeMb: 999999 })).status).toBe(422);
+    expect((await call('dev', '/mailboxes', { ...box, local: 'nouvelle', requestId: 'perdue' })).status).toBe(409);
+    expect((await call('cl', '/members', { ...person, email: 'AC@legarec.fr' })).status).toBe(204);
+    const asked = ((await (await call('dev', '/mailboxes')).json()) as { requests: { id: string }[] }).requests[0];
+    // The address sent by the screen is ignored: the one of the request is created.
+    expect((await call('dev', '/mailboxes', { ...box, local: 'autre', requestId: asked?.id })).status).toBe(200);
+    const boxes = await (await call('dev', '/mailboxes')).text();
+    expect(boxes).toContain('ac@legarec.fr');
+    expect(boxes).not.toContain('autre@legarec.fr');
+  });
+  it('closes the mailbox request of a cancelled invitation', async () => {
+    const person = { firstName: 'Ana', lastName: 'Costa', role: 'CLAIMS_OFFICER', email: 'ac@legarec.fr' };
+    expect((await call('cl', '/members', person)).status).toBe(204);
+    const { members } = (await (await call('cl', '/members')).json()) as { members: { id: string; email: string }[] };
+    const id = members.find((item) => item.email === 'ac@legarec.fr')?.id;
+    expect((await call('cl', `/members/${id}`, undefined, 'DELETE')).status).toBe(204);
+    expect(((await (await call('dev', '/mailboxes')).json()) as { requests: unknown[] }).requests).toEqual([]);
   });
   it('runs the departure steps in order, each one confirmed', async () => {
     openAs('ad', '/parametres/techniques/boites');

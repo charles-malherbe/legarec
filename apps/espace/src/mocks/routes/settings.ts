@@ -1,4 +1,5 @@
 import {
+  newMailbox,
   canAccessTechnicalSettings,
   FIRM_IDENTITY_FIELDS,
   firmIdentity,
@@ -107,7 +108,7 @@ const firmGroups = (): Group[] => [
         ]),
         block('duties', 'Obligations de l’activité', 'Pièces exigées pour exercer le recouvrement amiable pour le compte d’autrui.', [
           value('insurance', 'Assurance RC professionnelle', 'Attestation 2026 · expire le 31/12/2026', '', 'À renouveler dans 40 jours', 'warning'),
-          value('funds', 'Compte dédié aux fonds encaissés', '[IBAN DU COMPTE DÉDIÉ]', '', 'Vérifié', 'success'),
+          value('funds', 'Compte dédié aux fonds encaissés', '[IBAN DU COMPTE DÉDIÉ]', '', 'À vérifier', 'warning'),
           value('prosecutor', 'Déclaration au procureur', 'Justificatif déposé le 14/01/2024', '', 'À jour', 'success'),
         ]),
       ]),
@@ -244,13 +245,13 @@ const firmGroups = (): Group[] => [
         'Assistant IA',
         'Fonctions activées, garde-fous, budget et journal',
         'sparkle',
-        '4 fonctions actives · 6,40 € sur 25 € ce mois',
+        'Désactivé en production · 6,40 € sur 25 € ce mois',
         'info',
         [
           block(
             'features',
             'Fonctions',
-            'Chaque fonction s’active séparément. Les suggestions sont toujours marquées « Proposé par l’IA » et ne sont appliquées qu’après validation d’un collaborateur.',
+            'Désactivé en production jusqu’au contrat de sous-traitance et à l’hébergement dans l’UE. Chaque fonction s’active séparément. Les suggestions sont toujours marquées « Proposé par l’IA » et ne sont appliquées qu’après validation d’un collaborateur.',
             [
               sw(
                 'ia1',
@@ -330,7 +331,7 @@ const firmGroups = (): Group[] => [
           text('audit', 'Journal d’audit', '', '1 an'),
         ]),
         block('rights', 'Droits des personnes', 'Demandes d’accès, de rectification, d’opposition ou d’effacement reçues des débiteurs.', [
-          sw('g1', 'Mention d’information dans chaque relance', 'Désactivée : l’information est en ligne, sur la page Confidentialité', false),
+          sw('g1', 'Mention d’information dans chaque relance', 'Désactivée : l’information est en ligne, sur la page Confidentialité', false, true),
           sw('g2', 'Anonymisation automatique', 'À l’expiration de la durée de conservation'),
         ]),
       ]),
@@ -513,7 +514,7 @@ const technicalGroups = (): Group[] => [
           sw('x7', 'Déconnexion automatique après 30 minutes d’inactivité', 'S’applique à tous les comptes, créanciers compris', true, true),
           sw('x8', 'Journal d’audit', 'Chaque connexion et chaque action sensible est enregistrée (utilisateur, action, date, adresse IP)', true, true),
           sw('x2', 'Cloisonnement par créancier', 'Un gestionnaire ne voit que ses dossiers, un créancier que les siens', true, true),
-          sw('x3', 'Masquer les IBAN des débiteurs', 'Visibles seulement par le Directeur'),
+          sw('x3', 'Masquer les IBAN des débiteurs', 'Visibles seulement par le Directeur', true, true),
         ]),
       ]),
       section('secrets', 'Secrets et clés', 'Clés d’API et mots de passe techniques, rotation et révocation', 'key', '2 secrets à renouveler', 'warning', [
@@ -644,14 +645,17 @@ let registry = seedRegistry();
 export const addGdprRequest = (item: Pick<GdprRequest, 'kind' | 'debtor' | 'caseId' | 'origin'>) => {
   registry = [...registry, { ...item, id: `g${registry.length + 1}`, receivedOn: '2026-11-24', dueOn: '2026-12-24', daysLeft: 30, status: 'OPEN' }];
 };
-/** Contact cap of a channel, as set in Paramètres du cabinet > Relances. */
-export const contactCap = (field: 'calls' | 'emails' | 'sms' | 'letters') =>
-  Number(
+const STRICT_CAPS = { calls: 2, emails: 2, sms: 1, letters: 2 };
+/** Contact cap of a channel, as set in Paramètres du cabinet > Relances. An unreadable value never lifts the cap. */
+export const contactCap = (field: 'calls' | 'emails' | 'sms' | 'letters') => {
+  const cap = Number(
     groups.firm
       .flatMap((group) => group.items)
       .find((item) => item.id === 'relances')
-      ?.blocks[0]?.fields.find((item) => item.id === field)?.value ?? 0,
+      ?.blocks[0]?.fields.find((item) => item.id === field)?.value,
   );
+  return Number.isInteger(cap) && cap > 0 ? cap : STRICT_CAPS[field];
+};
 export const resetSettings = () => {
   resetMailboxRequests();
   resetAudit();
@@ -662,6 +666,7 @@ export const resetSettings = () => {
   registry = seedRegistry();
 };
 
+const SIZES = [1000, 5000, 10000];
 const edits = (session: Session) => canEdit('technical', session);
 const onBox = (resolve: (item: Mailbox, session: Session, info: Info) => Response | Promise<Response>) =>
   guarded<Info>(edits, (info, session) => {
@@ -714,7 +719,18 @@ export const settingsHandlers = [
       if (!canEdit(scope, session)) return forbidden();
       const item = groups[scope].flatMap((group) => group.items).find((entry) => entry.id === params.id);
       if (!item) return notFound();
-      const changes = (await request.json()) as Record<string, string | boolean>;
+      const sent = (await request.json()) as Record<string, string | boolean>;
+      // Only what really changes is checked, stored and written in the journal.
+      const stored = new Map(item.blocks.flatMap((entry) => entry.fields).map((field) => [field.id, field]));
+      const changes = Object.fromEntries(
+        Object.entries(sent).filter(([key, next]) => {
+          const field = stored.get(key);
+          return field && next !== (field.kind === 'switch' ? field.checked : field.value);
+        }),
+      );
+      if (Object.entries(changes).some(([key, next]) => stored.get(key)?.kind === 'select' && !stored.get(key)?.options.includes(String(next))))
+        return HttpResponse.json({ code: 'INVALID' }, { status: 422 });
+      if (Object.keys(changes).length === 0) return done();
       const bank = Object.fromEntries(Object.entries(changes).filter(([key]) => item.id === 'cabinet' && (FIRM_IDENTITY_FIELDS as string[]).includes(key)));
       if (Object.keys(bank).length > 0) {
         if (session.role !== 'DIRECTOR') return forbidden();
@@ -782,7 +798,7 @@ export const settingsHandlers = [
     guarded(canAccessTechnicalSettings, () =>
       HttpResponse.json({
         items: boxes,
-        sizes: [1000, 5000, 10000],
+        sizes: SIZES,
         holders: [
           { id: 'lp', name: 'Lucas Perrin' },
           { id: 'nf', name: 'Nadia Faure' },
@@ -795,12 +811,17 @@ export const settingsHandlers = [
   http.post(
     '/api/mailboxes',
     guarded<Info>(edits, async ({ request }, session) => {
-      const body = (await request.json()) as { local: string; holderId: string | null; sizeMb: number; requestId?: string };
+      const body = (await request.json()) as { requestId?: string; sizeMb: number };
       const asked = mailboxRequests().find((item) => item.id === body.requestId);
-      if (boxes.some((item) => item.address === `${body.local}@legarec.fr`)) return HttpResponse.json({ code: 'ADDRESS_TAKEN' }, { status: 409 });
-      const holder = asked?.holder ?? { lp: 'Lucas Perrin', nf: 'Nadia Faure' }[body.holderId ?? ''] ?? null;
+      if (body.requestId !== undefined && !asked) return HttpResponse.json({ code: 'REQUEST_GONE' }, { status: 409 });
+      // The address and the holder come from the request, never from the screen.
+      const parsed = newMailbox.safeParse(asked ? { local: asked.local.toLowerCase(), holderId: asked.memberId, sizeMb: body.sizeMb } : body);
+      if (!parsed.success || !SIZES.includes(parsed.data.sizeMb)) return HttpResponse.json({ code: 'INVALID' }, { status: 422 });
+      const { local, sizeMb } = parsed.data;
+      if (boxes.some((item) => item.address.toLowerCase() === `${local}@legarec.fr`)) return HttpResponse.json({ code: 'ADDRESS_TAKEN' }, { status: 409 });
+      const holder = asked?.holder ?? { lp: 'Lucas Perrin', nf: 'Nadia Faure' }[parsed.data.holderId ?? ''] ?? null;
       if (asked) closeMailboxRequest(asked.id);
-      const item = { ...box(`b${boxes.length + 1}`, body.local, holder, holder ? 'MEMBER' : 'FUNCTION', 0), sizeMb: body.sizeMb };
+      const item = { ...box(`b${boxes.length + 1}`, local, holder, holder ? 'MEMBER' : 'FUNCTION', 0), sizeMb };
       boxes = [...boxes, item];
       logBox(session, `Boîte ${item.address} créée`);
       return HttpResponse.json({ password: drawPassword() });

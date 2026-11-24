@@ -50,7 +50,7 @@ export function SectionBody({ scope, id, label }: { scope: string; id: string; l
   const save = async () => {
     setSaving(true);
     try {
-      await change(path, { method: 'PUT', body: draft });
+      await change(path, { method: 'PUT', body: Object.fromEntries(Object.entries(draft).filter(([key, value]) => value !== before[key])) });
       setDraft({});
       toast({
         message: `« ${label} » enregistré.`,

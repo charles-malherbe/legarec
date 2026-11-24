@@ -56,9 +56,8 @@ const EVENTS: [string, string | null, ReminderType, string, string | null, (stri
 ];
 const TODAY = '2026-11-21';
 const planned = new Set<string>();
-/** Default hours of Paramètres du cabinet > Relances; the caps wait for their values. */
 /** Contacts of the same week (letters: same month) already planned for this debtor, done or not. */
-const overCap = (type: ReminderType, caseId: string, date: string): string | null => {
+const overCap = (type: ReminderType, debtor: string, date: string): string | null => {
   const caps = {
     CALL: ['calls', 'appels par semaine'],
     EMAIL: ['emails', 'e-mails par semaine'],
@@ -74,8 +73,8 @@ const overCap = (type: ReminderType, caseId: string, date: string): string | nul
   };
   const same = (iso: string) => (type === 'LETTER' ? iso.slice(0, 7) === date.slice(0, 7) : week(iso) === week(date));
   const cap = contactCap(rule[0]);
-  const count = reminders.filter((item) => item.caseId === caseId && item.type === type && same(item.date)).length;
-  return cap > 0 && count >= cap ? `Plafond atteint : ${cap} ${rule[1]} pour ce débiteur` : null;
+  const count = reminders.filter((item) => item.debtor === debtor && item.type === type && same(item.date)).length;
+  return count >= cap ? `Plafond atteint : ${cap} ${rule[1]} pour ce débiteur` : null;
 };
 const outsideHours = (type: ReminderType, date: string, time: string): string | null => {
   const day = new Date(`${date}T00:00:00Z`).getUTCDay();
@@ -430,7 +429,7 @@ export const collectionHandlers = [
       if (date < TODAY) return HttpResponse.json({ code: 'PAST_DATE' }, { status: 422 });
       const item = readable(session).find((entry) => entry.id === caseId);
       if (!item || !actsOn(session, caseId)) return forbidden();
-      const limit = outsideHours(type, date, time) ?? overCap(type, caseId, date);
+      const limit = outsideHours(type, date, time) ?? overCap(type, item.name, date);
       const id = crypto.randomUUID();
       planned.add(id);
       audit(session, 'Relance planifiée');

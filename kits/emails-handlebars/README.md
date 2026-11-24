@@ -98,7 +98,7 @@ await resend.emails.send({
 | `config.support_email` | Adresse e-mail de support (créanciers et collaborateurs) | administratif@legarec.fr |
 | `config.portal_url` | Adresse complète de l'espace débiteur | https://paiement.legarec.fr |
 | `config.portal_label` | Adresse de l'espace débiteur telle qu'affichée | paiement.legarec.fr |
-| `config.account_holder` | Titulaire du compte bancaire de règlement | LEGAREC |
+| `config.account_holder` | Titulaire du compte bancaire de règlement | [TITULAIRE] |
 | `config.bank_name` | Nom de la banque (facultatif) | Banque Populaire Méditerranée |
 | `config.iban` | IBAN du compte de règlement | [IBAN DU COMPTE DÉDIÉ] |
 | `config.bic` | BIC du compte de règlement | [BIC] |

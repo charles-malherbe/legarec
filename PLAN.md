@@ -102,4 +102,10 @@
 - [ ] GitHub Actions : aucune exécution constatée, cause inconnue
 - [ ] Téléchargements de PDF désactivés : ils dépendent de l'API (mission suivante)
 - [ ] Reporté à la mission API : dépôt des logos (`media.legarec.fr`), valeurs entre crochets (Paramètres, variables du serveur, fiches créanciers, numéro SMS)
+- [ ] Mission API, relevé par la relecture sécurité :
+  - SIREN, IBAN et BIC des e-mails lus dans les Paramètres saisis par le Directeur, pas dans l'environnement ; aucun envoi tant qu'une valeur est entre crochets
+  - code d'accès retiré de tout message entrant avant stockage, affichage, IA ou journal ; jamais dans une file d'attente ; `Cache-Control: no-store` sur sa route
+  - plafonds de contact appliqués par débiteur à tous les envois (fiche, groupé, SMS, e-mails, courriers), contacts réels compris
+  - accès débiteur : limite réelle par adresse IP, alerte au gestionnaire lors d'un blocage
+  - invitation d'un collaborateur envoyée après la création de sa boîte
 - Les numéros de la colonne « Points ouverts » renvoient à d'anciennes questions, toutes tranchées.

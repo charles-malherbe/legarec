@@ -15,7 +15,7 @@ import {
 import { http, HttpResponse } from 'msw';
 import { audit } from '../audit';
 import { done, forbidden, guarded, notFound, staffWithCases } from '../http';
-import { addMailboxRequest } from '../mailboxRequests';
+import { addMailboxRequest, closeMailboxRequestOf } from '../mailboxRequests';
 import { mayRead } from '../visibility';
 
 type Info = { request: Request; params: Record<string, unknown> };
@@ -551,25 +551,27 @@ export const steeringHandlers = [
       const holder = UNIQUE_ROLES.includes(body.role) ? members.find((item) => item.role === body.role && item.status !== 'DISABLED') : undefined;
       if (holder)
         return HttpResponse.json({ code: 'ROLE_TAKEN', role: ROLE_LABELS[body.role], holder: `${holder.firstName} ${holder.lastName}` }, { status: 409 });
+      const id = crypto.randomUUID();
       if (body.role !== 'CREDITOR')
         addMailboxRequest({
+          memberId: id,
           holder: `${body.firstName} ${body.lastName}`,
           local: body.email.split('@')[0] ?? '',
           requestedBy: `${session.firstName} ${session.lastName}`,
         });
       audit(session, `Invitation envoyée (${ROLE_LABELS[body.role]})`, 'ADMINISTRATIVE');
-      members = [
-        ...members,
-        m(crypto.randomUUID(), body.firstName, body.lastName, body.email, body.role, null, false, 0, 'Invité', 'INVITED', creditor?.name ?? null),
-      ];
+      members = [...members, m(id, body.firstName, body.lastName, body.email, body.role, null, false, 0, 'Invité', 'INVITED', creditor?.name ?? null)];
       return done();
     }),
   ),
   http.delete(
     '/api/members/:id',
     guarded<Info>(administers, ({ params }, session) => {
+      const item = members.find((entry) => entry.id === params.id && entry.status === 'INVITED');
+      if (!item) return notFound();
       audit(session, 'Invitation annulée', 'ADMINISTRATIVE');
-      members = members.filter((item) => item.id !== params.id || item.status !== 'INVITED');
+      members = members.filter((entry) => entry !== item);
+      closeMailboxRequestOf(item.id);
       return done();
     }),
   ),
