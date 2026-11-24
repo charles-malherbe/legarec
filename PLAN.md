@@ -28,8 +28,8 @@
 | [x] Erreur | /erreur-demo, * | PiedDePage | — | — | 403, 404, 500 | — |
 | [x] Main | / | Toolbar, Indicateur | Main | — | par rôle : global (Directeur), équipe (Responsable), personnel (Gestionnaire), technique (Développeur) | tableau du Développeur absent de la maquette |
 
-**État au 24/11/2026.** Coquille, Connexion, Erreur et Main écrits, testés (Vitest) ; axe sans violation et aucun défilement horizontal à 390, 768, 1024 et 1440 px (normal, malvoyant ; sombre à 1440). Non cochés car il reste : parcours Playwright versionnés, relectures par les agents, et l'écart visuel :
-- Erreur : 1,5 % / 2,1 % / 5,4 % (1440 / 1024 / 390) ;
+**État au 24/11/2026.** Coquille, Connexion, Erreur et Main écrits, testés (Vitest) ; axe sans violation et aucun défilement horizontal à 390, 768, 1024 et 1440 px (normal, malvoyant ; sombre à 1440). Écart visuel mesuré alors :
+- Erreur : 0,2 % / 0,3 % / 0,6 % (1440 / 1024 / 390) ;
 - Main : 7,3 % / 7,0 % / 12,5 % (décalages de quelques pixels, espace fine des montants, bouton « Aa » ajouté à la Topbar, bloc des créanciers) ;
 - Connexion : 8,4 % / 10,9 % / 25,0 % (bloc « Démonstration », logo et badge PCI retirés, champs vides, saisie du code par cases au lieu du pavé).
 
@@ -85,11 +85,20 @@
 | [x] Portail et Connexion partenaires | partenaires / et /connexion | PiedDePage | Portail | dépôt unique et groupé | cloisonnement par créancier testé | — |
 | [x] Dépôt par fichier | partenaires /depot | Dropzone | import-report | création | lignes valides et en erreur | — |
 | [x] Accord sur échéancier | partenaires /echeanciers/:id | — | plan | accord, refus | déjà répondu | absent de la maquette |
-| [x] Accès à mon dossier | paiement /acces | Champ | access | — | SIRET invalide, 5 échecs, 10 échecs, code par SMS | 22 ; absent |
+| [x] Accès à mon dossier | paiement /acces | Champ | access | — | SIREN invalide, 5 échecs, 10 échecs, code par SMS sur demande | absent |
 | [x] Accès limité | paiement /acces-limite | Dropzone | access | envoi | aucune donnée sur la dette | absent |
 | [x] Payer réorganisé | paiement /:id | Onglets, Dropzone | Payer | demandes guidées, message | accueil, messages, payer (virement, chèque), échéancier, quittances | 6 |
-| [x] Confidentialité | /confidentialite | PiedDePage | — | — | texte à fournir | 7 |
+| [x] Mentions légales, Confidentialité, Cookies | /mentions-legales, /confidentialite, /cookies | PiedDePage | — | — | textes rédigés, à relire par le cabinet ; valeurs entre crochets | — |
 
 ## Lot I — E-mails (apps/api)
 - [x] Copie du kit et de staff-message, service de rendu, schémas Zod, tests et snapshots
 - [x] Rédaction d'un message (fiche débiteur, E-mails), envoi OVH simulé par MSW
+
+## Après les lots
+- [x] Relectures maquette et sécurité, corrections (PR 12 et 13) ; les dernières corrections et les PR 14 et 15 n'ont pas été relues par un agent
+- [x] Questions ouvertes tranchées dans la discussion ; `QUESTIONS.md` vide, décisions dans `DECISIONS.md`
+- [x] Réponses juridiques appliquées
+- [ ] Écart visuel de 3 % au plus : **atteint seulement par Erreur**. Les autres écrans restent au-dessus
+- [ ] GitHub Actions : aucune exécution constatée, cause inconnue
+- [ ] Téléchargements de PDF désactivés : ils dépendent de l'API (mission suivante)
+- Les numéros de la colonne « Points ouverts » renvoient à d'anciennes questions, toutes tranchées.
