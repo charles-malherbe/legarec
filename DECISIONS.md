@@ -45,3 +45,6 @@ Décisions prises après la maquette v1.21 (23/11/2026). Elles priment sur la ma
 | 24/11/2026 | Directeur : consultations des dossiers qui ne lui sont pas attribués notées dans l'historique | Prompt v2.5 |
 | 24/11/2026 | Premier commit du kit sur `main` poussé par l'utilisateur (dépôt vide) ; ensuite, uniquement des PR | Choix de l'utilisateur, 24/11/2026 |
 | 24/11/2026 | Enchaînement de tous les lots demandé sans validation préalable de `PLAN.md` | Choix de l'utilisateur, 24/11/2026 |
+| 24/11/2026 | Contentieux : « Frais de procédure avancés · refacturables au débiteur » devient « à la charge du créancier sauf décision du juge » | Aucun frais ajouté hors cas prévus par la loi (écart signalé, à valider par le juriste) |
+| 24/11/2026 | Échéanciers : modes « Virement » et « Chèque » à la place de prélèvement SEPA et carte | Paiement par chèque et virement uniquement |
+| 24/11/2026 | `scripts/comparer-ecran.mjs` lance Chromium sans hinting | Même rendu de texte que les captures de référence |

@@ -1,0 +1,101 @@
+.calendar {
+  font-size: var(--fs-sm);
+  --fc-classic-border: var(--border);
+  --fc-classic-background: var(--surface);
+  --fc-classic-foreground: var(--text);
+  --fc-classic-today: var(--bleu-pale);
+  --fc-classic-popover: var(--surface);
+  --fc-classic-muted-foreground: var(--text-3);
+  --fc-classic-faint-foreground: var(--text-3);
+  --fc-classic-event: transparent;
+  --fc-classic-muted: var(--surface-2);
+  --fc-classic-strong: var(--surface-3);
+  overflow-x: auto;
+}
+.event {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 1px var(--sp-1h);
+  border-radius: var(--r-xs);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: var(--surface-3);
+  color: var(--text-2);
+  cursor: pointer;
+}
+.event[data-done] {
+  text-decoration: line-through;
+}
+.event[data-tone='info'] {
+  background: var(--info-bg);
+  color: var(--info-fg);
+}
+.event[data-tone='teal'] {
+  background: var(--teal-bg);
+  color: var(--teal-fg);
+}
+.event[data-tone='marine'] {
+  background: var(--bleu-200);
+  color: var(--marine-text);
+}
+.event[data-tone='warning'] {
+  background: var(--warning-bg);
+  color: var(--warning-fg);
+}
+.event[data-tone='success'] {
+  background: var(--success-bg);
+  color: var(--success-fg);
+}
+.event[data-tone='danger'] {
+  background: var(--danger-bg);
+  color: var(--danger-fg);
+}
+.swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: var(--sp-1h);
+  border-radius: var(--r-xs);
+  background: var(--border-strong);
+}
+.swatch[data-tone='info'] {
+  background: var(--info);
+}
+.swatch[data-tone='teal'] {
+  background: var(--teal);
+}
+.swatch[data-tone='marine'] {
+  background: var(--marine);
+}
+.swatch[data-tone='warning'] {
+  background: var(--warning);
+}
+.swatch[data-tone='success'] {
+  background: var(--success);
+}
+.swatch[data-tone='danger'] {
+  background: var(--danger);
+}
+.list li.item,
+.item {
+  display: flex !important;
+  flex-direction: column;
+  align-items: stretch !important;
+  gap: var(--sp-2) !important;
+  padding: var(--sp-3) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--r-lg);
+}
+.date {
+  height: var(--control-sm);
+  padding: 0 var(--sp-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
