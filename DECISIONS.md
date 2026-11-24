@@ -50,3 +50,10 @@ Décisions prises après la maquette v1.21 (23/11/2026). Elles priment sur la ma
 | 24/11/2026 | `scripts/comparer-ecran.mjs` lance Chromium sans hinting | Même rendu de texte que les captures de référence |
 | 24/11/2026 | Rédiger un courrier : « coût refacturable au débiteur » (LRAR) retiré ; indemnité de 40 € absente pour un particulier ; relance bloquée sans premier courrier ; mentions obligatoires en blocs à valider | Règles du recouvrement amiable (écarts signalés) |
 | 24/11/2026 | Contrats : « sous-traitant » remplacé par [STATUT RGPD À VALIDER] | Question 23 ouverte |
+| 24/11/2026 | Import de modèles contrôlé par listes blanches : arbre Handlebars pour les champs, grammaire HTML stricte, bloc imposé et rappel du premier courrier hors de toute condition | La relecture sécurité a contourné le contrôle par motifs |
+| 24/11/2026 | Code d'accès interdit dans les modèles d'e-mail et de SMS | Il ne figure que dans les courriers et les SMS demandés par le débiteur |
+| 24/11/2026 | Gestionnaire : créanciers, notifications et tableau de bord limités à ses dossiers ; reversements masqués | Cloisonnement des lectures |
+| 24/11/2026 | Révocation d'un secret : demandée par le Développeur, validée par le Directeur | Rôle Développeur unique |
+| 24/11/2026 | Fiche d'appel : envois décochés par défaut, confirmés, sans « Annuler » après un envoi | Un message parti ne s'annule pas |
+| 24/11/2026 | Dossier : « Pénalités et indemnités » devient « Principal · intérêts · frais » | Règle des montants séparés |
+| 24/11/2026 | E-mails : « Répondre » de la barre du message retiré, la réponse étant toujours affichée sous le message | Éviter deux actions identiques |
