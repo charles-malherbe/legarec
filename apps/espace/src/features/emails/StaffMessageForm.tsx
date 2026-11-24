@@ -1,6 +1,6 @@
 import type { EmailDraft, mailboxData, MessageTemplate } from '@legarec/contracts';
 import { Alerte, Bouton, Carte, Case, Champ, useConfirm, useToast } from '@legarec/ui';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { z } from 'zod';
 import { ApiError } from '../../app/api';
 import { useChange } from '../../app/data';
@@ -8,9 +8,16 @@ import layout from '@legarec/ui/layout.module.css';
 
 const draftSaved = z.object({ id: z.string() });
 type Sender = z.infer<typeof mailboxData>['sender'];
+export interface MessageRecipient {
+  email: string;
+  name: string;
+  isDebtor: boolean;
+  caseId: string;
+  reference: string;
+}
 export interface StaffMessageFormProps {
   sender: Sender;
-  recipient?: { email: string; name: string; isDebtor: boolean; caseId: string; reference: string };
+  recipient?: MessageRecipient;
   templates?: MessageTemplate[];
   draft?: EmailDraft;
   /** Address known beforehand, outside any debtor's case (a creditor's contact). */
@@ -29,6 +36,8 @@ export function StaffMessageForm({ sender, recipient, templates = [], draft, ini
   const [template, setTemplate] = useState('');
   const [statement, setStatement] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
+  // The form opens below the button: bring the keyboard to it.
+  useEffect(() => document.getElementById('message-to')?.focus(), []);
   const left = sender.hourlyQuota - sender.sentThisHour;
   const paragraphs = text
     .split(/\n\s*\n/)
@@ -51,9 +60,6 @@ export function StaffMessageForm({ sender, recipient, templates = [], draft, ini
         setFailure(null);
         try {
           await change('/emails/messages', { body: { to, subject, paragraphs, caseId: recipient?.caseId ?? draft?.caseId ?? null, statement } });
-          if (draft) await change(`/emails/drafts/${draft.id}`, { method: 'DELETE' });
-          toast({ message: 'Message envoyé.' });
-          onClose();
         } catch (error) {
           setFailure(
             error instanceof ApiError && error.status === 429
@@ -62,6 +68,15 @@ export function StaffMessageForm({ sender, recipient, templates = [], draft, ini
           );
           throw error;
         }
+        // The message has left: a failed clean-up must not suggest sending it again.
+        const cleaned = draft
+          ? await change(`/emails/drafts/${draft.id}`, { method: 'DELETE' }).then(
+              () => true,
+              () => false,
+            )
+          : true;
+        toast({ message: cleaned ? 'Message envoyé.' : 'Message envoyé. Le brouillon n’a pas pu être supprimé : supprimez-le, ne le renvoyez pas.' });
+        onClose();
       },
     });
   const pick = (id: string) => {
@@ -82,15 +97,30 @@ export function StaffMessageForm({ sender, recipient, templates = [], draft, ini
       });
   };
   const saveDraft = async () => {
-    await change('/emails/drafts', { body: { id: draft?.id, to, subject, text, caseId: recipient?.caseId ?? draft?.caseId ?? null }, schema: draftSaved });
-    toast({ message: 'Brouillon enregistré.' });
-    onClose();
+    try {
+      await change('/emails/drafts', { body: { id: draft?.id, to, subject, text, caseId: recipient?.caseId ?? draft?.caseId ?? null }, schema: draftSaved });
+      toast({ message: 'Brouillon enregistré.' });
+      onClose();
+    } catch {
+      toast({ message: 'Le brouillon n’a pas été enregistré. Votre texte est conservé à l’écran : réessayez.' });
+    }
   };
   return (
     <Carte title="Nouveau message" description={`Envoyé depuis ${sender.address}, votre adresse`} actionLabel="Fermer" onAction={onClose}>
       <div className={layout.stack}>
         <div className={layout.form}>
-          <Champ label="Destinataire" type="email" required value={to} placeholder="nom@entreprise.fr" onChange={setTo} />
+          <Champ
+            label="Destinataire"
+            type="email"
+            required
+            autoFocus
+            readOnly={!!recipient}
+            help={recipient ? 'Adresse du contact du dossier. Choisissez un autre contact depuis la fiche débiteur.' : undefined}
+            fieldId="message-to"
+            value={to}
+            placeholder="nom@entreprise.fr"
+            onChange={setTo}
+          />
           {templates.length > 0 && (
             <Champ
               label="Modèle"

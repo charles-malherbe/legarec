@@ -170,7 +170,7 @@ function Agenda({ today, items, weekly }: { today: string; items: Reminder[]; we
       />
       {planning && (
         <PlanReminder
-          key={selected}
+          today={today}
           date={selected}
           onDone={(date) => {
             setPlanning(false);

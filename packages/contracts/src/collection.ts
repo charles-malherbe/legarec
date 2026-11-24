@@ -39,7 +39,7 @@ export const newReminder = z.object({
   caseId: z.string().min(1, { error: 'Choisissez un débiteur.' }),
   type: z.enum(['EMAIL', 'SMS', 'CALL', 'LETTER']),
   date: z.iso.date({ error: 'Choisissez une date.' }),
-  time: z.string(),
+  time: z.union([z.literal(''), z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/u)], { error: 'Saisissez une heure, par exemple 10:00.' }),
   title: z.string().trim().min(1, { error: 'Indiquez l’objet de la relance.' }),
 });
 /** Cases the user may act on, and the reminders that would exceed the limits. */

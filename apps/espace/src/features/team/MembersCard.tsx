@@ -40,17 +40,22 @@ export function MembersCard() {
     confirm({
       tone: 'danger',
       title: `Désactiver le compte de ${item.firstName} ${item.lastName} ?`,
-      body: 'Le compte est désactivé (jamais supprimé). Ses dossiers sont réattribués par le Responsable, le mot de passe de sa boîte OVH est retiré et l’historique est conservé.',
+      body:
+        item.role === 'CREDITOR'
+          ? 'Le compte est désactivé (jamais supprimé). Il n’accède plus au portail partenaires ; ses dossiers et l’historique sont conservés.'
+          : 'Le compte est désactivé (jamais supprimé). Ses dossiers sont réattribués par le Responsable, le mot de passe de sa boîte OVH est retiré et l’historique est conservé.',
       confirmLabel: 'Désactiver',
       reasonLabel: 'Motif',
       details: [
-        { k: 'Collaborateur', v: `${item.firstName} ${item.lastName}` },
+        { k: item.role === 'CREDITOR' ? 'Interlocuteur' : 'Collaborateur', v: `${item.firstName} ${item.lastName}` },
         { k: 'Rôle', v: ROLE_LABELS[item.role] },
-        { k: 'Dossiers à réattribuer', v: `${item.cases}${manager ? ` → ${manager.firstName} ${manager.lastName}` : ''}` },
+        item.role === 'CREDITOR'
+          ? { k: 'Créancier', v: item.creditor ?? '' }
+          : { k: 'Dossiers à réattribuer', v: `${item.cases}${manager ? ` → ${manager.firstName} ${manager.lastName}` : ''}` },
       ],
       onConfirm: async (reason) => {
         await change(`/members/${item.id}/disable`, { body: { reason } });
-        toast({ message: 'Compte désactivé, dossiers remis au Responsable.' });
+        toast({ message: item.role === 'CREDITOR' ? 'Compte désactivé.' : 'Compte désactivé, dossiers remis au Responsable.' });
       },
     });
   const cancelInvite = (item: Member) =>
@@ -76,20 +81,50 @@ export function MembersCard() {
   const test = KINDS.find(([id]) => id === kind)?.[2] ?? (() => true);
   const rows = data.members.filter((item) => test(item) && matches(query, item.firstName, item.lastName, item.email));
   const open = data.members.find((item) => item.id === openId);
+  const team = data.members.filter(KINDS[0][2]);
+  const figures = [
+    ['Équipe active', `${team.filter((item) => item.status === 'ACTIVE').length} / ${team.length}`, 'comptes internes'],
+    ...(user.role === 'DEVELOPER' ? [] : [['Accès créanciers', String(data.members.filter(KINDS[1][2]).length), 'espace créancier']]),
+    [
+      '2FA à activer',
+      String(data.members.filter((item) => item.status === 'ACTIVE' && !item.twoFactor).length),
+      `dont ${data.members.filter((item) => item.status === 'ACTIVE' && !item.twoFactor && item.twoFactorRequired).length} obligatoire`,
+    ],
+    ['Invitations', String(data.members.filter(KINDS[2][2]).length), 'en attente d’activation'],
+  ];
   return (
     <>
+      <section aria-label="Synthèse des comptes" className={layout.card}>
+        <dl className={layout.figures}>
+          {figures.map(([label, value, hint]) => (
+            <div key={label}>
+              <dt>{label}</dt>
+              <dd>{value}</dd>
+              <dd className={layout.hint}>{hint}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
       <Carte
         title="Collaborateurs"
         description="Rôles uniques : Directeur, Responsable du recouvrement, Développeur"
         padding="none"
-        actionLabel={data.canInvite ? (inviting ? 'Fermer' : '+ Inviter') : undefined}
+        actionLabel={data.canInvite ? (inviting ? 'Fermer' : '+ Créer un compte') : undefined}
         onAction={() => setInviting(!inviting)}
       >
         {inviting && <InviteForm creditors={data.creditors} onDone={() => setInviting(false)} />}
         <div className={layout.between} style={{ padding: 'var(--sp-3) var(--sp-5)' }}>
           <Onglets
             label="Type de compte"
-            items={kinds.map(([id, label, match]) => ({ label, count: data.members.filter(match).length, selected: id === kind, pick: () => setKind(id) }))}
+            items={kinds.map(([id, label, match]) => ({
+              label,
+              count: data.members.filter(match).length,
+              selected: id === kind,
+              pick: () => {
+                setKind(id);
+                setOpenId(null);
+              },
+            }))}
           />
           <Champ type="search" label="Rechercher un compte" hideLabel placeholder="Nom ou e-mail" value={query} onChange={setQuery} />
         </div>
@@ -101,7 +136,13 @@ export function MembersCard() {
           rows={rows}
           rowId={(row) => row.id}
           activeRowId={open?.id}
-          state={rows.length === 0 ? { kind: 'noresult', title: 'Aucun compte ne correspond', text: 'Modifiez la recherche ou le type de compte.' } : undefined}
+          state={
+            rows.length > 0
+              ? undefined
+              : query.trim()
+                ? { kind: 'noresult', title: 'Aucun compte ne correspond', text: 'Vérifiez le nom ou l’adresse.', onAction: () => setQuery('') }
+                : { kind: 'empty', title: kind === 'pending' ? 'Aucune invitation en attente' : 'Aucun compte', text: 'Les comptes créés apparaissent ici.' }
+          }
           columns={[
             { key: 'name', label: 'Collaborateur', value: (row) => ({ text: `${row.firstName} ${row.lastName}`, sub: row.email, strong: true }) },
             {
@@ -128,7 +169,7 @@ export function MembersCard() {
                   </span>
                 ) : (
                   <span className={layout.inline}>
-                    {row.extension ?? 'Standard seul'}
+                    {row.extension ?? (row.role === 'CREDITOR' ? '—' : 'Standard seul')}
                     {data.canEditExtension && row.status === 'ACTIVE' && (
                       <Bouton
                         variant="link"
@@ -173,7 +214,7 @@ export function MembersCard() {
               key: 'actions',
               label: 'Actions',
               render: (row) =>
-                data.canDisable && row.status === 'ACTIVE' && row.role !== 'DIRECTOR' ? (
+                data.canDisable && row.status === 'ACTIVE' && row.role !== 'DIRECTOR' && row.id !== user.userId ? (
                   <Bouton
                     variant="danger-outline"
                     size="sm"
@@ -212,6 +253,7 @@ function InviteForm({ creditors, onDone }: { creditors: { id: string; name: stri
   const [creditorId, setCreditorId] = useState('');
   const partner = role === 'CREDITOR';
   const [taken, setTaken] = useState<string | null>(null);
+  const [duplicate, setDuplicate] = useState(false);
   const valid =
     firstName.trim() &&
     lastName.trim() &&
@@ -229,12 +271,17 @@ function InviteForm({ creditors, onDone }: { creditors: { id: string; name: stri
       ],
       onConfirm: async () => {
         setTaken(null);
+        setDuplicate(false);
         try {
           await change('/members', { body: { firstName, lastName, email, role, creditorId: partner ? creditorId : undefined } });
           toast({ message: 'Invitation envoyée.' });
           onDone();
         } catch (error) {
-          if (error instanceof ApiError && error.status === 409) setTaken((error.body as { holder?: string }).holder ?? 'une autre personne');
+          if (error instanceof ApiError && error.status === 409) {
+            const holder = (error.body as { holder?: string }).holder;
+            if (holder) setTaken(holder);
+            else setDuplicate(true);
+          }
           throw error;
         }
       },
@@ -270,6 +317,7 @@ function InviteForm({ creditors, onDone }: { creditors: { id: string; name: stri
           />
         )}
       </div>
+      {duplicate && <Alerte tone="danger" text="Cette adresse est déjà utilisée par un compte." />}
       {taken && <Alerte tone="danger" text={`Le rôle ${ROLE_LABELS[role]} est unique et déjà attribué à ${taken}. Retirez-le d’abord à son titulaire.`} />}
       <div className={layout.end}>
         <Bouton variant="secondary" label="Annuler" onPress={onDone} />

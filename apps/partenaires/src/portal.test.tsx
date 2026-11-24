@@ -100,3 +100,15 @@ it('never offers online payment', async () => {
   await screen.findByText('15 nov. 2026');
   expect(document.body.textContent).not.toMatch(/SEPA|carte bancaire|PCI/i);
 });
+
+it('deposits several invoices of one debtor', async () => {
+  openAs('cb', '/depot');
+  await userEvent.click(await screen.findByRole('button', { name: 'Ajouter une autre facture' }));
+  expect(screen.getByLabelText(/N° de facture, facture 2/)).toBeVisible();
+  await userEvent.click(screen.getByRole('button', { name: /Retirer cette facture/ }));
+  expect(screen.queryByLabelText(/facture 2/)).toBeNull();
+  const invoice = { number: 'F-1', issuedOn: '2026-09-01', dueOn: '2026-10-01', amount: 100 };
+  const claim = { debtor: 'A', siret: '', email: '', phone: '', address: 'B' };
+  expect((await call('cb', '/portal/claims', { ...claim, invoices: [invoice, invoice] })).status).toBe(422);
+  expect((await call('cb', '/portal/claims', { ...claim, invoices: [invoice, { ...invoice, number: 'F-2' }] })).status).toBe(204);
+});

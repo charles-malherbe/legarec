@@ -1,4 +1,4 @@
-import { hasDelegation, ROLE_LABELS, searchHit, shellData, type Notification } from '@legarec/contracts';
+import { caseDetail, creditorDetail, hasDelegation, ROLE_LABELS, searchHit, shellData, type Notification } from '@legarec/contracts';
 import { applyDisplay } from '@legarec/tokens';
 import { useIdle, SessionExpiry, Sidebar, Topbar, type SidebarGroup, type Tone } from '@legarec/ui';
 import { useDebouncedValue } from '@mantine/hooks';
@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { canOpen, delegationFor } from './access';
 import { api } from './api';
 import { useCreditorScope } from './creditorScope';
+import { useApi } from './data';
 
 import { SESSION_KEY, useCurrentUser, useUpdatePreferences } from './session';
 import { AccessDenied } from '../features/error/ErrorPage';
@@ -248,6 +249,17 @@ export function Shell() {
   const trail = TRAILS.find(([prefix]) => pathname === prefix || pathname.startsWith(prefix.endsWith('/') ? prefix : `${prefix}/`))?.[1] ?? [
     { label: 'Legarec' },
   ];
+  // Breadcrumb of a file, read from the same answer as the page.
+  const caseId = /^\/debiteurs\/([^/]+)$/.exec(pathname)?.[1];
+  const { data: openCase } = useApi(caseDetail, `/cases/${caseId}`, { enabled: !!caseId && user.role !== 'DEVELOPER' });
+  const creditorId = /^\/creanciers\/([^/]+)$/.exec(pathname)?.[1];
+  const { data: openCreditor } = useApi(creditorDetail, `/creditors/${creditorId}`, { enabled: !!creditorId && user.role !== 'DEVELOPER' });
+  const steps =
+    creditorId && openCreditor
+      ? [{ label: 'Portefeuille' }, { label: 'Créanciers', href: '/creanciers' }, { label: openCreditor.name }]
+      : caseId && openCase
+        ? [{ label: 'Créanciers', href: '/creanciers' }, { label: openCase.creditor, href: `/creanciers/${openCase.creditorId}` }, { label: openCase.name }]
+        : trail;
   const acting = delegationFor(pathname, user);
   const pageHits = PAGES.filter(([href, label]) => canOpen(href, user) && label.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 4);
 
@@ -267,7 +279,7 @@ export function Shell() {
       />
       <div className={css.main}>
         <Topbar
-          trail={trail}
+          trail={steps}
           account={{ name: `${user.firstName} ${user.lastName}`, email: user.email, roleLabel: ROLE_LABELS[user.role], extension: user.extension }}
           presence={{ value: presence, onChange: setPresence }}
           search={{

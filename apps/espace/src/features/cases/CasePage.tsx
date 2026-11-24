@@ -60,7 +60,9 @@ function CaseView({ data }: { data: CaseDetail }) {
     await change(`/cases/${data.id}/ai-summary`);
     toast({ message: 'Synthèse régénérée.' });
   };
-  const writeEmail = () => {
+  const [to, setTo] = useState<string | null>(null);
+  const writeEmail = (address: string | null) => {
+    setTo(address);
     setTab('exchanges');
     setPanel('message');
   };
@@ -123,7 +125,7 @@ function CaseView({ data }: { data: CaseDetail }) {
                     {contact.value}
                   </a>
                 ) : (
-                  <Bouton variant="link" size="sm" label={contact.value} ariaLabel={`Écrire à ${contact.value}`} onPress={writeEmail} />
+                  <Bouton variant="link" size="sm" label={contact.value} ariaLabel={`Écrire à ${contact.value}`} onPress={() => writeEmail(contact.value)} />
                 )
               ) : (
                 <span>{contact.value}</span>
@@ -245,10 +247,10 @@ function CaseView({ data }: { data: CaseDetail }) {
           )}
           {tab === 'exchanges' && data.canAct && panel !== 'message' && (
             <div>
-              <Bouton variant="secondary" icon="mail" label="Écrire un e-mail" onPress={() => setPanel('message')} />
+              <Bouton variant="secondary" icon="mail" label="Écrire un e-mail" onPress={() => writeEmail(null)} />
             </div>
           )}
-          {tab === 'exchanges' && panel === 'message' && <CaseMessage data={data} onClose={() => setPanel(null)} />}
+          {tab === 'exchanges' && panel === 'message' && <CaseMessage key={to ?? 'main'} data={data} to={to} onClose={() => setPanel(null)} />}
           {tab === 'exchanges' && <ExchangesCard data={data} />}
           {tab === 'documents' && (
             <Carte title="Documents du dossier" padding="none" actionLabel={data.canAct ? '+ Nouveau courrier' : undefined} actionHref="/documents/rediger">
@@ -326,7 +328,7 @@ function CaseView({ data }: { data: CaseDetail }) {
                     ariaLabel={`Appeler ${data.mainContact.name}`}
                     onPress={() => startCall(data.mainContact.phone)}
                   />
-                  <Bouton variant="secondary" label="E-mail" ariaLabel={`E-mail : ${data.mainContact.name}`} onPress={writeEmail} />
+                  <Bouton variant="secondary" label="E-mail" ariaLabel={`E-mail : ${data.mainContact.name}`} onPress={() => writeEmail(null)} />
                 </div>
               )}
             </div>

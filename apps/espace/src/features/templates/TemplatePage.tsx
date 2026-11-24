@@ -123,11 +123,21 @@ function Template({ item }: { item: TemplateDetail }) {
     }
   };
   const cancelImport = async () => {
-    await change(`${path}/import`, { method: 'DELETE' });
+    const restored = item.status === 'RESTORED';
     const kept = lastImport;
+    try {
+      await change(`${path}/import`, { method: 'DELETE' });
+    } catch {
+      setFileError('L’import n’a pas été annulé. Réessayez.');
+      return;
+    }
     toast({
-      message: 'Import annulé.',
-      undo: kept ? () => void change(`${path}/import`, { body: kept }) : undefined,
+      message: restored ? 'Restauration annulée.' : 'Import annulé.',
+      undo: restored
+        ? () => void change(`${path}/restore`, { body: {} })
+        : kept
+          ? () => void change(`${path}/import`, { body: kept })
+          : () => void change(`${path}/import/undo`),
     });
   };
   const submit = () =>

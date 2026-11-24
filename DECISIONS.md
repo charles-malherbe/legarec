@@ -57,3 +57,9 @@ Décisions prises après la maquette v1.21 (23/11/2026). Elles priment sur la ma
 | 24/11/2026 | Fiche d'appel : envois décochés par défaut, confirmés, sans « Annuler » après un envoi | Un message parti ne s'annule pas |
 | 24/11/2026 | Dossier : « Pénalités et indemnités » devient « Principal · intérêts · frais » | Règle des montants séparés |
 | 24/11/2026 | E-mails : « Répondre » de la barre du message retiré, la réponse étant toujours affichée sous le message | Éviter deux actions identiques |
+| 24/11/2026 | Comptes : « Créanciers suivis » de la maquette non repris ; l'accès d'un gestionnaire vient des dossiers qui lui sont attribués | Deux règles d'accès se contrediraient |
+| 24/11/2026 | Un message écrit depuis un dossier ne part qu'à un contact de ce dossier ; le relevé de compte ne se joint que là | Éviter l'envoi de données à un tiers |
+| 24/11/2026 | Secret révoqué : jamais réactivé ; demande de révocation tranchée par le Directeur seul | Relecture sécurité |
+| 24/11/2026 | Support des comptes : sous délégation technique ; le compte du Directeur hors de portée du Responsable | Relecture sécurité |
+| 24/11/2026 | Modèles importés : propriétés CSS en liste blanche, contraste minimal, aucun champ ni bloc dans une balise | Relecture sécurité |
+| 24/11/2026 | Envoi groupé : l'API refuse si son comptage diffère de celui confirmé | Relecture maquette |

@@ -1,5 +1,7 @@
 import {
   UNIQUE_ROLES,
+  newMember,
+  staffRole,
   canAccessBilling,
   hasDelegation,
   ROLE_LABELS,
@@ -358,7 +360,8 @@ const MEMBER_CREDITORS = [
   { id: 'tl', name: 'TransAlp Leasing' },
   { id: 'ch', name: 'Crédit Horizon' },
 ];
-const manages = (session: Session) => administers(session) || session.role === 'DEVELOPER';
+/** Account support is part of the technical delegation; the Director's own account is out of the manager's reach. */
+const manages = (session: Session) => administers(session) || hasDelegation(session, 'TECHNICAL');
 let members = seedMembers();
 export const administers = (session: Session) => session.role === 'DIRECTOR' || hasDelegation(session, 'ADMINISTRATIVE');
 const supports = (session: Session) => session.role === 'DEVELOPER';
@@ -415,6 +418,9 @@ const seedDocuments = () => [
   doc('CT-2026-0005', 'CONTRACT', 'Crédit Horizon', '199 603 085', 'Convention et mandat judiciaire', '2026-04-10', null, '24 mois', 'Signée', 'success'),
 ];
 let documents = seedDocuments();
+/** Accounts that may hold cases: active, and with a role that handles them. */
+export const mayHoldCases = (id: string) =>
+  members.some((item) => item.id === id && item.status === 'ACTIVE' && ['CLAIMS_OFFICER', 'COLLECTION_MANAGER', 'DIRECTOR'].includes(item.role));
 export const resetSteering = () => {
   notifications = seedNotifications();
   members = seedMembers();
@@ -528,33 +534,26 @@ export const steeringHandlers = [
           creditors: administers(session) ? MEMBER_CREDITORS : [],
           canInvite: administers(session),
           canDisable: administers(session),
-          canEditExtension: supports(session),
+          canEditExtension: supports(session) && hasDelegation(session, 'TECHNICAL'),
         }),
     ),
   ),
   http.post(
     '/api/members',
     guarded<Info>(administers, async ({ request }, session) => {
-      const body = (await request.json()) as Pick<Member, 'firstName' | 'lastName' | 'email' | 'role'> & { creditorId?: string };
+      const parsed = newMember.safeParse(await request.json());
+      if (!parsed.success) return HttpResponse.json({ code: 'INVALID' }, { status: 422 });
+      const body = parsed.data;
+      const creditor = body.role === 'CREDITOR' ? MEMBER_CREDITORS.find((item) => item.id === body.creditorId) : null;
+      if (creditor === undefined) return HttpResponse.json({ code: 'INVALID' }, { status: 422 });
+      if (members.some((item) => item.email.toLowerCase() === body.email.toLowerCase())) return HttpResponse.json({ code: 'EMAIL_TAKEN' }, { status: 409 });
       const holder = UNIQUE_ROLES.includes(body.role) ? members.find((item) => item.role === body.role && item.status !== 'DISABLED') : undefined;
       if (holder)
         return HttpResponse.json({ code: 'ROLE_TAKEN', role: ROLE_LABELS[body.role], holder: `${holder.firstName} ${holder.lastName}` }, { status: 409 });
       audit(session, `Invitation envoyée (${ROLE_LABELS[body.role]})`, 'ADMINISTRATIVE');
       members = [
         ...members,
-        m(
-          `i${members.length}`,
-          body.firstName,
-          body.lastName,
-          body.email,
-          body.role,
-          null,
-          false,
-          0,
-          'Invité',
-          'INVITED',
-          MEMBER_CREDITORS.find((item) => item.id === body.creditorId)?.name ?? null,
-        ),
+        m(crypto.randomUUID(), body.firstName, body.lastName, body.email, body.role, null, false, 0, 'Invité', 'INVITED', creditor?.name ?? null),
       ];
       return done();
     }),
@@ -584,9 +583,11 @@ export const steeringHandlers = [
     guarded<Info>(administers, async ({ params, request }, session) => {
       const item = members.find((entry) => entry.id === params.id);
       if (!item) return notFound();
-      const { role } = (await request.json()) as { role: Role };
+      const parsed = staffRole.safeParse(((await request.json()) as { role: unknown }).role);
+      if (!parsed.success) return HttpResponse.json({ code: 'INVALID' }, { status: 422 });
+      const role = parsed.data;
       // A creditor account never becomes a staff account, and nobody changes their own role.
-      if (item.id === session.userId || item.role === 'CREDITOR' || role === 'CREDITOR' || item.role === 'DIRECTOR') return forbidden();
+      if (item.id === session.userId || item.role === 'CREDITOR' || item.role === 'DIRECTOR' || item.status !== 'ACTIVE') return forbidden();
       const holder = UNIQUE_ROLES.includes(role) ? members.find((entry) => entry.role === role && entry.status !== 'DISABLED' && entry !== item) : undefined;
       if (holder) return HttpResponse.json({ code: 'ROLE_TAKEN', holder: `${holder.firstName} ${holder.lastName}` }, { status: 409 });
       audit(session, `Rôle modifié : ${ROLE_LABELS[item.role]} → ${ROLE_LABELS[role]}`, 'ADMINISTRATIVE');
@@ -600,17 +601,25 @@ export const steeringHandlers = [
       const item = members.find((entry) => entry.id === params.id);
       if (!item) return notFound();
       if (session.role === 'DEVELOPER' && item.role === 'CREDITOR') return forbidden();
+      if (item.role === 'DIRECTOR' && session.role === 'COLLECTION_MANAGER') return forbidden();
       const delegation = session.role === 'DEVELOPER' ? 'TECHNICAL' : 'ADMINISTRATIVE';
       switch (params.action) {
         case 'reset-link':
           audit(session, 'Lien de réinitialisation envoyé', delegation);
           return done();
         case 'require-2fa':
+          // Nobody imposes it on the Director.
+          if (item.role === 'DIRECTOR' && session.role !== 'DIRECTOR') return forbidden();
           item.twoFactorRequired = true;
           audit(session, 'Double authentification exigée', delegation);
           return done();
         case 'enable':
           if (!administers(session)) return forbidden();
+          if (item.status !== 'DISABLED') return forbidden();
+          {
+            const holder = UNIQUE_ROLES.includes(item.role) ? members.find((entry) => entry.role === item.role && entry.status !== 'DISABLED') : undefined;
+            if (holder) return HttpResponse.json({ code: 'ROLE_TAKEN', holder: `${holder.firstName} ${holder.lastName}` }, { status: 409 });
+          }
           item.status = 'ACTIVE';
           audit(session, 'Compte réactivé', delegation);
           return done();
@@ -621,12 +630,15 @@ export const steeringHandlers = [
   ),
   http.put(
     '/api/members/:id/extension',
-    guarded<Info>(supports, async ({ params, request }) => {
-      const item = members.find((entry) => entry.id === params.id);
-      if (!item) return notFound();
-      item.extension = ((await request.json()) as { extension: string | null }).extension;
-      return done();
-    }),
+    guarded<Info>(
+      (session) => supports(session) && hasDelegation(session, 'TECHNICAL'),
+      async ({ params, request }) => {
+        const item = members.find((entry) => entry.id === params.id);
+        if (!item) return notFound();
+        item.extension = ((await request.json()) as { extension: string | null }).extension;
+        return done();
+      },
+    ),
   ),
   http.get(
     '/api/billing',

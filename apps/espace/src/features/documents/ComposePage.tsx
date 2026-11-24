@@ -66,7 +66,7 @@ export function ComposePage() {
   return (
     <>
       {header}
-      <Editor data={shown} filters={{ creditor, setCreditor, age, setAge }} />
+      <Editor data={shown} filters={{ creditor, setCreditor, age, setAge, fresh: !!data, failed: !!error, retry: () => void refetch() }} />
     </>
   );
 }
@@ -76,6 +76,10 @@ interface Filters {
   setCreditor: (value: string) => void;
   age: string;
   setAge: (value: string) => void;
+  /** False while the API recounts: no batch may leave on an old count. */
+  fresh: boolean;
+  failed: boolean;
+  retry: () => void;
 }
 
 function StepTitle({ number, label }: { number: number; label: string }) {
@@ -119,6 +123,25 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
   };
   const count = batch ? batch.debtors - excluded : 1;
   const downloadOnly = channel === 'Télécharger seulement';
+  const blocked = missingFirstLetter || (!!batch && (!filters.fresh || count <= 0));
+  const AGES: Record<string, string> = { '31-60': '31 – 60 jours', '0-30': '0 – 30 jours', '60+': '+ 60 jours' };
+  const selection = batch
+    ? [
+        { k: 'Créancier', v: batch.creditors.find((item) => item.id === filters.creditor)?.name ?? 'Tous' },
+        { k: 'Ancienneté', v: AGES[filters.age] ?? filters.age },
+      ]
+    : [];
+  const compose = (target: string) => ({
+    template,
+    caseIds: batch ? null : [recipient.caseId],
+    filters: batch ? { creditor: filters.creditor, age: filters.age } : null,
+    // The API refuses the batch if its own count differs from the one confirmed.
+    expected: count,
+    channel: target,
+    delay,
+    months,
+    options: { table, pay, indemnity: indemnity && allowsIndemnity },
+  });
   const send = () =>
     confirm({
       title: downloadOnly
@@ -132,22 +155,13 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
       details: [
         { k: 'Modèle', v: definition.label },
         { k: 'Destinataire', v: batch ? `${count} débiteurs sélectionnés` : recipient.name },
+        ...selection,
         { k: 'Envoi', v: channel },
         ...(excluded > 0 ? [{ k: 'Exclus', v: `${excluded} débiteurs sans premier courrier` }] : []),
         ...(batch ? [] : [{ k: 'Montant', v: formatCents(letterTotals(recipient, indemnity && allowsIndemnity).total) }]),
       ],
       onConfirm: async () => {
-        await change('/documents/compose', {
-          body: {
-            template,
-            caseIds: batch ? null : [recipient.caseId],
-            filters: batch ? { creditor: filters.creditor, age: filters.age } : null,
-            channel,
-            delay,
-            months,
-            options: { table, pay, indemnity: indemnity && allowsIndemnity },
-          },
-        });
+        await change('/documents/compose', { body: compose(channel) });
         setDone(
           downloadOnly
             ? `${batch ? `${count} documents générés` : 'Document généré'}, sans envoi.`
@@ -157,22 +171,29 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
         );
       },
     });
-  const generate = async () => {
-    await change('/documents/compose', {
-      body: {
-        template,
-        caseIds: batch ? null : [recipient.caseId],
-        channel: 'Télécharger seulement',
-        delay,
-        months,
-        options: { table, pay, indemnity: indemnity && allowsIndemnity },
+  const generate = () =>
+    confirm({
+      title: `Générer ${batch ? `${count} documents` : 'ce document'} ?`,
+      body: 'Rien n’est envoyé : le document est généré pour téléchargement. Chaque document est ajouté à l’historique du dossier et visible par le créancier.',
+      confirmLabel: 'Générer',
+      details: [
+        { k: 'Modèle', v: definition.label },
+        { k: 'Destinataire', v: batch ? `${count} débiteurs sélectionnés` : recipient.name },
+        ...selection,
+        ...(excluded > 0 ? [{ k: 'Exclus', v: `${excluded} débiteurs sans premier courrier` }] : []),
+      ],
+      onConfirm: async () => {
+        await change('/documents/compose', { body: compose('Télécharger seulement') });
+        setDone(batch ? `${count} documents générés, sans envoi.` : 'Document généré, sans envoi.');
       },
     });
-    setDone(batch ? `${count} documents générés, sans envoi.` : 'Document généré, sans envoi.');
-  };
   const draft = async () => {
-    await change('/documents/compose/draft', { body: { template, caseId: recipient.caseId } });
-    toast({ message: 'Brouillon enregistré.' });
+    try {
+      await change('/documents/compose/draft', { body: { template, caseId: recipient.caseId } });
+      toast({ message: 'Brouillon enregistré.' });
+    } catch {
+      toast({ message: 'Le brouillon n’a pas été enregistré. Réessayez.' });
+    }
   };
   return (
     <>
@@ -343,6 +364,21 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
               {recipient.isIndividual && reminder && <span className={layout.hint}>Particulier : pas d’indemnité forfaitaire de 40 €.</span>}
             </div>
           </Carte>
+          {batch && filters.failed && (
+            <Alerte
+              tone="danger"
+              compact
+              text="La sélection n’a pas pu être recomptée : l’envoi est bloqué."
+              actionLabel="Réessayer"
+              onAction={filters.retry}
+            />
+          )}
+          {batch && !filters.fresh && !filters.failed && (
+            <p role="status" className={layout.hint}>
+              Comptage des débiteurs en cours…
+            </p>
+          )}
+          {batch && filters.fresh && count <= 0 && <Alerte tone="info" compact text="Aucun débiteur ne correspond à cette sélection." />}
           {excluded > 0 && (
             <Alerte tone="warning" compact text={`${excluded} débiteurs n’ont aucun premier courrier enregistré : ils sont exclus de cet envoi.`} />
           )}
@@ -355,10 +391,10 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
           )}
           <div className={layout.end}>
             <Bouton variant="secondary" label="Enregistrer le brouillon" onPress={() => void draft()} />
-            {!downloadOnly && <Bouton variant="secondary" label="Générer le PDF" disabled={missingFirstLetter} onPress={() => void generate()} />}
+            {!downloadOnly && <Bouton variant="secondary" label="Générer le PDF" disabled={blocked} onPress={generate} />}
             <Bouton
               label={downloadOnly ? 'Générer le PDF' : batch ? `Générer et envoyer (${count})` : 'Générer et envoyer'}
-              disabled={missingFirstLetter}
+              disabled={blocked}
               onPress={send}
             />
           </div>

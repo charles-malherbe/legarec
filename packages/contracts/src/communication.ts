@@ -161,6 +161,8 @@ export const emailDraft = z.object({
   subject: z.string(),
   text: z.string(),
   caseId: z.string().nullable(),
+  /** Case of the draft, as long as its author may still act on it. */
+  recipient: z.object({ name: z.string(), reference: z.string() }).nullable().optional(),
   updated: z.string(),
 });
 export type EmailDraft = z.infer<typeof emailDraft>;
@@ -174,7 +176,7 @@ export const automaticEmail = z.object({
   when: z.string(),
   status: z.enum(['DELIVERED', 'OPENED', 'FAILED']),
 });
-export const messageTemplate = z.object({ id: z.string(), name: z.string(), subject: z.string(), text: z.string() });
+export const messageTemplate = z.object({ id: z.string(), use: z.enum(['NEW', 'REPLY', 'BOTH']), name: z.string(), subject: z.string(), text: z.string() });
 export type MessageTemplate = z.infer<typeof messageTemplate>;
 export const mailboxData = z.object({
   drafts: z.array(emailDraft),
@@ -225,4 +227,13 @@ export const smsData = z.object({
   total: z.number().int(),
   stopNotice: z.string(),
   stats: z.object({ sent: z.number().int(), delivered: z.number(), answers: z.number().int(), stops: z.number().int() }),
+});
+
+/** Message of an employee: one valid address, and a real case or none. */
+export const outgoingMessage = z.object({
+  to: z.email({ error: 'Saisissez une adresse e-mail valide.' }),
+  subject: z.string().trim().min(1).max(150),
+  paragraphs: z.array(z.string().min(1)).min(1),
+  caseId: z.string().min(1).nullable(),
+  statement: z.boolean().default(false),
 });

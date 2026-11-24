@@ -57,6 +57,8 @@ export function CasesPage() {
   const chosen = rows.filter((row) => selected.includes(row.id));
   const total = chosen.reduce((sum, row) => sum + row.amount, 0);
   const plural = chosen.length > 1 ? 's' : '';
+  // Only what the summary shows may be acted upon.
+  const ids = chosen.map((row) => row.id);
   const names = chosen.map((row) => row.name).join(', ');
   const tabs: [CaseFilter, string][] = user.role === 'COLLECTION_MANAGER' && data?.counts.unassigned ? [...TABS, ['unassigned', 'Sans gestionnaire']] : TABS;
   const state = listState({
@@ -79,7 +81,7 @@ export function CasesPage() {
       details: [{ k: 'Débiteurs', v: names }],
       confirmLabel: 'Envoyer les relances',
       onConfirm: async () => {
-        await change('/cases/reminders', { body: { ids: selected } });
+        await change('/cases/reminders', { body: { ids } });
         toast({ message: `${chosen.length} relance(s) programmée(s) pour envoi immédiat.` });
         setSelected([]);
       },
@@ -96,7 +98,7 @@ export function CasesPage() {
       reasonLabel: 'Motif du passage en contentieux',
       confirmLabel: 'Passer en contentieux',
       onConfirm: async (reason) => {
-        await change('/cases/litigation', { body: { ids: selected, reason } });
+        await change('/cases/litigation', { body: { ids, reason } });
         toast({ message: `${chosen.length} dossier(s) transmis au contentieux · demandes d’accord envoyées aux créanciers.` });
         setSelected([]);
       },
@@ -111,12 +113,18 @@ export function CasesPage() {
       ],
       confirmLabel: 'Attribuer',
       onConfirm: async () => {
-        await change('/cases/assign', { body: { ids: selected, officerId } });
+        await change('/cases/assign', { body: { ids, officerId } });
         toast({ message: 'Dossiers attribués.' });
         setSelected([]);
         setTarget('');
       },
     });
+  /** A filter starts again from the first page, with nothing selected. */
+  const narrow = (apply: (value: string) => void) => (value: string) => {
+    apply(value);
+    setPage(1);
+    setSelected([]);
+  };
   const mayAssign = canAccessBilling(user);
   const s = data?.stats;
   return (
@@ -146,6 +154,7 @@ export function CasesPage() {
         onQuery={(value) => {
           setQuery(value);
           setPage(1);
+          setSelected([]);
         }}
         tabs={tabs.map(([id, label]) => ({
           label,
@@ -162,8 +171,8 @@ export function CasesPage() {
           onReset: scope.id === 'all' ? undefined : () => scope.setId('all'),
         }}
         filters={[
-          { label: 'Ancienneté', value: age, options: AGES, onChange: setAge },
-          ...(user.role === 'CLAIMS_OFFICER' ? [] : [{ label: 'Gestionnaire', value: officer, options: OFFICERS, onChange: setOfficer }]),
+          { label: 'Ancienneté', value: age, options: AGES, onChange: narrow(setAge) },
+          ...(user.role === 'CLAIMS_OFFICER' ? [] : [{ label: 'Gestionnaire', value: officer, options: OFFICERS, onChange: narrow(setOfficer) }]),
         ]}
       />
       <section aria-label="Liste des dossiers" className={layout.card}>

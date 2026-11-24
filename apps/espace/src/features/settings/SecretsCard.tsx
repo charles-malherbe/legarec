@@ -147,7 +147,14 @@ export function SecretsCard({ canEdit }: { canEdit: boolean }) {
               render: (row) =>
                 canEdit && row.status !== 'REVOKED' ? (
                   <span className={layout.inline}>
-                    <Bouton variant="secondary" size="xs" label="Renouveler" ariaLabel={`Renouveler : ${row.name}`} onPress={() => ask(row, 'rotate')} />
+                    <Bouton
+                      variant="secondary"
+                      size="xs"
+                      label="Renouveler"
+                      disabled={row.status === 'REVOKE_PENDING'}
+                      ariaLabel={`Renouveler : ${row.name}`}
+                      onPress={() => ask(row, 'rotate')}
+                    />
                     <Bouton
                       variant="danger-outline"
                       size="xs"

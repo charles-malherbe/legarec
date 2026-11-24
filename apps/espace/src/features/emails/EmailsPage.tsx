@@ -15,8 +15,8 @@ import {
   useToast,
   type Tone,
 } from '@legarec/ui';
-import { useState } from 'react';
-import { Link, useLocation } from 'react-router';
+import { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { z } from 'zod';
 import { useCreditorScope } from '../../app/creditorScope';
 import { useApi, useChange } from '../../app/data';
@@ -60,8 +60,15 @@ export function EmailsPage() {
   const [folder, setFolder] = useState<(typeof FOLDERS)[number][0]>('inbox');
   const [label, setLabel] = useState('all');
   const [selected, setSelected] = useState<string | null>(null);
-  const { state: from } = useLocation() as { state: { to?: string } | null };
+  const location = useLocation() as { pathname: string; state: { to?: string } | null };
+  const navigate = useNavigate();
+  const from = location.state;
   const [compose, setCompose] = useState(!!from?.to);
+  const [initialTo, setInitialTo] = useState(from?.to ?? '');
+  // The address only serves once: it must not survive in the browser history.
+  useEffect(() => {
+    if (from?.to) void navigate(location.pathname, { replace: true, state: null });
+  }, [from?.to, location.pathname, navigate]);
   const [draft, setDraft] = useState<EmailDraft | undefined>();
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(25);
@@ -121,6 +128,7 @@ export function EmailsPage() {
             expanded: compose,
             onPress: () => {
               setDraft(undefined);
+              setInitialTo('');
               setCompose(!compose);
             },
           },
@@ -152,12 +160,18 @@ export function EmailsPage() {
         <StaffMessageForm
           key={draft?.id ?? 'new'}
           sender={data.sender}
-          templates={data.templates}
+          templates={data.templates.filter((item) => item.use !== 'REPLY')}
           draft={draft}
-          initialTo={from?.to}
+          initialTo={initialTo}
+          recipient={
+            draft?.caseId && draft.recipient
+              ? { email: draft.to, name: draft.recipient.name, reference: draft.recipient.reference, caseId: draft.caseId, isDebtor: true }
+              : undefined
+          }
           onClose={() => {
             setCompose(false);
             setDraft(undefined);
+            setInitialTo('');
           }}
         />
       )}
@@ -169,24 +183,36 @@ export function EmailsPage() {
               {counts[id] !== undefined && counts[id] !== 0 && <span className={layout.num}>{counts[id]}</span>}
             </button>
           ))}
-          <span className={css.labels}>Étiquettes</span>
-          {LABELS.map((value) => (
-            <button key={value} type="button" className={css.label} aria-pressed={label === value} onClick={() => setLabel(label === value ? 'all' : value)}>
-              <span aria-hidden className={css.dot} style={{ background: `var(--${TONE[value]})` }} />
-              {EMAIL_CATEGORIES[value].tag}
-            </button>
-          ))}
+          {(folder === 'inbox' || folder === 'sent' || folder === 'archive') && <span className={css.labels}>Étiquettes</span>}
+          {(folder === 'inbox' || folder === 'sent' || folder === 'archive') &&
+            LABELS.map((value) => (
+              <button key={value} type="button" className={css.label} aria-pressed={label === value} onClick={() => setLabel(label === value ? 'all' : value)}>
+                <span aria-hidden className={css.dot} style={{ background: `var(--${TONE[value]})` }} />
+                {EMAIL_CATEGORIES[value].tag}
+              </button>
+            ))}
         </nav>
+        {(folder === 'drafts' || folder === 'auto') && !data && <EtatListe kind={error ? 'error' : 'loading'} onAction={() => void refetch()} />}
         {folder === 'drafts' && data && (
           <Drafts
-            drafts={data.drafts}
+            drafts={data.drafts.filter((item) => matches(query, item.to, item.subject, item.text, item.recipient?.name ?? ''))}
+            searching={!!query.trim()}
+            onClear={() => setQuery('')}
             onOpen={(item) => {
               setDraft(item);
               setCompose(true);
             }}
           />
         )}
-        {folder === 'auto' && data && <Automatic items={data.automatic.filter((item) => scope.id === 'all' || item.creditorId === scope.id)} />}
+        {folder === 'auto' && data && (
+          <Automatic
+            items={data.automatic.filter(
+              (item) => (scope.id === 'all' || item.creditorId === scope.id) && matches(query, item.debtor, item.creditor, item.subject),
+            )}
+            searching={!!query.trim()}
+            onClear={() => setQuery('')}
+          />
+        )}
         {folder !== 'drafts' && folder !== 'auto' && (
           <>
             <section aria-label="Liste des e-mails" className={layout.card}>
@@ -247,7 +273,7 @@ export function EmailsPage() {
               )}
             </section>
             {current && data ? (
-              <Reader key={current.id} mail={current} sender={data.sender} templates={data.templates} />
+              <Reader key={current.id} mail={current} sender={data.sender} templates={data.templates.filter((item) => item.use !== 'NEW')} />
             ) : (
               <div className={layout.card}>
                 <EtatListe kind="empty" compact title="Aucun message sélectionné" text="Choisissez un message pour le lire." />
@@ -262,17 +288,31 @@ export function EmailsPage() {
 
 const AUTO_STATUS = { DELIVERED: ['Distribué', 'info'], OPENED: ['Ouvert', 'success'], FAILED: ['Rejeté', 'danger'] } as const;
 
-function Drafts({ drafts, onOpen }: { drafts: EmailDraft[]; onOpen: (item: EmailDraft) => void }) {
+interface ListSearch {
+  searching: boolean;
+  onClear: () => void;
+}
+
+function Drafts({ drafts, searching, onClear, onOpen }: ListSearch & { drafts: EmailDraft[]; onOpen: (item: EmailDraft) => void }) {
   const change = useChange();
   const toast = useToast();
   const remove = async (item: EmailDraft) => {
-    await change(`/emails/drafts/${item.id}`, { method: 'DELETE' });
+    try {
+      await change(`/emails/drafts/${item.id}`, { method: 'DELETE' });
+    } catch {
+      toast({ message: 'Le brouillon n’a pas été supprimé. Réessayez.' });
+      return;
+    }
     toast({ message: 'Brouillon supprimé.', undo: () => void change('/emails/drafts', { body: item, schema: z.object({ id: z.string() }) }) });
   };
   return (
     <section aria-label="Brouillons">
       {drafts.length === 0 ? (
-        <EtatListe kind="empty" title="Aucun brouillon" text="Les messages enregistrés sans être envoyés apparaissent ici." />
+        searching ? (
+          <EtatListe kind="noresult" onAction={onClear} />
+        ) : (
+          <EtatListe kind="empty" title="Aucun brouillon" text="Les messages enregistrés sans être envoyés apparaissent ici." />
+        )
       ) : (
         <ul className={layout.list}>
           {drafts.map((item) => (
@@ -293,11 +333,15 @@ function Drafts({ drafts, onOpen }: { drafts: EmailDraft[]; onOpen: (item: Email
   );
 }
 
-function Automatic({ items }: { items: z.infer<typeof mailboxData>['automatic'] }) {
+function Automatic({ items, searching, onClear }: ListSearch & { items: z.infer<typeof mailboxData>['automatic'] }) {
   return (
     <section aria-label="Relances automatiques">
       {items.length === 0 ? (
-        <EtatListe kind="empty" title="Aucune relance automatique" text="Les envois des scénarios apparaissent ici." />
+        searching ? (
+          <EtatListe kind="noresult" onAction={onClear} />
+        ) : (
+          <EtatListe kind="empty" title="Aucune relance automatique" text="Les envois des scénarios apparaissent ici." />
+        )
       ) : (
         <ul className={layout.list}>
           {items.map((item) => (
@@ -485,6 +529,7 @@ function Reader({ mail, sender, templates }: { mail: EmailThread; sender: z.infe
                   onPress={() => {
                     setReply(mail.ai?.draft ?? '');
                     setDrafted(true);
+                    setTemplate('');
                   }}
                 />
               )}
@@ -499,8 +544,19 @@ function Reader({ mail, sender, templates }: { mail: EmailThread; sender: z.infe
                 setTemplate(id);
                 const next = templates.find((item) => item.id === id);
                 if (!next) return;
+                const wasDrafted = drafted;
                 setReply(next.text);
-                if (before.trim()) toast({ message: `Modèle « ${next.name} » inséré.`, undo: () => setReply(before) });
+                // The text no longer comes from the AI.
+                setDrafted(false);
+                if (before.trim())
+                  toast({
+                    message: `Modèle « ${next.name} » inséré.`,
+                    undo: () => {
+                      setReply(before);
+                      setDrafted(wasDrafted);
+                      setTemplate('');
+                    },
+                  });
               }}
             />
             <Champ label="Votre réponse" type="textarea" rows={6} value={reply} onChange={setReply} />

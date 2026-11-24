@@ -15,6 +15,7 @@ import {
 import { http, HttpResponse } from 'msw';
 import { done, forbidden, guarded, notFound, staffWithCases } from '../http';
 import { addGdprRequest } from './settings';
+import { mayHoldCases } from './steering';
 
 export const OFFICERS: Record<string, { name: string; role: Role }> = {
   cl: { name: 'Camille Laurent', role: 'COLLECTION_MANAGER' },
@@ -242,9 +243,10 @@ const ownership = (item: Stored) => ({ officerId: item.officerId, officerRole: i
 export const readable = (session: Session) => cases.filter((item) => canReadCase(session, ownership(item)));
 export const allNames = () => cases.map((item) => item.name);
 export const actsOn = (session: Session, caseId: string) => cases.some((item) => item.id === caseId && canActOnCase(session, ownership(item)));
-const EMAIL_CASES: Record<string, string> = { 'compta@batiplus.example': 'demo' };
+/** Addresses recorded on a case: the only ones a message of that case may go to. */
+export const contactsOf = (caseId: string) => (caseId === 'demo' ? ['compta@batiplus.example', 'j.ferrand@batiplus.example'] : [`contact@${caseId}.example`]);
 /** Case behind a debtor's address, as the API would find it. */
-export const caseOfEmail = (email: string) => EMAIL_CASES[email.trim().toLowerCase()] ?? null;
+export const caseOfEmail = (email: string) => cases.find((item) => contactsOf(item.id).includes(email.trim().toLowerCase()))?.id ?? null;
 const toItem = (item: Stored, session: Session): CaseListItem => {
   const { group: _group, ...rest } = item;
   return { ...rest, officer: item.officerId ? (OFFICERS[item.officerId]?.name ?? null) : null, canAct: canActOnCase(session, ownership(item)) };
@@ -293,13 +295,13 @@ function detailOf(item: Stored, session: Session): CaseDetail {
     contacts: [
       { id: 'p1', kind: 'PHONE', value: '04 72 18 45 90', verified: true },
       { id: 'p2', kind: 'PHONE', value: '06 12 48 77 03', verified: false },
-      { id: 'e1', kind: 'EMAIL', value: 'compta@batiplus.example', verified: true },
+      ...contactsOf(item.id).map((value, index) => ({ id: `e${index + 1}`, kind: 'EMAIL' as const, value, verified: index === 0 })),
     ],
     mainContact: {
       name: 'Julien Ferrand',
       title: 'gérant',
       phone: '04 72 18 45 90',
-      email: 'compta@batiplus.example',
+      email: contactsOf(item.id)[0] ?? '',
       address: '12 rue des Artisans, 69007 Lyon',
     },
     aiSummary: {
@@ -493,6 +495,8 @@ const bulk = (title: string, apply: (item: Stored, body: { officerId?: string; r
     async ({ request }, session) => {
       const body = (await request.json()) as { ids: string[]; officerId?: string; reason?: string };
       const items = body.ids.map(find);
+      // Only an active account whose role handles cases may receive one.
+      if (managerOnly && !mayHoldCases(body.officerId ?? '')) return HttpResponse.json({ code: 'INVALID_OFFICER' }, { status: 422 });
       // Assigning is a right of the Director, whose delegate acts on their behalf.
       if (items.some((item) => !item || !(managerOnly ? canReadCase(session, ownership(item)) : canActOnCase(session, ownership(item))))) return forbidden();
       const onBehalfOf = managerOnly && session.role !== 'DIRECTOR' ? session.directorName : null;

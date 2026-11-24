@@ -1,7 +1,7 @@
-import { ROLE_LABELS, type EmailDraft, type EmailThread, type MessageTemplate, type SmsThread } from '@legarec/contracts';
+import { outgoingMessage, ROLE_LABELS, type EmailDraft, type EmailThread, type MessageTemplate, type SmsThread } from '@legarec/contracts';
 import { http, HttpResponse } from 'msw';
 import { done, forbidden, guarded, notFound, staffWithCases } from '../http';
-import { actsOn, caseOfEmail, readable } from './cases';
+import { actsOn, caseOfEmail, contactsOf, readable } from './cases';
 import type { Session } from '@legarec/contracts';
 
 type Info = { request: Request; params: Record<string, unknown> };
@@ -404,21 +404,45 @@ const onSms = (resolve: (item: SmsThread, info: Info, session: Session) => Respo
 const TEMPLATES: MessageTemplate[] = [
   {
     id: 'amiable',
+    use: 'NEW',
     name: 'Relance amiable n°1',
     subject: 'Votre dossier',
     text: 'Bonjour,\n\nSauf erreur de notre part, votre dossier présente toujours un solde impayé. Les moyens de paiement, virement ou chèque, sont indiqués dans votre espace débiteur.',
   },
   {
     id: 'promesse',
+    use: 'NEW',
     name: 'Confirmation de promesse',
     subject: 'Confirmation de votre engagement',
     text: 'Bonjour,\n\nNous avons bien noté votre engagement de paiement. Merci d’indiquer la référence de votre dossier sur votre virement ou au dos de votre chèque.',
   },
   {
     id: 'echeancier',
+    use: 'BOTH',
     name: 'Proposition d’échéancier',
     subject: 'Proposition d’échéancier',
     text: 'Bonjour,\n\nComme convenu, nous vous proposons un règlement en plusieurs mensualités. Vous pouvez consulter et signer la proposition dans votre espace débiteur.',
+  },
+  {
+    id: 'paiement',
+    use: 'REPLY',
+    name: 'Accusé de réception paiement',
+    subject: 'Votre paiement',
+    text: 'Bonjour,\n\nNous accusons réception de votre message. Votre paiement est en cours de vérification ; une quittance vous sera remise dès qu’il sera définitif.',
+  },
+  {
+    id: 'contestation',
+    use: 'REPLY',
+    name: 'Réponse à contestation',
+    subject: 'Votre contestation',
+    text: 'Bonjour,\n\nNous avons bien reçu votre contestation. Elle est examinée avec notre client ; les relances sont suspendues pendant cet examen.',
+  },
+  {
+    id: 'ferme',
+    use: 'REPLY',
+    name: 'Relance ferme',
+    subject: 'Votre dossier',
+    text: 'Bonjour,\n\nMalgré nos précédents échanges, votre dossier présente toujours un solde impayé. Nous vous remercions de procéder au règlement, par virement ou par chèque, ou de nous proposer un échéancier.',
   },
 ];
 const AUTOMATIC = [
@@ -436,9 +460,10 @@ export const messageHandlers = [
   http.post(
     '/api/emails/drafts',
     guarded<Info>(staffWithCases, async ({ request }, session) => {
-      const body = (await request.json()) as Omit<EmailDraft, 'id' | 'updated'> & { id?: string };
+      const raw = (await request.json()) as Omit<EmailDraft, 'id' | 'updated'> & { id?: string };
+      const body = { ...raw, caseId: raw.caseId || null };
       if (body.caseId && !actsOn(session, body.caseId)) return forbidden();
-      const id = body.id ?? `dr${Date.now()}`;
+      const id = body.id && draftsOf(session).some((item) => item.id === body.id) ? body.id : crypto.randomUUID();
       drafts.set(session.userId, [
         { id, to: body.to, subject: body.subject, text: body.text, caseId: body.caseId, updated: 'à l’instant' },
         ...draftsOf(session).filter((item) => item.id !== id),
@@ -475,7 +500,10 @@ export const messageHandlers = [
         syncedMinutesAgo: 1,
         threads: visible.map((item) => ({ ...item, canAct: mayAnswer(session, item.caseId) })),
         total: session.role === 'CLAIMS_OFFICER' ? visible.length : 128,
-        drafts: draftsOf(session),
+        drafts: draftsOf(session).map((item) => {
+          const target = item.caseId && actsOn(session, item.caseId) ? readable(session).find((entry) => entry.id === item.caseId) : undefined;
+          return { ...item, recipient: target ? { name: target.name, reference: target.reference } : null };
+        }),
         templates: TEMPLATES,
         automatic: AUTOMATIC.flatMap(([id, caseId, subject, when, status]) => {
           const item = readable(session).find((entry) => entry.id === caseId);
@@ -489,8 +517,14 @@ export const messageHandlers = [
   http.post(
     '/api/emails/messages',
     guarded<Info>(staffWithCases, async ({ request }, session) => {
-      const { caseId, to } = (await request.json()) as { caseId: string | null; to: string };
-      // The API matches the address: a debtor is only written to from a case the sender may act on.
+      const parsed = outgoingMessage.safeParse(await request.json());
+      if (!parsed.success) return HttpResponse.json({ code: 'INVALID' }, { status: 422 });
+      const { caseId, to, statement } = parsed.data;
+      if (caseId && !actsOn(session, caseId)) return forbidden();
+      // From a case, only to the contacts recorded on it: neither the message nor the statement may reach a third party.
+      if (caseId && !contactsOf(caseId).includes(to.toLowerCase())) return HttpResponse.json({ code: 'NOT_A_CONTACT' }, { status: 422 });
+      if (statement && !caseId) return HttpResponse.json({ code: 'INVALID' }, { status: 422 });
+      // Outside a case, the API still recognises a debtor's address.
       const target = caseId ?? caseOfEmail(to);
       if (target && !actsOn(session, target)) return forbidden();
       if (mailState.sentThisHour >= 180) return HttpResponse.json({ code: 'QUOTA' }, { status: 429 });

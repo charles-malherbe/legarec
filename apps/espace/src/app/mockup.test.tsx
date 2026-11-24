@@ -66,7 +66,7 @@ it('imports files after a confirmation', async () => {
   await userEvent.upload(await screen.findByLabelText('Déposez vos fichiers ici'), new File(['x'], 'F-2026-0712.pdf', { type: 'application/pdf' }));
   await userEvent.click(screen.getByRole('button', { name: 'Importer (1)' }));
   await userEvent.click((await inDialog()).getByRole('button', { name: 'Importer' }));
-  expect(await screen.findByText('Fichiers importés.')).toBeVisible();
+  expect(await screen.findByText('Fichiers importés : 1 rattaché, 0 à classer.')).toBeVisible();
 });
 it('manages an account and refuses a second holder of a unique role', async () => {
   openAs('cl', '/parametres/users');

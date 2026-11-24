@@ -60,6 +60,14 @@ export type PortalCase = z.infer<typeof portalCase>;
 export const portalCases = z.object({ items: z.array(portalCase), counts: z.record(z.string(), z.number().int()) });
 
 const french = (message: string) => z.string().trim().min(1, { error: message });
+const claimInvoice = z
+  .object({
+    number: french('Saisissez le numéro de facture.'),
+    issuedOn: z.iso.date({ error: 'Saisissez une date.' }),
+    dueOn: z.iso.date({ error: 'Saisissez une date.' }),
+    amount: z.int({ error: 'Saisissez un montant, par exemple 1 250,00.' }).positive({ error: 'Saisissez un montant supérieur à zéro.' }),
+  })
+  .refine((value) => value.issuedOn <= value.dueOn, { path: ['dueOn'], error: 'L’échéance doit suivre l’émission.' });
 export const newClaim = z
   .object({
     debtor: french('Saisissez le nom ou la raison sociale.'),
@@ -67,13 +75,13 @@ export const newClaim = z
     email: z.union([z.literal(''), z.email({ error: 'Saisissez une adresse e-mail valide.' })]),
     phone: z.string().trim(),
     address: french('Saisissez l’adresse du débiteur.'),
-    invoice: french('Saisissez le numéro de facture.'),
-    issuedOn: z.iso.date({ error: 'Saisissez une date.' }),
-    dueOn: z.iso.date({ error: 'Saisissez une date.' }),
-    amount: z.int({ error: 'Saisissez un montant, par exemple 1 250,00.' }).positive({ error: 'Saisissez un montant supérieur à zéro.' }),
+    invoices: z.array(claimInvoice).min(1).max(50),
   })
   .refine((value) => value.siret === '' || isValidSiret(value.siret), { path: ['siret'], error: 'Ce SIRET n’est pas valide (14 chiffres).' })
-  .refine((value) => value.issuedOn <= value.dueOn, { path: ['dueOn'], error: 'L’échéance doit suivre l’émission.' });
+  .refine((value) => new Set(value.invoices.map((item) => item.number)).size === value.invoices.length, {
+    path: ['invoices', 0, 'number'],
+    error: 'Le même numéro de facture est saisi deux fois.',
+  });
 export const uploadedFile = z.object({ id: z.string() });
 /** Line by line report built by the API: nothing is created before the confirmation. */
 export const importReport = z.object({

@@ -291,7 +291,9 @@ const slug = (name: string) =>
 
 type Progress = { status: TemplateDetail['status']; pending: TemplateDetail['pending']; by: string; bump: number };
 let progress: Record<string, Progress> = {};
+let cancelled: Record<string, Progress> = {};
 export const resetTemplates = () => {
+  cancelled = {};
   progress = {};
 };
 const staff = (session: Session) => session.role !== 'CREDITOR';
@@ -358,7 +360,21 @@ export const templateHandlers = [
   http.delete(
     '/api/templates/:id/import',
     onTemplate(imports, (item) => {
-      progress[item.id] = { status: 'PUBLISHED', pending: null, by: '', bump: progress[item.id]?.bump ?? 0 };
+      const before = progress[item.id];
+      if (before?.status === 'WAITING') return forbidden();
+      if (before?.pending) cancelled[item.id] = before;
+      progress[item.id] = { status: 'PUBLISHED', pending: null, by: '', bump: before?.bump ?? 0 };
+      return done();
+    }),
+  ),
+  // The API keeps the cancelled file for a while: « Annuler » works even after a reload.
+  http.post(
+    '/api/templates/:id/import/undo',
+    onTemplate(imports, (item) => {
+      const before = cancelled[item.id];
+      if (!before) return notFound();
+      progress[item.id] = before;
+      delete cancelled[item.id];
       return done();
     }),
   ),
