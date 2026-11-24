@@ -125,3 +125,4 @@ Décisions prises après la maquette v1.21 (23/11/2026). Elles priment sur la ma
 | 24/11/2026 | Kit d'e-mails : IBAN, BIC, SIREN et titulaire masqués par Claude Code à la demande du cabinet (`config.example.json`, `README.md`) ; les anciennes valeurs restent dans l'historique Git (remplace la question 35) | Demande du cabinet |
 | 24/11/2026 | Dépôt des logos sur media.legarec.fr et saisie des valeurs entre crochets : reportés à la mission API | Demande du cabinet |
 | 24/11/2026 | Article L111-8 : citation du kit conservée partout, après comparaison avec le code (édition du 06/11/2026), dont elle diffère aux alinéas 2 et 3 | Choix du cabinet, confirmé en connaissance de l'écart |
+| 24/11/2026 | Serveur : `debian` retiré du groupe `docker` ; `sudo` non modifié (sans mot de passe). Claude Code n'utilise ni `sudo` ni Docker | Choix du cabinet ; complète la question 36 |
