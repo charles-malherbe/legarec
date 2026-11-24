@@ -64,7 +64,6 @@ Décisions prises après la maquette v1.21 (23/11/2026). Elles priment sur la ma
 | 24/11/2026 | Envoi groupé : l'API refuse si son comptage diffère de celui confirmé | Relecture maquette |
 | 24/11/2026 | Code par SMS : réponse identique qu'un dossier existe ou non, numéro jamais affiché (écart assumé avec le prompt) (question 53) | Ne pas révéler l'existence d'un dossier |
 | 24/11/2026 | Plafonds par débiteur : 2 appels, 2 e-mails et 1 SMS par semaine, 2 courriers par mois ; réglables (question 45) | Valeurs du cabinet, à faire valider par le juriste |
-| 24/11/2026 | Kit d'e-mails : IBAN, BIC et SIREN à masquer par le cabinet lui-même ; kits/ non modifié par Claude Code (question 35) | Décision du cabinet |
 | 24/11/2026 | Boîte OVH : aucune suppression depuis l'application, seulement dans l'espace client OVH (écart assumé avec le prompt) (question 28) | Action irréversible |
 | 24/11/2026 | Adresse du cabinet : [ADRESSE DU CABINET] en configuration (question 49) | Décision du cabinet |
 | 24/11/2026 | SMS : mention « STOP : répondez STOP », sans numéro court (question 24) | L'expéditeur est un numéro qui reçoit les réponses |
@@ -123,3 +122,4 @@ Décisions prises après la maquette v1.21 (23/11/2026). Elles priment sur la ma
 | 24/11/2026 | Assistant IA : désactivé en production jusqu'au contrat de sous-traitance et à l'hébergement dans l'UE ; information dans la page Confidentialité | Réponse du cabinet |
 | 24/11/2026 | Suivi d'activité : mention L1222-4 complétée, chiffres individuels réservés au Directeur et au Responsable, pas de classement | Réponse du cabinet |
 | 24/11/2026 | Plages, plafonds, message vocal, imputation des paiements, frais de LRAR : validés | Réponse du cabinet |
+| 24/11/2026 | Kit d'e-mails : IBAN, BIC, SIREN et titulaire masqués par Claude Code à la demande du cabinet (`config.example.json`, `README.md`) ; les anciennes valeurs restent dans l'historique Git (remplace la question 35) | Demande du cabinet |
