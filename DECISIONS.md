@@ -116,7 +116,7 @@ Décisions prises après la maquette v1.21 (23/11/2026). Elles priment sur la ma
 | 24/11/2026 | Statut RGPD : sous-traitant du créancier pour les dossiers, responsable pour la comptabilité, la sécurité, le personnel et la téléphonie (question 23) | Réponse du cabinet |
 | 24/11/2026 | Conservation : dossiers soldés et irrécouvrables 5 ans après clôture, factures 10 ans, enregistrements 6 mois, journal 1 an | Réponse du cabinet |
 | 24/11/2026 | Information RGPD des débiteurs : page Confidentialité en ligne seulement, rien dans les courriers ni les relances | Réponse du cabinet |
-| 24/11/2026 | Pages légales rédigées par Claude Code, à relire par le cabinet ; valeurs inconnues entre crochets (questions 7 et 57) | Réponse du cabinet |
+| 24/11/2026 | Pages légales rédigées par Claude Code, relues et validées par le cabinet ; valeurs inconnues entre crochets (questions 7 et 57) | Réponse du cabinet |
 | 24/11/2026 | Factures : mentions standard, taux de pénalités [TAUX DES PÉNALITÉS], [CAPITAL ET RCS] | Réponse du cabinet |
 | 24/11/2026 | Score de risque : entreprises seulement, règles simples, raison et mention « indicatif, aucune décision automatique » (complète la question 11) | Réponse du cabinet |
 | 24/11/2026 | Assistant IA : désactivé en production jusqu'au contrat de sous-traitance et à l'hébergement dans l'UE ; information dans la page Confidentialité | Réponse du cabinet |

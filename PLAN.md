@@ -88,7 +88,7 @@
 | [x] Accès à mon dossier | paiement /acces | Champ | access | — | SIREN invalide, 5 échecs, 10 échecs, code par SMS sur demande | absent |
 | [x] Accès limité | paiement /acces-limite | Dropzone | access | envoi | aucune donnée sur la dette | absent |
 | [x] Payer réorganisé | paiement /:id | Onglets, Dropzone | Payer | demandes guidées, message | accueil, messages, payer (virement, chèque), échéancier, quittances | 6 |
-| [x] Mentions légales, Confidentialité, Cookies | /mentions-legales, /confidentialite, /cookies | PiedDePage | — | — | textes rédigés, à relire par le cabinet ; valeurs entre crochets | — |
+| [x] Mentions légales, Confidentialité, Cookies | /mentions-legales, /confidentialite, /cookies | PiedDePage | — | — | textes relus et validés par le cabinet ; valeurs entre crochets | — |
 
 ## Lot I — E-mails (apps/api)
 - [x] Copie du kit et de staff-message, service de rendu, schémas Zod, tests et snapshots

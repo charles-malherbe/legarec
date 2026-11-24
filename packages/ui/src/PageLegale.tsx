@@ -5,7 +5,7 @@ import { PiedDePage } from './PiedDePage';
 
 type Section = [heading: string, text: string];
 
-/** Written by Claude Code at the firm's request, to be proofread by its lawyer. Bracketed values come from the firm. */
+/** Approved by the firm. Bracketed values come from the firm. */
 const PAGES: Record<'mentions' | 'confidentialite' | 'cookies', { title: string; sections: Section[] }> = {
   mentions: {
     title: 'Mentions légales',
