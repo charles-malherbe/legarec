@@ -36,7 +36,7 @@ export function ComposePage() {
     <PageHeader
       title="Rédiger un courrier"
       description="Choisissez un modèle et un destinataire : le document se remplit avec les données du dossier."
-      actions={[{ label: 'Gérer les modèles', href: '/parametres' }]}
+      actions={[{ label: 'Gérer les modèles', href: '/parametres/modeles' }]}
     />
   );
   if (!data)

@@ -5,6 +5,7 @@ import { Link } from 'react-router';
 import { useApi } from '../../app/data';
 import { useCurrentUser } from '../../app/session';
 import layout from '@legarec/ui/layout.module.css';
+import { pageOf } from '../../shared/paging';
 import { listState, matches } from '../../shared/listState';
 import { MembersCard } from './MembersCard';
 import css from './Team.module.css';
@@ -49,6 +50,7 @@ function Activity() {
   const calls = (data?.calls ?? []).filter(
     (item) => (who === 'all' || item.agentId === who) && matches(query, item.agent, item.debtor, item.creditor, item.siret),
   );
+  const paged = pageOf(calls, page, size);
   const state = listState({
     pending: isPending,
     error,
@@ -261,7 +263,7 @@ function Activity() {
           hideCaption
           tight
           bordered={false}
-          rows={calls}
+          rows={paged.shown}
           rowId={(row) => row.id}
           state={state}
           columns={[
@@ -309,15 +311,7 @@ function Activity() {
           ]}
         />
         {!state && data && (
-          <Pagination
-            total={query || who !== 'all' ? calls.length : data.callsTotal}
-            page={page}
-            size={size}
-            unit="appels"
-            label="Pagination des appels"
-            onPage={setPage}
-            onSize={setSize}
-          />
+          <Pagination total={paged.total} page={paged.current} size={size} unit="appels" label="Pagination des appels" onPage={setPage} onSize={setSize} />
         )}
       </Carte>
       <MembersCard />

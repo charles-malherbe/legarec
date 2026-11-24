@@ -5,6 +5,7 @@ import { Link } from 'react-router';
 import { useCreditorScope } from '../../app/creditorScope';
 import { useApi, useChange } from '../../app/data';
 import layout from '@legarec/ui/layout.module.css';
+import { pageOf } from '../../shared/paging';
 import { listState, matches } from '../../shared/listState';
 import css from './Documents.module.css';
 
@@ -38,6 +39,7 @@ export function DocumentsPage() {
       matches(query, item.name, item.debtor, item.creditor),
   );
   const current = rows.find((item) => item.id === selected) ?? rows[0];
+  const paged = pageOf(rows, page, size);
   const state = listState({
     pending: isPending,
     error,
@@ -113,7 +115,7 @@ export function DocumentsPage() {
           </div>
           {view === 'grid' && !state ? (
             <div className={css.tiles}>
-              {rows.map((item) => (
+              {paged.shown.map((item) => (
                 <button key={item.id} type="button" className={css.tile} aria-pressed={item.id === current?.id} onClick={() => setSelected(item.id)}>
                   <span aria-hidden className={css.thumb}>
                     <Badge label={item.kind} tone={TONE[item.category]} />
@@ -131,7 +133,7 @@ export function DocumentsPage() {
               hideCaption
               tight
               bordered={false}
-              rows={rows}
+              rows={paged.shown}
               rowId={(row) => row.id}
               activeRowId={current?.id}
               state={state}
@@ -160,8 +162,8 @@ export function DocumentsPage() {
           )}
           {!state && data && (
             <Pagination
-              total={query || category !== 'all' ? rows.length : data.total}
-              page={page}
+              total={paged.total}
+              page={paged.current}
               size={size}
               unit="documents"
               label="Pagination des documents"

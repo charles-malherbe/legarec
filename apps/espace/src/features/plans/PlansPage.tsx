@@ -31,6 +31,7 @@ import type { z } from 'zod';
 import { useCreditorScope } from '../../app/creditorScope';
 import { useApi, useChange } from '../../app/data';
 import layout from '@legarec/ui/layout.module.css';
+import { pageOf } from '../../shared/paging';
 import { listState, matches } from '../../shared/listState';
 
 type Data = z.infer<typeof plansData>;
@@ -67,6 +68,7 @@ export function PlansPage() {
   );
   const current = data?.plans.find((plan) => plan.id === selected) ?? rows[0];
   const pending = data?.requests.filter((item) => !item.decision).length ?? 0;
+  const paged = pageOf(rows, page, size);
   const state = listState({
     pending: isPending,
     error,
@@ -222,7 +224,7 @@ export function PlansPage() {
               hideCaption
               tight
               bordered={false}
-              rows={rows}
+              rows={paged.shown}
               rowId={(row) => row.id}
               activeRowId={current?.id}
               state={state}
@@ -284,8 +286,8 @@ export function PlansPage() {
             />
             {!state && s && (
               <Pagination
-                total={query || filter !== 'all' || method !== 'all' ? rows.length : s.active}
-                page={page}
+                total={paged.total}
+                page={paged.current}
                 size={size}
                 unit="échéanciers"
                 label="Pagination des échéanciers"

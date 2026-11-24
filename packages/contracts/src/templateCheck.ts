@@ -149,13 +149,8 @@ export function checkTemplate(
           break;
         case 'MustacheStatement': {
           const mustache = node as hbs.AST.MustacheStatement;
-          if (
-            !mustache.escaped ||
-            source
-              .split('\n')
-              [line - 1]?.slice(node.loc.start.column)
-              .match(/^\{\{~?(?:\{|&)/u)
-          ) {
+          const written = (source.split('\n')[line - 1] ?? '').slice(node.loc.start.column);
+          if (!mustache.escaped || /^\{\{~?[{&]/u.test(written)) {
             fail(`Champ non protégé, ligne ${line}`, 'Utilisez deux accolades');
             break;
           }
@@ -212,8 +207,8 @@ export function checkTemplate(
   if (template.category === 'COLLECTION') {
     const plain = html
       .replace(/<[^>]*>/gu, '')
-      .replace(/&nbsp;|&#160;| | /giu, ' ')
-      .replace(/&(?:shy|zwnj|zwj);|[­​-‍]/giu, '')
+      .replace(/&nbsp;|&#160;|\u00a0|\u202f/giu, ' ')
+      .replace(/&(?:shy|zwnj|zwj);|[\u00ad\u200b-\u200d]/giu, '')
       .replace(/\s+/gu, ' ');
     const terms = [...new Set([...plain.matchAll(BAILIFF_TERMS)].map((match) => match[0].toLowerCase()))];
     if (terms.length > 0)

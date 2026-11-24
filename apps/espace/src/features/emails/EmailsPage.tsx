@@ -21,6 +21,7 @@ import type { z } from 'zod';
 import { useCreditorScope } from '../../app/creditorScope';
 import { useApi, useChange } from '../../app/data';
 import layout from '@legarec/ui/layout.module.css';
+import { pageOf } from '../../shared/paging';
 import { listState, matches } from '../../shared/listState';
 import { StaffMessageForm } from './StaffMessageForm';
 
@@ -79,6 +80,7 @@ export function EmailsPage() {
       matches(query, item.from, item.subject, item.debtor, item.reference, item.creditor),
   );
   const current = rows.find((item) => item.id === selected) ?? rows[0];
+  const paged = pageOf(rows, page, size);
   const state = listState({
     pending: isPending,
     error,
@@ -107,7 +109,7 @@ export function EmailsPage() {
           { label: 'Envoyés automatiquement', value: String(s?.automatic ?? ''), sub: 'cette semaine, via Resend' },
         ]}
         actions={[
-          { label: 'Modèles', href: '/parametres' },
+          { label: 'Modèles', href: '/parametres/modeles' },
           { label: '+ Rédiger', primary: true, kbd: 'N', expanded: compose, onPress: () => setCompose(!compose) },
         ]}
       />
@@ -149,7 +151,7 @@ export function EmailsPage() {
             <EtatListe {...state} />
           ) : (
             <div className={layout.scroll} tabIndex={0} role="group" aria-label="Messages">
-              {rows.map((item) => (
+              {paged.shown.map((item) => (
                 <button
                   key={item.id}
                   type="button"
@@ -186,15 +188,7 @@ export function EmailsPage() {
             </div>
           )}
           {!state && data && (
-            <Pagination
-              total={folder === 'inbox' && filter === 'all' && !query ? data.total : rows.length}
-              page={page}
-              size={size}
-              unit="e-mails"
-              label="Pagination des e-mails"
-              onPage={setPage}
-              onSize={setSize}
-            />
+            <Pagination total={paged.total} page={paged.current} size={size} unit="e-mails" label="Pagination des e-mails" onPage={setPage} onSize={setSize} />
           )}
         </section>
         {current && data && <Reader key={current.id} mail={current} sender={data.sender} />}
