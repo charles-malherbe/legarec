@@ -380,9 +380,12 @@ function Template({ item }: { item: TemplateDetail }) {
             </ol>
           </Carte>
         </div>
-        <Carte title="Aperçu">
-          <div className={layout.stack}>
-            <div className={layout.between}>
+        <section aria-labelledby="apercu-titre" className={layout.stack}>
+          <div className={layout.between}>
+            <h2 id="apercu-titre" className={css.previewTitle}>
+              Aperçu
+            </h2>
+            <span className={layout.inline}>
               <Champ
                 label="Dossier utilisé pour l’aperçu"
                 hideLabel
@@ -392,21 +395,23 @@ function Template({ item }: { item: TemplateDetail }) {
                 onChange={setSampleId}
               />
               <Interrupteur checked={highlight} label="Repérer les champs" labelPosition="end" size="sm" onToggle={setHighlight} />
-            </div>
+            </span>
+          </div>
+          <div className={css.paper}>
             {item.pending?.accepted ? (
               // Sandboxed without any permission: no script, form or navigation from an imported file.
               <iframe title="Aperçu du fichier importé" sandbox="" className={css.frame} srcDoc={`${PREVIEW_POLICY}${item.pending.previewHtml}`} />
             ) : (
               <Preview item={item} values={values} highlight={highlight} kind={kind} />
             )}
-            <div className={layout.inline}>
-              <Bouton variant="secondary" size="sm" label="Télécharger l’aperçu (PDF)" disabled title="Disponible avec l’API de génération" />
-              {(item.kind === 'SMS' || item.kind === 'EMAIL') && item.canImport && (
-                <Bouton variant="secondary" size="sm" label="M’envoyer un test" onPress={test} />
-              )}
-            </div>
           </div>
-        </Carte>
+          <div className={layout.inline}>
+            <Bouton variant="secondary" size="sm" label="Télécharger l’aperçu (PDF)" disabled title="Disponible avec l’API de génération" />
+            {(item.kind === 'SMS' || item.kind === 'EMAIL') && item.canImport && (
+              <Bouton variant="secondary" size="sm" label="M’envoyer un test" onPress={test} />
+            )}
+          </div>
+        </section>
       </div>
     </>
   );
@@ -462,12 +467,12 @@ function Preview({ item, values, highlight, kind }: { item: TemplateDetail; valu
     <article aria-label="Aperçu du document" className={css.doc}>
       <div className={css.row}>
         <div className={layout.text}>
-          <b>Legarec</b>
+          <b className={css.brand}>Legarec</b>
           <span>Cabinet de recouvrement amiable</span>
           <span>{billing ? 'Paris · SIREN [SIREN] · TVA [N° TVA]' : 'Paris · 01 87 88 02 98'}</span>
           {!billing && <span>administratif@legarec.fr</span>}
         </div>
-        {item.registered && <span>Lettre recommandée avec AR</span>}
+        {item.registered && <span className={css.registered}>Lettre recommandée avec AR</span>}
         {billing && (
           <div className={layout.text}>
             <b>{item.quote ? 'Devis' : 'Facture'}</b>
@@ -484,7 +489,7 @@ function Preview({ item, values, highlight, kind }: { item: TemplateDetail; valu
             : '{client.nom}\n{client.contact}\n{client.adresse}',
         )}
       </div>
-      {!billing && <span>Paris, le {values['date.jour']}</span>}
+      {!billing && <span className={css.right}>Paris, le {values['date.jour']}</span>}
       {item.subject && (
         <p>
           <b>{billing ? '' : 'Objet : '}</b>

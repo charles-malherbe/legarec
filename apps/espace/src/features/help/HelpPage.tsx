@@ -80,7 +80,7 @@ export function HelpPage() {
                     <Icone icon={item.icon} size={18} />
                   </span>
                   <span className={layout.text}>
-                    <span className={layout.strong}>{item.label}</span>
+                    <strong>{item.label}</strong>
                     <span>{item.text}</span>
                   </span>
                   <span className={layout.hint}>{ARTICLES.filter((article) => article.category === item.id).length} articles</span>
