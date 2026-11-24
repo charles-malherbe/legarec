@@ -10,3 +10,4 @@ export * from './auth';
 export * from './creditors';
 export * from './cases';
 export * from './collection';
+export * from './communication';

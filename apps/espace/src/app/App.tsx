@@ -4,6 +4,9 @@ import { MantineProvider } from '@mantine/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { lazy, Suspense, useState } from 'react';
 import { Navigate, Outlet, Route, Routes } from 'react-router';
+import { CallsPage } from '../features/calls/CallsPage';
+import { EmailsPage } from '../features/emails/EmailsPage';
+import { SmsPage } from '../features/sms/SmsPage';
 import { CasePage } from '../features/cases/CasePage';
 import { CasesPage } from '../features/cases/CasesPage';
 import { CreditorPage } from '../features/creditors/CreditorPage';
@@ -58,6 +61,9 @@ export function App() {
                       }
                     />
                     <Route path="echeanciers" element={<PlansPage />} />
+                    <Route path="appels" element={<CallsPage />} />
+                    <Route path="e-mails" element={<EmailsPage />} />
+                    <Route path="sms" element={<SmsPage />} />
                     <Route path="contentieux" element={<LitigationPage />} />
                   </Route>
                 </Route>

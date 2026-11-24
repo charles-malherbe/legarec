@@ -12,6 +12,7 @@ import { useCreditorScope } from './creditorScope';
 import { useIdle } from './idle';
 import { SESSION_KEY, useCurrentUser, useUpdatePreferences } from './session';
 import { AccessDenied } from '../features/error/ErrorPage';
+import { IncomingCall } from '../features/calls/IncomingCall';
 import css from './Shell.module.css';
 
 const NOTIFICATION: Record<Notification['kind'], { symbol: string; tone: Tone }> = {
@@ -315,6 +316,7 @@ export function Shell() {
           {canOpen(pathname, user) ? <Outlet /> : <AccessDenied />}
         </main>
       </div>
+      <IncomingCall />
       {idle.warning && <SessionExpiry secondsLeft={idle.secondsLeft} onStay={idle.stay} onLogout={() => void logout()} />}
     </div>
   );

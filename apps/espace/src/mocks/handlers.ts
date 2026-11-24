@@ -2,6 +2,8 @@ import { loginRequest, type Dashboard, type ShellData } from '@legarec/contracts
 import { http, HttpResponse, type HttpHandler } from 'msw';
 import { ACCOUNTS, DEMO_PASSWORD } from './accounts';
 import dashboardData from './dashboard.json';
+import { callHandlers } from './routes/calls';
+import { messageHandlers } from './routes/messages';
 import { caseHandlers, readable } from './routes/cases';
 import { collectionHandlers } from './routes/collection';
 import { creditorHandlers } from './routes/creditors';
@@ -83,6 +85,8 @@ const searchIndex = (session: NonNullable<ReturnType<typeof currentSession>>) =>
 const normalize = (text: string) => text.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
 
 export const handlers: HttpHandler[] = [
+  ...callHandlers,
+  ...messageHandlers,
   ...caseHandlers,
   ...collectionHandlers,
   ...creditorHandlers,

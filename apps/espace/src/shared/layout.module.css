@@ -450,3 +450,8 @@
     flex: 1 1 200px;
   }
 }
+
+.thread .hint {
+  display: block;
+  color: var(--text-2);
+}
