@@ -89,9 +89,21 @@ export const member = z.object({
   twoFactor: z.boolean(),
   cases: z.number().int(),
   lastSeen: z.string(),
+  /** Creditor of a partner account; null for the staff. */
+  creditor: z.string().nullable(),
+  sessions: z.number().int(),
+  twoFactorRequired: z.boolean(),
+  activity: z.array(z.object({ what: z.string(), when: z.string() })),
 });
 export type Member = z.infer<typeof member>;
-export const membersData = z.object({ members: z.array(member), canInvite: z.boolean(), canDisable: z.boolean(), canEditExtension: z.boolean() });
+export const membersData = z.object({
+  members: z.array(member),
+  canInvite: z.boolean(),
+  canDisable: z.boolean(),
+  canEditExtension: z.boolean(),
+  canSupport: z.boolean(),
+  creditors: z.array(z.object({ id: z.string(), name: z.string() })),
+});
 
 export const billingType = z.enum(['INVOICE', 'QUOTE', 'CONTRACT']);
 export type BillingType = z.infer<typeof billingType>;

@@ -269,6 +269,12 @@ const onDocument = guarded<Info>(staffWithCases, ({ params }, session) => {
   return own && actsOn(session, own.id) ? done() : forbidden();
 });
 
+const BATCH_CREDITORS = [
+  { id: 'md', name: 'Matériaux Delta' },
+  { id: 'er', name: 'Énergies Rhône' },
+  { id: 'mt', name: 'Médiatel' },
+  { id: 'tl', name: 'TransAlp Leasing' },
+];
 export const documentHandlers = [
   http.get(
     '/api/documents',
@@ -284,18 +290,44 @@ export const documentHandlers = [
       });
     }),
   ),
+  http.post(
+    '/api/documents/import',
+    guarded<Info>(staffWithCases, ({ request }) =>
+      /pdf|word|png|jpe?g/.test(request.headers.get('content-type') ?? '')
+        ? HttpResponse.json({ id: crypto.randomUUID() })
+        : HttpResponse.json({ code: 'REFUSED' }, { status: 415 }),
+    ),
+  ),
+  http.post(
+    '/api/documents/import/done',
+    guarded(staffWithCases, () => done()),
+  ),
   http.post('/api/documents/:id/share', onDocument),
   http.post('/api/documents/:id/send', onDocument),
   http.get(
     '/api/documents/compose',
-    guarded(staffWithCases, (_info, session) => {
+    guarded<Info>(staffWithCases, ({ request }, session) => {
       const allowed = readable(session)
         .filter((item) => session.role !== 'DIRECTOR' || item.officerId === session.userId)
         .map((item) => item.id);
+      const params = new URL(request.url).searchParams;
+      // Share of the portfolio kept by each filter of the demonstration.
+      const part = { md: 0.34, er: 0.26, mt: 0.21, tl: 0.11, ch: 0.08 }[params.get('creditor') ?? ''] ?? 1;
+      const age = { '0-30': 0.6, '60+': 0.45 }[params.get('age') ?? ''] ?? 1;
+      const scale = (value: number) => Math.round(value * part * age);
       return HttpResponse.json({
         firm: { name: 'LEGAREC', address: '[ADRESSE DU CABINET]', phone: '01 87 88 02 98', siren: '[SIREN]' },
         recipients: RECIPIENTS.filter((item) => allowed.includes(item.caseId)),
-        batch: session.role === 'COLLECTION_MANAGER' ? { debtors: 38, invoices: 162, amount: 21438000, withoutFirstLetter: 3 } : null,
+        batch:
+          session.role === 'COLLECTION_MANAGER'
+            ? {
+                creditors: BATCH_CREDITORS,
+                debtors: scale(38),
+                invoices: scale(162),
+                amount: scale(214380) * 100,
+                withoutFirstLetter: scale(3),
+              }
+            : null,
       });
     }),
   ),

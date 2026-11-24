@@ -57,7 +57,7 @@ function OneClaim() {
         { k: 'Montant TTC', v: formatCents(parsed.data.amount, { decimals: 'always' }) },
         { k: 'Pièces jointes', v: String(files.length) },
       ],
-      confirmLabel: 'Déposer la créance',
+      confirmLabel: 'Confier la créance',
       onConfirm: async () => {
         const attachments: string[] = [];
         for (const file of files) attachments.push((await upload(uploadedFile, '/portal/attachments', file)).id);
@@ -147,7 +147,7 @@ function Batch() {
         { k: 'Lignes valides', v: `${report.valid} · ${formatCents(report.total)}` },
         { k: 'Lignes en erreur', v: String(report.errors.length) },
       ],
-      confirmLabel: `Importer les ${report.valid} créances`,
+      confirmLabel: `Confier les ${report.valid} créances`,
       onConfirm: async () => {
         setResult(await change(`/portal/imports/${report.id}/confirm`, { schema: importDone }));
         setReport(null);

@@ -41,6 +41,7 @@ function Activity() {
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState('cl');
   const [who, setWho] = useState('all');
+  const [creditor, setCreditor] = useState('all');
   const [playing, setPlaying] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(25);
@@ -48,7 +49,10 @@ function Activity() {
   const current = agents.find((item) => item.id === selected) ?? agents[0];
   const total = (key: 'calls' | 'goal' | 'reached' | 'promises' | 'promisedAmount' | 'cashed') => agents.reduce((sum, item) => sum + item[key], 0);
   const calls = (data?.calls ?? []).filter(
-    (item) => (who === 'all' || item.agentId === who) && matches(query, item.agent, item.debtor, item.creditor, item.siret),
+    (item) =>
+      (who === 'all' || item.agentId === who) &&
+      (creditor === 'all' || item.creditor === creditor) &&
+      matches(query, item.agent, item.debtor, item.creditor, item.siret),
   );
   const paged = pageOf(calls, page, size);
   const state = listState({
@@ -101,6 +105,17 @@ function Activity() {
         query={query}
         onQuery={setQuery}
         tabs={PERIODS.map(([id, label]) => ({ label, selected: id === period, pick: () => setPeriod(id) }))}
+        filters={[
+          {
+            label: 'Créancier',
+            value: creditor,
+            options: [
+              { value: 'all', label: 'Tous les créanciers' },
+              ...[...new Set((data?.calls ?? []).map((item) => item.creditor))].map((value) => ({ value, label: value })),
+            ],
+            onChange: setCreditor,
+          },
+        ]}
       />
       {!data ? (
         <div className={layout.card}>

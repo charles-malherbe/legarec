@@ -95,6 +95,7 @@ function Template({ item }: { item: TemplateDetail }) {
   const [over, setOver] = useState(false);
   const [acknowledged, setAcknowledged] = useState(false);
   const [fileError, setFileError] = useState('');
+  const [lastImport, setLastImport] = useState<{ fileName: string; source: string } | null>(null);
   const sample = item.samples.find((entry) => entry.id === sampleId) ?? item.samples[0];
   const values = sample?.values ?? {};
   const kind = family(item);
@@ -114,10 +115,20 @@ function Template({ item }: { item: TemplateDetail }) {
       return;
     }
     try {
-      await change(`${path}/import`, { body: { fileName: file.name, source: await file.text() } });
+      const body = { fileName: file.name, source: await file.text() };
+      await change(`${path}/import`, { body });
+      setLastImport(body);
     } catch {
       setFileError('Le fichier n’a pas pu être contrôlé. Réessayez.');
     }
+  };
+  const cancelImport = async () => {
+    await change(`${path}/import`, { method: 'DELETE' });
+    const kept = lastImport;
+    toast({
+      message: 'Import annulé.',
+      undo: kept ? () => void change(`${path}/import`, { body: kept }) : undefined,
+    });
   };
   const submit = () =>
     confirm({
@@ -305,7 +316,7 @@ function Template({ item }: { item: TemplateDetail }) {
                   ) : (
                     <Bouton size="sm" icon="upload" label="Importer un fichier corrigé" onPress={() => input.current?.click()} />
                   )}
-                  <Bouton variant="secondary" size="sm" label="Annuler l’import" onPress={() => void change(`${path}/import`, { method: 'DELETE' })} />
+                  <Bouton variant="secondary" size="sm" label="Annuler l’import" onPress={() => void cancelImport()} />
                 </div>
               )}
               <div className={layout.between}>
@@ -381,7 +392,7 @@ function Template({ item }: { item: TemplateDetail }) {
               <Preview item={item} values={values} highlight={highlight} kind={kind} />
             )}
             <div className={layout.inline}>
-              <Bouton variant="secondary" size="sm" label="Aperçu PDF" disabled title="Disponible avec l’API de génération" />
+              <Bouton variant="secondary" size="sm" label="Télécharger l’aperçu (PDF)" disabled title="Disponible avec l’API de génération" />
               {(item.kind === 'SMS' || item.kind === 'EMAIL') && item.canImport && (
                 <Bouton variant="secondary" size="sm" label="M’envoyer un test" onPress={test} />
               )}

@@ -1,4 +1,4 @@
-import { type LitigationCase, type PaymentPlan, type Reminder, type ReminderType, type Session } from '@legarec/contracts';
+import { newReminder, type LitigationCase, type PaymentPlan, type Reminder, type ReminderType, type Session } from '@legarec/contracts';
 import { http, HttpResponse } from 'msw';
 import { done, forbidden, guarded, notFound, staffWithCases } from '../http';
 import { actsOn, OFFICERS, readable } from './cases';
@@ -378,6 +378,58 @@ export const collectionHandlers = [
         weekly: { emails: 34, sms: 12, letters: 5 },
       }),
     ),
+  ),
+  http.get(
+    '/api/reminders/targets',
+    guarded(staffWithCases, (_info, session) =>
+      HttpResponse.json({
+        items: readable(session)
+          .filter((item) => actsOn(session, item.id))
+          .map(({ id, name, creditor }) => ({ id, name, creditor })),
+      }),
+    ),
+  ),
+  http.post(
+    '/api/reminders',
+    guarded<Info>(staffWithCases, async ({ request }, session) => {
+      const parsed = newReminder.safeParse(await request.json());
+      if (!parsed.success) return HttpResponse.json({ code: 'INVALID' }, { status: 422 });
+      const { caseId, type, date, time, title } = parsed.data;
+      const item = readable(session).find((entry) => entry.id === caseId);
+      if (!item || !actsOn(session, caseId)) return forbidden();
+      // Sundays are outside the allowed hours whatever the settings.
+      const limit = new Date(`${date}T00:00:00Z`).getUTCDay() === 0 ? 'Dimanche : hors des plages autorisées' : null;
+      const id = `n${reminders.length}`;
+      reminders = [
+        ...reminders,
+        {
+          id,
+          date,
+          time: time || null,
+          type,
+          debtor: item.name,
+          caseId,
+          creditorId: item.creditorId,
+          creditor: item.creditor,
+          title,
+          done: false,
+          automatic: false,
+          officerId: item.officerId,
+          limit,
+        },
+      ];
+      return HttpResponse.json({ id, limit });
+    }),
+  ),
+  http.delete(
+    '/api/reminders/:id',
+    guarded<Info>(staffWithCases, ({ params }, session) => {
+      const item = reminders.find((entry) => entry.id === params.id);
+      if (!item) return notFound();
+      if (!acts(session, item.officerId) || item.done) return forbidden();
+      reminders = reminders.filter((entry) => entry !== item);
+      return done();
+    }),
   ),
   http.put(
     '/api/reminders/:id',

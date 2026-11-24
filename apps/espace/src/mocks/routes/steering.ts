@@ -323,7 +323,23 @@ const m = (
   cases: number,
   lastSeen: string,
   status: Member['status'] = 'ACTIVE',
-): Member => ({ id, firstName, lastName, email, role, extension, twoFactor, cases, lastSeen, status });
+  creditor: string | null = null,
+): Member => ({
+  id,
+  firstName,
+  lastName,
+  email,
+  role,
+  extension,
+  twoFactor,
+  cases,
+  lastSeen,
+  status,
+  creditor,
+  sessions: status === 'ACTIVE' ? 1 : 0,
+  twoFactorRequired: role === 'DEVELOPER',
+  activity: status === 'ACTIVE' ? [{ what: 'Connexion réussie', when: lastSeen }] : [],
+});
 const seedMembers = () => [
   m('ad', 'Marie', 'Dubreuil', 'mdu@legarec.fr', 'DIRECTOR', null, false, 1, 'Hier'),
   m('cl', 'Camille', 'Laurent', 'cl@legarec.fr', 'COLLECTION_MANAGER', '101', true, 24, 'En ligne'),
@@ -332,7 +348,17 @@ const seedMembers = () => [
   m('tg', 'Thomas', 'Giraud', 'tg@legarec.fr', 'CLAIMS_OFFICER', null, true, 97, 'En congé'),
   m('dev', 'Nora', 'Petit', 'support@legarec.fr', 'DEVELOPER', null, true, 0, 'Aujourd’hui'),
   m('nk', 'Nadia', 'Kaci', 'nk@legarec.fr', 'CLAIMS_OFFICER', null, false, 0, 'Invitée le 20/11', 'INVITED'),
+  m('lp', 'Lucas', 'Perrin', 'lp@legarec.fr', 'CLAIMS_OFFICER', null, false, 0, '2 sept.', 'DISABLED'),
+  m('cb', 'Claire', 'Besson', 'c.besson@materiauxdelta.example', 'CREDITOR', null, false, 0, '18 nov.', 'ACTIVE', 'Matériaux Delta'),
 ];
+const MEMBER_CREDITORS = [
+  { id: 'md', name: 'Matériaux Delta' },
+  { id: 'er', name: 'Énergies Rhône' },
+  { id: 'mt', name: 'Médiatel' },
+  { id: 'tl', name: 'TransAlp Leasing' },
+  { id: 'ch', name: 'Crédit Horizon' },
+];
+const manages = (session: Session) => administers(session) || session.role === 'DEVELOPER';
 let members = seedMembers();
 export const administers = (session: Session) => session.role === 'DIRECTOR' || hasDelegation(session, 'ADMINISTRATIVE');
 const supports = (session: Session) => session.role === 'DEVELOPER';
@@ -496,7 +522,10 @@ export const steeringHandlers = [
       (session) => administers(session) || supports(session) || session.role === 'COLLECTION_MANAGER',
       (_info, session) =>
         HttpResponse.json({
-          members: supports(session) ? members.map((item) => ({ ...item, cases: 0 })) : members,
+          // The Developer supports the staff: no creditor account and no figure about cases.
+          members: supports(session) ? members.filter((item) => item.role !== 'CREDITOR').map((item) => ({ ...item, cases: 0 })) : members,
+          canSupport: manages(session),
+          creditors: administers(session) ? MEMBER_CREDITORS : [],
           canInvite: administers(session),
           canDisable: administers(session),
           canEditExtension: supports(session),
@@ -506,12 +535,27 @@ export const steeringHandlers = [
   http.post(
     '/api/members',
     guarded<Info>(administers, async ({ request }, session) => {
-      const body = (await request.json()) as Pick<Member, 'firstName' | 'lastName' | 'email' | 'role'>;
+      const body = (await request.json()) as Pick<Member, 'firstName' | 'lastName' | 'email' | 'role'> & { creditorId?: string };
       const holder = UNIQUE_ROLES.includes(body.role) ? members.find((item) => item.role === body.role && item.status !== 'DISABLED') : undefined;
       if (holder)
         return HttpResponse.json({ code: 'ROLE_TAKEN', role: ROLE_LABELS[body.role], holder: `${holder.firstName} ${holder.lastName}` }, { status: 409 });
       audit(session, `Invitation envoyée (${ROLE_LABELS[body.role]})`, 'ADMINISTRATIVE');
-      members = [...members, m(`i${members.length}`, body.firstName, body.lastName, body.email, body.role, null, false, 0, 'Invité', 'INVITED')];
+      members = [
+        ...members,
+        m(
+          `i${members.length}`,
+          body.firstName,
+          body.lastName,
+          body.email,
+          body.role,
+          null,
+          false,
+          0,
+          'Invité',
+          'INVITED',
+          MEMBER_CREDITORS.find((item) => item.id === body.creditorId)?.name ?? null,
+        ),
+      ];
       return done();
     }),
   ),
@@ -533,6 +577,46 @@ export const steeringHandlers = [
       item.status = 'DISABLED';
       item.cases = 0;
       return done();
+    }),
+  ),
+  http.put(
+    '/api/members/:id/role',
+    guarded<Info>(administers, async ({ params, request }, session) => {
+      const item = members.find((entry) => entry.id === params.id);
+      if (!item) return notFound();
+      const { role } = (await request.json()) as { role: Role };
+      // A creditor account never becomes a staff account, and nobody changes their own role.
+      if (item.id === session.userId || item.role === 'CREDITOR' || role === 'CREDITOR' || item.role === 'DIRECTOR') return forbidden();
+      const holder = UNIQUE_ROLES.includes(role) ? members.find((entry) => entry.role === role && entry.status !== 'DISABLED' && entry !== item) : undefined;
+      if (holder) return HttpResponse.json({ code: 'ROLE_TAKEN', holder: `${holder.firstName} ${holder.lastName}` }, { status: 409 });
+      audit(session, `Rôle modifié : ${ROLE_LABELS[item.role]} → ${ROLE_LABELS[role]}`, 'ADMINISTRATIVE');
+      Object.assign(item, { role, twoFactorRequired: role === 'DEVELOPER' || item.twoFactorRequired });
+      return done();
+    }),
+  ),
+  http.post(
+    '/api/members/:id/:action',
+    guarded<Info>(manages, ({ params }, session) => {
+      const item = members.find((entry) => entry.id === params.id);
+      if (!item) return notFound();
+      if (session.role === 'DEVELOPER' && item.role === 'CREDITOR') return forbidden();
+      const delegation = session.role === 'DEVELOPER' ? 'TECHNICAL' : 'ADMINISTRATIVE';
+      switch (params.action) {
+        case 'reset-link':
+          audit(session, 'Lien de réinitialisation envoyé', delegation);
+          return done();
+        case 'require-2fa':
+          item.twoFactorRequired = true;
+          audit(session, 'Double authentification exigée', delegation);
+          return done();
+        case 'enable':
+          if (!administers(session)) return forbidden();
+          item.status = 'ACTIVE';
+          audit(session, 'Compte réactivé', delegation);
+          return done();
+        default:
+          return notFound();
+      }
     }),
   ),
   http.put(

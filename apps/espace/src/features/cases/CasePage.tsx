@@ -60,6 +60,10 @@ function CaseView({ data }: { data: CaseDetail }) {
     await change(`/cases/${data.id}/ai-summary`);
     toast({ message: 'Synthèse régénérée.' });
   };
+  const writeEmail = () => {
+    setTab('exchanges');
+    setPanel('message');
+  };
   const report = async () => {
     await change(`/cases/${data.id}/ai-summary/report`);
     setReported(true);
@@ -114,9 +118,13 @@ function CaseView({ data }: { data: CaseDetail }) {
           {data.contacts.map((contact) => (
             <span key={contact.id} className={layout.inline}>
               {data.canAct ? (
-                <a href={contact.kind === 'PHONE' ? toTelHref(contact.value) : `mailto:${contact.value}`} className={layout.link}>
-                  {contact.value}
-                </a>
+                contact.kind === 'PHONE' ? (
+                  <a href={toTelHref(contact.value)} className={layout.link}>
+                    {contact.value}
+                  </a>
+                ) : (
+                  <Bouton variant="link" size="sm" label={contact.value} ariaLabel={`Écrire à ${contact.value}`} onPress={writeEmail} />
+                )
               ) : (
                 <span>{contact.value}</span>
               )}
@@ -318,7 +326,7 @@ function CaseView({ data }: { data: CaseDetail }) {
                     ariaLabel={`Appeler ${data.mainContact.name}`}
                     onPress={() => startCall(data.mainContact.phone)}
                   />
-                  <Bouton variant="secondary" label="E-mail" href="/e-mails" />
+                  <Bouton variant="secondary" label="E-mail" ariaLabel={`E-mail : ${data.mainContact.name}`} onPress={writeEmail} />
                 </div>
               )}
             </div>

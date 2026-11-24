@@ -1,4 +1,4 @@
-import { ROLE_LABELS, type EmailThread, type SmsThread } from '@legarec/contracts';
+import { ROLE_LABELS, type EmailDraft, type EmailThread, type MessageTemplate, type SmsThread } from '@legarec/contracts';
 import { http, HttpResponse } from 'msw';
 import { done, forbidden, guarded, notFound, staffWithCases } from '../http';
 import { actsOn, caseOfEmail, readable } from './cases';
@@ -377,6 +377,7 @@ let mails = seedMails();
 let sms = seedSms();
 export const mailState = { failNext: false, sentThisHour: 12 };
 export const resetMessages = () => {
+  drafts.clear();
   mails = seedMails();
   sms = seedSms();
   mailState.failNext = false;
@@ -400,7 +401,61 @@ const onSms = (resolve: (item: SmsThread, info: Info, session: Session) => Respo
     return ok ? resolve(item, info, session) : forbidden();
   });
 
+const TEMPLATES: MessageTemplate[] = [
+  {
+    id: 'amiable',
+    name: 'Relance amiable n°1',
+    subject: 'Votre dossier',
+    text: 'Bonjour,\n\nSauf erreur de notre part, votre dossier présente toujours un solde impayé. Les moyens de paiement, virement ou chèque, sont indiqués dans votre espace débiteur.',
+  },
+  {
+    id: 'promesse',
+    name: 'Confirmation de promesse',
+    subject: 'Confirmation de votre engagement',
+    text: 'Bonjour,\n\nNous avons bien noté votre engagement de paiement. Merci d’indiquer la référence de votre dossier sur votre virement ou au dos de votre chèque.',
+  },
+  {
+    id: 'echeancier',
+    name: 'Proposition d’échéancier',
+    subject: 'Proposition d’échéancier',
+    text: 'Bonjour,\n\nComme convenu, nous vous proposons un règlement en plusieurs mensualités. Vous pouvez consulter et signer la proposition dans votre espace débiteur.',
+  },
+];
+const AUTOMATIC = [
+  ['au1', 'demo', 'Relance n°2 — relance ferme', 'Aujourd’hui 08:00', 'OPENED'],
+  ['au2', 'helio', 'Relance n°1 — rappel amiable', 'Aujourd’hui 08:00', 'DELIVERED'],
+  ['au3', 'valmont', 'Relance n°1 — rappel amiable', 'Hier 08:00', 'FAILED'],
+  ['au4', 'nordis', 'Rappel avant échéance', 'Hier 08:00', 'DELIVERED'],
+  ['au5', 'lagarde', 'Rappel avant échéance', '19 nov. 08:00', 'OPENED'],
+] as const;
+/** Drafts belong to their author only. */
+const drafts = new Map<string, EmailDraft[]>();
+const draftsOf = (session: Session) => drafts.get(session.userId) ?? [];
+
 export const messageHandlers = [
+  http.post(
+    '/api/emails/drafts',
+    guarded<Info>(staffWithCases, async ({ request }, session) => {
+      const body = (await request.json()) as Omit<EmailDraft, 'id' | 'updated'> & { id?: string };
+      if (body.caseId && !actsOn(session, body.caseId)) return forbidden();
+      const id = body.id ?? `dr${Date.now()}`;
+      drafts.set(session.userId, [
+        { id, to: body.to, subject: body.subject, text: body.text, caseId: body.caseId, updated: 'à l’instant' },
+        ...draftsOf(session).filter((item) => item.id !== id),
+      ]);
+      return HttpResponse.json({ id });
+    }),
+  ),
+  http.delete(
+    '/api/emails/drafts/:id',
+    guarded<Info>(staffWithCases, ({ params }, session) => {
+      drafts.set(
+        session.userId,
+        draftsOf(session).filter((item) => item.id !== params.id),
+      );
+      return done();
+    }),
+  ),
   http.get(
     '/api/emails',
     guarded(staffWithCases, (_info, session) => {
@@ -420,7 +475,13 @@ export const messageHandlers = [
         syncedMinutesAgo: 1,
         threads: visible.map((item) => ({ ...item, canAct: mayAnswer(session, item.caseId) })),
         total: session.role === 'CLAIMS_OFFICER' ? visible.length : 128,
-        folders: { inbox: 12, drafts: 3, automatic: 48 },
+        drafts: draftsOf(session),
+        templates: TEMPLATES,
+        automatic: AUTOMATIC.flatMap(([id, caseId, subject, when, status]) => {
+          const item = readable(session).find((entry) => entry.id === caseId);
+          return item ? [{ id, caseId, debtor: item.name, creditorId: item.creditorId, creditor: item.creditor, subject, when, status }] : [];
+        }),
+        folders: { inbox: 12, drafts: draftsOf(session).length, automatic: session.role === 'CLAIMS_OFFICER' ? 2 : 48 },
         stats: { unread: 12, todo: 4, delay: '3 h 20', automatic: 34 },
       });
     }),

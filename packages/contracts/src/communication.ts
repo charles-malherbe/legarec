@@ -155,7 +155,31 @@ export const emailThread = z.object({
     .nullable(),
 });
 export type EmailThread = z.infer<typeof emailThread>;
+export const emailDraft = z.object({
+  id: z.string(),
+  to: z.string(),
+  subject: z.string(),
+  text: z.string(),
+  caseId: z.string().nullable(),
+  updated: z.string(),
+});
+export type EmailDraft = z.infer<typeof emailDraft>;
+export const automaticEmail = z.object({
+  id: z.string(),
+  caseId: z.string(),
+  debtor: z.string(),
+  creditorId: z.string(),
+  creditor: z.string(),
+  subject: z.string(),
+  when: z.string(),
+  status: z.enum(['DELIVERED', 'OPENED', 'FAILED']),
+});
+export const messageTemplate = z.object({ id: z.string(), name: z.string(), subject: z.string(), text: z.string() });
+export type MessageTemplate = z.infer<typeof messageTemplate>;
 export const mailboxData = z.object({
+  drafts: z.array(emailDraft),
+  automatic: z.array(automaticEmail),
+  templates: z.array(messageTemplate),
   sender: z.object({
     name: z.string(),
     address: z.email(),

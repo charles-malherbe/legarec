@@ -15,6 +15,11 @@ export function CaseMessage({ data, onClose }: { data: CaseDetail; onClose: () =
     );
   const { email, name } = data.mainContact;
   return (
-    <StaffMessageForm sender={mailbox.data.sender} recipient={{ email, name, isDebtor: true, caseId: data.id, reference: data.reference }} onClose={onClose} />
+    <StaffMessageForm
+      sender={mailbox.data.sender}
+      templates={mailbox.data.templates}
+      recipient={{ email, name, isDebtor: true, caseId: data.id, reference: data.reference }}
+      onClose={onClose}
+    />
   );
 }

@@ -31,7 +31,13 @@ const CHANNELS = [
 ];
 
 export function ComposePage() {
-  const { data, isPending, error, refetch } = useApi(composeData, '/documents/compose');
+  const [creditor, setCreditor] = useState('all');
+  const [age, setAge] = useState('31-60');
+  const { data, isPending, error, refetch } = useApi(composeData, `/documents/compose?creditor=${creditor}&age=${age}`);
+  // The form stays in place while the API recounts the selection.
+  const [last, setLast] = useState(data);
+  if (data && data !== last) setLast(data);
+  const shown = data ?? last;
   const header = (
     <PageHeader
       title="Rédiger un courrier"
@@ -39,7 +45,7 @@ export function ComposePage() {
       actions={[{ label: 'Gérer les modèles', href: '/parametres/modeles' }]}
     />
   );
-  if (!data)
+  if (!shown)
     return (
       <>
         {header}
@@ -48,7 +54,7 @@ export function ComposePage() {
         </div>
       </>
     );
-  if (data.recipients.length === 0)
+  if (shown.recipients.length === 0)
     return (
       <>
         {header}
@@ -60,12 +66,30 @@ export function ComposePage() {
   return (
     <>
       {header}
-      <Editor data={data} />
+      <Editor data={shown} filters={{ creditor, setCreditor, age, setAge }} />
     </>
   );
 }
 
-function Editor({ data }: { data: Data }) {
+interface Filters {
+  creditor: string;
+  setCreditor: (value: string) => void;
+  age: string;
+  setAge: (value: string) => void;
+}
+
+function StepTitle({ number, label }: { number: number; label: string }) {
+  return (
+    <h2 className={css.stepTitle}>
+      <span aria-hidden className={css.stepNumber}>
+        {number}
+      </span>
+      {label}
+    </h2>
+  );
+}
+
+function Editor({ data, filters }: { data: Data; filters: Filters }) {
   const change = useChange();
   const confirm = useConfirm();
   const toast = useToast();
@@ -117,6 +141,7 @@ function Editor({ data }: { data: Data }) {
           body: {
             template,
             caseIds: batch ? null : [recipient.caseId],
+            filters: batch ? { creditor: filters.creditor, age: filters.age } : null,
             channel,
             delay,
             months,
@@ -132,6 +157,19 @@ function Editor({ data }: { data: Data }) {
         );
       },
     });
+  const generate = async () => {
+    await change('/documents/compose', {
+      body: {
+        template,
+        caseIds: batch ? null : [recipient.caseId],
+        channel: 'Télécharger seulement',
+        delay,
+        months,
+        options: { table, pay, indemnity: indemnity && allowsIndemnity },
+      },
+    });
+    setDone(batch ? `${count} documents générés, sans envoi.` : 'Document généré, sans envoi.');
+  };
   const draft = async () => {
     await change('/documents/compose/draft', { body: { template, caseId: recipient.caseId } });
     toast({ message: 'Brouillon enregistré.' });
@@ -150,7 +188,8 @@ function Editor({ data }: { data: Data }) {
       )}
       <div className={css.compose}>
         <div className={layout.stack}>
-          <Carte title="1. Modèle">
+          <Carte>
+            <StepTitle number={1} label="Modèle" />
             <div className={layout.stack}>
               <div role="radiogroup" aria-label="Modèle" className={css.choices}>
                 {letterTemplate.options.map((id) => (
@@ -165,7 +204,8 @@ function Editor({ data }: { data: Data }) {
               </Link>
             </div>
           </Carte>
-          <Carte title="2. Destinataire">
+          <Carte>
+            <StepTitle number={2} label="Destinataire" />
             <div className={layout.stack}>
               {data.batch && (
                 <Onglets
@@ -192,10 +232,32 @@ function Editor({ data }: { data: Data }) {
                 />
               )}
               {batch ? (
-                <p className={layout.body}>
-                  <strong>{batch.debtors} débiteurs</strong> correspondent ({batch.invoices} factures · {formatCents(batch.amount)}). Les litiges et les
-                  promesses en cours sont exclus.
-                </p>
+                <>
+                  <div className={layout.form}>
+                    <Champ
+                      label="Créancier"
+                      type="select"
+                      value={filters.creditor}
+                      options={[{ value: 'all', label: 'Tous' }, ...batch.creditors.map((item) => ({ value: item.id, label: item.name }))]}
+                      onChange={filters.setCreditor}
+                    />
+                    <Champ
+                      label="Ancienneté"
+                      type="select"
+                      value={filters.age}
+                      options={[
+                        { value: '31-60', label: '31 – 60 jours' },
+                        { value: '0-30', label: '0 – 30 jours' },
+                        { value: '60+', label: '+ 60 jours' },
+                      ]}
+                      onChange={filters.setAge}
+                    />
+                  </div>
+                  <p className={layout.body}>
+                    <strong>{batch.debtors} débiteurs</strong> correspondent ({batch.invoices} factures · {formatCents(batch.amount)}). Les litiges et les
+                    promesses en cours sont exclus.
+                  </p>
+                </>
               ) : (
                 <div className={layout.tightStack}>
                   {data.recipients.map((item, position) => (
@@ -222,7 +284,8 @@ function Editor({ data }: { data: Data }) {
               )}
             </div>
           </Carte>
-          <Carte title="3. Options">
+          <Carte>
+            <StepTitle number={3} label="Options" />
             <div className={layout.stack}>
               <Champ label="Envoi" type="select" value={channel} options={CHANNELS} onChange={setChannel} />
               {reminder && (
@@ -292,6 +355,7 @@ function Editor({ data }: { data: Data }) {
           )}
           <div className={layout.end}>
             <Bouton variant="secondary" label="Enregistrer le brouillon" onPress={() => void draft()} />
+            {!downloadOnly && <Bouton variant="secondary" label="Générer le PDF" disabled={missingFirstLetter} onPress={() => void generate()} />}
             <Bouton
               label={downloadOnly ? 'Générer le PDF' : batch ? `Générer et envoyer (${count})` : 'Générer et envoyer'}
               disabled={missingFirstLetter}

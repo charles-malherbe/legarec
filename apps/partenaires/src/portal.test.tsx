@@ -62,7 +62,7 @@ it('creates nothing before the confirmation of an import', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Importer les 22 créances' }));
   const dialog = await inDialog();
   expect(dialog.getByText('Lignes en erreur')).toBeVisible();
-  await userEvent.click(dialog.getByRole('button', { name: 'Importer les 22 créances' }));
+  await userEvent.click(dialog.getByRole('button', { name: 'Confier les 22 créances' }));
   expect(await screen.findByText(/22 créances importées/)).toBeVisible();
 });
 it('checks a claim, then confirms it', async () => {
@@ -80,7 +80,7 @@ it('checks a claim, then confirms it', async () => {
   expect(await screen.findByText('Ce SIRET n’est pas valide (14 chiffres).')).toBeVisible();
   await userEvent.clear(screen.getByLabelText(/SIRET/));
   await userEvent.click(screen.getByRole('button', { name: 'Déposer la créance' }));
-  await userEvent.click((await inDialog()).getByRole('button', { name: 'Déposer la créance' }));
+  await userEvent.click((await inDialog()).getByRole('button', { name: 'Confier la créance' }));
   expect(await screen.findByText(/Créance déposée/)).toBeVisible();
 });
 it('signs in on the creditors’ portal only', async () => {

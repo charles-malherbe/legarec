@@ -265,9 +265,9 @@ export function CreditorPage() {
                 <a href={toTelHref(data.contact.phone)} className={layout.link}>
                   {data.contact.phone}
                 </a>
-                <a href={`mailto:${data.contact.email}`} className={layout.link}>
+                <Link to="/e-mails" state={{ to: data.contact.email }} className={layout.link}>
                   {data.contact.email}
-                </a>
+                </Link>
                 <Badge
                   label={`Accès espace créancier : ${data.contact.portalEnabled ? 'activé' : 'non activé'}`}
                   tone={data.contact.portalEnabled ? 'success' : 'neutral'}
