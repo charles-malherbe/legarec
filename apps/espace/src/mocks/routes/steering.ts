@@ -11,7 +11,9 @@ import {
   type Session,
 } from '@legarec/contracts';
 import { http, HttpResponse } from 'msw';
+import { audit } from '../audit';
 import { done, forbidden, guarded, notFound, staffWithCases } from '../http';
+import { mayRead } from '../visibility';
 
 type Info = { request: Request; params: Record<string, unknown> };
 const n = (
@@ -413,7 +415,7 @@ export const steeringHandlers = [
     '/api/notifications',
     guarded(
       () => true,
-      (_info, session) => HttpResponse.json(staffWithCases(session) ? notifications : notifications.filter((item) => item.kind === 'SYSTEM')),
+      (_info, session) => HttpResponse.json(notifications.filter((item) => mayRead(session, item.text))),
     ),
   ),
   http.put(
@@ -503,18 +505,20 @@ export const steeringHandlers = [
   ),
   http.post(
     '/api/members',
-    guarded<Info>(administers, async ({ request }) => {
+    guarded<Info>(administers, async ({ request }, session) => {
       const body = (await request.json()) as Pick<Member, 'firstName' | 'lastName' | 'email' | 'role'>;
       const holder = UNIQUE_ROLES.includes(body.role) ? members.find((item) => item.role === body.role && item.status !== 'DISABLED') : undefined;
       if (holder)
         return HttpResponse.json({ code: 'ROLE_TAKEN', role: ROLE_LABELS[body.role], holder: `${holder.firstName} ${holder.lastName}` }, { status: 409 });
+      audit(session, `Invitation envoyée (${ROLE_LABELS[body.role]})`, 'ADMINISTRATIVE');
       members = [...members, m(`i${members.length}`, body.firstName, body.lastName, body.email, body.role, null, false, 0, 'Invité', 'INVITED')];
       return done();
     }),
   ),
   http.delete(
     '/api/members/:id',
-    guarded<Info>(administers, ({ params }) => {
+    guarded<Info>(administers, ({ params }, session) => {
+      audit(session, 'Invitation annulée', 'ADMINISTRATIVE');
       members = members.filter((item) => item.id !== params.id || item.status !== 'INVITED');
       return done();
     }),
@@ -525,6 +529,7 @@ export const steeringHandlers = [
       const item = members.find((entry) => entry.id === params.id);
       if (!item) return notFound();
       if (item.role === 'DIRECTOR' || item.id === session.userId) return forbidden();
+      audit(session, `Compte désactivé (${ROLE_LABELS[item.role]})`, 'ADMINISTRATIVE');
       item.status = 'DISABLED';
       item.cases = 0;
       return done();

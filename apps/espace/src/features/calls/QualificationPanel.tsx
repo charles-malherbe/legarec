@@ -1,5 +1,5 @@
-import { CALL_OUTCOMES, formatCents, formatDate, parseCents, TCX_CODES, type CallTarget } from '@legarec/contracts';
-import { Alerte, Badge, Bouton, Case, Champ, SuggestionIA } from '@legarec/ui';
+import { CALL_OUTCOMES, formatCents, formatDate, parseCents, TCX_CODES, type CallQualification, type CallTarget } from '@legarec/contracts';
+import { Alerte, Badge, Bouton, Case, Champ, SuggestionIA, useConfirm } from '@legarec/ui';
 import { useImperativeHandle, useState, type Dispatch, type Ref } from 'react';
 import { useChange } from '../../app/data';
 import layout from '@legarec/ui/layout.module.css';
@@ -24,11 +24,13 @@ interface Props {
   dispatch: Dispatch<CallEvent>;
   acw: string | null;
   onDial: (value: string) => void;
-  onSaved: (label: string) => void;
+  /** `sent` is true when a message left: the sheet can no longer be undone. */
+  onSaved: (label: string, sent: boolean) => void;
 }
 
 export function QualificationPanel({ ref, target, state, dispatch, acw, onDial, onSaved }: Props) {
   const change = useChange();
+  const confirm = useConfirm();
   const first = target.invoices[0];
   const [who, setWho] = useState('main');
   const [otherName, setOtherName] = useState('');
@@ -42,15 +44,18 @@ export function QualificationPanel({ ref, target, state, dispatch, acw, onDial, 
   const [paidOn, setPaidOn] = useState('2026-11-18');
   const [paymentReference, setPaymentReference] = useState('');
   const [notes, setNotes] = useState(target.note);
-  const [recap, setRecap] = useState(true);
+  const [recap, setRecap] = useState(false);
   const [voicemail, setVoicemail] = useState(true);
-  const [smsLink, setSmsLink] = useState(true);
+  const [smsLink, setSmsLink] = useState(false);
   const [suspend, setSuspend] = useState(true);
   const [askCreditor, setAskCreditor] = useState(true);
   const [editing, setEditing] = useState(false);
   const [tried, setTried] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [previousNotes, setPreviousNotes] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [previous, setPrevious] = useState<{ notes: string; outcome: CallState['outcome']; promise: string; promiseDate: string; invoices: string[] } | null>(
+    null,
+  );
   const amount = parseCents(promise);
   const errors = qualificationErrors(state, { promise: amount, invoices, paymentReference, editing });
   const outcome = CALL_OUTCOMES.find((item) => item.code === state.outcome);
@@ -70,23 +75,49 @@ export function QualificationPanel({ ref, target, state, dispatch, acw, onDial, 
       setTried(true);
       return;
     }
-    setSaving(true);
-    try {
-      await change(`/calls/${target.caseId}/qualification`, {
-        body: {
-          outcome: state.outcome,
-          tcxCode: TCX_CODES[state.outcome],
-          interlocutor: contact,
-          notes,
-          promise: state.outcome === 'PROMISE_TO_PAY' && amount ? { amount, date: promiseDate, method, invoices } : null,
-          paymentReference: state.outcome === 'ALREADY_PAID' ? paymentReference : null,
-          months: state.outcome === 'PAYMENT_PLAN' ? Number(months) : null,
-          recall: state.outcome === 'CALLBACK' ? recall : null,
-          announced: state.announced,
-          sendRecap: recap,
-        },
+    const sheet: CallQualification = {
+      outcome: state.outcome,
+      tcxCode: TCX_CODES[state.outcome],
+      interlocutor: contact,
+      notes,
+      promise: state.outcome === 'PROMISE_TO_PAY' && amount ? { amount, date: promiseDate, method, invoices } : null,
+      alreadyPaid: state.outcome === 'ALREADY_PAID' ? { paidOn, reference: paymentReference.trim() } : null,
+      dispute: state.outcome === 'DISPUTE' ? { reason, suspendReminders: suspend, askCreditor } : null,
+      absent: state.outcome === 'ABSENT' ? { voicemail, smsLink } : null,
+      months: state.outcome === 'PAYMENT_PLAN' ? Number(months) : null,
+      recall: state.outcome === 'CALLBACK' ? recall : null,
+      announced: state.announced,
+      sendRecap: recap,
+    };
+    const sendings = [
+      recap && 'E-mail au débiteur',
+      sheet.absent?.smsLink && 'SMS avec le lien de l’espace débiteur',
+      sheet.dispute?.askCreditor && `Demande d’avis à ${target.creditor}`,
+    ].filter((item): item is string => !!item);
+    const store = async () => {
+      await change(`/calls/${target.caseId}/qualification`, { body: sheet });
+      onSaved(outcome?.label ?? '', sendings.length > 0);
+    };
+    if (sendings.length > 0) {
+      confirm({
+        title: 'Enregistrer la fiche et envoyer ?',
+        body: 'Les envois partent immédiatement et sont ajoutés à l’historique du dossier.',
+        details: [
+          { k: 'Débiteur', v: target.debtor },
+          { k: 'Résultat', v: outcome?.label ?? '' },
+          { k: 'Envois', v: sendings.join(' · ') },
+        ],
+        confirmLabel: 'Enregistrer et envoyer',
+        onConfirm: store,
       });
-      onSaved(outcome?.label ?? '');
+      return;
+    }
+    setSaving(true);
+    setFailed(false);
+    try {
+      await store();
+    } catch {
+      setFailed(true);
     } finally {
       setSaving(false);
     }
@@ -97,11 +128,11 @@ export function QualificationPanel({ ref, target, state, dispatch, acw, onDial, 
   const aiMode = !ai ? null : !state.announced && (state.inCall || state.secs > 0) ? 'paused' : state.inCall ? 'live' : state.secs > 0 ? 'post' : null;
   const apply = () => {
     if (!ai) return;
+    setPrevious({ notes, outcome: state.outcome, promise, promiseDate, invoices });
     dispatch({ type: 'outcome', outcome: ai.outcome });
     if (ai.amount !== null) setPromise((ai.amount / 100).toLocaleString('fr-FR'));
     if (ai.date) setPromiseDate(ai.date);
     if (ai.invoices.length > 0) setInvoices(ai.invoices);
-    setPreviousNotes(notes);
     setNotes(ai.summary);
     dispatch({ type: 'ai', status: 'applied' });
     void change(`/calls/${target.caseId}/ai-decision`, { body: { decision: 'ACCEPTED' } });
@@ -192,7 +223,13 @@ export function QualificationPanel({ ref, target, state, dispatch, acw, onDial, 
               void change(`/calls/${target.caseId}/ai-decision`, { body: { decision: 'IGNORED' } });
             }}
             onUndo={() => {
-              setNotes(previousNotes ?? '');
+              if (previous) {
+                setNotes(previous.notes);
+                setPromise(previous.promise);
+                setPromiseDate(previous.promiseDate);
+                setInvoices(previous.invoices);
+                dispatch({ type: 'outcome', outcome: previous.outcome });
+              }
               dispatch({ type: 'ai', status: 'proposed' });
             }}
           >
@@ -349,6 +386,7 @@ export function QualificationPanel({ ref, target, state, dispatch, acw, onDial, 
       </div>
       <div className={css.panelFoot}>
         {tried && errors.length > 0 && <Alerte tone="danger" compact title="À compléter avant d'enregistrer :" text={errors.join(' · ')} />}
+        {failed && <Alerte tone="danger" compact text="La fiche n’a pas été enregistrée. Vos saisies sont conservées : réessayez." />}
         <span className={layout.hint}>
           {outcome
             ? `Récapitulatif : ${outcome.label.toLowerCase()} · ${contact} · durée ${clock(state.secs)} · code 3CX ${TCX_CODES[outcome.code]}`

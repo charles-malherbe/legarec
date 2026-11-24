@@ -89,7 +89,8 @@ export type LetterRecipient = z.infer<typeof letterRecipient>;
 export const composeData = z.object({
   firm: z.object({ name: z.string(), address: z.string(), phone: z.string(), siren: z.string() }),
   recipients: z.array(letterRecipient),
-  batch: z.object({ debtors: z.number().int(), invoices: z.number().int(), amount: cents }).nullable(),
+  /** `withoutFirstLetter`: debtors left out of any reminder that must recall a first letter. */
+  batch: z.object({ debtors: z.number().int(), invoices: z.number().int(), amount: cents, withoutFirstLetter: z.number().int() }).nullable(),
 });
 
 /** The 40 € fixed indemnity only concerns professional debtors, never an individual. */

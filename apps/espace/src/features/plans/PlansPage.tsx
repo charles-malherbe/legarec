@@ -1,6 +1,32 @@
-import { formatCents, formatDate, PLAN_STATE_LABELS, planApprovals, plansData, splitPlan, type PaymentPlan } from '@legarec/contracts';
-import { Alerte, Badge, Bouton, Carte, Champ, PageHeader, Pagination, Progression, Tableau, Toolbar, useConfirm, useToast, type Tone } from '@legarec/ui';
+import {
+  formatCents,
+  formatDate,
+  PLAN_STATE_LABELS,
+  planApprovals,
+  plansData,
+  planSimulation,
+  splitPlan,
+  type PaymentPlan,
+  type PlanSimulation,
+} from '@legarec/contracts';
+import {
+  Alerte,
+  Badge,
+  Bouton,
+  Carte,
+  Champ,
+  EtatListe,
+  PageHeader,
+  Pagination,
+  Progression,
+  Tableau,
+  Toolbar,
+  useConfirm,
+  useToast,
+  type Tone,
+} from '@legarec/ui';
 import { useState } from 'react';
+import { useSearchParams } from 'react-router';
 import type { z } from 'zod';
 import { useCreditorScope } from '../../app/creditorScope';
 import { useApi, useChange } from '../../app/data';
@@ -30,7 +56,8 @@ export function PlansPage() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number][0]>('all');
   const [method, setMethod] = useState('all');
   const [selected, setSelected] = useState<string | null>(null);
-  const [simulate, setSimulate] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const [simulate, setSimulate] = useState<string | null>(params.get('dossier'));
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(25);
   const scoped = (data?.plans ?? []).filter((plan) => scope.id === 'all' || plan.creditorId === scope.id);
@@ -114,8 +141,8 @@ export function PlansPage() {
                   label: simulate ? 'Fermer le simulateur' : '+ Nouvel échéancier',
                   primary: !simulate,
                   kbd: 'N',
-                  expanded: simulate,
-                  onPress: () => setSimulate(!simulate),
+                  expanded: !!simulate,
+                  onPress: () => setSimulate(simulate ? null : (data?.simulation?.caseId ?? null)),
                 },
               ]
             : []),
@@ -288,21 +315,53 @@ export function PlansPage() {
                 </ol>
                 {current.canAct && (
                   <div className={layout.inline}>
-                    <Bouton variant="secondary" label="Modifier le plan" onPress={() => setSimulate(true)} />
+                    <Bouton variant="secondary" label="Modifier le plan" onPress={() => setSimulate(current.caseId)} />
                     <Bouton variant="secondary" label="Envoyer un rappel" onPress={() => remind(current)} />
                   </div>
                 )}
               </div>
             </Carte>
           )}
-          {simulate && data?.simulation && <Simulator simulation={data.simulation} threshold={data.thresholdMonths} onDone={() => setSimulate(false)} />}
+          {simulate && data && (
+            <CaseSimulator
+              key={simulate}
+              caseId={simulate}
+              threshold={data.thresholdMonths}
+              onDone={() => {
+                setSimulate(null);
+                setParams({}, { replace: true });
+              }}
+            />
+          )}
         </aside>
       </div>
     </>
   );
 }
 
-function Simulator({ simulation, threshold, onDone }: { simulation: NonNullable<Data['simulation']>; threshold: number; onDone: () => void }) {
+/** Always simulates the case it was opened for, with the balance given by the API. */
+function CaseSimulator({ caseId, threshold, onDone }: { caseId: string; threshold: number; onDone: () => void }) {
+  const { data, error, refetch } = useApi(planSimulation, `/payment-plans/simulation/${encodeURIComponent(caseId)}`);
+  if (!data)
+    return (
+      <Carte title="Simuler un échéancier">
+        {error ? (
+          <EtatListe
+            kind="error"
+            compact
+            title="Simulation impossible"
+            text="Ce dossier n’est pas accessible ou n’est pas le vôtre."
+            onAction={() => void refetch()}
+          />
+        ) : (
+          <EtatListe kind="loading" compact />
+        )}
+      </Carte>
+    );
+  return <Simulator simulation={data} threshold={threshold} onDone={onDone} />;
+}
+
+function Simulator({ simulation, threshold, onDone }: { simulation: PlanSimulation; threshold: number; onDone: () => void }) {
   const change = useChange();
   const confirm = useConfirm();
   const toast = useToast();
@@ -320,6 +379,8 @@ function Simulator({ simulation, threshold, onDone }: { simulation: NonNullable<
         : 'Le débiteur reçoit le plan par e-mail avec un lien pour le signer dans son espace.',
       confirmLabel: needs ? 'Envoyer la demande' : 'Envoyer au débiteur',
       details: [
+        { k: 'Débiteur', v: simulation.debtor },
+        { k: 'Créancier', v: simulation.creditor },
         { k: 'Montant', v: formatCents(simulation.balance) },
         { k: 'Mensualités', v: `${months} × ${formatCents(amounts[0] ?? 0)}` },
         { k: 'Mode de paiement', v: METHOD[method] },

@@ -2,6 +2,7 @@ import {
   allocatePayment,
   canActOnCase,
   canReadCase,
+  hasDelegation,
   newPayment,
   type CaseDetail,
   type CaseFilter,
@@ -239,7 +240,11 @@ export const resetCases = () => {
 
 const ownership = (item: Stored) => ({ officerId: item.officerId, officerRole: item.officerId ? (OFFICERS[item.officerId]?.role ?? 'CLAIMS_OFFICER') : null });
 export const readable = (session: Session) => cases.filter((item) => canReadCase(session, ownership(item)));
+export const allNames = () => cases.map((item) => item.name);
 export const actsOn = (session: Session, caseId: string) => cases.some((item) => item.id === caseId && canActOnCase(session, ownership(item)));
+const EMAIL_CASES: Record<string, string> = { 'compta@batiplus.example': 'demo' };
+/** Case behind a debtor's address, as the API would find it. */
+export const caseOfEmail = (email: string) => EMAIL_CASES[email.trim().toLowerCase()] ?? null;
 const toItem = (item: Stored, session: Session): CaseListItem => {
   const { group: _group, ...rest } = item;
   return { ...rest, officer: item.officerId ? (OFFICERS[item.officerId]?.name ?? null) : null, canAct: canActOnCase(session, ownership(item)) };
@@ -481,17 +486,20 @@ const acting = (resolve: (item: Stored, session: Session, info: Info) => Respons
     if (!item || !canReadCase(session, ownership(item))) return item ? forbidden() : notFound();
     return canActOnCase(session, ownership(item)) ? resolve(item, session, info) : forbidden();
   });
+const administers = (session: Session) => session.role === 'DIRECTOR' || hasDelegation(session, 'ADMINISTRATIVE');
 const bulk = (title: string, apply: (item: Stored, body: { officerId?: string; reason?: string }) => void, managerOnly = false) =>
   guarded<Info>(
-    (session) => staffWithCases(session) && (!managerOnly || session.role === 'COLLECTION_MANAGER'),
+    (session) => staffWithCases(session) && (!managerOnly || administers(session)),
     async ({ request }, session) => {
       const body = (await request.json()) as { ids: string[]; officerId?: string; reason?: string };
       const items = body.ids.map(find);
-      if (items.some((item) => !item || !canActOnCase(session, ownership(item)))) return forbidden();
+      // Assigning is a right of the Director, whose delegate acts on their behalf.
+      if (items.some((item) => !item || !(managerOnly ? canReadCase(session, ownership(item)) : canActOnCase(session, ownership(item))))) return forbidden();
+      const onBehalfOf = managerOnly && session.role !== 'DIRECTOR' ? session.directorName : null;
       for (const item of items)
         if (item) {
           apply(item, body);
-          log(item.id, session, title, body.reason ?? '');
+          log(item.id, session, title, body.reason ?? '', 'info', onBehalfOf);
         }
       return done();
     },
@@ -679,6 +687,7 @@ export const caseHandlers = [
       const { caseId, kind, origin } = (await request.json()) as { caseId: string; kind: GdprRequest['kind']; origin: string };
       const item = readable(session).find((entry) => entry.id === caseId);
       if (!item) return notFound();
+      if (!actsOn(session, caseId)) return forbidden();
       addGdprRequest({ caseId, kind, origin, debtor: item.name });
       return done();
     }),

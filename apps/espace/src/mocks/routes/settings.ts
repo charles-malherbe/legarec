@@ -11,6 +11,7 @@ import {
   type SettingTable,
 } from '@legarec/contracts';
 import { http, HttpResponse } from 'msw';
+import { audit, auditEntries, resetAudit } from '../audit';
 import { done, forbidden, guarded, notFound } from '../http';
 import { administers } from './steering';
 
@@ -528,7 +529,7 @@ const technicalGroups = (): Group[] => [
             'Chaque connexion et chaque action sensible est enregistrée : utilisateur, pour le compte de qui, action, date, adresse IP.',
             ['Date', 'Utilisateur', 'Pour le compte de', 'Action', 'Adresse IP'],
             [
-              ['21/11/2026 11:58', 'Camille Laurent', '', 'Validation d’un échéancier de 8 mois (LGR-2026-04812)', '91.168.•••.12'],
+              ['21/11/2026 11:58', 'Camille Laurent', '', 'Validation d’un échéancier de 8 mois', '91.168.•••.12'],
               ['21/11/2026 10:44', 'Marie Dubreuil', '', 'Export des données (Rapports)', '91.168.•••.40'],
               ['21/11/2026 09:02', 'Camille Laurent', '', 'Connexion réussie (2FA)', '91.168.•••.12'],
               ['21/11/2026 08:57', 'Inconnu', '', '3 tentatives de connexion échouées (compte hb)', '185.22.•••.7'],
@@ -591,6 +592,7 @@ const seedBoxes = (): Mailbox[] => [
 let boxes = seedBoxes();
 let boxHistory: { id: string; when: string; who: string; onBehalfOf: string | null; what: string }[] = [];
 const logBox = (session: Session, what: string) => {
+  audit(session, what, 'TECHNICAL');
   boxHistory = [
     {
       id: `h${boxHistory.length + 1}`,
@@ -635,6 +637,7 @@ export const addGdprRequest = (item: Pick<GdprRequest, 'kind' | 'debtor' | 'case
   registry = [...registry, { ...item, id: `g${registry.length + 1}`, receivedOn: '2026-11-24', dueOn: '2026-12-24', daysLeft: 30, status: 'OPEN' }];
 };
 export const resetSettings = () => {
+  resetAudit();
   groups = { firm: firmGroups(), technical: technicalGroups() };
   secrets = seedSecrets();
   boxes = seedBoxes();
@@ -674,7 +677,12 @@ export const settingsHandlers = [
       if (!canRead(scope, session)) return forbidden();
       const item = groups[scope].flatMap((group) => group.items).find((entry) => entry.id === params.id);
       if (!item) return notFound();
-      return HttpResponse.json({ id: item.id, canEdit: canEdit(scope, session), blocks: item.blocks, tables: item.tables ?? [], notes: item.notes ?? [] });
+      const tables = (item.tables ?? []).map((entry) =>
+        entry.id === 'audit'
+          ? { ...entry, rows: [...auditEntries().map((line) => [line.date, line.who, line.onBehalfOf, line.what, '—']), ...entry.rows] }
+          : entry,
+      );
+      return HttpResponse.json({ id: item.id, canEdit: canEdit(scope, session), blocks: item.blocks, tables, notes: item.notes ?? [] });
     }),
   ),
   http.put(
@@ -685,6 +693,7 @@ export const settingsHandlers = [
       const item = groups[scope].flatMap((group) => group.items).find((entry) => entry.id === params.id);
       if (!item) return notFound();
       const changes = (await request.json()) as Record<string, string | boolean>;
+      audit(session, `Paramètres modifiés : ${item.title}`, scope === 'technical' ? 'TECHNICAL' : 'ADMINISTRATIVE');
       item.blocks = item.blocks.map((entry) => ({
         ...entry,
         fields: entry.fields.map((field) => {
@@ -702,20 +711,32 @@ export const settingsHandlers = [
   ),
   http.post(
     '/api/secrets',
-    guarded<Info>(edits, async ({ request }) => {
+    guarded<Info>(edits, async ({ request }, session) => {
       // The value is never kept nor sent back.
       const { name, service } = (await request.json()) as { name: string; service: string };
+      audit(session, `Secret ajouté : ${name}`, 'TECHNICAL');
       secrets = [...secrets, { id: `k${secrets.length}`, name, service, environment: 'Production', used: 'jamais', rotated: 'Aujourd’hui', status: 'VALID' }];
       return done();
     }),
   ),
   http.post(
     '/api/secrets/:id/:action',
-    guarded<Info>(edits, ({ params }) => {
+    guarded<Info>(edits, ({ params }, session) => {
       const item = secrets.find((entry) => entry.id === params.id);
       if (!item) return notFound();
-      secrets = secrets.map((entry) =>
-        entry !== item ? entry : params.action === 'revoke' ? { ...entry, status: 'REVOKED' } : { ...entry, status: 'VALID', rotated: 'Aujourd’hui' },
+      const director = session.role === 'DIRECTOR';
+      // Revoking in production needs the Director: the Developer only asks for it.
+      const next = {
+        rotate: { status: 'VALID' as const, rotated: 'Aujourd’hui' },
+        revoke: { status: director ? ('REVOKED' as const) : ('REVOKE_PENDING' as const) },
+        keep: director ? { status: 'VALID' as const } : null,
+      }[String(params.action)];
+      if (!next) return forbidden();
+      secrets = secrets.map((entry) => (entry === item ? { ...entry, ...next } : entry));
+      audit(
+        session,
+        `Secret ${item.name} : ${{ rotate: 'renouvelé', revoke: director ? 'révoqué' : 'révocation demandée', keep: 'révocation refusée' }[String(params.action)]}`,
+        'TECHNICAL',
       );
       return done();
     }),
@@ -788,6 +809,8 @@ export const settingsHandlers = [
   http.put(
     '/api/mailboxes/:id/auto-reply',
     onBox(async (item, session, { request }) => {
+      // The shared mailbox only receives: not even an automatic reply leaves it.
+      if (item.protected) return forbidden();
       const autoReply = (await request.json()) as NonNullable<Mailbox['autoReply']>;
       boxes = boxes.map((entry) => (entry.id === item.id ? { ...entry, autoReply } : entry));
       logBox(session, `Réponse automatique de ${item.address} enregistrée`);
@@ -819,7 +842,8 @@ export const settingsHandlers = [
   ),
   http.put(
     '/api/gdpr/requests/:id',
-    guarded<Info>(keepsRegistry, async ({ params, request }) => {
+    guarded<Info>(keepsRegistry, async ({ params, request }, session) => {
+      audit(session, 'Registre RGPD : demande traitée', 'ADMINISTRATIVE');
       const { status } = (await request.json()) as { status: GdprRequest['status'] };
       registry = registry.map((item) => (item.id === params.id ? { ...item, status } : item));
       return done();
@@ -827,7 +851,8 @@ export const settingsHandlers = [
   ),
   http.post(
     '/api/gdpr/requests/:id/export',
-    guarded<Info>(keepsRegistry, ({ params }) => {
+    guarded<Info>(keepsRegistry, ({ params }, session) => {
+      audit(session, 'Export RGPD des données d’un débiteur', 'ADMINISTRATIVE');
       const item = registry.find((entry) => entry.id === params.id);
       return item
         ? HttpResponse.json({

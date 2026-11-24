@@ -309,7 +309,13 @@ function Manage({ item, canEdit, onIssued, onDelete }: { item: Mailbox; canEdit:
   return (
     <Carte title={item.address} description={item.holder ?? (item.protected ? 'Boîte partagée' : 'Adresse de fonction')}>
       <div className={layout.stack}>
-        {item.protected && <Alerte tone="info" icon="lock" text="Boîte protégée : ni suppression ni changement de mot de passe depuis l’application." />}
+        {item.protected && (
+          <Alerte
+            tone="info"
+            icon="lock"
+            text="Boîte protégée, en réception seule : ni suppression, ni changement de mot de passe, ni réponse automatique depuis l’application."
+          />
+        )}
         {!canEdit && <Alerte tone="neutral" icon="lock" text="Lecture seule." />}
         <h3 className={layout.ficheTitle}>Redirections</h3>
         {item.redirections.length === 0 && <p className={layout.muted}>Aucune redirection.</p>}
@@ -353,14 +359,24 @@ function Manage({ item, canEdit, onIssued, onDelete }: { item: Mailbox; canEdit:
             <Bouton type="submit" variant="secondary" size="sm" label={editing ? 'Modifier la redirection' : 'Créer la redirection'} />
           </form>
         )}
-        <h3 className={layout.ficheTitle}>Réponse automatique</h3>
-        <Champ label="Texte de la réponse" type="textarea" value={reply} disabled={!canEdit} onChange={setReply} />
-        <Champ label="Jusqu’au" type="date" optional value={until} disabled={!canEdit} onChange={setUntil} />
-        {canEdit && (
-          <div className={layout.inline}>
-            <Bouton variant="secondary" size="sm" label="Enregistrer la réponse automatique" disabled={!reply.trim()} onPress={() => saveReply(reply, until)} />
-            {item.autoReply && <Bouton variant="danger-outline" size="sm" label="Supprimer la réponse automatique" onPress={dropReply} />}
-          </div>
+        {!item.protected && (
+          <>
+            <h3 className={layout.ficheTitle}>Réponse automatique</h3>
+            <Champ label="Texte de la réponse" type="textarea" value={reply} disabled={!canEdit} onChange={setReply} />
+            <Champ label="Jusqu’au" type="date" optional value={until} disabled={!canEdit} onChange={setUntil} />
+            {canEdit && (
+              <div className={layout.inline}>
+                <Bouton
+                  variant="secondary"
+                  size="sm"
+                  label="Enregistrer la réponse automatique"
+                  disabled={!reply.trim()}
+                  onPress={() => saveReply(reply, until)}
+                />
+                {item.autoReply && <Bouton variant="danger-outline" size="sm" label="Supprimer la réponse automatique" onPress={dropReply} />}
+              </div>
+            )}
+          </>
         )}
         {canEdit && !item.protected && (
           <>

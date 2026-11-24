@@ -174,7 +174,8 @@ export function Shell() {
   useEffect(() => applyDisplay(user.preferences.theme, user.preferences.lowVision), [user.preferences]);
 
   const logout = useCallback(async () => {
-    await api(z.undefined(), '/auth/logout', { method: 'POST' });
+    // Whatever the API answers, nothing must stay on screen nor in the cache.
+    await api(z.undefined(), '/auth/logout', { method: 'POST' }).catch(() => undefined);
     client.clear();
     client.setQueryData(SESSION_KEY, null);
     await navigate('/connexion');

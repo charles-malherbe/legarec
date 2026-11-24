@@ -14,3 +14,22 @@ export const TCX_CODES: Record<CallOutcome, string> = {
   NO_ANSWER: 'NON_REPONSE',
   WRONG_NUMBER: 'FAUX_NUMERO',
 };
+
+/** Qualification sheet sent at the end of a call. */
+export const callQualification = z.object({
+  outcome: callOutcome,
+  tcxCode: z.string(),
+  interlocutor: z.string(),
+  notes: z.string(),
+  promise: z
+    .object({ amount: z.number().int().positive(), date: z.iso.date(), method: z.enum(['TRANSFER', 'CHEQUE']), invoices: z.array(z.string()).min(1) })
+    .nullable(),
+  alreadyPaid: z.object({ paidOn: z.iso.date(), reference: z.string().min(1) }).nullable(),
+  dispute: z.object({ reason: z.string().min(1), suspendReminders: z.boolean(), askCreditor: z.boolean() }).nullable(),
+  absent: z.object({ voicemail: z.boolean(), smsLink: z.boolean() }).nullable(),
+  months: z.number().int().nullable(),
+  recall: z.enum(['1h', 'tomorrow', 'friday', 'custom']).nullable(),
+  announced: z.boolean(),
+  sendRecap: z.boolean(),
+});
+export type CallQualification = z.infer<typeof callQualification>;

@@ -1,5 +1,6 @@
 import { ROLE_LABELS, type AccountData, type Session } from '@legarec/contracts';
 import { http, HttpResponse } from 'msw';
+import { audit } from '../audit';
 import { done, forbidden, guarded, notFound } from '../http';
 import { currentSession, state } from '../state';
 
@@ -157,9 +158,10 @@ export const accountHandlers = [
     '/api/delegations/:kind',
     guarded<Info>(
       (session) => session.role === 'DIRECTOR',
-      async ({ params, request }) => {
+      async ({ params, request }, session) => {
         const { active } = (await request.json()) as { active: boolean };
         const kind = params.kind === 'technical' ? 'TECHNICAL' : 'ADMINISTRATIVE';
+        audit(session, `Délégation ${kind === 'TECHNICAL' ? 'technique' : 'administrative'} ${active ? 'redonnée' : 'retirée'}`);
         state.delegations = active ? [...new Set([...state.delegations, kind] as const)] : state.delegations.filter((item) => item !== kind);
         return done();
       },

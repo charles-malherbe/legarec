@@ -11,7 +11,8 @@ import { callHandlers } from './routes/calls';
 import { messageHandlers } from './routes/messages';
 import { caseHandlers, readable } from './routes/cases';
 import { collectionHandlers } from './routes/collection';
-import { creditorHandlers } from './routes/creditors';
+import { canSeeCreditor, creditorHandlers } from './routes/creditors';
+import { mayRead } from './visibility';
 import { done, forbidden, unauthorized } from './http';
 import { currentSession, setAccount, state } from './state';
 
@@ -133,12 +134,16 @@ export const handlers: HttpHandler[] = [
     return HttpResponse.json({ status: 'OK', session: currentSession() });
   }),
   http.post('/api/auth/two-factor', async ({ request }) => {
-    const { code } = (await request.json()) as { code: string };
-    if (!state.pending || code !== '123456') return HttpResponse.json({ code: 'INVALID_CODE' }, { status: 401 });
+    const { method, code } = (await request.json()) as { method: string; code?: string };
+    const accepted = method === 'WEBAUTHN' || (method === 'BACKUP_CODE' ? code === '4821-7730' : code === '123456');
+    if (!state.pending || !accepted) return HttpResponse.json({ code: 'INVALID_CODE' }, { status: 401 });
     setAccount(state.pending);
     state.pending = null;
     return HttpResponse.json({ status: 'OK', session: currentSession() });
   }),
+  http.post('/api/auth/two-factor/webauthn', () =>
+    state.pending ? HttpResponse.json({ challenge: 'ZGVtby1jaGFsbGVuZ2U', rpId: 'localhost', allowCredentials: [], timeout: 60000 }) : unauthorized(),
+  ),
   http.post('/api/auth/logout', () => {
     setAccount('none');
     return done();
@@ -166,14 +171,18 @@ export const handlers: HttpHandler[] = [
     if (!session) return unauthorized();
     const noCase = session.role === 'DEVELOPER';
     return HttpResponse.json({
-      creditors: noCase ? [] : CREDITORS,
+      creditors: noCase ? [] : CREDITORS.filter((item) => item.id === 'all' || canSeeCreditor(session, item.id)),
       counts: noCase
         ? { teamOnline: 0, remindersToday: 0, litigationUrgent: 0, callQueue: 0, unreadEmails: 0, unreadSms: 0 }
         : { teamOnline: 3, remindersToday: 7, litigationUrgent: 2, callQueue: 24, unreadEmails: 12, unreadSms: 3 },
-      notifications: noCase ? [] : NOTIFICATIONS.map((item) => ({ ...item, unread: item.unread && !state.readNotifications.has(item.id) })),
+      notifications: NOTIFICATIONS.filter((item) => mayRead(session, item.text)).map((item) => ({
+        ...item,
+        unread: item.unread && !state.readNotifications.has(item.id),
+      })),
     } satisfies ShellData);
   }),
   http.post('/api/notifications/read', async ({ request }) => {
+    if (!currentSession()) return unauthorized();
     for (const id of ((await request.json()) as { ids: string[] }).ids) state.readNotifications.add(id);
     return done();
   }),
@@ -205,14 +214,16 @@ export const handlers: HttpHandler[] = [
         debtors: 62,
         invoices: 418,
         overdue30: 9870000,
-        priorities: priorities.filter((item) => ['a1', 'a2'].includes(item.id)),
-        topDebtors: base.topDebtors.filter((item) => ['helio', 'nordis'].includes(item.id)),
+        priorities: priorities.filter((item) => mayRead(session, `${item.title} ${item.meta}`)),
+        topDebtors: base.topDebtors.filter((item) => mayRead(session, item.name)),
+        creditors: base.creditors.filter((item) => canSeeCreditor(session, item.id)),
         team: [],
-        feed: base.feed.slice(0, 2),
+        feed: base.feed.filter((item) => mayRead(session, item.text)),
       });
     return HttpResponse.json({ ...base, scope: session.role === 'DIRECTOR' ? 'GLOBAL' : 'TEAM', priorities });
   }),
   http.put('/api/dashboard/priorities/:id', async ({ params, request }) => {
+    if (!currentSession()) return unauthorized();
     state.priorities.set(String(params.id), ((await request.json()) as { done: boolean }).done);
     return done();
   }),

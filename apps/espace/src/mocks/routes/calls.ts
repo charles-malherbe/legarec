@@ -1,6 +1,7 @@
-import type { CallTarget, Coordinate } from '@legarec/contracts';
+import { callQualification, type CallQualification, type CallTarget, type Coordinate } from '@legarec/contracts';
 import { http, HttpResponse } from 'msw';
-import { done, forbidden, guarded, notFound, staffWithCases } from '../http';
+import { done, forbidden, guarded, notFound, staffWithCases, unauthorized } from '../http';
+import { currentSession } from '../state';
 import { readable } from './cases';
 
 type Info = { request: Request; params: Record<string, unknown> };
@@ -203,10 +204,17 @@ const seed = (): CallTarget[] => [
   }),
 ];
 let targets = seed();
-export const callState = { tcx: 'CONNECTED' as 'CONNECTED' | 'DOWN', active: true, aiEnabled: true, incoming: false, decisions: [] as string[] };
+export const callState = {
+  tcx: 'CONNECTED' as 'CONNECTED' | 'DOWN',
+  active: true,
+  aiEnabled: true,
+  incoming: false,
+  decisions: [] as string[],
+  sheets: [] as CallQualification[],
+};
 export const resetCalls = () => {
   targets = seed();
-  Object.assign(callState, { tcx: 'CONNECTED', active: true, aiEnabled: true, incoming: false, decisions: [] });
+  Object.assign(callState, { tcx: 'CONNECTED', active: true, aiEnabled: true, incoming: false, decisions: [], sheets: [] });
 };
 const onTarget = (resolve: (item: CallTarget, info: Info) => Response | Promise<Response>) =>
   guarded<Info>(staffWithCases, (info, session) => {
@@ -260,6 +268,7 @@ export const callHandlers = [
     ),
   ),
   http.put('/api/calls/incoming', () => {
+    if (!currentSession()) return unauthorized();
     callState.incoming = false;
     return done();
   }),
@@ -270,8 +279,10 @@ export const callHandlers = [
   http.post(
     '/api/calls/:id/qualification',
     onTarget(async (item, { request }) => {
-      const body = (await request.json()) as { outcome: CallTarget['doneOutcome']; announced: boolean };
-      item.doneOutcome = body.outcome;
+      const parsed = callQualification.safeParse(await request.json());
+      if (!parsed.success) return HttpResponse.json({ code: 'INVALID' }, { status: 422 });
+      item.doneOutcome = parsed.data.outcome;
+      callState.sheets.push(parsed.data);
       return done();
     }),
   ),

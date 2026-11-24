@@ -3,6 +3,7 @@ import {
   billingTotals,
   formatCents,
   formatDate,
+  formatLongDate,
   parseCents,
   vatNumber,
   type BillingData,
@@ -336,7 +337,7 @@ function Creator({ data, initialType, onClose }: { data: BillingData; initialTyp
             <span className={layout.text}>
               <strong>{definition.label}</strong>
               <span>{number} (provisoire)</span>
-              <span>Paris, le 21 novembre 2026</span>
+              <span>Paris, le {formatLongDate(new Date())}</span>
             </span>
           </header>
           <div className={css.client}>

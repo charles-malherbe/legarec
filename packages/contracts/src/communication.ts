@@ -148,6 +148,7 @@ export const emailThread = z.object({
   body: z.string(),
   attachment: z.string().nullable(),
   archived: z.boolean(),
+  canAct: z.boolean().optional(),
   replies: z.array(z.object({ id: z.string(), text: z.string(), status: z.enum(['SENT', 'FAILED']), when: z.string() })),
   ai: z
     .object({ summary: z.string(), facts: z.array(z.object({ k: z.string(), v: z.string() })), actions: z.array(z.string()), draft: z.string().nullable() })
@@ -188,6 +189,7 @@ export const smsThread = z.object({
   status: z.enum(['OVERDUE', 'PROMISE', 'REMINDER', 'SETTLED']).nullable(),
   time: z.string(),
   unread: z.number().int(),
+  canAct: z.boolean().optional(),
   next: z.string(),
   messages: z.array(
     z.object({ id: z.string(), direction: z.enum(['IN', 'OUT']), text: z.string(), meta: z.string(), automatic: z.string().nullable(), failed: z.boolean() }),

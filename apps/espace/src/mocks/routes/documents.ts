@@ -1,7 +1,7 @@
 import type { DocumentItem, LetterRecipient } from '@legarec/contracts';
 import { http, HttpResponse } from 'msw';
 import { done, forbidden, guarded, notFound, staffWithCases } from '../http';
-import { readable } from './cases';
+import { actsOn, readable } from './cases';
 
 type Info = { request: Request; params: Record<string, unknown> };
 const d = (
@@ -264,7 +264,9 @@ const onDocument = guarded<Info>(staffWithCases, ({ params }, session) => {
   const item = ITEMS.find((entry) => entry.id === params.id);
   if (!item) return notFound();
   const own = readable(session).find((entry) => entry.id === item.caseId);
-  return session.role === 'COLLECTION_MANAGER' || (own && (session.role !== 'DIRECTOR' || own.officerId === session.userId)) ? done() : forbidden();
+  // A document without a case is handled by the manager; any other follows the rights on its case.
+  if (!item.caseId) return session.role === 'COLLECTION_MANAGER' ? done() : forbidden();
+  return own && actsOn(session, own.id) ? done() : forbidden();
 });
 
 export const documentHandlers = [
@@ -293,7 +295,7 @@ export const documentHandlers = [
       return HttpResponse.json({
         firm: { name: 'LEGAREC', address: '[ADRESSE DU CABINET]', phone: '01 87 88 02 98', siren: '[SIREN]' },
         recipients: RECIPIENTS.filter((item) => allowed.includes(item.caseId)),
-        batch: session.role === 'COLLECTION_MANAGER' ? { debtors: 38, invoices: 162, amount: 21438000 } : null,
+        batch: session.role === 'COLLECTION_MANAGER' ? { debtors: 38, invoices: 162, amount: 21438000, withoutFirstLetter: 3 } : null,
       });
     }),
   ),

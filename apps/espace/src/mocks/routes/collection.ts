@@ -1,7 +1,7 @@
-import { planApprovals, type LitigationCase, type PaymentPlan, type Reminder, type ReminderType, type Session } from '@legarec/contracts';
+import { type LitigationCase, type PaymentPlan, type Reminder, type ReminderType, type Session } from '@legarec/contracts';
 import { http, HttpResponse } from 'msw';
 import { done, forbidden, guarded, notFound, staffWithCases } from '../http';
-import { OFFICERS } from './cases';
+import { actsOn, OFFICERS, readable } from './cases';
 
 type Info = { request: Request; params: Record<string, unknown> };
 /** Same access rules as cases, applied to anything owned by an officer. */
@@ -385,7 +385,8 @@ export const collectionHandlers = [
       const item = reminders.find((entry) => entry.id === params.id);
       if (!item) return notFound();
       if (!acts(session, item.officerId)) return forbidden();
-      Object.assign(item, await request.json());
+      const body = (await request.json()) as Partial<Pick<Reminder, 'date' | 'time' | 'done'>>;
+      for (const key of ['date', 'time', 'done'] as const) if (body[key] !== undefined) Object.assign(item, { [key]: body[key] });
       return done();
     }),
   ),
@@ -413,11 +414,22 @@ export const collectionHandlers = [
       });
     }),
   ),
+  http.get(
+    '/api/payment-plans/simulation/:id',
+    guarded<Info>(staffWithCases, ({ params }, session) => {
+      const item = readable(session).find((entry) => entry.id === params.id);
+      if (!item) return notFound();
+      if (!actsOn(session, item.id)) return forbidden();
+      const plan = plans.find((entry) => entry.caseId === item.id);
+      const balance = plan ? plan.installments.filter((entry) => entry.state !== 'PAID').reduce((sum, entry) => sum + entry.amount, 0) : item.amount;
+      return HttpResponse.json({ caseId: item.id, debtor: item.name, creditor: item.creditor, balance, ownedByDirector: item.officerId === 'ad' });
+    }),
+  ),
   http.post(
     '/api/payment-plans',
     guarded<Info>(staffWithCases, async ({ request }, session) => {
-      const { months } = (await request.json()) as { months: number };
-      return HttpResponse.json({ approvals: planApprovals(months, 6, session.role === 'DIRECTOR') }).ok ? done() : forbidden();
+      const { caseId } = (await request.json()) as { caseId: string };
+      return actsOn(session, caseId) ? done() : forbidden();
     }),
   ),
   http.put(

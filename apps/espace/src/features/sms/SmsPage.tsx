@@ -65,7 +65,7 @@ export function SmsPage() {
   const pick = (item: SmsThread) => {
     setSelected(item.id);
     setDraft('');
-    if (item.unread > 0) void change(`/sms/${item.id}/read`);
+    if (item.unread > 0 && item.canAct !== false) void change(`/sms/${item.id}/read`);
   };
   const send = (item: SmsThread) =>
     confirm({
@@ -195,7 +195,9 @@ export function SmsPage() {
                   </li>
                 ))}
               </ol>
-              {current.linked ? (
+              {current.canAct === false ? (
+                <Alerte tone="info" compact icon="lock" text="Lecture seule : ce dossier est suivi par un autre collaborateur." />
+              ) : current.linked ? (
                 <div className={layout.stack} style={{ padding: 'var(--sp-4) var(--sp-5)', borderTop: '1px solid var(--border)' }}>
                   <div className={layout.chips}>
                     <span className={layout.muted}>Réponses rapides :</span>
