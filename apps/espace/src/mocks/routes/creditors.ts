@@ -107,7 +107,7 @@ const detail = (item: CreditorListItem): CreditorDetail => ({
           {
             id: 'demo',
             name: 'Bâtiplus SAS',
-            reference: 'DOS-2026-0142',
+            reference: 'LGR-2026-00142',
             amount: 4820000,
             daysLate: 68,
             status: 'OVERDUE',
@@ -121,7 +121,7 @@ const detail = (item: CreditorListItem): CreditorDetail => ({
           {
             id: 'bellet',
             name: 'Charpentes Bellet',
-            reference: 'DOS-2026-0109',
+            reference: 'LGR-2026-00109',
             amount: 2730000,
             daysLate: 81,
             status: 'FORMAL_NOTICE',
@@ -136,7 +136,7 @@ const detail = (item: CreditorListItem): CreditorDetail => ({
           {
             id: 'mistral',
             name: 'Atelier Mistral',
-            reference: 'DOS-2026-0170',
+            reference: 'LGR-2026-00170',
             amount: 1832000,
             daysLate: 52,
             status: 'DISPUTE',
@@ -146,7 +146,7 @@ const detail = (item: CreditorListItem): CreditorDetail => ({
           {
             id: 'rivoire',
             name: 'Menuiserie Rivoire',
-            reference: 'DOS-2026-0188',
+            reference: 'LGR-2026-00188',
             amount: 1564000,
             daysLate: 34,
             status: 'REMINDER',
@@ -162,7 +162,7 @@ const detail = (item: CreditorListItem): CreditorDetail => ({
           {
             id: 'tilleuls',
             name: 'SCI Les Tilleuls',
-            reference: 'DOS-2026-0175',
+            reference: 'LGR-2026-00175',
             amount: 987000,
             daysLate: 12,
             status: 'PLAN',

@@ -3,7 +3,7 @@ import { http, HttpResponse } from 'msw';
 
 type Info = { request: Request; params: Record<string, string | readonly string[] | undefined> };
 type Message = { id: string; mine: boolean; who: string; when: string; text: string; attachments: { id: string; name: string }[]; receipt: string | null };
-type Stored = { id: string; greeting: string; siren: string | null; references: string[]; code: string; phone: string; cases: DebtorCase[] };
+type Stored = { id: string; greeting: string; siren: string | null; references: string[]; code: string; cases: DebtorCase[] };
 
 const payment = (reference: string | null): PaymentInfo => ({
   beneficiary: 'LEGAREC – compte dédié aux fonds',
@@ -42,11 +42,10 @@ const seed = (): Stored[] => [
     id: 'durand',
     greeting: 'Monsieur Durand',
     siren: '732829320',
-    references: ['DOS-2026-0181', 'DOS-2026-0204'],
+    references: ['LGR-2026-00181', 'LGR-2026-00204'],
     code: 'KXPM',
-    phone: '06 •• •• •• 42',
     cases: [
-      item('c1', 'DOS-2026-0181', 'Fromagerie Durand', 'Énergies Rhône', {
+      item('c1', 'LGR-2026-00181', 'Fromagerie Durand', 'Énergies Rhône', {
         principal: 624000,
         indemnity: 8000,
         paid: 100000,
@@ -64,7 +63,7 @@ const seed = (): Stored[] => [
           text: 'Nous avons bien reçu votre virement de 1 000 €. Pouvez-vous nous indiquer quand vous pensez régler le solde ?',
         },
       }),
-      item('c2', 'DOS-2026-0204', 'Fromagerie Durand', 'Médiatel', {
+      item('c2', 'LGR-2026-00204', 'Fromagerie Durand', 'Médiatel', {
         principal: 90000,
         indemnity: 4000,
         balance: 62667,
@@ -89,11 +88,10 @@ const seed = (): Stored[] => [
     id: 'meunier',
     greeting: 'Paul Meunier',
     siren: null,
-    references: ['DOS-2026-0220'],
+    references: ['LGR-2026-00220'],
     code: 'BRTV',
-    phone: '06 •• •• •• 17',
     cases: [
-      item('c3', 'DOS-2026-0220', 'Paul Meunier', 'Crédit Horizon', {
+      item('c3', 'LGR-2026-00220', 'Paul Meunier', 'Crédit Horizon', {
         isIndividual: true,
         principal: 84000,
         balance: 84000,
@@ -236,7 +234,7 @@ export const handlers = [
     const sent = (smsSent.get(key) ?? 0) + 1;
     if (sent > 3) return HttpResponse.json({ code: 'TOO_MANY' }, { status: 429 });
     smsSent.set(key, sent);
-    return HttpResponse.json({ maskedPhone: find(parsed.data)?.phone ?? null });
+    return HttpResponse.json({ requested: true });
   }),
   http.get('/api/debtor/limited/payment', () => HttpResponse.json(payment(null))),
   http.post('/api/debtor/limited/messages', async ({ request }) => {

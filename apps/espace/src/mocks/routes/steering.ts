@@ -15,6 +15,7 @@ import {
 import { http, HttpResponse } from 'msw';
 import { audit } from '../audit';
 import { done, forbidden, guarded, notFound, staffWithCases } from '../http';
+import { addMailboxRequest } from '../mailboxRequests';
 import { mayRead } from '../visibility';
 
 type Info = { request: Request; params: Record<string, unknown> };
@@ -550,6 +551,12 @@ export const steeringHandlers = [
       const holder = UNIQUE_ROLES.includes(body.role) ? members.find((item) => item.role === body.role && item.status !== 'DISABLED') : undefined;
       if (holder)
         return HttpResponse.json({ code: 'ROLE_TAKEN', role: ROLE_LABELS[body.role], holder: `${holder.firstName} ${holder.lastName}` }, { status: 409 });
+      if (body.role !== 'CREDITOR')
+        addMailboxRequest({
+          holder: `${body.firstName} ${body.lastName}`,
+          local: body.email.split('@')[0] ?? '',
+          requestedBy: `${session.firstName} ${session.lastName}`,
+        });
       audit(session, `Invitation envoyée (${ROLE_LABELS[body.role]})`, 'ADMINISTRATIVE');
       members = [
         ...members,

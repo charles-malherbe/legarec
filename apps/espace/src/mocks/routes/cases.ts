@@ -61,7 +61,7 @@ const row = (
 const seed = (): Stored[] => [
   row(
     'demo',
-    'DOS-2026-0142',
+    'LGR-2026-00142',
     'Bâtiplus SAS',
     '512 334 871 00088',
     'md',
@@ -78,7 +78,7 @@ const seed = (): Stored[] => [
   ),
   row(
     'helio',
-    'DOS-2026-0151',
+    'LGR-2026-00151',
     'Groupe Hélio',
     '319 935 185 00011',
     'mt',
@@ -95,7 +95,7 @@ const seed = (): Stored[] => [
   ),
   row(
     'valmont',
-    'DOS-2026-0098',
+    'LGR-2026-00098',
     'Garage Valmont',
     '193 786 571 00094',
     'tl',
@@ -112,7 +112,7 @@ const seed = (): Stored[] => [
   ),
   row(
     'nordis',
-    'DOS-2026-0163',
+    'LGR-2026-00163',
     'Nordis Logistique',
     '854 323 193 00045',
     'er',
@@ -129,7 +129,7 @@ const seed = (): Stored[] => [
   ),
   row(
     'mistral',
-    'DOS-2026-0170',
+    'LGR-2026-00170',
     'Atelier Mistral',
     '975 749 110 00089',
     'md',
@@ -146,7 +146,7 @@ const seed = (): Stored[] => [
   ),
   row(
     'orsay',
-    'DOS-2026-0177',
+    'LGR-2026-00177',
     'Cabinet Orsay',
     '725 276 018 00084',
     'mt',
@@ -163,7 +163,7 @@ const seed = (): Stored[] => [
   ),
   row(
     'durand',
-    'DOS-2026-0181',
+    'LGR-2026-00181',
     'Fromagerie Durand',
     '655 979 714 00012',
     'er',
@@ -180,7 +180,7 @@ const seed = (): Stored[] => [
   ),
   row(
     'castel',
-    'DOS-2026-0119',
+    'LGR-2026-00119',
     'Imprimerie Castel',
     '571 049 741 00069',
     'tl',
@@ -197,7 +197,7 @@ const seed = (): Stored[] => [
   ),
   row(
     'meunier',
-    'DOS-2026-0203',
+    'LGR-2026-00203',
     'Paul Meunier',
     'Particulier',
     'ch',
@@ -214,7 +214,7 @@ const seed = (): Stored[] => [
   ),
   row(
     'lagarde',
-    'DOS-2026-0087',
+    'LGR-2026-00087',
     'Hôtel Lagarde',
     '402 118 556 00027',
     'er',
@@ -233,7 +233,10 @@ const seed = (): Stored[] => [
 let cases = seed();
 let payments: Record<string, Payment[]> = {};
 let extra: Record<string, { history: CaseDetail['history']; exchanges: CaseDetail['exchanges'] }> = {};
+/** Fictitious access codes, only held by the simulated API. */
+const codes = new Map<string, string>();
 export const resetCases = () => {
+  codes.clear();
   cases = seed();
   payments = {};
   extra = {};
@@ -615,16 +618,14 @@ export const caseHandlers = [
     '/api/cases/:id/ai-summary/report',
     acting(() => done()),
   ),
-  http.post(
-    '/api/cases/:id/access-code/reveal',
-    acting((item, session) => {
-      log(item.id, session, 'Code d’accès affiché', 'Affichage ponctuel dans la fiche', 'neutral');
-      return HttpResponse.json({ code: 'KXPM' });
-    }),
+  http.get(
+    '/api/cases/:id/access-code',
+    acting((item) => HttpResponse.json({ code: codes.get(item.id) ?? 'KXPM' })),
   ),
   http.post(
     '/api/cases/:id/access-code/regenerate',
     acting((item, session) => {
+      codes.set(item.id, codes.get(item.id) === 'BRTV' ? 'HDZN' : 'BRTV');
       log(item.id, session, 'Code d’accès régénéré', 'Ancien code inutilisable', 'warning');
       return done();
     }),

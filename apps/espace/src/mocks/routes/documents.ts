@@ -212,7 +212,7 @@ const r = (
   interest: number,
   invoices: [string, string, number][],
   isIndividual = false,
-  firstLetter: LetterRecipient['firstLetter'] = { reference: `LR-${reference.slice(4)}`, date: '2026-09-15' },
+  firstLetter: LetterRecipient['firstLetter'] = { reference: reference.replace(/^LGR-(\d{4})-0/, 'LR-$1-'), date: '2026-09-15' },
 ): LetterRecipient => ({
   caseId,
   name,
@@ -227,22 +227,22 @@ const r = (
   invoices: invoices.map(([number, due, euros]) => ({ number, due, amount: euros * 100 })),
 });
 const RECIPIENTS = [
-  r('demo', 'Bâtiplus SAS', 'M. Julien Ferrand', ['12 rue des Artisans', '69007 Lyon'], 'Matériaux Delta', 'DOS-2026-0142', '2026-11-12', 136600, [
+  r('demo', 'Bâtiplus SAS', 'M. Julien Ferrand', ['12 rue des Artisans', '69007 Lyon'], 'Matériaux Delta', 'LGR-2026-00142', '2026-11-12', 136600, [
     ['F-2026-0712', '2026-09-14', 18600],
     ['F-2026-0745', '2026-09-27', 16400],
     ['F-2026-0790', '2026-10-10', 13200],
   ]),
-  r('helio', 'Groupe Hélio', 'Mme Nadia Roussel', ['8 avenue Jean-Jaurès', '75019 Paris'], 'Médiatel', 'DOS-2026-0151', '2026-11-12', 62000, [
+  r('helio', 'Groupe Hélio', 'Mme Nadia Roussel', ['8 avenue Jean-Jaurès', '75019 Paris'], 'Médiatel', 'LGR-2026-00151', '2026-11-12', 62000, [
     ['F-2026-0655', '2026-10-13', 21500],
     ['F-2026-0702', '2026-10-20', 15250],
   ]),
-  r('valmont', 'Garage Valmont', 'M. Paul Valmont', ['45 route de Lyon', '38000 Grenoble'], 'TransAlp Leasing', 'DOS-2026-0098', '2026-10-28', 58000, [
+  r('valmont', 'Garage Valmont', 'M. Paul Valmont', ['45 route de Lyon', '38000 Grenoble'], 'TransAlp Leasing', 'LGR-2026-00098', '2026-10-28', 58000, [
     ['L-2026-0118', '2026-08-16', 5975],
     ['L-2026-0131', '2026-09-16', 5975],
     ['L-2026-0144', '2026-10-16', 5975],
     ['L-2026-0157', '2026-11-16', 5975],
   ]),
-  r('durand', 'Fromagerie Durand', 'M. Marc Durand', ['3 place du Marché', '71000 Mâcon'], 'Énergies Rhône', 'DOS-2026-0181', '2026-11-03', 8400, [
+  r('durand', 'Fromagerie Durand', 'M. Marc Durand', ['3 place du Marché', '71000 Mâcon'], 'Énergies Rhône', 'LGR-2026-00181', '2026-11-03', 8400, [
     ['F-2026-0902', '2026-10-31', 3120],
     ['F-2026-0927', '2026-11-07', 3120],
   ]),
@@ -252,7 +252,7 @@ const RECIPIENTS = [
     'M. Paul Meunier',
     ['7 impasse des Lilas', '69003 Lyon'],
     'Crédit Horizon',
-    'DOS-2026-0203',
+    'LGR-2026-00203',
     '2026-11-10',
     1900,
     [['CH-2026-0871', '2026-11-03', 2150]],

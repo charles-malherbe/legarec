@@ -297,7 +297,11 @@ function InviteForm({ creditors, onDone }: { creditors: { id: string; name: stri
           required
           value={email}
           placeholder={partner ? 'nom@entreprise.fr' : 'initiales@legarec.fr'}
-          help={partner ? 'Adresse de l’interlocuteur chez le créancier.' : 'Adresse @legarec.fr. Initiales en double : ajoutez un chiffre.'}
+          help={
+            partner
+              ? 'Adresse de l’interlocuteur chez le créancier.'
+              : 'Adresse @legarec.fr. Initiales en double : ajoutez la deuxième lettre du nom (cla@). La boîte est demandée au Développeur.'
+          }
           onChange={setEmail}
         />
         <Champ

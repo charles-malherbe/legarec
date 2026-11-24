@@ -70,37 +70,37 @@ const file = (
   steps: steps.map(([title, date]) => ({ title, date })),
 });
 const seedCases = () => [
-  file('md', 'f1', 'REMINDING', 'Bâtiplus SAS', 'CLI-08812', 'DOS-2026-0142', '3 factures', 48200, 0, 'Appel le 21/11 : promesse de 18 600 €', [
+  file('md', 'f1', 'REMINDING', 'Bâtiplus SAS', 'CLI-08812', 'LGR-2026-00142', '3 factures', 48200, 0, 'Appel le 21/11 : promesse de 18 600 €', [
     ['Rappel amiable par e-mail', '21/09'],
     ['Relance ferme', '12/11'],
     ['Appel : promesse de paiement', '21/11'],
   ]),
-  file('md', 'f2', 'LITIGATION', 'Charpentes Bellet', 'CLI-07740', 'DOS-2026-0109', '4 factures', 29300, 2000, 'Mise en demeure reçue le 18/11', [
+  file('md', 'f2', 'LITIGATION', 'Charpentes Bellet', 'CLI-07740', 'LGR-2026-00109', '4 factures', 29300, 2000, 'Mise en demeure reçue le 18/11', [
     ['Relances amiables (3)', '14/09 → 28/10'],
     ['Votre accord pour le contentieux', '05/11'],
     ['Mise en demeure LRAR', '16/11'],
   ]),
-  file('md', 'f3', 'PLAN', 'SCI Les Tilleuls', 'CLI-09120', 'DOS-2026-0175', '2 factures', 14070, 7034, 'Échéance 2/4 payée le 05/11', [
+  file('md', 'f3', 'PLAN', 'SCI Les Tilleuls', 'CLI-09120', 'LGR-2026-00175', '2 factures', 14070, 7034, 'Échéance 2/4 payée le 05/11', [
     ['Échéancier signé (4 mois)', '03/10'],
     ['Échéance 1/4 payée', '05/10'],
     ['Échéance 2/4 payée', '05/11'],
   ]),
-  file('md', 'f4', 'REMINDING', 'Menuiserie Rivoire', 'CLI-09311', 'DOS-2026-0188', '5 factures', 15640, 0, 'Relance n°1 envoyée le 18/11', [
+  file('md', 'f4', 'REMINDING', 'Menuiserie Rivoire', 'CLI-09311', 'LGR-2026-00188', '5 factures', 15640, 0, 'Relance n°1 envoyée le 18/11', [
     ['Prise en charge', '14/11'],
     ['Relance n°1 par e-mail', '18/11'],
   ]),
-  file('md', 'f5', 'SETTLED', 'Menuiserie Arnal', 'CLI-06655', 'DOS-2026-0061', '2 factures', 9800, 9800, 'Soldé le 30/10', [
+  file('md', 'f5', 'SETTLED', 'Menuiserie Arnal', 'CLI-06655', 'LGR-2026-00061', '2 factures', 9800, 9800, 'Soldé le 30/10', [
     ['Relance ferme', '02/10'],
     ['Paiement intégral', '30/10'],
   ]),
-  file('md', 'f6', 'NEW', 'Bâtir Sud Rénovation', 'CLI-09402', 'DOS-2026-0199', '1 facture', 4380, 0, 'Déposé le 20/11', [
+  file('md', 'f6', 'NEW', 'Bâtir Sud Rénovation', 'CLI-09402', 'LGR-2026-00199', '1 facture', 4380, 0, 'Déposé le 20/11', [
     ['Créance déposée par vous', '20/11'],
   ]),
-  file('md', 'f7', 'LOST', 'Atelier Corbin', 'CLI-05120', 'DOS-2026-0033', '1 facture', 2150, 0, 'Liquidation judiciaire du débiteur', [
+  file('md', 'f7', 'LOST', 'Atelier Corbin', 'CLI-05120', 'LGR-2026-00033', '1 facture', 2150, 0, 'Liquidation judiciaire du débiteur', [
     ['Procédure collective constatée', '12/09'],
     ['Déclaration de créance conseillée', '13/09'],
   ]),
-  file('er', 'g1', 'REMINDING', 'Fromagerie Durand', 'ER-1180', 'DOS-2026-0181', '2 factures', 6240, 1000, 'Virement de 1 000 € reçu le 14/11', [
+  file('er', 'g1', 'REMINDING', 'Fromagerie Durand', 'ER-1180', 'LGR-2026-00181', '2 factures', 6240, 1000, 'Virement de 1 000 € reçu le 14/11', [
     ['Relance amiable', '02/11'],
   ]),
 ];
@@ -110,7 +110,7 @@ const seedPlans = (): Owned<PlanApproval>[] => [
     id: 'p1',
     caseId: 'f1',
     debtor: 'Bâtiplus SAS',
-    reference: 'DOS-2026-0142',
+    reference: 'LGR-2026-00142',
     months: 8,
     installment: 370000,
     total: 2960000,
@@ -123,7 +123,7 @@ const seedPlans = (): Owned<PlanApproval>[] => [
     id: 'p2',
     caseId: 'g1',
     debtor: 'Fromagerie Durand',
-    reference: 'DOS-2026-0181',
+    reference: 'LGR-2026-00181',
     months: 10,
     installment: 53200,
     total: 532000,
@@ -137,7 +137,7 @@ const seedThreads = () => [
     creditorId: 'md',
     id: 'c1',
     subject: 'Échéancier Bâtiplus SAS',
-    reference: 'DOS-2026-0142',
+    reference: 'LGR-2026-00142',
     time: '10:02',
     unread: false,
     messages: [
@@ -154,7 +154,7 @@ const seedThreads = () => [
     creditorId: 'md',
     id: 'c2',
     subject: 'Contestation Atelier Mistral',
-    reference: 'DOS-2026-0170',
+    reference: 'LGR-2026-00170',
     time: 'Hier',
     unread: true,
     messages: [
@@ -313,7 +313,7 @@ export const handlers = [
           'NEW',
           parsed.data.debtor,
           '—',
-          `DOS-2026-02${cases.length}`,
+          `LGR-2026-002${String(cases.length).padStart(2, '0')}`,
           `${parsed.data.invoices.length} facture${parsed.data.invoices.length > 1 ? 's' : ''}`,
           parsed.data.invoices.reduce((sum, item) => sum + item.amount, 0) / 100,
           0,

@@ -63,3 +63,19 @@ Décisions prises après la maquette v1.21 (23/11/2026). Elles priment sur la ma
 | 24/11/2026 | Support des comptes : sous délégation technique ; le compte du Directeur hors de portée du Responsable | Relecture sécurité |
 | 24/11/2026 | Modèles importés : propriétés CSS en liste blanche, contraste minimal, aucun champ ni bloc dans une balise | Relecture sécurité |
 | 24/11/2026 | Envoi groupé : l'API refuse si son comptage diffère de celui confirmé | Relecture maquette |
+| 24/11/2026 | Code par SMS : réponse identique qu'un dossier existe ou non, numéro jamais affiché (écart assumé avec le prompt) (question 53) | Ne pas révéler l'existence d'un dossier |
+| 24/11/2026 | Plafonds par débiteur : 2 appels, 2 e-mails et 1 SMS par semaine, 2 courriers par mois ; réglables (question 45) | Valeurs du cabinet, à faire valider par le juriste |
+| 24/11/2026 | Kit d'e-mails : IBAN, BIC et SIREN à masquer par le cabinet lui-même ; kits/ non modifié par Claude Code (question 35) | Décision du cabinet |
+| 24/11/2026 | Boîte OVH : aucune suppression depuis l'application, seulement dans l'espace client OVH (écart assumé avec le prompt) (question 28) | Action irréversible |
+| 24/11/2026 | Adresse du cabinet : [ADRESSE DU CABINET] en configuration (question 49) | Décision du cabinet |
+| 24/11/2026 | SMS : mention « STOP : répondez STOP », sans numéro court (question 24) | L'expéditeur est un numéro qui reçoit les réponses |
+| 24/11/2026 | Entreprise : accès par SIRET seulement (question 54) | Cahier des charges |
+| 24/11/2026 | Bouton SSO retiré de la connexion (question 38) | Aucun SSO prévu |
+| 24/11/2026 | Fiche débiteur : code d'accès affiché en clair à qui peut agir sur le dossier, sans trace d'affichage (écart assumé avec le prompt) (question 21) | Plus rapide au téléphone |
+| 24/11/2026 | IBAN complet d'un débiteur : Directeur seulement (question 46) | Cloisonnement |
+| 24/11/2026 | Invitation d'un collaborateur : demande de boîte automatique, confirmée par le Développeur ou le Directeur (question 42) | Enchaînement voulu |
+| 24/11/2026 | Score de risque : gardé avec sa raison, aucune décision automatique ; analyse juridique à mener (question 11) | Décision du cabinet |
+| 24/11/2026 | Référence de dossier : LGR-AAAA-NNNNN, seul format accepté (question 56) | Décision du cabinet |
+| 24/11/2026 | Initiales en double : deuxième lettre du nom ajoutée (cla@legarec.fr) (question 4) | Décision du cabinet |
+| 24/11/2026 | Nouvelle boîte OVH : 5 Go par défaut (question 29) | Décision du cabinet |
+| 24/11/2026 | Questions 2, 5, 13, 22, 25, 30 à 34, 39, 40, 43, 44, 47, 48, 50 à 52, 55, 58, 59 : options par défaut de QUESTIONS.md retenues | Clôture demandée par le cabinet |

@@ -11,7 +11,7 @@ export const debtorIdentifier = z.discriminatedUnion('kind', [
       .string()
       .trim()
       .toUpperCase()
-      .regex(/^(DOS|LGR)-\d{4}-\d{4,5}$/u, { error: 'Saisissez la référence imprimée sur votre courrier, par exemple DOS-2026-0181.' }),
+      .regex(/^LGR-\d{4}-\d{5}$/u, { error: 'Saisissez la référence imprimée sur votre courrier, par exemple LGR-2026-00181.' }),
   }),
 ]);
 export type DebtorIdentifier = z.infer<typeof debtorIdentifier>;
@@ -25,7 +25,8 @@ export const debtorAccessError = z.discriminatedUnion('code', [
 export type DebtorAccessError = z.infer<typeof debtorAccessError>;
 /** Opaque token of a letter, QR code or SMS: it pre-fills the identifier and never carries the code. */
 export const debtorLink = z.object({ identifier: z.object({ kind: z.enum(['SIRET', 'REFERENCE']), value: z.string() }) });
-export const codeBySms = z.object({ maskedPhone: z.string().nullable() });
+/** Always the same answer, whether a case and a phone number exist or not. */
+export const codeBySms = z.object({ requested: z.literal(true) });
 
 const tone = z.enum(['neutral', 'info', 'success', 'warning', 'danger', 'violet']);
 export const debtorCaseSummary = z.object({

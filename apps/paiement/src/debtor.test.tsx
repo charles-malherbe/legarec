@@ -65,7 +65,10 @@ it('sends the code by SMS after confirmation, with a limit', async () => {
   await userEvent.type(await screen.findByLabelText('SIRET'), '73282932000074');
   await userEvent.click(screen.getByRole('button', { name: 'Recevoir mon code par SMS' }));
   await userEvent.click((await inDialog()).getByRole('button', { name: 'Envoyer le SMS' }));
-  expect(await screen.findByText(/SMS au 06 •• •• •• 42/)).toBeVisible();
+  expect(await screen.findByText(/Si un numéro est enregistré/)).toBeVisible();
+  expect(document.body.textContent).not.toMatch(/06 ••/);
+  const unknown = await (await call('/code-by-sms', { kind: 'SIRET', value: '55208131766522' })).json();
+  expect(unknown).toEqual({ requested: true });
   for (let index = 0; index < 2; index += 1) await call('/code-by-sms', { kind: 'SIRET', value: '73282932000074' });
   expect((await call('/code-by-sms', { kind: 'SIRET', value: '73282932000074' })).status).toBe(429);
 });
@@ -121,7 +124,7 @@ it('sends a guided request as a structured message', async () => {
 it('switches between the files of a debtor and shows the plan', async () => {
   open('/espace/echeancier', 'durand');
   expect(await screen.findByText('Aucun échéancier')).toBeVisible();
-  await userEvent.click(screen.getByRole('button', { name: /DOS-2026-0204/ }));
+  await userEvent.click(screen.getByRole('button', { name: /LGR-2026-00204/ }));
   expect(await screen.findByText('2/3')).toBeVisible();
   expect(screen.getByText('À payer')).toBeVisible();
 });

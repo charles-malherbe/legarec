@@ -22,7 +22,7 @@ describe('case access', () => {
   });
   it('refuses every change outside the role', async () => {
     expect((await call('ad', '/cases/demo')).status).toBe(200);
-    for (const path of ['/cases/demo/reminders', '/cases/demo/payments', '/cases/demo/access-code/reveal', '/cases/demo/portal-messages'])
+    for (const path of ['/cases/demo/reminders', '/cases/demo/payments', '/cases/demo/access-code/regenerate', '/cases/demo/portal-messages'])
       expect((await call('ad', path, {})).status).toBe(403);
     expect((await call('ad', '/cases/reminders', { ids: ['demo'] })).status).toBe(403);
     expect((await call('ad', '/cases/reminders', { ids: ['lagarde'] })).status).toBe(204);
@@ -91,15 +91,14 @@ describe('case file', () => {
     await confirmWith('Déclarer impayé');
     await waitFor(() => expect(within(screen.getByText('1234567 · Banque test').closest('tr')!).getByText('Impayé')).toBeVisible());
   });
-  it('keeps the access code masked until it is revealed', async () => {
+  it('shows the access code in clear to those who act on the case, and to nobody else', async () => {
     openAs('cl', '/debiteurs/demo');
-    expect(await screen.findByText('••••')).toBeVisible();
-    expect(document.body.textContent).not.toContain('KXPM');
-    await userEvent.click(screen.getByRole('button', { name: 'Afficher le code d’accès' }));
     expect(await screen.findByText('KXPM')).toBeVisible();
+    expect(await (await call('cl', '/cases/demo')).text()).not.toContain('KXPM');
     await userEvent.click(screen.getByRole('button', { name: 'Régénérer le code d’accès' }));
     await confirmWith('Régénérer le code');
-    expect(await screen.findByText('••••')).toBeVisible();
+    expect(await screen.findByText('BRTV')).toBeVisible();
+    for (const account of ['ad', 'hb', 'dev']) expect((await call(account, '/cases/demo/access-code')).status).toBe(403);
   });
   it('replies to the debtor portal and shows proofs of delivery', async () => {
     openAs('cl', '/debiteurs/demo');

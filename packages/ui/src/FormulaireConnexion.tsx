@@ -198,12 +198,6 @@ export function FormulaireConnexion({ onSession }: { onSession: (session: OpenSe
           <span>
             {name === 'espace' ? 'Vous êtes créancier ?' : 'Collaborateur Legarec ?'} <a href={`https://${other}`}>Aller sur {other}</a>
           </span>
-          {name === 'espace' && (
-            <>
-              <span className={css.or}>ou</span>
-              <Bouton variant="secondary" size="lg" full label="Continuer avec le SSO de l'entreprise" disabled />
-            </>
-          )}
         </div>
       </form>
     </PageConnexion>
