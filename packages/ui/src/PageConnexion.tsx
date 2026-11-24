@@ -1,6 +1,6 @@
 import { applyDisplay } from '@legarec/tokens';
 import { useLocalStorage } from '@mantine/hooks';
-import { createContext, useContext, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { BoutonsAffichage } from './BoutonsAffichage';
 import { Icone } from './Icone';
@@ -38,19 +38,21 @@ export const PORTAILS: Record<Portail, { domain: string; kicker: string; headlin
     ],
   },
 };
-const LOGO_URL = import.meta.env.VITE_LOGO_NEGATIVE_URL as string | undefined;
+const LOGO_URL = (import.meta.env.VITE_LOGO_NEGATIVE_URL as string | undefined) ?? 'https://media.legarec.fr/marque/legarec-logo-negatif.svg';
 
 export function PageConnexion({ children }: { children: ReactNode }) {
   const portal = PORTAILS[useContext(PortailContext)];
   // Display choices are remembered on the device before login (no session yet).
   const [dark, setDark] = useLocalStorage({ key: 'lg-login-dark', defaultValue: false });
   const [lowVision, setLowVision] = useLocalStorage({ key: 'lg-login-a11y', defaultValue: false });
+  // Until the file is online, the name is shown as text.
+  const [logoMissing, setLogoMissing] = useState(false);
   useEffect(() => applyDisplay(dark ? 'dark' : 'light', lowVision), [dark, lowVision]);
   return (
     <div data-brand className={css.root}>
       <section aria-label="Présentation" className={css.intro} data-dark>
-        {LOGO_URL ? (
-          <img src={LOGO_URL} alt="Legarec, cabinet de recouvrement" className={css.logoImage} />
+        {!logoMissing ? (
+          <img src={LOGO_URL} alt="Legarec, cabinet de recouvrement" className={css.logoImage} onError={() => setLogoMissing(true)} />
         ) : (
           <span className={css.logoText}>Legarec, cabinet de recouvrement</span>
         )}

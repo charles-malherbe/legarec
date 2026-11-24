@@ -1,5 +1,7 @@
 import {
   canAccessTechnicalSettings,
+  FIRM_IDENTITY_FIELDS,
+  firmIdentity,
   hasDelegation,
   type GdprRequest,
   type Mailbox,
@@ -93,10 +95,15 @@ const firmGroups = (): Group[] => [
         block('identity', 'Identité du cabinet', 'Apparaît sur les courriers, e-mails, SMS et dans les espaces débiteur et créancier.', [
           text('name', 'Raison sociale', 'Nom légal de la société', 'LEGAREC'),
           text('display', 'Nom affiché', 'Utilisé dans les e-mails et l’espace de paiement', 'Legarec – Cabinet de recouvrement'),
-          text('siren', 'SIREN', '9 chiffres', '[SIREN]'),
           text('address', 'Adresse du siège', '', '[ADRESSE DU CABINET]'),
           text('phone', 'Téléphone du service', 'Affiché aux débiteurs', '01 87 88 02 98'),
           text('hours', 'Horaires d’ouverture', 'Utilisés pour les appels et la réponse automatique', 'Lundi au vendredi, 9 h – 19 h'),
+        ]),
+        block('bank', 'Identifiants et compte dédié', 'Saisis par le Directeur seulement, après confirmation. Affichés aux débiteurs et sur les factures.', [
+          text('siren', 'SIREN', '9 chiffres', '[SIREN]'),
+          text('vat', 'N° de TVA intracommunautaire', '', '[N° TVA]'),
+          text('iban', 'IBAN du compte dédié', 'Compte dédié aux fonds encaissés', '[IBAN DU COMPTE DÉDIÉ]'),
+          text('bic', 'BIC', '', '[BIC]'),
         ]),
         block('duties', 'Obligations de l’activité', 'Pièces exigées pour exercer le recouvrement amiable pour le compte d’autrui.', [
           value('insurance', 'Assurance RC professionnelle', 'Attestation 2026 · expire le 31/12/2026', '', 'À renouveler dans 40 jours', 'warning'),
@@ -237,7 +244,7 @@ const firmGroups = (): Group[] => [
         'Assistant IA',
         'Fonctions activées, garde-fous, budget et journal',
         'sparkle',
-        '4 fonctions actives · 38,40 € sur 150 € ce mois',
+        '4 fonctions actives · 6,40 € sur 25 € ce mois',
         'info',
         [
           block(
@@ -287,8 +294,8 @@ const firmGroups = (): Group[] => [
             text(
               'budget',
               'Budget mensuel',
-              'Au-delà, les fonctions passent en pause jusqu’au mois suivant ; alerte à 80 %. 38,40 € consommés ce mois.',
-              '150 €',
+              'Au-delà, les fonctions passent en pause jusqu’au mois suivant ; alerte à 80 %. 6,40 € consommés ce mois.',
+              '25 €',
             ),
           ]),
         ],
@@ -686,12 +693,17 @@ export const settingsHandlers = [
       if (!canRead(scope, session)) return forbidden();
       const item = groups[scope].flatMap((group) => group.items).find((entry) => entry.id === params.id);
       if (!item) return notFound();
+      // Bank details: the Director only, not even under a delegation.
+      const blocks =
+        session.role === 'DIRECTOR'
+          ? item.blocks
+          : item.blocks.map((entry) => (entry.id === 'bank' ? { ...entry, fields: entry.fields.map((field) => ({ ...field, locked: true })) } : entry));
       const tables = (item.tables ?? []).map((entry) =>
         entry.id === 'audit'
           ? { ...entry, rows: [...auditEntries().map((line) => [line.date, line.who, line.onBehalfOf, line.what, '—']), ...entry.rows] }
           : entry,
       );
-      return HttpResponse.json({ id: item.id, canEdit: canEdit(scope, session), blocks: item.blocks, tables, notes: item.notes ?? [] });
+      return HttpResponse.json({ id: item.id, canEdit: canEdit(scope, session), blocks, tables, notes: item.notes ?? [] });
     }),
   ),
   http.put(
@@ -702,6 +714,13 @@ export const settingsHandlers = [
       const item = groups[scope].flatMap((group) => group.items).find((entry) => entry.id === params.id);
       if (!item) return notFound();
       const changes = (await request.json()) as Record<string, string | boolean>;
+      const bank = Object.fromEntries(Object.entries(changes).filter(([key]) => item.id === 'cabinet' && (FIRM_IDENTITY_FIELDS as string[]).includes(key)));
+      if (Object.keys(bank).length > 0) {
+        if (session.role !== 'DIRECTOR') return forbidden();
+        if (!firmIdentity.partial().safeParse(bank).success) return HttpResponse.json({ code: 'INVALID' }, { status: 422 });
+        // The journal names the fields, never their values.
+        audit(session, `Identifiants du cabinet modifiés : ${Object.keys(bank).join(', ')}`);
+      }
       audit(session, `Paramètres modifiés : ${item.title}`, scope === 'technical' ? 'TECHNICAL' : 'ADMINISTRATIVE');
       item.blocks = item.blocks.map((entry) => ({
         ...entry,

@@ -78,4 +78,38 @@ Décisions prises après la maquette v1.21 (23/11/2026). Elles priment sur la ma
 | 24/11/2026 | Référence de dossier : LGR-AAAA-NNNNN, seul format accepté (question 56) | Décision du cabinet |
 | 24/11/2026 | Initiales en double : deuxième lettre du nom ajoutée (cla@legarec.fr) (question 4) | Décision du cabinet |
 | 24/11/2026 | Nouvelle boîte OVH : 5 Go par défaut (question 29) | Décision du cabinet |
-| 24/11/2026 | Questions 2, 5, 13, 22, 25, 30 à 34, 39, 40, 43, 44, 47, 48, 50 à 52, 55, 58, 59 : options par défaut de QUESTIONS.md retenues | Clôture demandée par le cabinet |
+| 24/11/2026 | Prestataire de paiement par carte et prélèvement SEPA ? → Plus de paiement en ligne : chèque et virement uniquement (`DECISIONS.md`, 24/11/2026) (question 1) | Décision antérieure |
+| 24/11/2026 | Rapprochement des virements reçus → Saisie manuelle depuis la fiche débiteur pour l'instant ; import de relevés à concevoir plus tard, hors périmètre de la maquette (question 2) | Option par défaut retenue par le cabinet |
+| 24/11/2026 | Chèques acceptés comme moyen de paiement ? → Oui (`DECISIONS.md`, 24/11/2026) (question 3) | Décision antérieure |
+| 24/11/2026 | Agenda des relances : FullCalendar ou `@mantine/schedule` ? → FullCalendar (extensions gratuites) (question 5) | Option par défaut retenue par le cabinet |
+| 24/11/2026 | `legarec.fr` : rôle et hébergement → Site public du cabinet, hors de cette application et hors de Caddy ; pied de page des portails avec un lien vers legarec.fr (question 20) | Décision antérieure |
+| 24/11/2026 | Identifiant des débiteurs particuliers → Référence du dossier à la place du SIRET (question 22) | Option par défaut retenue par le cabinet |
+| 24/11/2026 | Agrandissement du mode malvoyant : celui de la maquette suffit-il ? → Oui, complété par le zoom du navigateur jusqu'à 200 % (question 25) | Option par défaut retenue par le cabinet |
+| 24/11/2026 | Numéros 13 à 19 : absents du kit v2.5 alors que le prompt annonce « questions 1 à 29 » → Numéros laissés libres (sauf celui-ci) (question 13) | Option par défaut retenue par le cabinet |
+| 24/11/2026 | Versions : TypeScript 7 est la dernière, mais typescript-eslint exige < 6.1 → TypeScript 6.0.3 figé (question 30) | Option par défaut retenue par le cabinet |
+| 24/11/2026 | Validation des formulaires : Mantine 9 fournit `schemaResolver` (Standard Schema), compatible Zod 4, sans paquet séparé → `schemaResolver` de `@mantine/form`, `{ sync: true }` (question 31) | Option par défaut retenue par le cabinet |
+| 24/11/2026 | Dépendances non citées : outils (eslint, prettier, typescript-eslint, testing-library, jsdom, @axe-core/playwright, postcss-preset-mantine), temporal-polyfill (exigé par FullCalendar 7), libphonenumber-js (API) → Retenues, versions exactes figées, rien d'autre (question 32) | Option par défaut retenue par le cabinet |
+| 24/11/2026 | Double authentification : @simplewebauthn/browser et QR code → Retenus au lot G seulement, avec `qrcode` (question 33) | Option par défaut retenue par le cabinet |
+| 24/11/2026 | Relectures par sous-agents demandées par `/verifier` → Une relecture par lot, avant l'ouverture de la PR (question 34) | Option par défaut retenue par le cabinet |
+| 24/11/2026 | « Activer mon compte » sans lien d'invitation → L'activation passe par le lien reçu par e-mail ; texte adapté (question 39) | Option par défaut retenue par le cabinet |
+| 24/11/2026 | Tableau de bord du Développeur, absent de la maquette → Accueil technique sans aucune donnée de dossier (question 40) | Option par défaut retenue par le cabinet |
+| 24/11/2026 | Connexion SSH à GitHub refusée sur la machine de développement → Dépôt distant passé en HTTPS par le cabinet (question 41) | Décision antérieure |
+| 24/11/2026 | Notifications par SMS (Compte) : aucun portable n'est stocké → Colonne SMS retirée ; restent l'application et l'e-mail (question 43) | Option par défaut retenue par le cabinet |
+| 24/11/2026 | Photo de profil, langue anglaise et page d'accueil au choix (Compte) → Non repris : initiales, français, tableau de bord (question 44) | Option par défaut retenue par le cabinet |
+| 24/11/2026 | Révocation d'un secret : « accord d'un second développeur », rôle unique → Accord du Directeur (question 47) | Option par défaut retenue par le cabinet |
+| 24/11/2026 | Numéro STOP : la maquette écrit « 36173 » et [NUMÉRO STOP] → [NUMÉRO STOP] partout (question 48) | Option par défaut retenue par le cabinet |
+| 24/11/2026 | Triple accolade dans un modèle importé (texte non protégé) → Refusée, en plus des contrôles demandés (question 50) | Option par défaut retenue par le cabinet |
+| 24/11/2026 | Articles d'aide : un seul est rédigé dans la maquette → Les 17 autres affichent « Article en cours de rédaction » (question 51) | Option par défaut retenue par le cabinet |
+| 24/11/2026 | Accord du créancier sur un échéancier long : emplacement (absent de la maquette) → Bandeau en tête du tableau de bord du portail partenaires, Accepter ou Refuser avec motif (question 52) | Option par défaut retenue par le cabinet |
+| 24/11/2026 | Accès limité : « Référence du dossier » facultative dans le message → Champ facultatif, message reçu avec la mention « non vérifié » (question 55) | Option par défaut retenue par le cabinet |
+| 24/11/2026 | Téléchargements PDF (RIB, quittances, relevés) : générés par l'API → Boutons présents mais désactivés tant que l'API n'existe pas (question 58) | Option par défaut retenue par le cabinet |
+| 24/11/2026 | Import de créances : corriger une ligne à l'écran → Les lignes en erreur se redéposent dans un nouveau fichier (question 59) | Option par défaut retenue par le cabinet |
+| 24/11/2026 | IBAN, BIC, SIREN et n° de TVA : saisis par le Directeur seul dans Paramètres du cabinet, après confirmation ; enregistrés par l'API, jamais dans le dépôt (question 6) | Décision du cabinet |
+| 24/11/2026 | Comptes réels : créés à la mise en service (premier compte Directeur par l'API, puis invitations) (question 8) | Décision du cabinet |
+| 24/11/2026 | Postes 3CX : saisis dans l'application à la mise en service (question 27) | Décision du cabinet |
+| 24/11/2026 | IA : fournisseur hébergé dans l'Union européenne, choisi à la mission API ; désactivée en production tant que le DPA n'est pas signé (question 9) | Décision du cabinet |
+| 24/11/2026 | Transcription des appels : service hébergé dans l'Union européenne, choisi à la mission API (question 10) | Décision du cabinet |
+| 24/11/2026 | IA : budget de 25 € par mois, alerte à 80 % (question 12) | Décision du cabinet |
+| 24/11/2026 | Accès à Docker de l'utilisateur de développement : à retirer par le cabinet ; Claude Code n'utilise aucune commande docker (question 36) | Conforme à l'architecture |
+| 24/11/2026 | Logo de connexion : media.legarec.fr/marque/legarec-logo-negatif.svg, à déposer par le cabinet ; le nom en texte tant que le fichier manque (question 37) | Nom du kit média |
+| 24/11/2026 | Modèles importés : l'IA signale un texte peut-être masqué, le Directeur décide ; rendu PDF sans JavaScript ni réseau avec vérification du texte, à la mission API (question 60) | « Validation par IA » lue avec la règle : l'IA suggère, un collaborateur valide |

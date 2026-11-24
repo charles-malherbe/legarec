@@ -67,6 +67,34 @@ describe('settings', () => {
   });
 });
 
+describe('firm identity', () => {
+  it('belongs to the Director alone, with valid values, a confirmation and no value in the journal', async () => {
+    // Example IBAN of the international standard, not a real account.
+    const iban = 'GB82 WEST 1234 5698 7654 32';
+    expect((await call('cl', '/settings/firm/cabinet', { iban }, 'PUT')).status).toBe(403);
+    expect((await call('ad', '/settings/firm/cabinet', { iban: 'GB82 WEST 1234 5698 7654 33' }, 'PUT')).status).toBe(422);
+    openAs('ad', '/parametres/cabinet');
+    const field = await screen.findByLabelText('IBAN du compte dédié');
+    await userEvent.clear(field);
+    await userEvent.type(field, 'GB00');
+    await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(await screen.findByText('Cet IBAN n’est pas valide.')).toBeVisible();
+    await userEvent.clear(field);
+    await userEvent.type(field, iban);
+    await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    await userEvent.click((await inDialog()).getByRole('button', { name: 'Enregistrer ces identifiants' }));
+    expect(await screen.findByText('« Cabinet » enregistré.')).toBeVisible();
+    const journal = await (await call('ad', '/settings/techniques/audit')).text();
+    expect(journal).toContain('Identifiants du cabinet modifiés : iban');
+    expect(journal).not.toContain('WEST');
+  });
+  it('is locked for the delegate', async () => {
+    openAs('cl', '/parametres/cabinet');
+    expect(await screen.findByLabelText('IBAN du compte dédié')).toBeDisabled();
+    expect(screen.getByLabelText('Téléphone du service')).toBeEnabled();
+  });
+});
+
 describe('mailboxes', () => {
   it('shows a new password only once', async () => {
     openAs('dev', '/parametres/techniques/boites');
