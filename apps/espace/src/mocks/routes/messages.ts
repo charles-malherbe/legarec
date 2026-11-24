@@ -1,7 +1,7 @@
 import { ROLE_LABELS, type EmailThread, type SmsThread } from '@legarec/contracts';
 import { http, HttpResponse } from 'msw';
 import { done, forbidden, guarded, notFound, staffWithCases } from '../http';
-import { readable } from './cases';
+import { actsOn, readable } from './cases';
 import type { Session } from '@legarec/contracts';
 
 type Info = { request: Request; params: Record<string, unknown> };
@@ -427,7 +427,9 @@ export const messageHandlers = [
   ),
   http.post(
     '/api/emails/messages',
-    guarded<Info>(staffWithCases, async () => {
+    guarded<Info>(staffWithCases, async ({ request }, session) => {
+      const { caseId } = (await request.json()) as { caseId: string | null };
+      if (caseId && !actsOn(session, caseId)) return forbidden();
       if (mailState.sentThisHour >= 200) return HttpResponse.json({ code: 'QUOTA' }, { status: 429 });
       if (mailState.failNext) {
         mailState.failNext = false;

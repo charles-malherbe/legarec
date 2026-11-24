@@ -5,3 +5,5 @@ kits
 pnpm-lock.yaml
 **/mockServiceWorker.js
 .claude
+apps/api/templates
+**/__snapshots__

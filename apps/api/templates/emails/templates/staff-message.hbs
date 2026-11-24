@@ -1,0 +1,27 @@
+{{!--
+  staff-message.hbs : message rédigé par un collaborateur dans l'interface web, avec sa signature
+  Destinataire : débiteur, créancier ou tout autre correspondant d'un dossier
+  Gabarit : layout.hbs (le bloc mentions remplace « Merci de ne pas répondre » : les réponses sont acceptées)
+  Objet : message.subject (saisi par le collaborateur)
+  Envoi : boîte OVH du collaborateur (SMTP), expéditeur sender.email ; pas Resend
+  Données :
+    - message.subject : Objet saisi par le collaborateur
+    - message.preview (facultatif) : Texte d'aperçu (par défaut, l'API reprend le début du premier paragraphe)
+    - message.paragraphs : Paragraphes du message, en texte brut (l'API découpe le texte saisi aux lignes vides)
+    - message.closing (facultatif) : Formule de politesse (« Bien cordialement, » par défaut)
+    - case.reference (facultatif) : Référence du dossier, affichée en tête du message (sauf débiteur : mentions_recouvrement l'affiche déjà en bas)
+    - creditor.name (facultatif) : Nom du créancier mandant, affiché avec la référence
+    - debtor_recipient (facultatif) : vrai si le destinataire est le débiteur (ajoute le rappel de l'article L111-8 du CPCE)
+    - sender.* : voir partials/signature.hbs
+  Configuration : voir partials/signature.hbs
+--}}
+{{#> layout}}
+{{#*inline "accent"}}#002B74{{/inline}}
+{{#*inline "preheader"}}{{message.preview}}{{/inline}}
+{{#*inline "mentions"}}{{#if debtor_recipient}}{{> mentions_recouvrement}}{{else}}<p style="margin-top:0;margin-right:0;margin-bottom:8px;margin-left:0;font-family:Arial, Helvetica, sans-serif;font-size:12px;line-height:1.65;color:#555555;text-align:center;">Vous pouvez répondre directement à ce message.</p>{{/if}}{{/inline}}
+{{#*inline "content"}}
+{{#if debtor_recipient}}{{else}}{{#if case.reference}}<tr><td style="padding-top:24px;padding-right:40px;padding-bottom:0px;padding-left:40px;"><p style="margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Arial, Helvetica, sans-serif;font-size:13px;line-height:1.5;color:#5D7087;">Dossier n° {{case.reference}}{{#if creditor.name}} · {{creditor.name}}{{/if}}</p></td></tr>{{/if}}{{/if}}
+<tr><td style="padding-top:24px;padding-right:40px;padding-bottom:8px;padding-left:40px;">{{#each message.paragraphs}}<p style="margin-top:0;margin-right:0;margin-bottom:16px;margin-left:0;font-family:Arial, Helvetica, sans-serif;font-size:15px;line-height:1.65;color:#374151;">{{this}}</p>{{/each}}<p style="margin-top:8px;margin-right:0;margin-bottom:0;margin-left:0;font-family:Arial, Helvetica, sans-serif;font-size:15px;line-height:1.65;color:#374151;">{{#if message.closing}}{{message.closing}}{{else}}Bien cordialement,{{/if}}</p></td></tr>
+<tr><td style="padding-top:8px;padding-right:22px;padding-bottom:28px;padding-left:22px;">{{> signature}}</td></tr>
+{{/inline}}
+{{/layout}}

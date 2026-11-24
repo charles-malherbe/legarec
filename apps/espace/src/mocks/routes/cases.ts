@@ -239,6 +239,7 @@ export const resetCases = () => {
 
 const ownership = (item: Stored) => ({ officerId: item.officerId, officerRole: item.officerId ? (OFFICERS[item.officerId]?.role ?? 'CLAIMS_OFFICER') : null });
 export const readable = (session: Session) => cases.filter((item) => canReadCase(session, ownership(item)));
+export const actsOn = (session: Session, caseId: string) => cases.some((item) => item.id === caseId && canActOnCase(session, ownership(item)));
 const toItem = (item: Stored, session: Session): CaseListItem => {
   const { group: _group, ...rest } = item;
   return { ...rest, officer: item.officerId ? (OFFICERS[item.officerId]?.name ?? null) : null, canAct: canActOnCase(session, ownership(item)) };

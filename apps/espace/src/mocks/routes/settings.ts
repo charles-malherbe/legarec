@@ -402,7 +402,7 @@ const technicalGroups = (): Group[] => [
           block('ovh', 'Messagerie de l’équipe · OVH MX Plan', 'Boîtes e-mail du service, en SMTP pour l’envoi et en IMAP pour la réception.', [
             value('shared', 'Boîte partagée', 'Réception seule : personne n’écrit depuis cette boîte', 'recouvrement@legarec.fr', 'Synchronisée', 'success'),
             value('smtp', 'Serveur d’envoi (SMTP)', 'Envoi depuis l’adresse de chaque collaborateur', 'smtp.mail.ovh.net · port 465 · SSL/TLS'),
-            value('imap', 'Serveur de réception (IMAP)', 'Synchronisation toutes les 1 à 2 minutes', 'imap.mail.ovh.net · port 993 · SSL/TLS'),
+            value('imap', 'Serveur de réception (IMAP)', 'Synchronisation toutes les 1 à 2 minutes', 'ssl0.ovh.net · port 993 · SSL/TLS'),
           ]),
         ],
         [
