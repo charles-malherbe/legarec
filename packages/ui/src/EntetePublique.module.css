@@ -57,6 +57,7 @@
   color: var(--text-3);
 }
 .nav {
+  position: relative;
   display: flex;
   overflow-x: auto;
 }

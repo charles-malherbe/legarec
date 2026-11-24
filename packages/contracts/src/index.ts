@@ -18,3 +18,4 @@ export * from './templates';
 export * from './settings';
 export * from './account';
 export * from './portal';
+export * from './debtor';
