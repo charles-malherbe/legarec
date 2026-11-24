@@ -13,7 +13,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { useCreditorScope } from '../../app/creditorScope';
 import { useApi, useChange } from '../../app/data';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 import { matches } from '../../shared/listState';
 import css from './Reminders.module.css';
 

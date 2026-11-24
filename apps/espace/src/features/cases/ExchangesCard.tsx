@@ -3,7 +3,7 @@ import { Badge, Bouton, Carte, Champ, Onglets, useConfirm, useToast, type Tone }
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { useChange } from '../../app/data';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 
 const CHANNEL: Record<Exchange['channel'], { label: string; tone: Tone }> = {
   EMAIL_IN: { label: 'E-mail reçu', tone: 'info' },

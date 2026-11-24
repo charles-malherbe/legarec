@@ -20,7 +20,7 @@ import { Link } from 'react-router';
 import type { z } from 'zod';
 import { useCreditorScope } from '../../app/creditorScope';
 import { useApi, useChange } from '../../app/data';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 import { listState, matches } from '../../shared/listState';
 import { StaffMessageForm } from './StaffMessageForm';
 

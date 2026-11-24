@@ -15,7 +15,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import type { z } from 'zod';
 import { useApi, useChange } from '../../app/data';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 import css from './Documents.module.css';
 
 type Data = z.infer<typeof composeData>;

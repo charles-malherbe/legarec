@@ -2,7 +2,7 @@ import { templatesData } from '@legarec/contracts';
 import { Badge, Bouton, Carte, EtatListe, Onglets, type Tone } from '@legarec/ui';
 import { useState } from 'react';
 import { useApi } from '../../app/data';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 import css from '../settings/Settings.module.css';
 
 const TONES: Record<string, Tone> = {

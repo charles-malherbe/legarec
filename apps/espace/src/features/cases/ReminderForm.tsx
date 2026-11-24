@@ -3,7 +3,7 @@ import { formatCents, formatDate } from '@legarec/contracts';
 import { Bouton, Carte, Champ, useConfirm, useToast } from '@legarec/ui';
 import { useState } from 'react';
 import { useChange } from '../../app/data';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 
 const CHANNELS = ['E-mail', 'Courrier recommandé', 'SMS'];
 const TEMPLATES = ['Relance ferme (niveau 3)', 'Rappel amiable', 'Mise en demeure'];

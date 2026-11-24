@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { z } from 'zod';
 import { ApiError } from '../../app/api';
 import { useChange } from '../../app/data';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 
 type Sender = z.infer<typeof mailboxData>['sender'];
 export interface StaffMessageFormProps {

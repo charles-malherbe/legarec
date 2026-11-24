@@ -1,7 +1,7 @@
 import { Bouton, Carte, EtatListe, Icone, PageHeader } from '@legarec/ui';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 import { ARTICLES, categoryLabel } from './articles';
 import css from './Help.module.css';
 

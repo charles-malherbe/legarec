@@ -17,3 +17,4 @@ export * from './mergeFields';
 export * from './templates';
 export * from './settings';
 export * from './account';
+export * from './portal';

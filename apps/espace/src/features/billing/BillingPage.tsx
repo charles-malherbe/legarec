@@ -12,7 +12,7 @@ import {
 import { Badge, Bouton, Carte, Champ, EtatListe, PageHeader, Tableau, Toolbar, useConfirm, useToast } from '@legarec/ui';
 import { useState } from 'react';
 import { useApi, useChange } from '../../app/data';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 import { listState, matches } from '../../shared/listState';
 import css from './Billing.module.css';
 import { CONTRACT_TERMS, TYPES } from './templates';

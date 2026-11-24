@@ -3,7 +3,7 @@ import { saveFile } from '@legarec/platform';
 import { Badge, Bouton, Carte, EtatListe, Tableau, useConfirm, useToast } from '@legarec/ui';
 import { useApi, useChange } from '../../app/data';
 import { useCurrentUser } from '../../app/session';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 
 /** Register of the people's requests; one month to answer. Named debtors: Director or administrative delegate only. */
 export function GdprRegistryCard() {

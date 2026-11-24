@@ -3,7 +3,7 @@ import { Alerte, Badge, Bouton, Carte, Champ, EtatListe, Tableau, useConfirm, us
 import { useState } from 'react';
 import { ApiError } from '../../app/api';
 import { useApi, useChange } from '../../app/data';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 
 const STATUS = { ACTIVE: ['Actif', 'success'], INVITED: ['Invitation envoyée', 'info'], DISABLED: ['Désactivé', 'neutral'] } as const;
 const STAFF: Role[] = ['CLAIMS_OFFICER', 'COLLECTION_MANAGER', 'DIRECTOR', 'DEVELOPER'];

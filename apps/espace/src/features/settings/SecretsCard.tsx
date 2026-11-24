@@ -2,7 +2,7 @@ import { newSecret, secretsData, type SecretItem } from '@legarec/contracts';
 import { Badge, Bouton, Carte, Champ, EtatListe, Tableau, useConfirm, useToast } from '@legarec/ui';
 import { useState } from 'react';
 import { useApi, useChange } from '../../app/data';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 import css from './Settings.module.css';
 
 const STATUS = { VALID: ['Valide', 'success'], EXPIRING: ['Expire sous 15 j', 'warning'], REVOKED: ['Révoqué', 'neutral'] } as const;

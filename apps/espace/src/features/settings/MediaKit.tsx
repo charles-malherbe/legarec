@@ -1,6 +1,6 @@
 import { openExternal } from '@legarec/platform';
 import { Bouton, Carte, useToast } from '@legarec/ui';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 import css from './Settings.module.css';
 
 const BASE = 'https://media.legarec.fr/marque';

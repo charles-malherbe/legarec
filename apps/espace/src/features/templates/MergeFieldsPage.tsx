@@ -1,7 +1,7 @@
 import { MANDATORY_BLOCKS, MERGE_FIELDS } from '@legarec/contracts';
 import { Carte, EtatListe, PageHeader, Tableau, Toolbar } from '@legarec/ui';
 import { useState } from 'react';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 import { matches } from '../../shared/listState';
 
 export function MergeFieldsPage() {
