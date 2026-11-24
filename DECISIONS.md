@@ -48,3 +48,5 @@ Décisions prises après la maquette v1.21 (23/11/2026). Elles priment sur la ma
 | 24/11/2026 | Contentieux : « Frais de procédure avancés · refacturables au débiteur » devient « à la charge du créancier sauf décision du juge » | Aucun frais ajouté hors cas prévus par la loi (écart signalé, à valider par le juriste) |
 | 24/11/2026 | Échéanciers : modes « Virement » et « Chèque » à la place de prélèvement SEPA et carte | Paiement par chèque et virement uniquement |
 | 24/11/2026 | `scripts/comparer-ecran.mjs` lance Chromium sans hinting | Même rendu de texte que les captures de référence |
+| 24/11/2026 | Rédiger un courrier : « coût refacturable au débiteur » (LRAR) retiré ; indemnité de 40 € absente pour un particulier ; relance bloquée sans premier courrier ; mentions obligatoires en blocs à valider | Règles du recouvrement amiable (écarts signalés) |
+| 24/11/2026 | Contrats : « sous-traitant » remplacé par [STATUT RGPD À VALIDER] | Question 23 ouverte |

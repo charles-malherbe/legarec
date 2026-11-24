@@ -12,3 +12,4 @@ export * from './cases';
 export * from './collection';
 export * from './communication';
 export * from './steering';
+export * from './documents';
