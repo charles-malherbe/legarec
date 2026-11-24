@@ -4,6 +4,10 @@ import { MantineProvider } from '@mantine/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Navigate, Outlet, Route, Routes } from 'react-router';
+import { CasePage } from '../features/cases/CasePage';
+import { CasesPage } from '../features/cases/CasesPage';
+import { CreditorPage } from '../features/creditors/CreditorPage';
+import { CreditorsPage } from '../features/creditors/CreditorsPage';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { ErrorPage } from '../features/error/ErrorPage';
 import { LoginPage } from '../features/login/LoginPage';
@@ -36,6 +40,10 @@ export function App() {
                 <Route element={<RequireSession />}>
                   <Route element={<Shell />}>
                     <Route index element={<DashboardPage />} />
+                    <Route path="creanciers" element={<CreditorsPage />} />
+                    <Route path="creanciers/:id" element={<CreditorPage />} />
+                    <Route path="debiteurs" element={<CasesPage />} />
+                    <Route path="debiteurs/:id" element={<CasePage />} />
                   </Route>
                 </Route>
                 <Route path="*" element={<ErrorPage code={404} />} />

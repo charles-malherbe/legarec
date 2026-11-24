@@ -46,7 +46,7 @@
   margin: 0;
   font-size: var(--fs-md);
   font-weight: 600;
-  color: var(--text);
+  color: var(--marine-text);
 }
 .description {
   margin: 0;

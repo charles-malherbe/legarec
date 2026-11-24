@@ -89,6 +89,9 @@ export function Tableau<Row extends object>(props: TableauProps<Row>) {
 
   return (
     <div
+      role="group"
+      aria-label={props.caption}
+      tabIndex={0}
       data-table-scroll={props.sticky === false ? undefined : ''}
       className={css.root}
       data-bordered={props.bordered !== false || undefined}

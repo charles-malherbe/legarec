@@ -2,11 +2,11 @@ import { loginRequest, type Dashboard, type ShellData } from '@legarec/contracts
 import { http, HttpResponse, type HttpHandler } from 'msw';
 import { ACCOUNTS, DEMO_PASSWORD } from './accounts';
 import dashboardData from './dashboard.json';
+import { caseHandlers, readable } from './routes/cases';
+import { creditorHandlers } from './routes/creditors';
+import { done, forbidden, unauthorized } from './http';
 import { currentSession, setAccount, state } from './state';
 
-const unauthorized = () => HttpResponse.json({ code: 'UNAUTHORIZED' }, { status: 401 });
-const forbidden = () => HttpResponse.json({ code: 'FORBIDDEN' }, { status: 403 });
-const done = () => new HttpResponse(null, { status: 204 });
 const MAX_FAILURES = 5;
 
 const CREDITORS: ShellData['creditors'] = [
@@ -61,48 +61,29 @@ const NOTIFICATIONS: ShellData['notifications'] = [
     href: '/echeanciers',
   },
 ];
-const SEARCH = [
-  {
-    id: 'd1',
+const searchIndex = (session: NonNullable<ReturnType<typeof currentSession>>) => [
+  ...readable(session).map((item) => ({
+    id: `d:${item.id}`,
     kind: 'DEBTOR',
-    title: 'Bâtiplus SAS',
-    sub: 'SIRET 512 334 871 00088 · Matériaux Delta · 48 200 € · retard 64 j',
-    href: '/debiteurs/demo',
-    initials: 'BP',
-    officerId: 'cl',
-  },
-  {
-    id: 'd2',
-    kind: 'DEBTOR',
-    title: 'Groupe Hélio',
-    sub: 'SIRET 319 935 185 00011 · Médiatel · 36 750 € · relance 2',
-    href: '/debiteurs/helio',
-    initials: 'GH',
-    officerId: 'hb',
-  },
-  {
-    id: 'd3',
-    kind: 'DEBTOR',
-    title: 'Nordis Logistique',
-    sub: 'SIRET 854 323 193 00045 · Énergies Rhône · 21 400 € · promesse',
-    href: '/debiteurs/nordis',
-    initials: 'NL',
-    officerId: 'hb',
-  },
-  {
-    id: 'c1',
+    title: item.name,
+    sub: `${item.identifier} · ${item.creditor} · ${item.statusLabel}`,
+    href: `/debiteurs/${item.id}`,
+    initials: item.name.slice(0, 2).toUpperCase(),
+  })),
+  ...CREDITORS.filter((item) => item.id !== 'all').map((item) => ({
+    id: `c:${item.id}`,
     kind: 'CREDITOR',
-    title: 'Matériaux Delta',
-    sub: 'SIREN 401 228 975 · 64 débiteurs · 386 400 € confiés',
-    href: '/creanciers/md',
-    initials: 'MD',
-    officerId: null,
-  },
-  { id: 'f1', kind: 'INVOICE', title: 'F-2026-0712', sub: 'Bâtiplus SAS · 18 600 € · échue le 14/09', href: '/debiteurs/demo', initials: 'F', officerId: 'cl' },
+    title: item.name,
+    sub: `SIREN ${item.siren} · ${item.count} débiteurs`,
+    href: `/creanciers/${item.id}`,
+    initials: item.initials,
+  })),
 ];
 const normalize = (text: string) => text.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
 
 export const handlers: HttpHandler[] = [
+  ...caseHandlers,
+  ...creditorHandlers,
   http.get('/api/auth/session', () => {
     const session = currentSession();
     return session ? HttpResponse.json(session) : unauthorized();
@@ -186,14 +167,12 @@ export const handlers: HttpHandler[] = [
     if (session.role === 'DEVELOPER') return HttpResponse.json([]);
     const query = normalize(((await request.json()) as { query: string }).query);
     const digits = query.replace(/\s/g, '');
-    const visible = SEARCH.filter((item) => session.role !== 'CLAIMS_OFFICER' || item.officerId === null || item.officerId === session.userId);
+    const visible = searchIndex(session);
     return HttpResponse.json(
-      visible
-        .filter((item) => {
-          const text = normalize(`${item.title} ${item.sub}`);
-          return text.includes(query) || (/^\d{3,}$/.test(digits) && text.replace(/\s/g, '').includes(digits));
-        })
-        .map(({ officerId: _officerId, ...hit }) => hit),
+      visible.filter((item) => {
+        const text = normalize(`${item.title} ${item.sub}`);
+        return text.includes(query) || (/^\d{3,}$/.test(digits) && text.replace(/\s/g, '').includes(digits));
+      }),
     );
   }),
   http.get('/api/dashboard', () => {

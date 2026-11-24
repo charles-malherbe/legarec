@@ -1,1 +1,5 @@
-{"ForgotPassword":{"app":"espace","route":"/mot-de-passe-oublie"},"Activation":{"app":"espace","route":"/activation/demo"},"Reset":{"app":"espace","route":"/reinitialisation/demo"}}
+{
+  "ForgotPassword": { "app": "espace", "route": "/mot-de-passe-oublie" },
+  "Activation": { "app": "espace", "route": "/activation/demo" },
+  "Reset": { "app": "espace", "route": "/reinitialisation/demo" }
+}
