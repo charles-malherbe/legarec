@@ -12,6 +12,16 @@
   --fc-classic-strong: var(--surface-3);
   overflow-x: auto;
 }
+/* Names of the days as in the mockup: small, grey and in capitals. */
+.dayHeader {
+  padding: var(--sp-2h) var(--sp-3);
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: left;
+  text-transform: uppercase;
+}
 .event {
   display: block;
   box-sizing: border-box;
@@ -103,4 +113,11 @@
 .selected {
   outline: 2px solid var(--marine);
   outline-offset: -2px;
+}
+.status {
+  font-size: var(--fs-xs);
+  color: var(--warning-fg);
+}
+.status[data-auto] {
+  color: var(--info-fg);
 }

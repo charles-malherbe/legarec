@@ -37,7 +37,7 @@ const EVENTS: [string, string | null, ReminderType, string, string | null, (stri
   ['11-23', '10:30', 'CALL', 'Garage Valmont', 'valmont', TL, 'Dernier appel avant contentieux', false, false, 'cl'],
   ['11-23', '09:00', 'EMAIL', '5 débiteurs', null, ALL, 'Lot · relance n°2', false, true, 'cl'],
   ['11-24', '10:00', 'CALL', 'Groupe Hélio', 'helio', MT, 'Rappel programmé', false, false, 'hb'],
-  ['11-24', '10:00', 'SMS', 'Fromagerie Durand', 'durand', ER, 'Relance SMS', false, true, 'cl', 'plafond de 3 contacts par semaine dépassé'],
+  ['11-24', '10:00', 'SMS', 'Fromagerie Durand', 'durand', ER, 'Relance SMS', false, true, 'cl', 'plafond de 1 SMS par semaine dépassé'],
   ['11-25', '09:00', 'EMAIL', 'Groupe Hélio', 'helio', MT, 'Relance n°3', false, true, 'hb'],
   ['11-26', null, 'LETTER', 'Menuiserie Rivoire', null, MD, 'Relance ferme par courrier', false, false, 'cl'],
   ['11-28', null, 'INSTALLMENT', 'Bâtiplus SAS', 'demo', MD, 'Promesse · 18 600 €', false, false, 'cl'],

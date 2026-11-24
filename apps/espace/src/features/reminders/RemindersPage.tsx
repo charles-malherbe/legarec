@@ -253,6 +253,7 @@ function Agenda({ today, items, weekly }: { today: string; items: Reminder[]; we
                   </span>
                 ) : null;
               }}
+              dayHeaderClass={css.dayHeader}
               dayCellClass={(info) => (info.date.toISOString().slice(0, 10) === selected ? (css.selected ?? '') : '')}
               dateClick={(info) => setSelected(info.dateStr.slice(0, 10))}
               eventClick={(info) => {
@@ -298,12 +299,15 @@ function Agenda({ today, items, weekly }: { today: string; items: Reminder[]; we
                       ) : (
                         <strong className={layout.strong}>{item.debtor}</strong>
                       )}
-                      <span className={layout.hint}>{item.creditor}</span>
-                      <span className={layout.muted}>{item.title}</span>
+                      <span className={layout.muted}>
+                        {item.title} · {item.creditor}
+                      </span>
                     </span>
                     {item.limit && !item.done && <span className={layout.danger}>{item.limit}</span>}
                     <span className={layout.between}>
-                      <strong className={item.done ? layout.success : undefined}>{statusOf(item, today)}</strong>
+                      <strong className={item.done ? layout.success : css.status} data-auto={item.automatic || undefined}>
+                        {statusOf(item, today)}
+                      </strong>
                       {!item.done && item.canAct && (
                         <span className={layout.inline}>
                           <Bouton variant="secondary" size="sm" label="Reporter" ariaLabel={`Reporter : ${item.debtor}`} onPress={() => void postpone(item)} />

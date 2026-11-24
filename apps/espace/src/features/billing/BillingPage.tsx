@@ -349,102 +349,110 @@ function Creator({ data, initialType, copy, onClose }: { data: BillingData; init
             <Bouton label={definition.issue} disabled={!contract && (lines.length === 0 || totals.net <= 0)} onPress={issue} />
           </div>
         </div>
-        <article aria-label="Aperçu du document" tabIndex={0} className={css.sheet}>
-          <header className={layout.between}>
-            <span className={layout.text}>
-              <strong className={css.firm}>{data.firm.name}</strong>
-              <span>Cabinet de recouvrement de créances</span>
-              <span>
-                {data.firm.address} · {data.firm.phone}
-              </span>
-              <span>
-                SIREN {data.firm.siren} · TVA {data.firm.vat}
-              </span>
-            </span>
-            <span className={layout.text}>
-              <strong>{definition.label}</strong>
-              <span>{number} (provisoire)</span>
-              <span>Paris, le {formatLongDate(new Date())}</span>
-            </span>
-          </header>
-          <div className={css.client}>
-            <strong>{client.legal}</strong>
-            <span>{client.address}</span>
-            <span>{idLine}</span>
-          </div>
-          <strong>Objet : {subject}</strong>
-          {contract ? (
-            <ol className={css.articles}>
-              {[
-                [
-                  'Objet',
-                  'Le créancier confie à Legarec le recouvrement amiable de ses factures impayées, transmises par import ou depuis son espace en ligne.',
-                ],
-                ['Rémunération', `Commission de ${term('rate')} sur les sommes effectivement encaissées, et frais d’ouverture de ${term('fee')} par dossier.`],
-                ['Reversements', 'Les sommes encaissées sont reversées chaque mois, déduction faite de la commission, avec un relevé détaillé.'],
-                ['Échéanciers', `Legarec peut accorder un échéancier ${term('plan')} ; au-delà, l’accord écrit du créancier est requis.`],
-                ['Durée', `À compter du ${term('start')}, pour ${term('term')}, résiliable avec un préavis de ${term('notice')}.`],
-                ['Données personnelles', 'Legarec traite les données des dossiers en sous-traitant du créancier (article 28 du RGPD), et en responsable du traitement pour sa comptabilité, sa sécurité, son personnel et sa téléphonie.'],
-              ].map(([title, text]) => (
-                <li key={title}>
-                  <strong>{title}.</strong> {text}
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <>
-              <table className={css.table}>
-                <thead>
-                  <tr>
-                    <th scope="col">Désignation</th>
-                    <th scope="col">Qté</th>
-                    <th scope="col">PU HT</th>
-                    <th scope="col">Total HT</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {lines.map((line, index) => (
-                    <tr key={index}>
-                      <td>{line.label}</td>
-                      <td>{line.quantity}</td>
-                      <td>{money(parsed[index]?.unitPrice ?? 0)}</td>
-                      <td>{money(Math.round((parsed[index]?.quantity ?? 0) * (parsed[index]?.unitPrice ?? 0)))}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <dl className={layout.facts}>
-                <div>
-                  <dt>Total HT</dt>
-                  <dd>{money(totals.net)}</dd>
-                </div>
-                <div>
-                  <dt>TVA 20 %</dt>
-                  <dd>{money(totals.vat)}</dd>
-                </div>
-                <div>
-                  <dt>Total TTC</dt>
-                  <dd>{money(totals.gross)}</dd>
-                </div>
-              </dl>
-            </>
-          )}
-          {contract && (
-            <div className={layout.between}>
+        <div className={css.paper}>
+          <article aria-label="Aperçu du document" tabIndex={0} className={css.sheet}>
+            <header className={css.docHead}>
               <span className={layout.text}>
-                <strong>Pour le créancier</strong>
-                <span>{client.signer}</span>
-                <span>Signature électronique</span>
+                <strong className={css.firm}>{data.firm.name}</strong>
+                <span>Cabinet de recouvrement de créances</span>
+                <span>
+                  {data.firm.address} · {data.firm.phone}
+                </span>
+                <span>
+                  SIREN {data.firm.siren} · TVA {data.firm.vat}
+                </span>
               </span>
-              <span className={layout.text}>
-                <strong>Pour Legarec</strong>
-                <span>{data.firm.signer}</span>
-                <span>Signature électronique</span>
+              <span className={`${layout.text} ${css.right}`}>
+                <strong className={css.kind}>{definition.label}</strong>
+                <span>{number} (provisoire)</span>
+                <span>Paris, le {formatLongDate(new Date())}</span>
               </span>
+            </header>
+            <div className={css.client}>
+              <strong>{client.legal}</strong>
+              <span>{client.address}</span>
+              <span>{idLine}</span>
             </div>
-          )}
-          <p className={layout.hint}>{definition.legal}</p>
-        </article>
+            <strong>Objet : {subject}</strong>
+            {contract ? (
+              <ol className={css.articles}>
+                {[
+                  [
+                    'Objet',
+                    'Le créancier confie à Legarec le recouvrement amiable de ses factures impayées, transmises par import ou depuis son espace en ligne.',
+                  ],
+                  [
+                    'Rémunération',
+                    `Commission de ${term('rate')} sur les sommes effectivement encaissées, et frais d’ouverture de ${term('fee')} par dossier.`,
+                  ],
+                  ['Reversements', 'Les sommes encaissées sont reversées chaque mois, déduction faite de la commission, avec un relevé détaillé.'],
+                  ['Échéanciers', `Legarec peut accorder un échéancier ${term('plan')} ; au-delà, l’accord écrit du créancier est requis.`],
+                  ['Durée', `À compter du ${term('start')}, pour ${term('term')}, résiliable avec un préavis de ${term('notice')}.`],
+                  [
+                    'Données personnelles',
+                    'Legarec traite les données des dossiers en sous-traitant du créancier (article 28 du RGPD), et en responsable du traitement pour sa comptabilité, sa sécurité, son personnel et sa téléphonie.',
+                  ],
+                ].map(([title, text]) => (
+                  <li key={title}>
+                    <strong>{title}.</strong> {text}
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <>
+                <table className={css.table}>
+                  <thead>
+                    <tr>
+                      <th scope="col">Désignation</th>
+                      <th scope="col">Qté</th>
+                      <th scope="col">PU HT</th>
+                      <th scope="col">Total HT</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lines.map((line, index) => (
+                      <tr key={index}>
+                        <td>{line.label}</td>
+                        <td>{line.quantity}</td>
+                        <td>{money(parsed[index]?.unitPrice ?? 0)}</td>
+                        <td>{money(Math.round((parsed[index]?.quantity ?? 0) * (parsed[index]?.unitPrice ?? 0)))}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <dl className={`${layout.facts} ${css.totals}`}>
+                  <div>
+                    <dt>Total HT</dt>
+                    <dd>{money(totals.net)}</dd>
+                  </div>
+                  <div>
+                    <dt>TVA 20 %</dt>
+                    <dd>{money(totals.vat)}</dd>
+                  </div>
+                  <div>
+                    <dt>Total TTC</dt>
+                    <dd>{money(totals.gross)}</dd>
+                  </div>
+                </dl>
+              </>
+            )}
+            {contract && (
+              <div className={layout.between}>
+                <span className={layout.text}>
+                  <strong>Pour le créancier</strong>
+                  <span>{client.signer}</span>
+                  <span>Signature électronique</span>
+                </span>
+                <span className={layout.text}>
+                  <strong>Pour Legarec</strong>
+                  <span>{data.firm.signer}</span>
+                  <span>Signature électronique</span>
+                </span>
+              </div>
+            )}
+            <p className={css.legal}>{definition.legal}</p>
+          </article>
+        </div>
       </div>
     </Carte>
   );

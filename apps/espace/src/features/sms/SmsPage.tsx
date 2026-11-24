@@ -1,5 +1,5 @@
 import { formatCents, measureSms, smsData, type SmsThread } from '@legarec/contracts';
-import { Alerte, Badge, Bouton, Carte, Case, Champ, EtatListe, PageHeader, Pagination, Toolbar, useConfirm, useToast, type Tone } from '@legarec/ui';
+import { Alerte, Avatar, Badge, Bouton, Case, Champ, EtatListe, PageHeader, Pagination, Toolbar, useConfirm, useToast, type Tone } from '@legarec/ui';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { useCreditorScope } from '../../app/creditorScope';
@@ -8,6 +8,7 @@ import layout from '@legarec/ui/layout.module.css';
 import { pageOf } from '../../shared/paging';
 import { listState, matches } from '../../shared/listState';
 import { CaseLink } from './CaseLink';
+import css from './Sms.module.css';
 
 // Straight apostrophes and no « ê » or « ç »: the message keeps 160 characters per SMS.
 const QUICK = [
@@ -127,9 +128,9 @@ export function SmsPage() {
           onReset: scope.id === 'all' ? undefined : () => scope.setId('all'),
         }}
       />
-      <div className={layout.split}>
-        <section aria-label="Conversations" className={layout.card}>
-          <div className={layout.between} style={{ padding: 'var(--sp-3) var(--sp-4)' }}>
+      <div className={css.shell}>
+        <section aria-label="Conversations" className={css.list}>
+          <div className={css.head}>
             <strong>Conversations</strong>
             <span className={layout.hint}>{rows.length} affichées</span>
           </div>
@@ -141,12 +142,13 @@ export function SmsPage() {
                 const last = item.messages.at(-1);
                 return (
                   <button key={item.id} type="button" className={layout.rowButton} aria-current={item.id === current?.id} onClick={() => pick(item)}>
+                    <Avatar title={item.name} size={40} />
                     <span className={`${layout.text} ${layout.grow}`}>
                       <span className={layout.between}>
                         <strong>{item.name}</strong>
                         <span className={layout.hint}>{item.time}</span>
                       </span>
-                      <span className={layout.hint}>{item.creditor}</span>
+                      <span className={css.creditor}>{item.creditor}</span>
                       <span className={`${layout.muted} ${layout.ellipsis}`}>
                         {last?.direction === 'OUT' && 'Vous : '}
                         {last?.text}
@@ -171,9 +173,9 @@ export function SmsPage() {
           )}
         </section>
         {current && (
-          <div className={layout.columns}>
-            <section aria-label="Conversation" className={`${layout.card} ${layout.wide}`} style={{ gap: 0 }}>
-              <div className={layout.between} style={{ padding: 'var(--sp-3) var(--sp-5)', borderBottom: '1px solid var(--border)' }}>
+          <>
+            <section aria-label="Conversation" className={css.conversation}>
+              <div className={css.head}>
                 <span className={layout.text}>
                   <strong>{current.name}</strong>
                   <span className={layout.hint}>
@@ -188,7 +190,7 @@ export function SmsPage() {
               {current.stopped && (
                 <Alerte tone="warning" compact text="Ce numéro a répondu STOP : les SMS automatiques sont arrêtés et le gestionnaire du dossier est prévenu." />
               )}
-              <ol className={layout.thread}>
+              <ol className={css.thread}>
                 {current.messages.map((message) => (
                   <li key={message.id} data-out={message.direction === 'OUT' || undefined}>
                     {message.automatic && <span className={layout.hint}>{message.automatic}</span>}
@@ -200,7 +202,7 @@ export function SmsPage() {
               {current.canAct === false ? (
                 <Alerte tone="info" compact icon="lock" text="Lecture seule : ce dossier est suivi par un autre collaborateur." />
               ) : current.linked ? (
-                <div className={layout.stack} style={{ padding: 'var(--sp-4) var(--sp-5)', borderTop: '1px solid var(--border)' }}>
+                <div className={css.composer}>
                   <div className={layout.chips}>
                     <span className={layout.muted}>Réponses rapides :</span>
                     {QUICK.map(([label, text]) => (
@@ -238,54 +240,53 @@ export function SmsPage() {
               )}
             </section>
             {current.linked && (
-              <aside className={layout.aside} aria-label="Contexte du dossier">
-                <Carte title="Dossier">
-                  <div className={layout.stack}>
-                    <div className={layout.text}>
-                      <Link to={`/debiteurs/${current.caseId}`} className={layout.strong}>
-                        {current.name}
-                      </Link>
-                      <span className={layout.muted}>Pour le compte de {current.creditor}</span>
+              <aside className={css.context} aria-label="Contexte du dossier">
+                <section>
+                  <h2>Dossier</h2>
+                  <div className={layout.text}>
+                    <Link to={`/debiteurs/${current.caseId}`} className={layout.strong}>
+                      {current.name}
+                    </Link>
+                    <span className={layout.muted}>Pour le compte de {current.creditor}</span>
+                  </div>
+                  <dl className={layout.facts}>
+                    <div>
+                      <dt>Montant dû</dt>
+                      <dd>{current.due === null ? '—' : formatCents(current.due)}</dd>
                     </div>
-                    <dl className={layout.facts}>
-                      <div>
-                        <dt>Montant dû</dt>
-                        <dd>{current.due === null ? '—' : formatCents(current.due)}</dd>
-                      </div>
-                      <div>
-                        <dt>Retard</dt>
-                        <dd>{current.late}</dd>
-                      </div>
-                      <div>
-                        <dt>Statut</dt>
-                        <dd>{current.status && <Badge label={STATUS[current.status][0]} tone={STATUS[current.status][1]} />}</dd>
-                      </div>
-                      <div>
-                        <dt>Consentement SMS</dt>
-                        <dd>{current.stopped ? 'Retiré (STOP)' : 'Actif'}</dd>
-                      </div>
-                    </dl>
-                  </div>
-                </Carte>
-                <Carte title="Actions">
-                  <div className={layout.tightStack}>
-                    <Link to="/echeanciers" className={layout.link}>
-                      Enregistrer une promesse
-                    </Link>
-                    <Link to="/echeanciers" className={layout.link}>
-                      Proposer un échéancier
-                    </Link>
-                    <Link to="/relances" className={layout.link}>
-                      Planifier un rappel
-                    </Link>
-                  </div>
-                </Carte>
-                <Carte title="Prochain SMS automatique">
+                    <div>
+                      <dt>Retard</dt>
+                      <dd>{current.late}</dd>
+                    </div>
+                    <div>
+                      <dt>Statut</dt>
+                      <dd>{current.status && <Badge label={STATUS[current.status][0]} tone={STATUS[current.status][1]} />}</dd>
+                    </div>
+                    <div>
+                      <dt>Consentement SMS</dt>
+                      <dd>{current.stopped ? 'Retiré (STOP)' : 'Actif'}</dd>
+                    </div>
+                  </dl>
+                </section>
+                <section>
+                  <h2>Actions</h2>
+                  <Link to="/echeanciers" className={css.action}>
+                    Enregistrer une promesse
+                  </Link>
+                  <Link to="/echeanciers" className={css.action}>
+                    Proposer un échéancier
+                  </Link>
+                  <Link to="/relances" className={css.action}>
+                    Planifier un rappel
+                  </Link>
+                </section>
+                <section>
+                  <h2>Prochain SMS automatique</h2>
                   <p className={layout.body}>{current.next}</p>
-                </Carte>
+                </section>
               </aside>
             )}
-          </div>
+          </>
         )}
       </div>
     </>

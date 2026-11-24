@@ -1,0 +1,120 @@
+.shell {
+  display: flex;
+  flex-wrap: wrap;
+  min-height: 640px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.shell > * {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.list {
+  flex: 1 1 300px;
+}
+.conversation {
+  flex: 2 1 420px;
+  border-inline: 1px solid var(--border);
+}
+.context {
+  flex: 1 1 260px;
+  box-sizing: border-box;
+  gap: var(--sp-4);
+  padding: var(--sp-5);
+}
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--border);
+}
+.creditor {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--marine-text);
+}
+.thread {
+  list-style: none;
+  flex: 1;
+  margin: 0;
+  padding: var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  background: var(--surface-2);
+}
+.thread > li {
+  max-width: 78%;
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+.thread > li > div {
+  padding: var(--sp-2h) var(--sp-3h);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg) var(--r-lg) var(--r-lg) var(--r-xs);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-base);
+  line-height: 1.5;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.thread > li[data-out] {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+.thread > li[data-out] > div {
+  border-color: transparent;
+  border-radius: var(--r-lg) var(--r-lg) var(--r-xs) var(--r-lg);
+  background: var(--app-icon-bg);
+  color: var(--on-primary);
+}
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border-top: 1px solid var(--border);
+}
+.context h2 {
+  margin: 0;
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  color: var(--text-3);
+}
+.context section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.context section + section {
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--border);
+}
+.action {
+  display: flex;
+  align-items: center;
+  min-height: var(--control-sm);
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  text-decoration: none;
+}
+@media (max-width: 1023px) {
+  .conversation {
+    border-inline: 0;
+    border-block: 1px solid var(--border);
+  }
+}
