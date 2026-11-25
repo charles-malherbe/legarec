@@ -380,7 +380,8 @@ describe('a task', () => {
     const [stored] = await Promise.all(jobKeys.map((key) => valkey.hgetall(key)));
     expect(stored).toMatchObject({ data: '{}', failedReason: 'TASK_FAILED' });
     const all = JSON.stringify(stored) + logs.join('');
-    for (const hidden of ['jean@', 'KXPM', '550', 'FORMAL_NOTICE', s.cases.ofA, s.officerA, 'Alba', ' at ']) expect(all).not.toContain(hidden);
+    // More than digits: the number of the task may hold any of them.
+    for (const hidden of ['jean@', 'KXPM', '550 <', 'FORMAL_NOTICE', s.cases.ofA, s.officerA, 'Alba', ' at ']) expect(all).not.toContain(hidden);
   });
 
   it.each([
