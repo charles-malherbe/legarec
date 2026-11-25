@@ -4185,40 +4185,29 @@
                       "type": "object",
                       "properties": {
                         "legalName": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 150
+                          "type": "string"
                         },
                         "name": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 150
+                          "type": "string"
                         },
                         "sector": {
-                          "type": "string",
-                          "maxLength": 120
+                          "type": "string"
                         },
                         "vatNumber": {
                           "type": "string"
                         },
                         "address": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 300
+                          "type": "string"
                         },
                         "postalCode": {
-                          "type": "string",
-                          "pattern": "^\\d{5}$"
+                          "type": "string"
                         },
                         "city": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 120
+                          "type": "string"
                         },
                         "managerId": {
                           "nullable": true,
-                          "type": "string",
-                          "maxLength": 64
+                          "type": "string"
                         },
                         "portalEnabled": {
                           "type": "boolean"

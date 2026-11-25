@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { z } from 'zod';
 import { useApi } from '../../app/data';
+import { useCurrentUser } from '../../app/session';
 import layout from '@legarec/ui/layout.module.css';
 import { listState, matches } from '../../shared/listState';
 import css from './Creditors.module.css';
@@ -15,6 +16,8 @@ const SORTS = [
 ] as const;
 
 export function CreditorsPage() {
+  const user = useCurrentUser();
+  const canCreate = user.role === 'DIRECTOR' || user.role === 'COLLECTION_MANAGER';
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<(typeof SORTS)[number][0]>('outstanding');
   const { data = [], isPending, error, refetch } = useApi(z.array(creditorListItem), '/creditors');
@@ -56,7 +59,7 @@ export function CreditorsPage() {
         ]}
         actions={[
           { label: 'Importer des créances', disabled: true },
-          { label: '+ Nouveau créancier', primary: true, kbd: 'N', disabled: true },
+          ...(canCreate ? [{ label: '+ Nouveau créancier', primary: true, kbd: 'N', href: '/creanciers/nouveau' }] : []),
         ]}
       />
       {data.length > 0 && (

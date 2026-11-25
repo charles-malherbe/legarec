@@ -67,5 +67,18 @@
   "Library": {
     "app": "espace",
     "route": "/bibliotheque"
+  },
+  "NewCreditor": {
+    "app": "espace",
+    "route": "/creanciers/nouveau"
+  },
+  "ChangeCreditor": {
+    "app": "espace",
+    "route": "/creanciers/md/modifier"
+  },
+  "Secrets": {
+    "app": "espace",
+    "route": "/parametres/techniques/secrets",
+    "account": "dev"
   }
 }

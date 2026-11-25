@@ -1,5 +1,10 @@
 import {
   accountData,
+  creditorChoices,
+  creditorCreated,
+  creditorDetail,
+  creditorFile,
+  creditorListItem,
   delegationsData,
   linkInfo,
   loginResponse,
@@ -32,6 +37,39 @@ const refused = (value: string) => z.looseObject({ code: z.literal(value) });
 const CHANGED = { status: 409, answer: code('CHANGED') };
 const UNKNOWN = '00000000-0000-7000-8000-000000000000';
 const person = { firstName: 'Iris', lastName: 'Test' };
+const CREDITOR = {
+  siren: '732829007',
+  identity: {
+    legalName: 'X SAS',
+    name: 'X',
+    sector: '',
+    vatNumber: '',
+    address: '6 rue du Four',
+    postalCode: '69100',
+    city: 'Villeurbanne',
+    managerId: null,
+    portalEnabled: true,
+  },
+  contacts: [{ name: 'Élodie Rivaud', title: '', email: 'e.rivaud@exemple.test', phone: '', isMain: true }],
+  mandate: {
+    startsOn: '2026-01-01',
+    endsOn: null,
+    amicableRateBp: 800,
+    litigationRateBp: 1200,
+    openingFeeCents: 0,
+    planMonthsWithoutConsent: 6,
+    discountMaxBp: 500,
+    litigationNeedsConsent: true,
+    deferSmallRemittances: false,
+    interestMode: 'NONE',
+    contractRateBp: null,
+    fixedIndemnity: true,
+    reportingDay: 5,
+    scenario: 'BUSINESS',
+  },
+};
+/** Example IBAN of the international standard, not a real account. */
+const ACCOUNT = { holder: 'X', iban: 'GB82 WEST 1234 5698 7654 32', bic: 'PSSTFRPPXXX', confirmedWith: '' };
 const STAFF = ['director', 'manager', 'developer', 'officer'] as const;
 const each = <T extends ParityRole>(roles: readonly T[], of: (as: T) => Omit<Parity, 'as'>): Parity[] => roles.map((as) => ({ as, ...of(as) }));
 
@@ -209,6 +247,47 @@ export const ACCOUNT_PARITY: Parity[] = [
   { as: 'director', request: 'PUT /settings/firm/cabinet', body: { iban: 'FR00' }, status: 422, answer: refused('INVALID') },
   { as: 'director', request: 'PUT /settings/firm/relances', body: { calls: '99' }, status: 422, answer: refused('INVALID') },
   { as: 'director', request: 'PUT /settings/firm/autre', body: {}, status: 404, answer: code('NOT_FOUND') },
+
+  ...each(['director', 'manager', 'officer'], () => ({ request: 'GET /creditors', status: 200, answer: z.array(creditorListItem) })),
+  ...each(['director', 'manager', 'officer'], () => ({ request: 'GET /creditors/{creditorId}', status: 200, answer: creditorDetail })),
+  { as: 'developer', request: 'GET /creditors', status: 403, answer: code('FORBIDDEN') },
+  { as: 'director', request: `GET /creditors/${UNKNOWN}`, status: 404, answer: code('NOT_FOUND') },
+  ...each(['director', 'manager'], () => ({ request: 'GET /creditors/choices', status: 200, answer: creditorChoices })),
+  ...each(['director', 'manager'], () => ({ request: 'GET /creditors/{creditorId}/file', status: 200, answer: creditorFile })),
+  ...each(['developer', 'officer'], () => ({ request: 'GET /creditors/choices', status: 403, answer: code('FORBIDDEN') })),
+  ...each(['developer', 'officer'], () => ({ request: 'GET /creditors/{creditorId}/file', status: 403, answer: code('FORBIDDEN') })),
+  { as: 'director', request: 'POST /creditors', body: CREDITOR, status: 200, answer: creditorCreated },
+  { as: 'manager', request: 'POST /creditors', body: CREDITOR, status: 409, answer: code('SIREN_TAKEN') },
+  { as: 'officer', request: 'POST /creditors', body: CREDITOR, status: 403, answer: code('FORBIDDEN') },
+  { as: 'director', request: 'POST /creditors', body: { ...CREDITOR, siren: '123456789' }, status: 422, answer: refused('INVALID') },
+  {
+    as: 'director',
+    request: 'POST /creditors',
+    body: { ...CREDITOR, siren: '732829072', identity: { ...CREDITOR.identity, managerId: UNKNOWN } },
+    status: 422,
+    answer: refused('INVALID'),
+  },
+  { as: 'manager', request: 'PUT /creditors/{creditorId}', body: { version: 99, identity: CREDITOR.identity, contacts: CREDITOR.contacts }, ...CHANGED },
+  {
+    as: 'officer',
+    request: 'PUT /creditors/{creditorId}',
+    body: { version: 1, identity: CREDITOR.identity, contacts: CREDITOR.contacts },
+    status: 403,
+    answer: code('FORBIDDEN'),
+  },
+  { as: 'manager', request: 'POST /creditors/{creditorId}/amendments', body: { amends: UNKNOWN, mandate: CREDITOR.mandate }, ...CHANGED },
+  { as: 'manager', request: 'POST /creditors/{creditorId}/bank-accounts', body: { replaces: UNKNOWN, account: ACCOUNT }, ...CHANGED },
+  { as: 'officer', request: 'POST /creditors/{creditorId}/bank-accounts', body: { replaces: null, account: ACCOUNT }, status: 403, answer: code('FORBIDDEN') },
+  {
+    as: 'director',
+    request: 'POST /creditors/{creditorId}/bank-accounts',
+    body: { replaces: null, account: { ...ACCOUNT, iban: 'FR00' } },
+    status: 422,
+    answer: refused('INVALID'),
+  },
+  { as: 'manager', request: `POST /creditors/{creditorId}/bank-accounts/${UNKNOWN}/confirm`, body: { confirmedWith: 'X' }, ...CHANGED },
+  { as: 'director', request: `POST /creditors/{creditorId}/bank-accounts/${UNKNOWN}/reveal`, status: 404, answer: code('NOT_FOUND') },
+  { as: 'developer', request: `POST /creditors/{creditorId}/bank-accounts/${UNKNOWN}/reveal`, status: 403, answer: code('FORBIDDEN') },
 ];
 
 /** Sign-in of the creditors. */

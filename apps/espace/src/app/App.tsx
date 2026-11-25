@@ -20,6 +20,7 @@ import { EmailsPage } from '../features/emails/EmailsPage';
 import { SmsPage } from '../features/sms/SmsPage';
 import { CasePage } from '../features/cases/CasePage';
 import { CasesPage } from '../features/cases/CasesPage';
+import { CreditorFormPage } from '../features/creditors/CreditorFormPage';
 import { CreditorPage } from '../features/creditors/CreditorPage';
 import { CreditorsPage } from '../features/creditors/CreditorsPage';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
@@ -79,7 +80,9 @@ export function App() {
             <Route element={<Shell />}>
               <Route index element={<DashboardPage />} />
               <Route path="creanciers" element={<CreditorsPage />} />
+              <Route path="creanciers/nouveau" element={<CreditorFormPage key="new" />} />
               <Route path="creanciers/:id" element={<CreditorPage />} />
+              <Route path="creanciers/:id/modifier" element={<CreditorFormPage />} />
               <Route path="debiteurs" element={<CasesPage />} />
               <Route path="debiteurs/:id" element={<CasePage />} />
               <Route

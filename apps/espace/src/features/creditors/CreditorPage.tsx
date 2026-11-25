@@ -4,6 +4,7 @@ import { Badge, Bouton, Carte, EtatListe, Icone, Onglets, Tableau, type Tone } f
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { useApi } from '../../app/data';
+import { useCurrentUser } from '../../app/session';
 import layout from '@legarec/ui/layout.module.css';
 import { STATUS_TONE } from '../dashboard/DashboardPage';
 import css from './Creditors.module.css';
@@ -25,6 +26,7 @@ const dotTone = (status: CaseStatus | null) => (status ? STATUS_TONE[status] : u
 
 export function CreditorPage() {
   const { id = '' } = useParams();
+  const user = useCurrentUser();
   const [tab, setTab] = useState<(typeof TABS)[number][0]>('portfolio');
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const { data, isPending, error, refetch } = useApi(creditorDetail, `/creditors/${id}`);
@@ -40,6 +42,7 @@ export function CreditorPage() {
         <EtatListe kind="error" onAction={() => void refetch()} />
       </div>
     );
+  const canChange = user.role === 'DIRECTOR' || user.role === 'COLLECTION_MANAGER';
   const isOpen = (debtor: string, index: number) => open[debtor] ?? index === 0;
   const allOpen = data.portfolio.every((debtor, index) => isOpen(debtor.id, index));
   return (
@@ -227,7 +230,11 @@ export function CreditorPage() {
         )}
         {(tab === 'portfolio' || tab === 'mandate') && (
           <aside className={layout.aside} aria-label="Mandat et contact">
-            <Carte title="Convention de mandat">
+            <Carte
+              title="Convention de mandat"
+              actionLabel={canChange ? 'Modifier' : undefined}
+              actionHref={canChange ? `/creanciers/${data.id}/modifier` : undefined}
+            >
               <dl className={layout.facts}>
                 {data.mandateTerms.map((term) => (
                   <div key={term.label}>

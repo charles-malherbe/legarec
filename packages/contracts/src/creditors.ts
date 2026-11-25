@@ -162,7 +162,18 @@ export const creditorFile = z.object({
   id: z.string(),
   version: z.number().int(),
   siren: z.string(),
-  identity: creditorIdentity,
+  /** As recorded: one that was created before this screen may lack some of it. */
+  identity: z.object({
+    legalName: z.string(),
+    name: z.string(),
+    sector: z.string(),
+    vatNumber: z.string(),
+    address: z.string(),
+    postalCode: z.string(),
+    city: z.string(),
+    managerId: z.string().nullable(),
+    portalEnabled: z.boolean(),
+  }),
   contacts: z.array(creditorContact),
   mandates: z.array(mandateVersion),
   /** Open cases, which keep their terms whatever the amendment. */

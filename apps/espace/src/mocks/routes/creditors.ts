@@ -1,8 +1,22 @@
-import type { CreditorDetail, CreditorListItem, Session } from '@legarec/contracts';
+import {
+  isValidSiren,
+  type bankAccountChange,
+  type CreditorDetail,
+  type CreditorFile,
+  type creditorChanges,
+  type CreditorListItem,
+  type mandateAmendment,
+  type MandateVersion,
+  type NewCreditor,
+  type Session,
+} from '@legarec/contracts';
 import { http, HttpResponse } from 'msw';
-import { guarded, notFound, staffWithCases } from '../http';
+import type { z } from 'zod';
+import { audit } from '../audit';
+import { done, guarded, notFound, staffWithCases } from '../http';
 import { mayRead } from '../visibility';
-import { readable } from './cases';
+import { OFFICERS, readable } from './cases';
+import { administers } from './steering';
 
 export const CREDITORS: CreditorListItem[] = [
   {
@@ -207,15 +221,239 @@ const detail = (item: CreditorListItem): CreditorDetail => ({
 /** An officer only meets the creditors of their own cases, and only their own debtors there. */
 export const canSeeCreditor = (session: Session, id: string) => session.role !== 'CLAIMS_OFFICER' || readable(session).some((item) => item.creditorId === id);
 
+type Info = { request: Request; params: Record<string, unknown> };
+type Stored = Omit<CreditorFile, 'bankAccess' | 'openCases'> & { iban: string };
+const manages = (session: Session) => session.role === 'DIRECTOR' || session.role === 'COLLECTION_MANAGER';
+const compact = (value: string) => value.replace(/\s/gu, '').toUpperCase();
+const changed = () => HttpResponse.json({ code: 'CHANGED' }, { status: 409 });
+const invalidField = (field: string) => HttpResponse.json({ code: 'INVALID', fields: [field] }, { status: 422 });
+const TODAY = '2026-11-25';
+const dayBefore = (day: string) => new Date(Date.parse(`${day}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+const withState = (mandate: Omit<MandateVersion, 'state'>): MandateVersion => ({
+  ...mandate,
+  state: mandate.startsOn > TODAY ? 'TO_COME' : mandate.endsOn !== null && mandate.endsOn < TODAY ? 'ENDED' : 'CURRENT',
+});
+const firstFile = (item: CreditorListItem): Stored => ({
+  id: item.id,
+  version: 1,
+  siren: compact(item.siren),
+  identity: {
+    legalName: `${item.name} SAS`,
+    name: item.name,
+    sector: item.sector,
+    vatNumber: '',
+    address: '12 rue des Artisans',
+    postalCode: '69007',
+    city: 'Lyon',
+    managerId: 'cl',
+    portalEnabled: true,
+  },
+  contacts: [{ name: 'Claire Besson', title: 'Credit manager', email: 'c.besson@materiauxdelta.example', phone: '04 72 00 00 00', isMain: true }],
+  mandates: [
+    withState({
+      id: `${item.id}-m1`,
+      startsOn: '2024-03-12',
+      endsOn: null,
+      amicableRateBp: Number.parseInt(item.fee, 10) * 100,
+      litigationRateBp: 1200,
+      openingFeeCents: 1500,
+      planMonthsWithoutConsent: 6,
+      discountMaxBp: 500,
+      litigationNeedsConsent: true,
+      deferSmallRemittances: false,
+      interestMode: 'ECB_PLUS_TEN',
+      contractRateBp: null,
+      fixedIndemnity: true,
+      reportingDay: 5,
+      scenario: 'BUSINESS',
+      hasContract: item.id === 'md',
+    }),
+  ],
+  updatedBy: null,
+  updatedAt: '12 mars 2024',
+  iban: 'FR7630001007941234567894521',
+  bankAccount: {
+    id: `${item.id}-b1`,
+    holder: `${item.name} SAS`,
+    masked: 'FR76 •••• •••• 4521',
+    bic: 'PSSTFRPPXXX',
+    since: '2024-03-12',
+    confirmed: { on: '2024-03-12', with: 'Claire Besson' },
+  },
+});
+let added: CreditorListItem[] = [];
+let files = new Map<string, Stored>();
+export const resetCreditors = () => {
+  added = [];
+  files = new Map();
+};
+const listed = () => [...CREDITORS, ...added];
+const fileOf = (id: unknown): Stored | null => {
+  const item = listed().find((entry) => entry.id === (id === 'demo' ? 'md' : id));
+  if (!item) return null;
+  const known = files.get(item.id) ?? firstFile(item);
+  files.set(item.id, known);
+  return known;
+};
+const onFile = (allow: (session: Session) => boolean, resolve: (file: Stored, session: Session, info: Info) => Response | Promise<Response>) =>
+  guarded<Info>(allow, (info, session) => {
+    const file = fileOf(info.params.id);
+    return file ? resolve(file, session, info) : notFound();
+  });
+const onAccount = (resolve: (file: Stored, session: Session, info: Info) => Response | Promise<Response>) =>
+  onFile(administers, (file, session, info) => (file.bankAccount?.id === info.params.accountId ? resolve(file, session, info) : notFound()));
+const knownManager = (id: string | null) => id === null || id in OFFICERS;
+
+const formHandlers = [
+  http.get(
+    '/api/creditors/choices',
+    guarded(manages, (_info, session) =>
+      HttpResponse.json({
+        managers: Object.entries(OFFICERS).map(([id, officer]) => ({ id, name: officer.name })),
+        bankAccess: administers(session) ? 'EDIT' : 'NONE',
+        defaults: { amicableRateBp: 800 },
+      }),
+    ),
+  ),
+  http.post(
+    '/api/creditors',
+    guarded<Info>(manages, async ({ request }, session) => {
+      const body = (await request.json()) as NewCreditor;
+      const siren = compact(body.siren);
+      if (!isValidSiren(siren)) return invalidField('siren');
+      if (listed().some((item) => compact(item.siren) === siren)) return HttpResponse.json({ code: 'SIREN_TAKEN' }, { status: 409 });
+      if (!knownManager(body.identity.managerId)) return invalidField('identity.managerId');
+      const id = `c${added.length + 1}`;
+      const item: CreditorListItem = {
+        id,
+        initials: body.identity.name.slice(0, 2).toUpperCase(),
+        name: body.identity.name,
+        sector: body.identity.sector,
+        siren: siren.replace(/(\d{3})(?=\d)/gu, '$1 '),
+        debtors: 0,
+        invoices: 0,
+        outstanding: 0,
+        recovered: 0,
+        rate: 0,
+        fee: `${body.mandate.amicableRateBp / 100} % HT`,
+        owner: '',
+        status: 'ACTIVE',
+        statusLabel: 'Mandat actif',
+      };
+      added = [...added, item];
+      files.set(id, {
+        id,
+        version: 1,
+        siren,
+        identity: body.identity,
+        contacts: body.contacts,
+        mandates: [withState({ ...body.mandate, id: `${id}-m1`, hasContract: false })],
+        updatedBy: `${session.firstName} ${session.lastName}`,
+        updatedAt: 'À l’instant',
+        iban: '',
+        bankAccount: null,
+      });
+      audit(session, 'Créancier créé');
+      return HttpResponse.json({ id });
+    }),
+  ),
+  http.get(
+    '/api/creditors/:id/file',
+    onFile(manages, ({ iban: _iban, ...file }, session) =>
+      HttpResponse.json({
+        ...file,
+        openCases: readable(session).filter((item) => item.creditorId === file.id).length,
+        bankAccess: administers(session) ? 'EDIT' : 'NONE',
+        bankAccount: administers(session) ? file.bankAccount : null,
+      }),
+    ),
+  ),
+  http.put(
+    '/api/creditors/:id',
+    onFile(manages, async (file, session, { request }) => {
+      const body = (await request.json()) as z.infer<typeof creditorChanges>;
+      if (!knownManager(body.identity.managerId)) return invalidField('identity.managerId');
+      if (body.version !== file.version) return changed();
+      files.set(file.id, {
+        ...file,
+        version: file.version + 1,
+        identity: body.identity,
+        contacts: body.contacts,
+        updatedBy: `${session.firstName} ${session.lastName}`,
+        updatedAt: 'À l’instant',
+      });
+      audit(session, 'Fiche d’un créancier modifiée');
+      return done();
+    }),
+  ),
+  http.post(
+    '/api/creditors/:id/amendments',
+    onFile(manages, async (file, session, { request }) => {
+      const { amends, mandate } = (await request.json()) as z.infer<typeof mandateAmendment>;
+      const [last, ...older] = file.mandates;
+      if (!last || last.id !== amends) return changed();
+      if (mandate.startsOn <= last.startsOn) return invalidField('mandate.startsOn');
+      const closed = withState({ ...last, endsOn: last.endsOn && last.endsOn < mandate.startsOn ? last.endsOn : dayBefore(mandate.startsOn) });
+      files.set(file.id, {
+        ...file,
+        mandates: [withState({ ...mandate, id: `${file.id}-m${file.mandates.length + 1}`, hasContract: false }), closed, ...older],
+      });
+      audit(session, 'Avenant enregistré');
+      return done();
+    }),
+  ),
+  http.post(
+    '/api/creditors/:id/bank-accounts',
+    onFile(administers, async (file, session, { request }) => {
+      const { replaces, account } = (await request.json()) as z.infer<typeof bankAccountChange>;
+      if ((file.bankAccount?.id ?? null) !== replaces) return changed();
+      const iban = compact(account.iban);
+      files.set(file.id, {
+        ...file,
+        iban,
+        bankAccount: {
+          id: `${file.id}-b${Date.now()}`,
+          holder: account.holder,
+          masked: `${iban.slice(0, 4)} •••• •••• ${iban.slice(-4)}`,
+          bic: compact(account.bic),
+          since: TODAY,
+          confirmed: account.confirmedWith ? { on: TODAY, with: account.confirmedWith } : null,
+        },
+      });
+      audit(session, 'Compte de reversement enregistré', 'ADMINISTRATIVE');
+      return done();
+    }),
+  ),
+  http.post(
+    '/api/creditors/:id/bank-accounts/:accountId/confirm',
+    // As the API: one that is no longer in force, or is already confirmed, has changed.
+    onFile(administers, async (file, session, { request, params }) => {
+      const { confirmedWith } = (await request.json()) as { confirmedWith: string };
+      if (!file.bankAccount || file.bankAccount.id !== params.accountId || file.bankAccount.confirmed) return changed();
+      files.set(file.id, { ...file, bankAccount: { ...file.bankAccount, confirmed: { on: TODAY, with: confirmedWith } } });
+      audit(session, 'Compte de reversement confirmé par téléphone', 'ADMINISTRATIVE');
+      return done();
+    }),
+  ),
+  http.post(
+    '/api/creditors/:id/bank-accounts/:accountId/reveal',
+    onAccount((file, session) => {
+      audit(session, 'IBAN d’un créancier affiché', 'ADMINISTRATIVE');
+      return HttpResponse.json({ iban: file.iban.replace(/(.{4})(?=.)/gu, '$1 ') });
+    }),
+  ),
+];
+
 export const creditorHandlers = [
+  ...formHandlers,
   http.get(
     '/api/creditors',
-    guarded(staffWithCases, (_info, session) => HttpResponse.json(CREDITORS.filter((item) => canSeeCreditor(session, item.id)))),
+    guarded(staffWithCases, (_info, session) => HttpResponse.json(listed().filter((item) => canSeeCreditor(session, item.id)))),
   ),
   http.get(
     '/api/creditors/:id',
     guarded(staffWithCases, ({ params }: { request: Request; params: Record<string, unknown> }, session) => {
-      const item = CREDITORS.find((creditor) => creditor.id === (params.id === 'demo' ? 'md' : params.id));
+      const item = listed().find((creditor) => creditor.id === (params.id === 'demo' ? 'md' : params.id));
       if (!item || !canSeeCreditor(session, item.id)) return notFound();
       const full = detail(item);
       const officer = session.role === 'CLAIMS_OFFICER';
