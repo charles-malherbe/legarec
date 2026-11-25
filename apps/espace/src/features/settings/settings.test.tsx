@@ -1,4 +1,4 @@
-import { checkTemplate } from '@legarec/contracts';
+import { checkTemplate } from '@legarec/contracts/templateCheck';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -142,9 +142,56 @@ describe('templates', () => {
     ['<p onclick="x()">', /ERROR Script/],
     ['<img src="https://exemple.fr/pixel.png">', /ERROR Script/],
     ['<style>@import "x.css"</style>', /ERROR Script/],
+    ['{{~{debiteur.iban}~}}', /ERROR Champ/],
+    ['{{&debiteur.adresse}}', /ERROR Champ non protégé/],
+    ['{{#each creance.factures a="{"}}{{~{this}~}}{{/each}}', /ERROR/],
+    ['{{#each creance.factures as |x|}}{{x}}{{/each}}', /ERROR/],
+    ['{{lookup debiteur "iban"}}', /ERROR Champ inconnu/],
+    ['{{@root.config}}', /ERROR Champ inconnu/],
+    ['{{#> layout}}x{{/layout}}', /ERROR Instruction interdite/],
+    ['{{{{raw}}}}<script></script>{{{{/raw}}}}', /ERROR/],
+    ['<svg/onload=alert(1)>', /ERROR Script/],
+    ['<img alt="a"onerror=alert(1)>', /ERROR Script/],
+    ['<a href="java&#115;cript:alert(1)">x</a>', /ERROR Script/],
+    ['<a href="javascript:alert(1)">x</a>', /ERROR Script/],
+    ['<meta content="0;url=https://exemple.fr" http-equiv="refresh">', /ERROR Script/],
+    ['<image href="https://exemple.fr/a.png">', /ERROR Script/],
+    ['<td background="https://exemple.fr/a.png">', /ERROR Script/],
+    ['<video poster="https://exemple.fr/a.png">', /ERROR Script/],
+    ['<p style="background:image-set(\'a.png\' 1x)">', /ERROR Script/],
+    ['<p style="background:u\\72l(https://exemple.fr)">', /ERROR Script/],
+    ['<p style="background:url(file:///etc/passwd)">', /ERROR Script/],
+    ['<p style="{{debiteur.adresse}}">', /ERROR Script/],
+    ['<!-- caché -->', /ERROR Script/],
   ])('refuses %s', (extra, expected) => {
     expect(checkTemplate(letter, good + extra).accepted).toBe(false);
     expect(labels(good + extra).join('\n')).toMatch(expected);
+  });
+  it.each([
+    '{{!-- {{> mentions_recouvrement}} --}}',
+    '{{#unless cabinet.nom}}{{> mentions_recouvrement}}{{/unless}}',
+    '<!-- {{> mentions_recouvrement}} -->',
+    '<div style="display:none">{{> mentions_recouvrement}}</div>',
+  ])('refuses a hidden mandatory block: %s', (hidden) => {
+    expect(checkTemplate(letter, good.replace('{{> mentions_recouvrement}}', hidden)).accepted).toBe(false);
+  });
+  it('refuses a first letter recalled only under a condition', () => {
+    const conditional = good.replace(/\{\{(dossier\.premier_courrier_\w+)\}\}/g, '{{#if $1}}{{$1}}{{/if}}');
+    expect(labels(conditional)).toContain('ERROR Rappel du premier courrier absent');
+  });
+  it('keeps the access code out of e-mails and SMS', () => {
+    expect(checkTemplate(letter, `${good}{{debiteur.code_acces}}`).accepted).toBe(true);
+    expect(labels(`${good}{{debiteur.code_acces}}`, { ...letter, kind: 'EMAIL' }).join()).toMatch(/ERROR Code d’accès interdit/);
+    expect(checkTemplate({ ...letter, kind: 'SMS', isReminder: false, block: 'mention_sms' }, '{{debiteur.code_acces}} {{> mention_sms}}').accepted).toBe(
+      false,
+    );
+  });
+  it('accepts ordinary letters, logos and the link to the portal', () => {
+    const page = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><style>p { margin: 0 0 12px; color: #222222; }</style></head><body>{{> en_tete}}<img src="https://media.legarec.fr/marque/logo.png" alt="Legarec"><a href="{{paiement.lien}}">Votre espace</a><table><tr><td style="width:100px">x</td></tr></table>${good}</body></html>`;
+    expect(checkTemplate(letter, page)).toMatchObject({ accepted: true });
+  });
+  it('detects bailiff-like plurals and split words', () => {
+    expect(labels(`${good}<p>Commandements de payer, com&shy;mandement</p>`).join()).toMatch(/WARNING Termes/);
   });
   it('suggests the closest field', () => {
     expect(checkTemplate(letter, `${good}{{debiteur.raison_social}}`).checks[0]?.detail).toContain('vouliez-vous dire {{debiteur.raison_sociale}} ?');

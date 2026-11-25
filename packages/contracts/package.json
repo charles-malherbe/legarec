@@ -5,12 +5,14 @@
   "version": "0.0.0",
   "exports": {
     ".": "./src/index.ts",
-    "./*": "./src/*"
+    "./*": "./src/*",
+    "./templateCheck": "./src/templateCheck.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "handlebars": "4.7.10",
     "zod": "4.6.7"
   },
   "sideEffects": false

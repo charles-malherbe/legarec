@@ -49,7 +49,7 @@ export const secretItem = z.object({
   environment: z.string(),
   used: z.string(),
   rotated: z.string(),
-  status: z.enum(['VALID', 'EXPIRING', 'REVOKED']),
+  status: z.enum(['VALID', 'EXPIRING', 'REVOKE_PENDING', 'REVOKED']),
 });
 export type SecretItem = z.infer<typeof secretItem>;
 export const secretsData = z.object({ items: z.array(secretItem) });

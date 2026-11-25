@@ -1,5 +1,5 @@
-import { caseList, formatCents, type CaseFilter } from '@legarec/contracts';
-import { Avatar, Badge, Bouton, PageHeader, Pagination, Tableau, Toolbar, useConfirm, useToast } from '@legarec/ui';
+import { canAccessBilling, caseList, formatCents, type CaseFilter } from '@legarec/contracts';
+import { Avatar, Badge, Bouton, Champ, PageHeader, Pagination, Tableau, Toolbar, useConfirm, useToast } from '@legarec/ui';
 import { useDebouncedValue } from '@mantine/hooks';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -49,6 +49,7 @@ export function CasesPage() {
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(25);
   const [selected, setSelected] = useState<string[]>([]);
+  const [target, setTarget] = useState('');
   // The search may hold a name or a SIRET: it is sent in the body, never in the URL.
   const params = new URLSearchParams({ creditor: scope.id, status: tab, age, officer, page: String(page), size: String(size) });
   const { data, isPending, error, refetch } = useApiSearch(`/cases/search?${params}`, search);
@@ -100,21 +101,23 @@ export function CasesPage() {
         setSelected([]);
       },
     });
-  const assignToMe = () =>
+  const assign = (officerId: string, name: string) =>
     confirm({
-      title: `Attribuer ${chosen.length} dossier${plural} à votre portefeuille ?`,
+      title: `Attribuer ${chosen.length} dossier${plural} à ${name} ?`,
       body: 'Le changement de gestionnaire est noté dans l’historique de chaque dossier.',
       details: [
         { k: 'Débiteurs', v: names },
-        { k: 'Nouveau gestionnaire', v: `${user.firstName} ${user.lastName}` },
+        { k: 'Nouveau gestionnaire', v: name },
       ],
       confirmLabel: 'Attribuer',
       onConfirm: async () => {
-        await change('/cases/assign', { body: { ids: selected, officerId: user.userId } });
+        await change('/cases/assign', { body: { ids: selected, officerId } });
         toast({ message: 'Dossiers attribués.' });
         setSelected([]);
+        setTarget('');
       },
     });
+  const mayAssign = canAccessBilling(user);
   const s = data?.stats;
   return (
     <>
@@ -244,7 +247,31 @@ export function CasesPage() {
             {chosen.length} sélectionné{plural} · {formatCents(total)}
           </span>
           <Bouton variant="dark" size="sm" label="Envoyer une relance" onPress={sendReminders} />
-          {user.role === 'COLLECTION_MANAGER' && <Bouton variant="dark" size="sm" label="M’attribuer" onPress={assignToMe} />}
+          {mayAssign && (
+            <>
+              <Champ
+                label="Attribuer à"
+                hideLabel
+                type="select"
+                value={target}
+                options={[
+                  { value: '', label: 'Attribuer à…' },
+                  { value: user.userId, label: 'Moi-même' },
+                  ...OFFICERS.filter((item) => !['all', user.userId].includes(item.value)),
+                ]}
+                onChange={setTarget}
+              />
+              <Bouton
+                variant="dark"
+                size="sm"
+                label="Attribuer"
+                disabled={!target}
+                onPress={() =>
+                  assign(target, target === user.userId ? `${user.firstName} ${user.lastName}` : (OFFICERS.find((item) => item.value === target)?.label ?? ''))
+                }
+              />
+            </>
+          )}
           <Bouton variant="danger" size="sm" label="Passer en contentieux" onPress={toLitigation} />
           <Bouton variant="dark" size="sm" label="Désélectionner" onPress={() => setSelected([])} />
         </div>

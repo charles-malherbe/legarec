@@ -3,6 +3,7 @@ import {
   billingTotals,
   formatCents,
   formatDate,
+  formatLongDate,
   parseCents,
   vatNumber,
   type BillingData,
@@ -23,6 +24,8 @@ const TABS: [BillingType, string][] = [
   ['CONTRACT', 'Contrats'],
 ];
 
+type Copy = { client: string; subject: string; amount: number | null };
+
 export function BillingPage() {
   const toast = useToast();
   const { data, isPending, error, refetch } = useApi(billingData, '/billing');
@@ -30,10 +33,15 @@ export function BillingPage() {
   const [tab, setTab] = useState<BillingType>('INVOICE');
   const [query, setQuery] = useState('');
   const [client, setClient] = useState('all');
-  const [seed, setSeed] = useState<{ key: number; type: BillingType }>({ key: 0, type: 'INVOICE' });
+  const [status, setStatus] = useState('all');
+  const [seed, setSeed] = useState<{ key: number; type: BillingType; copy?: Copy }>({ key: 0, type: 'INVOICE' });
   const documents = data?.documents ?? [];
   const rows = documents.filter(
-    (item) => item.type === tab && (client === 'all' || item.client === client) && matches(query, item.number, item.client, item.idLine, item.subject),
+    (item) =>
+      item.type === tab &&
+      (client === 'all' || item.client === client) &&
+      (status === 'all' || item.status === status) &&
+      matches(query, item.number, item.client, item.idLine, item.subject),
   );
   const state = listState({
     pending: isPending,
@@ -55,7 +63,7 @@ export function BillingPage() {
         statsLabel="Facturation du cabinet"
         stats={data?.stats ?? []}
         actions={[
-          { label: 'Modèles', href: '/parametres' },
+          { label: 'Modèles', href: '/parametres/modeles' },
           {
             label: creating ? 'Fermer la création' : '+ Créer depuis un modèle',
             primary: !creating,
@@ -70,14 +78,22 @@ export function BillingPage() {
           <EtatListe kind={error ? 'error' : 'loading'} onAction={() => void refetch()} />
         </div>
       )}
-      {data && creating && <Creator key={`${seed.key}`} data={data} initialType={seed.type} onClose={() => setCreating(false)} />}
+      {data && creating && <Creator key={`${seed.key}`} data={data} initialType={seed.type} copy={seed.copy} onClose={() => setCreating(false)} />}
       <Toolbar
         label="Filtrer les documents"
         tabsLabel="Type de document"
         placeholder="N°, client, SIREN…"
         query={query}
         onQuery={setQuery}
-        tabs={TABS.map(([id, label]) => ({ label, count: documents.filter((item) => item.type === id).length, selected: id === tab, pick: () => setTab(id) }))}
+        tabs={TABS.map(([id, label]) => ({
+          label,
+          count: documents.filter((item) => item.type === id).length,
+          selected: id === tab,
+          pick: () => {
+            setTab(id);
+            setStatus('all');
+          },
+        }))}
         filters={[
           {
             label: 'Client',
@@ -87,6 +103,15 @@ export function BillingPage() {
               ...[...new Set(documents.map((item) => item.client))].map((value) => ({ value, label: value })),
             ],
             onChange: setClient,
+          },
+          {
+            label: 'Statut',
+            value: status,
+            options: [
+              { value: 'all', label: 'Tous les statuts' },
+              ...[...new Set(documents.filter((item) => item.type === tab).map((item) => item.status))].map((value) => ({ value, label: value })),
+            ],
+            onChange: setStatus,
           },
         ]}
       />
@@ -123,7 +148,7 @@ export function BillingPage() {
                     label="Dupliquer"
                     ariaLabel={`Dupliquer ${row.number}`}
                     onPress={() => {
-                      setSeed({ key: seed.key + 1, type: row.type });
+                      setSeed({ key: seed.key + 1, type: row.type, copy: { client: row.client, subject: row.subject, amount: row.amount } });
                       setCreating(true);
                       toast({ message: `Copie de ${row.number} ouverte dans le créateur.` });
                     }}
@@ -138,16 +163,19 @@ export function BillingPage() {
   );
 }
 
-function Creator({ data, initialType, onClose }: { data: BillingData; initialType: BillingType; onClose: () => void }) {
+function Creator({ data, initialType, copy, onClose }: { data: BillingData; initialType: BillingType; copy?: Copy; onClose: () => void }) {
   const change = useChange();
   const confirm = useConfirm();
   const toast = useToast();
   const [type, setType] = useState(initialType);
   const [templateId, setTemplateId] = useState(TYPES[initialType].templates[0]!.id);
-  const [clientId, setClientId] = useState(data.clients[0]?.id ?? '');
+  const [clientId, setClientId] = useState((data.clients.find((item) => item.name === copy?.client) ?? data.clients[0])?.id ?? '');
   const definition = TYPES[type];
   const template = definition.templates.find((item) => item.id === templateId) ?? definition.templates[0]!;
-  const [lines, setLines] = useState<BillingLine[]>(template.lines);
+  const [lines, setLines] = useState<BillingLine[]>(
+    // The list only holds the total with VAT: the copy starts from the amount before VAT.
+    copy?.amount ? [{ label: copy.subject, quantity: '1', unitPrice: (Math.round(copy.amount / 1.2) / 100).toFixed(2).replace('.', ',') }] : template.lines,
+  );
   const [terms, setTerms] = useState(CONTRACT_TERMS);
   const client = data.clients.find((item) => item.id === clientId) ?? data.clients[0]!;
   const contract = type === 'CONTRACT';
@@ -336,7 +364,7 @@ function Creator({ data, initialType, onClose }: { data: BillingData; initialTyp
             <span className={layout.text}>
               <strong>{definition.label}</strong>
               <span>{number} (provisoire)</span>
-              <span>Paris, le 21 novembre 2026</span>
+              <span>Paris, le {formatLongDate(new Date())}</span>
             </span>
           </header>
           <div className={css.client}>

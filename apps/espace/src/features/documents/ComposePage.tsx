@@ -3,10 +3,12 @@ import {
   fixedIndemnity,
   formatCents,
   formatDate,
+  formatLongDate,
   LETTER_TEMPLATES,
   letterSchedule,
   letterTemplate,
   letterTotals,
+  ROLE_LABELS,
   type LetterRecipient,
   type LetterTemplate,
 } from '@legarec/contracts';
@@ -15,6 +17,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import type { z } from 'zod';
 import { useApi, useChange } from '../../app/data';
+import { useCurrentUser } from '../../app/session';
 import layout from '@legarec/ui/layout.module.css';
 import css from './Documents.module.css';
 
@@ -33,7 +36,7 @@ export function ComposePage() {
     <PageHeader
       title="Rédiger un courrier"
       description="Choisissez un modèle et un destinataire : le document se remplit avec les données du dossier."
-      actions={[{ label: 'Gérer les modèles', href: '/parametres' }]}
+      actions={[{ label: 'Gérer les modèles', href: '/parametres/modeles' }]}
     />
   );
   if (!data)
@@ -82,23 +85,31 @@ function Editor({ data }: { data: Data }) {
   const definition = LETTER_TEMPLATES[template];
   const reminder = template === 'FRIENDLY' || template === 'FIRM' || template === 'FORMAL_NOTICE';
   const allowsIndemnity = (template === 'FIRM' || template === 'FORMAL_NOTICE') && fixedIndemnity(recipient) > 0;
-  const missingFirstLetter = reminder && template !== 'FRIENDLY' && !recipient.firstLetter;
+  const recallsFirstLetter = reminder && template !== 'FRIENDLY';
+  const missingFirstLetter = !batch && recallsFirstLetter && !recipient.firstLetter;
+  const excluded = batch && recallsFirstLetter ? batch.withoutFirstLetter : 0;
   const pick = (next: LetterTemplate) => {
     setTemplate(next);
     setChannel(LETTER_TEMPLATES[next].channel);
     setDone(null);
   };
-  const count = batch ? batch.debtors : 1;
+  const count = batch ? batch.debtors - excluded : 1;
+  const downloadOnly = channel === 'Télécharger seulement';
   const send = () =>
     confirm({
-      title: batch ? `Générer et envoyer ${count} documents ?` : `Envoyer ce document à ${recipient.name} ?`,
-      body: `${channel.startsWith('Lettre recommandée') ? 'Une lettre recommandée ne peut plus être annulée une fois envoyée. Son coût reste à la charge du créancier.' : 'L’envoi part immédiatement.'} Chaque document est ajouté à l’historique du dossier et visible par le créancier.`,
-      confirmLabel: batch ? `Envoyer les ${count} documents` : 'Envoyer',
+      title: downloadOnly
+        ? `Générer ${batch ? `${count} documents` : 'ce document'} ?`
+        : batch
+          ? `Générer et envoyer ${count} documents ?`
+          : `Envoyer ce document à ${recipient.name} ?`,
+      body: `${channel.startsWith('Lettre recommandée') ? 'Une lettre recommandée ne peut plus être annulée une fois envoyée. Son coût reste à la charge du créancier.' : downloadOnly ? 'Rien n’est envoyé : le document est généré pour téléchargement.' : 'L’envoi part immédiatement.'} Chaque document est ajouté à l’historique du dossier et visible par le créancier.`,
+      confirmLabel: downloadOnly ? 'Générer' : batch ? `Envoyer les ${count} documents` : 'Envoyer',
       tone: channel.startsWith('Lettre recommandée') ? 'danger' : 'primary',
       details: [
         { k: 'Modèle', v: definition.label },
         { k: 'Destinataire', v: batch ? `${count} débiteurs sélectionnés` : recipient.name },
         { k: 'Envoi', v: channel },
+        ...(excluded > 0 ? [{ k: 'Exclus', v: `${excluded} débiteurs sans premier courrier` }] : []),
         ...(batch ? [] : [{ k: 'Montant', v: formatCents(letterTotals(recipient, indemnity && allowsIndemnity).total) }]),
       ],
       onConfirm: async () => {
@@ -112,7 +123,13 @@ function Editor({ data }: { data: Data }) {
             options: { table, pay, indemnity: indemnity && allowsIndemnity },
           },
         });
-        setDone(batch ? `${count} documents générés et mis en file d’envoi.` : `Document généré et envoyé à ${recipient.name}.`);
+        setDone(
+          downloadOnly
+            ? `${batch ? `${count} documents générés` : 'Document généré'}, sans envoi.`
+            : batch
+              ? `${count} documents générés et mis en file d’envoi.`
+              : `Document généré et envoyé à ${recipient.name}.`,
+        );
       },
     });
   const draft = async () => {
@@ -263,6 +280,9 @@ function Editor({ data }: { data: Data }) {
               {recipient.isIndividual && reminder && <span className={layout.hint}>Particulier : pas d’indemnité forfaitaire de 40 €.</span>}
             </div>
           </Carte>
+          {excluded > 0 && (
+            <Alerte tone="warning" compact text={`${excluded} débiteurs n’ont aucun premier courrier enregistré : ils sont exclus de cet envoi.`} />
+          )}
           {missingFirstLetter && (
             <Alerte
               tone="danger"
@@ -272,7 +292,11 @@ function Editor({ data }: { data: Data }) {
           )}
           <div className={layout.end}>
             <Bouton variant="secondary" label="Enregistrer le brouillon" onPress={() => void draft()} />
-            <Bouton label={batch ? `Générer et envoyer (${count})` : 'Générer et envoyer'} disabled={missingFirstLetter} onPress={send} />
+            <Bouton
+              label={downloadOnly ? 'Générer le PDF' : batch ? `Générer et envoyer (${count})` : 'Générer et envoyer'}
+              disabled={missingFirstLetter}
+              onPress={send}
+            />
           </div>
         </div>
         <section aria-label="Aperçu du document" className={layout.card}>
@@ -411,6 +435,12 @@ function Letter({ firm, recipient, template, delay, months, table, pay, indemnit
       </>
     ),
   }[template];
+  const parts = [
+    template === 'FORMAL_NOTICE' && totals.interest > 0 && `intérêts ${formatCents(totals.interest)}`,
+    totals.indemnity > 0 && `indemnités ${formatCents(totals.indemnity)}`,
+  ].filter((item): item is string => !!item);
+  const user = useCurrentUser();
+  const signer = { name: `${user.firstName} ${user.lastName}`, role: ROLE_LABELS[user.role] };
   return (
     <article className={css.sheet} data-marked={marked || undefined}>
       <div className={layout.between}>
@@ -424,7 +454,7 @@ function Letter({ firm, recipient, template, delay, months, table, pay, indemnit
           <span>
             Réf. : <mark>{recipient.reference}</mark>
           </span>
-          <span>Dossier suivi par Camille Laurent</span>
+          <span>Dossier suivi par {signer.name}</span>
         </span>
       </div>
       <div className={css.address}>
@@ -436,7 +466,7 @@ function Letter({ firm, recipient, template, delay, months, table, pay, indemnit
           <mark key={line}>{line}</mark>
         ))}
       </div>
-      <span>Paris, le 21 novembre 2026</span>
+      <span>Paris, le {formatLongDate(new Date())}</span>
       {registered && <strong>Lettre recommandée avec accusé de réception</strong>}
       <strong>Objet : {LETTER_TEMPLATES[template].subject}</strong>
       <p>Madame, Monsieur,</p>
@@ -475,9 +505,7 @@ function Letter({ firm, recipient, template, delay, months, table, pay, indemnit
                 ))}
             <tr>
               <td colSpan={2}>
-                <strong>
-                  {template === 'CLEARANCE' ? 'Total réglé' : indemnity ? `Total dû (dont indemnités ${formatCents(totals.indemnity)})` : 'Total dû'}
-                </strong>
+                <strong>{template === 'CLEARANCE' ? 'Total réglé' : `Total dû${parts.length > 0 ? ` (dont ${parts.join(', ')})` : ''}`}</strong>
               </td>
               <td>
                 <strong>{formatCents(template === 'FORMAL_NOTICE' ? totals.total : totals.principal + totals.indemnity)}</strong>
@@ -494,9 +522,9 @@ function Letter({ firm, recipient, template, delay, months, table, pay, indemnit
       )}
       <p>Nous vous prions d&apos;agréer, Madame, Monsieur, l&apos;expression de nos salutations distinguées.</p>
       <span className={layout.text}>
-        <strong>Camille Laurent</strong>
+        <strong>{signer.name}</strong>
         <span>
-          Responsable du recouvrement, pour le compte de <mark>{recipient.creditor}</mark>
+          {signer.role}, pour le compte de <mark>{recipient.creditor}</mark>
         </span>
       </span>
       <div className={css.legal}>

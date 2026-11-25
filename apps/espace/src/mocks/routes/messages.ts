@@ -1,7 +1,7 @@
 import { ROLE_LABELS, type EmailThread, type SmsThread } from '@legarec/contracts';
 import { http, HttpResponse } from 'msw';
 import { done, forbidden, guarded, notFound, staffWithCases } from '../http';
-import { actsOn, readable } from './cases';
+import { actsOn, caseOfEmail, readable } from './cases';
 import type { Session } from '@legarec/contracts';
 
 type Info = { request: Request; params: Record<string, unknown> };
@@ -415,10 +415,10 @@ export const messageHandlers = [
           firmAddress: '[ADRESSE DU CABINET]',
           website: 'www.legarec.fr',
           sentThisHour: mailState.sentThisHour,
-          hourlyQuota: 200,
+          hourlyQuota: 180,
         },
         syncedMinutesAgo: 1,
-        threads: visible,
+        threads: visible.map((item) => ({ ...item, canAct: mayAnswer(session, item.caseId) })),
         total: session.role === 'CLAIMS_OFFICER' ? visible.length : 128,
         folders: { inbox: 12, drafts: 3, automatic: 48 },
         stats: { unread: 12, todo: 4, delay: '3 h 20', automatic: 34 },
@@ -428,9 +428,11 @@ export const messageHandlers = [
   http.post(
     '/api/emails/messages',
     guarded<Info>(staffWithCases, async ({ request }, session) => {
-      const { caseId } = (await request.json()) as { caseId: string | null };
-      if (caseId && !actsOn(session, caseId)) return forbidden();
-      if (mailState.sentThisHour >= 200) return HttpResponse.json({ code: 'QUOTA' }, { status: 429 });
+      const { caseId, to } = (await request.json()) as { caseId: string | null; to: string };
+      // The API matches the address: a debtor is only written to from a case the sender may act on.
+      const target = caseId ?? caseOfEmail(to);
+      if (target && !actsOn(session, target)) return forbidden();
+      if (mailState.sentThisHour >= 180) return HttpResponse.json({ code: 'QUOTA' }, { status: 429 });
       if (mailState.failNext) {
         mailState.failNext = false;
         return HttpResponse.json({ code: 'SMTP_REFUSED' }, { status: 502 });
@@ -444,14 +446,14 @@ export const messageHandlers = [
     onMail((item) => {
       item.unread = false;
       return done();
-    }),
+    }, true),
   ),
   http.put(
     '/api/emails/:id/archive',
     onMail(async (item, { request }) => {
       item.archived = ((await request.json()) as { archived: boolean }).archived;
       return done();
-    }),
+    }, true),
   ),
   http.put(
     '/api/emails/:id/category',
@@ -459,7 +461,7 @@ export const messageHandlers = [
       item.category = ((await request.json()) as { category: EmailThread['category'] }).category;
       item.recategorized = true;
       return done();
-    }),
+    }, true),
   ),
   http.post(
     '/api/emails/:id/replies',
@@ -479,7 +481,7 @@ export const messageHandlers = [
     guarded(staffWithCases, (_info, session) => {
       const visible = sms.filter((item) => (item.linked ? ids(session).has(item.caseId ?? '') : session.role === 'COLLECTION_MANAGER'));
       return HttpResponse.json({
-        threads: visible,
+        threads: visible.map((item) => ({ ...item, canAct: item.linked ? mayAnswer(session, item.caseId) : session.role === 'COLLECTION_MANAGER' })),
         total: session.role === 'CLAIMS_OFFICER' ? visible.length : 64,
         stopNotice: 'STOP au [NUMERO STOP]',
         stats: { sent: 1284, delivered: 97.2, answers: 18, stops: 8 },
@@ -491,7 +493,7 @@ export const messageHandlers = [
     onSms((item) => {
       item.unread = 0;
       return done();
-    }),
+    }, true),
   ),
   http.post(
     '/api/sms/:id/messages',

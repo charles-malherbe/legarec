@@ -8,6 +8,8 @@ import { useApi, useChange } from '../../app/data';
 import layout from '@legarec/ui/layout.module.css';
 import css from './Templates.module.css';
 
+/** The preview loads nothing from outside, whatever the file contains. */
+const PREVIEW_POLICY = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">`;
 const STATUS = {
   PUBLISHED: (version: number) => ({ label: `Version ${version} publiée`, tone: 'success' as const }),
   IMPORTED: (version: number) => ({ label: `Version ${version + 1} importée, à soumettre`, tone: 'warning' as const }),
@@ -374,7 +376,7 @@ function Template({ item }: { item: TemplateDetail }) {
             </div>
             {item.pending?.accepted ? (
               // Sandboxed without any permission: no script, form or navigation from an imported file.
-              <iframe title="Aperçu du fichier importé" sandbox="" className={css.frame} srcDoc={item.pending.previewHtml} />
+              <iframe title="Aperçu du fichier importé" sandbox="" className={css.frame} srcDoc={`${PREVIEW_POLICY}${item.pending.previewHtml}`} />
             ) : (
               <Preview item={item} values={values} highlight={highlight} kind={kind} />
             )}

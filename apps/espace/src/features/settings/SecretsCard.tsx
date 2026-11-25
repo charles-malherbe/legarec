@@ -2,15 +2,22 @@ import { newSecret, secretsData, type SecretItem } from '@legarec/contracts';
 import { Badge, Bouton, Carte, Champ, EtatListe, Tableau, useConfirm, useToast } from '@legarec/ui';
 import { useState } from 'react';
 import { useApi, useChange } from '../../app/data';
+import { useCurrentUser } from '../../app/session';
 import layout from '@legarec/ui/layout.module.css';
 import css from './Settings.module.css';
 
-const STATUS = { VALID: ['Valide', 'success'], EXPIRING: ['Expire sous 15 j', 'warning'], REVOKED: ['Révoqué', 'neutral'] } as const;
+const STATUS = {
+  VALID: ['Valide', 'success'],
+  EXPIRING: ['Expire sous 15 j', 'warning'],
+  REVOKE_PENDING: ['Révocation à valider', 'danger'],
+  REVOKED: ['Révoqué', 'neutral'],
+} as const;
 const EMPTY = { name: '', service: '', value: '', rotation: '90' };
 
 /** Write-only: a value typed here is sent once to the API and never comes back. */
 export function SecretsCard({ canEdit }: { canEdit: boolean }) {
   const { data, error, refetch } = useApi(secretsData, '/secrets');
+  const user = useCurrentUser();
   const change = useChange();
   const confirm = useConfirm();
   const toast = useToast();
@@ -24,23 +31,28 @@ export function SecretsCard({ canEdit }: { canEdit: boolean }) {
     );
   const active = data.items.filter((item) => item.status !== 'REVOKED').length;
   const expiring = data.items.filter((item) => item.status === 'EXPIRING').length;
+  const director = user.role === 'DIRECTOR';
+  const keep = async (item: SecretItem) => {
+    await change(`/secrets/${item.id}/keep`);
+    toast({ message: `Révocation de ${item.name} refusée.` });
+  };
   const ask = (item: SecretItem, action: 'rotate' | 'revoke') =>
     confirm({
       tone: action === 'revoke' ? 'danger' : 'primary',
       title: action === 'revoke' ? `Révoquer ${item.name} ?` : `Renouveler ${item.name} ?`,
       body:
         action === 'revoke'
-          ? `Le service ${item.service} cessera immédiatement de fonctionner jusqu’à l’ajout d’une nouvelle clé. Cette action est irréversible.`
+          ? `${director ? '' : 'La révocation attend l’accord du Directeur. '}Le service ${item.service} cessera immédiatement de fonctionner jusqu’à l’ajout d’une nouvelle clé. Cette action est irréversible.`
           : `Une nouvelle valeur est générée chez ${item.service} et déployée. L’ancienne reste valable 24 h pour éviter toute coupure.`,
       details: [
         { k: 'Secret', v: item.name },
         { k: 'Service', v: item.service },
         { k: 'Environnement', v: item.environment },
       ],
-      confirmLabel: action === 'revoke' ? 'Révoquer définitivement' : 'Renouveler la clé',
+      confirmLabel: action === 'revoke' ? (director ? 'Révoquer définitivement' : 'Demander la révocation') : 'Renouveler la clé',
       onConfirm: async () => {
         await change(`/secrets/${item.id}/${action}`);
-        toast({ message: action === 'revoke' ? `${item.name} révoqué.` : `${item.name} renouvelé.` });
+        toast({ message: action === 'revoke' ? (director ? `${item.name} révoqué.` : 'Révocation soumise au Directeur.') : `${item.name} renouvelé.` });
       },
     });
   const submit = () => {
@@ -136,7 +148,17 @@ export function SecretsCard({ canEdit }: { canEdit: boolean }) {
                 canEdit && row.status !== 'REVOKED' ? (
                   <span className={layout.inline}>
                     <Bouton variant="secondary" size="xs" label="Renouveler" ariaLabel={`Renouveler : ${row.name}`} onPress={() => ask(row, 'rotate')} />
-                    <Bouton variant="danger-outline" size="xs" label="Révoquer" ariaLabel={`Révoquer : ${row.name}`} onPress={() => ask(row, 'revoke')} />
+                    <Bouton
+                      variant="danger-outline"
+                      size="xs"
+                      label="Révoquer"
+                      ariaLabel={`Révoquer : ${row.name}`}
+                      disabled={row.status === 'REVOKE_PENDING' && !director}
+                      onPress={() => ask(row, 'revoke')}
+                    />
+                    {row.status === 'REVOKE_PENDING' && director && (
+                      <Bouton variant="ghost" size="xs" label="Refuser" ariaLabel={`Refuser la révocation : ${row.name}`} onPress={() => void keep(row)} />
+                    )}
                   </span>
                 ) : null,
             },

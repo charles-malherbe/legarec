@@ -1,6 +1,8 @@
-import type { CreditorDetail, CreditorListItem } from '@legarec/contracts';
+import type { CreditorDetail, CreditorListItem, Session } from '@legarec/contracts';
 import { http, HttpResponse } from 'msw';
 import { guarded, notFound, staffWithCases } from '../http';
+import { mayRead } from '../visibility';
+import { readable } from './cases';
 
 export const CREDITORS: CreditorListItem[] = [
   {
@@ -202,16 +204,27 @@ const detail = (item: CreditorListItem): CreditorDetail => ({
   contact: { name: 'Claire Besson', title: 'Credit manager', phone: '04 72 00 00 00', email: 'c.besson@materiauxdelta.example', portalEnabled: true },
 });
 
+/** An officer only meets the creditors of their own cases, and only their own debtors there. */
+export const canSeeCreditor = (session: Session, id: string) => session.role !== 'CLAIMS_OFFICER' || readable(session).some((item) => item.creditorId === id);
+
 export const creditorHandlers = [
   http.get(
     '/api/creditors',
-    guarded(staffWithCases, () => HttpResponse.json(CREDITORS)),
+    guarded(staffWithCases, (_info, session) => HttpResponse.json(CREDITORS.filter((item) => canSeeCreditor(session, item.id)))),
   ),
   http.get(
     '/api/creditors/:id',
-    guarded(staffWithCases, ({ params }: { request: Request; params: Record<string, unknown> }) => {
+    guarded(staffWithCases, ({ params }: { request: Request; params: Record<string, unknown> }, session) => {
       const item = CREDITORS.find((creditor) => creditor.id === (params.id === 'demo' ? 'md' : params.id));
-      return item ? HttpResponse.json(detail(item)) : notFound();
+      if (!item || !canSeeCreditor(session, item.id)) return notFound();
+      const full = detail(item);
+      const officer = session.role === 'CLAIMS_OFFICER';
+      return HttpResponse.json({
+        ...full,
+        portfolio: full.portfolio.filter((entry) => mayRead(session, entry.name)),
+        activity: full.activity.filter((entry) => mayRead(session, `${entry.who} ${entry.what}`)),
+        payouts: officer ? [] : full.payouts,
+      });
     }),
   ),
 ];

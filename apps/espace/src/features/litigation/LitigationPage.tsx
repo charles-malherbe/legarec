@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useCreditorScope } from '../../app/creditorScope';
 import { useApi, useChange } from '../../app/data';
 import layout from '@legarec/ui/layout.module.css';
+import { pageOf } from '../../shared/paging';
 import { listState, matches } from '../../shared/listState';
 import css from './Litigation.module.css';
 
@@ -31,6 +32,7 @@ export function LitigationPage() {
       matches(query, item.debtor, item.siret, item.court, item.creditor, item.procedure),
   );
   const current = data?.cases.find((item) => item.id === selected) ?? rows[0];
+  const paged = pageOf(rows, page, size);
   const state = listState({
     pending: isPending,
     error,
@@ -168,7 +170,7 @@ export function LitigationPage() {
             hideCaption
             tight
             bordered={false}
-            rows={rows}
+            rows={paged.shown}
             rowId={(row) => row.id}
             activeRowId={current?.id}
             state={state}
@@ -199,8 +201,8 @@ export function LitigationPage() {
           />
           {!state && s && (
             <Pagination
-              total={stage < 0 && !query ? s.count : rows.length}
-              page={page}
+              total={paged.total}
+              page={paged.current}
               size={size}
               unit="procédures"
               label="Pagination des procédures"

@@ -1,4 +1,5 @@
 import { ROLE_LABELS, type Role } from '@legarec/contracts';
+import { z } from 'zod';
 import { formatPhone } from './phone';
 import type { EmailRenderer } from './renderer';
 
@@ -35,6 +36,7 @@ export interface MailboxTransport {
   appendToSent(mailbox: string, message: OutgoingStaffMessage): Promise<void>;
 }
 export class QuotaExceeded extends Error {}
+export class DebtorReferenceRequired extends Error {}
 export class SharedMailboxIsReceiveOnly extends Error {}
 
 const NBSP = '\u00a0';
@@ -65,15 +67,21 @@ export class StaffMessagesService {
     return HOURLY_QUOTA - this.recent(mailbox).length;
   }
 
-  async send(sender: StaffSender, input: StaffMessageInput): Promise<OutgoingStaffMessage> {
+  async send(sender: StaffSender, input: StaffMessageInput): Promise<OutgoingStaffMessage & { copied: boolean }> {
+    // One valid address only: no list nor header injection.
+    z.email().parse(input.to);
+    if (input.recipientIsDebtor && !input.caseReference) throw new DebtorReferenceRequired();
     if (sender.email.toLowerCase() === SHARED_MAILBOX) throw new SharedMailboxIsReceiveOnly();
     if (this.remaining(sender.email) <= 0) throw new QuotaExceeded();
     const message = this.build(sender, input);
     await this.transport.send(sender.email, message);
-    this.sent.set(sender.email, [...this.recent(sender.email), this.now()]);
+    this.sent.set(sender.email.toLowerCase(), [...this.recent(sender.email), this.now()]);
     // The message has left: a failed copy must not make it look unsent.
-    await this.transport.appendToSent(sender.email, message).catch(() => undefined);
-    return message;
+    const copied = await this.transport.appendToSent(sender.email, message).then(
+      () => true,
+      () => false,
+    );
+    return { ...message, copied };
   }
 
   build(sender: StaffSender, input: StaffMessageInput): OutgoingStaffMessage {
@@ -98,6 +106,6 @@ export class StaffMessagesService {
   }
 
   private recent(mailbox: string): number[] {
-    return (this.sent.get(mailbox) ?? []).filter((time) => this.now() - time < HOUR);
+    return (this.sent.get(mailbox.toLowerCase()) ?? []).filter((time) => this.now() - time < HOUR);
   }
 }

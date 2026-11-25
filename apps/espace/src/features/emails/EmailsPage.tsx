@@ -21,6 +21,7 @@ import type { z } from 'zod';
 import { useCreditorScope } from '../../app/creditorScope';
 import { useApi, useChange } from '../../app/data';
 import layout from '@legarec/ui/layout.module.css';
+import { pageOf } from '../../shared/paging';
 import { listState, matches } from '../../shared/listState';
 import { StaffMessageForm } from './StaffMessageForm';
 
@@ -79,6 +80,7 @@ export function EmailsPage() {
       matches(query, item.from, item.subject, item.debtor, item.reference, item.creditor),
   );
   const current = rows.find((item) => item.id === selected) ?? rows[0];
+  const paged = pageOf(rows, page, size);
   const state = listState({
     pending: isPending,
     error,
@@ -107,7 +109,7 @@ export function EmailsPage() {
           { label: 'Envoyés automatiquement', value: String(s?.automatic ?? ''), sub: 'cette semaine, via Resend' },
         ]}
         actions={[
-          { label: 'Modèles', href: '/parametres' },
+          { label: 'Modèles', href: '/parametres/modeles' },
           { label: '+ Rédiger', primary: true, kbd: 'N', expanded: compose, onPress: () => setCompose(!compose) },
         ]}
       />
@@ -149,7 +151,7 @@ export function EmailsPage() {
             <EtatListe {...state} />
           ) : (
             <div className={layout.scroll} tabIndex={0} role="group" aria-label="Messages">
-              {rows.map((item) => (
+              {paged.shown.map((item) => (
                 <button
                   key={item.id}
                   type="button"
@@ -157,7 +159,7 @@ export function EmailsPage() {
                   aria-current={item.id === current?.id}
                   onClick={() => {
                     setSelected(item.id);
-                    if (item.unread) void change(`/emails/${item.id}/read`);
+                    if (item.unread && item.canAct !== false) void change(`/emails/${item.id}/read`);
                   }}
                 >
                   <span className={`${layout.text} ${layout.grow}`}>
@@ -186,15 +188,7 @@ export function EmailsPage() {
             </div>
           )}
           {!state && data && (
-            <Pagination
-              total={folder === 'inbox' && filter === 'all' && !query ? data.total : rows.length}
-              page={page}
-              size={size}
-              unit="e-mails"
-              label="Pagination des e-mails"
-              onPage={setPage}
-              onSize={setSize}
-            />
+            <Pagination total={paged.total} page={paged.current} size={size} unit="e-mails" label="Pagination des e-mails" onPage={setPage} onSize={setSize} />
           )}
         </section>
         {current && data && <Reader key={current.id} mail={current} sender={data.sender} />}
@@ -210,6 +204,7 @@ function Reader({ mail, sender }: { mail: EmailThread; sender: z.infer<typeof ma
   const [reply, setReply] = useState('');
   const [drafted, setDrafted] = useState(false);
   const portal = mail.source === 'DEBTOR_PORTAL';
+  const canAct = mail.canAct !== false;
   const quotaLeft = sender.hourlyQuota - sender.sentThisHour;
   const archive = async (archived: boolean) => {
     await change(`/emails/${mail.id}/archive`, { method: 'PUT', body: { archived } });
@@ -237,13 +232,17 @@ function Reader({ mail, sender }: { mail: EmailThread; sender: z.infer<typeof ma
         toast({ message: 'Réponse envoyée.' });
       },
     });
-  const recategorize = (category: string) => void change(`/emails/${mail.id}/category`, { method: 'PUT', body: { category } });
+  const recategorize = async (category: string) => {
+    const before = mail.category;
+    await change(`/emails/${mail.id}/category`, { method: 'PUT', body: { category } });
+    toast({ message: 'Catégorie corrigée.', undo: () => void change(`/emails/${mail.id}/category`, { method: 'PUT', body: { category: before } }) });
+  };
   return (
     <article aria-labelledby="mail-sujet" className={layout.card}>
       <div className={layout.between} style={{ padding: 'var(--sp-3) var(--sp-5)', borderBottom: '1px solid var(--border)' }}>
         <span className={layout.inline}>
           <Bouton variant="secondary" size="sm" label="Transférer" disabled />
-          <Bouton variant="secondary" size="sm" label={mail.archived ? 'Désarchiver' : 'Archiver'} onPress={() => void archive(!mail.archived)} />
+          {canAct && <Bouton variant="secondary" size="sm" label={mail.archived ? 'Désarchiver' : 'Archiver'} onPress={() => void archive(!mail.archived)} />}
         </span>
         <Bouton variant="secondary" size="sm" label="Appeler l'expéditeur" icon="phone" href="/appels" disabled={mail.category === 'BOUNCE'} />
       </div>
@@ -300,7 +299,8 @@ function Reader({ mail, sender }: { mail: EmailThread; sender: z.infer<typeof ma
                 type="select"
                 value={mail.category}
                 options={emailCategory.options.map((value) => ({ value, label: EMAIL_CATEGORIES[value].label }))}
-                onChange={recategorize}
+                disabled={!canAct}
+                onChange={(value) => void recategorize(value)}
                 layout={{ marginLeft: 'auto' }}
               />
             }
@@ -325,11 +325,12 @@ function Reader({ mail, sender }: { mail: EmailThread; sender: z.infer<typeof ma
             tone={item.status === 'SENT' ? 'neutral' : 'danger'}
             title={item.status === 'SENT' ? `Votre réponse · ${item.when}` : 'Échec de l’envoi par OVH'}
             text={item.status === 'SENT' ? item.text : `${item.text} — Le message n’est pas parti ; il n’est pas envoyé par un autre service.`}
-            actionLabel={item.status === 'FAILED' ? 'Nouvelle tentative' : undefined}
+            actionLabel={item.status === 'FAILED' && canAct ? 'Nouvelle tentative' : undefined}
             onAction={() => send(item.text)}
           />
         ))}
-        {mail.category !== 'BOUNCE' && (
+        {!canAct && <Alerte tone="info" compact icon="lock" text="Lecture seule : ce dossier est suivi par un autre collaborateur." />}
+        {canAct && mail.category !== 'BOUNCE' && (
           <div className={layout.stack}>
             <div className={layout.between}>
               <span className={layout.muted}>

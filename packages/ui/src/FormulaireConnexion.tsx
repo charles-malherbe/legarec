@@ -1,4 +1,4 @@
-import { loginError, loginRequest, loginResponse, type LoginResponse } from '@legarec/contracts';
+import { loginError, loginRequest, loginResponse, webauthnOptions, type LoginResponse } from '@legarec/contracts';
 import { api, ApiError, openExternal } from '@legarec/platform';
 import { PinInput } from '@mantine/core';
 import { useForm, schemaResolver } from '@mantine/form';
@@ -26,6 +26,9 @@ export function FormulaireConnexion({ onSession }: { onSession: (session: OpenSe
   const [methods, setMethods] = useState<('TOTP' | 'WEBAUTHN')[] | null>(null);
   const [wrongPortal, setWrongPortal] = useState<string | null>(null);
   const [codeError, setCodeError] = useState(false);
+  const [backup, setBackup] = useState<string | null>(null);
+  const [keyError, setKeyError] = useState(false);
+  const [offline, setOffline] = useState(false);
   const [busy, setBusy] = useState(false);
   const form = useForm({ initialValues: { email: '', password: '', portal: name }, validate: schemaResolver(loginRequest, { sync: true }) });
 
@@ -36,24 +39,40 @@ export function FormulaireConnexion({ onSession }: { onSession: (session: OpenSe
   };
   const submit = form.onSubmit(async (values) => {
     setBusy(true);
+    setOffline(false);
     try {
       finish(await api(loginResponse, '/auth/login', { method: 'POST', body: { ...values, remember } }));
       setFailure(null);
     } catch (error) {
       const body = error instanceof ApiError ? loginError.safeParse(error.body) : undefined;
-      if (!body?.success) throw error;
-      setFailure({ locked: body.data.code === 'LOCKED', attemptsLeft: body.data.attemptsLeft ?? 0 });
+      if (!body?.success) setOffline(true);
+      else setFailure({ locked: body.data.code === 'LOCKED', attemptsLeft: body.data.attemptsLeft ?? 0 });
     } finally {
       setBusy(false);
     }
   });
-  const verify = async (code: string) => {
+  const verify = async (code: string, method: 'TOTP' | 'BACKUP_CODE' = 'TOTP') => {
     setBusy(true);
     setCodeError(false);
     try {
-      finish(await api(loginResponse, '/auth/two-factor', { method: 'POST', body: { method: 'TOTP', code } }));
+      finish(await api(loginResponse, '/auth/two-factor', { method: 'POST', body: { method, code } }));
     } catch {
       setCodeError(true);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const signInWithKey = async () => {
+    setBusy(true);
+    setKeyError(false);
+    try {
+      const options = await api(webauthnOptions, '/auth/two-factor/webauthn', { method: 'POST' });
+      const { startAuthentication } = await import('@simplewebauthn/browser');
+      const response = await startAuthentication({ optionsJSON: options as never });
+      finish(await api(loginResponse, '/auth/two-factor', { method: 'POST', body: { method: 'WEBAUTHN', response } }));
+    } catch {
+      setKeyError(true);
     } finally {
       setBusy(false);
     }
@@ -83,7 +102,22 @@ export function FormulaireConnexion({ onSession }: { onSession: (session: OpenSe
           />
           {codeError && <Alerte tone="danger" text="Code incorrect ou expiré. Vérifiez l’heure de votre téléphone, puis saisissez le nouveau code affiché." />}
           {methods.includes('WEBAUTHN') && (
-            <Bouton variant="secondary" size="lg" icon="key" label="Utiliser une clé de sécurité" disabled title="Disponible avec l’API" />
+            <Bouton variant="secondary" size="lg" icon="key" label="Utiliser une clé de sécurité" disabled={busy} onPress={() => void signInWithKey()} />
+          )}
+          {keyError && <Alerte tone="danger" text="La clé de sécurité n’a pas été reconnue. Réessayez ou utilisez un code." />}
+          {backup === null ? (
+            <Bouton variant="link" size="sm" label="Utiliser un code de secours" onPress={() => setBackup('')} layout={{ alignSelf: 'flex-start' }} />
+          ) : (
+            <form
+              className={css.fields}
+              onSubmit={(event) => {
+                event.preventDefault();
+                void verify(backup.trim(), 'BACKUP_CODE');
+              }}
+            >
+              <Champ label="Code de secours" size="lg" mono autocomplete="off" spellCheck={false} value={backup} onChange={setBackup} />
+              <Bouton type="submit" size="lg" full label="Se connecter avec ce code" loading={busy} disabled={!backup.trim()} />
+            </form>
           )}
         </div>
       </PageConnexion>
@@ -157,6 +191,7 @@ export function FormulaireConnexion({ onSession }: { onSession: (session: OpenSe
             }
           />
         )}
+        {offline && <Alerte tone="danger" text="Le service ne répond pas. Vérifiez votre connexion et réessayez." />}
         <div className={css.links}>
           <Bouton type="submit" size="lg" full label="Se connecter" loading={busy} disabled={failure?.locked} onPress={() => {}} />
           <span>Vous avez reçu une invitation ? Ouvrez le lien de votre e-mail pour activer votre compte.</span>

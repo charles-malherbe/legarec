@@ -1,4 +1,5 @@
 import { REPLY_ACCEPTED, ROLE_LABELS, type AutomaticEmail, type EmailConfig, type Role } from '@legarec/contracts';
+import { z } from 'zod';
 import type { EmailRenderer } from './renderer';
 
 export const AUTOMATIC_SENDER = 'LEGAREC <ne-pas-repondre@mail.legarec.fr>';
@@ -23,6 +24,8 @@ export class EmailsService {
   ) {}
 
   async send(name: AutomaticEmail, to: string, data: unknown): Promise<void> {
+    // One valid address only: no list nor header injection.
+    z.email().parse(to);
     const { subject, html } = this.renderer.renderAutomatic(name, data);
     await this.transport.send({
       from: AUTOMATIC_SENDER,

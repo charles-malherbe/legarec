@@ -67,6 +67,8 @@ export const planRequest = z.object({
   tone: z.enum(['warning', 'info', 'danger']),
   decision: z.enum(['APPROVED', 'REFUSED']).nullable(),
 });
+export const planSimulation = z.object({ caseId: z.string(), debtor: z.string(), creditor: z.string(), balance: cents, ownedByDirector: z.boolean() });
+export type PlanSimulation = z.infer<typeof planSimulation>;
 export const plansData = z.object({
   plans: z.array(paymentPlan),
   requests: z.array(planRequest),
@@ -80,7 +82,7 @@ export const plansData = z.object({
     honored: z.number(),
     defaults: z.number().int(),
   }),
-  simulation: z.object({ caseId: z.string(), debtor: z.string(), creditor: z.string(), balance: cents, ownedByDirector: z.boolean() }).nullable(),
+  simulation: planSimulation.nullable(),
 });
 
 /** Equal installments rounded up to the euro; the last one carries the difference. */

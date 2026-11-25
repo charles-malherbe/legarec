@@ -5,6 +5,7 @@ import { Link } from 'react-router';
 import { useCreditorScope } from '../../app/creditorScope';
 import { useApi, useChange } from '../../app/data';
 import layout from '@legarec/ui/layout.module.css';
+import { pageOf } from '../../shared/paging';
 import { listState, matches } from '../../shared/listState';
 import { CaseLink } from './CaseLink';
 
@@ -49,6 +50,7 @@ export function SmsPage() {
       test(item) && (scope.id === 'all' || !item.linked || item.creditorId === scope.id) && matches(query, item.name, item.contact, item.phone, item.creditor),
   );
   const current = rows.find((item) => item.id === selected) ?? rows[0];
+  const paged = pageOf(rows, page, size);
   const state = listState({
     pending: isPending,
     error,
@@ -65,7 +67,7 @@ export function SmsPage() {
   const pick = (item: SmsThread) => {
     setSelected(item.id);
     setDraft('');
-    if (item.unread > 0) void change(`/sms/${item.id}/read`);
+    if (item.unread > 0 && item.canAct !== false) void change(`/sms/${item.id}/read`);
   };
   const send = (item: SmsThread) =>
     confirm({
@@ -135,7 +137,7 @@ export function SmsPage() {
             <EtatListe {...state} />
           ) : (
             <div className={layout.scroll} tabIndex={0} role="group" aria-label="Liste des conversations">
-              {rows.map((item) => {
+              {paged.shown.map((item) => {
                 const last = item.messages.at(-1);
                 return (
                   <button key={item.id} type="button" className={layout.rowButton} aria-current={item.id === current?.id} onClick={() => pick(item)}>
@@ -158,8 +160,8 @@ export function SmsPage() {
           )}
           {!state && data && (
             <Pagination
-              total={filter === 'all' && !query ? data.total : rows.length}
-              page={page}
+              total={paged.total}
+              page={paged.current}
               size={size}
               unit="conversations"
               label="Pagination des conversations"
@@ -195,7 +197,9 @@ export function SmsPage() {
                   </li>
                 ))}
               </ol>
-              {current.linked ? (
+              {current.canAct === false ? (
+                <Alerte tone="info" compact icon="lock" text="Lecture seule : ce dossier est suivi par un autre collaborateur." />
+              ) : current.linked ? (
                 <div className={layout.stack} style={{ padding: 'var(--sp-4) var(--sp-5)', borderTop: '1px solid var(--border)' }}>
                   <div className={layout.chips}>
                     <span className={layout.muted}>Réponses rapides :</span>

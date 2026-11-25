@@ -127,15 +127,18 @@ function Workspace({ data, onRetry }: { data: Data; onRetry: () => void }) {
     else if (!down && phone) startCall(phone.value);
     if (state.inCall || !down) dispatch({ type: 'toggleCall' });
   }, [change, current.caseId, down, phone, state.inCall]);
-  const onSaved = (label: string) => {
+  const onSaved = (label: string, sent: boolean) => {
     const before = state;
     dispatch({ type: 'saved', next: nextIndex });
     toast({
       message: `Fiche enregistrée pour ${current.debtor} : ${label.toLowerCase()}.`,
-      undo: () => {
-        void change(`/calls/${current.caseId}/qualification`, { method: 'DELETE' });
-        dispatch({ type: 'restore', state: before });
-      },
+      // A message that left cannot be taken back.
+      undo: sent
+        ? undefined
+        : () => {
+            void change(`/calls/${current.caseId}/qualification`, { method: 'DELETE' });
+            dispatch({ type: 'restore', state: before });
+          },
     });
   };
 

@@ -167,7 +167,8 @@ describe('staff message', () => {
   });
   it('sends from the employee’s mailbox without any replyTo, then copies it to the sent items', async () => {
     const { service, transport } = make();
-    const message = await service.send(sender, input);
+    const { copied, ...message } = await service.send(sender, input);
+    expect(copied).toBe(true);
     expect(message.from).toBe('"Camille LAURENT" <cl@legarec.fr>');
     expect(message).not.toHaveProperty('replyTo');
     expect(transport.send).toHaveBeenCalledWith('cl@legarec.fr', message);

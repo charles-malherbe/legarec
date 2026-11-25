@@ -1,5 +1,7 @@
-import { checkTemplate, MANDATORY_BLOCKS, MERGE_FIELDS, TEMPLATE_MAX_BYTES, type Session, type TemplateDetail } from '@legarec/contracts';
+import { MANDATORY_BLOCKS, MERGE_FIELDS, TEMPLATE_MAX_BYTES, type Session, type TemplateDetail } from '@legarec/contracts';
+import { checkTemplate } from '@legarec/contracts/templateCheck';
 import { http, HttpResponse } from 'msw';
+import { audit } from '../audit';
 import { done, forbidden, guarded, notFound } from '../http';
 import { administers } from './steering';
 
@@ -380,10 +382,11 @@ export const templateHandlers = [
   ),
   http.post(
     '/api/templates/:id/review',
-    onTemplate(administers, async (item, _session, { request }) => {
+    onTemplate(administers, async (item, session, { request }) => {
       const state = progress[item.id];
       const { approved } = (await request.json()) as { approved: boolean };
       if (state?.status !== 'WAITING') return forbidden();
+      audit(session, `Modèle « ${item.name} » ${approved ? 'publié' : 'refusé'}`, 'ADMINISTRATIVE');
       progress[item.id] = { status: 'PUBLISHED', pending: null, by: '', bump: state.bump + (approved ? 1 : 0) };
       return done();
     }),

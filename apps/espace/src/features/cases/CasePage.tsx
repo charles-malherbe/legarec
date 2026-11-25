@@ -33,7 +33,8 @@ export function CasePage() {
         <EtatListe kind="error" onAction={() => void refetch()} />
       </div>
     );
-  return <CaseView data={data} />;
+  // A fresh view for each case: no revealed code nor draft may follow from one debtor to another.
+  return <CaseView key={data.id} data={data} />;
 }
 
 function CaseView({ data }: { data: CaseDetail }) {
@@ -93,7 +94,7 @@ function CaseView({ data }: { data: CaseDetail }) {
           </div>
           {data.canAct && (
             <div className={layout.inline}>
-              <Bouton variant="secondary" label="Proposer un échéancier" href="/echeanciers" />
+              <Bouton variant="secondary" label="Proposer un échéancier" href={`/echeanciers?dossier=${data.id}`} />
               <Bouton variant="secondary" label="Enregistrer un paiement" onPress={() => setPanel('payment')} expanded={panel === 'payment'} />
               <Bouton variant="secondary" label="Envoyer une relance" onPress={() => setPanel('reminder')} expanded={panel === 'reminder'} />
               <Bouton label="Appeler" icon="phone" title="Appeler le contact principal via 3CX" onPress={() => startCall(data.mainContact.phone)} />

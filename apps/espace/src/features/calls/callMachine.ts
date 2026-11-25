@@ -23,7 +23,7 @@ export type CallEvent =
   | { type: 'mute' }
   | { type: 'hold' }
   | { type: 'announce' }
-  | { type: 'outcome'; outcome: CallOutcome }
+  | { type: 'outcome'; outcome: CallOutcome | null }
   | { type: 'pick'; index: number }
   | { type: 'saved'; next: number }
   | { type: 'previewNow' }
