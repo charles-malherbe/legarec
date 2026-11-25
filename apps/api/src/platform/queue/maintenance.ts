@@ -7,7 +7,7 @@ import { QUEUE_PREFIX } from './publisher';
 /** What has outlived its purpose. Each duration is written here or in its SQL function, never passed. */
 const STEPS: readonly [kind: string, remove: (tx: Transaction) => Promise<number>][] = [
   ['audit', async (tx) => (await tx.$queryRaw<{ removed: number }[]>`SELECT app.purge_audit() AS removed`)[0]?.removed ?? 0],
-  ['idempotency', (tx) => tx.$executeRaw`DELETE FROM idempotency_keys WHERE created_at < now() - interval '24 hours'`],
+  ['idempotency', (tx) => tx.$executeRaw`DELETE FROM idempotency_keys WHERE created_at < now() - interval '48 hours'`],
   ['outbox', (tx) => tx.$executeRaw`DELETE FROM outbox WHERE done_at < now() - interval '7 days' OR failed_at < now() - interval '30 days'`],
   [
     'task-keys',

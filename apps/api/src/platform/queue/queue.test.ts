@@ -610,7 +610,7 @@ describe('purge', () => {
   it('removes what is out of date, and only that, and keeps the counts', async () => {
     await test.admin.query(`
       INSERT INTO idempotency_keys (actor, key, route, request_hash, created_at) VALUES
-        ('user:x', gen_random_uuid(), 'r', '\\x00', now() - interval '25 hours'), ('user:x', gen_random_uuid(), 'r', '\\x00', now());
+        ('user:x', gen_random_uuid(), 'r', '\\x00', now() - interval '49 hours'), ('user:x', gen_random_uuid(), 'r', '\\x00', now() - interval '47 hours');
       INSERT INTO webhook_events (provider, provider_event_id, status, received_at) VALUES
         ('RESEND', 'old', 'PROCESSED', now() - interval '31 days'), ('RESEND', 'late', 'RECEIVED', now() - interval '31 days'), ('RESEND', 'new', 'PROCESSED', now());
       INSERT INTO outbox (queue, name, payload, actor_kind, published_at, done_at, failed_at, failure) VALUES

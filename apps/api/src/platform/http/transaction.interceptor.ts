@@ -78,7 +78,7 @@ export class TransactionInterceptor implements NestInterceptor {
     throw new ApiError(400, 'IDEMPOTENCY_KEY_REQUIRED');
   }
 
-  /** Takes the key, or waits for the request that holds it and gives back its answer. A key older than a day is free again. */
+  /** Takes the key, or waits for the request that holds it and gives back its answer. A key older than two days is free again. */
   private async claim(tx: Transaction, key: string, request: AppRequest): Promise<{ result: unknown } | null> {
     const route = `${request.method} ${(request.route as { path: string }).path}`;
     const asked = JSON.stringify([request.method, request.originalUrl, request.body ?? null]);
@@ -86,7 +86,7 @@ export class TransactionInterceptor implements NestInterceptor {
     const taken = await tx.$executeRaw`
       INSERT INTO idempotency_keys AS k (actor, key, route, request_hash) VALUES (app.actor_key(), ${key}::uuid, ${route}, ${hash})
       ON CONFLICT (actor, key) DO UPDATE SET route = EXCLUDED.route, request_hash = EXCLUDED.request_hash, status = NULL, result = NULL, created_at = now()
-      WHERE k.created_at < now() - interval '24 hours'`;
+      WHERE k.created_at < now() - interval '48 hours'`;
     if (taken === 1) return null;
     const [known] = await tx.$queryRaw<{ request_hash: Uint8Array; status: number | null; result: Uint8Array | null }[]>`
       SELECT request_hash, status, result FROM idempotency_keys WHERE actor = app.actor_key() AND key = ${key}::uuid`;

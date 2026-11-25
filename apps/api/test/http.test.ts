@@ -680,12 +680,17 @@ describe('repeated requests', () => {
     expect(await count('idempotency_keys')).toBe(before);
   });
 
-  it('free their key after a day', async () => {
+  it('free their key after two days', async () => {
     const value = randomUUID();
     const before = await traces(test.s.cases.ofA);
+    const again = async (hours: number) => {
+      await test.database.admin.query('UPDATE idempotency_keys SET created_at = now() - make_interval(hours => $2) WHERE key = $1', [value, hours]);
+      expect((await act(test.s.cases.ofA, value)).status).toBe(204);
+    };
     await act(test.s.cases.ofA, value);
-    await test.database.admin.query("UPDATE idempotency_keys SET created_at = now() - interval '25 hours' WHERE key = $1", [value]);
-    expect((await act(test.s.cases.ofA, value)).status).toBe(204);
+    await again(47);
+    expect(await traces(test.s.cases.ofA)).toEqual(before.map((number) => number + 1));
+    await again(49);
     expect(await traces(test.s.cases.ofA)).toEqual(before.map((number) => number + 2));
   });
 });
