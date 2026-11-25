@@ -1,4 +1,4 @@
-import { FIRM_IDENTITY_FIELDS, firmIdentity, settingsSection, type SettingTable } from '@legarec/contracts';
+import { isFirmIdentity, settingProblems, settingsSection, type SettingTable } from '@legarec/contracts';
 import { saveFile } from '@legarec/platform';
 import { Badge, Bouton, Carte, Champ, EtatListe, Reglage, Statut, Tableau, useConfirm, useToast } from '@legarec/ui';
 import { useState } from 'react';
@@ -35,11 +35,12 @@ export function SectionBody({ scope, id, label }: { scope: string; id: string; l
     setDraft((current) => ({ ...current, [key]: value }));
     setProblems({});
   };
-  const identity = FIRM_IDENTITY_FIELDS.filter((key) => id === 'cabinet' && key in draft && draft[key] !== before[key]);
+  const changed = Object.fromEntries(Object.entries(draft).filter(([key, value]) => value !== before[key]));
+  const identity = Object.keys(changed).filter((key) => scope === 'firm' && isFirmIdentity(id, key));
   const askSave = () => {
-    const parsed = firmIdentity.partial().safeParse(Object.fromEntries(identity.map((key) => [key, draft[key]])));
-    if (!parsed.success) return setProblems(Object.fromEntries(parsed.error.issues.map((issue) => [String(issue.path[0]), issue.message])));
-    setProblems({});
+    const found = settingProblems(data, changed);
+    setProblems(found);
+    if (Object.keys(found).length > 0) return;
     if (identity.length === 0) return void save();
     confirm({
       tone: 'danger',
@@ -53,7 +54,7 @@ export function SectionBody({ scope, id, label }: { scope: string; id: string; l
   const save = async () => {
     setSaving(true);
     try {
-      await change(path, { method: 'PUT', body: Object.fromEntries(Object.entries(draft).filter(([key, value]) => value !== before[key])) });
+      await change(path, { method: 'PUT', body: changed });
       setDraft({});
       toast({
         message: `« ${label} » enregistré.`,
@@ -112,6 +113,7 @@ export function SectionBody({ scope, id, label }: { scope: string; id: string; l
               label="Annuler"
               variant="dark"
               size="sm"
+              disabled={saving}
               onPress={() => {
                 setDraft({});
                 setProblems({});

@@ -16,6 +16,7 @@ export * from './documents';
 export * from './mergeFields';
 export * from './templates';
 export * from './settings';
+export * from './settingsCatalogue';
 export * from './account';
 export * from './portal';
 export * from './debtor';

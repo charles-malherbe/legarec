@@ -17,11 +17,16 @@ export const isValidSiren = (input: string) => /^\d{9}$/u.test(compact(input)) &
 /** Only these values are still to be supplied: any other text between brackets is refused. */
 const orPlaceholder = (placeholder: string, check: (value: string) => boolean, error: string) =>
   z.string().refine((value) => value === placeholder || check(value), { error });
+const named = (placeholder: string, error: string) => orPlaceholder(placeholder, (value) => value.trim().length >= 2 && !/[[\]]/u.test(value), error);
 /** Identity and bank details of the firm, typed by the Director only. */
 export const firmIdentity = z.object({
   siren: orPlaceholder('[SIREN]', isValidSiren, 'Ce SIREN n’est pas valide (9 chiffres).'),
   vat: orPlaceholder('[N° TVA]', (value) => /^FR[A-Z\d]{2}\d{9}$/u.test(compact(value)), 'Ce n° de TVA n’est pas valide (FR, 2 caractères, 9 chiffres).'),
   iban: orPlaceholder('[IBAN DU COMPTE DÉDIÉ]', isValidIban, 'Cet IBAN n’est pas valide.'),
   bic: orPlaceholder('[BIC]', (value) => /^[A-Z]{4}[A-Z]{2}[A-Z\d]{2}(?:[A-Z\d]{3})?$/u.test(compact(value)), 'Ce BIC n’est pas valide (8 ou 11 caractères).'),
+  holder: named('[TITULAIRE DU COMPTE]', 'Indiquez le titulaire du compte.'),
+  bankName: named('[BANQUE]', 'Indiquez la banque.'),
+  chequePayee: named('[ORDRE DES CHÈQUES]', 'Indiquez l’ordre des chèques.'),
+  chequeAddress: named('[ADRESSE D’ENVOI DES CHÈQUES]', 'Indiquez l’adresse d’envoi des chèques.'),
 });
 export const FIRM_IDENTITY_FIELDS = Object.keys(firmIdentity.shape) as (keyof typeof firmIdentity.shape)[];
