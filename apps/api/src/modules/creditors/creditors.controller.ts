@@ -84,6 +84,7 @@ export class CreditorsController {
     return this.creditors.replaceAccount(me(), id, body);
   }
 
+  @RequiresProof()
   @Post(':id/bank-accounts/:accountId/confirm')
   @StaffOrDelegate('ADMINISTRATIVE', 'DIRECTOR')
   @Commits()

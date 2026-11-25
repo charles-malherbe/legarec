@@ -202,8 +202,8 @@ export class CasesService {
     const wanted = [...new Set(ids)];
     // Only what the actor sees; one that is missing stops the whole.
     if ((await tx.case.count({ where: { id: { in: wanted } } })) !== wanted.length) throw forbidden();
-    await tx.$executeRaw`SELECT app.assign_cases(${wanted}::uuid[], ${officerId}::uuid)`;
-    await this.audit.log({ action: 'CASES_ASSIGNED', params: { count: wanted.length, officer: officerId } });
+    const [row] = await tx.$queryRaw<{ changed: number }[]>`SELECT app.assign_cases(${wanted}::uuid[], ${officerId}::uuid) AS changed`;
+    if (row!.changed) await this.audit.log({ action: 'CASES_ASSIGNED', params: { count: row!.changed, officer: officerId } });
   }
 
   // ---------------------------------------------------------------- Opening
@@ -234,7 +234,7 @@ export class CasesService {
     const current = currentOf(creditor.mandates);
     const next = creditor.mandates.find((mandate) => dayText(mandate.startsOn) > dayOf(new Date()));
     const siren = sirenOfNumber(number);
-    const known = /^\d{9}$/u.test(siren) ? await tx.debtor.findFirst({ where: { siren }, select: { id: true, name: true } }) : null;
+    const known = /^\d{9}$/u.test(siren) ? await tx.debtor.findFirst({ where: { siren }, select: { id: true, name: true, kind: true } }) : null;
     const [open] = known ? await this.rows(sql`AND c.creditor_id = ${creditorId}::uuid AND c.debtor_id = ${known.id}::uuid AND c.closed_on IS NULL`) : [];
     return {
       mandate: current
@@ -247,6 +247,7 @@ export class CasesService {
             terms: termsOf(current, false),
           }
         : null,
+      known: known ? { name: known.name, kind: known.kind } : null,
       startsOn: !current && next ? dayText(next.startsOn) : null,
       open: open ? { id: open.id, reference: open.reference, name: open.name, version: open.version, officer: open.officer, canAct: open.can_act } : null,
       others: known ? (await this.others(known.id, null, creditorId)).map(({ creditor: name, invoices }) => ({ creditor: name, invoices })) : [],
@@ -255,6 +256,8 @@ export class CasesService {
 
   async open(actor: StaffActor, body: NewCase): Promise<{ id: string; reference: string }> {
     const { tx } = this.database;
+    // An amendment of the mandate waits.
+    await tx.$executeRaw`SELECT 1 FROM creditors WHERE id = ${body.creditorId}::uuid FOR SHARE`;
     const creditor = await tx.creditor.findFirst({
       where: { id: body.creditorId, status: 'ACTIVE' },
       select: { id: true, mandates: { orderBy: { startsOn: 'asc' } } },
@@ -265,8 +268,9 @@ export class CasesService {
     // What was shown is what applies.
     if (mandate.id !== body.mandateId) throw conflict('CHANGED');
     const individual = body.kind === 'INDIVIDUAL';
-    const [debtor] = await tx.$queryRaw<{ id: string }[]>`
+    const [debtor] = await tx.$queryRaw<{ id: string | null }[]>`
       SELECT app.open_debtor(${body.kind}::debtor_kind, ${body.name}, ${individual ? null : sirenOfNumber(body.number)}, ${body.legalForm || null}) AS id`;
+    if (!debtor?.id) throw conflict('DEBTOR_MISMATCH');
     // The Director opens it for themselves, then gives it up: nobody else may write in it.
     const officerId = body.toMe || actor.role === 'DIRECTOR' ? actor.userId : null;
     const [drawn] = await tx.$queryRaw<{ for_year: number; number: number }[]>`SELECT * FROM app.next_number('CASE')`;
@@ -278,7 +282,7 @@ export class CasesService {
           id,
           reference,
           creditorId: body.creditorId,
-          debtorId: debtor!.id,
+          debtorId: debtor.id,
           officerId,
           mandateId: mandate.id,
           externalReference: body.externalReference || null,
@@ -421,20 +425,19 @@ export class CasesService {
     return this.database.tx.$queryRaw<{ id: string; number: string; case_id: string; debtor: string; creditor: string; left: bigint }[]>`
       SELECT i.id, i.number, i.case_id, d.name AS debtor, k.name AS creditor, i.principal_cents - i.principal_paid_cents AS left
       FROM case_invoices i JOIN cases c ON c.id = i.case_id JOIN debtors d ON d.id = c.debtor_id JOIN creditors k ON k.id = c.creditor_id
-      WHERE i.number ILIKE ${containing(query)} OR i.external_ref ILIKE ${containing(query)} ORDER BY i.number, i.id LIMIT ${limit}`;
+      WHERE unaccent(i.number) ILIKE ${containing(query)} OR unaccent(i.external_ref) ILIKE ${containing(query)} ORDER BY i.number, i.id LIMIT ${limit}`;
   }
 
   private async matching(query: string, all: Row[]): Promise<Set<string> | null> {
     const text = query.trim();
     if (!text) return null;
-    const like = containing(text);
     const number = text.replace(/\s/gu, '');
     const found = await this.database.tx.$queryRaw<{ id: string }[]>`
       SELECT c.id FROM cases c JOIN debtors d ON d.id = c.debtor_id JOIN creditors k ON k.id = c.creditor_id
       WHERE c.id = ANY (${all.map((row) => row.id)}::uuid[]) AND (
-        unaccent(d.name) ILIKE unaccent(${like}) OR c.reference ILIKE ${like} OR c.external_reference ILIKE ${like} OR unaccent(k.name) ILIKE unaccent(${like})
+        unaccent(d.name) ILIKE ${containing(text)} OR c.reference ILIKE ${containing(text)} OR unaccent(c.external_reference) ILIKE ${containing(text)} OR unaccent(k.name) ILIKE ${containing(text)}
         OR (${/^\d{3,14}$/u.test(number)} AND (d.siren LIKE ${`${number.slice(0, 9)}%`} OR c.debtor_siret LIKE ${`${number}%`}))
-        OR EXISTS (SELECT 1 FROM case_invoices i WHERE i.case_id = c.id AND i.number ILIKE ${like}))`;
+        OR EXISTS (SELECT 1 FROM case_invoices i WHERE i.case_id = c.id AND unaccent(i.number) ILIKE ${containing(text)}))`;
     return new Set(found.map((row) => row.id));
   }
 

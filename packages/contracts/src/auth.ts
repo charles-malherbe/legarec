@@ -52,6 +52,7 @@ export const SENSITIVE_ACTIONS = {
   'PUT /delegations/:kind': 'Donner ou retirer une délégation',
   'PUT /settings/:scope/:id': 'Modifier les identifiants du cabinet',
   'POST /creditors/:id/bank-accounts': 'Enregistrer le compte de reversement d’un créancier',
+  'POST /creditors/:id/bank-accounts/:accountId/confirm': 'Confirmer le compte de reversement d’un créancier',
   'POST /secrets': 'Ajouter un secret',
   'POST /secrets/:id/rotate': 'Renouveler un secret',
   'POST /secrets/:id/revoke': 'Révoquer un secret',

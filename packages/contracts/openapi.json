@@ -3399,6 +3399,11 @@
                     "id": {
                       "type": "string"
                     },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
                     "canEdit": {
                       "type": "boolean"
                     },
@@ -3578,6 +3583,7 @@
                   },
                   "required": [
                     "id",
+                    "version",
                     "canEdit",
                     "blocks",
                     "tables",
@@ -5051,6 +5057,28 @@
                       ],
                       "additionalProperties": false
                     },
+                    "known": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "COMPANY",
+                            "SOLE_TRADER",
+                            "INDIVIDUAL"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "kind"
+                      ],
+                      "additionalProperties": false
+                    },
                     "startsOn": {
                       "nullable": true,
                       "type": "string",
@@ -5117,6 +5145,7 @@
                   },
                   "required": [
                     "mandate",
+                    "known",
                     "startsOn",
                     "open",
                     "others"
@@ -5912,10 +5941,16 @@
                   "properties": {
                     "code": {
                       "type": "string"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
                     }
                   },
                   "required": [
-                    "code"
+                    "code",
+                    "version"
                   ],
                   "additionalProperties": false
                 }

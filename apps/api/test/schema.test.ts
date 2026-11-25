@@ -334,16 +334,16 @@ describe('rights of the roles inside', () => {
       'case_contact_events INSERT (actor_id, actor_label, case_id, contact_id, creditor_id, what)',
       'case_contacts SELECT (case_id, creditor_id, id)',
       'debtors INSERT (id, kind, legal_form_checked_at, legal_form_code, legal_form_source, name, siren)',
-      'debtors SELECT (id, siren)',
       'cases SELECT (closed_on, creditor_id, debtor_id, first_letter_on, id, officer_id, version)',
       'debtor_access_codes INSERT (code_cipher, debtor_id, generated_by)',
-      'debtor_access_codes SELECT (code_cipher, debtor_id)',
-      'debtor_access_codes UPDATE (code_cipher, generated_at, generated_by)',
       'debtor_retired_codes INSERT (code_hmac, debtor_id)',
       'debtor_retired_codes SELECT (code_hmac, debtor_id)',
       'vault_secrets SELECT (id, kind, name, rotated_at, status, value_cipher)',
       'notifications INSERT (action, actor_id, case_count, case_id, creditor_id, kind, target_id, ticket_id, user_id)',
       'users SELECT (absent_from, absent_until, anonymized_at, creditor_id, disabled_at, email, first_name, id, invited_at, invited_by, last_name, password_hash, role, status, substitute_id, two_factor_required)',
+      'debtor_access_codes SELECT (code_cipher, debtor_id, version)',
+      'debtor_access_codes UPDATE (code_cipher, generated_at, generated_by, version)',
+      'debtors SELECT (id, kind, name, siren)',
     ],
   };
   it.each(Object.entries(expected))('%s', async (role, rights) => {
@@ -421,11 +421,12 @@ describe('rights on the functions', () => {
     ['create_director', ['worker']],
     ['ticket_reader', ['worker']],
     // Called by the functions above only.
-    ...['close_account', 'release_cases', 'digests', 'refuse', 'tell_director', 'end_technical_delegation', 'take_with_substituted'].map(
+    ...['close_account', 'release_cases', 'digests', 'refuse', 'tell_director', 'end_technical_delegation', 'take_with_substituted', 'plain_name'].map(
       (name) => [name, []] as [string, string[]],
     ),
     // Triggers.
     ['open_delegations', []],
+    ['keep_account_history', []],
     ['require_for_developer', []],
     ['can_read_case', ['staff']],
     ['can_act_on_case', ['staff']],
@@ -452,7 +453,7 @@ describe('rights on the functions', () => {
       'invite_member cancel_invitation disable_member enable_member set_member_role set_extension support account_states locked set_delegation open_ticket acts_as_director',
       'save_secret renew_secret revoke_secret keep_secret save_setting creditor_iban open_debtor note_contact',
       'internal_key first_internal_key renew_internal_key access_code first_access_code renew_access_code',
-      'portal_officer create_director ticket_reader close_account release_cases digests refuse tell_director end_technical_delegation take_with_substituted open_delegations require_for_developer',
+      'portal_officer create_director ticket_reader close_account release_cases digests refuse tell_director end_technical_delegation take_with_substituted open_delegations require_for_developer plain_name keep_account_history',
       'uuid_v7 setting user_id creditor_id debtor_id only_identifiers audit_params',
     ].flatMap((names) => names.split(' '));
     const found = await rows<{ proname: string }>(

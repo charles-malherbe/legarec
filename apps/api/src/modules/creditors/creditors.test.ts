@@ -289,6 +289,34 @@ describe('the account of the remittances', () => {
     expect((await call('director', 'POST', `/${other}/bank-accounts/${bankAccount!.id}/reveal`)).status).toBe(404);
   });
 
+  it('is never reopened, confirmed again nor in the name of someone else, by PostgreSQL itself', async () => {
+    const id = await create();
+    await call('director', 'POST', `/${id}/bank-accounts`, { replaces: null, account: account() });
+    const known = (await file(id)).bankAccount!.id;
+    const database = new Database(test.database.url('app'));
+    const manager = {
+      kind: 'staff',
+      userId: test.s.manager,
+      role: 'COLLECTION_MANAGER',
+      delegations: ['ADMINISTRATIVE'],
+      actingFor: 'ADMINISTRATIVE',
+    } as const;
+    try {
+      const run = (work: Parameters<typeof database.run>[1]) => expect(database.run(manager, work)).rejects.toThrow(/42501|refused/u);
+      const confirm =
+        (by: string): Parameters<typeof database.run>[1] =>
+        (tx) =>
+          tx.$executeRaw`UPDATE creditor_bank_accounts SET confirmed_by = ${by}::uuid, confirmed_at = now(), confirmed_with = 'x' WHERE id = ${known}::uuid`;
+      await run(confirm(test.s.director));
+      expect(await database.run(manager, confirm(test.s.manager))).toBe(1);
+      await run(confirm(test.s.manager));
+      await database.run(manager, (tx) => tx.$executeRaw`UPDATE creditor_bank_accounts SET valid_until = now() WHERE id = ${known}::uuid`);
+      await run((tx) => tx.$executeRaw`UPDATE creditor_bank_accounts SET valid_until = NULL WHERE id = ${known}::uuid`);
+    } finally {
+      await database.close();
+    }
+  });
+
   it('is replaced by the one that was confirmed, the former one staying in its history', async () => {
     const id = await create();
     await call('director', 'POST', `/${id}/bank-accounts`, { replaces: null, account: account() });

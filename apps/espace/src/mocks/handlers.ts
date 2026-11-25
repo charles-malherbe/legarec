@@ -112,7 +112,6 @@ const checkProof = http.all('/api/*', async ({ request }) => {
   const path = new URL(request.url).pathname.replace('/api', '');
   const action = sensitiveAction(request.method, path);
   if (!session || !action || Date.now() - state.provedAt <= PROOF_MINUTES * 60_000) return undefined;
-  if (action.includes('/account/two-factor') && request.method === 'POST' && !session.twoFactorEnabled) return undefined;
   if (action === 'PUT /settings/:scope/:id') {
     const sent = (await request.clone().json()) as Record<string, unknown>;
     if (!Object.keys(sent).some((field) => isFirmIdentity(path.split('/').at(-1) ?? '', field))) return undefined;

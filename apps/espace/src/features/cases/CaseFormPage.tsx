@@ -143,6 +143,7 @@ function Form({ choices }: { choices: { creditors: { id: string; name: string }[
     return (
       {
         CASE_EXISTS: 'Un dossier est déjà ouvert pour ce débiteur chez ce créancier.',
+        DEBTOR_MISMATCH: 'Ce SIREN est déjà enregistré sous un autre nom ou un autre type de débiteur : vérifiez-les.',
         NO_MANDATE: 'Aucun mandat actif : aucun dossier ne s’ouvre.',
         INVOICE_EXISTS: 'Une de ces factures figure déjà dans le dossier.',
         CASE_CLOSED: 'Ce dossier est clos.',
@@ -360,6 +361,12 @@ function Form({ choices }: { choices: { creditors: { id: string; name: string }[
             <Alerte
               tone="info"
               text="Pas d’indemnité de 40 €. Intérêts au taux légal, après mise en demeure seulement. Identifiant de connexion : la référence du dossier."
+            />
+          )}
+          {known && state?.known && (
+            <Alerte
+              tone="info"
+              text={`Ce SIREN est déjà enregistré : ${state.known.name} (${DEBTOR_KIND_LABELS[state.known.kind].toLowerCase()}). Le dossier portera ce nom.`}
             />
           )}
           {open && (

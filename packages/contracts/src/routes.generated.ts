@@ -2939,6 +2939,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         id: string;
+                        version: number;
                         canEdit: boolean;
                         blocks: {
                             id: string;
@@ -3456,6 +3457,11 @@ export interface operations {
                             }[];
                             hasContract: boolean;
                         } | null;
+                        known: {
+                            name: string;
+                            /** @enum {string} */
+                            kind: "COMPANY" | "SOLE_TRADER" | "INDIVIDUAL";
+                        } | null;
                         /** Format: date */
                         startsOn: string | null;
                         open: {
@@ -3700,6 +3706,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         code: string;
+                        version: number;
                     };
                 };
             };

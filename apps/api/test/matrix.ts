@@ -275,6 +275,7 @@ export const MATRIX: Record<string, MatrixEntry> = {
   },
   'POST /staff/cases/:id/access-code/regenerate': {
     path: async (test) => `/staff/cases/${(await newCase(test)).id}/access-code/regenerate`,
+    body: () => ({ version: 1 }),
     expect: only({ director: 403, manager: 204, managerAlone: 204, officerA: 404, officerB: 404, liar: 404 }),
   },
   'POST /staff/cases/:id/coordinates': {

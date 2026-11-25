@@ -119,6 +119,7 @@ BEGIN
   END LOOP;
 END
 $$;
+CREATE POLICY staff_typed ON mandates AS RESTRICTIVE FOR INSERT TO legarec_staff WITH CHECK (created_by = (SELECT app.user_id()));
 CREATE POLICY staff_remove ON creditor_contacts FOR DELETE TO legarec_staff USING ((SELECT app.staff_role()) IN ('DIRECTOR', 'COLLECTION_MANAGER'));
 GRANT SELECT (id, creditor_id, name, title, email, phone, is_main, created_at), INSERT (id, creditor_id, name, title, email, phone, is_main, created_at), DELETE ON creditor_contacts TO legarec_staff;
 GRANT SELECT (id, creditor_id, name, title, email, phone, is_main) ON creditor_contacts TO legarec_worker;
@@ -139,3 +140,15 @@ GRANT SELECT (id, creditor_id, holder, iban_masked, bic, valid_from, valid_until
   INSERT (id, creditor_id, holder, iban_cipher, iban_masked, bic, confirmed_by, confirmed_at, confirmed_with, created_by, on_behalf_of_id),
   UPDATE (valid_until, confirmed_by, confirmed_at, confirmed_with) ON creditor_bank_accounts TO legarec_staff;
 CREATE POLICY worker_read ON creditor_bank_accounts FOR SELECT TO legarec_worker USING (true);
+-- Closed for good; confirmed once, by whoever made the call.
+CREATE FUNCTION app.keep_account_history() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, public, pg_temp AS $$
+BEGIN
+  IF OLD.valid_until IS NOT NULL
+    OR ((NEW.confirmed_by, NEW.confirmed_at, NEW.confirmed_with) IS DISTINCT FROM (OLD.confirmed_by, OLD.confirmed_at, OLD.confirmed_with)
+      AND (OLD.confirmed_by IS NOT NULL OR NEW.confirmed_by IS DISTINCT FROM app.user_id())) THEN
+    PERFORM app.refuse('42501');
+  END IF;
+  RETURN NEW;
+END
+$$;
+CREATE TRIGGER keep_history BEFORE UPDATE ON creditor_bank_accounts FOR EACH ROW EXECUTE FUNCTION app.keep_account_history();

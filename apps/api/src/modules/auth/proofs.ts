@@ -41,7 +41,7 @@ export class Proofs {
     return this.accounts.own(actor, (tx) => this.factors.authenticationOptions(tx, 'staff', actor.userId, actor.session?.id));
   }
 
-  /** Counted before it is checked, with the failures of the sign-in. The fifth one closes the session. */
+  /** Counted before it is checked; second factors, with those of the sign-in. The fifth failure closes the session. */
   async give(actor: StaffActor, given: Given): Promise<void> {
     await this.limits.take(PROOFS);
     const { userId } = actor;

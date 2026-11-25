@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { absenceForm, passwordForm, profileForm, supportTicket } from './account';
 import { loginRequest, newPassword, PASSWORD_MAX } from './auth';
 import { callQualification } from './calls';
-import { addedInvoices, caseCheck, gdprRequestKind, newCase, newPayment, paymentStatus } from './cases';
+import { addedInvoices, caseCheck, gdprRequestKind, newCase, newPayment, paymentStatus, renewedCode } from './cases';
 import { newReminder } from './collection';
 import { coordinate, coordinateKind, coordinateSource, emailCategory, outgoingMessage } from './communication';
 import { debtorAccess, debtorIdentifier, debtorMessage, debtorRequest, limitedMessage } from './debtor';
@@ -176,6 +176,7 @@ export const REQUEST_BODIES = {
     'POST /cases': newCase,
     'POST /cases/check': caseCheck,
     'POST /cases/:id/invoices': addedInvoices,
+    'POST /cases/:id/access-code/regenerate': renewedCode,
     'POST /cases/:id/coordinates': newCoordinateBody,
     'PUT /cases/:id/coordinates/:coordinateId': coordinateBody,
     'POST /cases/search': searchBody,

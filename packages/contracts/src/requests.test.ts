@@ -182,6 +182,7 @@ const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly
       { replaces: null, account: { holder: 'X', iban: 'GB82 WEST 1234 5698 7654 32', bic: 'PSSTFRPPXXX', confirmedWith: '' } },
     ],
     'POST /creditors/:id/bank-accounts/:accountId/confirm': [{ confirmedWith: 'Élodie Rivaud' }],
+    'POST /cases/:id/access-code/regenerate': [{ version: 1 }],
     'POST /cases/:id/coordinates': [
       { kind: 'PHONE', label: 'Mobile', value: '0611223344', primary: false, replaces: 'p1', source: 'CALL' },
       { kind: 'EMAIL', label: 'Comptabilité', value: 'compta@batiplus.example', primary: true, replaces: null, source: 'CREDITOR' },

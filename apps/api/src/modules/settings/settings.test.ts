@@ -194,3 +194,13 @@ it('is read whole by the worker', async () => {
     await jobs.close();
   }
 });
+
+it('is refused when someone else has changed the section meanwhile', async () => {
+  await put('director', 'firm/relances', { calls: '3' });
+  const { version } = await section('director', 'firm/relances');
+  expect((await put('director', `firm/relances?version=${version}`, { calls: '1' })).status).toBe(204);
+  expect(await put('manager', `firm/relances?version=${version}`, { calls: '2' })).toMatchObject({ status: 409, body: { code: 'CHANGED' } });
+  expect((await field('director', 'firm/relances', 'calls')).value).toBe('1');
+  expect((await section('director', 'firm/relances')).version).toBeGreaterThan(version);
+  expect((await put('director', 'firm/relances?version=x', { calls: '3' })).status).toBe(422);
+});

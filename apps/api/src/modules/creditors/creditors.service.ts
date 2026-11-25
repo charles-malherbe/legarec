@@ -67,11 +67,10 @@ export class CreditorsService {
 
   /** Under the search box. */
   async named(query: string, limit: number) {
-    const like = containing(query);
     const number = query.replace(/\s/gu, '');
     const found = await this.database.tx.$queryRaw<{ id: string; name: string; siren: string | null }[]>`
       SELECT id, name, siren FROM creditors
-      WHERE status = 'ACTIVE' AND (unaccent(name) ILIKE unaccent(${like}) OR unaccent(coalesce(legal_name, '')) ILIKE unaccent(${like})
+      WHERE status = 'ACTIVE' AND (unaccent(name) ILIKE ${containing(query)} OR unaccent(legal_name) ILIKE ${containing(query)}
         OR (${/^\d{3,14}$/u.test(number)} AND siren LIKE ${`${number.slice(0, 9)}%`}))
       ORDER BY name, id LIMIT ${limit}`;
     const totals = await this.totals(found.map((item) => item.id));

@@ -55,6 +55,11 @@ export class Keyring {
     return Buffer.concat([decipher.update(bytes.subarray(HEADER_BYTES + IV_BYTES + TAG_BYTES)), decipher.final()]);
   }
 
+  /** Number of the current key, at the head of what it writes. */
+  get id(): Buffer {
+    return this.currentId;
+  }
+
   /** True when the value was written with an older key and should be encrypted again. */
   isOutdated(blob: Uint8Array): boolean {
     return !Buffer.from(blob).subarray(1, HEADER_BYTES).equals(this.currentId);

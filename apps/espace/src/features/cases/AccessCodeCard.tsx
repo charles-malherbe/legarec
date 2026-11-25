@@ -1,7 +1,7 @@
 import { accessCodeResponse } from '@legarec/contracts';
 import { Bouton, Carte, EtatListe, useConfirm, useToast } from '@legarec/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '../../app/api';
+import { api, ApiError } from '../../app/api';
 import { useChange } from '../../app/data';
 import layout from '@legarec/ui/layout.module.css';
 
@@ -24,14 +24,16 @@ export function AccessCodeCard({ caseId }: { caseId: string }) {
       confirmLabel: 'Régénérer le code',
       details: [{ k: 'Effet', v: 'Ancien code inutilisable, accès débloqué' }],
       onConfirm: async () => {
-        await change(`/cases/${caseId}/access-code/regenerate`);
+        await change(`/cases/${caseId}/access-code/regenerate`, { body: { version: data?.version } });
         await client.invalidateQueries({ queryKey: key });
         toast({ message: 'Code d’accès régénéré.' });
       },
     });
   return (
     <Carte title="Espace débiteur">
-      {!data ? (
+      {error instanceof ApiError && error.status === 409 ? (
+        <p className={layout.muted}>Ce dossier est clos : le code d’accès du débiteur ne s’affiche plus ici.</p>
+      ) : !data ? (
         <EtatListe kind={error ? 'error' : 'loading'} compact onAction={() => void refetch()} />
       ) : (
         <div className={layout.stack}>

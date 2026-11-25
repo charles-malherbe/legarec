@@ -130,7 +130,7 @@ Les 161 routes simulées se répartissent ainsi :
 | [x] J0 | Documentation : décisions 65 à 111, points à confirmer, `PLAN.md`, `docs/`, `.claude/rules/api.md` | — |
 | [x] J | Socle : services de développement, NestJS, Prisma, rôles et RLS, audit, erreurs, journaux masqués, OpenAPI, outbox, banc de tests, GitHub Actions (services PostgreSQL et Valkey, Node 26), corps de requêtes Zod manquants, en-tête `Idempotency-Key` dans `packages/platform/src/http.ts` | 0 |
 | [x] K | Comptes : connexion, 2FA, sessions, invitations, délégations, support, premier Directeur par commande | 40 (`auth`, `account`, `members`, `delegations`, `support-tickets`) |
-| [ ] L | Portefeuille : paramètres et coffre, créanciers et mandats, débiteurs, dossiers, coordonnées, code d'accès, recherche, notifications. **Écrans** créancier et débiteur | 21 |
+| [x] L | Portefeuille : paramètres et coffre, créanciers et mandats, débiteurs, dossiers, coordonnées, code d'accès, recherche, notifications. **Écrans** créancier et débiteur | 21 |
 | [ ] M | Argent : intérêts, paiements, promesses, litiges, échéanciers | 7 |
 | [ ] N | Documents : S3 (disque local en développement), antivirus, modèles, PDF, téléchargements, valeurs entre crochets, logos | 16 |
 | [ ] O | Espace débiteur : accès, messages, demandes, acceptation de l'échéancier | 14 |
@@ -169,6 +169,14 @@ Les 161 routes simulées se répartissent ainsi :
 - [x] Relectures `relecteur-securite` et `testeur` : le point bloquant, les points importants et presque tous les mineurs corrigés ; 327 protections retirées une à une, 315 vues par un test, les 12 autres équivalentes ou doublées. Restent assumés : `attemptsLeft` peut trahir un compte dont le titulaire se connecte entre deux essais ; plus de cinq connexions justes au même instant en bloquent une partie
 - [x] Seconde relecture sécurité, demandée par le cabinet : aucun point bloquant ; 2 importants et les mineurs corrigés, avec leurs tests (session relue au moment d'agir, changement de personne dans les portails, ordre des verrous, conservation, Directeur prévenu, déconnexion non reçue)
 - Reporté, avec son lot : second facteur et session du débiteur (O), comptes de service et commande de remplacement du Directeur (X, question 124), réauthentification avant une action sensible (L, question 122 : fenêtre montrée avant développement), SMS au Directeur (R, question 113), envoi réel (Q), invitation d'un collaborateur après sa boîte (R), bascule de l'espace (après U).
+
+## Lot L — Portefeuille (état au 25/11/2026)
+- [x] Coffre (clés des services, clés internes renouvelables), paramètres du cabinet et techniques, e-mails qui lisent ces paramètres
+- [x] Créanciers, mandats et avenants, compte de reversement ; dossiers, factures, coordonnées ; codes d'accès ; recherche, barre du haut, notifications de dossier
+- [x] Écrans « Nouveau créancier » et « Nouveau débiteur » (propositions 1 et 2), fenêtre de réauthentification (proposition 3, accord du cabinet)
+- [x] Mêmes requêtes rejouées contre les simulations et contre l'API ; matrice d'accès de toutes les routes ; essai complet dans un navigateur contre l'API
+- [x] Relecture `relecteur-securite` (lot L et corrections tardives du lot K) : 2 points bloquants, 5 importants et 12 mineurs ; tout ce qui relève du lot est corrigé, avec ses tests
+- Reporté, avec son lot : dépôt de la convention signée (N), forme juridique par l'API Recherche d'entreprises en tâche de fond (U, avec le score ; d'ici là, saisie à la main), rechiffrement des données sous `VAULT_MASTER_KEY` (X), recherche bornée quand le volume montera (U), envoi du code d'accès (N, O, Q, R)
 
 ## Points à reprendre du front
 

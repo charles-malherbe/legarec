@@ -47,8 +47,19 @@ export async function purge(database: Database, logger: AppLogger): Promise<Reco
   return counts;
 }
 
-export function maintenance(database: Database, logger: AppLogger): ScheduledHandlers {
-  return { maintenance: { purge: () => purge(database, logger).then(() => undefined) } };
+/** `after`: what else a night takes care of, whatever the purge has done. */
+export function maintenance(database: Database, logger: AppLogger, after: () => Promise<void> = () => Promise.resolve()): ScheduledHandlers {
+  return {
+    maintenance: {
+      purge: async () => {
+        try {
+          await purge(database, logger);
+        } finally {
+          await after();
+        }
+      },
+    },
+  };
 }
 
 /** Every night, at a quiet hour in Paris; the same schedule whatever the number of workers. */

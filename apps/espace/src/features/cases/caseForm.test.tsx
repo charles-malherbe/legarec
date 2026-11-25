@@ -124,7 +124,7 @@ describe('a case', () => {
   });
 
   it('does not open without a mandate in force', async () => {
-    server.use(http.post('/api/cases/check', () => HttpResponse.json({ mandate: null, startsOn: '2026-12-01', open: null, others: [] })));
+    server.use(http.post('/api/cases/check', () => HttpResponse.json({ mandate: null, known: null, startsOn: '2026-12-01', open: null, others: [] })));
     openAs('cl', '/debiteurs/nouveau?creancier=md');
     expect(await screen.findByText('Aucun mandat actif')).toBeVisible();
     expect(screen.getByText(/prend effet le/)).toBeVisible();
@@ -178,6 +178,17 @@ describe('a debtor who already has a case', () => {
     await type('SIRET ou SIREN', '512 334 871 00088');
     expect(await screen.findByText('Lecture seule')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Ajouter les factures' })).toBeDisabled();
+  });
+  it('is not opened under another name', async () => {
+    openAs('cl', '/debiteurs/nouveau?creancier=mt');
+    await debtor();
+    await type('SIRET ou SIREN', '512 334 871 00088');
+    expect(await screen.findByText(/Ce SIREN est déjà enregistré : Bâtiplus SAS \(entreprise\)/)).toBeVisible();
+    await invoice();
+    await press('Ouvrir le dossier');
+    await userEvent.click((await dialog()).getByRole('button', { name: 'Ouvrir le dossier' }));
+    expect(await screen.findByText(/sous un autre nom ou un autre type de débiteur : vérifiez-les\. Rien n’a été enregistré/)).toBeVisible();
+    expect(screen.getByLabelText(/^Ville/)).toHaveValue('Villeurbanne');
   });
   it('at another creditor is named, without the case', async () => {
     openAs('cl', '/debiteurs/nouveau?creancier=mt');

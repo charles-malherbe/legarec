@@ -84,13 +84,17 @@ CALL app.append_only('case_contact_events');
 -- ---------------------------------------------------------------- Functions that see more than their caller
 
 GRANT CREATE ON SCHEMA app TO legarec_definer;
-GRANT SELECT (id, siren), INSERT (id, kind, name, siren, legal_form_code, legal_form_source, legal_form_checked_at) ON debtors TO legarec_definer;
+GRANT SELECT (id, siren, name, kind), INSERT (id, kind, name, siren, legal_form_code, legal_form_source, legal_form_checked_at) ON debtors TO legarec_definer;
 GRANT SELECT (id, case_id, creditor_id) ON case_contacts TO legarec_definer;
 GRANT INSERT (case_id, creditor_id, contact_id, actor_id, actor_label, what) ON case_contact_events TO legarec_definer;
 SET LOCAL ROLE legarec_definer;
 
+-- « Bâtiplus SAS » and « BATIPLUS » are the same name.
+CREATE FUNCTION app.plain_name(name text) RETURNS text LANGUAGE sql STABLE SET search_path = pg_catalog, public, pg_temp AS $$
+  SELECT regexp_replace(regexp_replace(lower(unaccent(name)), '\m(sasu?|sarl|eurl|sa|snc|scs|sca|sci|scop|selarl|selas|ei|eirl|gie|ste|societe)\M', '', 'g'), '[^a-z0-9]', '', 'g')
+$$;
 -- A company already known is the same debtor for every creditor, without anything of it being shown: neither its name, which
--- never changes here, nor its cases. Two individuals are never put together.
+-- never changes here, nor its cases. Null when what was confirmed is not that debtor. Two individuals are never put together.
 CREATE FUNCTION app.open_debtor(wanted_kind debtor_kind, wanted_name text, wanted_siren text, form_code text) RETURNS uuid
 LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE
@@ -104,7 +108,7 @@ BEGIN
     PERFORM pg_advisory_xact_lock(hashtextextended('debtor:' || wanted_siren, 0));
     SELECT d.id INTO known FROM public.debtors d WHERE d.siren = wanted_siren;
     IF FOUND THEN
-      RETURN known;
+      RETURN (SELECT d.id FROM public.debtors d WHERE d.id = known AND d.kind = wanted_kind AND app.plain_name(d.name) = app.plain_name(wanted_name));
     END IF;
   END IF;
   known := app.uuid_v7();
@@ -179,8 +183,14 @@ GRANT SELECT (id, case_id, creditor_id, number, external_ref, issued_on, due_on,
 GRANT SELECT (id, case_id, creditor_id, number, external_ref, issued_on, due_on, claimed_cents, principal_cents, principal_paid_cents, state, created_at) ON case_invoices TO legarec_worker;
 GRANT SELECT (id, case_id, creditor_id, number, external_ref, issued_on, due_on, claimed_cents, principal_cents, principal_paid_cents, state) ON case_invoices TO legarec_partner, legarec_debtor;
 
+-- In one's own name, and as they are when they are typed: neither paid nor verified.
+CREATE POLICY staff_typed ON case_invoices AS RESTRICTIVE FOR INSERT TO legarec_staff
+  WITH CHECK (created_by = (SELECT app.user_id()) AND principal_paid_cents = 0 AND state = 'UNPAID');
+
 -- Coordinates: neither the creditor nor the debtor reads them.
 CALL app.secure_case_table('case_contacts');
+CREATE POLICY staff_typed ON case_contacts AS RESTRICTIVE FOR INSERT TO legarec_staff
+  WITH CHECK (created_by = (SELECT app.user_id()) AND status IN ('UNVERIFIED', 'NEW'));
 GRANT SELECT (id, case_id, creditor_id, kind, label, value, value_normalized, status, is_primary, source, replaced_by_id, created_by, created_at, invalidated_at),
   INSERT (id, case_id, creditor_id, kind, label, value, value_normalized, status, is_primary, source, created_by, created_at),
   UPDATE (status, is_primary, replaced_by_id, invalidated_at) ON case_contacts TO legarec_staff;

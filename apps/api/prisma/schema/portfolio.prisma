@@ -185,6 +185,7 @@ model Debtor {
 model DebtorAccessCode {
   debtorId    String   @id @map("debtor_id") @db.Uuid
   codeCipher  Bytes    @map("code_cipher")
+  version     Int      @default(1)
   generatedBy String?  @map("generated_by") @db.Uuid
   generatedAt DateTime @default(now()) @map("generated_at") @db.Timestamptz(3)
 

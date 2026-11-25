@@ -1,5 +1,5 @@
 import { isFirmIdentity, settingProblems, settingsSection, type SettingTable } from '@legarec/contracts';
-import { saveFile } from '@legarec/platform';
+import { ApiError, saveFile } from '@legarec/platform';
 import { Badge, Bouton, Carte, Champ, EtatListe, Reglage, Statut, Tableau, useConfirm, useToast } from '@legarec/ui';
 import { useState } from 'react';
 import { useApi, useChange } from '../../app/data';
@@ -54,15 +54,19 @@ export function SectionBody({ scope, id, label }: { scope: string; id: string; l
   const save = async () => {
     setSaving(true);
     try {
-      await change(path, { method: 'PUT', body: changed });
+      await change(`${path}?version=${data.version}`, { method: 'PUT', body: changed });
       setDraft({});
       toast({
         message: `« ${label} » enregistré.`,
         // Bank details are only changed through their own confirmation.
         undo: identity.length > 0 ? undefined : () => void change(path, { method: 'PUT', body: before }),
       });
-    } catch {
-      toast({ message: 'L’enregistrement n’a pas abouti. Vos modifications sont conservées à l’écran : réessayez.' });
+    } catch (failure) {
+      toast(
+        failure instanceof ApiError && failure.status === 409
+          ? { message: 'Cette section vient d’être modifiée par quelqu’un d’autre. Vérifiez les valeurs, puis réessayez.', tone: 'danger' }
+          : { message: 'L’enregistrement n’a pas abouti. Vos modifications sont conservées à l’écran : réessayez.' },
+      );
     } finally {
       setSaving(false);
     }

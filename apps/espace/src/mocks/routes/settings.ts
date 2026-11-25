@@ -59,6 +59,8 @@ const seedSecrets = (): SecretItem[] =>
     status,
   }));
 let secrets = seedSecrets();
+/** How many times a section was saved. */
+let versions: Record<string, number> = {};
 
 const box = (id: string, local: string, holder: string | null, kind: Mailbox['kind'], usedMb: number, connection: Mailbox['connection'] = 'OK'): Mailbox => ({
   id,
@@ -139,6 +141,7 @@ export const contactCap = (field: 'calls' | 'emails' | 'sms' | 'letters') => {
   return Number.isInteger(cap) && cap > 0 ? cap : STRICT_CAPS[field];
 };
 export const resetSettings = () => {
+  versions = {};
   resetMailboxRequests();
   resetAudit();
   groups = seedGroups();
@@ -193,7 +196,14 @@ export const settingsHandlers = [
           ? { ...entry, rows: [...auditEntries().map((line) => [line.date, line.who, line.onBehalfOf, line.what, '—']), ...entry.rows] }
           : entry,
       );
-      return HttpResponse.json({ id: item.id, canEdit: canEdit(scope, session), blocks, tables, notes: item.notes ?? [] });
+      return HttpResponse.json({
+        id: item.id,
+        version: versions[`${scope}.${item.id}`] ?? 0,
+        canEdit: canEdit(scope, session),
+        blocks,
+        tables,
+        notes: item.notes ?? [],
+      });
     }),
   ),
   http.put(
@@ -205,6 +215,9 @@ export const settingsHandlers = [
       const item = groups[scope].flatMap((group) => group.items).find((entry) => entry.id === params.id);
       if (!item) return notFound();
       const sent = (await request.json()) as Record<string, string | boolean>;
+      const key = `${scope}.${item.id}`;
+      const shown = new URL(request.url).searchParams.get('version');
+      if (shown !== null && Number(shown) !== (versions[key] ?? 0)) return HttpResponse.json({ code: 'CHANGED' }, { status: 409 });
       // Only what really changes is checked, stored and written in the journal.
       const stored = new Map(item.blocks.flatMap((entry) => entry.fields).map((field) => [field.id, field]));
       const changes = Object.fromEntries(
@@ -223,6 +236,7 @@ export const settingsHandlers = [
         audit(session, `Identifiants du cabinet modifiés : ${bank.join(', ')}`);
       }
       audit(session, `Paramètres modifiés : ${item.title}`, scope === 'technical' ? 'TECHNICAL' : 'ADMINISTRATIVE');
+      versions[key] = (versions[key] ?? 0) + 1;
       item.blocks = item.blocks.map((entry) => ({
         ...entry,
         fields: entry.fields.map((field) => {

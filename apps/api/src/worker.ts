@@ -6,7 +6,7 @@ import { EmailRenderer } from './emails/renderer';
 import { SimulatedTransport } from './emails/transport';
 import { accountJobs } from './modules/auth/auth.jobs';
 import { AuthKeys } from './modules/auth/keys';
-import { accessCodeJobs } from './modules/debtor-access/access-codes.jobs';
+import { accessCodeJobs, reseal } from './modules/debtor-access/access-codes.jobs';
 import { SettingValues } from './modules/settings/values';
 import { Vault } from './modules/vault/vault';
 import { readWorkerConfig } from './platform/config/config';
@@ -30,9 +30,15 @@ const emailSettings = () => database.run({ kind: 'worker', job: 'email-settings'
 // Next to the folder of the sources, as to that of the programs once built.
 const templates = fileURLToPath(new URL('../templates/emails/', import.meta.url));
 const emails = new EmailsService(new EmailRenderer(templates), new SimulatedTransport(logger, config.DEV_MAIL_DIR), emailSettings);
+const vault = new Vault(config);
 const handlers: JobHandlers = {
   email: accountJobs({ keys: new AuthKeys(config), portals: config, send: (name, to, data) => emails.send(name, to, data) }),
-  maintenance: accessCodeJobs(new Vault(config)),
+  maintenance: accessCodeJobs(vault),
+};
+const resealAll = async () => {
+  const { resealed, unreadable } = await reseal((work) => database.run({ kind: 'worker', job: 'reseal' }, work), vault);
+  if (unreadable) logger.error({ count: unreadable }, 'access codes unreadable');
+  else if (resealed) logger.info({ count: resealed }, 'access codes encrypted again');
 };
 let workers: Workers | undefined;
 let hourly: NodeJS.Timeout | undefined;
@@ -57,7 +63,7 @@ async function main() {
   if (stopping) return;
   // Started again by its container, in a clean state.
   const onDead = () => void stop(1);
-  workers = startWorkers({ database, logger, connection, handlers, scheduled: maintenance(database, logger), onDead });
+  workers = startWorkers({ database, logger, connection, handlers, scheduled: maintenance(database, logger, resealAll), onDead });
   publisher.start();
   const schedule = () => scheduleMaintenance(connection).catch(() => logger.warn('maintenance not scheduled'));
   // Again every hour: the schedule lives in Valkey, and would be lost with it.

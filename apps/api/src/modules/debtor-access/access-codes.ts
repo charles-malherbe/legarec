@@ -12,7 +12,7 @@ const DRAWS = 20;
 interface Found {
   debtorId: string;
   code: string;
-  cipher: Uint8Array;
+  version: number;
 }
 
 /** The code of a debtor: in no log, no address, no queue and no stored text. */
@@ -25,9 +25,10 @@ export class AccessCodes {
   ) {}
 
   /** In clear for whoever acts on the case, without a trace of it (question 21). */
-  async show(caseId: string): Promise<string> {
+  async show(caseId: string): Promise<{ code: string; version: number }> {
     await this.mayAct(caseId);
-    return (await this.ensure(caseId)).code;
+    const { code, version } = await this.ensure(caseId);
+    return { code, version };
   }
 
   /** At the opening of a case: that of the debtor, drawn if they have none. */
@@ -42,9 +43,11 @@ export class AccessCodes {
     return (await this.find(caseId))!;
   }
 
-  async renew(caseId: string): Promise<void> {
+  /** `seen`: the code that was on the screen. */
+  async renew(caseId: string, seen: number): Promise<void> {
     await this.mayAct(caseId);
-    const { debtorId, code: old, cipher } = await this.ensure(caseId);
+    const { debtorId, code: old, version } = await this.ensure(caseId);
+    if (version !== seen) throw conflict('CHANGED');
     const ring = await this.keys.ring('ACCESS_CODE_KEY');
     const lookups = await this.keys.keys('LOOKUP_KEY');
     const digests = (code: string) => lookups.map((key) => digest(key, `access-code:${debtorId}:${code}`));
@@ -52,7 +55,7 @@ export class AccessCodes {
       const code = drawCode();
       if (code === old) continue;
       const [row] = await this.database.tx.$queryRaw<{ done: boolean }[]>`
-        SELECT app.renew_access_code(${caseId}::uuid, ${cipher}, ${digests(old)[0]!}, ${ring.encrypt(code, bindingOf(debtorId))}, ${digests(code)}) AS done`;
+        SELECT app.renew_access_code(${caseId}::uuid, ${seen}::int, ${digests(old)[0]!}, ${ring.encrypt(code, bindingOf(debtorId))}, ${digests(code)}) AS done`;
       if (!row!.done) continue;
       await this.audit.log({ action: 'ACCESS_CODE_RENEWED', entity: { type: 'case', id: caseId } });
       return;
@@ -61,16 +64,18 @@ export class AccessCodes {
   }
 
   private async find(caseId: string): Promise<Found | null> {
-    const [row] = await this.database.tx.$queryRaw<{ debtor_id: string; code_cipher: Uint8Array }[]>`
-      SELECT debtor_id, code_cipher FROM app.access_code(${caseId}::uuid)`;
+    const [row] = await this.database.tx.$queryRaw<{ debtor_id: string; code_cipher: Uint8Array; version: number }[]>`
+      SELECT debtor_id, code_cipher, version FROM app.access_code(${caseId}::uuid)`;
     if (!row) return null;
     const ring = await this.keys.ring('ACCESS_CODE_KEY');
-    return { debtorId: row.debtor_id, cipher: row.code_cipher, code: ring.decrypt(row.code_cipher, bindingOf(row.debtor_id)).toString() };
+    return { debtorId: row.debtor_id, version: row.version, code: ring.decrypt(row.code_cipher, bindingOf(row.debtor_id)).toString() };
   }
 
   private async mayAct(caseId: string): Promise<void> {
-    const [row] = await this.database.tx.$queryRaw<{ may: boolean }[]>`SELECT app.can_act_on_case(officer_id) AS may FROM cases WHERE id = ${caseId}::uuid`;
+    const [row] = await this.database.tx.$queryRaw<{ may: boolean; closed: boolean }[]>`
+      SELECT app.can_act_on_case(officer_id) AS may, closed_on IS NOT NULL AS closed FROM cases WHERE id = ${caseId}::uuid`;
     if (!row) throw notFound();
     if (!row.may) throw forbidden();
+    if (row.closed) throw conflict('CASE_CLOSED');
   }
 }

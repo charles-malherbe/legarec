@@ -89,8 +89,8 @@ export class CasesController {
   @Get(':id/access-code')
   @WithCases()
   @ApiOkResponse({ standardSchema: accessCodeResponse })
-  async accessCode(@Param('id') id: string) {
-    return { code: await this.codes.show(id) };
+  accessCode(@Param('id') id: string) {
+    return this.codes.show(id);
   }
 
   @Post(':id/access-code/regenerate')
@@ -98,8 +98,11 @@ export class CasesController {
   @Commits()
   @HttpCode(204)
   @ApiNoContentResponse()
-  renewAccessCode(@Param('id') id: string) {
-    return this.codes.renew(id);
+  renewAccessCode(
+    @Param('id') id: string,
+    @Body({ schema: bodies['POST /cases/:id/access-code/regenerate'] }) { version }: In<'POST /cases/:id/access-code/regenerate'>,
+  ) {
+    return this.codes.renew(id, version);
   }
 
   @Post(':id/coordinates')

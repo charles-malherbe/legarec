@@ -190,10 +190,23 @@ describe('a sensitive action', () => {
     expect((await signedIn(id, email)).token).toBeDefined();
   });
 
-  it('is not the first second factor, nor an ordinary setting', async () => {
+  it('is the first second factor too: an open screen does not become the proof of everything else', async () => {
     const { id, browser } = await colleague();
     await age(id, 7200);
+    const authenticator = new Authenticator(ORIGINS.staff);
+    for (const ask of [
+      () => browser.post('/account/two-factor/totp'),
+      () => browser.post('/account/two-factor/totp/verify', { code: '123456' }),
+      () => browser.post('/account/two-factor/webauthn'),
+      () => browser.post('/account/two-factor/webauthn/verify', authenticator.register('x')),
+    ])
+      expect(await ask()).toMatchObject(REQUIRED);
+    expect((await browser.get('/auth/proof')).body).toEqual({ methods: ['PASSWORD'] });
+    expect((await browser.post('/auth/proof', { method: 'PASSWORD', password: PASSWORD })).status).toBe(204);
     expect((await browser.post('/account/two-factor/totp')).status).toBe(200);
+  });
+
+  it('is not an ordinary setting', async () => {
     await rows('DELETE FROM settings');
     await age(test.s.director, 7200);
     expect((await director.change('/settings/firm/relances', { calls: '3' })).status).toBe(204);

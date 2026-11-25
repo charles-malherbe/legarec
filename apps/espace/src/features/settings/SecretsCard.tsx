@@ -1,6 +1,7 @@
 import { newSecret, renewedSecret, secretsData, SERVICE_SECRETS, type SecretItem, type ServiceSecret } from '@legarec/contracts';
 import { Badge, Bouton, Carte, Champ, EtatListe, Tableau, useConfirm, useToast } from '@legarec/ui';
 import { useState } from 'react';
+import { ApiError } from '../../app/api';
 import { useApi, useChange } from '../../app/data';
 import { useCurrentUser } from '../../app/session';
 import layout from '@legarec/ui/layout.module.css';
@@ -86,7 +87,12 @@ export function SecretsCard({ canEdit }: { canEdit: boolean }) {
       ],
       confirmLabel: 'Renouveler la clé',
       onConfirm: async () => {
-        await change(`/secrets/${item.id}/rotate`, { body: {} });
+        try {
+          await change(`/secrets/${item.id}/rotate`, { body: {} });
+        } catch (error) {
+          if (!(error instanceof ApiError) || error.status !== 409) throw error;
+          return toast({ message: 'Le chiffrement avec la clé précédente n’est pas terminé : réessayez dans quelques minutes.', tone: 'danger' });
+        }
         toast({ message: `${item.name} renouvelé.` });
       },
     });

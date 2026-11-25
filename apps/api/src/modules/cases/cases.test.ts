@@ -213,7 +213,7 @@ describe('the same debtor', () => {
   it('is one for two creditors, under the name that was recorded first, with nothing else in common', async () => {
     const number = siren();
     const first = await open('manager', { number, name: 'Bâtiplus SAS' });
-    const second = await open('manager', { creditorId: other.id, mandateId: other.mandate, number: `${number}`, name: 'Un autre nom', contacts: [] });
+    const second = await open('manager', { creditorId: other.id, mandateId: other.mandate, number: `${number}`, name: 'BATIPLUS', contacts: [] });
     const debtors = await rows<{ debtor_id: string }>('SELECT DISTINCT debtor_id FROM cases WHERE id = ANY ($1::uuid[])', [[first.id, second.id]]);
     expect(debtors).toHaveLength(1);
     const seen = await detail('manager', second.id);
@@ -473,5 +473,69 @@ describe('what the portals may read of the invoices', () => {
         [test.s.cases.ofA, test.s.creditorB],
       ),
     ).rejects.toThrow();
+  });
+});
+
+describe('a company that is already known', () => {
+  it('is the same debtor whatever the way its name is written', async () => {
+    const number = siren();
+    const first = await open('manager', { number, name: 'Bâtiplus SAS' });
+    const second = await open('manager', { number, name: 'BATI-PLUS', creditorId: other.id, mandateId: other.mandate });
+    const debtors = await rows<{ debtor_id: string }>('SELECT DISTINCT debtor_id FROM cases WHERE id = ANY ($1::uuid[])', [[first.id, second.id]]);
+    expect(debtors).toHaveLength(1);
+    expect((await detail('manager', second.id)).name).toBe('Bâtiplus SAS');
+  });
+
+  it.each([
+    ['another name', { name: 'Plomberie Martin' }],
+    ['another kind', { kind: 'SOLE_TRADER' as const }],
+  ])('is not joined under %s: nothing is recorded', async (_what, some) => {
+    const number = siren();
+    await open('director', { number, toMe: true, name: 'Nom réservé' });
+    const before = await rows('SELECT 1 FROM cases');
+    const answer = await call('manager', 'POST', '', opening({ number, name: 'Nom réservé', creditorId: other.id, mandateId: other.mandate, ...some }));
+    expect(answer).toMatchObject({ status: 409, body: { code: 'DEBTOR_MISMATCH' } });
+    expect(JSON.stringify(answer.body)).not.toContain('réservé');
+    expect(await rows('SELECT 1 FROM cases')).toHaveLength(before.length);
+  });
+
+  it('is named before the case is opened to whoever reads one of its cases, and to nobody else', async () => {
+    const number = siren();
+    await open('director', { number, toMe: true, name: 'Nom réservé' });
+    const known = async (as: string) => caseCheckResult.parse((await call(as, 'POST', '/check', { creditorId: other.id, number })).body).known;
+    expect(await known('director')).toEqual({ name: 'Nom réservé', kind: 'COMPANY' });
+    expect(await known('manager')).toBeNull();
+  });
+});
+
+describe('PostgreSQL itself', () => {
+  it('records nothing as paid, verified, or in the name of someone else', async () => {
+    const { id } = await open('manager', { toMe: true });
+    const database = new Database(test.database.url('app'));
+    const manager = { kind: 'staff', userId: test.s.manager, role: 'COLLECTION_MANAGER', delegations: [] } as const;
+    try {
+      const contact = (status: string, by: string) =>
+        database.run(
+          manager,
+          (tx) => tx.$executeRaw`INSERT INTO case_contacts (case_id, creditor_id, kind, label, value, value_normalized, status, source, created_by)
+            VALUES (${id}::uuid, ${creditor.id}::uuid, 'PHONE', 'x', ${`06 00 00 0${status.length} 99`}, ${`060000${status.length}99`}, ${status}::contact_status, 'CALL', ${by}::uuid)`,
+        );
+      await expect(contact('VERIFIED', test.s.manager)).rejects.toThrow(/42501|policy/u);
+      await expect(contact('NEW', test.s.officerA)).rejects.toThrow(/42501|policy/u);
+      expect(await contact('NEW', test.s.manager)).toBe(1);
+      const bill = (paid: number, by: string) =>
+        database.run(
+          manager,
+          (
+            tx,
+          ) => tx.$executeRaw`INSERT INTO case_invoices (case_id, creditor_id, number, issued_on, due_on, claimed_cents, principal_cents, principal_paid_cents, created_by)
+            VALUES (${id}::uuid, ${creditor.id}::uuid, ${`SQL-${paid}-${by}`}, '2026-08-01', '2026-09-01', 100, 100, ${paid}::int, ${by}::uuid)`,
+        );
+      await expect(bill(100, test.s.manager)).rejects.toThrow(/42501|policy/u);
+      await expect(bill(0, test.s.officerA)).rejects.toThrow(/42501|policy/u);
+      expect(await bill(0, test.s.manager)).toBe(1);
+    } finally {
+      await database.close();
+    }
   });
 });

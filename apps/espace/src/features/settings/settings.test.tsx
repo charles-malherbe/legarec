@@ -78,6 +78,29 @@ describe('settings', () => {
     await userEvent.click((await inDialog()).getByRole('button', { name: 'Renouveler la clé' }));
     expect(await screen.findByText('TCX_API_CLIENT_SECRET renouvelé.')).toBeVisible();
   });
+  it('renews an internal key without any value, and says when it must wait', async () => {
+    openAs('dev', '/parametres/techniques/secrets');
+    const renew = async () => {
+      await userEvent.click(await screen.findByRole('button', { name: 'Renouveler : ACCESS_CODE_KEY' }));
+      expect((await inDialog()).getByText('Clé interne')).toBeVisible();
+      await userEvent.click((await inDialog()).getByRole('button', { name: 'Renouveler la clé' }));
+    };
+    expect(screen.queryByRole('button', { name: 'Révoquer : ACCESS_CODE_KEY' })).toBeNull();
+    await renew();
+    expect(await screen.findByText('ACCESS_CODE_KEY renouvelé.')).toBeVisible();
+    server.use(http.post('/api/secrets/:id/rotate', () => HttpResponse.json({ code: 'RESEAL_PENDING' }, { status: 409 })));
+    await renew();
+    expect(await screen.findByText(/n’est pas terminé : réessayez dans quelques minutes/)).toBeVisible();
+  });
+  it('does not overwrite what someone else has just saved in the section', async () => {
+    openAs('ad', '/parametres/relances');
+    const field = await screen.findByRole('combobox', { name: 'Appels' });
+    const { version } = (await (await call('ad', '/settings/firm/relances')).json()) as { version: number };
+    expect((await call('ad', `/settings/firm/relances?version=${version}`, { calls: '1' }, 'PUT')).status).toBe(204);
+    await userEvent.selectOptions(field, '3');
+    await userEvent.click(screen.getByRole('button', { name: /Enregistrer/ }));
+    expect(await screen.findByText(/vient d’être modifiée par quelqu’un d’autre/)).toBeVisible();
+  });
 });
 
 describe('firm identity', () => {

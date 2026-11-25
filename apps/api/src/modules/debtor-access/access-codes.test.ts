@@ -7,6 +7,7 @@ import { Database } from '../../platform/database/database';
 import { keysIn } from '../vault/internal-keys';
 import { Vault } from '../vault/vault';
 import { bindingOf } from './access-codes';
+import { reseal } from './access-codes.jobs';
 import { CODE_ALPHABET, drawCode, isAccessCode, isGuessable } from './codes';
 
 let test: TestApp;
@@ -33,7 +34,9 @@ const code = async (as: string, id: string) => {
   expect(answer.status, JSON.stringify(answer.body)).toBe(200);
   return (answer.body as { code: string }).code;
 };
-const renew = (as: string, id: string) => call(as, 'POST', `/cases/${id}/access-code/regenerate`);
+const versionOf = async (as: string, id: string) => ((await call(as, 'GET', `/cases/${id}/access-code`)).body as { version?: number }).version ?? 1;
+const renew = async (as: string, id: string, version?: number) =>
+  call(as, 'POST', `/cases/${id}/access-code/regenerate`, { version: version ?? (await versionOf(as, id)) });
 const cipher = async (of: string) =>
   (await rows<{ code_cipher: Buffer }>('SELECT code_cipher FROM debtor_access_codes WHERE debtor_id = $1', [of]))[0]!.code_cipher;
 const keys = async (name: 'ACCESS_CODE_KEY' | 'LOOKUP_KEY') => {
@@ -130,10 +133,33 @@ describe('a code', () => {
       const seen = await cipher(debtor);
       for (const statement of [
         (tx: Parameters<Parameters<typeof database.run>[1]>[0]) =>
-          tx.$queryRaw`SELECT app.renew_access_code(${mine}::uuid, ${seen}, ${seen}, ${seen}, ARRAY[]::bytea[])`,
+          tx.$queryRaw`SELECT app.renew_access_code(${mine}::uuid, 1, ${seen}, ${seen}, ARRAY[]::bytea[])`,
         (tx: Parameters<Parameters<typeof database.run>[1]>[0]) => tx.$queryRaw`SELECT app.first_access_code(${mine}::uuid, ${seen})::text`,
       ])
         await expect(database.run(asStaff(test.s.officerB, 'CLAIMS_OFFICER'), statement)).rejects.toThrow(/42501|refused/u);
+    } finally {
+      await database.close();
+    }
+  });
+});
+
+describe('a closed case', () => {
+  it('gives the code of the debtor no more, nor another one', async () => {
+    const closed = await newCase(debtor, test.s.officerB, true);
+    expect(await call('officerB', 'GET', `/cases/${closed}/access-code`)).toMatchObject({ status: 409, body: { code: 'CASE_CLOSED' } });
+    expect(await renew('officerB', closed)).toMatchObject({ status: 409, body: { code: 'CASE_CLOSED' } });
+    const database = new Database(test.database.url('app'));
+    const officer = { kind: 'staff', userId: test.s.officerB, role: 'CLAIMS_OFFICER', delegations: [] } as const;
+    try {
+      expect(await database.run(officer, (tx) => tx.$queryRaw<unknown[]>`SELECT * FROM app.access_code(${closed}::uuid)`)).toEqual([]);
+      for (const statement of ['renew', 'first'])
+        await expect(
+          database.run(officer, (tx) =>
+            statement === 'first'
+              ? tx.$queryRaw`SELECT app.first_access_code(${closed}::uuid, ${Buffer.from('x')})::text`
+              : tx.$queryRaw`SELECT app.renew_access_code(${closed}::uuid, 1, ${Buffer.from('x')}, ${Buffer.from('y')}, ARRAY[]::bytea[])`,
+          ),
+        ).rejects.toThrow(/42501|refused/u);
     } finally {
       await database.close();
     }
@@ -171,7 +197,9 @@ describe('a renewal', () => {
           { kind: 'staff', userId: test.s.officerA, role: 'CLAIMS_OFFICER', delegations: [] },
           async (tx) =>
             (
-              await tx.$queryRaw<{ done: boolean }[]>`SELECT app.renew_access_code(${id}::uuid, ${await cipher(of)}, ${Buffer.from('x')}, ${Buffer.from('y')},
+              await tx.$queryRaw<
+                { done: boolean }[]
+              >`SELECT app.renew_access_code(${id}::uuid, ${await versionOf('officerA', id)}::int, ${Buffer.from('x')}, ${Buffer.from('y')},
                 ARRAY[${digest(key, `access-code:${of}:${used}`)}]::bytea[]) AS done`
             )[0]!.done,
         );
@@ -192,6 +220,23 @@ describe('a renewal', () => {
   it('is refused to whoever may not act', async () => {
     expect((await renew('director', mine)).status).toBe(403);
     expect((await renew('officerB', mine)).status).toBe(404);
+  });
+
+  it('replaces the code that was on the screen, not the one that a colleague has just given', async () => {
+    const shown = await versionOf('officerA', mine);
+    expect((await renew('officerB', elsewhere)).status).toBe(204);
+    const given = await code('officerB', elsewhere);
+    expect(await renew('officerA', mine, shown)).toMatchObject({ status: 409, body: { code: 'CHANGED' } });
+    expect(await code('officerA', mine)).toBe(given);
+  });
+
+  it('does not tell whoever follows another case who did it', async () => {
+    const of = await newDebtor();
+    const [left, right] = [await newCase(of, test.s.officerA), await newCase(of, test.s.officerB)];
+    await renew('officerA', left);
+    const actors = (id: string) => rows("SELECT actor_kind, actor_id, actor_label FROM case_events WHERE case_id = $1 AND kind = 'ACCESS_CODE_RENEWED'", [id]);
+    expect(await actors(right)).toEqual([{ actor_kind: 'SYSTEM', actor_id: null, actor_label: 'Legarec' }]);
+    expect(await actors(left)).toMatchObject([{ actor_kind: 'STAFF', actor_id: test.s.officerA }]);
   });
 });
 
@@ -248,9 +293,69 @@ describe('an internal key', () => {
     }
   });
 
-  it('keeps five of them, the current one first', async () => {
+  it('of the digests is kept for good, however often it is renewed: no former code comes back', async () => {
     const { id } = await keyOf('LOOKUP_KEY');
+    const [first] = await keys('LOOKUP_KEY');
     for (let turn = 0; turn < 6; turn += 1) expect((await call('director', 'POST', `/secrets/${id}/rotate`, {})).status).toBe(204);
-    expect(await keys('LOOKUP_KEY')).toHaveLength(5);
+    expect(await keys('LOOKUP_KEY')).toContainEqual(first);
+  });
+
+  it('of the codes is not renewed again before every code is encrypted with it: none is lost', async () => {
+    const before = await code('officerA', mine);
+    const { id } = await keyOf('ACCESS_CODE_KEY');
+    expect((await call('director', 'POST', `/secrets/${id}/rotate`, {})).status).toBe(204);
+    for (let turn = 0; turn < 6; turn += 1)
+      expect(await call('director', 'POST', `/secrets/${id}/rotate`, {})).toMatchObject({ status: 409, body: { code: 'RESEAL_PENDING' } });
+    expect(await code('officerA', mine)).toBe(before);
+    await worker.run();
+    expect((await call('director', 'POST', `/secrets/${id}/rotate`, {})).status).toBe(204);
+    await worker.run();
+    expect(await code('officerA', mine)).toBe(before);
+    expect((await keys('ACCESS_CODE_KEY')).length).toBeLessThanOrEqual(5);
+  });
+
+  it('leaves what it cannot read, and encrypts the rest again', async () => {
+    const of = await newDebtor();
+    await code('officerA', await newCase(of, test.s.officerA));
+    const broken = Buffer.from(await cipher(of));
+    broken[broken.length - 1]! ^= 1;
+    await rows('UPDATE debtor_access_codes SET code_cipher = $2 WHERE debtor_id = $1', [of, broken]);
+    const { id } = await keyOf('ACCESS_CODE_KEY');
+    expect((await call('director', 'POST', `/secrets/${id}/rotate`, {})).status).toBe(204);
+    const database = new Database(test.database.url('jobs'));
+    try {
+      const counts = await reseal((work) => database.run({ kind: 'worker', job: 'reseal' }, work), new Vault(test.config));
+      expect(counts.unreadable).toBe(1);
+      expect(counts.resealed).toBeGreaterThan(0);
+    } finally {
+      await database.close();
+    }
+    expect(await cipher(of)).toEqual(broken);
+    expect(new Keyring((await keys('ACCESS_CODE_KEY'))[0]!).isOutdated(await cipher(debtor))).toBe(false);
+    await rows('DELETE FROM debtor_access_codes WHERE debtor_id = $1', [of]);
+  });
+
+  it('of the mailboxes is neither drawn by an officer nor renewed before the mailboxes', async () => {
+    const database = new Database(test.database.url('app'));
+    try {
+      const draw = (role: 'CLAIMS_OFFICER' | 'DIRECTOR', userId: string) =>
+        database.run(
+          { kind: 'staff', userId, role, delegations: [] },
+          (tx) => tx.$queryRaw`SELECT app.first_internal_key(${randomUUID()}::uuid, 'MAILBOX_SECRETS_KEY', ${Buffer.from('x')})::text`,
+        );
+      await expect(draw('CLAIMS_OFFICER', test.s.officerA)).rejects.toThrow(/42501|refused/u);
+      // Whom nobody knows reads no key.
+      expect(
+        await database.run(
+          { kind: 'staff', userId: randomUUID(), role: 'DIRECTOR', delegations: [] },
+          (tx) => tx.$queryRaw<unknown[]>`SELECT * FROM app.internal_key('LOOKUP_KEY')`,
+        ),
+      ).toEqual([]);
+      await draw('DIRECTOR', test.s.director);
+    } finally {
+      await database.close();
+    }
+    const { id } = await keyOf('MAILBOX_SECRETS_KEY');
+    expect(await call('director', 'POST', `/secrets/${id}/rotate`, {})).toMatchObject({ status: 409 });
   });
 });

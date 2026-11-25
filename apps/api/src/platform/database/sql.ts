@@ -4,5 +4,5 @@ import { Prisma } from '../../generated/prisma/client';
 export const sql = Prisma.sql;
 export const nothing = Prisma.empty;
 export type Sql = Prisma.Sql;
-/** What was typed, whatever signs it holds. */
-export const containing = (text: string) => `%${text.trim().replace(/[\\%_]/gu, (char) => `\\${char}`)}%`;
+/** What was typed, wherever it stands; its signs for themselves, those that `unaccent` gives back too. */
+export const containing = (text: string): Sql => sql`('%' || regexp_replace(unaccent(${text.trim()}), '([\\\\%_])', '\\\\\\1', 'g') || '%')`;

@@ -35,11 +35,14 @@ export const settingsHub = z.object({
 export type SettingsHub = z.infer<typeof settingsHub>;
 export const settingsSection = z.object({
   id: z.string(),
+  /** Of what is shown: sent back with a change. */
+  version: z.number().int(),
   canEdit: z.boolean(),
   blocks: z.array(z.object({ id: z.string(), title: z.string(), description: z.string(), fields: z.array(settingField) })),
   tables: z.array(settingTable),
   notes: z.array(z.string()),
 });
+export const settingsVersionQuery = z.object({ version: z.coerce.number().int().min(0).max(1_000_000_000).optional() });
 export type SettingsSection = z.infer<typeof settingsSection>;
 
 /** Keys of the services, by the name the API looks for: nothing else is stored (question 110). */

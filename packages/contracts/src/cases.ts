@@ -144,7 +144,9 @@ export const caseDetail = caseListItem.extend({
   contactLimit: z.string().nullable(),
 });
 export type CaseDetail = z.infer<typeof caseDetail>;
-export const accessCodeResponse = z.object({ code: z.string() });
+export const accessCodeResponse = z.object({ code: z.string(), version: z.number().int() });
+/** The code that was on the screen when it was confirmed. */
+export const renewedCode = z.object({ version: z.number().int().positive().max(1_000_000) });
 export const gdprRequestKind = z.enum(['ACCESS', 'RECTIFICATION', 'OBJECTION', 'ERASURE']);
 export const GDPR_LABELS: Record<z.infer<typeof gdprRequestKind>, string> = {
   ACCESS: 'Accès',
@@ -280,6 +282,8 @@ export const caseCheckResult = z.object({
       hasContract: z.boolean(),
     })
     .nullable(),
+  /** The debtor of that number, when the person already reads one of its cases. */
+  known: z.object({ name: z.string(), kind: debtorKind }).nullable(),
   /** The next one, when none is in force. */
   startsOn: z.iso.date().nullable(),
   open: z

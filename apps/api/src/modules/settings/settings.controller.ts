@@ -5,10 +5,11 @@ import {
   settingProblems,
   settingsHub,
   settingsSection,
+  settingsVersionQuery,
   type SettingDefinition,
   type SettingTable,
 } from '@legarec/contracts';
-import { Body, Controller, Get, HttpCode, Inject, Param, Put } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Inject, Param, Put, Query } from '@nestjs/common';
 import { ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { randomUUID } from 'node:crypto';
 import type { z } from 'zod';
@@ -18,7 +19,7 @@ import { auditSentence } from '../../platform/audit/actions';
 import { Audit } from '../../platform/audit/audit';
 import type { Actor } from '../../platform/database/actor';
 import { Database } from '../../platform/database/database';
-import { forbidden, invalid, notFound } from '../../platform/errors/api-error';
+import { conflict, forbidden, invalid, notFound } from '../../platform/errors/api-error';
 import { capitalized, ago, moment } from '../../platform/format';
 import { currentActor } from '../../platform/http/context';
 import { Commits } from '../../platform/http/transaction.interceptor';
@@ -74,6 +75,7 @@ export class SettingsController {
     if (!item) throw notFound();
     return {
       id,
+      version: await this.version(scope, id),
       canEdit: this.canEdit(scope, actor),
       blocks: item.blocks.map((block) => ({
         ...block,
@@ -87,12 +89,23 @@ export class SettingsController {
     };
   }
 
+  /** Grows with each change of the section. */
+  private async version(scope: Scope, id: string): Promise<number> {
+    const { _sum: sum } = await this.database.tx.setting.aggregate({ where: { key: { startsWith: `${scope}.${id}.` } }, _sum: { version: true } });
+    return sum.version ?? 0;
+  }
+
   @Put(':scope/:id')
   @StaffOrDelegate(['ADMINISTRATIVE', 'TECHNICAL'], 'DIRECTOR')
   @Commits()
   @HttpCode(204)
   @ApiNoContentResponse()
-  async save(@Param('scope') name: string, @Param('id') id: string, @Body({ schema: body }) sent: z.infer<typeof body>): Promise<void> {
+  async save(
+    @Param('scope') name: string,
+    @Param('id') id: string,
+    @Body({ schema: body }) sent: z.infer<typeof body>,
+    @Query({ schema: settingsVersionQuery }) { version: shown }: z.infer<typeof settingsVersionQuery>,
+  ): Promise<void> {
     const { tx } = this.database;
     const actor = currentActor() as StaffActor;
     const scope = this.scope(name, actor);
@@ -101,6 +114,7 @@ export class SettingsController {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended('settings', 0))`;
     const item = (await SettingValues.read(tx)).section(scope, id);
     if (!item) throw notFound();
+    if (shown !== undefined && shown !== (await this.version(scope, id))) throw conflict('CHANGED');
     const changes = this.changes(item, sent);
     const problems = settingProblems(item, Object.fromEntries(changes.map(({ field, next }) => [field, next])));
     if (Object.keys(problems).length) throw invalid({ fields: Object.keys(problems) });

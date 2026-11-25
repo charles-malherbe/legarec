@@ -25,7 +25,7 @@ describe('case access', () => {
     for (const [path, body] of [
       ['/cases/demo/reminders', { channel: 'E-mail', template: 'Relance n°1', recipient: 'compta@batiplus.example', message: 'Bonjour' }],
       ['/cases/demo/payments', { method: 'TRANSFER', amount: 10000, receivedOn: '2026-11-24', label: 'Virement', reconciled: true }],
-      ['/cases/demo/access-code/regenerate', {}],
+      ['/cases/demo/access-code/regenerate', { version: 1 }],
       ['/cases/demo/portal-messages', { text: 'Bonjour' }],
     ] as const)
       expect((await call('ad', path, body)).status).toBe(403);
@@ -110,6 +110,12 @@ describe('case file', () => {
       ['dev', 403],
     ] as const)
       expect((await call(account, '/cases/demo/access-code')).status).toBe(status);
+  });
+  it('shows no access code once the case is closed', async () => {
+    server.use(http.get('/api/cases/demo/access-code', () => HttpResponse.json({ code: 'CASE_CLOSED' }, { status: 409 })));
+    openAs('cl', '/debiteurs/demo');
+    expect(await screen.findByText(/Ce dossier est clos : le code d’accès/)).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Régénérer le code d’accès' })).toBeNull();
   });
   it('replies to the debtor portal and shows proofs of delivery', async () => {
     openAs('cl', '/debiteurs/demo');
