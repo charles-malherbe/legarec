@@ -1,16 +1,18 @@
 import { Queue } from 'bullmq';
 import { randomBytes, randomUUID } from 'node:crypto';
+import { connect, createServer, type AddressInfo } from 'node:net';
 import { Writable } from 'node:stream';
 import { afterAll, afterEach, beforeAll, describe, expect, inject, it } from 'vitest';
 import { createTestDatabase, seed, type Seed, type TestDatabase } from '../../../test/database';
 import type { Actor } from '../database/actor';
 import { Database } from '../database/database';
 import { createLogger } from '../logging/logger';
-import { startWorkers, type AuthorKind, type JobContext, type JobDefinition, type ScheduledHandlers } from './jobs';
+import { GiveUp, TryLater } from './errors';
+import { mayActOn, startWorkers, type AuthorKind, type JobDefinition, type ScheduledHandlers } from './jobs';
 import { maintenance, purge, scheduleMaintenance } from './maintenance';
-import { Outbox, QUEUES, type Task } from './outbox';
+import { Outbox, QUEUES, type QueueName, type Task } from './outbox';
 import { OutboxPublisher } from './publisher';
-import { connectValkey, type Valkey } from './valkey';
+import { connectValkey, whenReady, type Valkey } from './valkey';
 
 let test: TestDatabase;
 let s: Seed;
@@ -48,9 +50,15 @@ const publisher = () => {
   return instance;
 };
 const EVERYONE: AuthorKind[] = ['STAFF', 'CREDITOR', 'DEBTOR', 'SERVICE', 'HOOK', 'SYSTEM', 'ANONYMOUS'];
-const work = (run: JobDefinition['run'], from: readonly AuthorKind[] = EVERYONE, scheduled?: ScheduledHandlers) => {
-  const workers = startWorkers({ database: jobs, logger, connection: valkey, handlers: { maintenance: { sample: { from, run } } }, scheduled, prefix });
-  stops.push(workers.stop);
+interface Options {
+  from?: readonly AuthorKind[];
+  repeatable?: boolean;
+  scheduled?: ScheduledHandlers;
+  database?: Database;
+}
+const work = (run: JobDefinition['run'], { from = EVERYONE, repeatable = true, scheduled, database = jobs }: Options = {}) => {
+  const handlers = { maintenance: { sample: { from, repeatable, run } } };
+  stops.push(startWorkers({ database, logger, connection: valkey, handlers, scheduled, prefix }).stop);
 };
 const queue = () => {
   const instance = new Queue('maintenance', { connection: valkey, prefix });
@@ -66,7 +74,27 @@ const until = async (condition: () => boolean | Promise<boolean>) => {
 };
 const rows = async <T extends object = Record<string, unknown>>(sql: string, values: unknown[] = []) => (await test.admin.query<T>(sql, values)).rows;
 const pending = async () => (await rows<{ n: number }>('SELECT count(*)::int AS n FROM outbox WHERE published_at IS NULL'))[0]!.n;
-const abandoned = () => logs.filter((line) => line.includes('task abandoned'));
+const logged = (text: string) => logs.filter((line) => line.includes(text)).length;
+const state = async () =>
+  (
+    await rows<{ published: boolean; started: boolean; done: boolean; failure: string | null }>(
+      'SELECT published_at IS NOT NULL AS published, started_at IS NOT NULL AS started, done_at IS NOT NULL AS done, failure FROM outbox',
+    )
+  )[0]!;
+const ended = () => until(async () => (await state()).done || (await state()).failure !== null);
+/** As if the transaction that marks it as published had been lost, and Valkey emptied. */
+const loseInValkey = async () => {
+  await test.admin.query('UPDATE outbox SET published_at = NULL, claimed_at = NULL');
+  for (const key of await inValkey()) await valkey.del(key);
+};
+/** Same number, put in Valkey by someone else. */
+const forge = async () => {
+  const [row] = await rows<{ id: string }>('SELECT id FROM outbox');
+  await queue().add('sample', {}, { jobId: row!.id, removeOnComplete: true });
+};
+const always = () => Promise.resolve(true);
+/** What Valkey holds of the tasks themselves. */
+const inValkey = async () => (await valkey.keys(`${prefix}:maintenance:*`)).filter((key) => /:[0-9a-f]{8}-[0-9a-f-]{27}/u.test(key));
 const actor = {
   officer: (): Actor => ({ kind: 'staff', userId: s.officerA, role: 'CLAIMS_OFFICER', delegations: [] }),
   director: (): Actor => ({ kind: 'staff', userId: s.director, role: 'DIRECTOR', delegations: [] }),
@@ -122,6 +150,48 @@ describe('outbox', () => {
     expect(await publisher().publish()).toBe(0);
   });
 
+  it('shares its keys within the team only: nobody takes the key of someone else', async () => {
+    const dedupeKey = `sample:${randomUUID()}`;
+    const application = () =>
+      jobs.run({ kind: 'worker', job: 'x' }, () => new Outbox(jobs).add({ queue: 'maintenance', name: 'sample', payload: {}, dedupeKey }));
+    for (const author of [actor.partner(), actor.debtor(), { kind: 'anonymous' } as Actor, { kind: 'hook' } as Actor]) {
+      expect(await add({ dedupeKey }, author), author.kind).toBe(true);
+      expect(await add({ dedupeKey }, author), author.kind).toBe(false);
+    }
+    expect(await add({ dedupeKey })).toBe(true);
+    expect(await add({ dedupeKey }, actor.director())).toBe(false);
+    expect(await application()).toBe(false);
+    // Another account of the same creditor asks for the same thing; another task does not.
+    expect(await add({ dedupeKey }, { ...actor.partner(), userId: s.partnerB, creditorId: s.creditorB } as Actor)).toBe(true);
+    expect(await add({ dedupeKey, name: 'other' })).toBe(true);
+  });
+
+  it('publishes again, an hour later, what Valkey was given and that nothing has settled', async () => {
+    for (const change of [
+      "published_at = now() - interval '2 hours'",
+      "published_at = now() - interval '2 hours', started_at = now()",
+      "published_at = now() - interval '2 hours', done_at = now()",
+      "published_at = now() - interval '2 hours', failed_at = now(), failure = 'TASK_FAILED'",
+      'published_at = now()',
+    ]) {
+      await add();
+      await test.admin.query(`UPDATE outbox SET ${change} WHERE published_at IS NULL`);
+    }
+    expect(await publisher().putBack()).toBe(2);
+    expect(logged('tasks not settled')).toBe(1);
+    expect(await publisher().putBack()).toBe(0);
+    expect(await publisher().publish()).toBe(2);
+  });
+
+  it('checks by itself what Valkey may have lost', async () => {
+    await add();
+    await test.admin.query("UPDATE outbox SET published_at = now() - interval '2 hours'");
+    const instance = publisher();
+    instance.start(10);
+    await until(async () => (await queue().getWaitingCount()) === 1);
+    await instance.stop();
+  });
+
   it('takes again, a minute later, a task lost between the table and Valkey', async () => {
     await add();
     await test.admin.query('UPDATE outbox SET claimed_at = now()');
@@ -163,14 +233,40 @@ describe('a task', () => {
     work(async () => void seen.push('run'));
     await add();
     expect(await publisher().publish()).toBe(1);
-    await until(async () => (await rows('SELECT 1 FROM outbox WHERE done_at IS NOT NULL')).length === 1);
-    // As if the transaction that marks it as published had been lost, and Valkey emptied.
-    await test.admin.query('UPDATE outbox SET published_at = NULL, claimed_at = NULL');
-    for (const key of await valkey.keys(`${prefix}:maintenance:*-*`)) await valkey.del(key);
-    const again = queue();
+    await until(async () => (await state()).done && logged('task done') === 1);
+    await loseInValkey();
     expect(await publisher().publish()).toBe(1);
-    await until(async () => (await again.getCompletedCount()) >= 1);
+    // The second delivery has ended too: without the table, it would have run.
+    await until(() => logged('task done') === 2);
     expect(seen).toEqual(['run']);
+  });
+
+  it.each([
+    ['planned for later', "run_at = now() + interval '1 day'"],
+    ['abandoned', "failed_at = now(), failure = 'TASK_FAILED'"],
+    ['done', 'done_at = now()'],
+  ])('does not run because its number is put in Valkey: %s', async (_what, change) => {
+    const seen: string[] = [];
+    work(async () => void seen.push('run'));
+    await add();
+    await test.admin.query(`UPDATE outbox SET ${change}`);
+    const before = await rows('SELECT * FROM outbox');
+    await forge();
+    await until(() => logged('task done') === 1);
+    expect(seen).toEqual([]);
+    expect(await rows('SELECT * FROM outbox')).toEqual(before);
+  });
+
+  it('leaves nothing in Valkey once it is done or abandoned', async () => {
+    let fail = false;
+    work(() => (fail ? Promise.reject(new GiveUp('REFUSED')) : Promise.resolve()));
+    for (const outcome of [false, true]) {
+      fail = outcome;
+      await add();
+      await publisher().publish();
+      await until(async () => (await rows('SELECT 1 FROM outbox WHERE done_at IS NULL AND failed_at IS NULL')).length === 0);
+      await until(async () => (await inValkey()).length === 0);
+    }
   });
 
   it('follows the order in which they were queued', async () => {
@@ -199,8 +295,55 @@ describe('a task', () => {
       await until(() => tries === i);
       if (i < 5) await until(async () => (await later.getDelayedCount()) === 1);
     }
-    await until(async () => (await rows('SELECT 1 FROM outbox WHERE failed_at IS NOT NULL AND done_at IS NULL')).length === 1);
-    expect(abandoned()).toHaveLength(1);
+    await ended();
+    expect(await state()).toMatchObject({ done: false, failure: 'TASK_FAILED' });
+    expect(logged('task abandoned')).toBe(1);
+  });
+
+  it('is not tried again when that would change nothing', async () => {
+    let tries = 0;
+    work(() => ((tries += 1), Promise.reject(new GiveUp('FIRM_INCOMPLETE'))));
+    await add();
+    await publisher().publish();
+    await ended();
+    expect([tries, (await state()).failure]).toEqual([1, 'FIRM_INCOMPLETE']);
+  });
+
+  it('waits in the table for a worker that knows it', async () => {
+    const seen: string[] = [];
+    await add();
+    await publisher().publish();
+    stops.push(startWorkers({ database: jobs, logger, connection: valkey, handlers: { maintenance: {} }, prefix }).stop);
+    await until(async () => !(await state()).published);
+    expect(await state()).toMatchObject({ started: false, done: false, failure: null });
+    expect(logged('task unknown')).toBe(1);
+    for (const stop of stops.splice(0)) await stop();
+    work(async () => void seen.push('run'));
+    expect(await publisher().publish()).toBe(0);
+    await test.admin.query("UPDATE outbox SET claimed_at = now() - interval '2 minutes'");
+    expect(await publisher().publish()).toBe(1);
+    await ended();
+    expect(seen).toEqual(['run']);
+  });
+
+  it('is tried again when the database was away, rather than given up', async () => {
+    const seen: string[] = [];
+    let cut = true;
+    const shaky = Object.create(jobs) as Database;
+    shaky.run = ((who: Actor, ...rest: [never]) => {
+      if (who.kind !== 'staff' || !cut) return jobs.run(who, ...rest);
+      cut = false;
+      return Promise.reject(new Error('Connection terminated'));
+    }) as Database['run'];
+    work(async () => void seen.push('run'), { repeatable: false, database: shaky });
+    const later = queue();
+    await add();
+    await publisher().publish();
+    await until(async () => (await later.getDelayedCount()) === 1);
+    expect(await state()).toMatchObject({ started: false, failure: null });
+    await (await later.getDelayed())[0]!.promote();
+    await ended();
+    expect([seen, (await state()).failure]).toEqual([['run'], null]);
   });
 
   it('leaves nothing in Valkey but its number, and nothing in the logs', async () => {
@@ -208,7 +351,7 @@ describe('a task', () => {
     await add({ payload: { caseId: s.cases.ofA, template: 'FORMAL_NOTICE' } });
     await publisher().publish();
     await until(() => logs.some((line) => line.includes('task failed')));
-    const jobKeys = (await valkey.keys(`${prefix}:maintenance:*`)).filter((key) => /:[0-9a-f-]{36}$/u.test(key));
+    const jobKeys = await inValkey();
     expect(jobKeys).toHaveLength(1);
     const [stored] = await Promise.all(jobKeys.map((key) => valkey.hgetall(key)));
     expect(stored).toMatchObject({ data: '{}', failedReason: 'TASK_FAILED' });
@@ -230,33 +373,96 @@ describe('a task', () => {
     expect(seen).toEqual([]);
   });
 
-  it('stays in its queue, and under a name that someone knows', async () => {
+  it('stays in its queue: a number put in another one does nothing to it', async () => {
     const seen: string[] = [];
     work(async () => void seen.push('run'));
-    const here = queue();
     await add({ queue: 'sms' });
-    await add({ name: 'other' });
-    for (const { id } of await rows<{ id: string }>('SELECT id FROM outbox')) await here.add('sample', {}, { jobId: id });
-    await until(async () => (await here.getFailedCount()) === 2);
+    const here = queue();
+    await here.add('sample', {}, { jobId: (await rows<{ id: string }>('SELECT id FROM outbox'))[0]!.id });
+    await until(async () => (await here.getFailedCount()) === 1);
     expect(seen).toEqual([]);
+    expect(await state()).toMatchObject({ started: false, done: false, failure: null });
+  });
+});
+
+describe('a task that must not run twice', () => {
+  const once = (run: JobDefinition['run']) => work(run, { repeatable: false });
+
+  it('has a single try: whatever stops it, nobody knows what has left', async () => {
+    let tries = 0;
+    once(() => ((tries += 1), Promise.reject(Object.assign(new Error('read ETIMEDOUT'), { code: 'ETIMEDOUT' }))));
+    await add();
+    await publisher().publish();
+    await ended();
+    expect([tries, (await state()).failure]).toEqual([1, 'UNCERTAIN']);
+    // Given up at once, not at a second delivery.
+    expect([logged('task failed'), logged('task abandoned')]).toEqual([0, 1]);
+  });
+
+  it.each([
+    [false, { done: false, failure: 'UNCERTAIN' }, 0],
+    [true, { done: true, failure: null }, 1],
+  ])('is uncertain when its worker was stopped in the middle (repeatable: %s)', async (repeatable, expected, runs) => {
+    const seen: string[] = [];
+    await add();
+    await test.admin.query('UPDATE outbox SET started_at = now()');
+    work(async () => void seen.push('run'), { repeatable });
+    await publisher().publish();
+    await ended();
+    expect(await state()).toMatchObject(expected);
+    expect(seen).toHaveLength(runs);
+  });
+
+  it('does not run next to itself when its lock is lost, and is done once it ends', async () => {
+    let finish = () => {};
+    let runs = 0;
+    const gate = new Promise<void>((resolve) => (finish = resolve));
+    const run = () => ((runs += 1), gate);
+    once(run);
+    await add();
+    await publisher().publish();
+    await until(() => runs === 1);
+    await loseInValkey();
+    once(run);
+    await publisher().publish();
+    await until(async () => (await state()).failure === 'UNCERTAIN');
+    finish();
+    await until(async () => (await state()).done);
+    expect([runs, (await state()).failure]).toEqual([1, null]);
+  });
+
+  it('is tried again when it says that nothing has left', async () => {
+    let tries = 0;
+    once(() => ((tries += 1), tries === 1 ? Promise.reject(new TryLater('PROVIDER_AWAY')) : Promise.resolve()));
+    const later = queue();
+    await add();
+    await publisher().publish();
+    await until(async () => (await later.getDelayedCount()) === 1);
+    expect(await state()).toMatchObject({ started: false, failure: null });
+    await (await later.getDelayed())[0]!.promote();
+    await ended();
+    expect([tries, (await state()).done]).toEqual([2, true]);
+  });
+
+  it.each(['letter', 'sms', 'staff-email'] satisfies QueueName[])('is every task of the queue %s, whatever its definition says', (name) => {
+    const handlers = { [name]: { send: { from: EVERYONE, repeatable: true, run: () => Promise.resolve() } } };
+    expect(() => startWorkers({ database: jobs, logger, connection: valkey, handlers, prefix })).toThrow(`Never repeatable in the queue ${name}: send`);
   });
 });
 
 describe('rights of a task', () => {
-  const counts = (context: Pick<JobContext, 'asAuthor' | 'asApplication'>) =>
-    Promise.all([context.asAuthor((tx) => tx.case.count()), context.asApplication((tx) => tx.case.count())]);
   const counting = (from?: readonly AuthorKind[]) => {
     const seen: number[][] = [];
-    work(async (context) => void seen.push(await counts(context)), from);
+    const run: JobDefinition['run'] = async ({ asAuthor, asApplication }) =>
+      void seen.push(await Promise.all([asAuthor((tx) => tx.case.count()), asApplication(always, (tx) => tx.case.count())]));
+    work(run, { from });
     return seen;
   };
   const refused = async (seen: unknown[], reason: string) => {
-    const failed = queue();
     await publisher().publish();
-    await until(async () => (await failed.getFailedCount()) === 1);
-    expect((await failed.getFailed())[0]!.failedReason).toBe(reason);
+    await ended();
+    expect((await state()).failure).toBe(reason);
     expect(seen).toEqual([]);
-    await until(async () => (await rows('SELECT 1 FROM outbox WHERE failed_at IS NOT NULL')).length === 1);
   };
 
   it.each<[string, () => Actor, number]>([
@@ -271,6 +477,55 @@ describe('rights of a task', () => {
     await until(() => seen.length === 1);
     // The application itself would see the four cases.
     expect(seen).toEqual([[visible, 4]]);
+  });
+
+  it('are those of a service account, which is not the application', async () => {
+    const seen: unknown[] = [];
+    work(
+      async ({ asAuthor }) =>
+        void seen.push(await asAuthor((tx) => tx.$queryRaw`SELECT current_user::text AS role, app.setting('service') IS NOT NULL AS named`)),
+    );
+    await add({}, { kind: 'service', accountId: randomUUID(), scopes: [] });
+    await publisher().publish();
+    await until(() => seen.length === 1);
+    expect(seen).toEqual([[{ role: 'legarec_service', named: true }]]);
+  });
+
+  it.each<[string, (add: () => Promise<boolean>) => Promise<boolean>]>([
+    ['a provider', () => add({}, { kind: 'hook' })],
+    ['the sign-in page', () => add({}, { kind: 'anonymous' })],
+    ['the application', () => jobs.run({ kind: 'worker', job: 'x' }, () => new Outbox(jobs).add({ queue: 'maintenance', name: 'sample', payload: {} }))],
+  ])('belong to nobody when nobody had signed in: %s', async (_who, start) => {
+    const seen: unknown[] = [];
+    work(async ({ asAuthor, asApplication }) => {
+      // There is nobody to check.
+      seen.push(
+        await asApplication(
+          () => Promise.reject(new Error('asked')),
+          (tx) => tx.case.count(),
+        ),
+      );
+      await asAuthor((tx) => tx.case.count());
+    });
+    await start(() => add());
+    await publisher().publish();
+    await ended();
+    expect([seen, (await state()).failure]).toEqual([[4], 'NO_AUTHOR']);
+  });
+
+  it.each<[string, () => Actor, keyof Seed['cases'], boolean]>([
+    ['an officer on their case', actor.officer, 'ofA', true],
+    ['an officer on the case of another', actor.officer, 'ofB', false],
+    ['the Director on their case', actor.director, 'ofDirector', true],
+    // Seen, but not theirs: reading does not prove the right to act.
+    ['the Director on the case of an officer', actor.director, 'ofA', false],
+  ])('open those of the application only to who may act: %s', async (_who, author, target, allowed) => {
+    const seen: number[] = [];
+    work(async ({ asApplication }) => void seen.push(await asApplication(mayActOn(s.cases[target]), (tx) => tx.case.count())));
+    await add({}, author());
+    await publisher().publish();
+    await ended();
+    expect([seen, (await state()).failure]).toEqual(allowed ? [[4], null] : [[], 'NOT_ALLOWED']);
   });
 
   it('are read when it runs: a case given to someone else since is out of reach', async () => {
@@ -358,16 +613,24 @@ describe('purge', () => {
         ('user:x', gen_random_uuid(), 'r', '\\x00', now() - interval '25 hours'), ('user:x', gen_random_uuid(), 'r', '\\x00', now());
       INSERT INTO webhook_events (provider, provider_event_id, status, received_at) VALUES
         ('RESEND', 'old', 'PROCESSED', now() - interval '31 days'), ('RESEND', 'late', 'RECEIVED', now() - interval '31 days'), ('RESEND', 'new', 'PROCESSED', now());
-      INSERT INTO outbox (queue, name, payload, actor_kind, published_at, done_at, failed_at) VALUES
-        ('sms', 'x-x', '{}', 'SYSTEM', now(), now() - interval '8 days', NULL), ('sms', 'x-x', '{}', 'SYSTEM', now(), NULL, now() - interval '31 days'),
-        ('sms', 'x-x', '{}', 'SYSTEM', now(), NULL, now() - interval '8 days'), ('sms', 'x-x', '{}', 'SYSTEM', now() - interval '90 days', NULL, NULL), ('sms', 'x-x', '{}', 'SYSTEM', NULL, NULL, NULL);
+      INSERT INTO outbox (queue, name, payload, actor_kind, published_at, done_at, failed_at, failure) VALUES
+        ('sms', 'x-x', '{}', 'SYSTEM', now(), now() - interval '8 days', NULL, NULL), ('sms', 'x-x', '{}', 'SYSTEM', now(), NULL, now() - interval '31 days', 'TASK_FAILED'),
+        ('sms', 'x-x', '{}', 'SYSTEM', now(), NULL, now() - interval '8 days', 'TASK_FAILED'), ('sms', 'x-x', '{}', 'SYSTEM', now() - interval '90 days', NULL, NULL, NULL),
+        ('sms', 'x-x', '{}', 'SYSTEM', NULL, NULL, NULL, NULL);
+      DELETE FROM task_keys;
+      INSERT INTO task_keys (owner, name, key, task_id, created_at) VALUES
+        ('team', 'x-x', 'x-x:00000000-0000-0000-0000-000000000001', gen_random_uuid(), now() - interval '13 months'),
+        ('team', 'x-x', 'x-x:00000000-0000-0000-0000-000000000002', gen_random_uuid(), now() - interval '11 months'),
+        ('team', 'x-x', 'x-x:00000000-0000-0000-0000-000000000003', (SELECT id FROM outbox WHERE published_at IS NULL), now() - interval '13 months');
       INSERT INTO audit_log (occurred_at, actor_kind, actor_label, action) VALUES
         (now() - interval '13 months', 'SYSTEM', 'Application', 'OLD_ENTRY'), (now() - interval '11 months', 'SYSTEM', 'Application', 'KEPT_ENTRY');`);
-    const counts = { audit: 1, idempotency: 1, outbox: 2, webhooks: 1 };
+    const counts = { audit: 1, idempotency: 1, outbox: 2, 'task-keys': 1, webhooks: 1 };
     expect(await purge(jobs, logger)).toEqual(counts);
     expect(await rows('SELECT action FROM audit_log')).toEqual([{ action: 'KEPT_ENTRY' }]);
-    const kept = await rows<{ kind: string; removed: number }>('SELECT kind, removed FROM retention_runs ORDER BY ran_at DESC LIMIT 4');
+    const kept = await rows<{ kind: string; removed: number }>('SELECT kind, removed FROM retention_runs ORDER BY ran_at DESC LIMIT 5');
     expect(Object.fromEntries(kept.map((row) => [row.kind, row.removed]))).toEqual(counts);
+    // The key of a task still to come is kept, however old it is.
+    expect(await rows('SELECT right(key, 1) AS key FROM task_keys ORDER BY key')).toEqual([{ key: '2' }, { key: '3' }]);
   });
 
   it('goes on when one of its steps fails, and says so', async () => {
@@ -383,11 +646,11 @@ describe('purge', () => {
   });
 
   it('is scheduled once, whatever the number of workers, and runs from the queue', async () => {
-    work(async () => undefined, EVERYONE, maintenance(jobs, logger));
+    work(async () => undefined, { scheduled: maintenance(jobs, logger) });
     await Promise.all([scheduleMaintenance(valkey, prefix), scheduleMaintenance(valkey, prefix)]);
     expect(await valkey.zcard(`${prefix}:maintenance:repeat`)).toBe(1);
     await queue().add('purge', {});
-    await until(() => logs.filter((line) => line.includes('purge done')).length === 4);
+    await until(() => logged('purge done') === 5);
   });
 
   it('is out of reach of the HTTP API', async () => {
@@ -404,5 +667,45 @@ describe('connection to Valkey', () => {
     await expect(away.ping()).rejects.toThrow();
     expect(performance.now() - started).toBeLessThan(2_000);
     away.disconnect();
+  });
+
+  it('is waited for by the worker, however late it comes', async () => {
+    const real = new URL(inject('valkeyUrl'));
+    const server = createServer((socket) => {
+      const there = connect(Number(real.port), real.hostname);
+      socket.pipe(there).pipe(socket);
+      for (const end of [socket, there]) end.on('error', () => undefined);
+    });
+    // A port that nobody holds yet.
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address() as AddressInfo;
+    await new Promise((resolve) => server.close(resolve));
+    const url = new URL(real);
+    url.port = String(port);
+    const late = connectValkey(url.href, 'jobs');
+    late.on('error', () => undefined);
+    let ready = false;
+    const waiting = whenReady(late).then(() => (ready = true));
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(ready).toBe(false);
+    await new Promise<void>((resolve) => server.listen(port, '127.0.0.1', resolve));
+    await waiting;
+    expect(await late.ping()).toBe('PONG');
+    await whenReady(late);
+    late.disconnect();
+    await new Promise((resolve) => server.close(resolve));
+  });
+
+  it('tells when a queue is no longer read, so that the process starts again', async () => {
+    const away = connectValkey('redis://127.0.0.1:1/0', 'jobs');
+    away.on('error', () => undefined);
+    const dead: string[] = [];
+    const handlers = { maintenance: { sample: { from: EVERYONE, repeatable: true, run: () => Promise.resolve() } } };
+    const workers = startWorkers({ database: jobs, logger, connection: away, handlers, prefix, onDead: (name) => dead.push(name) });
+    await until(() => dead.length === 1);
+    expect(dead).toEqual(['maintenance']);
+    expect(logged('queue no longer read')).toBe(1);
+    away.disconnect();
+    await Promise.race([workers.stop(), new Promise((resolve) => setTimeout(resolve, 1_000))]);
   });
 });

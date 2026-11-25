@@ -9,6 +9,12 @@ const STEPS: readonly [kind: string, remove: (tx: Transaction) => Promise<number
   ['audit', async (tx) => (await tx.$queryRaw<{ removed: number }[]>`SELECT app.purge_audit() AS removed`)[0]?.removed ?? 0],
   ['idempotency', (tx) => tx.$executeRaw`DELETE FROM idempotency_keys WHERE created_at < now() - interval '24 hours'`],
   ['outbox', (tx) => tx.$executeRaw`DELETE FROM outbox WHERE done_at < now() - interval '7 days' OR failed_at < now() - interval '30 days'`],
+  [
+    'task-keys',
+    (tx) => tx.$executeRaw`
+      DELETE FROM task_keys k WHERE created_at < now() - interval '1 year'
+        AND NOT EXISTS (SELECT 1 FROM outbox o WHERE o.id = k.task_id AND o.done_at IS NULL AND o.failed_at IS NULL)`,
+  ],
   ['webhooks', (tx) => tx.$executeRaw`DELETE FROM webhook_events WHERE received_at < now() - interval '30 days'`],
 ];
 
@@ -44,7 +50,11 @@ export async function scheduleMaintenance(connection: ConnectionOptions, prefix 
   await queue.upsertJobScheduler(
     'purge',
     { pattern: '30 3 * * *', tz: 'Europe/Paris' },
-    { name: 'purge', data: {}, opts: { attempts: 3, backoff: { type: 'exponential', delay: 60_000 }, stackTraceLimit: 0 } },
+    {
+      name: 'purge',
+      data: {},
+      opts: { attempts: 3, backoff: { type: 'exponential', delay: 60_000 }, stackTraceLimit: 0, removeOnComplete: true, removeOnFail: true },
+    },
   );
   await queue.close();
 }
