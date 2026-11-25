@@ -50,6 +50,7 @@ const auth = {
   'POST /auth/reset/:token': [{ password: 'motdepasse12' }],
   'POST /auth/invitation/:token/password': [{ password: 'motdepasse12' }],
   'POST /auth/invitation/:token/totp': [{ code: '123456' }],
+  'POST /auth/setup/totp/verify': [{ code: '123456' }],
 };
 const qualification = {
   tcxCode: 'ABSENT',
@@ -182,7 +183,7 @@ const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly
       { firstName: 'Ana', lastName: 'Costa', role: 'CREDITOR', email: 'a@exemple.fr', creditorId: 'md' },
     ],
     'PUT /members/:id/role': [{ role: 'CLAIMS_OFFICER' }],
-    'POST /members/:id/disable': [{ reason: 'Départ' }],
+    'POST /members/:id/disable': [{ reason: 'Départ', cases: 12 }],
     'PUT /members/:id/extension': [{ extension: '104' }, { extension: null }],
     'PUT /settings/:scope/:id': [{ duration: '12 mois' }, { iban: '[IBAN DU COMPTE DÉDIÉ]' }, { dailyCap: true }],
     'POST /secrets': [{ name: 'EX_TEST', service: 'Test', value: 'valeur-fictive-de-test', rotation: '90' }],
