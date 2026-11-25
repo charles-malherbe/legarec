@@ -1,10 +1,11 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import type { TestProject } from 'vitest/node';
+import { isOwnService } from '../src/platform/config/urls';
+import { migrate } from '../src/platform/database/migrate';
 
 const API = fileURLToPath(new URL('..', import.meta.url));
 const MIGRATIONS = join(API, 'prisma', 'migrations');
@@ -21,10 +22,7 @@ declare module 'vitest' {
 
 /** Production listens on the standard ports of this machine: a test never goes near them. */
 export function assertTestUrl(value: string, name: string): string {
-  const url = new URL(value);
-  if (!['127.0.0.1', 'localhost'].includes(url.hostname) || ['', '5432', '6379'].includes(url.port)) {
-    throw new Error(`${name}: tests only run on 127.0.0.1, never on port 5432 or 6379.`);
-  }
+  if (!isOwnService(value)) throw new Error(`${name}: tests only run on 127.0.0.1, never on port 5432 or 6379.`);
   return value;
 }
 
@@ -83,11 +81,7 @@ export default async function setup(project: TestProject) {
       url.username = 'legarec_owner';
       url.password = passwords.owner;
       url.pathname = `/${building}`;
-      execFileSync('pnpm', ['exec', 'prisma', 'migrate', 'deploy'], {
-        cwd: API,
-        env: { ...process.env, MIGRATION_DATABASE_URL: url.href, PRISMA_HIDE_UPDATE_MESSAGE: '1' },
-        stdio: 'pipe',
-      });
+      await migrate(url.href, MIGRATIONS);
       await admin.query(`ALTER DATABASE ${building} RENAME TO ${template}`);
     }
   } finally {

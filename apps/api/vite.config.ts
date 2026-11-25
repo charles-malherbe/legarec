@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 
-/** Two programs from the same code: the HTTP API and the worker. The dependencies stay outside, installed beside. */
+/** Three programs from the same code: the HTTP API, the worker and the migrations. The dependencies stay outside, installed beside. */
 export default defineConfig({
   // No `.env` is ever read here: the values reach the process when it starts.
   envDir: false,
@@ -10,7 +10,7 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     sourcemap: true,
-    rollupOptions: { input: { main: 'src/main.ts', worker: 'src/worker.ts' } },
+    rollupOptions: { input: { main: 'src/main.ts', worker: 'src/worker.ts', migrate: 'src/migrate.ts' } },
   },
   ssr: { noExternal: [/^@legarec\//u] },
 });
