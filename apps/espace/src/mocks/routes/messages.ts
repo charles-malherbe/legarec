@@ -579,7 +579,7 @@ export const messageHandlers = [
         threads: visible.map((item) => ({ ...item, canAct: item.linked ? mayAnswer(session, item.caseId) : session.role === 'COLLECTION_MANAGER' })),
         total: session.role === 'CLAIMS_OFFICER' ? visible.length : 64,
         stopNotice: 'STOP : répondez STOP',
-        stats: session.role === 'CLAIMS_OFFICER' ? null : { sent: 1284, delivered: 97.2, answers: 18, stops: 8 },
+        stats: session.role === 'CLAIMS_OFFICER' ? null : { sent: 1284, delivered: 97.2, answers: 18, stops: 8, stopRate: 0.6 },
       });
     }),
   ),

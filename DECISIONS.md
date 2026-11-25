@@ -126,3 +126,7 @@ Décisions prises après la maquette v1.21 (23/11/2026). Elles priment sur la ma
 | 24/11/2026 | Dépôt des logos sur media.legarec.fr et saisie des valeurs entre crochets : reportés à la mission API | Demande du cabinet |
 | 24/11/2026 | Article L111-8 : citation du kit conservée partout, après comparaison avec le code (édition du 06/11/2026), dont elle diffère aux alinéas 2 et 3 | Choix du cabinet, confirmé en connaissance de l'écart |
 | 24/11/2026 | Serveur : `debian` retiré du groupe `docker` ; `sudo` non modifié (sans mot de passe). Claude Code n'utilise ni `sudo` ni Docker | Choix du cabinet ; complète la question 36 |
+| 25/11/2026 | SMS : « + Nouveau SMS » (N) comme dans la maquette ; « Désinscriptions » en taux, avec le nombre du mois ; « Distribués » à la place de « Paiements sous 7 jours », qui suppose le paiement en ligne (question 61) | Réponse du cabinet |
+| 25/11/2026 | Entrepreneur individuel : pas de score de risque, comme un particulier ; les 40 € restent dus. À appliquer avec la forme juridique, dans la mission API (question 62) | Réponse du cabinet |
+| 25/11/2026 | Page Confidentialité complétée : enregistrements d'appels, données de connexion, fournisseur d'IA, transferts hors de l'UE, comptes des créanciers et des collaborateurs ; à relire par le cabinet (question 63) | Réponse du cabinet |
+| 25/11/2026 | En cas de contradiction entre `PROMPT-FRONT.md` et `DECISIONS.md`, la décision la plus récente de `DECISIONS.md` l'emporte (question 64) | Réponse du cabinet |

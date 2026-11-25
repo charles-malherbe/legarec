@@ -10,7 +10,7 @@
       },
       "attendu": {
         "categorie": "echeancier",
-        "dossier": "DOS-2026-0142",
+        "dossier": "LGR-2026-00142",
         "montants": [
           "18 600 €",
           "29 600 €"
@@ -33,7 +33,7 @@
       },
       "attendu": {
         "categorie": "litige",
-        "dossier": "DOS-2026-0170",
+        "dossier": "LGR-2026-00170",
         "montants": [],
         "dates": [],
         "factures": [
@@ -47,11 +47,11 @@
       "entree": {
         "de": "Nordis Logistique",
         "objet": "Avis de virement – 12 500 €",
-        "corps": "Bonjour,\n\nVeuillez trouver ci-joint l’avis de virement de 12 500 € émis ce jour, en règlement partiel du dossier DOS-2026-0163.\n\nLe solde de 8 900 € sera réglé le 15 décembre comme convenu.\n\nService comptabilité fournisseurs"
+        "corps": "Bonjour,\n\nVeuillez trouver ci-joint l’avis de virement de 12 500 € émis ce jour, en règlement partiel du dossier LGR-2026-00163.\n\nLe solde de 8 900 € sera réglé le 15 décembre comme convenu.\n\nService comptabilité fournisseurs"
       },
       "attendu": {
         "categorie": "paiement",
-        "dossier": "DOS-2026-0163",
+        "dossier": "LGR-2026-00163",
         "montants": [
           "12 500 €",
           "8 900 €"
@@ -72,7 +72,7 @@
       },
       "attendu": {
         "categorie": "promesse",
-        "dossier": "DOS-2026-0151",
+        "dossier": "LGR-2026-00151",
         "montants": [],
         "dates": [
           "2026-11-30"
@@ -86,11 +86,11 @@
       "entree": {
         "de": "Mail Delivery System",
         "objet": "Échec de remise : compta@garagevalmont.example",
-        "corps": "Votre message « Relance n°3 – DOS-2026-0098 » n’a pas pu être remis à compta@garagevalmont.example.\n\nMotif : boîte aux lettres inexistante (550 5.1.1)."
+        "corps": "Votre message « Relance n°3 – LGR-2026-00098 » n’a pas pu être remis à compta@garagevalmont.example.\n\nMotif : boîte aux lettres inexistante (550 5.1.1)."
       },
       "attendu": {
         "categorie": "rebond",
-        "dossier": "DOS-2026-0098",
+        "dossier": "LGR-2026-00098",
         "montants": [],
         "dates": [],
         "factures": [],
@@ -106,7 +106,7 @@
       },
       "attendu": {
         "categorie": "paiement",
-        "dossier": "DOS-2026-0181",
+        "dossier": "LGR-2026-00181",
         "montants": [],
         "dates": [],
         "factures": [

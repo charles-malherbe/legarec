@@ -108,4 +108,5 @@
   - plafonds de contact appliqués par débiteur à tous les envois (fiche, groupé, SMS, e-mails, courriers), contacts réels compris
   - accès débiteur : limite réelle par adresse IP, alerte au gestionnaire lors d'un blocage
   - invitation d'un collaborateur envoyée après la création de sa boîte
+  - score de risque : exclure les entrepreneurs individuels, d'après la forme juridique
 - Les numéros de la colonne « Points ouverts » renvoient à d'anciennes questions, toutes tranchées.

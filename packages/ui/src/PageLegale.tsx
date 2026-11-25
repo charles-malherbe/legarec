@@ -36,12 +36,13 @@ const PAGES: Record<'mentions' | 'confidentialite' | 'cookies', { title: string;
       ],
       [
         'Quelles données et d’où elles viennent',
-        'Identité, coordonnées, factures, paiements, échanges et pièces du dossier. Elles sont transmises par le créancier, ou par vous lors de nos échanges.',
+        'Identité, coordonnées, factures, paiements, échanges et pièces du dossier. Elles sont transmises par le créancier, ou par vous lors de nos échanges. S’y ajoutent les enregistrements d’appels, lorsqu’ils sont annoncés, et les données de connexion : adresse IP, date, actions sensibles.',
       ],
       [
         'À qui elles sont communiquées',
-        'Au créancier, aux collaborateurs habilités du cabinet et à ses prestataires techniques (hébergement, courrier, e-mail, SMS, téléphonie) ; le cas échéant, à l’avocat ou au commissaire de justice choisi par le créancier.',
+        'Au créancier, aux collaborateurs habilités du cabinet et à ses prestataires techniques (hébergement, courrier, e-mail, SMS, téléphonie) ; le cas échéant, à l’avocat ou au commissaire de justice choisi par le créancier. Fournisseur de l’assistance par IA : [FOURNISSEUR IA], hébergé dans l’Union européenne.',
       ],
+      ['Transferts hors de l’Union européenne', '[PRESTATAIRES CONCERNÉS ET GARANTIES].'],
       [
         'Combien de temps',
         'Dossiers soldés ou irrécouvrables : 5 ans après leur clôture, en archive à accès restreint. Factures et pièces comptables : 10 ans. Enregistrements d’appels : 6 mois. Journal des actions : 1 an.',
@@ -53,6 +54,10 @@ const PAGES: Record<'mentions' | 'confidentialite' | 'cookies', { title: string;
       [
         'Priorité des dossiers d’entreprises',
         'Un indicateur de risque, calculé par des règles simples (montant, ancienneté, promesses non tenues), peut aider à organiser le travail. Il est indicatif, n’existe pas pour les particuliers et n’entraîne aucune décision automatique.',
+      ],
+      [
+        'Comptes des créanciers et des collaborateurs',
+        'Identité, adresse e-mail, rôle et journal de connexion, pour l’accès au service et sa sécurité. Conservation : durée du compte ; journal : 1 an.',
       ],
       [
         'Vos droits',

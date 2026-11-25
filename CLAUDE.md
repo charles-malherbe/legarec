@@ -10,7 +10,7 @@ Cabinet de recouvrement amiable (Paris, 01 87 88 02 98). Ce dépôt transforme u
 - **Glossaire** : créancier, mandant → creditor ; débiteur → debtor ; dossier → case ; créance → claim ; relance → reminder ; échéancier → payment plan ; échéance → installment ; mise en demeure → formal notice ; quittance → receipt ; courrier → letter ; LRAR → registered letter ; accusé de réception → acknowledgment of receipt ; pièce → attachment ; contentieux → litigation ; rapprochement → reconciliation ; reversement → remittance ; facture → invoice ; avoir → credit note ; modèle → template ; paramètres → settings ; IA → AI ; délégation → delegation ; code d'accès → access code.
 
 ## Sources de vérité (dans cet ordre)
-1. `PROMPT-FRONT.md` (mission en cours) et `DECISIONS.md` : décisions prises après la maquette. Elles priment sur tout le reste.
+1. `PROMPT-FRONT.md` (mission en cours) et `DECISIONS.md` : décisions prises après la maquette. Elles priment sur tout le reste. En cas de contradiction entre les deux, la décision la plus récente de `DECISIONS.md` l'emporte.
 2. `maquette/HANDOFF.md` : règles métier, parcours, textes.
 3. `maquette/captures/` : référence visuelle (PNG à 1440, 1024 et 390 px). `maquette/*.dc.html` : structure, états et données de chaque écran.
 4. `docs/` : stack, architecture, domaines et services, lecture de la maquette, assistant IA. À lire avant de toucher à la partie concernée.
