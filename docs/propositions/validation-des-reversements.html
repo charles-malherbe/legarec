@@ -1,0 +1,953 @@
+<!doctype html>
+<html lang="fr" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Proposition 3 · Validation des reversements</title>
+    <link rel="stylesheet" href="propositions.css" />
+  </head>
+  <body>
+    <svg class="sprite" aria-hidden="true">
+      <symbol id="i-agenda" viewBox="0 0 24 24">
+        <path
+          d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"
+        ></path>
+      </symbol>
+      <symbol id="i-alert" viewBox="0 0 24 24">
+        <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"></path>
+      </symbol>
+      <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"></path></symbol>
+      <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"></path></symbol>
+      <symbol id="i-box" viewBox="0 0 24 24"><path d="M3 7l9-4 9 4-9 4-9-4zM3 7v10l9 4 9-4V7"></path></symbol>
+      <symbol id="i-building" viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1M14 9h1M9 13h1M14 13h1M9 17h1M14 17h1"></path></symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24">
+        <path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"></path>
+      </symbol>
+      <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v18h18M7 16v-4M12 16V8M17 16v-7"></path></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></symbol>
+      <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></symbol>
+      <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></symbol>
+      <symbol id="i-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"></path></symbol>
+      <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5"></path></symbol>
+      <symbol id="i-help" viewBox="0 0 24 24"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"></path></symbol>
+      <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z"></path></symbol>
+      <symbol id="i-info" viewBox="0 0 24 24"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16v-4M12 8h.01"></path></symbol>
+      <symbol id="i-invoice" viewBox="0 0 24 24">
+        <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1zM8 8h8M8 12h8M8 16h5"></path>
+      </symbol>
+      <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 2 10 5-10 5L2 7zM2 17l10 5 10-5M2 12l10 5 10-5"></path></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24">
+        <path d="M5 11h14a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1zM8 11V7a4 4 0 0 1 8 0v4"></path>
+      </symbol>
+      <symbol id="i-mail" viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM22 7l-10 6L2 7"></path></symbol>
+      <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"></path></symbol>
+      <symbol id="i-newdoc" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M12 12v6M9 15h6"></path></symbol>
+      <symbol id="i-phone" viewBox="0 0 24 24">
+        <path
+          d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"
+        ></path>
+      </symbol>
+      <symbol id="i-plan" viewBox="0 0 24 24">
+        <path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM9 16l2 2 4-4"></path>
+      </symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></symbol>
+      <symbol id="i-scale" viewBox="0 0 24 24"><path d="M12 3v18M7 21h10M3 7h18M6 7l-3 7a3 3 0 0 0 6 0L6 7M18 7l-3 7a3 3 0 0 0 6 0l-3-7"></path></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-3.5-3.5"></path></symbol>
+      <symbol id="i-selector" viewBox="0 0 24 24"><path d="m7 15 5 5 5-5M7 9l5-5 5 5"></path></symbol>
+      <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"></path></symbol>
+      <symbol id="i-sms" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2zM8 9h8M8 13h5"></path></symbol>
+      <symbol id="i-team" viewBox="0 0 24 24">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"></path>
+      </symbol>
+      <symbol id="i-users" viewBox="0 0 24 24">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
+      </symbol>
+      <symbol id="i-x-circle" viewBox="0 0 24 24"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM15 9l-6 6M9 9l6 6"></path></symbol>
+    </svg>
+    <section class="note" aria-label="Proposition">
+      <p><strong>Proposition 3 sur 4 · Validation des reversements</strong> · validée par le cabinet le 25/11/2026 (question 69). Données fictives.</p>
+      <nav aria-label="Propositions">
+        <a href="#ecran">Écran</a><a href="#etats">États</a><a href="creancier-et-mandat.html">1. Créancier et mandat</a
+        ><a href="debiteur-et-factures.html">2. Débiteur et factures</a
+        ><a href="validation-des-reversements.html" aria-current="page">3. Validation des reversements</a><a href="avoir.html">4. Avoir</a>
+      </nav>
+    </section>
+    <div class="shell">
+      <div class="sidebar">
+        <nav aria-label="Navigation principale" tabindex="0">
+          <div class="brand">
+            <span class="logo" aria-hidden="true">L</span><span><strong>Legarec</strong>Recouvrement de créances</span>
+          </div>
+          <div class="switch">
+            <span class="badgeAll"
+              ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-layers"></use></svg></span
+            ><span class="switchText">Créancier actif<strong>Tous les créanciers</strong></span
+            ><svg class="icone" aria-hidden="true"><use href="#i-selector"></use></svg>
+          </div>
+          <div class="menu">
+            <div>
+              <span class="menuLabel"
+                >Pilotage<svg class="icone" aria-hidden="true" data-size="sm"><use href="#i-chevron-down"></use></svg></span
+              ><span class="menuItem"
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-home"></use></svg><span>Tableau de bord</span></span
+              ><span class="menuItem"
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-chart"></use></svg><span>Rapports</span></span
+              ><span class="menuItem"
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-team"></use></svg><span>Équipe</span
+                ><span class="menuCount" data-tone="muted">3</span></span
+              ><span class="menuItem" data-on
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-invoice"></use></svg><span>Facturation</span></span
+              >
+            </div>
+            <div>
+              <span class="menuLabel"
+                >Portefeuille<svg class="icone" aria-hidden="true" data-size="sm"><use href="#i-chevron-down"></use></svg></span
+              ><span class="menuItem"
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-building"></use></svg><span>Créanciers</span></span
+              ><span class="menuItem"
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-users"></use></svg><span>Débiteurs</span></span
+              >
+            </div>
+            <div>
+              <span class="menuLabel"
+                >Recouvrement<svg class="icone" aria-hidden="true" data-size="sm"><use href="#i-chevron-down"></use></svg></span
+              ><span class="menuItem"
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-agenda"></use></svg><span>Relances</span
+                ><span class="menuCount" data-tone="navy">7</span></span
+              ><span class="menuItem"
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-plan"></use></svg><span>Échéanciers</span></span
+              ><span class="menuItem"
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-scale"></use></svg><span>Contentieux</span
+                ><span class="menuCount" data-tone="rose">2</span></span
+              >
+            </div>
+            <div>
+              <span class="menuLabel"
+                >Communication<svg class="icone" aria-hidden="true" data-size="sm"><use href="#i-chevron-down"></use></svg></span
+              ><span class="menuItem"
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-phone"></use></svg><span>Appels</span
+                ><span class="menuCount" data-tone="muted">24</span></span
+              ><span class="menuItem"
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-mail"></use></svg><span>E-mails</span
+                ><span class="menuCount" data-tone="yellow">12</span></span
+              ><span class="menuItem"
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-sms"></use></svg><span>SMS</span
+                ><span class="menuCount" data-tone="yellow">3</span></span
+              >
+            </div>
+            <div>
+              <span class="menuLabel"
+                >Documents<svg class="icone" aria-hidden="true" data-size="sm"><use href="#i-chevron-down"></use></svg></span
+              ><span class="menuItem"
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-file"></use></svg><span>Tous les documents</span></span
+              ><span class="menuItem"
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-newdoc"></use></svg><span>Rédiger un courrier</span></span
+              >
+            </div>
+            <div>
+              <span class="menuItem"
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-settings"></use></svg><span>Paramètres</span></span
+              >
+            </div>
+          </div>
+        </nav>
+      </div>
+      <div class="main">
+        <section class="mobile" aria-label="Menu et créancier actif">
+          <span class="burger" aria-hidden="true"
+            ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-menu"></use></svg></span
+          ><span class="logo" aria-hidden="true">L</span><strong>Legarec</strong><span class="scopeName">Tous les créanciers</span>
+        </section>
+        <header class="topbar">
+          <nav class="crumbs" aria-label="Fil d'Ariane">
+            <ol>
+              <li><span>Pilotage</span></li>
+              <li>
+                <svg class="icone" aria-hidden="true" data-size="sm"><use href="#i-chevron-right"></use></svg><span>Facturation</span>
+              </li>
+              <li>
+                <svg class="icone" aria-hidden="true" data-size="sm"><use href="#i-chevron-right"></use></svg><span aria-current="page">Reversements</span>
+              </li>
+            </ol>
+          </nav>
+          <button type="button" class="tool" aria-label="Mode malvoyant">Aa</button>
+          <div class="searchBox" role="search">
+            <svg class="icone" aria-hidden="true"><use href="#i-search"></use></svg><span>Débiteur, SIRET, SIREN, facture…</span><kbd>/</kbd>
+          </div>
+          <div class="tools">
+            <button type="button" class="bouton" aria-label="Créer">
+              <svg class="icone" aria-hidden="true"><use href="#i-plus"></use></svg><span>Créer</span></button
+            ><button type="button" class="tool" data-desktop aria-label="Centre d'aide">
+              <svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-help"></use></svg></button
+            ><button type="button" class="tool" aria-label="Notifications, 4 non lues">
+              <svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-bell"></use></svg><span class="unread" aria-hidden="true">4</span></button
+            ><span class="account" role="img" aria-label="Compte de Camille Laurent">CL</span>
+          </div>
+        </header>
+        <div class="delegation" role="status">
+          <svg class="icone" aria-hidden="true"><use href="#i-users"></use></svg><strong>Pour le compte du Directeur</strong
+          ><span>Marie Dubreuil · délégation administrative. Vos deux noms sont notés dans l’historique.</span>
+        </div>
+        <main class="page" id="ecran">
+          <a href="avoir.html" class="bouton retour" data-variant="link" data-size="sm"
+            ><svg class="icone" aria-hidden="true"><use href="#i-arrow-left"></use></svg><span>Facturation</span></a
+          >
+          <div class="pageHeader">
+            <header>
+              <div>
+                <h1>Reversements</h1>
+                <p>Lot du 15 décembre 2026 · REV‑2026‑12 · paiements définitifs du 15/11 au 14/12/2026</p>
+              </div>
+              <div class="actions">
+                <a href="#confirmer-lot" class="bouton"><span>Valider le lot</span><kbd>N</kbd></a>
+              </div>
+            </header>
+            <section class="stats" aria-label="Chiffres du lot">
+              <div class="stat"><span>À verser</span><strong data-tone="marine">86 240,00 €</strong><span>4 virements</span></div>
+              <div class="stat"><span>Encaissé</span><strong>98 395,66 €</strong><span>35 encaissements</span></div>
+              <div class="stat"><span>Honoraires TTC</span><strong>9 545,66 €</strong><span>4 factures de commission</span></div>
+              <div class="stat"><span>Reprises</span><strong data-tone="danger">− 2 610,00 €</strong><span>1 chèque impayé</span></div>
+              <div class="stat"><span>Reporté</span><strong data-tone="warning">94,00 €</strong><span>1 créancier sous 100 €</span></div>
+            </section>
+          </div>
+          <div class="toolbar">
+            <div class="onglets" role="tablist" aria-label="Lots">
+              <button type="button" role="tab" class="onglet" aria-selected="true">À valider<span class="count">1</span></button
+              ><button type="button" role="tab" class="onglet" aria-selected="false" tabindex="-1">Virements à faire<span class="count">0</span></button
+              ><button type="button" role="tab" class="onglet" aria-selected="false" tabindex="-1">Versés<span class="count">11</span></button>
+            </div>
+            <span class="right">Validation avant virement : activée dans Paramètres › Reversements</span>
+          </div>
+          <section class="carte">
+            <div class="body">
+              <ol class="steps">
+                <li data-state="done">
+                  <span class="mark" aria-hidden="true"
+                    ><svg class="icone" aria-hidden="true"><use href="#i-check"></use></svg></span
+                  ><span class="text"><span class="strong">Préparation</span><span class="hint">Automatique, 14/12/2026 à 06:00</span></span>
+                </li>
+                <li data-state="next">
+                  <span class="mark" aria-hidden="true">2</span
+                  ><span class="text"><span class="strong">Validation</span><span class="hint">Directeur, ou Responsable par délégation</span></span>
+                </li>
+                <li data-state="todo">
+                  <span class="mark" aria-hidden="true">3</span
+                  ><span class="text"><span class="strong">Virements</span><span class="hint">Saisis à la banque, puis marqués versés</span></span>
+                </li>
+                <li data-state="todo">
+                  <span class="mark" aria-hidden="true">4</span
+                  ><span class="text"><span class="strong">Relevés</span><span class="hint">Envoyés aux créanciers avec la facture</span></span>
+                </li>
+              </ol>
+            </div>
+          </section>
+          <div class="alerte" data-tone="warning" role="note">
+            <svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-alert"></use></svg>
+            <div>
+              <strong>TransAlp Leasing : nouveau compte</strong
+              ><span>Compte remplacé le 08/12/2026 et confirmé par téléphone. Premier virement vers cet IBAN.</span
+              ><button type="button" class="bouton" data-variant="secondary" data-size="sm"><span>Voir le compte</span></button>
+            </div>
+          </div>
+          <div class="alerte" data-tone="info" role="note">
+            <svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-info"></use></svg>
+            <div>
+              <strong>Matériaux Delta : commission déjà facturée sur un chèque impayé</strong
+              ><span>208,80 € HT sur FA‑2026‑0116. La correction passe par un avoir.</span
+              ><a href="avoir.html" class="bouton" data-variant="secondary" data-size="sm"><span>Préparer l’avoir</span></a>
+            </div>
+          </div>
+          <section class="carte">
+            <header>
+              <div>
+                <div class="heading">
+                  <h2>Lot du 15 décembre 2026</h2>
+                  <span class="badge" data-tone="warning">À valider</span>
+                </div>
+                <p>Calculé par l’application, non modifiable à la main. Dépliez un créancier pour voir ses encaissements.</p>
+              </div>
+            </header>
+            <div class="body" data-padding="none">
+              <div class="tableau" role="group" tabindex="0" aria-label="Reversements du lot" data-min data-tight>
+                <table>
+                  <caption class="hidden">
+                    Reversements du lot
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Créancier</th>
+                      <th scope="col" data-align="right">Encaissé</th>
+                      <th scope="col" data-align="right">Honoraires TTC</th>
+                      <th scope="col" data-align="right">Reprises</th>
+                      <th scope="col" data-align="right">À verser</th>
+                      <th scope="col">Compte</th>
+                      <th scope="col">Contrôle</th>
+                      <th scope="col"><span class="hidden">Action</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr data-open>
+                      <td>
+                        <span class="inline" data-nowrap
+                          ><button type="button" class="toggle" aria-expanded="true" aria-label="Détail de Matériaux Delta">
+                            <svg class="icone" aria-hidden="true"><use href="#i-chevron-down"></use></svg></button
+                          ><span class="text"><span class="strong">Matériaux Delta</span><span class="hint">4 encaissements · 8 % HT</span></span></span
+                        >
+                      </td>
+                      <td data-align="right" data-nowrap>24 902,00 €</td>
+                      <td data-align="right" data-nowrap>
+                        <span class="text">− 2 444,59 €<span class="hint">2 037,16 € HT</span></span>
+                      </td>
+                      <td data-align="right" data-nowrap><span class="danger">− 2 610,00 €</span></td>
+                      <td data-align="right" data-nowrap><span class="strong">19 847,41 €</span></td>
+                      <td><span class="hint nowrap">FR76 •••• 4521</span></td>
+                      <td><span class="badge" data-tone="warning">1 reprise</span></td>
+                      <td>
+                        <button type="button" class="bouton" data-variant="secondary" data-size="sm" aria-label="Retenir le reversement de Matériaux Delta">
+                          <span>Retenir</span>
+                        </button>
+                      </td>
+                    </tr>
+                    <tr data-detail>
+                      <td colspan="8">
+                        <div class="tableau" role="group" tabindex="0" aria-label="Détail du reversement de Matériaux Delta" data-min="sm" data-bordered>
+                          <table>
+                            <caption class="hidden">
+                              Détail du reversement de Matériaux Delta
+                            </caption>
+                            <thead>
+                              <tr>
+                                <th scope="col">Date</th>
+                                <th scope="col">Débiteur</th>
+                                <th scope="col">Nature</th>
+                                <th scope="col" data-align="right">Montant</th>
+                                <th scope="col" data-align="right">Honoraires HT</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td>24/11/2026</td>
+                                <td>
+                                  <span class="text"><span class="strong">Charpentes Bellet</span><span class="hint">LGR‑2026‑00109</span></span>
+                                </td>
+                                <td>Chèque encaissé</td>
+                                <td data-align="right" data-nowrap>2 000,00 €</td>
+                                <td data-align="right" data-nowrap>160,00 €</td>
+                              </tr>
+                              <tr>
+                                <td>28/11/2026</td>
+                                <td>
+                                  <span class="text"><span class="strong">Bâtiplus SAS</span><span class="hint">LGR‑2026‑00142</span></span>
+                                </td>
+                                <td>Virement rapproché</td>
+                                <td data-align="right" data-nowrap>18 600,00 €</td>
+                                <td data-align="right" data-nowrap>1 488,00 €</td>
+                              </tr>
+                              <tr>
+                                <td>02/12/2026</td>
+                                <td>
+                                  <span class="text"><span class="strong">Menuiserie Rivoire</span><span class="hint">LGR‑2026‑00188</span></span>
+                                </td>
+                                <td>Chèque encaissé</td>
+                                <td data-align="right" data-nowrap>785,00 €</td>
+                                <td data-align="right" data-nowrap>62,80 €</td>
+                              </tr>
+                              <tr>
+                                <td>05/12/2026</td>
+                                <td>
+                                  <span class="text"><span class="strong">SCI Les Tilleuls</span><span class="hint">LGR‑2026‑00175</span></span>
+                                </td>
+                                <td>Virement · échéance 3/4</td>
+                                <td data-align="right" data-nowrap>3 517,00 €</td>
+                                <td data-align="right" data-nowrap>281,36 €</td>
+                              </tr>
+                              <tr>
+                                <td>—</td>
+                                <td>Frais d’ouverture</td>
+                                <td>3 dossiers × 15,00 €</td>
+                                <td data-align="right" data-nowrap>—</td>
+                                <td data-align="right" data-nowrap>45,00 €</td>
+                              </tr>
+                              <tr>
+                                <td>20/11/2026</td>
+                                <td>
+                                  <span class="text"><span class="strong">Menuiserie Rivoire</span><span class="hint">LGR‑2026‑00188</span></span>
+                                </td>
+                                <td><span class="badge" data-tone="danger">Chèque impayé, reversé le 15/11</span></td>
+                                <td data-align="right" data-nowrap><span class="danger">− 2 610,00 €</span></td>
+                                <td data-align="right" data-nowrap>—</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <span class="inline" data-nowrap
+                          ><button type="button" class="toggle" aria-expanded="false" aria-label="Détail de Énergies Rhône">
+                            <svg class="icone" aria-hidden="true"><use href="#i-chevron-right"></use></svg></button
+                          ><span class="text"><span class="strong">Énergies Rhône</span><span class="hint">17 encaissements · 7 % HT</span></span></span
+                        >
+                      </td>
+                      <td data-align="right" data-nowrap>42 643,66 €</td>
+                      <td data-align="right" data-nowrap>
+                        <span class="text">− 3 582,07 €<span class="hint">2 985,06 € HT</span></span>
+                      </td>
+                      <td data-align="right" data-nowrap>—</td>
+                      <td data-align="right" data-nowrap><span class="strong">39 061,59 €</span></td>
+                      <td><span class="hint nowrap">FR76 •••• 8830</span></td>
+                      <td><span class="badge" data-tone="success">Prêt</span></td>
+                      <td>
+                        <button type="button" class="bouton" data-variant="secondary" data-size="sm" aria-label="Retenir le reversement de Énergies Rhône">
+                          <span>Retenir</span>
+                        </button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <span class="inline" data-nowrap
+                          ><button type="button" class="toggle" aria-expanded="false" aria-label="Détail de Médiatel">
+                            <svg class="icone" aria-hidden="true"><use href="#i-chevron-right"></use></svg></button
+                          ><span class="text"><span class="strong">Médiatel</span><span class="hint">9 encaissements · 9 % HT</span></span></span
+                        >
+                      </td>
+                      <td data-align="right" data-nowrap>18 250,00 €</td>
+                      <td data-align="right" data-nowrap>
+                        <span class="text">− 2 007,00 €<span class="hint">1 672,50 € HT</span></span>
+                      </td>
+                      <td data-align="right" data-nowrap>—</td>
+                      <td data-align="right" data-nowrap><span class="strong">16 243,00 €</span></td>
+                      <td><span class="hint nowrap">FR76 •••• 1107</span></td>
+                      <td><span class="badge" data-tone="success">Prêt</span></td>
+                      <td>
+                        <button type="button" class="bouton" data-variant="secondary" data-size="sm" aria-label="Retenir le reversement de Médiatel">
+                          <span>Retenir</span>
+                        </button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <span class="inline" data-nowrap
+                          ><button type="button" class="toggle" aria-expanded="false" aria-label="Détail de TransAlp Leasing">
+                            <svg class="icone" aria-hidden="true"><use href="#i-chevron-right"></use></svg></button
+                          ><span class="text"><span class="strong">TransAlp Leasing</span><span class="hint">5 encaissements · 10 % HT</span></span></span
+                        >
+                      </td>
+                      <td data-align="right" data-nowrap>12 600,00 €</td>
+                      <td data-align="right" data-nowrap>
+                        <span class="text">− 1 512,00 €<span class="hint">1 260,00 € HT</span></span>
+                      </td>
+                      <td data-align="right" data-nowrap>—</td>
+                      <td data-align="right" data-nowrap><span class="strong">11 088,00 €</span></td>
+                      <td><span class="hint nowrap">FR76 •••• 6642</span></td>
+                      <td><span class="badge" data-tone="warning">Compte modifié</span></td>
+                      <td>
+                        <button type="button" class="bouton" data-variant="secondary" data-size="sm" aria-label="Retenir le reversement de TransAlp Leasing">
+                          <span>Retenir</span>
+                        </button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <span class="inline" data-nowrap
+                          ><button type="button" class="toggle" aria-expanded="false" aria-label="Détail de Crédit Horizon">
+                            <svg class="icone" aria-hidden="true"><use href="#i-chevron-right"></use></svg></button
+                          ><span class="text"><span class="strong">Crédit Horizon</span><span class="hint">1 encaissement · 12 % HT</span></span></span
+                        >
+                      </td>
+                      <td data-align="right" data-nowrap>94,00 €</td>
+                      <td data-align="right" data-nowrap>—</td>
+                      <td data-align="right" data-nowrap>—</td>
+                      <td data-align="right" data-nowrap><span class="hint">reporté</span></td>
+                      <td><span class="hint nowrap">FR76 •••• 2093</span></td>
+                      <td><span class="badge" data-tone="neutral">Sous 100 €</span></td>
+                      <td></td>
+                    </tr>
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td>4 virements</td>
+                      <td data-align="right" data-nowrap>98 395,66 €</td>
+                      <td data-align="right" data-nowrap>− 9 545,66 €</td>
+                      <td data-align="right" data-nowrap>− 2 610,00 €</td>
+                      <td data-align="right" data-nowrap>86 240,00 €</td>
+                      <td></td>
+                      <td></td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+            <footer>
+              Seuls comptent les chèques encaissés et les virements rapprochés. Crédit Horizon : 94,00 € reportés au lot du 15/01/2027, comme le prévoit sa
+              convention.
+            </footer>
+          </section>
+        </main>
+      </div>
+    </div>
+    <section class="board" id="etats" aria-labelledby="etats-titre">
+      <div>
+        <header>
+          <h2 id="etats-titre">Accès, états et confirmations</h2>
+          <p>Vue du Responsable du recouvrement, pour le compte du Directeur.</p>
+        </header>
+        <div class="states">
+          <figure class="state">
+            <figcaption><strong>Qui valide</strong></figcaption>
+            <div class="carte">
+              <div class="tableau" role="group" tabindex="0" aria-label="Accès à la validation des reversements">
+                <table>
+                  <caption class="hidden">
+                    Accès à la validation des reversements
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Rôle</th>
+                      <th scope="col">Droit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Directeur</td>
+                      <td>Valide, marque versé, retient</td>
+                    </tr>
+                    <tr>
+                      <td>Responsable</td>
+                      <td>Idem, par délégation administrative</td>
+                    </tr>
+                    <tr>
+                      <td>Gestionnaire</td>
+                      <td>Non, reversements masqués</td>
+                    </tr>
+                    <tr>
+                      <td>Développeur</td>
+                      <td>Non</td>
+                    </tr>
+                    <tr>
+                      <td>Créancier</td>
+                      <td>Ses reversements validés, dans son espace</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Points d’entrée</strong></figcaption>
+            <section class="carte">
+              <div class="body">
+                <ul class="checks">
+                  <li><span class="statut" data-tone="marine">Tableau de bord › Priorités du jour › Ouvrir</span></li>
+                  <li><span class="statut" data-tone="marine">Notifications › Voir</span></li>
+                  <li><span class="statut" data-tone="marine">Fiche créancier › Reversements</span></li>
+                  <li><span class="statut" data-tone="marine">Facturation › Reversements (nouveau bouton, menu inchangé)</span></li>
+                </ul>
+              </div>
+            </section>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Confirmer la validation</strong></figcaption>
+            <div class="veil" id="confirmer-lot">
+              <div class="dialog" role="group" aria-label="Valider le lot du 15 décembre 2026 ?">
+                <div class="head">
+                  <span class="mark" data-tone="primary"
+                    ><svg class="icone" aria-hidden="true" data-size="xl"><use href="#i-info"></use></svg
+                  ></span>
+                  <div>
+                    <h3>Valider le lot du 15 décembre 2026 ?</h3>
+                    <p>
+                      Le lot est figé et quatre factures de commission sont émises. Aucun virement ne part de l’application : vous les saisissez à la banque.
+                    </p>
+                  </div>
+                </div>
+                <dl>
+                  <div>
+                    <dt>Période</dt>
+                    <dd>Du 15/11/2026 au 14/12/2026</dd>
+                  </div>
+                  <div>
+                    <dt>Créanciers</dt>
+                    <dd>4, et 1 reporté</dd>
+                  </div>
+                  <div>
+                    <dt>Encaissé</dt>
+                    <dd>98 395,66 €</dd>
+                  </div>
+                  <div>
+                    <dt>Honoraires TTC</dt>
+                    <dd>9 545,66 €</dd>
+                  </div>
+                  <div>
+                    <dt>Reprises</dt>
+                    <dd>2 610,00 €</dd>
+                  </div>
+                  <div>
+                    <dt>À verser</dt>
+                    <dd>86 240,00 € en 4 virements</dd>
+                  </div>
+                  <div>
+                    <dt>Factures</dt>
+                    <dd>FA‑2026‑0118 à FA‑2026‑0121</dd>
+                  </div>
+                  <div>
+                    <dt>Pour le compte de</dt>
+                    <dd>Marie Dubreuil, Directeur</dd>
+                  </div>
+                </dl>
+                <div class="foot">
+                  <span class="hint">Échap pour annuler</span><button type="button" class="bouton" data-variant="secondary"><span>Annuler</span></button
+                  ><button type="button" class="bouton"><span>Valider le lot</span></button>
+                </div>
+              </div>
+            </div>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Confirmer une retenue</strong></figcaption>
+            <div class="veil">
+              <div class="dialog" role="group" aria-label="Retenir le reversement de TransAlp Leasing ?">
+                <div class="head">
+                  <span class="mark" data-tone="danger"
+                    ><svg class="icone" aria-hidden="true" data-size="xl"><use href="#i-alert"></use></svg
+                  ></span>
+                  <div>
+                    <h3>Retenir le reversement de TransAlp Leasing ?</h3>
+                    <p>Ses 5 encaissements restent sur le compte dédié et passent dans le lot suivant.</p>
+                  </div>
+                </div>
+                <dl>
+                  <div>
+                    <dt>Montant</dt>
+                    <dd>11 088,00 €</dd>
+                  </div>
+                  <div>
+                    <dt>Lot suivant</dt>
+                    <dd>15/01/2027</dd>
+                  </div>
+                  <div>
+                    <dt>Pour le compte de</dt>
+                    <dd>Marie Dubreuil, Directeur</dd>
+                  </div>
+                </dl>
+                <div class="field">
+                  <div class="champ">
+                    <label for="f1">Motif de la retenue</label>
+                    <div class="row"><textarea id="f1" class="input" aria-describedby="f1-h" rows="2" placeholder="Précisez le motif…"></textarea></div>
+                    <span class="help" id="f1-h">Obligatoire · conservé dans le journal d’audit</span>
+                  </div>
+                </div>
+                <div class="foot">
+                  <span class="hint">Échap pour annuler</span><button type="button" class="bouton" data-variant="secondary"><span>Annuler</span></button
+                  ><button type="button" class="bouton" data-variant="danger"><span>Retenir</span></button>
+                </div>
+              </div>
+            </div>
+          </figure>
+          <figure class="state" data-wide>
+            <figcaption>
+              <strong>Lot validé : virements à faire</strong><span>plus rien n’est modifiable ; les IBAN affichés sont notés dans le journal d’audit</span>
+            </figcaption>
+            <section class="carte">
+              <header>
+                <div>
+                  <div class="heading">
+                    <h3>Lot du 15 décembre 2026</h3>
+                    <span class="badge" data-tone="success">Validé</span>
+                  </div>
+                  <p>Le 14/12/2026 à 10:42 par Camille Laurent, pour le compte de Marie Dubreuil</p>
+                </div>
+              </header>
+              <div class="body">
+                <div class="stack">
+                  <ol class="steps">
+                    <li data-state="done">
+                      <span class="mark" aria-hidden="true"
+                        ><svg class="icone" aria-hidden="true"><use href="#i-check"></use></svg></span
+                      ><span class="text"><span class="strong">Préparation</span><span class="hint">Automatique, 14/12/2026 à 06:00</span></span>
+                    </li>
+                    <li data-state="done">
+                      <span class="mark" aria-hidden="true"
+                        ><svg class="icone" aria-hidden="true"><use href="#i-check"></use></svg></span
+                      ><span class="text"><span class="strong">Validation</span><span class="hint">Directeur, ou Responsable par délégation</span></span>
+                    </li>
+                    <li data-state="next">
+                      <span class="mark" aria-hidden="true">3</span
+                      ><span class="text"><span class="strong">Virements</span><span class="hint">Saisis à la banque, puis marqués versés</span></span>
+                    </li>
+                    <li data-state="todo">
+                      <span class="mark" aria-hidden="true">4</span
+                      ><span class="text"><span class="strong">Relevés</span><span class="hint">Envoyés aux créanciers avec la facture</span></span>
+                    </li>
+                  </ol>
+                  <div class="tableau" role="group" tabindex="0" aria-label="Virements à faire" data-min data-bordered>
+                    <table>
+                      <caption class="hidden">
+                        Virements à faire
+                      </caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">Créancier</th>
+                          <th scope="col">Titulaire et IBAN</th>
+                          <th scope="col" data-align="right">Montant</th>
+                          <th scope="col">Libellé</th>
+                          <th scope="col">Documents</th>
+                          <th scope="col"><span class="hidden">Action</span></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td><span class="strong">Matériaux Delta</span></td>
+                          <td>
+                            <span class="text"><span class="strong">Matériaux Delta SAS</span><span class="hint">FR76 •••• 4521</span></span>
+                          </td>
+                          <td data-align="right" data-nowrap><span class="strong">19 847,41 €</span></td>
+                          <td>REV‑2026‑12 LEGAREC</td>
+                          <td>
+                            <span class="inline"
+                              ><button type="button" class="bouton" data-variant="secondary" data-size="xs" aria-label="Relevé de Matériaux Delta">
+                                <span>Relevé</span></button
+                              ><button type="button" class="bouton" data-variant="secondary" data-size="xs" aria-label="Facture FA-2026-0118">
+                                <span>FA‑2026‑0118</span>
+                              </button></span
+                            >
+                          </td>
+                          <td>
+                            <button type="button" class="bouton" data-variant="secondary" data-size="xs" aria-label="Afficher l'IBAN de Matériaux Delta">
+                              <svg class="icone" aria-hidden="true" data-size="sm"><use href="#i-eye"></use></svg><span>Afficher l’IBAN</span>
+                            </button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td><span class="strong">Énergies Rhône</span></td>
+                          <td>
+                            <span class="text"><span class="strong">Énergies Rhône SA</span><span class="hint">FR76 •••• 8830</span></span>
+                          </td>
+                          <td data-align="right" data-nowrap><span class="strong">39 061,59 €</span></td>
+                          <td>REV‑2026‑12 LEGAREC</td>
+                          <td>
+                            <span class="inline"
+                              ><button type="button" class="bouton" data-variant="secondary" data-size="xs" aria-label="Relevé de Énergies Rhône">
+                                <span>Relevé</span></button
+                              ><button type="button" class="bouton" data-variant="secondary" data-size="xs" aria-label="Facture FA-2026-0119">
+                                <span>FA‑2026‑0119</span>
+                              </button></span
+                            >
+                          </td>
+                          <td>
+                            <button type="button" class="bouton" data-variant="secondary" data-size="xs" aria-label="Afficher l'IBAN de Énergies Rhône">
+                              <svg class="icone" aria-hidden="true" data-size="sm"><use href="#i-eye"></use></svg><span>Afficher l’IBAN</span>
+                            </button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td><span class="strong">Médiatel</span></td>
+                          <td>
+                            <span class="text"><span class="strong">Médiatel SAS</span><span class="hint">FR76 •••• 1107</span></span>
+                          </td>
+                          <td data-align="right" data-nowrap><span class="strong">16 243,00 €</span></td>
+                          <td>REV‑2026‑12 LEGAREC</td>
+                          <td>
+                            <span class="inline"
+                              ><button type="button" class="bouton" data-variant="secondary" data-size="xs" aria-label="Relevé de Médiatel">
+                                <span>Relevé</span></button
+                              ><button type="button" class="bouton" data-variant="secondary" data-size="xs" aria-label="Facture FA-2026-0120">
+                                <span>FA‑2026‑0120</span>
+                              </button></span
+                            >
+                          </td>
+                          <td>
+                            <button type="button" class="bouton" data-variant="secondary" data-size="xs" aria-label="Afficher l'IBAN de Médiatel">
+                              <svg class="icone" aria-hidden="true" data-size="sm"><use href="#i-eye"></use></svg><span>Afficher l’IBAN</span>
+                            </button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td><span class="strong">TransAlp Leasing</span></td>
+                          <td>
+                            <span class="text"><span class="strong">TransAlp Leasing SAS</span><span class="hint">FR76 •••• 6642</span></span>
+                          </td>
+                          <td data-align="right" data-nowrap><span class="strong">11 088,00 €</span></td>
+                          <td>REV‑2026‑12 LEGAREC</td>
+                          <td>
+                            <span class="inline"
+                              ><button type="button" class="bouton" data-variant="secondary" data-size="xs" aria-label="Relevé de TransAlp Leasing">
+                                <span>Relevé</span></button
+                              ><button type="button" class="bouton" data-variant="secondary" data-size="xs" aria-label="Facture FA-2026-0121">
+                                <span>FA‑2026‑0121</span>
+                              </button></span
+                            >
+                          </td>
+                          <td>
+                            <button type="button" class="bouton" data-variant="secondary" data-size="xs" aria-label="Afficher l'IBAN de TransAlp Leasing">
+                              <svg class="icone" aria-hidden="true" data-size="sm"><use href="#i-eye"></use></svg><span>Afficher l’IBAN</span>
+                            </button>
+                          </td>
+                        </tr>
+                      </tbody>
+                      <tfoot>
+                        <tr>
+                          <td>4 virements</td>
+                          <td></td>
+                          <td data-align="right" data-nowrap>86 240,00 €</td>
+                          <td></td>
+                          <td></td>
+                          <td></td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                  <div class="end">
+                    <button type="button" class="bouton"><span>Marquer comme versés</span></button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Confirmer les virements</strong></figcaption>
+            <div class="veil">
+              <div class="dialog" role="group" aria-label="Marquer les 4 virements comme versés ?">
+                <div class="head">
+                  <span class="mark" data-tone="primary"
+                    ><svg class="icone" aria-hidden="true" data-size="xl"><use href="#i-info"></use></svg
+                  ></span>
+                  <div>
+                    <h3>Marquer les 4 virements comme versés ?</h3>
+                    <p>Chaque créancier reçoit son relevé et sa facture par e-mail et dans son espace. Cette étape ne s’annule pas.</p>
+                  </div>
+                </div>
+                <dl>
+                  <div>
+                    <dt>Total</dt>
+                    <dd>86 240,00 €</dd>
+                  </div>
+                  <div>
+                    <dt>Référence</dt>
+                    <dd>REV‑2026‑12</dd>
+                  </div>
+                  <div>
+                    <dt>Destinataires</dt>
+                    <dd>4 interlocuteurs principaux</dd>
+                  </div>
+                  <div>
+                    <dt>Pour le compte de</dt>
+                    <dd>Marie Dubreuil, Directeur</dd>
+                  </div>
+                </dl>
+                <div class="field">
+                  <div class="champ">
+                    <label for="f2">Date des virements<span class="required" aria-hidden="true"> *</span></label>
+                    <div class="row">
+                      <input
+                        id="f2"
+                        class="input"
+                        required
+                        type="text"
+                        value="15/12/2026"
+                        placeholder="jj/mm/aaaa"
+                        inputmode="numeric"
+                        autocomplete="off"
+                      /><svg class="icone" aria-hidden="true"><use href="#i-calendar"></use></svg>
+                    </div>
+                  </div>
+                </div>
+                <div class="foot">
+                  <span class="hint">Échap pour annuler</span><button type="button" class="bouton" data-variant="secondary"><span>Annuler</span></button
+                  ><button type="button" class="bouton"><span>Marquer comme versés</span></button>
+                </div>
+              </div>
+            </div>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Montants changés</strong><span>entre l’affichage et la validation</span></figcaption>
+            <div class="alerte" data-tone="warning" role="note">
+              <svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-alert"></use></svg>
+              <div>
+                <strong>Le lot a changé</strong
+                ><span
+                  >Le chèque de Charpentes Bellet (2 000,00 €) vient d’être déclaré impayé : 84 432,00 € à verser au lieu de 86 240,00 €. Rien n’a été
+                  validé.</span
+                ><button type="button" class="bouton" data-variant="secondary" data-size="sm"><span>Voir les nouveaux montants</span></button>
+              </div>
+            </div>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Compte manquant ou non confirmé</strong></figcaption>
+            <div class="alerte" data-tone="danger" role="note">
+              <svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-x-circle"></use></svg>
+              <div>
+                <strong>Boulangeries Rivaud : aucun compte confirmé</strong
+                ><span>Son reversement passe dans le lot suivant tant que l’IBAN n’est pas confirmé.</span
+                ><a href="creancier-et-mandat.html" class="bouton" data-variant="secondary" data-size="sm"><span>Compléter la fiche</span></a>
+              </div>
+            </div>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Frais refacturés échus</strong><span>jamais déduits</span></figcaption>
+            <div class="alerte" data-tone="neutral" role="note">
+              <svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-info"></use></svg>
+              <div>
+                <strong>TransAlp Leasing : FA‑2026‑0114 non réglée</strong
+                ><span>1 284,00 € TTC de frais de procédure, échus. Payés à part par le créancier, sans effet sur le lot.</span>
+              </div>
+            </div>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Solde négatif</strong><span>reprises supérieures aux encaissements</span></figcaption>
+            <div class="alerte" data-tone="neutral" role="note">
+              <svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-info"></use></svg>
+              <div><strong>Médiatel : − 420,00 €</strong><span>Rien à verser. Le solde est repris sur le lot suivant.</span></div>
+            </div>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Délégation retirée</strong><span>Responsable</span></figcaption>
+            <div class="carte">
+              <div class="etat">
+                <span class="mark" data-kind="error"
+                  ><svg class="icone" aria-hidden="true" data-size="xl"><use href="#i-lock"></use></svg></span
+                ><strong>Accès réservé</strong>
+                <p>La validation des reversements revient au Directeur. La délégation administrative a été retirée.</p>
+              </div>
+            </div>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Chargement</strong></figcaption>
+            <div class="carte">
+              <div class="skeleton" role="status">
+                <span class="hidden">Chargement en cours…</span
+                ><span><span data-skeleton class="disc"></span><span data-skeleton class="bar"></span><span data-skeleton class="end"></span></span
+                ><span><span data-skeleton class="disc"></span><span data-skeleton class="bar"></span><span data-skeleton class="end"></span></span
+                ><span><span data-skeleton class="disc"></span><span data-skeleton class="bar"></span><span data-skeleton class="end"></span></span>
+              </div>
+            </div>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Vide</strong></figcaption>
+            <div class="carte">
+              <div class="etat">
+                <span class="mark" data-kind="empty"
+                  ><svg class="icone" aria-hidden="true" data-size="xl"><use href="#i-box"></use></svg></span
+                ><strong>Aucun lot à valider</strong>
+                <p>Le prochain lot sera préparé le 14 janvier 2027.</p>
+              </div>
+            </div>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Erreur</strong></figcaption>
+            <div class="carte">
+              <div class="etat">
+                <span class="mark" data-kind="error"
+                  ><svg class="icone" aria-hidden="true" data-size="xl"><use href="#i-alert"></use></svg></span
+                ><strong>Chargement impossible</strong>
+                <p>Le serveur n’a pas répondu. Vos données ne sont pas perdues : réessayez dans quelques instants.</p>
+                <button type="button" class="bouton" data-variant="secondary"><span>Réessayer</span></button>
+              </div>
+            </div>
+          </figure>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>
