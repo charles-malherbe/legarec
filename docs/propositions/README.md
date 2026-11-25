@@ -131,13 +131,13 @@ Aucun montant n'est modifiable à la main. Saisies : motif d'une retenue\*, date
 | Émettre l'avoir | Facture corrigée et date, client, motif, HT, TVA, TTC, suite, « Pour le compte de » | Reste facturé |
 | Envoyer l'avoir au créancier (V3) | Expéditeur (boîte OVH du collaborateur), destinataire, objet, pièce jointe | Avoir émis |
 
-Numéro `AV-AAAA-NNNN`, série continue et distincte (V1). L'avoir cite la facture (numéro et date), reprend la TVA et devient immuable ; la facture d'origine n'est pas modifiée (`HANDOFF.md` : « une correction passe par un avoir »).
+Numéro `AV-AAAA-NNNN`, série continue et distincte (V1). L'avoir cite la facture (numéro et date), reprend la TVA et devient immuable ; la facture d'origine n'est pas modifiée (`HANDOFF.md` : « une correction passe par un avoir »). Une facture seule s'envoie de la même façon (V3).
 
 **Tables.** Lues : `billing_documents`, `billing_lines`, `creditors`, `remittances`, `settings`. Écrites : `billing_documents` (`CREDIT_NOTE`), `billing_lines`, `number_sequences`, `documents`, `remittance_lines` (suite), `exchanges` et `exchange_emails` (envoi), `outbox`, `audit_log`.
 
 ## Points tranchés
 
-Réponses du cabinet dans la discussion, le 25/11/2026. À reporter dans `DECISIONS.md` une fois la PR 19 fusionnée.
+Réponses du cabinet dans la discussion, le 25/11/2026, reportées dans `DECISIONS.md` sous la question 69, avec les mêmes codes.
 
 | Code | Question | Réponse du cabinet | Option non retenue |
 |---|---|---|---|
@@ -155,7 +155,7 @@ Réponses du cabinet dans la discussion, le 25/11/2026. À reporter dans `DECISI
 | R6 | Commission déjà facturée sur un chèque impayé après reversement | Avoir | Ligne négative |
 | R7 | Retenir un créancier du lot | Oui, avec motif ; ses encaissements passent dans le lot suivant | Non |
 | V1 | Numérotation des avoirs | Série `AV-AAAA-NNNN` | Série des factures |
-| V3 | Envoi de l'avoir (aucun modèle dans le kit) | PDF dans l'espace créancier, et message du collaborateur depuis sa boîte OVH, après confirmation | Modèle à fournir |
+| V3 | Envoi d'un avoir ou d'une facture seule (aucun modèle dans le kit) | PDF dans l'espace créancier, et message du collaborateur depuis sa boîte OVH, après confirmation | Modèle à fournir |
 | V4 | Boutons ajoutés | Oui, les quatre | Autre emplacement |
 
 Options par défaut, acceptées en bloc par le cabinet :
@@ -179,7 +179,7 @@ Options par défaut, acceptées en bloc par le cabinet :
 | E4 | `debtors.siren` a 9 chiffres ; les écrans et `debiteur.siret` affichent un SIRET : à garder sur le dossier |
 | E5 | `creditor_bank_accounts` n'a pas la confirmation (par qui, quand, avec qui) ; `mandates` ne relie pas un avenant au mandat modifié |
 | E6 | `billing_documents` n'a ni motif ni suite de l'avoir ; le contrat `billingType` n'a pas `CREDIT_NOTE` |
-| E7 | Le kit n'a pas d'e-mail pour une facture seule ni pour un avoir, alors que « Émettre la facture » annonce un envoi par Resend |
+| E7 | Le kit n'a pas d'e-mail pour une facture seule ni pour un avoir ; « Émettre la facture » annonce un envoi par Resend : texte à ajuster (V3) |
 | E8 | Paramètres › Reversements : tuile « Prochain reversement le 1er décembre », réglage « Mensuelle, le 15 » |
 | E9 | Kit : facture `F2026-118` ; application : `FA-2026-0118` (exemple seulement) |
 | E10 | `mandates` n'a pas la clause de report sous 100 € (R3) ; le seuil reste dans Paramètres › Reversements |
