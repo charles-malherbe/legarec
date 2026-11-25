@@ -186,7 +186,8 @@ const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly
     'POST /members/:id/disable': [{ reason: 'Départ', cases: 12 }],
     'PUT /members/:id/extension': [{ extension: '104' }, { extension: null }],
     'PUT /settings/:scope/:id': [{ duration: '12 mois' }, { iban: '[IBAN DU COMPTE DÉDIÉ]' }, { dailyCap: true }],
-    'POST /secrets': [{ name: 'EX_TEST', service: 'Test', value: 'valeur-fictive-de-test', rotation: '90' }],
+    'POST /secrets': [{ name: 'AI_API_KEY', value: 'valeur-fictive-de-test', rotation: '90' }],
+    'POST /secrets/:id/rotate': [{ value: 'valeur-fictive-de-test' }, {}],
     'POST /mailboxes': [
       { local: 'ac', holderId: null, sizeMb: 5000, requestId: '646c222a-4b11-4a27-acc8-6cf1909fc115' },
       { local: 'ac', holderId: 'hb', sizeMb: 5000 },
@@ -251,6 +252,7 @@ const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly
 };
 /** Only here may a body be empty: nothing to change, or a version to restore that is not named. */
 const MAY_BE_EMPTY = [
+  'POST /secrets/:id/rotate',
   'PUT /account/notifications',
   'PUT /cases/:id/coordinates/:coordinateId',
   'PUT /reminders/:id',

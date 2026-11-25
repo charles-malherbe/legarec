@@ -55,6 +55,19 @@ const member =
     return `/staff/members/${id}${then}`;
   };
 
+const secret =
+  (then: string, status = 'VALID') =>
+  async (test: TestApp) => {
+    await test.database.admin.query("DELETE FROM vault_secrets WHERE name = 'AI_API_KEY'");
+    const { rows } = await test.database.admin.query<{ id: string }>(
+      "INSERT INTO vault_secrets (name, value_cipher, status) VALUES ('AI_API_KEY', '\\x00', $1::secret_status) RETURNING id",
+      [status],
+    );
+    return `/staff/secrets/${rows[0]!.id}/${then}`;
+  };
+const technical = only({ director: 204, developer: 204 });
+const hidden = { ...technical, liar: 404 };
+
 /** The same sign-in on both portals, open to whoever is there: the answer does not depend on it. */
 const signIn = (portal: 'staff' | 'partner'): Record<string, MatrixEntry> => {
   const code = () => ({ code: 'xxxxxx' });
@@ -138,6 +151,19 @@ export const MATRIX: Record<string, MatrixEntry> = {
   'GET /staff/delegations': { expect: only({ director: 200, liar: 200 }) },
   'PUT /staff/delegations/:kind': { path: () => '/staff/delegations/technical', body: () => ({ active: true }), expect: only({ director: 204 }) },
   'POST /staff/support-tickets': { body: () => ({ subject: 'Question', message: 'Une question du banc de test.' }), expect: staffOf(200) },
+  // The liar sees nothing of it.
+  'GET /staff/secrets': { expect: only({ director: 200, developer: 200, liar: 200 }) },
+  'POST /staff/secrets': {
+    path: async (test) => {
+      await test.database.admin.query("DELETE FROM vault_secrets WHERE name = 'TCX_API_CLIENT_ID'");
+      return '/staff/secrets';
+    },
+    body: () => ({ name: 'TCX_API_CLIENT_ID', value: 'valeur-fictive', rotation: 'MANUAL' }),
+    expect: technical,
+  },
+  'POST /staff/secrets/:id/rotate': { path: secret('rotate'), body: () => ({ value: 'valeur-fictive' }), expect: hidden },
+  'POST /staff/secrets/:id/revoke': { path: secret('revoke'), expect: hidden },
+  'POST /staff/secrets/:id/keep': { path: secret('keep', 'REVOKE_PENDING'), expect: only({ director: 204, liar: 404 }) },
   'GET /staff/notifications': { expect: staffOf(200) },
   'PUT /staff/notifications': { body: () => ({ ids: [randomUUID()], unread: false }), expect: staffOf(204) },
   'POST /staff/notifications/read': { body: () => ({ ids: [] }), expect: staffOf(204) },

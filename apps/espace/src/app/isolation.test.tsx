@@ -72,9 +72,9 @@ describe('delegations and audit', () => {
     expect((await call('hb', '/cases/assign', { ids: ['demo'], officerId: 'hb' })).status).toBe(403);
   });
   it('records sensitive actions without any secret', async () => {
-    await call('dev', '/secrets', { name: 'EX_AUDIT', service: 'Test', value: 'valeur-fictive', rotation: '90' });
+    await call('dev', '/secrets', { name: 'AI_API_KEY', value: 'valeur-fictive', rotation: '90' });
     const body = await text('ad', '/settings/techniques/audit');
-    expect(body).toContain('Secret ajouté : EX_AUDIT');
+    expect(body).toContain('Secret ajouté : AI_API_KEY');
     expect(body).toContain('Marie Dubreuil');
     expect(body).not.toContain('valeur-fictive');
   });

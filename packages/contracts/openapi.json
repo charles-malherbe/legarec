@@ -3004,6 +3004,199 @@
           "portal": "staff"
         }
       }
+    },
+    "/staff/secrets": {
+      "get": {
+        "operationId": "SecretsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string",
+                            "enum": [
+                              "RESEND_API_KEY",
+                              "RESEND_ACCOUNT_API_KEY",
+                              "RESEND_WEBHOOK_SECRET",
+                              "MYSENDINGBOX_API_KEY",
+                              "MYSENDINGBOX_TEST_API_KEY",
+                              "SCW_ACCESS_KEY",
+                              "SCW_SECRET_KEY",
+                              "OVH_API_APP_KEY",
+                              "OVH_API_APP_SECRET",
+                              "OVH_API_CONSUMER_KEY",
+                              "OVH_SMS_APP_KEY",
+                              "OVH_SMS_APP_SECRET",
+                              "OVH_SMS_CONSUMER_KEY",
+                              "OVH_SMS_SERVICE_NAME",
+                              "COLLECTION_MAILBOX_PASSWORD",
+                              "TCX_API_CLIENT_ID",
+                              "TCX_API_CLIENT_SECRET",
+                              "AI_API_KEY",
+                              "MAILBOX_SECRETS_KEY",
+                              "ACCESS_CODE_KEY",
+                              "LOOKUP_KEY"
+                            ]
+                          },
+                          "internal": {
+                            "type": "boolean"
+                          },
+                          "service": {
+                            "type": "string"
+                          },
+                          "environment": {
+                            "type": "string"
+                          },
+                          "used": {
+                            "type": "string"
+                          },
+                          "rotated": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "VALID",
+                              "EXPIRING",
+                              "REVOKE_PENDING",
+                              "REVOKED"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "internal",
+                          "service",
+                          "environment",
+                          "used",
+                          "rotated",
+                          "status"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "vault"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "DEVELOPER"
+          ]
+        }
+      },
+      "post": {
+        "operationId": "SecretsController_save",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "vault"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "TECHNICAL"
+          ]
+        }
+      }
+    },
+    "/staff/secrets/{id}/rotate": {
+      "post": {
+        "operationId": "SecretsController_renew",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "vault"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "TECHNICAL"
+          ]
+        }
+      }
+    },
+    "/staff/secrets/{id}/revoke": {
+      "post": {
+        "operationId": "SecretsController_revoke",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "vault"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "TECHNICAL"
+          ]
+        }
+      }
+    },
+    "/staff/secrets/{id}/keep": {
+      "post": {
+        "operationId": "SecretsController_keep",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "vault"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ]
+        }
+      }
     }
   },
   "info": {

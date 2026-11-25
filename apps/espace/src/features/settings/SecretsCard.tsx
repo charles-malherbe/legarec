@@ -1,4 +1,4 @@
-import { newSecret, secretsData, type SecretItem } from '@legarec/contracts';
+import { newSecret, renewedSecret, secretsData, SERVICE_SECRETS, type SecretItem, type ServiceSecret } from '@legarec/contracts';
 import { Badge, Bouton, Carte, Champ, EtatListe, Tableau, useConfirm, useToast } from '@legarec/ui';
 import { useState } from 'react';
 import { useApi, useChange } from '../../app/data';
@@ -12,7 +12,7 @@ const STATUS = {
   REVOKE_PENDING: ['Révocation à valider', 'danger'],
   REVOKED: ['Révoqué', 'neutral'],
 } as const;
-const EMPTY = { name: '', service: '', value: '', rotation: '90' };
+const EMPTY = { name: '', value: '', rotation: '90' };
 
 /** Write-only: a value typed here is sent once to the API and never comes back. */
 export function SecretsCard({ canEdit }: { canEdit: boolean }) {
@@ -22,6 +22,7 @@ export function SecretsCard({ canEdit }: { canEdit: boolean }) {
   const confirm = useConfirm();
   const toast = useToast();
   const [form, setForm] = useState<typeof EMPTY | null>(null);
+  const [renewing, setRenewing] = useState<{ item: SecretItem; value: string } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   if (!data)
     return (
@@ -36,25 +37,44 @@ export function SecretsCard({ canEdit }: { canEdit: boolean }) {
     await change(`/secrets/${item.id}/keep`);
     toast({ message: `Révocation de ${item.name} refusée.` });
   };
-  const ask = (item: SecretItem, action: 'rotate' | 'revoke') =>
+  const revoke = (item: SecretItem) =>
     confirm({
-      tone: action === 'revoke' ? 'danger' : 'primary',
-      title: action === 'revoke' ? `Révoquer ${item.name} ?` : `Renouveler ${item.name} ?`,
-      body:
-        action === 'revoke'
-          ? `${director ? '' : 'La révocation attend l’accord du Directeur. '}Le service ${item.service} cessera immédiatement de fonctionner jusqu’à l’ajout d’une nouvelle clé. Cette action est irréversible.`
-          : `Une nouvelle valeur est générée chez ${item.service} et déployée. L’ancienne reste valable 24 h pour éviter toute coupure.`,
+      tone: 'danger',
+      title: `Révoquer ${item.name} ?`,
+      body: `${director ? '' : 'La révocation attend l’accord du Directeur. '}Le service ${item.service} cessera immédiatement de fonctionner jusqu’à l’ajout d’une nouvelle clé. Cette action est irréversible.`,
       details: [
         { k: 'Secret', v: item.name },
         { k: 'Service', v: item.service },
         { k: 'Environnement', v: item.environment },
       ],
-      confirmLabel: action === 'revoke' ? (director ? 'Révoquer définitivement' : 'Demander la révocation') : 'Renouveler la clé',
+      confirmLabel: director ? 'Révoquer définitivement' : 'Demander la révocation',
       onConfirm: async () => {
-        await change(`/secrets/${item.id}/${action}`);
-        toast({ message: action === 'revoke' ? (director ? `${item.name} révoqué.` : 'Révocation soumise au Directeur.') : `${item.name} renouvelé.` });
+        await change(`/secrets/${item.id}/revoke`);
+        toast({ message: director ? `${item.name} révoqué.` : 'Révocation soumise au Directeur.' });
       },
     });
+  const renew = () => {
+    if (!renewing) return;
+    const { item, value } = renewing;
+    const parsed = renewedSecret.required().safeParse({ value });
+    if (!parsed.success) return setErrors({ renewed: parsed.error.issues[0]?.message ?? '' });
+    setErrors({});
+    confirm({
+      title: `Renouveler ${item.name} ?`,
+      body: `La valeur créée chez ${item.service} remplace l’ancienne dès maintenant. Elle est chiffrée et ne pourra plus être affichée.`,
+      details: [
+        { k: 'Secret', v: item.name },
+        { k: 'Service', v: item.service },
+        { k: 'Environnement', v: item.environment },
+      ],
+      confirmLabel: 'Renouveler la clé',
+      onConfirm: async () => {
+        await change(`/secrets/${item.id}/rotate`, { body: parsed.data });
+        setRenewing(null);
+        toast({ message: `${item.name} renouvelé.` });
+      },
+    });
+  };
   const submit = () => {
     if (!form) return;
     const parsed = newSecret.safeParse(form);
@@ -65,7 +85,7 @@ export function SecretsCard({ canEdit }: { canEdit: boolean }) {
       body: 'La valeur est chiffrée et ne pourra plus être affichée.',
       details: [
         { k: 'Secret', v: parsed.data.name },
-        { k: 'Service', v: parsed.data.service },
+        { k: 'Service', v: SERVICE_SECRETS[parsed.data.name] },
       ],
       confirmLabel: 'Enregistrer dans le coffre',
       onConfirm: async () => {
@@ -99,8 +119,20 @@ export function SecretsCard({ canEdit }: { canEdit: boolean }) {
               submit();
             }}
           >
-            <Champ label="Nom" placeholder="EX_NOM_DU_SECRET" value={form.name} error={errors.name} mono onChange={set('name')} />
-            <Champ label="Service" placeholder="Ex. : Resend" value={form.service} error={errors.service} onChange={set('service')} />
+            <Champ
+              label="Nom"
+              type="select"
+              value={form.name}
+              error={errors.name}
+              options={[
+                { value: '', label: 'Choisir' },
+                ...Object.keys(SERVICE_SECRETS)
+                  .filter((name) => !data.items.some((item) => item.name === name && item.status !== 'REVOKED'))
+                  .map((name) => ({ value: name, label: name })),
+              ]}
+              onChange={set('name')}
+            />
+            <Champ label="Service" value={SERVICE_SECRETS[form.name as ServiceSecret] ?? ''} readOnly />
             <Champ label="Valeur" type="password" autocomplete="new-password" value={form.value} error={errors.value} onChange={set('value')} />
             <Champ
               label="Rotation"
@@ -116,6 +148,30 @@ export function SecretsCard({ canEdit }: { canEdit: boolean }) {
             <div className={layout.end}>
               <Bouton variant="secondary" size="sm" label="Annuler" onPress={() => setForm(null)} />
               <Bouton type="submit" size="sm" label="Enregistrer dans le coffre" />
+            </div>
+          </form>
+        )}
+        {renewing && (
+          <form
+            className={`${layout.form} ${css.pad}`}
+            autoComplete="off"
+            onSubmit={(event) => {
+              event.preventDefault();
+              renew();
+            }}
+          >
+            <Champ
+              label={`Nouvelle valeur de ${renewing.item.name}`}
+              type="password"
+              autocomplete="new-password"
+              help={`Créez la nouvelle clé chez ${renewing.item.service}, puis collez-la ici.`}
+              value={renewing.value}
+              error={errors.renewed}
+              onChange={(value) => setRenewing({ ...renewing, value })}
+            />
+            <div className={layout.end}>
+              <Bouton variant="secondary" size="sm" label="Annuler" onPress={() => setRenewing(null)} />
+              <Bouton type="submit" size="sm" label="Renouveler" />
             </div>
           </form>
         )}
@@ -145,7 +201,7 @@ export function SecretsCard({ canEdit }: { canEdit: boolean }) {
               key: 'actions',
               label: 'Actions',
               render: (row) =>
-                canEdit && row.status !== 'REVOKED' ? (
+                canEdit && !row.internal && row.status !== 'REVOKED' ? (
                   <span className={layout.inline}>
                     <Bouton
                       variant="secondary"
@@ -153,7 +209,10 @@ export function SecretsCard({ canEdit }: { canEdit: boolean }) {
                       label="Renouveler"
                       disabled={row.status === 'REVOKE_PENDING'}
                       ariaLabel={`Renouveler : ${row.name}`}
-                      onPress={() => ask(row, 'rotate')}
+                      onPress={() => {
+                        setErrors({});
+                        setRenewing({ item: row, value: '' });
+                      }}
                     />
                     <Bouton
                       variant="danger-outline"
@@ -161,7 +220,7 @@ export function SecretsCard({ canEdit }: { canEdit: boolean }) {
                       label="Révoquer"
                       ariaLabel={`Révoquer : ${row.name}`}
                       disabled={row.status === 'REVOKE_PENDING' && !director}
-                      onPress={() => ask(row, 'revoke')}
+                      onPress={() => revoke(row)}
                     />
                     {row.status === 'REVOKE_PENDING' && director && (
                       <Bouton variant="ghost" size="xs" label="Refuser" ariaLabel={`Refuser la révocation : ${row.name}`} onPress={() => void keep(row)} />

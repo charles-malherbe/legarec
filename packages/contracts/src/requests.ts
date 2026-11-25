@@ -11,7 +11,7 @@ import { EMAIL_MAX, ID_MAX } from './limits';
 import { AMOUNT_MAX, enteredAmount } from './money';
 import { newClaim } from './portal';
 import { preferences } from './roles';
-import { newMailbox, newSecret, redirectionTarget } from './settings';
+import { newMailbox, newSecret, redirectionTarget, renewedSecret } from './settings';
 import { billingType, newMember, staffRole } from './steering';
 
 /** Body of every request of the portals: the only definition, read by the API, the forms and the simulations. */
@@ -193,6 +193,7 @@ export const REQUEST_BODIES = {
     'PUT /members/:id/extension': extensionBody,
     'PUT /settings/:scope/:id': settingsBody,
     'POST /secrets': newSecret,
+    'POST /secrets/:id/rotate': renewedSecret,
     'POST /mailboxes': mailboxBody,
     'POST /mailboxes/:id/redirections': redirectionBody,
     'PUT /mailboxes/:id/redirections/:redirectionId': redirectionBody,

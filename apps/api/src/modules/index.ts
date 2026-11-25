@@ -14,6 +14,8 @@ import { MembersController } from './members/members.controller';
 import { MembersService } from './members/members.service';
 import { NotificationsController } from './notifications/notifications.controller';
 import { SupportController } from './support/support.controller';
+import { SecretsController } from './vault/secrets.controller';
+import { Vault } from './vault/vault';
 
 /** Routes of the portals, by domain. */
 export const controllers: Type[] = [
@@ -25,6 +27,7 @@ export const controllers: Type[] = [
   DelegationsController,
   SupportController,
   NotificationsController,
+  SecretsController,
 ];
 export const providers: Provider[] = [
   AuthKeys,
@@ -37,4 +40,5 @@ export const providers: Provider[] = [
   Links,
   AccountService,
   MembersService,
+  Vault,
 ];

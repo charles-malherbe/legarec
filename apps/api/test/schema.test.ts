@@ -213,6 +213,7 @@ describe('rights of the roles inside', () => {
       'users SELECT (absent_from, absent_until, anonymized_at, auto_reply, created_at, creditor_id, daily_summary, density, disabled_at, email, extension, first_name, id, invited_at, last_name, last_seen_at, low_vision, password_changed_at, quiet_hours, role, status, substitute_id, theme, two_factor_required)',
       // One's own line: never the role, the address, the status nor the credentials.
       'users UPDATE (absent_from, absent_until, auto_reply, daily_summary, density, first_name, last_name, low_vision, quiet_hours, substitute_id, theme)',
+      'vault_secrets SELECT (created_at, decided_by, id, kind, last_used_at, name, requested_by, rotated_at, rotation, status)',
     ],
     legarec_worker: [
       // The links leave with the e-mails that it sends, and are kept nowhere.
@@ -299,6 +300,10 @@ describe('rights of the roles inside', () => {
       'users INSERT (creditor_id, email, first_name, invited_at, invited_by, last_name, role)',
       'users SELECT (anonymized_at, creditor_id, disabled_at, email, first_name, id, invited_at, invited_by, last_name, password_hash, role, status, substitute_id, two_factor_required)',
       'users UPDATE (anonymized_at, disabled_at, disabled_by, disabled_reason, email, extension, first_name, invited_at, last_name, last_seen_at, password_hash, role, status, substitute_id, two_factor_required)',
+      // Written, never read.
+      'vault_secrets INSERT (id, name, rotation, value_cipher)',
+      'vault_secrets SELECT (id, kind, name, status)',
+      'vault_secrets UPDATE (decided_by, requested_by, rotated_at, status, value_cipher)',
     ],
   };
   it.each(Object.entries(expected))('%s', async (role, rights) => {
@@ -366,6 +371,7 @@ describe('rights on the functions', () => {
       ...['invite_member', 'cancel_invitation', 'disable_member', 'enable_member', 'set_member_role', 'set_extension', 'support'],
       ...['account_states', 'locked', 'set_delegation', 'open_ticket', 'acts_as_director'],
     ].map((name) => [name, ['staff']] as [string, string[]]),
+    ...['save_secret', 'renew_secret', 'revoke_secret', 'keep_secret'].map((name) => [name, ['staff']] as [string, string[]]),
     ['portal_officer', ['partner']],
     ['create_director', ['worker']],
     ['ticket_reader', ['worker']],
@@ -399,6 +405,7 @@ describe('rights on the functions', () => {
       'log enqueue staff_role has_delegation partner_creditor on_behalf_of actor_kind actor_label actor_id actor_key',
       'purge_sign_ins anonymize_accounts account_of account_of_link inviter_name resume_session take_attempt clear_attempts subject proved_subject tell_reset',
       'invite_member cancel_invitation disable_member enable_member set_member_role set_extension support account_states locked set_delegation open_ticket acts_as_director',
+      'save_secret renew_secret revoke_secret keep_secret',
       'portal_officer create_director ticket_reader close_account release_cases digests refuse tell_director end_technical_delegation take_with_substituted open_delegations require_for_developer',
       'uuid_v7 setting user_id creditor_id debtor_id only_identifiers audit_params',
     ].flatMap((names) => names.split(' '));

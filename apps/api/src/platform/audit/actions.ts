@@ -42,6 +42,10 @@ export const AUDIT_ACTIONS = {
   CASE_NOTE_ADDED: 'Note ajoutée à un dossier',
   SETTING_CHANGED: 'Paramètres modifiés',
   SECRET_SAVED: 'Secret enregistré : {secret}',
+  SECRET_RENEWED: 'Secret renouvelé : {secret}',
+  SECRET_REVOKE_ASKED: 'Révocation demandée : {secret}',
+  SECRET_REVOKED: 'Secret révoqué : {secret}',
+  SECRET_KEPT: 'Révocation refusée : {secret}',
   PLAN_APPROVED: 'Échéancier de {months} mois validé',
 } as const;
 export type AuditAction = keyof typeof AUDIT_ACTIONS;

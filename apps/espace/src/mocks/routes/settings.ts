@@ -4,6 +4,9 @@ import {
   FIRM_IDENTITY_FIELDS,
   firmIdentity,
   hasDelegation,
+  INTERNAL_SECRETS,
+  SERVICE_SECRETS,
+  type ServiceSecret,
   type GdprRequest,
   type Mailbox,
   type SecretItem,
@@ -573,9 +576,18 @@ const seedSecrets = (): SecretItem[] =>
       ['k-s3', 'SCW_SECRET_KEY', 'Scaleway Object Storage (fichiers)', 'il y a 3 min', '15/09/2026', 'VALID'],
       ['k-sms', 'OVH_SMS_APP_SECRET', 'OVHcloud SMS', 'il y a 14 min', '30/09/2026', 'VALID'],
       ['k-3cx', 'TCX_API_CLIENT_SECRET', '3CX (API Call Control)', 'en continu', '01/09/2026', 'EXPIRING'],
-      ['k-session', 'SESSION_SIGNING_KEY', 'Plateforme Legarec', 'en continu', '06/11/2026', 'VALID'],
+      ['k-access', 'ACCESS_CODE_KEY', INTERNAL_SECRETS.ACCESS_CODE_KEY, 'en continu', '06/11/2026', 'VALID'],
     ] as const
-  ).map(([id, name, service, used, rotated, status]) => ({ id, name, service, environment: 'Production', used, rotated, status }));
+  ).map(([id, name, service, used, rotated, status]) => ({
+    id,
+    name,
+    internal: name in INTERNAL_SECRETS,
+    service,
+    environment: 'Production',
+    used,
+    rotated,
+    status,
+  }));
 let secrets = seedSecrets();
 
 const box = (id: string, local: string, holder: string | null, kind: Mailbox['kind'], usedMb: number, connection: Mailbox['connection'] = 'OK'): Mailbox => ({
@@ -758,17 +770,34 @@ export const settingsHandlers = [
     '/api/secrets',
     guarded<Info>(edits, async ({ request }, session) => {
       // The value is never kept nor sent back.
-      const { name, service } = (await request.json()) as { name: string; service: string };
+      const { name } = (await request.json()) as { name: ServiceSecret };
+      if (secrets.some((entry) => entry.name === name && entry.status !== 'REVOKED')) return HttpResponse.json({ code: 'SECRET_EXISTS' }, { status: 409 });
       audit(session, `Secret ajouté : ${name}`, 'TECHNICAL');
-      secrets = [...secrets, { id: `k${secrets.length}`, name, service, environment: 'Production', used: 'jamais', rotated: 'Aujourd’hui', status: 'VALID' }];
+      secrets = [
+        ...secrets,
+        {
+          id: `k${secrets.length}`,
+          name,
+          internal: false,
+          service: SERVICE_SECRETS[name],
+          environment: 'Production',
+          used: 'jamais',
+          rotated: 'Aujourd’hui',
+          status: 'VALID',
+        },
+      ];
       return done();
     }),
   ),
   http.post(
     '/api/secrets/:id/:action',
-    guarded<Info>(edits, ({ params }, session) => {
+    guarded<Info>(edits, async ({ params, request }, session) => {
       const item = secrets.find((entry) => entry.id === params.id);
-      if (!item) return notFound();
+      // Internal keys are drawn and renewed by the API alone.
+      if (params.action === 'keep' && session.role !== 'DIRECTOR') return forbidden();
+      if (!item || item.internal) return notFound();
+      if (params.action === 'rotate' && !((await request.json()) as { value?: string }).value)
+        return HttpResponse.json({ code: 'INVALID', fields: ['value'] }, { status: 422 });
       const director = session.role === 'DIRECTOR';
       // Revoking in production needs the Director: the Developer only asks for it.
       const next = {
@@ -783,7 +812,8 @@ export const settingsHandlers = [
         REVOKE_PENDING: director ? ['revoke', 'keep'] : [],
         REVOKED: [] as string[],
       }[item.status];
-      if (!next || !allowed.includes(String(params.action))) return forbidden();
+      if (!next) return notFound();
+      if (!allowed.includes(String(params.action))) return HttpResponse.json({ code: 'CHANGED' }, { status: 409 });
       secrets = secrets.map((entry) => (entry === item ? { ...entry, ...next } : entry));
       audit(
         session,

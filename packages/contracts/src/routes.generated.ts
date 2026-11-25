@@ -848,6 +848,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/staff/secrets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["SecretsController_list"];
+        put?: never;
+        post: operations["SecretsController_save"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/secrets/{id}/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SecretsController_renew"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/secrets/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SecretsController_revoke"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/secrets/{id}/keep": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SecretsController_keep"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2249,6 +2313,106 @@ export interface operations {
         };
     };
     NotificationsController_markRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SecretsController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: {
+                            id: string;
+                            /** @enum {string} */
+                            name: "RESEND_API_KEY" | "RESEND_ACCOUNT_API_KEY" | "RESEND_WEBHOOK_SECRET" | "MYSENDINGBOX_API_KEY" | "MYSENDINGBOX_TEST_API_KEY" | "SCW_ACCESS_KEY" | "SCW_SECRET_KEY" | "OVH_API_APP_KEY" | "OVH_API_APP_SECRET" | "OVH_API_CONSUMER_KEY" | "OVH_SMS_APP_KEY" | "OVH_SMS_APP_SECRET" | "OVH_SMS_CONSUMER_KEY" | "OVH_SMS_SERVICE_NAME" | "COLLECTION_MAILBOX_PASSWORD" | "TCX_API_CLIENT_ID" | "TCX_API_CLIENT_SECRET" | "AI_API_KEY" | "MAILBOX_SECRETS_KEY" | "ACCESS_CODE_KEY" | "LOOKUP_KEY";
+                            internal: boolean;
+                            service: string;
+                            environment: string;
+                            used: string;
+                            rotated: string;
+                            /** @enum {string} */
+                            status: "VALID" | "EXPIRING" | "REVOKE_PENDING" | "REVOKED";
+                        }[];
+                    };
+                };
+            };
+        };
+    };
+    SecretsController_save: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SecretsController_renew: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SecretsController_revoke: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SecretsController_keep: {
         parameters: {
             query?: never;
             header?: never;

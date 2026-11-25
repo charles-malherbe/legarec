@@ -61,15 +61,20 @@ describe('settings', () => {
   });
   it('never returns a secret value', async () => {
     const value = 'valeur-fictive-de-test';
-    expect((await call('dev', '/secrets', { name: 'EX_TEST', service: 'Test', value, rotation: '90' })).status).toBe(204);
+    expect((await call('dev', '/secrets', { name: 'AI_API_KEY', value, rotation: '90' })).status).toBe(204);
     const body = await (await call('dev', '/secrets')).text();
-    expect(body).toContain('EX_TEST');
+    expect(body).toContain('AI_API_KEY');
     expect(body).not.toContain(value);
     expect(body).not.toMatch(/value|••/);
   });
   it('rotates a secret after confirmation', async () => {
     openAs('dev', '/parametres/techniques/secrets');
     await userEvent.click(await screen.findByRole('button', { name: 'Renouveler : TCX_API_CLIENT_SECRET' }));
+    // The new value is created at the service, then pasted.
+    await userEvent.click(screen.getByRole('button', { name: 'Renouveler' }));
+    expect(await screen.findByText('Saisissez la valeur.')).toBeVisible();
+    await userEvent.type(screen.getByLabelText('Nouvelle valeur de TCX_API_CLIENT_SECRET'), 'valeur-fictive');
+    await userEvent.click(screen.getByRole('button', { name: 'Renouveler' }));
     await userEvent.click((await inDialog()).getByRole('button', { name: 'Renouveler la clé' }));
     expect(await screen.findByText('TCX_API_CLIENT_SECRET renouvelé.')).toBeVisible();
   });
