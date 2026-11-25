@@ -26,3 +26,11 @@ Claude Code : ajoute ici toute question que la maquette, `HANDOFF.md` ou `DECISI
 | 27 | Postes 3CX des collaborateurs | Aucun : la signature affiche le standard seul | À fournir |
 | 28 | Suppression d'une boîte OVH depuis l'application | Autorisée avec double confirmation (saisie de l'adresse) ; recouvrement@ protégée | Ouverte |
 | 29 | Taille par défaut d'une nouvelle boîte OVH | La plus grande proposée par l'offre | Ouverte |
+| 13 | Numéros 13 à 19 : absents du kit v2.5 alors que le prompt annonce « questions 1 à 29 » | Numéros laissés libres (sauf celui-ci) | Ouverte |
+| 30 | Versions : TypeScript 7 est la dernière, mais typescript-eslint exige < 6.1 | TypeScript 6.0.3 figé | Ouverte |
+| 31 | Validation des formulaires : Mantine 9 fournit `schemaResolver` (Standard Schema), compatible Zod 4, sans paquet séparé | `schemaResolver` de `@mantine/form`, `{ sync: true }` | Ouverte |
+| 32 | Dépendances non citées : outils (eslint, prettier, typescript-eslint, testing-library, jsdom, @axe-core/playwright, postcss-preset-mantine), temporal-polyfill (exigé par FullCalendar 7), libphonenumber-js (API) | Retenues, versions exactes figées, rien d'autre | Ouverte |
+| 33 | Double authentification : @simplewebauthn/browser et QR code | Retenus au lot G seulement, avec `qrcode` | Ouverte |
+| 34 | Relectures par sous-agents demandées par `/verifier` | Une relecture par lot, avant l'ouverture de la PR | Ouverte |
+| 35 | `kits/emails-handlebars` contient un IBAN, un BIC et un SIREN qui semblent réels (config.example.json, README) | Jamais repris dans l'application : valeurs entre crochets. À confirmer avant de pousser le kit | À confirmer |
+| 36 | La machine de développement héberge des conteneurs qui semblent de production (Caddy, n8n, Gatus) et l'utilisateur système a accès à docker, contrairement à l'annexe Architecture | Claude Code n'utilise aucune commande docker | À corriger par le cabinet |

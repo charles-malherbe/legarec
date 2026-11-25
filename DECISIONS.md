@@ -34,3 +34,14 @@ Décisions prises après la maquette v1.21 (23/11/2026). Elles priment sur la ma
 | 24/11/2026 | media.legarec.fr : bucket public legarec-media, chemins versionnés (e-mails/v1/, marque/, documents-publics/), jamais de remplacement ; documents des dossiers dans legarec-documents (privé) | Liens des e-mails stables |
 | 24/11/2026 | Caddy comme proxy inverse (HTTPS automatique, redirections www et racines) ; legarec.fr ne passe pas par Caddy | Simplicité, certificats automatiques |
 | 24/11/2026 | GitHub Actions pour l'intégration continue (pnpm verifier sur chaque PR), sans secret de production ni déploiement | Contrôle automatique des PR |
+| 24/11/2026 | Décisions d'architecture (files d'attente, envois, PDF, IMAP, SMS, contrats, S3, sauvegardes, surveillance, Caddy, journaux, n8n, mises à jour, environnement de Claude Code) : `docs/architecture.md` | Annexe du prompt v2.5 |
+| 24/11/2026 | Code d'accès des débiteurs jamais envoyé par e-mail : `case.access_code` n'est transmis à aucun modèle ; envoi par SMS sur demande, ou régénération par un collaborateur | Sécurité de l'espace débiteur |
+| 24/11/2026 | SMS : « Non rattachés » pour les numéros inconnus, « STOP » arrête les SMS automatiques, compteur signalant le passage de 160 à 70 caractères | Prompt v2.5 |
+| 24/11/2026 | Montants en centimes entiers dans `packages/contracts` et MSW ; principal, intérêts et frais séparés ; un paiement partiel s'impute d'abord sur les intérêts (calcul de l'API) | Prompt v2.5 |
+| 24/11/2026 | Paiements reçus enregistrés à la main (chèque : encaissé ou impayé ; virement : rapprochement) ; quittance quand le paiement devient définitif ; un chèque impayé annule le paiement (Confirm) | Prompt v2.5 |
+| 24/11/2026 | Dépôt de créances : import CSV ou Excel analysé par l'API seulement, rapport ligne par ligne, rien n'est créé avant Confirm | Prompt v2.5 |
+| 24/11/2026 | Contrôles ajoutés à l'import d'un modèle : référence et date du premier courrier (refus), termes imitant un acte de commissaire de justice (alerte), SMS à 70 caractères (alerte) ; champs debiteur.code_acces, dossier.premier_courrier_reference, dossier.premier_courrier_date | Prompt v2.5 |
+| 24/11/2026 | Contacts : plafonds par débiteur et par canal, plages horaires réglables dans Paramètres du cabinet > Relances | Pas de harcèlement |
+| 24/11/2026 | Directeur : consultations des dossiers qui ne lui sont pas attribués notées dans l'historique | Prompt v2.5 |
+| 24/11/2026 | Premier commit du kit sur `main` poussé par l'utilisateur (dépôt vide) ; ensuite, uniquement des PR | Choix de l'utilisateur, 24/11/2026 |
+| 24/11/2026 | Enchaînement de tous les lots demandé sans validation préalable de `PLAN.md` | Choix de l'utilisateur, 24/11/2026 |

@@ -13,7 +13,7 @@ Cabinet de recouvrement amiable (Paris, 01 87 88 02 98). Ce dépôt transforme u
 1. `PROMPT-FRONT.md` (mission en cours) et `DECISIONS.md` : décisions prises après la maquette. Elles priment sur tout le reste.
 2. `maquette/HANDOFF.md` : règles métier, parcours, textes.
 3. `maquette/captures/` : référence visuelle (PNG à 1440, 1024 et 390 px). `maquette/*.dc.html` : structure, états et données de chaque écran.
-4. `docs/` : stack, domaines et services, lecture de la maquette, assistant IA. À lire avant de toucher à la partie concernée.
+4. `docs/` : stack, architecture, domaines et services, lecture de la maquette, assistant IA. À lire avant de toucher à la partie concernée.
 5. `kits/` : modèles d'e-mails (`emails-handlebars`, à ne pas modifier ; `emails-ajout-staff-message`) et Caddyfile de référence.
 
 En cas de doute : regarder `QUESTIONS.md`. Si la réponse n'y est pas, **ajouter la question** avec une option par défaut, ne pas inventer.

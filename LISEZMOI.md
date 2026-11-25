@@ -2,7 +2,8 @@
 
 1. Ouvrir ce dossier (ou le dépôt GitHub `charles-malherbe/legarec`) dans Claude Code.
 2. Accepter le serveur MCP `mantine` proposé par `.mcp.json`.
-3. Coller le contenu de `PROMPT-FRONT.md` comme premier message.
+3. Passer en mode plan.
+4. Coller le contenu de `PROMPT-FRONT.md` comme premier message.
 
 Dépôt déjà commencé : copier tout le kit sauf `maquette/` si elle n'a pas changé (les fichiers de documentation ont été mis à jour en v2.5).
 
