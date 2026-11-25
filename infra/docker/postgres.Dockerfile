@@ -15,6 +15,6 @@ COPY apps/api/prisma/bootstrap.sql /usr/local/share/legarec/bootstrap.sql
 # Run by the official entry point, once, when the data folder is empty.
 RUN ln -s /usr/local/bin/legarec-roles /docker-entrypoint-initdb.d/10-legarec.sh
 # The server only hears its two networks and its local socket; its data belongs to `postgres`, as whom everything runs.
-USER postgres
+USER 999:999
 ENTRYPOINT ["legarec-postgres"]
 CMD ["postgres", "-c", "config_file=/etc/legarec/postgresql.conf"]

@@ -1,3 +1,4 @@
+/* global fetch, AbortSignal */
 // Health of the worker, which opens no port: a program that runs reads its queues, and Valkey knows who reads them.
 // Run inside its container, with its own values. Prints nothing of them.
 import { networkInterfaces } from 'node:os';
