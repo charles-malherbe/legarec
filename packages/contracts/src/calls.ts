@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { atMost } from './limits';
+import { enteredAmount } from './money';
 
 export const callOutcome = z.enum(['PROMISE_TO_PAY', 'PAYMENT_PLAN', 'CALLBACK', 'DISPUTE', 'ALREADY_PAID', 'ABSENT', 'NO_ANSWER', 'WRONG_NUMBER']);
 export type CallOutcome = z.infer<typeof callOutcome>;
@@ -24,7 +25,7 @@ export const callQualification = z.object({
   notes: z.string().max(5000, atMost(5000)),
   promise: z
     .object({
-      amount: z.number().int().positive(),
+      amount: enteredAmount.positive(),
       date: z.iso.date(),
       method: z.enum(['TRANSFER', 'CHEQUE']),
       invoices: z.array(z.string().max(60)).min(1).max(100),
@@ -33,7 +34,7 @@ export const callQualification = z.object({
   alreadyPaid: z.object({ paidOn: z.iso.date(), reference: z.string().min(1).max(100, atMost(100)) }).nullable(),
   dispute: z.object({ reason: z.string().min(1).max(500, atMost(500)), suspendReminders: z.boolean(), askCreditor: z.boolean() }).nullable(),
   absent: z.object({ voicemail: z.boolean(), smsLink: z.boolean() }).nullable(),
-  months: z.number().int().nullable(),
+  months: z.number().int().min(1).max(60).nullable(),
   recall: z.enum(['1h', 'tomorrow', 'friday', 'custom']).nullable(),
   announced: z.boolean(),
   sendRecap: z.boolean(),

@@ -4,6 +4,11 @@ import { z } from 'zod';
 export const cents = z.number().int();
 export type Cents = z.infer<typeof cents>;
 
+/** What the database holds for one amount: 20 million euros. A total may go beyond. */
+export const AMOUNT_MAX = 2_000_000_000;
+/** Amount typed by someone. */
+export const enteredAmount = cents.max(AMOUNT_MAX, { error: 'Ce montant dépasse 20 000 000 €.' });
+
 const euro = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' });
 const euroRound = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
 

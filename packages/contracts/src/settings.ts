@@ -91,7 +91,7 @@ export const newMailbox = z
   .object({
     local: z.string().regex(/^[a-z0-9](?:[a-z0-9.-]{0,30}[a-z0-9])?$/u, { error: 'Lettres minuscules, chiffres, point ou tiret, par exemple cl.' }),
     holderId: z.string().max(ID_MAX).nullable(),
-    sizeMb: z.number().int(),
+    sizeMb: z.number().int().positive().max(1_000_000),
   })
   .refine((value) => value.local !== 'recouvrement' && (value.holderId === null || !isReservedAddress(value.local)), {
     path: ['local'],

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { isValidSiret } from './debtorAccess';
 import { atMost, EMAIL_MAX } from './limits';
-import { cents } from './money';
+import { AMOUNT_MAX, cents } from './money';
 
 /** Creditors' portal. Every answer of the API is already limited to the creditor of the session. */
 export const partnerSession = z.object({
@@ -66,7 +66,10 @@ const claimInvoice = z
     number: french('Saisissez le numéro de facture.', 60),
     issuedOn: z.iso.date({ error: 'Saisissez une date.' }),
     dueOn: z.iso.date({ error: 'Saisissez une date.' }),
-    amount: z.int({ error: 'Saisissez un montant, par exemple 1 250,00.' }).positive({ error: 'Saisissez un montant supérieur à zéro.' }),
+    amount: z
+      .int({ error: 'Saisissez un montant, par exemple 1 250,00.' })
+      .positive({ error: 'Saisissez un montant supérieur à zéro.' })
+      .max(AMOUNT_MAX, { error: 'Ce montant dépasse 20 000 000 €.' }),
   })
   .refine((value) => value.issuedOn <= value.dueOn, { path: ['dueOn'], error: 'L’échéance doit suivre l’émission.' });
 export const newClaim = z

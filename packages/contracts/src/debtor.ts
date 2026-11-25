@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { accessCode } from './debtorAccess';
 import { isValidSiren } from './firm';
 import { atMost, EMAIL_MAX, ID_MAX } from './limits';
-import { cents } from './money';
+import { AMOUNT_MAX, cents } from './money';
 
 /** Debtors' portal (no account): an identifier and a four-letter access code. */
 export const debtorIdentifier = z.discriminatedUnion('kind', [
@@ -119,7 +119,10 @@ export const debtorRequest = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('ALREADY_PAID'),
     paidOn: z.iso.date({ error: 'Saisissez la date du paiement.' }),
-    amount: z.int({ error: 'Saisissez un montant, par exemple 1 250,00.' }).positive({ error: 'Saisissez un montant supérieur à zéro.' }),
+    amount: z
+      .int({ error: 'Saisissez un montant, par exemple 1 250,00.' })
+      .positive({ error: 'Saisissez un montant supérieur à zéro.' })
+      .max(AMOUNT_MAX, { error: 'Ce montant dépasse 20 000 000 €.' }),
     method: z.enum(['TRANSFER', 'CHEQUE']),
     attachments,
   }),

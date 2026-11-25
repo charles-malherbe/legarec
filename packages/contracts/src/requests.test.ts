@@ -331,21 +331,21 @@ describe('ceilings', () => {
   const places = (value: unknown, path: Place = []): Place[] => {
     if (Array.isArray(value)) return value.length ? [path, ...places(value[0], [...path, 0])] : [];
     if (value && typeof value === 'object') return Object.entries(value).flatMap(([name, child]) => places(child, [...path, name]));
-    return typeof value === 'string' ? [path] : [];
+    return ['string', 'number'].includes(typeof value) ? [path] : [];
   };
   const change = (value: unknown, [head, ...tail]: Place, made: (current: unknown) => unknown): unknown => {
     if (head === undefined) return made(value);
     if (Array.isArray(value)) return value.map((item: unknown, index) => (index === head ? change(item, tail, made) : item));
     return { ...(value as object), [head]: change((value as Record<string, unknown>)[head], tail, made) };
   };
-  /** Texts and lists of the body that may be as long as the caller likes, up to the megabyte of the API. */
+  /** Texts, lists and numbers of the body that may be as long or as big as the caller likes. */
   const open = (schema: z.ZodType, bodies: readonly unknown[]) => {
     const found = new Set<string>();
     for (const body of bodies) {
       for (const path of places(body)) {
         const name = path.map((part) => (typeof part === 'number' ? '[]' : `.${part}`)).join('');
         const list = (current: unknown) => Array.from({ length: 5_000 }, () => (current as unknown[])[0]);
-        const tries = TEXTS.map((text) => change(body, path, (current) => (Array.isArray(current) ? list(current) : text)));
+        const tries = [...TEXTS, 1e12, -1e12].map((value) => change(body, path, (current) => (Array.isArray(current) ? list(current) : value)));
         if (tries.some((attempt) => schema.safeParse(attempt).success)) found.add(name.slice(1));
       }
     }
@@ -360,16 +360,25 @@ describe('ceilings', () => {
       d: z.array(z.string()).max(2),
       e: z.enum(['X']),
       f: z.email(),
+      g: z.number().max(3),
+      h: z.number().min(0).max(3),
     });
-    expect(open(sample, [{ a: 'x', b: 'x', c: ['x'], d: ['x'], e: 'X', f: 'a@exemple.fr' }])).toEqual(['a', 'c', 'd[]', 'f']);
+    expect(open(sample, [{ a: 'x', b: 'x', c: ['x'], d: ['x'], e: 'X', f: 'a@exemple.fr', g: 1, h: 1 }])).toEqual(['a', 'c', 'd[]', 'f', 'g']);
   });
 
   /** The file of a template is longer than any text: its own ceiling is proven below. */
   const FILES: Record<string, string[]> = { 'POST /templates/:id/import': ['source'] };
-  it.each(ROUTES)('$portal $route: every text and every list has one', ({ route, schema, bodies }) => {
+  it.each(ROUTES)('$portal $route: every text, every list and every number has one', ({ route, schema, bodies }) => {
     // The answer of a security key is opaque: checked by the API itself.
     if (OPEN.includes(route)) return;
     expect(open(schema, bodies).filter((place) => !place.startsWith('response'))).toEqual(FILES[route] ?? []);
+  });
+
+  it('bound what has no shape: the answer of a security key, and the settings', () => {
+    const key = (size: number) => JSON.stringify({ method: 'WEBAUTHN', response: { id: 'x'.repeat(size) } });
+    expect([1_000, 30_000].map((size) => acceptsBody('staff', 'POST', '/auth/two-factor', key(size)))).toEqual([true, false]);
+    const settings = (count: number) => JSON.stringify(Object.fromEntries(Array.from({ length: count }, (_, index) => [`s${index}`, 'x'])));
+    expect([100, 101].map((count) => acceptsBody('staff', 'PUT', '/settings/firm/rules', settings(count)))).toEqual([true, false]);
   });
 
   it('leave to the file of a template the size announced on its screen, and stop at the megabyte that the API reads', () => {
