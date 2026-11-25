@@ -1,0 +1,14 @@
+# GitHub Actions only: the stack of production, thrown away with the job, without any way out to the Internet.
+services:
+  caddy:
+    volumes: ['/var/lib/legarec-ci/Caddyfile:/etc/caddy/Caddyfile:ro']
+  postgres:
+    volumes: ['/var/lib/legarec-ci/depot:/depot']
+  sauvegarde:
+    volumes: ['/var/lib/legarec-ci/depot:/depot']
+  essai-restauration:
+    volumes: ['/var/lib/legarec-ci/depot:/depot']
+networks:
+  sortie-worker: { internal: true }
+  sortie-base: { internal: true }
+  sortie-alertes: { internal: true }

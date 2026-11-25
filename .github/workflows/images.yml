@@ -1,0 +1,72 @@
+name: images
+on:
+  pull_request:
+    paths:
+      - '.dockerignore'
+      - '.github/workflows/images.yml'
+      - '.nvmrc'
+      - 'apps/**'
+      - 'docker-compose.yml'
+      - 'infra/**'
+      - 'package.json'
+      - 'packages/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+permissions:
+  contents: read
+concurrency:
+  group: images-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    # No secret, no registry, no server: what is built here is thrown away with the job. Its values are drawn at random.
+    env:
+      COMPOSE_FILE: docker-compose.yml:infra/ci/compose.ci.yml
+      LEGAREC_VERSION: ci
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Versions
+        run: |
+          pnpm="$(jq -r .packageManager package.json)"
+          for file in api portail; do grep -q " $pnpm$" "infra/docker/$file.Dockerfile"; done
+          if grep -rhE '^FROM ' infra/docker | grep -vE '@sha256:[0-9a-f]{64}( AS [a-z]+)?$|^FROM base AS '; then exit 1; fi
+          node="$(cat .nvmrc)"
+          if grep -rhE '^FROM node:' infra/docker | grep -v "^FROM node:$node\."; then exit 1; fi
+      - name: Dockerfiles
+        run: |
+          for file in infra/docker/*.Dockerfile; do
+            docker run --rm --interactive hadolint/hadolint:v2.15.1@sha256:32dac94127fd60b7b7e3fbfc65e1383b9b5e25c9bfd7b8536de7a539fe68a12d hadolint --ignore DL3008 --ignore DL3016 - < "$file"
+          done
+      - name: Scripts and timers
+        run: |
+          shellcheck infra/deployer.sh infra/ci/*.sh infra/postgres/legarec-* infra/valkey/legarec-* infra/gatus/legarec-gatus infra/grafana/legarec-grafana
+          sudo install -d /opt/legarec
+          systemd-analyze verify infra/systemd/*.service infra/systemd/*.timer
+          for file in infra/systemd/*.timer; do systemd-analyze calendar "$(sed -n 's/^OnCalendar=//p' "$file")"; done
+      - name: Compose
+        run: docker compose -f docker-compose.yml --profile '*' config --quiet
+      - name: Values drawn for this job
+        run: |
+          sudo --preserve-env=GITHUB_ACTIONS infra/ci/values.sh
+          sudo git config --global --add safe.directory "$PWD"
+      - name: Deployment
+        run: sudo --preserve-env=COMPOSE_FILE infra/deployer.sh
+      - name: Configurations
+        run: |
+          image="$(sudo cat /etc/legarec/version.env | cut -d= -f2)"
+          docker run --rm "legarec/caddy:$image" caddy fmt --diff /etc/caddy/Caddyfile
+          docker run --rm "legarec/espace:$image" caddy fmt --diff /etc/caddy/Caddyfile
+          docker run --rm --env ACME_EMAIL=ci@example.com --env AUTHORIZED_IPS=192.0.2.1 --env SCW_REGION=ci "legarec/caddy:$image" caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+          docker run --rm "legarec/loki:$image" -config.file=/etc/loki/loki.yaml -verify-config
+          docker run --rm "legarec/journaux:$image" -c /fluent-bit/etc/legarec.yaml --dry-run
+      - name: What it does, and never does
+        run: sudo --preserve-env=COMPOSE_FILE,GITHUB_ACTIONS bash -c 'set -a; . /etc/legarec/version.env; exec infra/ci/smoke.sh'
+      - name: After a failure
+        if: failure()
+        run: |
+          sudo --preserve-env=COMPOSE_FILE,LEGAREC_VERSION docker compose ps --all
+          sudo --preserve-env=COMPOSE_FILE,LEGAREC_VERSION docker compose logs --no-color --tail 60
