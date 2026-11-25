@@ -1,5 +1,31 @@
 {
-  "ForgotPassword": { "app": "espace", "route": "/mot-de-passe-oublie" },
-  "Activation": { "app": "espace", "route": "/activation/demo" },
-  "Reset": { "app": "espace", "route": "/reinitialisation/demo" }
+  "ForgotPassword": {
+    "app": "espace",
+    "route": "/mot-de-passe-oublie"
+  },
+  "Activation": {
+    "app": "espace",
+    "route": "/activation/demo"
+  },
+  "Reset": {
+    "app": "espace",
+    "route": "/reinitialisation/demo"
+  },
+  "Mailboxes": {
+    "app": "espace",
+    "route": "/parametres/techniques/boites",
+    "account": "dev"
+  },
+  "SettingsSection": {
+    "app": "espace",
+    "route": "/parametres/regles"
+  },
+  "MergeFields": {
+    "app": "espace",
+    "route": "/parametres/champs-de-fusion"
+  },
+  "Gdpr": {
+    "app": "espace",
+    "route": "/parametres/rgpd"
+  }
 }

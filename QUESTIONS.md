@@ -39,3 +39,13 @@ Claude Code : ajoute ici toute question que la maquette, `HANDOFF.md` ou `DECISI
 | 39 | « Activer mon compte » sans lien d'invitation | L'activation passe par le lien reçu par e-mail ; texte adapté | Ouverte |
 | 40 | Tableau de bord du Développeur, absent de la maquette | Accueil technique sans aucune donnée de dossier | Ouverte |
 | 41 | Connexion SSH à GitHub refusée sur la machine de développement | Branches gardées en local ; aucune PR ouverte | À corriger par le cabinet |
+| 42 | Boîte OVH à l'invitation d'un collaborateur : le Responsable invite (délégation administrative), la boîte relève du technique | L'invitation part d'Équipe, le Développeur ou le Directeur crée la boîte dans Paramètres techniques | Ouverte |
+| 43 | Notifications par SMS (Compte) : aucun portable n'est stocké | Colonne SMS retirée ; restent l'application et l'e-mail | Ouverte |
+| 44 | Photo de profil, langue anglaise et page d'accueil au choix (Compte) | Non repris : initiales, français, tableau de bord | Ouverte |
+| 45 | Plafonds de contacts par canal : valeurs | [PLAFOND À VALIDER], réglables dans Paramètres du cabinet > Relances | Ouverte |
+| 46 | IBAN des débiteurs « visibles par Dirigeant et Développeur » (maquette), alors que le Développeur n'a aucun dossier | Visibles par le Directeur seulement | Ouverte |
+| 47 | Révocation d'un secret : « accord d'un second développeur », rôle unique | Accord du Directeur | Ouverte |
+| 48 | Numéro STOP : la maquette écrit « 36173 » et [NUMÉRO STOP] | [NUMÉRO STOP] partout | Ouverte |
+| 49 | Adresse du siège : la maquette donne une adresse | [ADRESSE DU CABINET] tant qu'elle n'est pas confirmée | Ouverte |
+| 50 | Triple accolade dans un modèle importé (texte non protégé) | Refusée, en plus des contrôles demandés | Ouverte |
+| 51 | Articles d'aide : un seul est rédigé dans la maquette | Les 17 autres affichent « Article en cours de rédaction » | Ouverte |

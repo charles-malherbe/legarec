@@ -13,7 +13,7 @@ export function canOpen(path: string, user: Session): boolean {
 /** Screens used under a delegation of the Director show the « Pour le compte du Directeur » banner. */
 export function delegationFor(path: string, user: Session): string | null {
   if (path.startsWith('/parametres/techniques') && hasDelegation(user, 'TECHNICAL')) return 'technique';
-  const administrative = ['/facturation', '/parametres/modeles'];
+  const administrative = ['/facturation', '/parametres'];
   if (administrative.some((route) => path.startsWith(route)) && hasDelegation(user, 'ADMINISTRATIVE')) return 'administrative';
   return null;
 }

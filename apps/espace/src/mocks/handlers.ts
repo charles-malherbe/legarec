@@ -4,6 +4,9 @@ import { ACCOUNTS, DEMO_PASSWORD } from './accounts';
 import dashboardData from './dashboard.json';
 import { documentHandlers } from './routes/documents';
 import { steeringHandlers } from './routes/steering';
+import { accountHandlers } from './routes/account';
+import { settingsHandlers } from './routes/settings';
+import { templateHandlers } from './routes/templates';
 import { callHandlers } from './routes/calls';
 import { messageHandlers } from './routes/messages';
 import { caseHandlers, readable } from './routes/cases';
@@ -88,6 +91,9 @@ const normalize = (text: string) => text.toLowerCase().normalize('NFD').replace(
 
 export const handlers: HttpHandler[] = [
   ...documentHandlers,
+  ...settingsHandlers,
+  ...templateHandlers,
+  ...accountHandlers,
   ...steeringHandlers,
   ...callHandlers,
   ...messageHandlers,

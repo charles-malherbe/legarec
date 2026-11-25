@@ -7,12 +7,15 @@ const config = JSON.parse(readFileSync(new URL('../scripts/ecrans.json', import.
 };
 const DONE = JSON.parse(readFileSync(new URL('./done.json', import.meta.url), 'utf8')) as string[];
 /** Extra routes without a mockup capture. */
-const EXTRA = JSON.parse(readFileSync(new URL('./extra.json', import.meta.url), 'utf8')) as Record<string, { app: string; route: string }>;
-const screens = { ...Object.fromEntries(DONE.map((name) => [name, config[name]!])), ...EXTRA };
+const EXTRA = JSON.parse(readFileSync(new URL('./extra.json', import.meta.url), 'utf8')) as Record<string, { app: string; route: string; account?: string }>;
+const screens: Record<string, { app: string; route: string; account?: string }> = { ...Object.fromEntries(DONE.map((name) => [name, config[name]!])), ...EXTRA };
 
 for (const [name, screen] of Object.entries(screens)) {
   test.describe(name, () => {
     const url = (config._bases as Record<string, string>)[screen.app] + screen.route;
+    test.beforeEach(async ({ page }) => {
+      if (screen.account) await page.addInitScript((id) => sessionStorage.setItem('msw-demo-account', id), screen.account);
+    });
     for (const width of [390, 768, 1024, 1440]) {
       test(`fits ${width}px without horizontal scroll and passes axe`, async ({ page }) => {
         await page.setViewportSize({ width, height: 900 });

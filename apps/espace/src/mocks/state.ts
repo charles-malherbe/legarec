@@ -18,6 +18,8 @@ export const state = {
   readNotifications: new Set<string>(),
   priorities: new Map<string, boolean>(),
   preferences: new Map<string, Session['preferences']>(),
+  delegations: ['TECHNICAL', 'ADMINISTRATIVE'] as Session['activeDelegations'],
+  names: new Map<string, { firstName: string; lastName: string }>(),
 };
 
 export function setAccount(id: string | null) {
@@ -32,5 +34,12 @@ if (state.accountId === 'none') state.accountId = null;
 
 export function currentSession(): Session | null {
   const account = ACCOUNTS.find((item) => item.userId === state.accountId);
-  return account ? { ...account, preferences: state.preferences.get(account.userId) ?? account.preferences } : null;
+  return account
+    ? {
+        ...account,
+        ...state.names.get(account.userId),
+        activeDelegations: state.delegations,
+        preferences: state.preferences.get(account.userId) ?? account.preferences,
+      }
+    : null;
 }

@@ -7,6 +7,12 @@ import { Navigate, Outlet, Route, Routes } from 'react-router';
 import { BillingPage } from '../features/billing/BillingPage';
 import { NotificationsPage } from '../features/notifications/NotificationsPage';
 import { TeamPage } from '../features/team/TeamPage';
+import { AccountPage } from '../features/account/AccountPage';
+import { ArticlePage } from '../features/help/ArticlePage';
+import { HelpPage } from '../features/help/HelpPage';
+import { SettingsPage } from '../features/settings/SettingsPage';
+import { MergeFieldsPage } from '../features/templates/MergeFieldsPage';
+import { TemplatePage } from '../features/templates/TemplatePage';
 import { CallsPage } from '../features/calls/CallsPage';
 import { ComposePage } from '../features/documents/ComposePage';
 import { DocumentsPage } from '../features/documents/DocumentsPage';
@@ -85,6 +91,15 @@ export function App() {
                     <Route path="documents" element={<DocumentsPage />} />
                     <Route path="documents/rediger" element={<ComposePage />} />
                     <Route path="contentieux" element={<LitigationPage />} />
+                    <Route path="parametres" element={<SettingsPage />} />
+                    <Route path="parametres/champs-de-fusion" element={<MergeFieldsPage />} />
+                    <Route path="parametres/modeles/:id" element={<TemplatePage />} />
+                    <Route path="parametres/techniques" element={<SettingsPage key="techniques" scope="techniques" />} />
+                    <Route path="parametres/techniques/:section" element={<SettingsPage key="techniques" scope="techniques" />} />
+                    <Route path="parametres/:section" element={<SettingsPage />} />
+                    <Route path="compte" element={<AccountPage />} />
+                    <Route path="aide" element={<HelpPage />} />
+                    <Route path="aide/:slug" element={<ArticlePage />} />
                   </Route>
                 </Route>
                 <Route path="*" element={<ErrorPage code={404} />} />
