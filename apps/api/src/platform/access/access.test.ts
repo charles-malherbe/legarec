@@ -1,4 +1,4 @@
-import { All, Body, Controller, Get, Post, Put, Query, Scope, type ExecutionContext, type Type } from '@nestjs/common';
+import { All, Body, Controller, Get, Headers, Param, Post, Put, Query, Req, Res, Scope, type ExecutionContext, type Type } from '@nestjs/common';
 import { DiscoveryModule, Reflector } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
@@ -371,7 +371,7 @@ describe('routes', () => {
     expect(() => checkRoutes([{ ...route(`GET ${prefix}/x`), access: undefined }])).toThrow(`GET ${prefix}/x: no access rule`);
   });
 
-  it('cannot commit where the key would be ignored, nor read a body or a query without schema', async () => {
+  it('cannot commit where the key would be ignored, nor read a body, a query or the request itself unchecked', async () => {
     @Controller('staff/silent')
     class Silent {
       @Get('reading')
@@ -389,10 +389,19 @@ describe('routes', () => {
       @Get('query')
       @AnyStaff()
       query(@Query() _query: unknown) {}
-      @Post('fine')
+      @Post('whole')
+      @AnyStaff()
+      whole(@Req() _request: unknown) {}
+      @Get('header')
+      @AnyStaff()
+      header(@Headers('x-any') _header: unknown) {}
+      @Get('own')
+      @AnyStaff()
+      own(@Res() _response: unknown) {}
+      @Post('fine/:id')
       @AnyStaff()
       @Commits()
-      fine(@Body({ schema: z.object({}) }) _body: unknown) {}
+      fine(@Param('id') _id: string, @Body({ schema: z.object({}) }) _body: unknown) {}
     }
     @Controller('partner/login')
     class Login {
@@ -409,12 +418,15 @@ describe('routes', () => {
       receive() {}
     }
     expect((await refused(Silent, Login, Provider)).sort()).toEqual([
+      'GET /staff/silent/header',
+      'GET /staff/silent/own',
       'GET /staff/silent/query',
       'GET /staff/silent/reading',
       'POST /hooks/provider',
       'POST /partner/login',
       'POST /staff/silent/apart',
       'POST /staff/silent/body',
+      'POST /staff/silent/whole',
     ]);
   });
 });

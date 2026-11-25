@@ -36,9 +36,16 @@ export interface TestApp {
   stop(): Promise<void>;
 }
 
-export async function startApp(controllers: Type[] = []): Promise<TestApp> {
-  const database = await createTestDatabase();
-  const s = await seed(database.admin);
+interface Options {
+  /** Startup values of the test. */
+  env?: Record<string, string>;
+  /** Application that keeps its database and its people: this one starts next to it, as after a deployment. */
+  next?: TestApp;
+}
+
+export async function startApp(controllers: Type[] = [], { env = {}, next }: Options = {}): Promise<TestApp> {
+  const database = next?.database ?? (await createTestDatabase());
+  const s = next?.s ?? (await seed(database.admin));
   const logs: string[] = [];
   const config = readConfig({
     NODE_ENV: 'test',
@@ -46,6 +53,7 @@ export async function startApp(controllers: Type[] = []): Promise<TestApp> {
     VALKEY_URL: inject('valkeyUrl'),
     VAULT_MASTER_KEY: randomBytes(32).toString('base64'),
     SESSION_SIGNING_KEY: randomBytes(32).toString('base64'),
+    ...env,
   });
   const valkey = connectValkey(config.VALKEY_URL, 'api');
   await valkey.connect();
@@ -65,8 +73,21 @@ export async function startApp(controllers: Type[] = []): Promise<TestApp> {
     debtorB: { kind: 'debtor', debtorId: s.debtorB },
   });
   const logger = createLogger('debug', new Writable({ write: (chunk: Buffer, _encoding, done) => (logs.push(chunk.toString()), done()) }));
-  const app = await createApp({ config, logger, database: new Database(config.DATABASE_URL), valkey, resolver: new TestResolver(actors), controllers });
-  await app.listen(0, '127.0.0.1');
+  const pool = new Database(config.DATABASE_URL);
+  const drop = () => (next ? Promise.resolve() : database.drop());
+  const app = await createApp({ config, logger, database: pool, valkey, resolver: new TestResolver(actors), controllers }).catch(async (error: unknown) => {
+    await Promise.all([pool.close(), valkey.quit()]);
+    await drop();
+    throw error;
+  });
+  try {
+    await app.listen(0, '127.0.0.1');
+  } catch (error) {
+    // Refused at its start: nothing of it stays.
+    await app.close();
+    await drop();
+    throw error;
+  }
   const base = await app.getUrl();
   return {
     app,
@@ -90,7 +111,7 @@ export async function startApp(controllers: Type[] = []): Promise<TestApp> {
     },
     stop: async () => {
       await app.close();
-      await database.drop();
+      await drop();
     },
   };
 }

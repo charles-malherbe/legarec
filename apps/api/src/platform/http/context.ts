@@ -19,6 +19,6 @@ export const openRequest: RequestHandler = (request, response, next) => {
   const requestId = randomUUID();
   response.setHeader('X-Request-Id', requestId);
   Object.assign(request, { requestId });
-  // The proxy writes the address; anything else is left out rather than trusted.
-  storage.run({ requestId, ...(request.ip && isIP(request.ip) ? { ip: request.ip } : {}) }, next);
+  // The proxy writes the address; anything else is left out rather than trusted (a zone, `%eth0`, is not an address).
+  storage.run({ requestId, ...(request.ip && isIP(request.ip) && !request.ip.includes('%') ? { ip: request.ip } : {}) }, next);
 };

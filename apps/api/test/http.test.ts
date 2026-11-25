@@ -13,7 +13,7 @@ import {
   Query,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import http from 'node:http';
 import { gzipSync } from 'node:zlib';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -116,6 +116,30 @@ class StaffProbeController {
   @Get('away')
   away() {
     throw new ServiceUnavailableException(SECRET);
+  }
+  /** A message on several lines, some of which look like the frames of a stack. */
+  @Get('quoted')
+  quoted() {
+    throw new Error(`refused\n    at Jean Dupont KXPM\n    at jean@exemple.test (/chemin/${SECRET}.js:1:2)\n    at Jean (/home/KXPM.js:1:2)`);
+  }
+  /** The message of the stack is no longer that of the error. */
+  @Get('renamed')
+  renamed() {
+    const error = new Error('changed since then');
+    const frames = (error.stack ?? '').split('\n').slice(1);
+    error.stack = ['Error: refused', '    at Jean Dupont KXPM', `    at jean@exemple.test (/chemin/${SECRET}.js:1:2)`, ...frames].join('\n');
+    throw error;
+  }
+  @Get('slow')
+  async slow() {
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    return {};
+  }
+  /** Writes nothing that would carry a name. */
+  @Post('quiet')
+  @StaffOrDelegate('ADMINISTRATIVE', 'DIRECTOR')
+  quiet() {
+    return this.database.tx.$queryRaw`SELECT 1 AS one`;
   }
 }
 
@@ -433,6 +457,20 @@ describe('errors', () => {
     expect(test.logs.join('')).not.toContain(SECRET);
   });
 
+  it.each(['quoted', 'renamed'])('keep in the log the path of the code, and nothing of their message: %s', async (path) => {
+    expect((await get(path)).status).toBe(500);
+    const log = test.logs.join('');
+    expect(log).toMatch(/http\.test\.ts:\d+:\d+/u);
+    for (const hidden of ['Jean', 'KXPM', 'jean@', SECRET, 'refused\\n']) expect(log, hidden).not.toContain(hidden);
+  });
+
+  it('that the database answers to a value are told to the caller, and seen in the log', async () => {
+    expect((await raw('GET', '/staff/sample/cases/not-an-identifier', from('officerA'))).status).toBe(404);
+    const seen = test.logs.map((line) => JSON.parse(line) as Record<string, unknown>).find((line) => line.msg === 'refused value');
+    expect(seen).toMatchObject({ level: 40, databaseCode: expect.stringMatching(/^(22P02|P20\d\d)$/u) as string });
+    expect(test.logs.join('')).not.toContain('not-an-identifier');
+  });
+
   it('of NestJS that are failures of the API look like any other failure', async () => {
     const answer = await get('broken');
     expect(answer).toMatchObject({ status: 500, body: { code: 'INTERNAL', requestId: answer.headers['x-request-id'] } });
@@ -589,6 +627,39 @@ describe('repeated requests', () => {
     expect(kept!.request_hash.equals(guess)).toBe(false);
   });
 
+  it('are digested with a key of the server: the same request leaves another digest under another key', async () => {
+    const digests: string[] = [];
+    const value = randomUUID();
+    const keys = [randomBytes(32), randomBytes(32)].map((bytes) => bytes.toString('base64'));
+    // Same database, same person, same request, same key: only the key of the server differs.
+    for (const SESSION_SIGNING_KEY of [...keys, keys[0]!]) {
+      const other = await startApp([StaffProbeController], { env: { SESSION_SIGNING_KEY }, next: test });
+      await other.call('DELETE', '/staff/probe/value', { as: 'officerA', headers: key(value) });
+      const [kept] = await rows<{ request_hash: Buffer }>('SELECT request_hash FROM idempotency_keys WHERE key = $1', [value]);
+      digests.push(kept!.request_hash.toString('hex'));
+      await test.database.admin.query('DELETE FROM idempotency_keys WHERE key = $1', [value]);
+      await other.stop();
+    }
+    expect(digests[0]).toBe(digests[2]);
+    expect(digests[0]).not.toBe(digests[1]);
+  });
+
+  it('survive the renewal of that key, for as long as the previous one is there', async () => {
+    const [first, second] = [randomBytes(32), randomBytes(32)].map((bytes) => bytes.toString('base64')) as [string, string];
+    const value = randomUUID();
+    const answers: { status: number; body: unknown }[] = [];
+    for (const env of [{ SESSION_SIGNING_KEY: first }, { SESSION_SIGNING_KEY: second, SESSION_SIGNING_KEY_PREVIOUS: first }, { SESSION_SIGNING_KEY: second }]) {
+      const app = await startApp([StaffProbeController], { env: env as Record<string, string>, next: test });
+      const { status, body } = await app.call('PUT', '/staff/probe/value', { as: 'officerA', headers: key(value) });
+      answers.push({ status, body });
+      await app.stop();
+    }
+    expect(answers[0]!.status).toBe(200);
+    // The same answer, not a second effect.
+    expect(answers[1]).toEqual(answers[0]);
+    expect(answers[2]).toMatchObject({ status: 422, body: { code: 'IDEMPOTENCY_MISMATCH' } });
+  });
+
   it('keep their answer encrypted, bound to their key', async () => {
     const value = randomUUID();
     const answer = await raw('PUT', '/staff/probe/value', { ...from('officerA'), ...key(value) });
@@ -671,10 +742,14 @@ describe('delegation', () => {
     expect((await lines()).at(-1)).toEqual({ actor_label: 'Remi Test', on_behalf_of_id: test.s.director });
   });
 
-  it('withdrawn during the session: the action itself is refused', async () => {
+  it('withdrawn during the session: the action itself is refused, even when it would leave no trace', async () => {
+    const quiet = (as: string) => raw('POST', '/staff/probe/quiet', from(as));
+    expect((await quiet('manager')).status).toBe(201);
     await withdraw();
     try {
       expect((await act('manager')).status).toBe(403);
+      expect((await quiet('manager')).status).toBe(403);
+      expect((await quiet('director')).status).toBe(201);
     } finally {
       await give();
     }
@@ -701,7 +776,8 @@ describe('address of the caller', () => {
     expect((await rows<{ ip: string }>('SELECT host(ip) AS ip FROM audit_log ORDER BY occurred_at DESC LIMIT 1'))[0]).toEqual({ ip: '127.0.0.1' });
   });
   it('never makes a request fail when it is not an address', async () => {
-    expect((await raw('POST', '/staff/sample/settings', { ...from('director'), 'x-forwarded-for': 'unknown' })).status).toBe(204);
+    for (const forwarded of ['unknown', 'fe80::1%eth0', '203.0.113.7:4000', ''])
+      expect((await raw('POST', '/staff/sample/settings', { ...from('director'), 'x-forwarded-for': forwarded })).status, forwarded).toBe(204);
   });
 });
 
@@ -734,6 +810,22 @@ describe('log of the requests', () => {
   it('gives the status really sent, when the request ends in an error', async () => {
     const answer = await raw('GET', `/staff/sample/cases/${randomUUID()}`, from('officerA'));
     expect(await lines(answer)).toMatchObject([{ route: '/staff/sample/cases/:id', status: 404, actor: 'staff' }]);
+  });
+
+  it('tells a caller who left before the answer from one who received it', async () => {
+    const left = new Promise<void>((resolve) => {
+      const request = http.request({ host: base.hostname, port: base.port, path: '/staff/probe/slow', headers: from('officerA') });
+      request.on('error', () => resolve());
+      request.end();
+      setTimeout(() => request.destroy(), 100);
+    });
+    await left;
+    const statuses = () => test.logs.map((line) => JSON.parse(line) as Record<string, unknown>).filter((line) => line.route === '/staff/probe/slow');
+    for (let i = 0; i < 40 && !statuses().length; i += 1) await new Promise((resolve) => setTimeout(resolve, 25));
+    expect(statuses().map((line) => line.status)).toEqual([499]);
+    expect((await raw('GET', '/staff/probe/slow', from('officerA'))).status).toBe(200);
+    await until(() => statuses().length === 2);
+    expect(statuses().map((line) => line.status)).toEqual([499, 200]);
   });
 
   it.each<[string, () => Promise<Answer>, number]>([

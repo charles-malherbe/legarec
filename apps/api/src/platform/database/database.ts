@@ -31,6 +31,8 @@ export class Database {
     return this.client.$transaction(
       async (tx) => {
         await tx.$queryRawUnsafe(ENTER, ...CONTEXT_NAMES.map((name) => context[name]));
+        // Refused here when the delegation is withdrawn, whatever the action writes.
+        if (context['app.acting_for']) await tx.$queryRaw`SELECT app.on_behalf_of()`;
         return this.scope.run({ actor, tx }, () => work(tx));
       },
       { timeout: this.timeoutMs, maxWait: 5_000 },

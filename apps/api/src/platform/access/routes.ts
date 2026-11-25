@@ -11,12 +11,14 @@ export interface RouteInfo {
   access: AccessRule | undefined;
   commits: boolean;
   ownTransactions: boolean;
-  /** Parameters read from the body or the query without any schema. */
+  /** Parameters read from the body or the query without any schema, or from the request by hand. */
   unchecked: string[];
 }
 
+/** Numbers of NestJS for `@Body()`, `@Query()` and `@Param()`. The decorators of the platform have no number. */
 const BODY = 3;
 const QUERY = 4;
+const PARAM = 5;
 const join = (...parts: string[]) =>
   `/${parts
     .flatMap((part) => part.split('/'))
@@ -26,9 +28,12 @@ const list = (value: unknown): string[] => (Array.isArray(value) ? (value as str
 
 function uncheckedOf(metatype: object, name: string): string[] {
   const args = (Reflect.getMetadata(ROUTE_ARGS_METADATA, metatype, name) ?? {}) as Record<string, { schema?: unknown }>;
-  return Object.entries(args)
-    .filter(([key, value]) => [BODY, QUERY].includes(Number(key.split(':')[0])) && value.schema === undefined)
-    .map(([key]) => (Number(key.split(':')[0]) === BODY ? 'body' : 'query'));
+  return Object.entries(args).flatMap(([key, { schema }]) => {
+    const kind = Number(key.split(':')[0]);
+    if (Number.isNaN(kind) || kind === PARAM) return [];
+    if (kind === BODY || kind === QUERY) return schema === undefined ? [kind === BODY ? 'body' : 'query'] : [];
+    return ['request'];
+  });
 }
 
 /** Every route of the application, read from NestJS itself. */
@@ -62,6 +67,7 @@ function faultOf({ id, access, commits, ownTransactions, unchecked }: RouteInfo)
   if (!access) return 'no access rule';
   if (path !== PREFIX[access.portal] && !path.startsWith(`${PREFIX[access.portal]}/`)) return 'outside the prefix of its portal';
   if (method === 'ALL') return 'answers every method';
+  if (unchecked.includes('request')) return 'reads the request by hand';
   if (unchecked.length) return `${unchecked.join(' and ')} without schema`;
   if (commits && (method === 'GET' || method === 'HEAD')) return 'commits on a reading';
   if (commits && ownTransactions) return 'commits outside of the transaction of the request';
