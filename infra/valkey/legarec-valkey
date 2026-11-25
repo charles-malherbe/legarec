@@ -1,0 +1,9 @@
+#!/bin/sh
+# The password goes through the standard input: the command line of a program can be read by others.
+set -eu
+password="$(sed -n 's/^VALKEY_PASSWORD=//p' /run/secrets/valkey | head -n 1)"
+[ -n "$password" ] || { echo 'Missing value: VALKEY_PASSWORD' >&2; exit 1; }
+exec valkey-server - <<EOF
+$(cat /etc/valkey/valkey.conf)
+requirepass "$password"
+EOF

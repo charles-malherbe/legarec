@@ -1,0 +1,10 @@
+[Unit]
+Description=Legarec : Sauvegarde incrémentale chaque nuit
+Requires=docker.service
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/legarec
+ExecStart=/usr/bin/docker compose --env-file /etc/legarec/version.env run --rm sauvegarde incr
+TimeoutStartSec=6h

@@ -1,0 +1,8 @@
+#!/bin/bash
+# Entry point: gives the password of the superuser to the official one, which asks for it when it creates the data folder.
+set -euo pipefail
+if [ "${1:-}" = postgres ] && [ ! -s "$PGDATA/PG_VERSION" ]; then
+  POSTGRES_PASSWORD="$(legarec-value POSTGRES_PASSWORD)"
+  export POSTGRES_PASSWORD
+fi
+exec docker-entrypoint.sh "$@"

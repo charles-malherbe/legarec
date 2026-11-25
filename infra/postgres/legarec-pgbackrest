@@ -1,0 +1,8 @@
+#!/bin/bash
+# pgBackRest with its keys, which no other program receives. The file is read, never run.
+set -euo pipefail
+while IFS= read -r line || [ -n "$line" ]; do
+  name="${line%%=*}"
+  [[ "$line" == PGBACKREST_*=* && "$name" =~ ^PGBACKREST_[A-Z0-9_]+$ ]] && export "$name=${line#*=}"
+done < "${PGBACKREST_VALUES:-/run/secrets/pgbackrest}"
+exec pgbackrest --stanza=legarec "$@"

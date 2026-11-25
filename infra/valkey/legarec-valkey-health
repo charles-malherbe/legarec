@@ -1,0 +1,3 @@
+#!/bin/sh
+set -eu
+REDISCLI_AUTH="$(sed -n 's/^VALKEY_PASSWORD=//p' /run/secrets/valkey | head -n 1)" valkey-cli ping | grep -qx PONG

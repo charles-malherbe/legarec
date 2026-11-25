@@ -1,0 +1,9 @@
+#!/bin/bash
+# One backup: `full` or `incr`. Creates the place of the backups the first time, expires those past their time.
+set -euo pipefail
+kind="${1:?full or incr}"
+legarec-pgbackrest stanza-create
+legarec-pgbackrest check
+legarec-pgbackrest --type="$kind" backup
+# Not told: the monitoring raises the alarm by itself.
+legarec-tell sauvegardes_sauvegarde || echo 'monitoring not told' >&2

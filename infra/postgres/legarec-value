@@ -1,0 +1,6 @@
+#!/bin/bash
+# Prints one value of the file of the container. The file is read, never run: a value is only a value.
+set -euo pipefail
+value="$(sed -n "s/^$1=//p" "${LEGAREC_VALUES:-/run/secrets/postgres}" | head -n 1)"
+[ -n "$value" ] || { echo "Missing value: $1" >&2; exit 1; }
+printf '%s' "$value"
