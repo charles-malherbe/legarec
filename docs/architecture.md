@@ -25,7 +25,7 @@ Décisions du 24/11/2026, reprises de l'annexe « Architecture » de `PROMPT-FRO
 - SMS : OVHcloud ; expéditeur sous forme de numéro (et non le nom « LEGAREC ») pour recevoir les réponses,
   rattachées au dossier par numéro de téléphone ; numéro mobile virtuel d'un compte dédié (question 70).
 - Téléphonie : API Call Control de 3CX (question 71) ; enregistrements repris dans S3 et supprimés à 6 mois
-  (copie restée dans 3CX et appels sans annonce : question 117).
+  (supprimés de 3CX après copie ; appel sans annonce jamais repris et supprimé dans 3CX : question 117).
 - Contrats : schémas Zod de packages/contracts → OpenAPI produit par NestJS 12 (@nestjs/swagger ; nestjs-zod abandonné, question 66) → types des routes générés
   par openapi-typescript, régénérés et vérifiés par pnpm verifier (en local et dans GitHub Actions).
 - Montants : centimes entiers ; taux d'intérêt légal dans une table mise à jour chaque semestre.

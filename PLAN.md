@@ -182,8 +182,8 @@ Les 161 routes simulées se répartissent ainsi :
 - Mémoire du VPS (11,7 Go, 7,5 libres) : ClamAV environ 1,2 Go, modèle local 3 à 4 Go, plus la production. L'essai du lot W le mesure avant tout choix.
 - À faire valider par le juriste : kit sans rappel du premier courrier (85), suivi des e-mails (84), intérêts des particuliers (98), coordonnées (79). Suivi dans `QUESTIONS.md`.
 - Numéro virtuel OVH : si les liens y sont refusés, la question 70 se rouvre.
-- Code d'accès court (331 776 combinaisons) : d'où limites, blocage, réponses identiques et exclusion des mots courants. Coordonnées fournies par les créanciers : question 112, à trancher avant le lot O.
-- Pouvoirs du Développeur sur le compte du Directeur : question 113, à trancher avant le lot K.
+- Code d'accès court (331 776 combinaisons) : d'où limites, blocage, réponses identiques et exclusion des mots courants. Coordonnées fournies par les créanciers : le code ne part que vers une coordonnée confirmée (question 112).
+- Pouvoirs du Développeur sur le compte du Directeur : support complet choisi par le cabinet, Directeur prévenu dans l'application (lot K) et par SMS (lot R) (question 113).
 - Les PR sont volumineuses (K, L, R) : un commit par module pour faciliter la relecture.
 
 ## Vérification
