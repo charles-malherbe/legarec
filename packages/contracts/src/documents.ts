@@ -86,11 +86,21 @@ export const letterRecipient = z.object({
   invoices: z.array(z.object({ number: z.string(), due: z.iso.date(), amount: cents })),
 });
 export type LetterRecipient = z.infer<typeof letterRecipient>;
+/** The API reads the file, then attaches it to a case its author may act on, or leaves it to be filed. */
+export const importedDocument = z.object({ id: z.string(), status: z.enum(['ATTACHED', 'TO_FILE']) });
 export const composeData = z.object({
   firm: z.object({ name: z.string(), address: z.string(), phone: z.string(), siren: z.string() }),
   recipients: z.array(letterRecipient),
   /** `withoutFirstLetter`: debtors left out of any reminder that must recall a first letter. */
-  batch: z.object({ debtors: z.number().int(), invoices: z.number().int(), amount: cents, withoutFirstLetter: z.number().int() }).nullable(),
+  batch: z
+    .object({
+      creditors: z.array(z.object({ id: z.string(), name: z.string() })),
+      debtors: z.number().int(),
+      invoices: z.number().int(),
+      amount: cents,
+      withoutFirstLetter: z.number().int(),
+    })
+    .nullable(),
 });
 
 /** The 40 € fixed indemnity only concerns professional debtors, never an individual. */

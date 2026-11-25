@@ -35,6 +35,17 @@ export const agenda = z.object({
   weekly: z.object({ emails: z.number().int(), sms: z.number().int(), letters: z.number().int() }),
 });
 
+export const newReminder = z.object({
+  caseId: z.string().min(1, { error: 'Choisissez un débiteur.' }),
+  type: z.enum(['EMAIL', 'SMS', 'CALL', 'LETTER']),
+  date: z.iso.date({ error: 'Choisissez une date.' }),
+  time: z.union([z.literal(''), z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/u)], { error: 'Saisissez une heure, par exemple 10:00.' }),
+  title: z.string().trim().min(1, { error: 'Indiquez l’objet de la relance.' }),
+});
+/** Cases the user may act on, and the reminders that would exceed the limits. */
+export const reminderTargets = z.object({ items: z.array(z.object({ id: z.string(), name: z.string(), creditor: z.string() })) });
+export const reminderPlanned = z.object({ id: z.string(), limit: z.string().nullable() });
+
 export const planState = z.enum(['ON_TRACK', 'LATE', 'DEFAULT', 'WAITING_CREDITOR']);
 export const PLAN_STATE_LABELS: Record<z.infer<typeof planState>, string> = {
   ON_TRACK: 'À jour',

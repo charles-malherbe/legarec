@@ -22,7 +22,7 @@ it('computes billing totals in cents and VAT numbers', () => {
 describe('members', () => {
   it('refuses a second holder of a unique role', async () => {
     openAs('ad', '/equipe');
-    await userEvent.click(await screen.findByRole('button', { name: '+ Inviter' }));
+    await userEvent.click(await screen.findByRole('button', { name: '+ Créer un compte' }));
     await userEvent.type(screen.getByLabelText(/Prénom/), 'Zoé');
     await userEvent.type(screen.getByLabelText(/^Nom/), 'Marchand');
     await userEvent.type(screen.getByLabelText(/Adresse professionnelle/), 'zm@legarec.fr');

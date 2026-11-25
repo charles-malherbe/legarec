@@ -1,12 +1,12 @@
-import { EMAIL_CATEGORIES, emailCategory, formatCents, mailboxData, type EmailThread } from '@legarec/contracts';
+import { EMAIL_CATEGORIES, emailCategory, formatCents, mailboxData, type EmailDraft, type EmailThread, type MessageTemplate } from '@legarec/contracts';
 import {
   Alerte,
   Badge,
   Bouton,
+  Case,
   Champ,
   EtatListe,
   Icone,
-  Onglets,
   PageHeader,
   Pagination,
   SuggestionIA,
@@ -15,14 +15,15 @@ import {
   useToast,
   type Tone,
 } from '@legarec/ui';
-import { useState } from 'react';
-import { Link } from 'react-router';
-import type { z } from 'zod';
+import { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router';
+import { z } from 'zod';
 import { useCreditorScope } from '../../app/creditorScope';
 import { useApi, useChange } from '../../app/data';
 import layout from '@legarec/ui/layout.module.css';
 import { pageOf } from '../../shared/paging';
 import { listState, matches } from '../../shared/listState';
+import css from './Emails.module.css';
 import { StaffMessageForm } from './StaffMessageForm';
 
 const TONE: Record<EmailThread['category'], Tone> = {
@@ -41,6 +42,7 @@ const FILTERS: [Filter, string, (item: EmailThread) => boolean][] = [
   ['todo', 'À traiter', (item) => TODO.includes(item.category)],
   ['portal', 'Espace débiteur', (item) => item.source === 'DEBTOR_PORTAL'],
 ];
+const LABELS = ['PAYMENT', 'PAYMENT_PLAN', 'DISPUTE', 'BOUNCE'] as const;
 const FOLDERS = [
   ['inbox', 'Boîte de réception'],
   ['sent', 'Envoyés'],
@@ -58,7 +60,16 @@ export function EmailsPage() {
   const [folder, setFolder] = useState<(typeof FOLDERS)[number][0]>('inbox');
   const [label, setLabel] = useState('all');
   const [selected, setSelected] = useState<string | null>(null);
-  const [compose, setCompose] = useState(false);
+  const location = useLocation() as { pathname: string; state: { to?: string } | null };
+  const navigate = useNavigate();
+  const from = location.state;
+  const [compose, setCompose] = useState(!!from?.to);
+  const [initialTo, setInitialTo] = useState(from?.to ?? '');
+  // The address only serves once: it must not survive in the browser history.
+  useEffect(() => {
+    if (from?.to) void navigate(location.pathname, { replace: true, state: null });
+  }, [from?.to, location.pathname, navigate]);
+  const [draft, setDraft] = useState<EmailDraft | undefined>();
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(25);
   const threads = data?.threads ?? [];
@@ -110,7 +121,17 @@ export function EmailsPage() {
         ]}
         actions={[
           { label: 'Modèles', href: '/parametres/modeles' },
-          { label: '+ Rédiger', primary: true, kbd: 'N', expanded: compose, onPress: () => setCompose(!compose) },
+          {
+            label: '+ Rédiger',
+            primary: true,
+            kbd: 'N',
+            expanded: compose,
+            onPress: () => {
+              setDraft(undefined);
+              setInitialTo('');
+              setCompose(!compose);
+            },
+          },
         ]}
       />
       <Toolbar
@@ -135,74 +156,221 @@ export function EmailsPage() {
           },
         ]}
       />
-      {compose && data && <StaffMessageForm sender={data.sender} onClose={() => setCompose(false)} />}
-      <Onglets
-        label="Dossiers de messagerie"
-        items={FOLDERS.map(([id, text]) => ({ label: text, count: counts[id], selected: id === folder, pick: () => setFolder(id) }))}
-        layout={{ alignSelf: 'flex-start' }}
-      />
-      <div className={layout.split}>
-        <section aria-label="Liste des e-mails" className={layout.card}>
-          <div className={layout.between} style={{ padding: 'var(--sp-3) var(--sp-4)' }}>
-            <strong>{FOLDERS.find(([id]) => id === folder)?.[1]}</strong>
-            <span className={layout.hint}>{rows.length} messages</span>
-          </div>
-          {state ? (
-            <EtatListe {...state} />
-          ) : (
-            <div className={layout.scroll} tabIndex={0} role="group" aria-label="Messages">
-              {paged.shown.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={layout.rowButton}
-                  aria-current={item.id === current?.id}
-                  onClick={() => {
-                    setSelected(item.id);
-                    if (item.unread && item.canAct !== false) void change(`/emails/${item.id}/read`);
-                  }}
-                >
-                  <span className={`${layout.text} ${layout.grow}`}>
-                    <span className={layout.between}>
-                      <strong style={{ fontWeight: item.unread ? 700 : 500 }}>
-                        {item.from}
-                        {item.unread && <span className={layout.hidden}> (non lu)</span>}
-                      </strong>
-                      <span className={layout.hint}>{item.time}</span>
-                    </span>
-                    <span className={layout.ellipsis}>{item.subject}</span>
-                    <span className={`${layout.muted} ${layout.ellipsis}`}>{item.body.replace(/\s+/g, ' ')}</span>
-                    <span className={layout.inline}>
-                      <Badge
-                        label={EMAIL_CATEGORIES[item.category].tag}
-                        tone={TONE[item.category]}
-                        icon={item.ai ? 'sparkle' : undefined}
-                        title={item.ai ? 'Catégorie proposée par l’IA' : undefined}
-                      />
-                      <Badge label={item.creditor} />
-                      {item.source === 'DEBTOR_PORTAL' && <Badge label="Espace débiteur" tone="teal" />}
-                    </span>
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-          {!state && data && (
-            <Pagination total={paged.total} page={paged.current} size={size} unit="e-mails" label="Pagination des e-mails" onPage={setPage} onSize={setSize} />
-          )}
-        </section>
-        {current && data && <Reader key={current.id} mail={current} sender={data.sender} />}
+      {compose && data && (
+        <StaffMessageForm
+          key={draft?.id ?? 'new'}
+          sender={data.sender}
+          templates={data.templates.filter((item) => item.use !== 'REPLY')}
+          draft={draft}
+          initialTo={initialTo}
+          recipient={
+            draft?.caseId && draft.recipient
+              ? { email: draft.to, name: draft.recipient.name, reference: draft.recipient.reference, caseId: draft.caseId, isDebtor: true }
+              : undefined
+          }
+          onClose={() => {
+            setCompose(false);
+            setDraft(undefined);
+            setInitialTo('');
+          }}
+        />
+      )}
+      <div className={css.grid} data-wide={folder === 'drafts' || folder === 'auto' || undefined}>
+        <nav aria-label="Dossiers de messagerie" className={css.folders}>
+          {FOLDERS.map(([id, text]) => (
+            <button key={id} type="button" className={css.folder} aria-current={id === folder} onClick={() => setFolder(id)}>
+              {text}
+              {counts[id] !== undefined && counts[id] !== 0 && <span className={layout.num}>{counts[id]}</span>}
+            </button>
+          ))}
+          {(folder === 'inbox' || folder === 'sent' || folder === 'archive') && <span className={css.labels}>Étiquettes</span>}
+          {(folder === 'inbox' || folder === 'sent' || folder === 'archive') &&
+            LABELS.map((value) => (
+              <button key={value} type="button" className={css.label} aria-pressed={label === value} onClick={() => setLabel(label === value ? 'all' : value)}>
+                <span aria-hidden className={css.dot} style={{ background: `var(--${TONE[value]})` }} />
+                {EMAIL_CATEGORIES[value].tag}
+              </button>
+            ))}
+        </nav>
+        {(folder === 'drafts' || folder === 'auto') && !data && <EtatListe kind={error ? 'error' : 'loading'} onAction={() => void refetch()} />}
+        {folder === 'drafts' && data && (
+          <Drafts
+            drafts={data.drafts.filter((item) => matches(query, item.to, item.subject, item.text, item.recipient?.name ?? ''))}
+            searching={!!query.trim()}
+            onClear={() => setQuery('')}
+            onOpen={(item) => {
+              setDraft(item);
+              setCompose(true);
+            }}
+          />
+        )}
+        {folder === 'auto' && data && (
+          <Automatic
+            items={data.automatic.filter(
+              (item) => (scope.id === 'all' || item.creditorId === scope.id) && matches(query, item.debtor, item.creditor, item.subject),
+            )}
+            searching={!!query.trim()}
+            onClear={() => setQuery('')}
+          />
+        )}
+        {folder !== 'drafts' && folder !== 'auto' && (
+          <>
+            <section aria-label="Liste des e-mails" className={layout.card}>
+              <div className={layout.between} style={{ padding: 'var(--sp-3) var(--sp-4)' }}>
+                <strong>{FOLDERS.find(([id]) => id === folder)?.[1]}</strong>
+                <span className={layout.hint}>{rows.length} messages</span>
+              </div>
+              {state ? (
+                <EtatListe {...state} />
+              ) : (
+                <div className={layout.scroll} tabIndex={0} role="group" aria-label="Messages">
+                  {paged.shown.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={layout.rowButton}
+                      aria-current={item.id === current?.id}
+                      onClick={() => {
+                        setSelected(item.id);
+                        if (item.unread && item.canAct !== false) void change(`/emails/${item.id}/read`);
+                      }}
+                    >
+                      <span className={`${layout.text} ${layout.grow}`}>
+                        <span className={layout.between}>
+                          <strong style={{ fontWeight: item.unread ? 700 : 500 }}>
+                            {item.from}
+                            {item.unread && <span className={layout.hidden}> (non lu)</span>}
+                          </strong>
+                          <span className={layout.hint}>{item.time}</span>
+                        </span>
+                        <span className={layout.ellipsis}>{item.subject}</span>
+                        <span className={`${layout.muted} ${layout.ellipsis}`}>{item.body.replace(/\s+/g, ' ')}</span>
+                        <span className={layout.inline}>
+                          <Badge
+                            label={EMAIL_CATEGORIES[item.category].tag}
+                            tone={TONE[item.category]}
+                            icon={item.ai ? 'sparkle' : undefined}
+                            title={item.ai ? 'Catégorie proposée par l’IA' : undefined}
+                          />
+                          <Badge label={item.creditor} />
+                          {item.source === 'DEBTOR_PORTAL' && <Badge label="Espace débiteur" tone="teal" />}
+                        </span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {!state && data && (
+                <Pagination
+                  total={paged.total}
+                  page={paged.current}
+                  size={size}
+                  unit="e-mails"
+                  label="Pagination des e-mails"
+                  onPage={setPage}
+                  onSize={setSize}
+                />
+              )}
+            </section>
+            {current && data ? (
+              <Reader key={current.id} mail={current} sender={data.sender} templates={data.templates.filter((item) => item.use !== 'NEW')} />
+            ) : (
+              <div className={layout.card}>
+                <EtatListe kind="empty" compact title="Aucun message sélectionné" text="Choisissez un message pour le lire." />
+              </div>
+            )}
+          </>
+        )}
       </div>
     </>
   );
 }
 
-function Reader({ mail, sender }: { mail: EmailThread; sender: z.infer<typeof mailboxData>['sender'] }) {
+const AUTO_STATUS = { DELIVERED: ['Distribué', 'info'], OPENED: ['Ouvert', 'success'], FAILED: ['Rejeté', 'danger'] } as const;
+
+interface ListSearch {
+  searching: boolean;
+  onClear: () => void;
+}
+
+function Drafts({ drafts, searching, onClear, onOpen }: ListSearch & { drafts: EmailDraft[]; onOpen: (item: EmailDraft) => void }) {
+  const change = useChange();
+  const toast = useToast();
+  const remove = async (item: EmailDraft) => {
+    try {
+      await change(`/emails/drafts/${item.id}`, { method: 'DELETE' });
+    } catch {
+      toast({ message: 'Le brouillon n’a pas été supprimé. Réessayez.' });
+      return;
+    }
+    toast({ message: 'Brouillon supprimé.', undo: () => void change('/emails/drafts', { body: item, schema: z.object({ id: z.string() }) }) });
+  };
+  return (
+    <section aria-label="Brouillons">
+      {drafts.length === 0 ? (
+        searching ? (
+          <EtatListe kind="noresult" onAction={onClear} />
+        ) : (
+          <EtatListe kind="empty" title="Aucun brouillon" text="Les messages enregistrés sans être envoyés apparaissent ici." />
+        )
+      ) : (
+        <ul className={layout.list}>
+          {drafts.map((item) => (
+            <li key={item.id}>
+              <span className={`${layout.text} ${layout.grow}`}>
+                <span className={layout.strong}>{item.subject || '(sans objet)'}</span>
+                <span className={layout.hint}>
+                  {item.to || 'Sans destinataire'} · {item.updated}
+                </span>
+              </span>
+              <Bouton variant="secondary" size="sm" label="Reprendre" ariaLabel={`Reprendre : ${item.subject || 'sans objet'}`} onPress={() => onOpen(item)} />
+              <Bouton variant="ghost" size="sm" label="Supprimer" ariaLabel={`Supprimer : ${item.subject || 'sans objet'}`} onPress={() => void remove(item)} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function Automatic({ items, searching, onClear }: ListSearch & { items: z.infer<typeof mailboxData>['automatic'] }) {
+  return (
+    <section aria-label="Relances automatiques">
+      {items.length === 0 ? (
+        searching ? (
+          <EtatListe kind="noresult" onAction={onClear} />
+        ) : (
+          <EtatListe kind="empty" title="Aucune relance automatique" text="Les envois des scénarios apparaissent ici." />
+        )
+      ) : (
+        <ul className={layout.list}>
+          {items.map((item) => (
+            <li key={item.id}>
+              <span className={`${layout.text} ${layout.grow}`}>
+                <Link to={`/debiteurs/${item.caseId}`} className={layout.strong}>
+                  {item.debtor}
+                </Link>
+                <span className={layout.hint}>
+                  {item.subject} · {item.creditor} · {item.when}
+                </span>
+              </span>
+              <Badge label={AUTO_STATUS[item.status][0]} tone={AUTO_STATUS[item.status][1]} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function Reader({ mail, sender, templates }: { mail: EmailThread; sender: z.infer<typeof mailboxData>['sender']; templates: MessageTemplate[] }) {
   const change = useChange();
   const confirm = useConfirm();
   const toast = useToast();
   const [reply, setReply] = useState('');
   const [drafted, setDrafted] = useState(false);
+  const [template, setTemplate] = useState('');
+  const [statement, setStatement] = useState(false);
   const portal = mail.source === 'DEBTOR_PORTAL';
   const canAct = mail.canAct !== false;
   const quotaLeft = sender.hourlyQuota - sender.sentThisHour;
@@ -224,10 +392,13 @@ function Reader({ mail, sender }: { mail: EmailThread; sender: z.infer<typeof ma
         { k: 'Destinataire', v: portal ? `${mail.debtor} (espace débiteur)` : mail.email },
         ...(portal ? [] : [{ k: 'Expéditeur', v: `${sender.name} <${sender.address}>` }]),
         { k: 'Dossier', v: `${mail.debtor} · ${mail.reference}` },
+        ...(statement ? [{ k: 'Pièce jointe', v: 'Relevé de compte' }] : []),
       ],
       onConfirm: async () => {
-        await change(`/emails/${mail.id}/replies`, { body: { text } });
+        await change(`/emails/${mail.id}/replies`, { body: { text, statement } });
         setReply('');
+        setTemplate('');
+        setStatement(false);
         setDrafted(false);
         toast({ message: 'Réponse envoyée.' });
       },
@@ -308,9 +479,15 @@ function Reader({ mail, sender }: { mail: EmailThread; sender: z.infer<typeof ma
             <p className={layout.body}>{mail.ai.summary}</p>
             <div className={layout.chips}>
               <span className={layout.hint}>Actions proposées</span>
-              {mail.ai.actions.map((action) => (
-                <Badge key={action} label={action} tone="marine" size="md" />
-              ))}
+              {mail.ai.actions.map((action) =>
+                canAct && /échéancier/i.test(action) ? (
+                  <Bouton key={action} variant="secondary" size="sm" label={action} href={`/echeanciers?dossier=${mail.caseId}`} />
+                ) : canAct ? (
+                  <Bouton key={action} variant="secondary" size="sm" label={action} href={`/debiteurs/${mail.caseId}`} />
+                ) : (
+                  <Badge key={action} label={action} tone="marine" size="md" />
+                ),
+              )}
             </div>
             {mail.recategorized && (
               <span role="status" className={layout.hint}>
@@ -352,10 +529,36 @@ function Reader({ mail, sender }: { mail: EmailThread; sender: z.infer<typeof ma
                   onPress={() => {
                     setReply(mail.ai?.draft ?? '');
                     setDrafted(true);
+                    setTemplate('');
                   }}
                 />
               )}
             </div>
+            <Champ
+              label="Modèle"
+              type="select"
+              value={template}
+              options={[{ value: '', label: 'Aucun (message libre)' }, ...templates.map((item) => ({ value: item.id, label: item.name }))]}
+              onChange={(id) => {
+                const before = reply;
+                setTemplate(id);
+                const next = templates.find((item) => item.id === id);
+                if (!next) return;
+                const wasDrafted = drafted;
+                setReply(next.text);
+                // The text no longer comes from the AI.
+                setDrafted(false);
+                if (before.trim())
+                  toast({
+                    message: `Modèle « ${next.name} » inséré.`,
+                    undo: () => {
+                      setReply(before);
+                      setDrafted(wasDrafted);
+                      setTemplate('');
+                    },
+                  });
+              }}
+            />
             <Champ label="Votre réponse" type="textarea" rows={6} value={reply} onChange={setReply} />
             {drafted && (
               <span role="status" className={layout.muted}>
@@ -369,7 +572,8 @@ function Reader({ mail, sender }: { mail: EmailThread; sender: z.infer<typeof ma
                 text={`Quota OVH atteint pour ${sender.address} (${sender.hourlyQuota} e-mails par heure). Réessayez dans l’heure ; le message est conservé.`}
               />
             )}
-            <div className={layout.end}>
+            <div className={layout.between}>
+              <Case label="Joindre le relevé de compte" checked={statement} onToggle={setStatement} />
               <Bouton label="Envoyer" icon="send" disabled={!reply.trim() || (!portal && quotaLeft <= 0)} onPress={() => send(reply)} />
             </div>
           </div>

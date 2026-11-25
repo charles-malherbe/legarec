@@ -1,27 +1,43 @@
-import type { mailboxData } from '@legarec/contracts';
-import { Alerte, Bouton, Carte, Champ, useConfirm, useToast } from '@legarec/ui';
-import { useState } from 'react';
-import type { z } from 'zod';
+import type { EmailDraft, mailboxData, MessageTemplate } from '@legarec/contracts';
+import { Alerte, Bouton, Carte, Case, Champ, useConfirm, useToast } from '@legarec/ui';
+import { useEffect, useState } from 'react';
+import { z } from 'zod';
 import { ApiError } from '../../app/api';
 import { useChange } from '../../app/data';
 import layout from '@legarec/ui/layout.module.css';
 
+const draftSaved = z.object({ id: z.string() });
 type Sender = z.infer<typeof mailboxData>['sender'];
+export interface MessageRecipient {
+  email: string;
+  name: string;
+  isDebtor: boolean;
+  caseId: string;
+  reference: string;
+}
 export interface StaffMessageFormProps {
   sender: Sender;
-  recipient?: { email: string; name: string; isDebtor: boolean; caseId: string; reference: string };
+  recipient?: MessageRecipient;
+  templates?: MessageTemplate[];
+  draft?: EmailDraft;
+  /** Address known beforehand, outside any debtor's case (a creditor's contact). */
+  initialTo?: string;
   onClose: () => void;
 }
 
 /** Plain text only: the API splits it into paragraphs and escapes it, then sends it from the employee's OVH mailbox. */
-export function StaffMessageForm({ sender, recipient, onClose }: StaffMessageFormProps) {
+export function StaffMessageForm({ sender, recipient, templates = [], draft, initialTo = '', onClose }: StaffMessageFormProps) {
   const change = useChange();
   const confirm = useConfirm();
   const toast = useToast();
-  const [to, setTo] = useState(recipient?.email ?? '');
-  const [subject, setSubject] = useState('');
-  const [text, setText] = useState('');
+  const [to, setTo] = useState(draft?.to ?? recipient?.email ?? initialTo);
+  const [subject, setSubject] = useState(draft?.subject ?? '');
+  const [text, setText] = useState(draft?.text ?? '');
+  const [template, setTemplate] = useState('');
+  const [statement, setStatement] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
+  // The form opens below the button: bring the keyboard to it.
+  useEffect(() => document.getElementById('message-to')?.focus(), []);
   const left = sender.hourlyQuota - sender.sentThisHour;
   const paragraphs = text
     .split(/\n\s*\n/)
@@ -38,13 +54,12 @@ export function StaffMessageForm({ sender, recipient, onClose }: StaffMessageFor
         { k: 'À', v: to },
         { k: 'Objet', v: subject },
         ...(recipient ? [{ k: 'Dossier', v: `${recipient.name} · ${recipient.reference}` }] : []),
+        ...(statement ? [{ k: 'Pièce jointe', v: 'Relevé de compte' }] : []),
       ],
       onConfirm: async () => {
         setFailure(null);
         try {
-          await change('/emails/messages', { body: { to, subject, paragraphs, caseId: recipient?.caseId ?? null } });
-          toast({ message: 'Message envoyé.' });
-          onClose();
+          await change('/emails/messages', { body: { to, subject, paragraphs, caseId: recipient?.caseId ?? draft?.caseId ?? null, statement } });
         } catch (error) {
           setFailure(
             error instanceof ApiError && error.status === 429
@@ -53,13 +68,68 @@ export function StaffMessageForm({ sender, recipient, onClose }: StaffMessageFor
           );
           throw error;
         }
+        // The message has left: a failed clean-up must not suggest sending it again.
+        const cleaned = draft
+          ? await change(`/emails/drafts/${draft.id}`, { method: 'DELETE' }).then(
+              () => true,
+              () => false,
+            )
+          : true;
+        toast({ message: cleaned ? 'Message envoyé.' : 'Message envoyé. Le brouillon n’a pas pu être supprimé : supprimez-le, ne le renvoyez pas.' });
+        onClose();
       },
     });
+  const pick = (id: string) => {
+    const next = templates.find((item) => item.id === id);
+    setTemplate(id);
+    if (!next) return;
+    const before = { subject, text };
+    setSubject(subject || next.subject);
+    setText(next.text);
+    if (before.text.trim())
+      toast({
+        message: `Modèle « ${next.name} » inséré.`,
+        undo: () => {
+          setSubject(before.subject);
+          setText(before.text);
+          setTemplate('');
+        },
+      });
+  };
+  const saveDraft = async () => {
+    try {
+      await change('/emails/drafts', { body: { id: draft?.id, to, subject, text, caseId: recipient?.caseId ?? draft?.caseId ?? null }, schema: draftSaved });
+      toast({ message: 'Brouillon enregistré.' });
+      onClose();
+    } catch {
+      toast({ message: 'Le brouillon n’a pas été enregistré. Votre texte est conservé à l’écran : réessayez.' });
+    }
+  };
   return (
     <Carte title="Nouveau message" description={`Envoyé depuis ${sender.address}, votre adresse`} actionLabel="Fermer" onAction={onClose}>
       <div className={layout.stack}>
         <div className={layout.form}>
-          <Champ label="Destinataire" type="email" required value={to} placeholder="nom@entreprise.fr" onChange={setTo} />
+          <Champ
+            label="Destinataire"
+            type="email"
+            required
+            autoFocus
+            readOnly={!!recipient}
+            help={recipient ? 'Adresse du contact du dossier. Choisissez un autre contact depuis la fiche débiteur.' : undefined}
+            fieldId="message-to"
+            value={to}
+            placeholder="nom@entreprise.fr"
+            onChange={setTo}
+          />
+          {templates.length > 0 && (
+            <Champ
+              label="Modèle"
+              type="select"
+              value={template}
+              options={[{ value: '', label: 'Aucun (message libre)' }, ...templates.map((item) => ({ value: item.id, label: item.name }))]}
+              onChange={pick}
+            />
+          )}
           <Champ label="Objet" required value={subject} maxLength={150} onChange={setSubject} />
         </div>
         <Champ
@@ -105,7 +175,9 @@ export function StaffMessageForm({ sender, recipient, onClose }: StaffMessageFor
         )}
         {failure && <Alerte tone="danger" title="Échec de l’envoi" text={failure} actionLabel="Nouvelle tentative" onAction={send} />}
         <div className={layout.end}>
+          {recipient && <Case label="Joindre le relevé de compte" checked={statement} onToggle={setStatement} />}
           <Bouton variant="secondary" label="Annuler" onPress={onClose} />
+          <Bouton variant="secondary" label="Enregistrer le brouillon" disabled={!text.trim() && !subject.trim()} onPress={() => void saveDraft()} />
           <Bouton label="Envoyer" icon="send" disabled={!valid} onPress={send} />
         </div>
       </div>

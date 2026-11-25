@@ -163,6 +163,22 @@ describe('templates', () => {
     ['<p style="background:url(file:///etc/passwd)">', /ERROR Script/],
     ['<p style="{{debiteur.adresse}}">', /ERROR Script/],
     ['<!-- caché -->', /ERROR Script/],
+    ['<a href="https://evil.{{#unless cabinet.nom}}legarec.{{/unless}}fr/pay">x</a>', /ERROR Script/],
+    ['<img src="cid:x" title="a{{#unless cabinet.nom}}"{{/unless}} class=" onerror=alert(1) x="><p title="b">', /ERROR Script/],
+    ['<style>p { background: u {{~! x ~}} rl(https://exemple.fr) }</style>', /ERROR/],
+    ['<style>p { color{{! x }}: #222222 }</style>', /ERROR Script/],
+    ['<a href="{{paiement.lien}}.evil.fr">x</a>', /ERROR Script/],
+    ['<a href="https://legarec.fr" href="https://legarec.fr">x</a>', /ERROR Script/],
+    ['<p style="color:#fff">x</p>', /ERROR Script/],
+    ['<p style="color:#eeeeee;background-color:#ffffff">x</p>', /ERROR Script/],
+    ['<p style="margin-left:-9999px">x</p>', /ERROR Script/],
+    ['<p style="display:var(--x)">x</p>', /ERROR Script/],
+    ['<p style="font:0/0 a">x</p>', /ERROR Script/],
+    ['<p style="font-size:1px">x</p>', /ERROR Script/],
+    ['<p style="font-size:60">x</p>', /ERROR Script/],
+    ['<p style="max-height:0">x</p>', /ERROR Script/],
+    ['<p style="line-height:0">x</p>', /ERROR Script/],
+    ['<style>@media print { p { color: #222222 } }</style>', /ERROR Script/],
   ])('refuses %s', (extra, expected) => {
     expect(checkTemplate(letter, good + extra).accepted).toBe(false);
     expect(labels(good + extra).join('\n')).toMatch(expected);
@@ -172,6 +188,10 @@ describe('templates', () => {
     '{{#unless cabinet.nom}}{{> mentions_recouvrement}}{{/unless}}',
     '<!-- {{> mentions_recouvrement}} -->',
     '<div style="display:none">{{> mentions_recouvrement}}</div>',
+    '<title>{{> mentions_recouvrement}}</title>',
+    '<table><colgroup>{{> mentions_recouvrement}}</colgroup></table>',
+    '<div style="color:#fff">{{> mentions_recouvrement}}</div>',
+    '<div style="margin-left:-9999px">{{> mentions_recouvrement}}</div>',
   ])('refuses a hidden mandatory block: %s', (hidden) => {
     expect(checkTemplate(letter, good.replace('{{> mentions_recouvrement}}', hidden)).accepted).toBe(false);
   });
@@ -187,7 +207,7 @@ describe('templates', () => {
     );
   });
   it('accepts ordinary letters, logos and the link to the portal', () => {
-    const page = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><style>p { margin: 0 0 12px; color: #222222; }</style></head><body>{{> en_tete}}<img src="https://media.legarec.fr/marque/logo.png" alt="Legarec"><a href="{{paiement.lien}}">Votre espace</a><table><tr><td style="width:100px">x</td></tr></table>${good}</body></html>`;
+    const page = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><style>@page { margin: 20mm; } p { margin: 0 0 12px; color: #222222; } .note { font-size: 9pt; background-color: #f4f4f4; } h1 { color: #ffffff; background-color: #002b74; }</style></head><body>{{> en_tete}}<img src="https://media.legarec.fr/marque/logo.png" alt="Legarec"><a href="{{paiement.lien}}">Votre espace</a><table><tr><td style="width:100px">x</td></tr></table>${good}</body></html>`;
     expect(checkTemplate(letter, page)).toMatchObject({ accepted: true });
   });
   it('detects bailiff-like plurals and split words', () => {

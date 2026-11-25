@@ -1,5 +1,6 @@
 import type { DocumentItem, LetterRecipient } from '@legarec/contracts';
 import { http, HttpResponse } from 'msw';
+import { audit } from '../audit';
 import { done, forbidden, guarded, notFound, staffWithCases } from '../http';
 import { actsOn, readable } from './cases';
 
@@ -269,6 +270,20 @@ const onDocument = guarded<Info>(staffWithCases, ({ params }, session) => {
   return own && actsOn(session, own.id) ? done() : forbidden();
 });
 
+const BATCH_CREDITORS = [
+  { id: 'md', name: 'Matériaux Delta' },
+  { id: 'er', name: 'Énergies Rhône' },
+  { id: 'mt', name: 'Médiatel' },
+  { id: 'tl', name: 'TransAlp Leasing' },
+];
+/** Share of the portfolio kept by each filter of the demonstration. */
+const batchOf = (creditor: string, age: string) => {
+  const part = { md: 0.34, er: 0.26, mt: 0.21, tl: 0.11, ch: 0.08 }[creditor] ?? 1;
+  const share = { '0-30': 0.6, '60+': 0.45 }[age] ?? 1;
+  const scale = (value: number) => Math.round(value * part * share);
+  return { debtors: scale(38), invoices: scale(162), amount: scale(214380) * 100, withoutFirstLetter: scale(3) };
+};
+const MIME = new Set(['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/png', 'image/jpeg']);
 export const documentHandlers = [
   http.get(
     '/api/documents',
@@ -284,26 +299,46 @@ export const documentHandlers = [
       });
     }),
   ),
+  http.post(
+    '/api/documents/import',
+    guarded<Info>(staffWithCases, ({ request }, session) => {
+      if (!MIME.has((request.headers.get('content-type') ?? '').toLowerCase())) return HttpResponse.json({ code: 'REFUSED' }, { status: 415 });
+      const status = actsOn(session, 'demo') ? 'ATTACHED' : 'TO_FILE';
+      audit(session, status === 'ATTACHED' ? 'Document importé et rattaché à un dossier' : 'Document importé, à classer');
+      return HttpResponse.json({ id: crypto.randomUUID(), status });
+    }),
+  ),
   http.post('/api/documents/:id/share', onDocument),
   http.post('/api/documents/:id/send', onDocument),
   http.get(
     '/api/documents/compose',
-    guarded(staffWithCases, (_info, session) => {
+    guarded<Info>(staffWithCases, ({ request }, session) => {
       const allowed = readable(session)
         .filter((item) => session.role !== 'DIRECTOR' || item.officerId === session.userId)
         .map((item) => item.id);
+      const params = new URL(request.url).searchParams;
       return HttpResponse.json({
         firm: { name: 'LEGAREC', address: '[ADRESSE DU CABINET]', phone: '01 87 88 02 98', siren: '[SIREN]' },
         recipients: RECIPIENTS.filter((item) => allowed.includes(item.caseId)),
-        batch: session.role === 'COLLECTION_MANAGER' ? { debtors: 38, invoices: 162, amount: 21438000, withoutFirstLetter: 3 } : null,
+        batch: session.role === 'COLLECTION_MANAGER' ? { creditors: BATCH_CREDITORS, ...batchOf(params.get('creditor') ?? '', params.get('age') ?? '') } : null,
       });
     }),
   ),
   http.post(
     '/api/documents/compose',
     guarded<Info>(staffWithCases, async ({ request }, session) => {
-      const { caseIds } = (await request.json()) as { caseIds: string[] | null };
-      if (!caseIds) return session.role === 'COLLECTION_MANAGER' ? done() : forbidden();
+      const { caseIds, filters, expected, template } = (await request.json()) as {
+        caseIds: string[] | null;
+        filters: { creditor: string; age: string } | null;
+        expected?: number;
+        template?: string;
+      };
+      if (!caseIds) {
+        if (session.role !== 'COLLECTION_MANAGER') return forbidden();
+        const batch = batchOf(filters?.creditor ?? '', filters?.age ?? '');
+        const count = batch.debtors - (template === 'FIRM' || template === 'FORMAL_NOTICE' ? batch.withoutFirstLetter : 0);
+        return filters && count > 0 && count === expected ? done() : HttpResponse.json({ code: 'SELECTION_CHANGED' }, { status: 409 });
+      }
       const allowed = readable(session)
         .filter((item) => session.role !== 'DIRECTOR' || item.officerId === session.userId)
         .map((item) => item.id);
@@ -312,6 +347,9 @@ export const documentHandlers = [
   ),
   http.post(
     '/api/documents/compose/draft',
-    guarded(staffWithCases, () => done()),
+    guarded<Info>(staffWithCases, async ({ request }, session) => {
+      const { caseId } = (await request.json()) as { caseId: string };
+      return actsOn(session, caseId) ? done() : forbidden();
+    }),
   ),
 ];

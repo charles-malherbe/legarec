@@ -79,7 +79,7 @@ const searchIndex = (session: NonNullable<ReturnType<typeof currentSession>>) =>
     href: `/debiteurs/${item.id}`,
     initials: item.name.slice(0, 2).toUpperCase(),
   })),
-  ...CREDITORS.filter((item) => item.id !== 'all').map((item) => ({
+  ...CREDITORS.filter((item) => item.id !== 'all' && canSeeCreditor(session, item.id)).map((item) => ({
     id: `c:${item.id}`,
     kind: 'CREDITOR',
     title: item.name,

@@ -1,5 +1,14 @@
-import { DOCUMENT_CATEGORIES, documentCategory, documentsData, formatDate, type DocumentCategory, type DocumentItem } from '@legarec/contracts';
-import { Badge, Bouton, EtatListe, PageHeader, Pagination, Tableau, Toolbar, useConfirm, useToast, type Tone } from '@legarec/ui';
+import {
+  DOCUMENT_CATEGORIES,
+  documentCategory,
+  documentsData,
+  formatDate,
+  importedDocument,
+  type DocumentCategory,
+  type DocumentItem,
+} from '@legarec/contracts';
+import { upload } from '@legarec/platform';
+import { Alerte, Badge, Bouton, DepotFichiers, EtatListe, PageHeader, Pagination, Tableau, Toolbar, useConfirm, useToast, type Tone } from '@legarec/ui';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { useCreditorScope } from '../../app/creditorScope';
@@ -28,6 +37,9 @@ export function DocumentsPage() {
   const { data, isPending, error, refetch } = useApi(documentsData, '/documents');
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<DocumentCategory | 'all'>('all');
+  const [creditor, setCreditor] = useState('all');
+  const [files, setFiles] = useState<File[]>([]);
+  const [importProblem, setImportProblem] = useState('');
   const [view, setView] = useState<'list' | 'grid'>('list');
   const [selected, setSelected] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -36,6 +48,7 @@ export function DocumentsPage() {
     (item) =>
       (category === 'all' || item.category === category) &&
       (scope.id === 'all' || item.creditorId === scope.id) &&
+      (creditor === 'all' || item.creditor === creditor) &&
       matches(query, item.name, item.debtor, item.creditor),
   );
   const current = rows.find((item) => item.id === selected) ?? rows[0];
@@ -50,6 +63,36 @@ export function DocumentsPage() {
     onRetry: () => void refetch(),
     onClear: () => setQuery(''),
   });
+  const importFiles = () => {
+    setImportProblem('');
+    confirm({
+      title: `Importer ${files.length} fichier${files.length > 1 ? 's' : ''} ?`,
+      body: 'Les fichiers sont rattachés automatiquement à leur dossier par numéro de facture. Les fichiers non reconnus restent à classer.',
+      confirmLabel: 'Importer',
+      details: files.map((file) => ({ k: 'Fichier', v: file.name })),
+      onConfirm: async () => {
+        // Each file is received on its own: the ones already sent are never sent twice.
+        let pending = files;
+        let attached = 0;
+        try {
+          for (const file of files) {
+            const { status } = await upload(importedDocument, '/documents/import', file);
+            if (status === 'ATTACHED') attached += 1;
+            pending = pending.filter((item) => item !== file);
+          }
+          const left = files.length - attached;
+          toast({ message: `Fichiers importés : ${attached} rattaché${attached > 1 ? 's' : ''}, ${left} à classer.` });
+        } catch {
+          const sent = files.length - pending.length;
+          setImportProblem(
+            `${sent} fichier${sent > 1 ? 's' : ''} importé${sent > 1 ? 's' : ''}, ${pending.length} en échec. Les fichiers restants sont conservés : réessayez pour ceux-là seulement.`,
+          );
+        }
+        setFiles(pending);
+        await refetch();
+      },
+    });
+  };
   const share = (item: DocumentItem) =>
     confirm({
       title: 'Partager ce document au créancier ?',
@@ -91,15 +134,30 @@ export function DocumentsPage() {
         loading={isPending}
         description={data ? `${data.total.toLocaleString('fr-FR')} documents · ${data.size} · classés par créancier et par débiteur` : ' '}
         actions={[
-          { label: 'Importer des fichiers', disabled: true },
+          { label: 'Importer des fichiers', onPress: () => document.querySelector<HTMLElement>('#import-documents button')?.focus() },
           { label: '+ Nouveau courrier', primary: true, kbd: 'N', href: '/documents/rediger' },
         ]}
       />
       <div className={css.grid3}>
-        <nav aria-label="Catégories de documents" className={layout.card} style={{ padding: 'var(--sp-2)' }}>
-          {category_('all', 'Tous les documents', data?.total)}
-          {documentCategory.options.map((id) => category_(id, DOCUMENT_CATEGORIES[id], data?.counts[id]))}
-        </nav>
+        <div className={layout.stack}>
+          <nav aria-label="Catégories de documents" className={layout.card} style={{ padding: 'var(--sp-2)' }}>
+            {category_('all', 'Tous les documents', data?.total)}
+            {documentCategory.options.map((id) => category_(id, DOCUMENT_CATEGORIES[id], data?.counts[id]))}
+          </nav>
+          <div id="import-documents" className={layout.stack}>
+            <DepotFichiers
+              label="Déposez vos fichiers ici"
+              hint="PDF, Word, images · 25 Mo max. Rattachement automatique au dossier par n° de facture."
+              accept=".pdf,.docx,.png,.jpg,.jpeg"
+              maxMb={25}
+              multiple
+              files={files}
+              onChange={setFiles}
+            />
+            {importProblem && <Alerte tone="danger" compact text={importProblem} />}
+            {files.length > 0 && <Bouton full label={`Importer (${files.length})`} onPress={importFiles} />}
+          </div>
+        </div>
         <section aria-label="Liste des documents" className={layout.card}>
           <div style={{ padding: 'var(--sp-3) var(--sp-4)' }}>
             <Toolbar
@@ -107,6 +165,17 @@ export function DocumentsPage() {
               placeholder="Nom, débiteur, n° de facture…"
               query={query}
               onQuery={setQuery}
+              filters={[
+                {
+                  label: 'Créancier',
+                  value: creditor,
+                  options: [
+                    { value: 'all', label: 'Tous' },
+                    ...[...new Set((data?.items ?? []).map((item) => item.creditor))].map((value) => ({ value, label: value })),
+                  ],
+                  onChange: setCreditor,
+                },
+              ]}
               views={[
                 { label: 'Liste', selected: view === 'list', pick: () => setView('list') },
                 { label: 'Vignettes', selected: view === 'grid', pick: () => setView('grid') },

@@ -40,25 +40,96 @@ const closest = (code: string) =>
     .filter((entry) => entry.score <= 4)
     .sort((a, b) => a.score - b.score)[0]?.item;
 
-/** CSS that loads, escapes or hides something. */
-const forbiddenCss = (css: string) =>
-  /[\\<>]|\/\*|url|image|@import|@font|@charset|@namespace|expression|javascript|behavior|-moz-binding|src\s*:|content\s*:|display\s*:\s*none|visibility|opacity|position\s*:|clip|text-indent|transform|font-size\s*:\s*0|(?:max-)?(?:height|width)\s*:\s*0(?![.\d])|color\s*:\s*transparent/iu.exec(
-    css,
-  )?.[0];
+/** Marks a block boundary, a comment or a partial in the scanned text. */
+const BLOCK = '\uE001';
+const MARKERS = /[\uE000\uE001]/u;
+const PROPERTIES = new Set(
+  'margin margin-top margin-right margin-bottom margin-left padding padding-top padding-right padding-bottom padding-left border border-top border-right border-bottom border-left border-width border-style border-color border-radius border-collapse border-spacing width min-width max-width height min-height line-height font-family font-size font-weight font-style color background-color text-align text-decoration text-transform letter-spacing vertical-align white-space list-style list-style-type table-layout word-break overflow-wrap display page-break-before page-break-after page-break-inside break-before break-after break-inside size'.split(
+    ' ',
+  ),
+);
+const SHOWN = new Set(['block', 'inline', 'inline-block', 'table', 'table-row', 'table-cell', 'list-item']);
+const NAMED: Record<string, string> = { black: '#000000', white: '#ffffff' };
+
+function luminance(color: string): number | null {
+  const named = NAMED[color.toLowerCase()] ?? color;
+  const hex = /^#([\da-f]{3}|[\da-f]{6})$/iu.exec(named)?.[1];
+  if (!hex) return null;
+  const full = hex.length === 3 ? [...hex].map((char) => char + char).join('') : hex;
+  const [r, g, b] = [0, 2, 4].map((at) => {
+    const value = parseInt(full.slice(at, at + 2), 16) / 255;
+    return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+}
+/** The text must stay readable on its own background (white and near-black by default). */
+function unreadable(color: string | undefined, background: string | undefined): boolean {
+  const front = luminance(color ?? '#222222');
+  const back = luminance(background ?? '#ffffff');
+  if (front === null || back === null) return true;
+  return (Math.max(front, back) + 0.05) / (Math.min(front, back) + 0.05) < 3;
+}
+/** Allowed properties and plain values only: no function, no escape, no negative nor tiny size. */
+function forbiddenDeclarations(css: string): string | null {
+  if (!/^[\w\s.,%#"':;-]*$/u.test(css)) return css.trim().slice(0, 40) || 'style';
+  const found: Record<string, string> = {};
+  for (const declaration of css
+    .split(';')
+    .map((item) => item.trim())
+    .filter(Boolean)) {
+    const [, name = '', value = ''] = /^([a-z-]+)\s*:\s*(.+)$/iu.exec(declaration) ?? [];
+    const property = name.toLowerCase();
+    if (!PROPERTIES.has(property)) return declaration.slice(0, 40);
+    if (/(?:^|[\s,])-[\d.]/u.test(value)) return declaration;
+    if (property === 'display' && !SHOWN.has(value.toLowerCase())) return declaration;
+    if (property === 'font-size' && !(/^(?:[6-9]|[1-7]\d)(?:\.\d+)?(?:px|pt)$/u.test(value) || /^(?:0\.[6-9]\d*|[1-4](?:\.\d+)?)(?:em|rem)$/u.test(value)))
+      return declaration;
+    if (property === 'line-height' && !/^(?:normal|0\.[89]\d*|[1-3](?:\.\d+)?|(?:[89]|[1-9]\d)px)$/u.test(value)) return declaration;
+    if (
+      /^(?:max-)?(?:width|height)$/u.test(property) &&
+      !/^(?:auto|none|(?:100|[1-9]\d)(?:\.\d+)?%|[1-9]\d{0,3}(?:\.\d+)?(?:px|pt|mm|cm|em)|(?:[1-9]\d?)%)$/u.test(value)
+    )
+      return declaration;
+    if (property === 'letter-spacing' && !/^(?:normal|[0-4](?:\.\d+)?px|0(?:\.\d+)?em)$/u.test(value)) return declaration;
+    if (property === 'color' || property === 'background-color') found[property] = value;
+  }
+  return (found.color || found['background-color']) && unreadable(found.color, found['background-color'])
+    ? `couleur illisible (${found.color ?? found['background-color']})`
+    : null;
+}
+function forbiddenSheet(css: string): string | null {
+  let rest = css;
+  while (rest.trim()) {
+    const rule = /^\s*(@page\s*|[a-z][\w\s.#,>-]*|[.#][\w\s.#,>-]*)\{([^{}]*)\}/iu.exec(rest);
+    if (!rule) return rest.trim().slice(0, 40);
+    const problem = forbiddenDeclarations(rule[2]!);
+    if (problem) return problem;
+    rest = rest.slice(rule[0].length);
+  }
+  return null;
+}
 
 function checkAttribute(tag: string, name: string, value: string): string | null {
   if (!ATTRIBUTES.has(name)) return `attribut ${name}`;
-  if (value.includes('&') || value.includes(FIELD)) return `valeur de ${name}`;
-  if (name === 'style') return forbiddenCss(value) ?? null;
+  if (value.includes('&') || MARKERS.test(value)) return `valeur de ${name}`;
+  if (name === 'style') return forbiddenDeclarations(value);
+  if (name === 'bgcolor') return unreadable(undefined, value) ? `bgcolor ${value}` : null;
+  if (name === 'width' || name === 'height') return /^[1-9]\d{0,3}%?$/u.test(value) ? null : `${name} ${value}`;
   if (name === 'src') return tag === 'img' && /^(?:https:\/\/media\.legarec\.fr\/[\w./-]+|cid:[\w.@-]+)$/u.test(value) ? null : `src ${value}`;
   if (name === 'href')
     return tag === 'a' && /^(?:https:\/\/(?:[a-z]+\.)?legarec\.fr(?:\/[\w./-]*)?|mailto:[\w.-]+@legarec\.fr|tel:\+?\d+)$/u.test(value) ? null : `href ${value}`;
-  if (tag === 'meta' && name === 'content') return /^(?:text\/html; ?charset=utf-8|width=device-width.*|light)$/iu.test(value) ? null : `meta ${value}`;
+  if (tag === 'meta' && name === 'content') return /^(?:text\/html; ?charset=utf-8|width=device-width[\w=., -]*|light)$/iu.test(value) ? null : `meta ${value}`;
   if (tag === 'meta' && name === 'name') return /^(?:viewport|color-scheme|supported-color-schemes)$/u.test(value) ? null : `meta ${value}`;
   return null;
 }
 
-/** Returns the first construct outside the grammar, with its position. */
+/** Elements whose content is not shown as ordinary text: no field, block nor partial inside. */
+const RAW = new Set(['style', 'title', 'colgroup']);
+
+/**
+ * Returns the first construct outside the grammar, with its position.
+ * A tag holds no marker, so it is whole in every branch: what is scanned is what is rendered.
+ */
 function scanHtml(html: string): { index: number; found: string } | null {
   let index = 0;
   while (index < html.length) {
@@ -75,20 +146,32 @@ function scanHtml(html: string): { index: number; found: string } | null {
       index = open + closing[0].length;
       continue;
     }
-    const tag = /^<([a-z][a-z0-9]*)((?:\s+[a-z][a-z-]*(?:="[^"<>]*")?)*)\s*\/?>/iu.exec(rest);
+    const tag = /^<([a-z][a-z0-9]*)((?:[ \t\r\n]+[a-z][a-z-]*(?:="[^"<>\uE000\uE001]*")?)*)[ \t\r\n]*\/?>/iu.exec(rest);
     if (!tag || !TAGS.has(tag[1]!.toLowerCase())) return { index: open, found: rest.slice(0, 40).split('\n')[0] ?? '<' };
     const name = tag[1]!.toLowerCase();
-    for (const attribute of tag[2]!.matchAll(/([a-z][a-z-]*)(?:="([^"<>]*)")?/giu)) {
-      const problem = checkAttribute(name, attribute[1]!.toLowerCase(), attribute[2] ?? '');
+    const seen = new Set<string>();
+    for (const attribute of tag[2]!.matchAll(/([a-z][a-z-]*)(?:="([^"]*)")?/giu)) {
+      const key = attribute[1]!.toLowerCase();
+      const problem = seen.has(key) ? `attribut ${key} répété` : checkAttribute(name, key, attribute[2] ?? '');
       if (problem) return { index: open, found: problem };
+      seen.add(key);
     }
     index = open + tag[0].length;
-    if (name === 'style') {
-      const end = html.toLowerCase().indexOf('</style', index);
-      const css = html.slice(index, end < 0 ? undefined : end);
-      const problem = end < 0 ? '<style>' : css.includes(FIELD) ? 'champ dans <style>' : forbiddenCss(css);
+    if (RAW.has(name)) {
+      const end = html.toLowerCase().indexOf(`</${name}>`, index);
+      const content = html.slice(index, end < 0 ? undefined : end);
+      const problem =
+        end < 0
+          ? `<${name}> non fermé`
+          : MARKERS.test(content)
+            ? `champ ou bloc dans <${name}>`
+            : name === 'style'
+              ? forbiddenSheet(content)
+              : name === 'title' && content.includes('<')
+                ? '<title>'
+                : null;
       if (problem) return { index, found: problem };
-      index = end;
+      if (name !== 'colgroup') index = end;
     }
   }
   return null;
@@ -111,8 +194,11 @@ export function checkTemplate(
   const always = new Set<string>();
   const blocks = new Set<string>();
 
-  if (source.includes('�') || source.includes('\0') || source.includes(FIELD)) fail('Fichier illisible', 'Enregistrez-le en UTF-8');
+  if (source.includes('�') || source.includes('\0') || MARKERS.test(source)) fail('Fichier illisible', 'Enregistrez-le en UTF-8');
   else pass(`Fichier ${sms ? 'texte' : 'HTML'} valide, encodé en UTF-8`);
+
+  // Whitespace control would make the rendered text differ from the one checked here.
+  if (/\{\{\{?~|~\}?\}\}/u.test(source)) fail('Contrôle des espaces interdit', 'Retirez les tildes {{~ et ~}}');
 
   let program: hbs.AST.Program;
   try {
@@ -135,6 +221,9 @@ export function checkTemplate(
     }
     return path.original;
   };
+  const lines = source.split('\n');
+  /** Character that follows a field: the link to the portal must fill the whole attribute. */
+  const afterField = (node: Node) => lines[node.loc.end.line - 1]?.[node.loc.end.column];
   const simple = (node: { params: unknown[]; hash?: hbs.AST.Hash }) => node.params.length === 0 && !node.hash?.pairs.length;
   let html = '';
   const walk = (body: Node[], root: boolean) => {
@@ -145,7 +234,7 @@ export function checkTemplate(
           html += (node as hbs.AST.ContentStatement).original;
           break;
         case 'CommentStatement':
-          html += '\n'.repeat(node.loc.end.line - line);
+          html += BLOCK + '\n'.repeat(node.loc.end.line - line);
           break;
         case 'MustacheStatement': {
           const mustache = node as hbs.AST.MustacheStatement;
@@ -160,7 +249,8 @@ export function checkTemplate(
             fields.add(code);
             if (root) always.add(code);
             // The only field allowed inside a tag: the link to the debtors' portal.
-            html += code === 'paiement.lien' && /href="$/u.test(html) ? 'https://paiement.legarec.fr' : FIELD;
+            html +=
+              code === 'paiement.lien' && /<a(?:\s+[a-z-]+="[^"]*")*\s+href="$/u.test(html) && afterField(node) === '"' ? 'https://paiement.legarec.fr' : FIELD;
           }
           break;
         }
@@ -169,6 +259,7 @@ export function checkTemplate(
           const name = partial.name.type === 'PathExpression' ? (partial.name as hbs.AST.PathExpression).original : '';
           if (!MANDATORY_BLOCKS.some((item) => item.code === name) || !simple(partial)) fail(`Bloc inconnu, ligne ${line}`, `{{> ${name || '?'}}}`);
           else if (root) blocks.add(name);
+          html += BLOCK;
           break;
         }
         case 'BlockStatement': {
@@ -179,8 +270,11 @@ export function checkTemplate(
             break;
           }
           knownField(block.params[0]!, line, 'expression');
+          html += BLOCK;
           walk(block.program.body, false);
+          html += BLOCK;
           if (block.inverse) walk(block.inverse.body, false);
+          html += BLOCK;
           break;
         }
         default:
@@ -206,7 +300,7 @@ export function checkTemplate(
   }
   if (template.category === 'COLLECTION') {
     const plain = html
-      .replace(/<[^>]*>/gu, '')
+      .replace(/<[^>]*>|[\uE000\uE001]/gu, '')
       .replace(/&nbsp;|&#160;|\u00a0|\u202f/giu, ' ')
       .replace(/&(?:shy|zwnj|zwj);|[\u00ad\u200b-\u200d]/giu, '')
       .replace(/\s+/gu, ' ');
@@ -219,7 +313,7 @@ export function checkTemplate(
       });
   }
   if (sms) {
-    const measure = measureSms(html.replaceAll(FIELD, ''));
+    const measure = measureSms(html.replace(/[\uE000\uE001]/gu, ''));
     if (measure.unicode)
       warnings.push({ level: 'WARNING', label: 'SMS limité à 70 caractères', detail: `Caractères en cause : ${measure.unicodeChars.join(' ')}` });
   }

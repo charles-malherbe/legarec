@@ -57,3 +57,4 @@ Claude Code : ajoute ici toute question que la maquette, `HANDOFF.md` ou `DECISI
 | 57 | Textes légaux (mentions légales, confidentialité, cookies) absents du dépôt | [TEXTE À FOURNIR] sur les trois portails | Ouverte |
 | 58 | Téléchargements PDF (RIB, quittances, relevés) : générés par l'API | Boutons présents mais désactivés tant que l'API n'existe pas | Ouverte |
 | 59 | Import de créances : corriger une ligne à l'écran | Les lignes en erreur se redéposent dans un nouveau fichier | Ouverte |
+| 60 | Modèles importés : un texte masqué par combinaison de styles imbriqués reste possible malgré les contrôles | Relecture humaine à la validation, puis rendu PDF sans JavaScript ni réseau côté API | Ouverte |

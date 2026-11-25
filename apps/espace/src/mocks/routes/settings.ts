@@ -731,7 +731,14 @@ export const settingsHandlers = [
         revoke: { status: director ? ('REVOKED' as const) : ('REVOKE_PENDING' as const) },
         keep: director ? { status: 'VALID' as const } : null,
       }[String(params.action)];
-      if (!next) return forbidden();
+      // A revoked secret never comes back, and a pending request only waits for the Director.
+      const allowed = {
+        VALID: ['rotate', 'revoke'],
+        EXPIRING: ['rotate', 'revoke'],
+        REVOKE_PENDING: director ? ['revoke', 'keep'] : [],
+        REVOKED: [] as string[],
+      }[item.status];
+      if (!next || !allowed.includes(String(params.action))) return forbidden();
       secrets = secrets.map((entry) => (entry === item ? { ...entry, ...next } : entry));
       audit(
         session,

@@ -1,5 +1,6 @@
-import { type LitigationCase, type PaymentPlan, type Reminder, type ReminderType, type Session } from '@legarec/contracts';
+import { newReminder, type LitigationCase, type PaymentPlan, type Reminder, type ReminderType, type Session } from '@legarec/contracts';
 import { http, HttpResponse } from 'msw';
+import { audit } from '../audit';
 import { done, forbidden, guarded, notFound, staffWithCases } from '../http';
 import { actsOn, OFFICERS, readable } from './cases';
 
@@ -52,6 +53,15 @@ const EVENTS: [string, string | null, ReminderType, string, string | null, (stri
   ['12-15', null, 'INSTALLMENT', 'Bâtiplus SAS', 'demo', MD, 'Échéance 1/8 · 3 700 €', false, false, 'cl'],
   ['12-15', null, 'INSTALLMENT', 'Nordis Logistique', 'nordis', ER, 'Échéance 2/2 · 4 450 €', false, false, 'sm'],
 ];
+const TODAY = '2026-11-21';
+const planned = new Set<string>();
+/** Default hours of Paramètres du cabinet > Relances; the caps wait for their values. */
+const outsideHours = (type: ReminderType, date: string, time: string): string | null => {
+  const day = new Date(`${date}T00:00:00Z`).getUTCDay();
+  if (day === 0) return 'Dimanche : hors des plages autorisées';
+  const end = day === 6 && type === 'CALL' ? '12:00' : '19:00';
+  return time && type !== 'LETTER' && (time < '09:00' || time > end) ? `${time} : hors des plages autorisées (09:00–${end})` : null;
+};
 const seedReminders = () =>
   EVENTS.map(([date, time, type, debtor, caseId, creditor, title, isDone, automatic, officerId, limit], index) => ({
     id: `r${index}`,
@@ -356,6 +366,7 @@ const litigation: (Omit<LitigationCase, 'canAct' | 'actionSent'> & { officerId: 
 ];
 let sent = new Set<string>();
 export const resetCollection = () => {
+  planned.clear();
   reminders = seedReminders();
   requests = seedRequests();
   sent = new Set();
@@ -378,6 +389,63 @@ export const collectionHandlers = [
         weekly: { emails: 34, sms: 12, letters: 5 },
       }),
     ),
+  ),
+  http.get(
+    '/api/reminders/targets',
+    guarded(staffWithCases, (_info, session) =>
+      HttpResponse.json({
+        items: readable(session)
+          .filter((item) => actsOn(session, item.id))
+          .map(({ id, name, creditor }) => ({ id, name, creditor })),
+      }),
+    ),
+  ),
+  http.post(
+    '/api/reminders',
+    guarded<Info>(staffWithCases, async ({ request }, session) => {
+      const parsed = newReminder.safeParse(await request.json());
+      if (!parsed.success) return HttpResponse.json({ code: 'INVALID' }, { status: 422 });
+      const { caseId, type, date, time, title } = parsed.data;
+      if (date < TODAY) return HttpResponse.json({ code: 'PAST_DATE' }, { status: 422 });
+      const item = readable(session).find((entry) => entry.id === caseId);
+      if (!item || !actsOn(session, caseId)) return forbidden();
+      const limit = outsideHours(type, date, time);
+      const id = crypto.randomUUID();
+      planned.add(id);
+      audit(session, 'Relance planifiée');
+      reminders = [
+        ...reminders,
+        {
+          id,
+          date,
+          time: time || null,
+          type,
+          debtor: item.name,
+          caseId,
+          creditorId: item.creditorId,
+          creditor: item.creditor,
+          title,
+          done: false,
+          automatic: false,
+          officerId: item.officerId,
+          limit,
+        },
+      ];
+      return HttpResponse.json({ id, limit });
+    }),
+  ),
+  http.delete(
+    '/api/reminders/:id',
+    guarded<Info>(staffWithCases, ({ params }, session) => {
+      const item = reminders.find((entry) => entry.id === params.id);
+      if (!item) return notFound();
+      // Only a reminder planned by hand, never a scenario step, an installment nor a court deadline.
+      if (!acts(session, item.officerId) || item.done || !planned.has(item.id)) return forbidden();
+      audit(session, 'Relance planifiée supprimée');
+      planned.delete(item.id);
+      reminders = reminders.filter((entry) => entry !== item);
+      return done();
+    }),
   ),
   http.put(
     '/api/reminders/:id',

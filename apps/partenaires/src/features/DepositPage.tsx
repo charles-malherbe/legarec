@@ -30,13 +30,15 @@ export function DepositPage() {
   );
 }
 
-const EMPTY = { debtor: '', siret: '', email: '', phone: '', address: '', invoice: '', issuedOn: '', dueOn: '', amount: '' };
+const EMPTY = { debtor: '', siret: '', email: '', phone: '', address: '' };
+const INVOICE = { number: '', issuedOn: '', dueOn: '', amount: '' };
 
 function OneClaim() {
   const user = usePartner();
   const change = useChange();
   const confirm = useConfirm();
   const [form, setForm] = useState(EMPTY);
+  const [invoices, setInvoices] = useState([INVOICE]);
   const [files, setFiles] = useState<File[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [done, setDone] = useState(false);
@@ -45,24 +47,26 @@ function OneClaim() {
     setForm((current) => ({ ...current, [key]: value }));
   };
   const submit = () => {
-    const parsed = newClaim.safeParse({ ...form, amount: parseCents(form.amount) });
-    if (!parsed.success) return setErrors(Object.fromEntries(parsed.error.issues.map((issue) => [String(issue.path[0]), issue.message])));
+    const parsed = newClaim.safeParse({ ...form, invoices: invoices.map((item) => ({ ...item, amount: parseCents(item.amount) })) });
+    if (!parsed.success) return setErrors(Object.fromEntries(parsed.error.issues.map((issue) => [issue.path.join('.'), issue.message])));
     setErrors({});
+    const total = parsed.data.invoices.reduce((sum, item) => sum + item.amount, 0);
     confirm({
       title: 'Confier cette créance à Legarec ?',
       body: 'Le dossier est ouvert aussitôt et les relances démarrent selon les conditions de votre convention. Vous suivez l’avancement dans cet espace.',
       details: [
         { k: 'Débiteur', v: parsed.data.debtor },
-        { k: 'Facture', v: parsed.data.invoice },
-        { k: 'Montant TTC', v: formatCents(parsed.data.amount, { decimals: 'always' }) },
+        { k: parsed.data.invoices.length > 1 ? 'Factures' : 'Facture', v: parsed.data.invoices.map((item) => item.number).join(', ') },
+        { k: 'Montant TTC', v: formatCents(total, { decimals: 'always' }) },
         { k: 'Pièces jointes', v: String(files.length) },
       ],
-      confirmLabel: 'Déposer la créance',
+      confirmLabel: 'Confier la créance',
       onConfirm: async () => {
         const attachments: string[] = [];
         for (const file of files) attachments.push((await upload(uploadedFile, '/portal/attachments', file)).id);
         await change('/portal/claims', { body: { ...parsed.data, attachments } });
         setForm(EMPTY);
+        setInvoices([INVOICE]);
         setFiles([]);
         setDone(true);
       },
@@ -89,13 +93,39 @@ function OneClaim() {
         {field('phone', 'Téléphone', { type: 'tel' })}
         {field('address', 'Adresse', { required: true })}
       </fieldset>
-      <fieldset className={css.form}>
-        <legend>Facture</legend>
-        {field('invoice', 'N° de facture', { required: true })}
-        {field('issuedOn', "Date d'émission", { type: 'date', required: true })}
-        {field('dueOn', 'Échéance', { type: 'date', required: true })}
-        {field('amount', 'Montant TTC (€)', { inputMode: 'decimal', required: true })}
-      </fieldset>
+      {invoices.map((invoice, index) => {
+        const cell = (key: keyof typeof INVOICE, label: string, more: Partial<Parameters<typeof Champ>[0]> = {}) => (
+          <Champ
+            label={index === 0 ? label : `${label}, facture ${index + 1}`}
+            required
+            value={invoice[key]}
+            error={errors[`invoices.${index}.${key}`]}
+            onChange={(value) => {
+              setDone(false);
+              setInvoices((current) => current.map((item, position) => (position === index ? { ...item, [key]: value } : item)));
+            }}
+            {...more}
+          />
+        );
+        return (
+          <fieldset key={index} className={css.form}>
+            <legend>{index === 0 ? 'Facture' : `Facture ${index + 1}`}</legend>
+            {cell('number', 'N° de facture')}
+            {cell('issuedOn', "Date d'émission", { type: 'date' })}
+            {cell('dueOn', 'Échéance', { type: 'date' })}
+            {cell('amount', 'Montant TTC (€)', { inputMode: 'decimal' })}
+            {index > 0 && (
+              <Bouton
+                variant="ghost"
+                size="sm"
+                label="Retirer cette facture"
+                ariaLabel={`Retirer cette facture : facture ${index + 1}`}
+                onPress={() => setInvoices((current) => current.filter((_item, position) => position !== index))}
+              />
+            )}
+          </fieldset>
+        );
+      })}
       <DepotFichiers
         label="Déposez la facture (PDF) et ses justificatifs"
         hint="Bon de commande, bon de livraison, relances déjà envoyées…"
@@ -106,6 +136,7 @@ function OneClaim() {
       />
       {done && <Alerte tone="success" text={`Créance déposée. Statut « Nouveau » : ${user.officer} la prendra en charge sous 24 h ouvrées.`} />}
       <div className={css.end}>
+        <Bouton variant="secondary" label="Ajouter une autre facture" onPress={() => setInvoices((current) => [...current, INVOICE])} />
         <Bouton type="submit" label="Déposer la créance" />
       </div>
     </form>
@@ -141,13 +172,13 @@ function Batch() {
     report &&
     confirm({
       title: `Confier ${report.valid} créances à Legarec ?`,
-      body: `Les ${report.valid} dossiers sont ouverts aussitôt et les relances démarrent selon les conditions de votre convention.${report.errors.length > 0 ? ` Les ${report.errors.length} lignes en erreur ne sont pas créées.` : ''}`,
+      body: `Les ${report.valid} dossiers sont ouverts aussitôt et les relances démarrent selon les conditions de votre convention. Vous suivez l’avancement dans cet espace.${report.errors.length > 0 ? ` Les ${report.errors.length} lignes en erreur ne sont pas importées.` : ''}`,
       details: [
         { k: 'Lignes du fichier', v: String(report.lines) },
         { k: 'Lignes valides', v: `${report.valid} · ${formatCents(report.total)}` },
         { k: 'Lignes en erreur', v: String(report.errors.length) },
       ],
-      confirmLabel: `Importer les ${report.valid} créances`,
+      confirmLabel: `Confier les ${report.valid} créances`,
       onConfirm: async () => {
         setResult(await change(`/portal/imports/${report.id}/confirm`, { schema: importDone }));
         setReport(null);

@@ -15,6 +15,7 @@ import { useCreditorScope } from '../../app/creditorScope';
 import { useApi, useChange } from '../../app/data';
 import layout from '@legarec/ui/layout.module.css';
 import { matches } from '../../shared/listState';
+import { PlanReminder } from './PlanReminder';
 import css from './Reminders.module.css';
 
 const TONE: Record<ReminderType, Tone> = { EMAIL: 'info', SMS: 'teal', CALL: 'marine', LETTER: 'warning', INSTALLMENT: 'success', COURT_DEADLINE: 'danger' };
@@ -82,6 +83,7 @@ function Agenda({ today, items, weekly }: { today: string; items: Reminder[]; we
   const [hidden, setHidden] = useState<ReminderType[]>([]);
   const [query, setQuery] = useState('');
   const [officer, setOfficer] = useState('all');
+  const [planning, setPlanning] = useState(false);
   const month = selected.slice(0, 7);
   const inScope = useMemo(
     () =>
@@ -163,9 +165,19 @@ function Agenda({ today, items, weekly }: { today: string; items: Reminder[]; we
         actions={[
           { label: 'Synchroniser l’agenda', disabled: true },
           { label: 'Démarrer ma session d’appels', href: '/appels' },
-          { label: '+ Planifier une relance', primary: true, kbd: 'N', disabled: true },
+          { label: '+ Planifier une relance', primary: true, kbd: 'N', expanded: planning, onPress: () => setPlanning(!planning) },
         ]}
       />
+      {planning && (
+        <PlanReminder
+          today={today}
+          date={selected}
+          onDone={(date) => {
+            setPlanning(false);
+            setSelected(date);
+          }}
+        />
+      )}
       <Toolbar
         label="Naviguer dans l'agenda"
         placeholder="Débiteur, SIRET…"
@@ -241,6 +253,7 @@ function Agenda({ today, items, weekly }: { today: string; items: Reminder[]; we
                   </span>
                 ) : null;
               }}
+              dayCellClass={(info) => (info.date.toISOString().slice(0, 10) === selected ? (css.selected ?? '') : '')}
               dateClick={(info) => setSelected(info.dateStr.slice(0, 10))}
               eventClick={(info) => {
                 const item = visible.find((entry) => entry.id === info.event.id);
@@ -319,7 +332,7 @@ function Agenda({ today, items, weekly }: { today: string; items: Reminder[]; we
                   <dd>{weekly.letters}</dd>
                 </div>
               </dl>
-              <Link to="/parametres" className={layout.link}>
+              <Link to="/parametres/scenarios" className={layout.link}>
                 Modifier les scénarios de relance →
               </Link>
             </div>
