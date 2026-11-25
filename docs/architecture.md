@@ -35,7 +35,8 @@ Décisions du 24/11/2026, reprises de l'annexe « Architecture » de `PROMPT-FRO
 - Cloisonnement : filtre dans chaque requête et sécurité par ligne PostgreSQL, activée et forcée sur toutes les tables ;
   clé étrangère composite (dossier, créancier) sur toute table liée à un dossier.
 - Actions qui engagent : clé d'idempotence et valeur attendue ; refus (409) si l'état a changé depuis la confirmation.
-- Appels externes : jamais dans une transaction ; table outbox, puis BullMQ ; les tâches ne portent que des identifiants.
+- Appels externes : jamais dans une transaction ; table outbox, puis BullMQ ; les tâches ne portent que des identifiants
+  et sont réservées en base avant d'être exécutées (une seule fois pour ce qui part vers quelqu'un : `docs/api.md`).
 - Secrets : clés des services dans un coffre chiffré en base (Paramètres techniques > Secrets) ; valeurs de démarrage dans
   un fichier du serveur ; .env temporaire en développement (docs/api.md, « Clés et secrets »).
 - Antivirus : ClamAV ; tout fichier reçu reste en quarantaine jusqu'au résultat (question 87).
