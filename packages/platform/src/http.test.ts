@@ -30,14 +30,20 @@ describe('key of a change', () => {
   });
 
   it('is shared by a double click, not by another change', async () => {
-    let release: (() => void)[] = [];
+    const release: (() => void)[] = [];
     answer = () => new Promise<Response>((resolve) => release.push(() => resolve(ok())));
     const both = [change(), change(), change({ text: 'Autre' })];
+    await vi.waitFor(() => expect(release).toHaveLength(3));
     for (const go of release) go();
-    release = [];
     await Promise.all(both);
     expect(keys()[1]).toBe(keys()[0]);
     expect(keys()[2]).not.toBe(keys()[0]);
+  });
+
+  it('does not change the order of the changes, whatever their size', async () => {
+    const sizes = [900_000, 1, 100_000, 2];
+    await Promise.all(sizes.map((size) => change({ text: 'x'.repeat(size) })));
+    expect(sent.map(({ init }) => (JSON.parse(String(init.body)) as { text: string }).text.length)).toEqual(sizes);
   });
 
   it('survives a network failure and an answer of the proxy, until the API answers', async () => {
@@ -97,8 +103,8 @@ describe('keys kept in memory', () => {
     expect(await again(101)).not.toBe(known[1]);
   });
 
-  it('are forgotten once answered, whatever the answer of the API', async () => {
-    for (const [index, status] of [200, 400, 401, 403, 404, 409, 413, 422, 429, 500].entries()) {
+  it('are forgotten once the API has accepted or refused', async () => {
+    for (const [index, status] of [200, 400, 401, 403, 404, 409, 413, 422, 429].entries()) {
       const [first] = await lose(1, 300 + index);
       answer = () => new Response('{}', { status });
       await api(z.unknown(), '/cases/demo/notes', { method: 'POST', body: { number: 300 + index } }).catch(() => undefined);
@@ -108,12 +114,46 @@ describe('keys kept in memory', () => {
     }
   });
 
-  it.each([502, 503, 504])('are kept when the proxy answers %s in place of the API', async (status) => {
+  it.each([500, 502, 503, 504])('are kept after a failure %s, of the API or of the proxy in its place', async (status) => {
     const [first] = await lose(1, 400 + status);
     answer = () => new Response('<html>', { status });
     await change({ number: 400 + status }).catch(() => undefined);
     answer = offline;
     expect(await again(400 + status)).toBe(first);
+  });
+
+  it('live an hour from the first try, even when tried again', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      const [first] = await lose(1, 500);
+      vi.setSystemTime(Date.now() + 59 * 60_000);
+      expect(await again(500)).toBe(first);
+      vi.setSystemTime(Date.now() + 2 * 60_000);
+      expect(await again(500)).not.toBe(first);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it.each(['/auth/logout', '/debtor/logout'])('do not outlive the session closed by %s', async (path) => {
+    const [first, second] = await lose(2, 600);
+    expect(await again(600)).toBe(first);
+    answer = ok;
+    await api(z.undefined(), path, { method: 'POST' });
+    answer = offline;
+    expect(await again(600)).not.toBe(first);
+    expect(await again(601)).not.toBe(second);
+  });
+
+  it('are kept under a digest: what was typed is nowhere', async () => {
+    const written = vi.spyOn(Map.prototype, 'set');
+    answer = offline;
+    await api(z.undefined(), '/account/password', { method: 'PUT', body: { current: 'phrase secrète', next: 'x' } }).catch(() => undefined);
+    expect(written).toHaveBeenCalled();
+    const kept = JSON.stringify(written.mock.calls);
+    written.mockRestore();
+    expect(kept).toContain(keys()[0]);
+    expect(kept).not.toMatch(/phrase|secr|password/u);
   });
 
   it('differ from one path, one method and one body to the other', async () => {
