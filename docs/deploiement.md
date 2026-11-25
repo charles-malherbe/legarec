@@ -15,12 +15,12 @@ Première partie du lot X. Fichiers préparés par Claude Code, vérifiés par G
 | `migration` | Une exécution par déploiement | 10104 | 256 Mo | non |
 | `postgres` | Base, envoi continu du journal aux sauvegardes | 999 | 1,5 Go | oui (bucket) |
 | `sauvegarde`, `essai-restauration` | Une exécution par minuterie | 999 | 384 et 512 Mo | oui (bucket) |
-| `valkey` | Files d'attente | 999 | 512 Mo | non |
+| `valkey` | Files d'attente | 10115 | 512 Mo | non |
 | `gatus` | Page d'état publique | 10111 | 96 Mo | non |
 | `gatus-interne` | Contrôles internes et alertes | 10111 | 96 Mo | oui (alertes) |
 | `journaux`, `loki`, `grafana` | Journaux techniques, 60 jours | 10113, 10001, 10114 | 96, 384 et 320 Mo | non |
 
-Conteneurs permanents : 4,6 Go au plus. Réserver 2,5 Go pour ClamAV et n8n, à venir. Aucun conteneur ne tourne en root, ni sous le compte 1000 (`debian`, utilisé pour le développement sur ce serveur). Systèmes de fichiers en lecture seule, aucun droit Linux, réseaux séparés : un portail ne joint pas la base, n8n ne joindra que l'API.
+Conteneurs permanents : 4,6 Go au plus. Réserver 2,5 Go pour ClamAV et n8n, à venir. Aucun conteneur ne tourne en root, ni sous le compte 1000 (`debian`, utilisé pour le développement sur ce serveur). Systèmes de fichiers en lecture seule, aucun droit Linux, réseaux séparés et fermés au serveur lui-même : un portail ne joint pas la base, n8n ne joindra que l'API, et un autre compte du serveur ne joint ni l'API, ni Loki, ni la base.
 
 | Fichiers | Contenu |
 |---|---|
@@ -37,9 +37,11 @@ Conteneurs permanents : 4,6 Go au plus. Réserver 2,5 Go pour ClamAV et n8n, à 
 
 ### Serveur
 - [ ] Ports 80 et 443 libres, ou reprise du proxy actuel décidée (voir « Questions »).
-- [ ] Docker 27 ou plus récent, Compose 2.30 ou plus récent ; 5 Go de mémoire libres, 40 Go de disque libres.
-- [ ] Aucun projet Compose nommé `legarec-app` sur ce serveur (`docker compose ls`).
-- [ ] Pare-feu : 80/tcp, 443/tcp, 443/udp ouverts ; rien d'autre pour Legarec.
+- [ ] Docker 28 ou plus récent, Compose 2.30 ou plus récent ; 5 Go de mémoire libres, 40 Go de disque libres.
+- [ ] Aucun projet Compose nommé `legarec-app` (`docker compose ls`) ni réseau 10.213.0.0/24 sur ce serveur.
+- [ ] Comptes libres : `getent passwd 10001 10101 10102 10103 10104 10110 10111 10113 10114 10115` ne répond rien ; 999 (PostgreSQL) n'est celui d'aucune personne.
+- [ ] `id debian` : ni groupe `docker`, ni accès à `/var/lib/docker`. Tant que le développement reste sur ce serveur, ce compte n'en est séparé que par `sudo` : d'où le conseil d'un VPS réservé (voir « Questions »).
+- [ ] Pare-feu : 80/tcp, 443/tcp, 443/udp ouverts ; rien d'autre pour Legarec. Refuser aux réseaux de Docker l'accès aux autres services du serveur.
 - [ ] Dépôt cloné dans `/opt/legarec`, propriété de root, hors de portée de Claude Code : `git clone`, branche `main`. Clé de déploiement GitHub en lecture seule.
 - [ ] Horloge synchronisée (double authentification, certificats).
 
@@ -48,7 +50,7 @@ Conteneurs permanents : 4,6 Go au plus. Réserver 2,5 Go pour ClamAV et n8n, à 
 - `legarec.fr` et `www.legarec.fr` restent chez leur hébergeur.
 
 ### Scaleway
-- [ ] Bucket `legarec-sauvegardes`, privé, versions activées, **clé propre à ce bucket**.
+- [ ] Bucket `legarec-sauvegardes`, privé, versions activées, **clé propre à ce bucket**. Politique du bucket : cette clé ne peut ni effacer une version, ni couper les versions, ni changer le cycle de vie ; seconde clé, en lecture seule, pour l'essai de restauration.
 - [ ] Règle de cycle de vie : versions remplacées ou supprimées effacées après 70 jours (durée à confirmer, voir « Questions »).
 - [ ] Bucket `legarec-media`, public en lecture, liste du contenu désactivée, logos déposés.
 
@@ -67,9 +69,10 @@ Un fichier par conteneur dans `/etc/legarec/`, d'après `infra/valeurs/*.exemple
 | `migration.env` | 10104 | `MIGRATION_DATABASE_URL` |
 | `postgres.env` | 999 | `POSTGRES_PASSWORD`, `LEGAREC_OWNER_PASSWORD`, `LEGAREC_APP_PASSWORD`, `LEGAREC_JOBS_PASSWORD` |
 | `pgbackrest.env` | 999 | `PGBACKREST_REPO1_S3_REGION`, `PGBACKREST_REPO1_S3_ENDPOINT`, `PGBACKREST_REPO1_S3_KEY`, `PGBACKREST_REPO1_S3_KEY_SECRET`, `PGBACKREST_REPO1_CIPHER_PASS`, `GATUS_PUSH_TOKEN` |
-| `valkey.env` | 999 | `VALKEY_PASSWORD` |
-| `gatus.env` | 10111 | `GATUS_ALERT_KEY`, `GATUS_ALERT_TO`, `GATUS_PUSH_TOKEN` |
-| `grafana.env` | 10114 | `GF_SECURITY_ADMIN_PASSWORD` |
+| `restauration.env` | 999 | Les mêmes noms que `pgbackrest.env`, avec la clé en lecture seule |
+| `valkey.env` | 10115 | `VALKEY_PASSWORD` |
+| `gatus.env` | 10111 | `GATUS_ALERT_KEY`, `GATUS_ALERT_TO`, `GATUS_WORKER_TOKEN`, `GATUS_BACKUP_TOKEN`, `GATUS_RESTORE_TOKEN` |
+| `grafana.env` | 10114 | `GF_SECURITY_ADMIN_PASSWORD`, `GF_SECURITY_SECRET_KEY` |
 
 Dossiers et droits :
 
@@ -89,16 +92,22 @@ sudo install -o root -g 10101 -m 640 /opt/legarec/infra/valeurs/api.env.exemple 
 
 - Mots de passe et jetons : `openssl rand -hex 32`, sauf `VAULT_MASTER_KEY` et `SESSION_SIGNING_KEY` : `openssl rand -base64 32`.
 - Trois mots de passe PostgreSQL différents, repris dans les adresses : `postgresql://legarec_app:…@postgres:5432/legarec` (API), `legarec_jobs` (worker), `legarec_owner` (migrations). Valkey : `redis://:…@valkey:6379/0`.
-- `GATUS_PUSH_TOKEN` : la même valeur dans `worker.env`, `pgbackrest.env` et `gatus.env`.
+- Jetons de surveillance : trois différents dans `gatus.env`, chacun repris sous le nom `GATUS_PUSH_TOKEN` dans `worker.env`, `pgbackrest.env` ou `restauration.env`.
 - Une valeur vide ou encore entre crochets arrête le déploiement.
-- Après modification d'un fichier, recréer son conteneur : `docker compose --env-file /etc/legarec/version.env up -d --force-recreate <conteneur>`.
-- Nouveau mot de passe d'un compte PostgreSQL : modifier `postgres.env`, recréer `postgres`, lancer `docker compose --env-file /etc/legarec/version.env exec postgres legarec-roles`, puis modifier l'adresse dans le fichier du programme et le recréer.
+- Raccourci utilisé plus bas, à taper une fois par session :
+
+  ```bash
+  legarec() { sudo docker compose --project-directory /opt/legarec --file /opt/legarec/docker-compose.yml --env-file /etc/legarec/version.env "$@"; }
+  ```
+
+- Après modification d'un fichier, recréer son conteneur : `legarec up -d --force-recreate <conteneur>`.
+- Nouveau mot de passe d'un compte PostgreSQL : modifier `postgres.env`, recréer `postgres`, lancer `legarec exec postgres legarec-roles`, puis modifier l'adresse dans le fichier du programme et le recréer.
 - `VAULT_MASTER_KEY` et `PGBACKREST_REPO1_CIPHER_PASS` perdues : coffre ou sauvegardes illisibles, définitivement.
 
 ## Ordre de mise en service
 
 1. Serveur, DNS, Scaleway, Resend, fichiers de `/etc/legarec/` (ci-dessus).
-2. Dans `/opt/legarec`, à jour sur `main`, déploiement. Le script contrôle les fichiers, construit les images, démarre la base, **sauvegarde**, applique les migrations, puis démarre le reste.
+2. Dans `/opt/legarec`, à jour sur `main`, déploiement. Le script refuse une copie que root ne possède pas ou une version absente de `main`, contrôle les fichiers, construit les images, démarre la base, **sauvegarde**, applique les migrations, puis démarre le reste.
 
    ```bash
    sudo /opt/legarec/infra/deployer.sh
@@ -107,11 +116,11 @@ sudo install -o root -g 10101 -m 640 /opt/legarec/infra/valeurs/api.env.exemple 
 3. Première sauvegarde complète, puis essai de restauration.
 
    ```bash
-   sudo docker compose --project-directory /opt/legarec --env-file /etc/legarec/version.env run --rm sauvegarde full
+   legarec run --rm sauvegarde full
    ```
 
    ```bash
-   sudo docker compose --project-directory /opt/legarec --env-file /etc/legarec/version.env run --rm essai-restauration
+   legarec run --rm essai-restauration
    ```
 
 4. Minuteries : copier `infra/systemd/*` dans `/etc/systemd/system/`, puis les activer.
@@ -124,16 +133,52 @@ sudo install -o root -g 10101 -m 640 /opt/legarec/infra/valeurs/api.env.exemple 
 6. Clé Resend, puis les autres clés, dans Paramètres techniques > Secrets.
 7. Invitations des collaborateurs, puis des créanciers.
 
-Déploiements suivants : `sudo git -C /opt/legarec pull --ff-only`, puis l'étape 2. Pendant les migrations, l'ancienne version répond encore : une migration doit rester compatible avec elle.
+Déploiements suivants : `sudo git -C /opt/legarec checkout main`, `sudo git -C /opt/legarec pull --ff-only`, puis l'étape 2. Pendant les migrations, l'ancienne version répond encore : une migration doit rester compatible avec elle.
 
 Retour en arrière : `sudo git -C /opt/legarec checkout <version précédente>`, puis l'étape 2. Si une migration a été appliquée entre-temps, elle refuse de continuer : restaurer la sauvegarde faite juste avant, ou corriger par une nouvelle version. Ne jamais lancer `docker compose down --volumes`.
 
 ### Restaurer la base
-À faire avec un collègue, API et worker arrêtés. L'essai hebdomadaire exécute les mêmes commandes.
-1. `docker compose … stop api worker postgres`.
-2. `docker compose … run --rm --no-deps --volume legarec-app_postgres-data:/var/lib/postgresql/data --entrypoint legarec-pgbackrest sauvegarde --delta restore` ; pour un instant précis, ajouter `--type=time "--target=2026-12-01 09:00:00+01"`.
-3. `docker compose … up -d --wait postgres`, contrôle, puis `up -d --wait`.
-4. La purge quotidienne se rejoue après toute restauration (`docs/api.md`) : vérifier sa ligne dans le journal d'audit.
+À faire à deux, `legarec` étant le raccourci ci-dessus. GitHub Actions rejoue les étapes 3 à 6 à chaque changement.
+1. Arrêter les minuteries, l'accès et les programmes.
+
+   ```bash
+   sudo systemctl stop 'legarec-*.timer'
+   ```
+
+   ```bash
+   legarec stop caddy api worker postgres
+   ```
+
+2. Garder l'état actuel : copier le volume `legarec-app_postgres-data` dans un dossier lisible par root seul, effacé à la fin.
+3. Restaurer le dernier état. Pour un instant précis, ajouter l'heure à la fin, par exemple `"2026-12-01 09:00:00+01"`.
+
+   ```bash
+   legarec run --rm --no-deps --volume legarec-app_postgres-data:/var/lib/postgresql/data --entrypoint legarec-restore sauvegarde /var/lib/postgresql/data
+   ```
+
+4. Démarrer la base seule.
+
+   ```bash
+   legarec up -d --wait postgres
+   ```
+
+5. Bloquer les tâches en cours : un courrier, un SMS ou un e-mail peut être parti après l'instant restauré. Elles deviennent « incertaines » ; une personne vérifie chez le fournisseur. Rien ne repart seul.
+
+   ```bash
+   legarec exec postgres legarec-hold-tasks
+   ```
+
+6. Rejouer la purge avant d'ouvrir l'accès (des données effacées sont revenues) ; la commande reste à écrire, voir « Reste à faire ». Puis tout démarrer.
+
+   ```bash
+   legarec up -d --wait
+   ```
+
+   ```bash
+   sudo systemctl start legarec-sauvegarde.timer legarec-sauvegarde-complete.timer legarec-essai-restauration.timer
+   ```
+
+Répétition à blanc : seulement par `legarec run --rm essai-restauration`, jamais sur une autre machine avec `pgbackrest.env`, qui écrirait dans les sauvegardes de production.
 
 ## Liste de recette
 
@@ -150,14 +195,14 @@ Après le premier déploiement, puis après chaque changement de ces fichiers.
 **Sauvegardes**
 - [ ] `sauvegarde` et `essai-restauration` en vert dans les contrôles internes ; prochains passages : `systemctl list-timers 'legarec-*'`.
 - [ ] Dans le bucket : fichiers présents et illisibles (chiffrés), versions activées, règle de cycle de vie en place.
-- [ ] Restauration complète répétée une fois à blanc, avant les premiers dossiers.
+- [ ] Restauration complète faite une fois, avant les premiers dossiers.
 
 **Surveillance**
-- [ ] `docker compose … stop worker` : alerte reçue en moins de 10 minutes ; `start worker` : message de rétablissement.
+- [ ] `legarec stop worker` : alerte reçue en moins de 10 minutes ; `legarec start worker` : message de rétablissement.
 - [ ] Journaux visibles dans Grafana ; chercher un nom, un e-mail, une référence et un lien de courrier connus : aucun résultat.
 
 **Serveur**
-- [ ] `docker compose … ps` : tous en marche ; seul `caddy` publie des ports.
+- [ ] `legarec ps` : tous en marche ; seul `caddy` publie des ports.
 - [ ] `docker inspect` d'un conteneur : aucune valeur de `/etc/legarec/`.
 - [ ] Redémarrage du serveur : tout revient seul.
 - [ ] Depuis l'utilisateur `debian`, sans `sudo` : `/etc/legarec` illisible.
@@ -167,18 +212,19 @@ Après le premier déploiement, puis après chaque changement de ces fichiers.
 | Données | Durée | Où |
 |---|---|---|
 | Sauvegardes | 70 jours (la complète hebdomadaire la plus ancienne reste jusqu'à 7 jours de plus, pour que chaque jour reste restaurable) | `infra/postgres/pgbackrest.conf` |
+| Versions du bucket effacées ou remplacées | 70 jours de plus, soit 147 jours au plus pour une donnée effacée (voir « Questions ») | Règle du bucket |
 | Journaux techniques | 60 jours | `infra/loki/loki.yaml` |
 | Copie locale de Docker (`docker compose logs`) | 2 Mo par conteneur, effacée à chaque déploiement | `docker-compose.yml` |
 
 Journaux : ni adresse IP, ni chemin, ni en-tête dans ceux de Caddy ; ni requête, ni valeur dans ceux de PostgreSQL ; ceux de l'API et du worker sont déjà limités (`docs/api.md`).
 
 ## Choix faits, à connaître
-- **Valeurs lues dans un fichier monté**, jamais dans l'environnement du conteneur : `docker inspect` ne montre rien. `pgbackrest.env` est monté dans trois conteneurs, seule exception : c'est PostgreSQL qui envoie son journal.
+- **Valeurs lues dans un fichier monté**, jamais dans l'environnement du conteneur : `docker inspect` ne montre rien. `pgbackrest.env` est monté dans deux conteneurs, seule exception : c'est PostgreSQL qui envoie son journal.
 - **Deux Gatus** : Gatus ne sait pas cacher un contrôle à certains visiteurs. Caddy montre l'un ou l'autre selon l'adresse IP.
 - **Grafana** : `status.legarec.fr/journaux`, depuis les adresses du cabinet (aucun nouveau domaine).
 - **Journaux** : Docker les remet à un collecteur par un fichier de communication propre à Legarec ; ni accès à Docker, ni lecture des autres conteneurs du serveur.
 - **Images construites sur le serveur**, rien n'est publié. Chaque version porte le numéro du commit.
-- **Bucket injoignable** : le journal de PostgreSQL attend sur le disque, 4 Go au plus, puis il est abandonné plutôt que de remplir le disque ; l'alerte arrive avant (26 heures sans sauvegarde).
+- **Bucket injoignable** : le journal de PostgreSQL attend sur le disque, 8 Go au plus (près de 2 jours à plein débit), puis il est abandonné plutôt que de remplir le disque ; l'alerte arrive avant (26 heures sans sauvegarde).
 - **PostgreSQL** n'écrit plus ses lignes ERROR, qui citent souvent des données ; l'API note leur code.
 
 ## Questions ouvertes au cabinet
@@ -187,7 +233,7 @@ Posées dans la discussion. Elles sont à reporter dans `QUESTIONS.md`, que cett
 | Question | Options | Retenu en attendant |
 |---|---|---|
 | Serveur : la production actuelle occupe déjà le serveur, et sans doute les ports 80 et 443 | A. VPS réservé à Legarec ; B. même serveur, ses sites actuels repris dans le Caddyfile | Rien : le déploiement échoue si les ports sont pris. Conseil : A |
-| Versions S3 : 70 jours de sauvegarde puis 70 jours de version supprimée font 140 jours et plus | A. 63 jours de sauvegarde et 7 jours de versions, soit 77 au plus ; B. 70 et 70 | B, la lettre de la question 115. Conseil : A |
+| Versions S3 : 70 jours de sauvegarde puis 70 jours de version supprimée font 140 jours et plus | A. 56 jours de sauvegarde et 7 jours de versions, soit 70 au plus ; B. 70 et 70 | B, la lettre de la question 115. Conseil : A |
 | Alertes | A. e-mail par une clé Resend dédiée ; B. SMS OVH | A |
 | Grafana | A. `status.legarec.fr/journaux` ; B. nouveau domaine ; C. tunnel SSH | A |
 | Alerte quand le bucket est injoignable : 26 heures | A. garder ; B. contrôle horaire du journal | A |
@@ -200,10 +246,12 @@ Posées dans la discussion. Elles sont à reporter dans `QUESTIONS.md`, que cett
 - Chemin des modèles d'e-mails une fois l'API construite (lot Q) : `apps/api/src/emails/renderer.ts` remonte de deux dossiers depuis le fichier source ; à vérifier depuis `dist/`.
 - n8n : avec les comptes de service ; conteneur et valeurs (`N8N_ENCRYPTION_KEY`) à ajouter, sur un réseau partagé avec l'API seule. Sa route existe déjà dans Caddy, réservée aux adresses du cabinet : elle répond 502 d'ici là.
 - Gatus : contrôle du bucket des documents (lot N).
+- Purge à la demande après une restauration : aujourd'hui, seule la tâche quotidienne du worker la lance. Une commande est à écrire dans l'API.
 - Contrôle de plusieurs copies de l'API : non prévu, une seule à la fois.
 
 **Changements à faire dans des fichiers que cette branche ne touche pas** :
-- `package.json` : `"deployer": "sudo infra/deployer.sh"` (`pnpm deployer`).
+- `package.json` : `"deployer": "sudo /opt/legarec/infra/deployer.sh"` (`pnpm deployer`), jamais le script de la copie de développement.
 - `docs/architecture.md` : `caddy validate` est lancé par `.github/workflows/images.yml`, pas par `pnpm verifier` ; portails servis par leurs conteneurs, derrière Caddy.
-- `docs/api.md` : `TRUSTED_PROXIES` ne doit pas être écrit vide (il vaudrait 0) ; noms ajoutés : `LEGAREC_OWNER_PASSWORD`, `LEGAREC_APP_PASSWORD`, `LEGAREC_JOBS_PASSWORD`, `VALKEY_PASSWORD`, `GATUS_PUSH_URL`, `GATUS_PUSH_TOKEN`, `GATUS_ALERT_TO`, `AUTHORIZED_IPS`, `ACME_EMAIL`, `PGBACKREST_REPO1_S3_REGION`, `PGBACKREST_REPO1_S3_ENDPOINT`.
+- `docs/api.md` : `TRUSTED_PROXIES` ne doit pas être écrit vide (il vaudrait 0) ; noms ajoutés : `LEGAREC_OWNER_PASSWORD`, `LEGAREC_APP_PASSWORD`, `LEGAREC_JOBS_PASSWORD`, `VALKEY_PASSWORD`, `GATUS_PUSH_URL`, `GATUS_PUSH_TOKEN`, `GATUS_WORKER_TOKEN`, `GATUS_BACKUP_TOKEN`, `GATUS_RESTORE_TOKEN`, `GATUS_ALERT_TO`, `GF_SECURITY_SECRET_KEY`, `AUTHORIZED_IPS`, `ACME_EMAIL`, `PGBACKREST_REPO1_S3_REGION`, `PGBACKREST_REPO1_S3_ENDPOINT`.
+- `.claude/settings.json` : retirer `docker compose ps` et `docker compose logs` des commandes autorisées sans confirmation, maintenant que le compose de production est à la racine (par le cabinet).
 - `PLAN.md` : première partie du lot X faite.

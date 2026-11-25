@@ -9,7 +9,7 @@
 	servers {
 		timeouts {
 			read_header 10s
-			read_body 60s
+			read_body 5m
 			idle 2m
 		}
 	}
@@ -58,7 +58,7 @@
 				request>remote_port delete
 				request>client_ip delete
 				request>headers delete
-				request>uri regexp "^/(?:(staff|partner|debtor|public|hooks|service|health)(?:[/?].*)?$|.*)" "/${1}"
+				request>uri regexp "^(?:/(staff|partner|debtor|public|hooks|service|health)(?:[/?].*)?|.*)$" "/${1}"
 				request>tls delete
 				user_id delete
 				resp_headers delete
@@ -152,7 +152,7 @@ status.legarec.fr {
 		reverse_proxy grafana:3000
 	}
 	# Results pushed by the worker and the backups stay inside.
-	@push path /api/v1/endpoints/*/external
+	@push path_regexp ^/api/v1/endpoints/[^/]+/external/?$
 	handle @push {
 		respond 404
 	}
@@ -179,6 +179,8 @@ media.legarec.fr {
 	import access_log
 	# Root only, to the public website.
 	redir / https://legarec.fr 302
+	# An image or a document, never a page that runs something.
+	header Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'"
 	@change not method GET HEAD
 	respond @change 405
 	# Public bucket (its listing is off on the side of the bucket).
@@ -187,6 +189,11 @@ media.legarec.fr {
 		header_up Host legarec-media.s3.{$SCW_REGION}.scw.cloud
 		header_up -Authorization
 		header_up -Cookie
+		# Who looks at a logo, and where, stays with the firm.
+		header_up -X-Forwarded-For
+		header_up -X-Forwarded-Host
+		header_up -Referer
+		header_up -User-Agent
 		header_down -Set-Cookie
 		# Versioned paths, never replaced: kept for a year, but not an error.
 		@found status 200 206 304
@@ -197,23 +204,33 @@ media.legarec.fr {
 	}
 }
 
-# Redirections, without any parameter.
+# Redirections, without any parameter. The path of a letter may be in them: it never leaves with a click.
+(without_www) {
+	import security
+	header Referrer-Policy "no-referrer"
+	route {
+		rewrite * ?
+		redir https://{args[0]}.legarec.fr{uri} 301
+	}
+}
+
 www.espace.legarec.fr {
 	# Same address without www.
-	redir https://espace.legarec.fr{path} 301
+	import without_www espace
 }
 
 www.partenaires.legarec.fr {
 	# Same address without www.
-	redir https://partenaires.legarec.fr{path} 301
+	import without_www partenaires
 }
 
 www.paiement.legarec.fr {
 	# Same address without www.
-	redir https://paiement.legarec.fr{path} 301
+	import without_www paiement
 }
 
 mail.legarec.fr {
+	import security
 	# Sends e-mails only: its web page is the public website.
 	redir https://legarec.fr 301
 }

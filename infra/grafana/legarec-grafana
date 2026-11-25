@@ -1,7 +1,9 @@
 #!/bin/sh
-# Gives its password to Grafana, and to no other program. The file is read, never run.
+# Gives its values to Grafana, and to no other program. The file is read, never run.
 set -eu
-GF_SECURITY_ADMIN_PASSWORD="$(sed -n 's/^GF_SECURITY_ADMIN_PASSWORD=//p' /run/secrets/grafana | head -n 1)"
-[ -n "$GF_SECURITY_ADMIN_PASSWORD" ] || { echo 'Missing value: GF_SECURITY_ADMIN_PASSWORD' >&2; exit 1; }
-export GF_SECURITY_ADMIN_PASSWORD
+for name in GF_SECURITY_ADMIN_PASSWORD GF_SECURITY_SECRET_KEY; do
+  value="$(sed -n "s/^$name=//p" /run/secrets/grafana | head -n 1)"
+  [ -n "$value" ] || { echo "Missing value: $name" >&2; exit 1; }
+  export "$name=$value"
+done
 exec /run.sh "$@"

@@ -1,0 +1,14 @@
+#!/bin/bash
+# Restores the latest backup and its journal in a folder: `legarec-restore <folder> [moment]`, for instance
+# `legarec-restore /var/lib/postgresql/data "2026-12-01 09:00:00+01"`. The server must be stopped.
+# Anywhere but in the data folder of production, the restored server never archives.
+set -euo pipefail
+data="${1:?folder}"
+moment="${2:-}"
+options=(--pg1-path="$data" --delta)
+# The journal is fetched with the keys of the backups, that the server itself does not hold.
+options+=(--recovery-option=restore_command="legarec-pgbackrest --pg1-path=$data archive-get %f \"%p\"")
+[ "$data" = /var/lib/postgresql/data ] || options+=(--archive-mode=off)
+# Without it, the server would stay read-only at that moment.
+[ -z "$moment" ] || options+=(--type=time --target="$moment" --target-action=promote)
+exec legarec-pgbackrest "${options[@]}" restore

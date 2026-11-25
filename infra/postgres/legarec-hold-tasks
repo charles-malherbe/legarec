@@ -1,0 +1,8 @@
+#!/bin/bash
+# After a restoration, before the worker starts: what had not left at the moment restored may have left since. Every task
+# under way becomes uncertain, as after an interruption: a person checks with the provider, and nothing leaves twice.
+set -euo pipefail
+psql --no-psqlrc --set ON_ERROR_STOP=1 --username postgres --dbname legarec <<'SQL'
+UPDATE outbox SET failed_at = now(), failure = 'UNCERTAIN' WHERE done_at IS NULL AND failed_at IS NULL;
+SELECT queue, name, count(*) FROM outbox WHERE failure = 'UNCERTAIN' GROUP BY queue, name ORDER BY queue, name;
+SQL

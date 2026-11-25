@@ -191,6 +191,8 @@ services:
     <<: *backup
     entrypoint: [legarec-restore-test]
     command: []
+    # A key of its own, that only reads.
+    secrets: [{ source: restauration, target: pgbackrest }]
     volumes: ['/restauration']
     mem_limit: 512m
     memswap_limit: 512m
@@ -202,7 +204,7 @@ services:
     build: { context: ., dockerfile: infra/docker/valkey.Dockerfile }
     # The image has its own init.
     init: false
-    user: '999:999'
+    user: '10115:10115'
     secrets: [valkey]
     volumes: ['valkey-data:/data']
     mem_limit: 512m
@@ -285,7 +287,11 @@ services:
       GF_NEWS_NEWS_FEED_ENABLED: 'false'
       GF_PLUGINS_PREINSTALL_DISABLED: 'true'
       GF_LOG_MODE: console
-      GF_LOG_LEVEL: warn
+      # A warning quotes the address of who failed to sign in.
+      GF_LOG_LEVEL: error
+      # A snapshot would outlive the logs.
+      GF_SNAPSHOTS_ENABLED: 'false'
+      GF_SNAPSHOTS_EXTERNAL_ENABLED: 'false'
     secrets: [grafana]
     volumes: ['grafana-data:/var/lib/grafana']
     mem_limit: 320m
@@ -295,16 +301,25 @@ services:
       <<: *health
       test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1:3000/api/health']
 
-# A container only meets those it needs. `internal`: no way out to the Internet.
+# A container only meets those it needs. Closed: no way out to the Internet, and no way in from the server itself, whose
+# other users would otherwise reach the containers by their addresses (logs, API behind Caddy).
+x-closed: &closed
+  internal: true
+  driver_opts:
+    com.docker.network.bridge.gateway_mode_ipv4: isolated
+
 networks:
   # IPv6 too: otherwise every IPv6 caller would have the address of the gateway, and share its limits.
   entree: { enable_ipv6: true }
-  portails: { internal: true }
-  api: { internal: true }
-  donnees: { internal: true }
-  etat: { internal: true }
-  journaux: { internal: true }
-  surveillance: { internal: true }
+  portails: *closed
+  api: *closed
+  donnees:
+    <<: *closed
+    # Named in infra/postgres/pg_hba.conf: the only addresses that may open the database.
+    ipam: { config: [{ subnet: 10.213.0.0/24 }] }
+  etat: *closed
+  journaux: *closed
+  surveillance: *closed
   sortie-worker: {}
   sortie-base: {}
   sortie-alertes: {}
@@ -328,6 +343,7 @@ secrets:
   migration: { file: /etc/legarec/migration.env }
   postgres: { file: /etc/legarec/postgres.env }
   pgbackrest: { file: /etc/legarec/pgbackrest.env }
+  restauration: { file: /etc/legarec/restauration.env }
   valkey: { file: /etc/legarec/valkey.env }
   gatus: { file: /etc/legarec/gatus.env }
   grafana: { file: /etc/legarec/grafana.env }

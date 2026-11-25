@@ -2,7 +2,7 @@
 # Gives the values of the file of the container to Gatus, and to no other program. The file is read, never run.
 set -eu
 if [ -f /run/secrets/gatus ]; then
-  for name in GATUS_ALERT_KEY GATUS_ALERT_TO GATUS_PUSH_TOKEN; do
+  for name in GATUS_ALERT_KEY GATUS_ALERT_TO GATUS_WORKER_TOKEN GATUS_BACKUP_TOKEN GATUS_RESTORE_TOKEN; do
     value="$(sed -n "s/^$name=//p" /run/secrets/gatus | head -n 1)"
     [ -n "$value" ] || { echo "Missing value: $name" >&2; exit 1; }
     export "$name=$value"

@@ -12,6 +12,8 @@ on:
       - 'packages/**'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
+      - 'postcss.config.mjs'
+      - 'tsconfig.base.json'
 permissions:
   contents: read
 concurrency:
@@ -45,7 +47,6 @@ jobs:
       - name: Scripts and timers
         run: |
           shellcheck --severity=warning infra/deployer.sh infra/ci/*.sh infra/postgres/legarec-* infra/valkey/legarec-* infra/gatus/legarec-gatus infra/grafana/legarec-grafana
-          sudo install -d /opt/legarec
           systemd-analyze verify infra/systemd/*.service infra/systemd/*.timer
           for file in infra/systemd/*.timer; do systemd-analyze calendar "$(sed -n 's/^OnCalendar=//p' "$file")"; done
       - name: Compose
@@ -53,9 +54,13 @@ jobs:
       - name: Values drawn for this job
         run: |
           sudo --preserve-env=GITHUB_ACTIONS infra/ci/values.sh
-          sudo git config --global --add safe.directory "$PWD"
+          # As on the server: a copy that only root can change, of a version that comes from main.
+          sudo cp -a . /opt/legarec
+          sudo chown -R root:root /opt/legarec
+          sudo chmod -R go-w /opt/legarec
+          sudo git -C /opt/legarec update-ref refs/remotes/origin/main HEAD
       - name: Deployment
-        run: sudo --preserve-env=COMPOSE_FILE infra/deployer.sh
+        run: sudo --preserve-env=GITHUB_ACTIONS /opt/legarec/infra/deployer.sh
       - name: Configurations
         run: |
           image="$(sudo cat /etc/legarec/version.env | cut -d= -f2)"
@@ -65,7 +70,7 @@ jobs:
           docker run --rm "legarec/loki:$image" -config.file=/etc/loki/loki.yaml -verify-config
           docker run --rm "legarec/journaux:$image" -c /fluent-bit/etc/legarec.yaml --dry-run
       - name: What it does, and never does
-        run: sudo --preserve-env=COMPOSE_FILE,GITHUB_ACTIONS bash -c 'set -a; . /etc/legarec/version.env; exec infra/ci/smoke.sh'
+        run: sudo --preserve-env=COMPOSE_FILE,GITHUB_ACTIONS bash -c 'set -a; . /etc/legarec/version.env; exec /opt/legarec/infra/ci/smoke.sh'
       - name: After a failure
         if: failure()
         run: |

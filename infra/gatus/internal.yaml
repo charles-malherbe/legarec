@@ -80,19 +80,19 @@ endpoints:
 external-endpoints:
   - name: worker
     group: taches
-    token: ${GATUS_PUSH_TOKEN}
+    token: ${GATUS_WORKER_TOKEN}
     heartbeat:
       interval: 5m
     alerts: [{ type: custom, failure-threshold: 1, description: "le worker ne lit plus ses files : relances, envois et purges arrêtés" }]
   - name: sauvegarde
     group: sauvegardes
-    token: ${GATUS_PUSH_TOKEN}
+    token: ${GATUS_BACKUP_TOKEN}
     heartbeat:
       interval: 26h
     alerts: [{ type: custom, failure-threshold: 1, description: aucune sauvegarde réussie depuis 26 heures }]
   - name: essai-de-restauration
     group: sauvegardes
-    token: ${GATUS_PUSH_TOKEN}
+    token: ${GATUS_RESTORE_TOKEN}
     heartbeat:
       interval: 192h
     alerts: [{ type: custom, failure-threshold: 1, description: aucun essai de restauration réussi depuis 8 jours }]

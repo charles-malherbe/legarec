@@ -5,6 +5,16 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 fail() { echo "FAILED: $1" >&2; exit 1; }
 ok() { echo "ok: $1"; }
+# Written to a file first: a command that fails, or that says nothing, proves nothing.
+absent() { # what, pattern options…, then -- command
+  local what="$1" options=()
+  shift
+  while [ "$1" != -- ]; do options+=("$1"); shift; done
+  shift
+  "$@" > /tmp/said 2>&1 || fail "$what: the command failed"
+  [ -s /tmp/said ] || fail "$what: nothing to look into"
+  if grep -q "${options[@]}" /tmp/said; then fail "$what"; fi
+}
 resolve=()
 for host in espace partenaires paiement api status n8n media mail www.espace; do resolve+=(--resolve "$host.legarec.fr:443:127.0.0.1"); done
 get() { curl --silent --insecure --max-time 20 "${resolve[@]}" "$@"; }
@@ -21,7 +31,7 @@ for portal in espace partenaires paiement; do
     grep -qi "^$header" <<< "$headers" || fail "$portal: $header"
   done
   [ "$(grep -ci '^x-content-type-options' <<< "$headers")" = 1 ] || fail "$portal: header set twice"
-  grep -qi '^server:' <<< "$headers" && fail "$portal: server named"
+  if grep -qi '^server:' <<< "$headers"; then fail "$portal: server named"; fi
   page="$(get "https://$portal.legarec.fr/")"
   asset="$(grep -oE '/assets/[^"]+\.js' <<< "$page" | head -n 1)"
   get --head "https://$portal.legarec.fr$asset" | grep -qi '^cache-control: public, max-age=31536000, immutable' || fail "$portal: asset not cached"
@@ -33,6 +43,9 @@ expect 200 https://api.legarec.fr/health
 expect 404 https://api.legarec.fr/service/cases
 expect 404 https://api.legarec.fr/SERVICE
 expect 404 https://api.legarec.fr/%73ervice/cases
+expect 404 https://api.legarec.fr//service/cases --path-as-is
+expect 404 https://api.legarec.fr/service%2Fcases
+expect 404 https://api.legarec.fr/x/../service/cases --path-as-is
 expect 404 https://api.legarec.fr/nothing
 expect 302 https://api.legarec.fr/
 headers="$(get --head https://api.legarec.fr/health | tr -d '\r')"
@@ -56,12 +69,14 @@ expect 403 https://status.legarec.fr/journaux/
 expect 404 'https://status.legarec.fr/api/v1/endpoints/taches_worker/external?success=true' --request POST
 names="$(get https://status.legarec.fr/api/v1/endpoints/statuses)"
 grep -q 'Espace de paiement' <<< "$names" || fail 'public status page'
-grep -qE 'sauvegarde|worker|Loki' <<< "$names" && fail 'internal checks on the public page'
+if grep -qE 'sauvegarde|worker|Loki' <<< "$names"; then fail 'internal checks on the public page'; fi
+expect 403 https://n8n.legarec.fr/ --header 'X-Forwarded-For: 192.0.2.1' --header 'Forwarded: for=192.0.2.1'
 sed -i 's/^AUTHORIZED_IPS=.*/AUTHORIZED_IPS=172.16.0.0\/12 192.168.0.0\/16 10.0.0.0\/8 fd00::\/8/' /etc/legarec/caddy.env
 docker compose up --detach --wait --force-recreate caddy
 expect 200 https://status.legarec.fr/journaux/login
 get https://status.legarec.fr/api/v1/endpoints/statuses | grep -q 'Loki' || fail 'internal checks for the firm'
 expect 404 'https://status.legarec.fr/api/v1/endpoints/taches_worker/external?success=true' --request POST
+expect 404 'https://status.legarec.fr/api/v1/endpoints/taches_worker/external/?success=true' --request POST
 ok 'addresses of the firm'
 
 # Containers
@@ -70,22 +85,36 @@ for id in $(docker compose ps --quiet); do
   user="$(docker inspect --format '{{.Config.User}}' "$id")"
   [[ "$user" =~ ^(999|10[01][0-9]{2}):[0-9]+$ ]] || fail "$name runs as '$user'"
   docker inspect --format '{{.HostConfig.ReadonlyRootfs}} {{.HostConfig.CapDrop}} {{.HostConfig.Memory}} {{.HostConfig.Privileged}}' "$id" | grep -qE '^true \[ALL\] [1-9][0-9]+ false$' || fail "$name is not closed"
-  docker inspect --format '{{json .Mounts}}' "$id" | grep -q docker.sock && fail "$name sees Docker"
+  absent "$name sees Docker" docker.sock -- docker inspect --format '{{json .Mounts}}' "$id"
   published="$(docker inspect --format '{{range $port, $to := .HostConfig.PortBindings}}{{$port}} {{end}}' "$id")"
   [[ "$name" == *caddy* || -z "$published" ]] || fail "$name publishes $published"
 done
-# No value, in what Docker shows of the containers nor in the images.
+# No value, in what Docker shows of the containers and of their images, nor on a command line.
 cut -s -d= -f2- /etc/legarec/*.env | grep -E '^[0-9a-f]{48}$|^[A-Za-z0-9+/]{43}=$' | sort -u > /tmp/values
-[ "$(wc -l < /tmp/values)" -ge 10 ] || fail 'no value to look for'
+[ "$(wc -l < /tmp/values)" -ge 12 ] || fail 'no value to look for'
 mapfile -t ids < <(docker compose ps --all --quiet)
-docker inspect "${ids[@]}" | grep -qFf /tmp/values && fail 'a value in docker inspect'
-ps -eo args | grep -Ff /tmp/values | grep -qv grep && fail 'a value in a command line'
+absent 'a value in docker inspect' -Ff /tmp/values -- docker inspect "${ids[@]}"
+mapfile -t images < <(docker image ls --quiet --filter 'reference=legarec/*')
+absent 'a value in an image' -Ff /tmp/values -- docker image inspect "${images[@]}"
+absent 'a value in a command line' -Ff /tmp/values -- ps -eo args
+absent 'the password of the superuser in the server' -Ff /tmp/values -- docker compose exec -T postgres sh -c 'cat /proc/[0-9]*/environ | tr "\0" "\n"'
 ok containers
 
-# Only the networks they need
-docker compose exec -T espace sh -c 'nc -z -w 2 postgres 5432' 2>/dev/null && fail 'a portal reaches PostgreSQL'
-docker compose exec -T gatus sh -c 'nc -z -w 2 valkey 6379' 2>/dev/null && fail 'the status page reaches Valkey'
-docker compose exec -T valkey valkey-cli ping | grep -q NOAUTH || fail 'Valkey without a password'
+# Only the networks they need. A witness shows that the tool works.
+address() { docker inspect --format "{{(index .NetworkSettings.Networks \"legarec-app_$2\").IPAddress}}" "$(docker compose ps --quiet "$1")"; }
+docker compose exec -T caddy nc -z -w 2 "$(address api api)" 3000 || fail 'witness of the networks'
+for to in "postgres donnees 5432" "valkey donnees 6379" "loki journaux 3100" "api donnees 3000"; do
+  read -r name network port <<< "$to"
+  ip="$(address "$name" "$network")"
+  for from in espace gatus; do
+    if docker compose exec -T "$from" nc -z -w 2 "$ip" "$port"; then fail "$from reaches $name"; fi
+  done
+  # Nor the server itself.
+  if nc -z -w 2 "$ip" "$port"; then fail "the server reaches $name"; fi
+done
+nc -z -w 2 127.0.0.1 443 || fail 'witness of the server'
+docker compose exec -T valkey valkey-cli ping > /tmp/said 2>&1 || true
+grep -q NOAUTH /tmp/said || fail 'Valkey without a password'
 ok networks
 
 # PostgreSQL: rights, then a second run of everything that can be run again
@@ -100,8 +129,13 @@ ok postgresql
 docker compose run --rm sauvegarde full
 docker compose run --rm essai-restauration | tee /tmp/restore
 grep -q 'restore test passed' /tmp/restore || fail 'restore test'
-grep -q 'monitoring not told' /tmp/restore && fail 'monitoring not told'
-grep -rqa 'legarec_app' /var/lib/legarec-ci/depot && fail 'a backup is not encrypted'
+if grep -q 'monitoring not told' /tmp/restore; then fail 'monitoring not told'; fi
+count=0
+while IFS= read -r -d '' file; do
+  [ "$(head -c 8 "$file")" = Salted__ ] || fail "not encrypted: $file"
+  count=$((count + 1))
+done < <(find /var/lib/legarec-ci/depot -type f -print0)
+[ "$count" -gt 5 ] || fail 'no backup to look into'
 heard="$(get https://status.legarec.fr/api/v1/endpoints/statuses)"
 for key in taches_worker sauvegardes_sauvegarde sauvegardes_essai-de-restauration; do
   for _ in $(seq 40); do
@@ -117,6 +151,7 @@ ok backups
 mark="ZQXJ$RANDOM$RANDOM"
 status "https://paiement.legarec.fr/$mark?email=$mark" > /dev/null
 status "https://api.legarec.fr/debtor/$mark?code=$mark" > /dev/null
+curl --silent --insecure --output /dev/null --resolve api.legarec.fr:443:127.0.0.1 --request-target "https://api.legarec.fr/debtor/$mark?code=$mark" https://api.legarec.fr/
 status "https://media.legarec.fr/$mark?code=$mark" --user-agent "$mark" --cookie "a=$mark" > /dev/null
 loki() { docker compose exec -T grafana wget -qO- "http://loki:3100/loki/api/v1/$1"; }
 for _ in $(seq 30); do
@@ -127,9 +162,9 @@ done
 grep -q 'paiement.legarec.fr' /tmp/caddy.json || fail 'logs of Caddy not collected'
 grep -q '/debtor' /tmp/caddy.json || fail 'family of the route not logged'
 loki 'query_range?query=%7Bapplication%3D%22legarec%22%7D&limit=5000' > /tmp/all.json
-for pattern in "$mark" 'remote_ip' 'User-Agent'; do grep -q "$pattern" /tmp/all.json && fail "$pattern in the logs"; done
+for pattern in "$mark" remote_ip User-Agent; do absent "$pattern in the logs" "$pattern" -- cat /tmp/all.json; done
 for name in api worker postgres caddy; do loki label/container/values | grep -q -- "-$name-" || fail "$name not collected"; done
-docker compose logs --no-color 2>/dev/null | grep -q "$mark" && fail 'a path in the logs'
+absent 'a path in the logs' "$mark" -- docker compose logs --no-color caddy espace paiement api
 ok logs
 
 # The worker ends by itself
@@ -138,9 +173,19 @@ docker compose stop worker
 ok 'worker stopped'
 
 # The restoration of docs/deploiement.md, for real
-docker compose stop api postgres
-docker compose run --rm --no-deps --volume legarec-app_postgres-data:/var/lib/postgresql/data --entrypoint legarec-pgbackrest sauvegarde --delta restore
+docker compose stop caddy api postgres
+docker compose run --rm --no-deps --volume legarec-app_postgres-data:/var/lib/postgresql/data --entrypoint legarec-restore sauvegarde /var/lib/postgresql/data
+docker compose up --detach --wait postgres
+docker compose exec -T postgres psql --username postgres --dbname legarec --tuples-only --no-align --command 'SELECT pg_is_in_recovery()' > /tmp/said
+for _ in $(seq 30); do
+  docker compose exec -T postgres psql --username postgres --dbname legarec --tuples-only --no-align --command 'SELECT pg_is_in_recovery()' > /tmp/said
+  grep -qx f /tmp/said && break
+  sleep 2
+done
+grep -qx f /tmp/said || fail 'the restored server is still read-only'
+docker compose exec -T postgres legarec-hold-tasks
 docker compose up --detach --wait
 expect 200 https://api.legarec.fr/health
 docker compose run --rm migration | grep -q 'nothing to apply' || fail 'migrations, after a restoration'
+docker compose run --rm sauvegarde incr
 ok restoration

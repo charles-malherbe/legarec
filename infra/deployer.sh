@@ -1,33 +1,52 @@
 #!/bin/bash
 # Deployment, run by the firm on the server, as root, from /opt/legarec (docs/deploiement.md). Never by Claude Code.
 set -euo pipefail
-cd "$(dirname "$0")/.."
-[ "$(id -u)" = 0 ] || { echo 'À lancer par root (sudo).' >&2; exit 1; }
-[ -z "$(git status --porcelain)" ] || { echo "Le dépôt contient des modifications : rien ne sera déployé." >&2; exit 1; }
-missing=0
-for name in caddy api worker migration postgres pgbackrest valkey gatus grafana; do
-  file="/etc/legarec/$name.env"
-  if [ ! -f "$file" ]; then echo "Fichier absent : $file" >&2; missing=1
-  elif grep -qE '^[A-Z0-9_]+=(\[|$)|\[RÉGION\]' "$file"; then echo "Valeur vide ou entre crochets : $file" >&2; missing=1
-  elif [ "$(stat -c %A "$file" | cut -c8-10)" != --- ]; then echo "Lisible par tous : $file" >&2; missing=1
-  fi
-done
-[ "$(stat -c %u:%a /var/lib/legarec/journaux 2>/dev/null)" = 10113:700 ] || { echo 'Dossier /var/lib/legarec/journaux absent ou mal protégé.' >&2; missing=1; }
-[ "$missing" = 0 ] || exit 1
+stop() { echo "$1" >&2; exit 1; }
+root=/opt/legarec
+[ "$(id -u)" = 0 ] || stop 'À lancer par root (sudo).'
+# Root only runs what root wrote: never the working copy of someone else.
+[ "$(dirname "$(dirname "$(readlink -f "$0")")")" = "$root" ] || stop "À lancer depuis $root."
+[ -z "$(find "$root" ! -user root -print -quit)" ] || stop "$root doit appartenir entièrement à root."
+[ -z "$(find "$root" ! -type l -perm /022 -print -quit)" ] || stop "$root ne doit être modifiable que par root."
+cd "$root"
+[ -z "$(git status --porcelain)" ] || stop 'Le dépôt contient des modifications : rien ne sera déployé.'
+git merge-base --is-ancestor HEAD refs/remotes/origin/main || stop 'Cette version ne vient pas de main : rien ne sera déployé.'
 
-version="$(git rev-parse --short=12 HEAD)"
-export LEGAREC_VERSION="$version"
-compose() { docker compose "$@"; }
-echo "Version $version : construction des images"
+# Group of each file of values: the same table as docs/deploiement.md.
+declare -A group=([caddy]=10110 [api]=10101 [worker]=10102 [migration]=10104 [postgres]=999 [pgbackrest]=999 [restauration]=999 [valkey]=10115 [gatus]=10111 [grafana]=10114)
+wrong=0
+tell() { echo "$1" >&2; wrong=1; }
+[ "$(stat -c %u:%a /etc/legarec 2>/dev/null)" = 0:700 ] || tell 'Dossier /etc/legarec absent ou mal protégé (root, 700).'
+[ "$(stat -c %u:%a /var/lib/legarec/journaux 2>/dev/null)" = 10113:700 ] || tell 'Dossier /var/lib/legarec/journaux absent ou mal protégé (10113, 700).'
+for name in "${!group[@]}"; do
+  file="/etc/legarec/$name.env"
+  [ -f "$file" ] || { tell "Fichier absent : $file"; continue; }
+  [ "$(stat -c %u:%g:%a "$file")" = "0:${group[$name]}:640" ] || tell "Droits de $file : root, groupe ${group[$name]}, 640 attendus."
+  while IFS= read -r key; do
+    [ "${GITHUB_ACTIONS:-}" = true ] && [[ "$key" == PGBACKREST_REPO1_S3_* ]] && continue
+    grep -qE "^$key=[^[]" "$file" && ! grep -qE "^$key=.*\[" "$file" || tell "Valeur absente ou entre crochets : $key dans $file"
+  done < <(sed -n 's/^\([A-Z0-9_]*\)=.*/\1/p' "infra/valeurs/$name.env.exemple")
+done
+[ "$wrong" = 0 ] || exit 1
+
+LEGAREC_VERSION="$(git rev-parse --short=12 HEAD)"
+export LEGAREC_VERSION
+files=(--file docker-compose.yml)
+# GitHub Actions tries this very script, without any way out to the Internet.
+[ "${GITHUB_ACTIONS:-}" != true ] || files+=(--file infra/ci/compose.ci.yml)
+# No file of values by default: neither `.env` nor COMPOSE_FILE is read.
+unset COMPOSE_FILE COMPOSE_PROFILES
+compose() { docker compose "${files[@]}" --env-file /dev/null "$@"; }
+echo "Version $LEGAREC_VERSION : construction des images"
 compose build
 echo 'Base de données, files et surveillance'
 compose up --detach --wait postgres valkey gatus-interne
 echo 'Sauvegarde avant migration'
-compose run --rm sauvegarde incr
+flock --timeout 3600 /run/legarec-sauvegarde.lock docker compose "${files[@]}" --env-file /dev/null run --rm sauvegarde incr
 echo 'Migrations'
 compose run --rm migration
 echo 'Démarrage'
 compose up --detach --wait
 # The timers of the backups use the version that runs.
-printf 'LEGAREC_VERSION=%s\n' "$version" > /etc/legarec/version.env
+printf 'LEGAREC_VERSION=%s\n' "$LEGAREC_VERSION" > /etc/legarec/version.env
 compose ps
