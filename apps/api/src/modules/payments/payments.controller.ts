@@ -44,10 +44,10 @@ export class PaymentsController {
   async change(
     @Param('id') id: string,
     @Param('paymentId') paymentId: string,
-    @Body({ schema: bodies['PUT /cases/:id/payments/:paymentId'] }) { status, reason }: In<'PUT /cases/:id/payments/:paymentId'>,
+    @Body({ schema: bodies['PUT /cases/:id/payments/:paymentId'] }) { status, reason, version }: In<'PUT /cases/:id/payments/:paymentId'>,
   ) {
     await this.cases.acting(id);
-    await this.ledgers.change(id, paymentId, status, reason ?? '');
+    await this.ledgers.change(id, paymentId, status, reason ?? '', version);
   }
 }
 
@@ -128,8 +128,9 @@ export class InterestRatesController {
   @Commits()
   @HttpCode(204)
   @ApiNoContentResponse()
-  async save(@Body({ schema: bodies['PUT /interest-rates'] }) { kind, validFrom, rateBp }: In<'PUT /interest-rates'>) {
-    await this.database.tx.$executeRaw`SELECT app.save_interest_rate(${kind}::interest_rate_kind, ${validFrom}::date, ${rateBp}::integer)`;
+  async save(@Body({ schema: bodies['PUT /interest-rates'] }) { kind, validFrom, rateBp, expected }: In<'PUT /interest-rates'>) {
+    await this.database.tx
+      .$executeRaw`SELECT app.save_interest_rate(${kind}::interest_rate_kind, ${validFrom}::date, ${rateBp}::integer, ${expected}::integer)`;
     await this.audit.log({ action: kind === 'ECB' ? 'ECB_RATE_SAVED' : 'LEGAL_RATE_SAVED', params: { day: validFrom } });
   }
 }

@@ -2,6 +2,7 @@ import { caseDetail, interestRates, plansData, planSimulation } from '@legarec/c
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { startApp, type TestApp } from '../../../test/app';
+import { Database, type Transaction } from '../../platform/database/database';
 import { dayOf } from '../../platform/format';
 import { addDays } from './money';
 import { installmentStates } from './plans';
@@ -49,8 +50,12 @@ const pay = async (as: string, id: string, body: unknown, status = 204) => {
   expect(answer.status, JSON.stringify(answer.body)).toBe(status);
 };
 const paymentsOf = async (id: string) => rows<{ id: string; status: string }>('SELECT id, status FROM payments WHERE case_id = $1 ORDER BY created_at', [id]);
-const set = async (as: string, id: string, paymentId: string, status: string) =>
-  (await call(as, 'PUT', `/cases/${id}/payments/${paymentId}`, { status })).status;
+const versionOf = async (paymentId: string) => (await rows<{ version: number }>('SELECT version FROM payments WHERE id = $1', [paymentId]))[0]!.version;
+const set = async (as: string, id: string, paymentId: string, status: string, version?: number) =>
+  (await call(as, 'PUT', `/cases/${id}/payments/${paymentId}`, { status, version: version ?? (await versionOf(paymentId)) })).status;
+const officer = () => ({ kind: 'staff', userId: test.s.officerA, role: 'CLAIMS_OFFICER', delegations: [] }) as const;
+/** As the officer, with their rights in PostgreSQL and nothing of the API. */
+const asOfficer = <T>(work: (tx: Transaction) => Promise<T>) => test.app.get(Database).run(officer(), work);
 
 beforeAll(async () => {
   test = await startApp();
@@ -135,6 +140,7 @@ describe('a payment', () => {
     await pay('officerA', id, { method: 'TRANSFER', amount: 2000, receivedOn: today, label: 'VIR SEPA BATIPLUS', reconciled: false });
     const [first, second] = await paymentsOf(id);
     expect(await set('officerA', id, first!.id, 'RECONCILED')).toBe(409);
+    expect(await set('officerA', id, first!.id, 'CASHED', 2)).toBe(409);
     expect(await set('officerA', id, first!.id, 'CASHED')).toBe(204);
     expect(await set('officerA', id, first!.id, 'CASHED')).toBe(409);
     expect(await set('officerA', id, second!.id, 'CASHED')).toBe(409);
@@ -194,12 +200,89 @@ describe('a payment', () => {
   });
 });
 
+describe('the money, written straight into PostgreSQL by a colleague', () => {
+  it('is never written by hand: payments, allocations, receipts, plans, approvals, installments', async () => {
+    const id = await makeCase(test.s.officerA, [100_000], 'INDIVIDUAL');
+    await pay('officerA', id, cheque(1000));
+    const [payment] = await paymentsOf(id);
+    for (const statement of [
+      (tx: Transaction) => tx.$executeRaw`UPDATE payments SET status = 'CASHED', settled_at = now() WHERE id = ${payment!.id}::uuid`,
+      (tx: Transaction) =>
+        tx.$executeRaw`INSERT INTO payment_allocations (case_id, creditor_id, payment_id, component, amount_cents) VALUES (${id}::uuid, ${creditor}::uuid, ${payment!.id}::uuid, 'OVERPAYMENT', 1)`,
+      (tx: Transaction) =>
+        tx.$executeRaw`INSERT INTO receipts (case_id, creditor_id, payment_id, number) VALUES (${id}::uuid, ${creditor}::uuid, ${payment!.id}::uuid, 'Q-2026-99999')`,
+      (tx: Transaction) =>
+        tx.$executeRaw`INSERT INTO payment_plans (case_id, creditor_id, total_cents, months, method, first_due_on, status, threshold_months, owned_by_director, requested_by)
+          VALUES (${id}::uuid, ${creditor}::uuid, 1000, 36, 'TRANSFER', '2027-01-15', 'WAITING_DEBTOR', 60, true, ${test.s.officerA}::uuid)`,
+    ]) {
+      await expect(asOfficer(statement)).rejects.toThrow(/permission denied/u);
+    }
+    expect(await paymentsOf(id)).toEqual([{ id: payment!.id, status: 'RECEIVED' }]);
+  });
+
+  it('a long plan asked by the function always waits for its approvals, and is never changed by hand', async () => {
+    const id = await makeCase(test.s.officerA, [100_000], 'INDIVIDUAL');
+    const dates = Array.from({ length: 36 }, (_, index) => addDays(today, 30 * (index + 1)));
+    const amounts = [...Array.from({ length: 35 }, () => 2800), 2000];
+    const plan = await asOfficer(
+      (tx) => tx.$queryRaw<{ id: string }[]>`SELECT app.ask_plan(${id}::uuid, 'TRANSFER', 100000, ${amounts}::integer[], ${dates}::date[]) AS id`,
+    );
+    expect(await rows('SELECT status, owned_by_director, threshold_months FROM payment_plans WHERE id = $1', [plan[0]!.id])).toEqual([
+      { status: 'PENDING_MANAGER', owned_by_director: false, threshold_months: 6 },
+    ]);
+    await expect(asOfficer((tx) => tx.$executeRaw`UPDATE payment_plans SET status = 'ACTIVE' WHERE case_id = ${id}::uuid`)).rejects.toThrow(
+      /permission denied/u,
+    );
+    await expect(
+      asOfficer(
+        (tx) =>
+          tx.$executeRaw`INSERT INTO installments (case_id, creditor_id, plan_id, number, due_on, amount_cents) VALUES (${id}::uuid, ${creditor}::uuid, ${plan[0]!.id}::uuid, 60, '2030-01-15', 1)`,
+      ),
+    ).rejects.toThrow(/permission denied/u);
+    // Amounts that do not add up, or dates out of order.
+    await expect(
+      asOfficer((tx) => tx.$queryRaw`SELECT app.ask_plan(${id}::uuid, 'TRANSFER', 100000, ${[50_000, 40_000]}::integer[], ${dates.slice(0, 2)}::date[])`),
+    ).rejects.toThrow();
+  });
+
+  it('refuses an allocation out of order: the principal of the oldest invoice first, then the indemnities', async () => {
+    const id = await makeCase(test.s.officerA, [100_000, 50_000]);
+    const [newer] = await rows<{ id: string }>("SELECT id FROM case_invoices WHERE case_id = $1 AND number = 'F-2'", [id]);
+    const record = (parts: unknown[]) =>
+      asOfficer(
+        (tx) =>
+          tx.$queryRaw`SELECT app.record_payment(${id}::uuid, 'TRANSFER', 1000, ${today}::date, NULL, NULL, NULL, 'VIR', false, ${JSON.stringify(parts)}::jsonb)`,
+      );
+    await expect(record([{ component: 'PRINCIPAL', invoice: newer!.id, amount: 1000 }])).rejects.toThrow();
+    await expect(record([{ component: 'OVERPAYMENT', invoice: null, amount: 1000 }])).rejects.toThrow();
+    await expect(record([{ component: 'FEES', invoice: newer!.id, amount: 1000 }])).rejects.toThrow();
+    expect(await paymentsOf(id)).toEqual([]);
+  });
+
+  it('nothing in the future, nothing for someone else', async () => {
+    const id = await makeCase(test.s.officerB, [100_000]);
+    await expect(
+      asOfficer((tx) => tx.$queryRaw`SELECT app.record_payment(${id}::uuid, 'TRANSFER', 1000, ${today}::date, NULL, NULL, NULL, 'VIR', false, '[]'::jsonb)`),
+    ).rejects.toThrow();
+    const mine = await makeCase(test.s.officerA, [100_000]);
+    await expect(
+      asOfficer(
+        (tx) =>
+          tx.$queryRaw`SELECT app.record_payment(${mine}::uuid, 'TRANSFER', 1000, ${addDays(today, 2)}::date, NULL, NULL, NULL, 'VIR', false, '[{"component":"INTEREST","invoice":null,"amount":1000}]'::jsonb)`,
+      ),
+    ).rejects.toThrow();
+  });
+});
+
 describe('interest rates', () => {
   it('typed by the Director or the manager on their behalf, and used for the ECB rate', async () => {
-    expect((await call('officerA', 'PUT', '/interest-rates', { kind: 'ECB', validFrom: '2026-07-01', rateBp: 215 })).status).toBe(403);
-    expect((await call('manager', 'PUT', '/interest-rates', { kind: 'ECB', validFrom: '2026-07-01', rateBp: 200 })).status).toBe(204);
-    expect((await call('director', 'PUT', '/interest-rates', { kind: 'ECB', validFrom: '2026-07-01', rateBp: 215 })).status).toBe(204);
-    expect((await call('director', 'PUT', '/interest-rates', { kind: 'ECB', validFrom: '2026-08-01', rateBp: 215 })).status).toBe(422);
+    const put = (as: string, body: object) => call(as, 'PUT', '/interest-rates', { kind: 'ECB', validFrom: '2026-07-01', ...body });
+    expect((await put('officerA', { rateBp: 215, expected: null })).status).toBe(403);
+    expect((await put('manager', { rateBp: 200, expected: null })).status).toBe(204);
+    // Changed since it was shown.
+    expect((await put('director', { rateBp: 215, expected: null })).status).toBe(409);
+    expect((await put('director', { rateBp: 215, expected: 200 })).status).toBe(204);
+    expect((await put('director', { validFrom: '2026-08-01', rateBp: 215, expected: null })).status).toBe(422);
     const listed = interestRates.parse((await call('officerA', 'GET', '/interest-rates')).body);
     expect(listed.items).toContainEqual(expect.objectContaining({ kind: 'ECB', validFrom: '2026-07-01', rateBp: 215 }));
     expect(listed.canEdit).toBe(false);

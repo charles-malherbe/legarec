@@ -42,7 +42,7 @@ export class NotificationsService {
           target: person,
           ticket: { select: { number: true, subject: true } },
           caseCount: true,
-          planId: true,
+          planDecision: true,
           // Null when this person no longer reads it.
           case: { select: { id: true, reference: true, debtor: { select: { name: true } } } },
         },
@@ -53,15 +53,7 @@ export class NotificationsService {
     const unread = await some(null, shown);
     const found = [...unread, ...(await some({ not: null }, shown - unread.length))].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     const now = new Date();
-    const plans = new Map(
-      (
-        await this.database.tx.paymentPlan.findMany({
-          where: { id: { in: found.flatMap((item) => (item.planId ? [item.planId] : [])) } },
-          select: { id: true, status: true },
-        })
-      ).map((plan) => [plan.id, plan.status]),
-    );
-    return found.map(({ id, userId, kind, action, createdAt, readAt, actor, target, ticket, caseCount, case: about, planId }) => {
+    return found.map(({ id, userId, kind, action, createdAt, readAt, actor, target, ticket, caseCount, case: about, planDecision }) => {
       const day = daysAgo(createdAt, now);
       const self = target?.id === userId;
       const said = (): { text: string; meta: string; href: string; cta: string } => {
@@ -98,7 +90,7 @@ export class NotificationsService {
                   cta: 'Voir les dossiers',
                 };
           case 'PLAN_DECIDED': {
-            const refused = planId !== null && plans.get(planId) === 'REFUSED';
+            const refused = planDecision === 'REFUSED';
             return {
               text: `${signed(actor)} a ${refused ? 'refusé' : 'validé'} l’échéancier ${about ? `de ${about.debtor.name}` : 'que vous avez proposé'}`,
               meta: about ? `Dossier ${about.reference}` : 'Échéanciers',

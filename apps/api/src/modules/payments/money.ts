@@ -145,5 +145,6 @@ export function allocate(amount: number, owed: Owed): Allocation[] {
 }
 
 /** Oldest due date first, then the number. */
+/** Oldest due date first, then the number, character by character: the same order as PostgreSQL (`COLLATE "C"`). */
 export const byAge = <T extends { dueOn: Day; number: string }>(a: T, b: T) =>
-  a.dueOn < b.dueOn ? -1 : a.dueOn > b.dueOn ? 1 : a.number.localeCompare(b.number, 'fr');
+  a.dueOn < b.dueOn ? -1 : a.dueOn > b.dueOn ? 1 : a.number < b.number ? -1 : a.number > b.number ? 1 : 0;

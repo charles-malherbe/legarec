@@ -3732,6 +3732,7 @@ export interface operations {
                                 principal: number;
                                 fees: number;
                             };
+                            version: number;
                         }[];
                         documents: {
                             id: string;

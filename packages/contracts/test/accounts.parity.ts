@@ -398,8 +398,8 @@ export const ACCOUNT_PARITY: Parity[] = [
   { as: 'director', request: 'POST /cases/{caseOfManager}/payments', body: { method: 'TRANSFER', amount: 100, receivedOn: '2026-11-02', label: 'VIR', reconciled: false }, status: 403, answer: code('FORBIDDEN') },
   { as: 'manager', request: 'POST /cases/{caseOfManager}/payments', body: { method: 'CHEQUE', amount: 100, chequeNumber: '12', bank: 'B', receivedOn: '2026-11-02', depositedOn: null }, status: 422, answer: refused('INVALID') },
   ...each(['director', 'manager', 'officer', 'developer'], () => ({ request: 'GET /interest-rates', status: 200, answer: interestRates })),
-  { as: 'officer', request: 'PUT /interest-rates', body: { kind: 'ECB', validFrom: '2026-07-01', rateBp: 215 }, status: 403, answer: code('FORBIDDEN') },
-  { as: 'director', request: 'PUT /interest-rates', body: { kind: 'ECB', validFrom: '2026-07-01', rateBp: 215 }, status: 204 },
+  { as: 'officer', request: 'PUT /interest-rates', body: { kind: 'ECB', validFrom: '2026-07-01', rateBp: 215, expected: null }, status: 403, answer: code('FORBIDDEN') },
+  { as: 'director', request: 'PUT /interest-rates', body: { kind: 'ECB', validFrom: '2026-07-01', rateBp: 215, expected: null }, status: 204 },
 ];
 
 /** Sign-in of the creditors. */

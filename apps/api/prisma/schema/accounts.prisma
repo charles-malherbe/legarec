@@ -298,6 +298,7 @@ model Notification {
   creditorId String?         @map("creditor_id") @db.Uuid
   caseCount Int?             @map("case_count")
   planId    String?          @map("plan_id") @db.Uuid
+  planDecision PlanDecision? @map("plan_decision")
   createdAt DateTime         @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
   readAt    DateTime?        @map("read_at") @db.Timestamptz(3)
 

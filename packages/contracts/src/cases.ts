@@ -59,6 +59,8 @@ export const payment = z.object({
   label: z.string().nullable(),
   receiptId: z.string().nullable(),
   allocation: z.object({ interest: cents, principal: cents, fees: cents }),
+  /** Sent back with a change of status. */
+  version: z.number().int(),
 });
 export type Payment = z.infer<typeof payment>;
 export const PAYMENT_STATUS_LABELS: Record<z.infer<typeof paymentStatus>, string> = {

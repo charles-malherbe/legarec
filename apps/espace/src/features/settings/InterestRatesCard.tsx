@@ -57,7 +57,8 @@ export function InterestRatesCard() {
       ],
       confirmLabel: 'Enregistrer le taux',
       onConfirm: async () => {
-        await change('/interest-rates', { method: 'PUT', body: { kind, validFrom: semester, rateBp } });
+        const shown = data?.items.find((item) => item.kind === kind && item.validFrom === semester)?.rateBp ?? null;
+        await change('/interest-rates', { method: 'PUT', body: { kind, validFrom: semester, rateBp, expected: shown } });
         setRate('');
         toast({ message: 'Taux enregistré.' });
       },

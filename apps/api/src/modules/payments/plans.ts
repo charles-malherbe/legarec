@@ -1,4 +1,4 @@
-import { formatCents, planApprovals, planDates, splitPlan, type PaymentPlan, type planRequest, type PlanSimulation, type plansData } from '@legarec/contracts';
+import { formatCents, planDates, splitPlan, type PaymentPlan, type planRequest, type PlanSimulation, type plansData } from '@legarec/contracts';
 import { Inject, Injectable } from '@nestjs/common';
 import type { z } from 'zod';
 import { Audit } from '../../platform/audit/audit';
@@ -196,48 +196,16 @@ export class Plans {
   /** Asked by whoever acts on the case, for the balance shown in the confirmation. */
   async create(body: { caseId: string; months: number; method: 'CHEQUE' | 'TRANSFER'; expected: number }, today: Day = dayOf(new Date())): Promise<void> {
     const { tx } = this.database;
-    const shown = await this.simulation(body.caseId);
+    await this.simulation(body.caseId);
     await this.ledgers.lock(body.caseId);
     const ledger = await this.ledgers.read(body.caseId, today);
     if (!ledger || balanceOf(ledger) !== body.expected || body.expected === 0) throw conflict('CHANGED');
     if (['SETTLED', 'LOST', 'LITIGATION'].includes(ledger.status)) throw conflict('CASE_CLOSED');
-    const threshold = thresholdOf(await SettingValues.read(tx));
-    const steps = planApprovals(body.months, threshold, shown.ownedByDirector);
-    const [who] = await tx.$queryRaw<{ user_id: string; behalf: string | null }[]>`SELECT app.user_id() AS user_id, app.on_behalf_of() AS behalf`;
     const dates = planDates(body.months, today);
     const amounts = splitPlan(body.expected, body.months);
     try {
-      const plan = await tx.paymentPlan.create({
-        data: {
-          caseId: body.caseId,
-          creditorId: ledger.creditorId,
-          totalCents: body.expected,
-          months: body.months,
-          method: body.method,
-          firstDueOn: new Date(`${dates[0]}T00:00:00Z`),
-          status: steps[0] === 'COLLECTION_MANAGER' ? 'PENDING_MANAGER' : steps[0] === 'CREDITOR' ? 'WAITING_CREDITOR' : 'WAITING_DEBTOR',
-          thresholdMonths: threshold,
-          ownedByDirector: shown.ownedByDirector,
-          requestedBy: who!.user_id,
-          onBehalfOfId: who!.behalf,
-        },
-        select: { id: true },
-      });
-      await tx.planApproval.createMany({
-        data: [...steps, 'DEBTOR' as const].map((step) => ({ caseId: body.caseId, creditorId: ledger.creditorId, planId: plan.id, step })),
-      });
-      await tx.installment.createMany({
-        data: amounts.map((amount, index) => ({
-          caseId: body.caseId,
-          creditorId: ledger.creditorId,
-          planId: plan.id,
-          number: index + 1,
-          dueOn: new Date(`${dates[index]}T00:00:00Z`),
-          amountCents: amount,
-        })),
-      });
-      await tx.$executeRaw`SELECT app.add_case_event(${body.caseId}::uuid, 'PLAN_ASKED', 'Échéancier proposé', ${`${body.months} mensualités`}, 'info'::event_tone, true)`;
-      await this.audit.log({ action: 'PLAN_ASKED', entity: { type: 'case', id: body.caseId }, params: { count: body.months } });
+      // Who must approve it is decided by PostgreSQL, from the setting in force and the holder of the case.
+      await tx.$queryRaw`SELECT app.ask_plan(${body.caseId}::uuid, ${body.method}::payment_method, ${body.expected}::integer, ${amounts}::integer[], ${dates}::date[])`;
     } catch (error) {
       if (takenIndex(error) === 'payment_plans_one_open') throw conflict('CHANGED');
       throw error;
@@ -246,14 +214,6 @@ export class Plans {
 
   /** The manager validates or refuses a long plan; PostgreSQL checks who decides, and that nothing changed since. */
   async decide(id: string, decision: 'APPROVED' | 'REFUSED', reason: string | undefined, version: number): Promise<void> {
-    const { tx } = this.database;
-    const plan = await tx.paymentPlan.findUnique({ where: { id }, select: { caseId: true, months: true } });
-    if (!plan) throw notFound();
-    await tx.$executeRaw`SELECT app.decide_plan(${id}::uuid, ${decision}::plan_decision, ${reason ?? ''}, ${version}::integer)`;
-    await this.audit.log({
-      action: decision === 'APPROVED' ? 'PLAN_APPROVED' : 'PLAN_REFUSED',
-      entity: { type: 'case', id: plan.caseId },
-      params: { months: plan.months },
-    });
+    await this.database.tx.$executeRaw`SELECT app.decide_plan(${id}::uuid, ${decision}::plan_decision, ${reason ?? ''}, ${version}::integer)`;
   }
 }

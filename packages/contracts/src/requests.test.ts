@@ -203,7 +203,11 @@ const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly
       { method: 'TRANSFER', amount: 10_000, receivedOn: '2026-11-24', label: 'Virement', reconciled: true },
       { method: 'CHEQUE', amount: 150_050, chequeNumber: '1234567', bank: 'Banque test', receivedOn: '2026-11-25', depositedOn: null },
     ],
-    'PUT /cases/:id/payments/:paymentId': [{ status: 'BOUNCED', reason: 'Provision insuffisante' }, { status: 'CASHED' }, { status: 'RECONCILED' }],
+    'PUT /cases/:id/payments/:paymentId': [
+      { status: 'BOUNCED', reason: 'Provision insuffisante', version: 1 },
+      { status: 'CASHED', version: 2 },
+      { status: 'RECONCILED', version: 1 },
+    ],
     'POST /cases/:id/reminders': [{ channel: 'E-mail', template: 'Relance n°1', recipient: 'compta@batiplus.example', message: 'Bonjour' }],
     'POST /gdpr/requests': [{ caseId: 'meunier', kind: 'ACCESS', origin: 'Courrier' }],
     'PUT /gdpr/requests/:id': [
@@ -220,7 +224,7 @@ const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly
       { decision: 'REFUSED', reason: 'Accord refusé', version: 1 },
       { decision: 'APPROVED', version: 2 },
     ],
-    'PUT /interest-rates': [{ kind: 'ECB', validFrom: '2026-07-01', rateBp: 215 }],
+    'PUT /interest-rates': [{ kind: 'ECB', validFrom: '2026-07-01', rateBp: 215, expected: null }],
     'POST /documents/compose': [
       { ...letter, template: 'FORMAL_NOTICE', caseIds: ['demo'], filters: null, expected: 1 },
       { ...letter, template: 'FRIENDLY', caseIds: null, filters: { creditor: 'md', age: '31-60' }, expected: 13 },

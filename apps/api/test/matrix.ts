@@ -121,6 +121,7 @@ const pendingPlan = async (test: TestApp) => {
 };
 let assigned: unknown;
 let planned: unknown;
+let rateTurn = 0;
 const INVOICE = { number: 'F-1', externalRef: '', issuedOn: '2026-01-01', dueOn: '2026-02-01', amount: 100, left: 100 };
 const CASE = {
   mandateId: 'x',
@@ -409,7 +410,7 @@ export const MATRIX: Record<string, MatrixEntry> = {
   },
   'PUT /staff/cases/:id/payments/:paymentId': {
     path: paymentPath,
-    body: () => ({ status: 'CASHED' }),
+    body: () => ({ status: 'CASHED', version: 1 }),
     expect: only({ director: 403, manager: 204, managerAlone: 204, officerA: 404, officerB: 404, liar: 404 }),
   },
   'GET /staff/payment-plans': { expect: withCases(200) },
@@ -433,7 +434,8 @@ export const MATRIX: Record<string, MatrixEntry> = {
   },
   'GET /staff/interest-rates': { expect: staffOf(200) },
   'PUT /staff/interest-rates': {
-    body: () => ({ kind: 'ECB', validFrom: '2026-07-01', rateBp: 215 }),
+    // Each caller writes a semester of its own: the value shown is that of nobody.
+    body: () => ({ kind: 'ECB', validFrom: `${2030 + (rateTurn++ % 40)}-01-01`, rateBp: 215, expected: null }),
     expect: only({ director: 204, manager: 204, liar: 403 }),
   },
 };

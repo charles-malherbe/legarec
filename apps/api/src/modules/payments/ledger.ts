@@ -32,17 +32,16 @@ export const balanceOf = (ledger: Ledger) => {
   return owed.principal + owed.interest + owed.fees;
 };
 
-const IBAN = /\b[A-Z]{2}\d{2} ?(?:[0-9A-Z]{4} ?){2,7}[0-9A-Z]{0,4}/gu;
+/** An IBAN as it may be typed: any case, spaces or dashes between groups that start with a digit (a word after it stays). */
+const IBAN = /\b[A-Z]{2}\d{2}(?:[\s-]*\d[0-9A-Z]{0,3}){3,10}/giu;
 /** The IBAN typed in the label of a transfer: its last four characters only, but for the Director (tests « fuites »). */
 export const maskedLabel = (label: string, director: boolean) =>
   director
     ? label
     : label.replace(IBAN, (iban) => {
-        const plain = iban.replace(/\s/gu, '');
-        return `${plain.slice(0, 4)} •••• ${plain.slice(-4)}${iban.endsWith(' ') ? ' ' : ''}`;
+        const plain = iban.replace(/[\s-]/gu, '').toUpperCase();
+        return `${plain.slice(0, 4)} •••• ${plain.slice(-4)}`;
       });
-
-const RECEIPT = (year: number, number: number) => `Q-${year}-${String(number).padStart(5, '0')}`;
 
 /** Money of the cases. PostgreSQL decides which cases are shown and acted on; the rules of the amounts are in `money.ts`. */
 @Injectable()
@@ -141,6 +140,7 @@ export class Ledgers {
           label: payment.label === null ? null : maskedLabel(payment.label, director),
           receiptId: payment.receipt?.id ?? null,
           allocation: { interest: first('INTEREST'), principal: first('PRINCIPAL'), fees: first('FEES') },
+          version: payment.version,
         };
       }),
       counted: live.map((payment) => ({ on: dayText(payment.receivedOn), amount: payment.amountCents })),
@@ -171,89 +171,17 @@ export class Ledgers {
         fees: Math.max((asOf.invoices.find((item) => item.id === invoice.id)?.feesDue ?? 0) - invoice.feesPaid, 0),
       })),
     };
-    const parts = allocate(body.amount, owed);
-    const [who] = await tx.$queryRaw<{ user_id: string; behalf: string | null }[]>`SELECT app.user_id() AS user_id, app.on_behalf_of() AS behalf`;
-    const settled = body.method === 'TRANSFER' && body.reconciled;
-    const payment = await tx.payment.create({
-      data: {
-        caseId,
-        creditorId: now.creditorId,
-        method: body.method,
-        amountCents: body.amount,
-        status: body.method === 'CHEQUE' ? (body.depositedOn ? 'DEPOSITED' : 'RECEIVED') : settled ? 'RECONCILED' : 'TO_RECONCILE',
-        receivedOn: new Date(`${body.receivedOn}T00:00:00Z`),
-        depositedOn: body.method === 'CHEQUE' && body.depositedOn ? new Date(`${body.depositedOn}T00:00:00Z`) : null,
-        settledAt: settled ? new Date() : null,
-        chequeNumber: body.method === 'CHEQUE' ? body.chequeNumber : null,
-        bank: body.method === 'CHEQUE' ? body.bank.trim() : null,
-        label: body.method === 'TRANSFER' ? body.label.trim() : null,
-        recordedBy: who!.user_id,
-        onBehalfOfId: who!.behalf,
-      },
-      select: { id: true },
-    });
-    await tx.paymentAllocation.createMany({
-      data: parts.map((part) => ({
-        caseId,
-        creditorId: now.creditorId,
-        paymentId: payment.id,
-        invoiceId: part.invoiceId,
-        component: part.component,
-        amountCents: part.amount,
-      })),
-    });
-    if (settled) await this.receipt(caseId, now.creditorId, payment.id);
-    await this.event(caseId, 'PAYMENT_RECORDED', 'Paiement enregistré', body.method === 'CHEQUE' ? 'Chèque' : 'Virement', 'success');
+    const parts = allocate(body.amount, owed).map((part) => ({ component: part.component, invoice: part.invoiceId, amount: part.amount }));
+    // PostgreSQL checks the allocation again, records it and writes the history and the audit.
+    await tx.$queryRaw`SELECT app.record_payment(${caseId}::uuid, ${body.method}::payment_method, ${body.amount}::integer, ${body.receivedOn}::date,
+      ${body.method === 'CHEQUE' ? body.depositedOn : null}::date, ${body.method === 'CHEQUE' ? body.chequeNumber : null}, ${body.method === 'CHEQUE' ? body.bank : null},
+      ${body.method === 'TRANSFER' ? body.label : null}, ${body.method === 'TRANSFER' && body.reconciled}, ${JSON.stringify(parts)}::jsonb)`;
     await this.settleIfPaid(caseId);
   }
 
-  /** Cashed, reconciled or bounced: only from the state the screen showed. */
-  async change(caseId: string, paymentId: string, status: 'CASHED' | 'BOUNCED' | 'RECONCILED', reason: string): Promise<void> {
-    const { tx } = this.database;
-    await this.lock(caseId);
-    const payment = await tx.payment.findFirst({ where: { id: paymentId, caseId }, include: { allocations: true } });
-    if (!payment) throw conflict('CHANGED');
-    const allowed =
-      payment.method === 'CHEQUE'
-        ? ['RECEIVED', 'DEPOSITED'].includes(payment.status) && status !== 'RECONCILED'
-        : payment.status === 'TO_RECONCILE' && status === 'RECONCILED';
-    if (!allowed) throw conflict('CHANGED');
-    const { count } = await tx.payment.updateMany({
-      where: { id: paymentId, caseId, version: payment.version },
-      data:
-        status === 'BOUNCED'
-          ? { status, bouncedAt: new Date(), bounceReason: reason.trim() || null, version: { increment: 1 } }
-          : { status, settledAt: new Date(), version: { increment: 1 } },
-    });
-    if (!count) throw conflict('CHANGED');
-    if (status === 'BOUNCED') {
-      // Opposite entries: what it paid is owed again, exactly.
-      await tx.paymentAllocation.createMany({
-        data: payment.allocations
-          .filter((entry) => entry.reversesId === null)
-          .map((entry) => ({
-            caseId,
-            creditorId: payment.creditorId,
-            paymentId,
-            invoiceId: entry.invoiceId,
-            component: entry.component,
-            amountCents: -entry.amountCents,
-            reversesId: entry.id,
-          })),
-      });
-      await this.event(caseId, 'PAYMENT_BOUNCED', 'Chèque impayé', '', 'danger');
-      await this.audit.log({ action: 'PAYMENT_BOUNCED', entity: { type: 'case', id: caseId } });
-      await tx.case.updateMany({ where: { id: caseId, status: 'SETTLED' }, data: { status: 'OVERDUE', closedOn: null, version: { increment: 1 } } });
-    } else {
-      await this.receipt(caseId, payment.creditorId, paymentId);
-      await this.event(caseId, 'PAYMENT_SETTLED', 'Paiement définitif, quittance générée', '', 'success');
-    }
-  }
-
-  private async receipt(caseId: string, creditorId: string, paymentId: string): Promise<void> {
-    const { tx } = this.database;
-    const [next] = await tx.$queryRaw<{ for_year: number; number: number }[]>`SELECT for_year, number FROM app.next_number('RECEIPT')`;
-    await tx.receipt.create({ data: { caseId, creditorId, paymentId, number: RECEIPT(next!.for_year, next!.number) } });
+  /** Cashed, reconciled or bounced, from the state and the version the screen showed: PostgreSQL does all of it. */
+  async change(caseId: string, paymentId: string, status: 'CASHED' | 'BOUNCED' | 'RECONCILED', reason: string, version: number): Promise<void> {
+    await this.database.tx.$executeRaw`SELECT app.change_payment(${caseId}::uuid, ${paymentId}::uuid, ${status}::payment_status, ${reason}, ${version}::integer)`;
   }
 
   /** Nothing left to pay: the case is settled. */
