@@ -69,7 +69,8 @@ export class ContactsService {
     if (main && !contact.isPrimary) await tx.caseContact.updateMany({ where: { caseId, kind: contact.kind, isPrimary: true }, data: { isPrimary: false } });
     await tx.caseContact.update({
       where: { id: contactId },
-      data: { status: next, isPrimary: main, invalidatedAt: next === 'INVALID' ? new Date() : null },
+      // Taken back: it no longer stands for the one that replaced it.
+      data: { status: next, isPrimary: main, invalidatedAt: next === 'INVALID' ? new Date() : null, ...(next === 'INVALID' ? {} : { replacedById: null }) },
       select: { id: true },
     });
     const what = status && status !== contact.status ? ({ VERIFIED: 'VERIFIED', INVALID: 'INVALIDATED' } as Record<string, string>)[status] : undefined;

@@ -59,8 +59,9 @@ const create = async (some: object = {}) => {
 };
 const file = async (id: string, as = 'director') => creditorFile.parse((await call(as, 'GET', `/${id}/file`)).body);
 const account = (iban = IBAN, confirmedWith = '') => ({ holder: 'Boulangeries Rivaud SAS', iban, bic: 'PSSTFRPPXXX', confirmedWith });
+/** Two lines of one request may share their millisecond: then in the order they were written. */
 const actions = async (id: string) =>
-  (await rows<{ action: string }>('SELECT action FROM audit_log WHERE entity_id = $1 ORDER BY occurred_at', [id])).map((row) => row.action);
+  (await rows<{ action: string }>('SELECT action FROM audit_log WHERE entity_id = $1 ORDER BY occurred_at, ctid', [id])).map((row) => row.action);
 
 beforeAll(async () => {
   test = await startApp();
@@ -125,6 +126,21 @@ describe('a creditor', () => {
 });
 
 describe('who sees what', () => {
+  it('shows every role the same terms of the mandate, its opening fee and its interest included', async () => {
+    const [made] = await rows<{ id: string }>(
+      `INSERT INTO mandates (creditor_id, starts_on, amicable_rate_bp, litigation_rate_bp, opening_fee_cents, plan_months_without_consent, discount_max_bp, litigation_needs_consent, interest_mode, fixed_indemnity, reporting_day, scenario)
+       VALUES ($1, '2026-01-01', 800, 1200, 1500, 6, 500, true, 'ECB_PLUS_TEN', true, 5, 'BUSINESS') RETURNING id`,
+      [test.s.creditorA],
+    );
+    try {
+      const lines = async (as: string) => creditorDetail.parse((await call(as, 'GET', `/${test.s.creditorA}`)).body).mandateTerms.map((term) => term.label);
+      expect(await lines('officerA')).toEqual(await lines('director'));
+      expect(await lines('officerA')).toEqual(expect.arrayContaining(['Frais d’ouverture', 'Intérêts de retard']));
+    } finally {
+      await rows('DELETE FROM mandates WHERE id = $1', [made!.id]);
+    }
+  });
+
   it('an officer reads the creditors of their cases alone, without the account nor the form', async () => {
     const names = z
       .array(creditorListItem)
@@ -302,6 +318,15 @@ describe('the account of the remittances', () => {
       await run((tx) => tx.$executeRaw`UPDATE creditor_bank_accounts SET valid_until = '2099-01-01' WHERE id = ${known}::uuid`);
       await database.run(manager, (tx) => tx.$executeRaw`UPDATE creditor_bank_accounts SET valid_until = now() WHERE id = ${known}::uuid`);
       await run((tx) => tx.$executeRaw`UPDATE creditor_bank_accounts SET valid_until = NULL WHERE id = ${known}::uuid`);
+      // Another one, said to be on behalf of someone else than the Director.
+      const add =
+        (behalf: string | null): Parameters<typeof database.run>[1] =>
+        (tx) =>
+          tx.$executeRaw`INSERT INTO creditor_bank_accounts (creditor_id, holder, iban_cipher, iban_masked, bic, created_by, on_behalf_of_id)
+            VALUES (${id}::uuid, 'X', ${Buffer.from([0])}, 'GB82 •••• •••• 5432', 'PSSTFRPPXXX', ${test.s.manager}::uuid, ${behalf}::uuid)`;
+      await run(add(test.s.officerA));
+      await run(add(null));
+      expect(await database.run(manager, add(test.s.director))).toBe(1);
       // A mandate neither.
       await run(
         (
@@ -524,11 +549,11 @@ describe('PostgreSQL itself', () => {
 
   it('keeps the account of the remittances for the Director, and for their delegate in their name', async () => {
     const add =
-      (by: string, confirmedBy: string | null = null): Work =>
+      (by: string, confirmedBy: string | null = null, behalf: string | null = null): Work =>
       (tx) =>
-        tx.$executeRaw`INSERT INTO creditor_bank_accounts (id, creditor_id, holder, iban_cipher, iban_masked, bic, confirmed_by, confirmed_at, confirmed_with, created_by)
+        tx.$executeRaw`INSERT INTO creditor_bank_accounts (id, creditor_id, holder, iban_cipher, iban_masked, bic, confirmed_by, confirmed_at, confirmed_with, created_by, on_behalf_of_id)
           VALUES (${randomUUID()}::uuid, ${test.s.creditorB}::uuid, 'x', ${Buffer.from('x')}, 'GB82 •••• •••• 5432', 'PSSTFRPPXXX', ${confirmedBy}::uuid,
-            ${confirmedBy ? new Date() : null}::timestamptz, ${confirmedBy ? 'x' : null}, ${by}::uuid)`;
+            ${confirmedBy ? new Date() : null}::timestamptz, ${confirmedBy ? 'x' : null}, ${by}::uuid, ${behalf}::uuid)`;
     const close: Work = (tx) => tx.creditorBankAccount.updateMany({ where: { creditorId }, data: { validUntil: new Date() } });
     const { director, manager, officerA } = test.s;
     for (const [as, by] of [
@@ -542,7 +567,11 @@ describe('PostgreSQL itself', () => {
     expect(await answer('director', add(officerA))).toBe('42501');
     expect(await answer('director', add(director, officerA))).toBe('42501');
     expect(await answer('manager', add(director), 'ADMINISTRATIVE')).toBe('42501');
-    expect(await answer('manager', add(manager, manager), 'ADMINISTRATIVE')).toBe(1);
+    // On behalf of the Director, and of nobody else.
+    expect(await answer('manager', add(manager, manager), 'ADMINISTRATIVE')).toBe('42501');
+    expect(await answer('manager', add(manager, manager, officerA), 'ADMINISTRATIVE')).toBe('42501');
+    expect(await answer('director', add(director, null, manager))).toBe('42501');
+    expect(await answer('manager', add(manager, manager, director), 'ADMINISTRATIVE')).toBe(1);
     const seen: Work = (tx) => tx.creditorBankAccount.count({ where: { creditorId } });
     for (const [as, count] of [
       ['director', 1],

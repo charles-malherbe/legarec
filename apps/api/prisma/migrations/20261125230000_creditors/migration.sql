@@ -134,7 +134,8 @@ CREATE POLICY definer_read ON creditor_bank_accounts FOR SELECT TO legarec_defin
 CREATE POLICY staff_read ON creditor_bank_accounts FOR SELECT TO legarec_staff USING ((SELECT app.staff_role()) = 'DIRECTOR' OR (SELECT app.has_delegation('ADMINISTRATIVE')));
 -- In one's own name, the telephone call too.
 CREATE POLICY staff_add ON creditor_bank_accounts FOR INSERT TO legarec_staff WITH CHECK (
-  (SELECT app.acts_as_director('ADMINISTRATIVE')) AND created_by = (SELECT app.user_id()) AND (confirmed_by IS NULL OR confirmed_by = (SELECT app.user_id())));
+  (SELECT app.acts_as_director('ADMINISTRATIVE')) AND created_by = (SELECT app.user_id()) AND (confirmed_by IS NULL OR confirmed_by = (SELECT app.user_id()))
+  AND on_behalf_of_id IS NOT DISTINCT FROM (SELECT app.on_behalf_of()));
 CREATE POLICY staff_change ON creditor_bank_accounts FOR UPDATE TO legarec_staff USING ((SELECT app.acts_as_director('ADMINISTRATIVE'))) WITH CHECK ((SELECT app.acts_as_director('ADMINISTRATIVE')));
 GRANT SELECT (id, creditor_id, holder, iban_masked, bic, valid_from, valid_until, confirmed_by, confirmed_at, confirmed_with, created_by, on_behalf_of_id),
   INSERT (id, creditor_id, holder, iban_cipher, iban_masked, bic, confirmed_by, confirmed_at, confirmed_with, created_by, on_behalf_of_id),

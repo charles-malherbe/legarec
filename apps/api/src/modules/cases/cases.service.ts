@@ -184,7 +184,7 @@ export class CasesService {
       exchanges: [],
       payments: [],
       documents: [],
-      mandate: { sector: found.creditor.sector ?? '', terms: found.mandate ? termsOf(found.mandate, true) : [] },
+      mandate: { sector: found.creditor.sector ?? '', terms: found.mandate ? termsOf(found.mandate, 'case') : [] },
       otherClaims: others,
       scenario: [],
       firstLetter: found.firstLetterReference && found.firstLetterOn ? { reference: found.firstLetterReference, date: dayText(found.firstLetterOn) } : null,
@@ -244,7 +244,7 @@ export class CasesService {
             scenario: current.scenario,
             fixedIndemnity: current.fixedIndemnity,
             hasContract: false,
-            terms: termsOf(current, false),
+            terms: termsOf(current, 'opening'),
           }
         : null,
       known: known ? { name: known.name, kind: known.kind } : null,

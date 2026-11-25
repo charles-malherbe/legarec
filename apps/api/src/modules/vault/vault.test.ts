@@ -20,7 +20,7 @@ const saved = async () => {
 const cipher = async (id: string) =>
   (await rows<{ value_cipher: Buffer | null }>('SELECT value_cipher FROM vault_secrets WHERE id = $1', [id]))[0]!.value_cipher;
 const actions = async (id: string) =>
-  (await rows<{ action: string }>('SELECT action FROM audit_log WHERE entity_id = $1 ORDER BY occurred_at', [id])).map((row) => row.action);
+  (await rows<{ action: string }>('SELECT action FROM audit_log WHERE entity_id = $1 ORDER BY occurred_at, ctid', [id])).map((row) => row.action);
 
 beforeAll(async () => {
   test = await startApp();

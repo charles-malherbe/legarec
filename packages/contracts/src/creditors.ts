@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { caseStatus } from './dashboard';
 import { FRENCH_PHONE } from './communication';
 import { isValidIban, isValidSiren } from './firm';
-import { atMost, EMAIL_MAX, ID_MAX } from './limits';
+import { atMost, EMAIL_MAX, ID_MAX, NUMBER_MAX } from './limits';
 import { cents, enteredAmount } from './money';
 
 export const creditorListItem = z.object({
@@ -75,6 +75,7 @@ export const creditorIdentity = z.object({
   vatNumber: z
     .string()
     .trim()
+    .max(NUMBER_MAX, atMost(NUMBER_MAX))
     .refine((value) => value === '' || /^FR[A-Z\d]{2}\d{9}$/u.test(value.replace(/\s/gu, '').toUpperCase()), {
       error: 'Ce n° de TVA n’est pas valide (FR, 2 caractères, 9 chiffres).',
     }),
@@ -133,15 +134,18 @@ export type MandateForm = z.infer<typeof mandateForm>;
 export const bankAccountForm = z.object({
   holder: line(150, 'Indiquez le titulaire.'),
   iban: z.string().max(50).refine(isValidIban, { error: 'Cet IBAN n’est pas valide.' }),
-  bic: z.string().refine((value) => /^[A-Z]{6}[A-Z\d]{2}(?:[A-Z\d]{3})?$/u.test(value.replace(/\s/gu, '').toUpperCase()), {
-    error: 'Ce BIC n’est pas valide (8 ou 11 caractères).',
-  }),
+  bic: z
+    .string()
+    .max(NUMBER_MAX, atMost(NUMBER_MAX))
+    .refine((value) => /^[A-Z]{6}[A-Z\d]{2}(?:[A-Z\d]{3})?$/u.test(value.replace(/\s/gu, '').toUpperCase()), {
+      error: 'Ce BIC n’est pas valide (8 ou 11 caractères).',
+    }),
   /** Who confirmed it, at a number already known; empty while it is not. Nothing is remitted before. */
   confirmedWith: optional(120),
 });
 
 export const newCreditor = z.object({
-  siren: z.string().refine(isValidSiren, { error: 'Ce SIREN n’est pas valide (9 chiffres).' }),
+  siren: z.string().max(NUMBER_MAX, atMost(NUMBER_MAX)).refine(isValidSiren, { error: 'Ce SIREN n’est pas valide (9 chiffres).' }),
   identity: creditorIdentity,
   contacts: creditorContacts,
   mandate: mandateForm,

@@ -136,6 +136,20 @@ describe('the frame of the screens', () => {
   });
 });
 
+describe('a notification of cases', () => {
+  it('always says how many, by PostgreSQL itself', async () => {
+    for (const kind of ['CASE_ASSIGNED', 'SUBSTITUTE_NOTICE'])
+      await expect(
+        rows('INSERT INTO notifications (user_id, kind, actor_id, target_id) VALUES ($1, $2::notification_kind, $3, $1)', [
+          test.s.officerA,
+          kind,
+          test.s.director,
+        ]),
+        kind,
+      ).rejects.toThrow(/notifications_facts/u);
+  });
+});
+
 describe('an assignment', () => {
   it('is told to whoever receives the case', async () => {
     expect((await assign('director', [theirs], test.s.officerA)).status).toBe(204);

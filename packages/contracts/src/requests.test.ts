@@ -416,7 +416,15 @@ describe('ceilings', () => {
         const name = path.map((part) => (typeof part === 'number' ? '[]' : `.${part}`)).join('');
         const list = (current: unknown) => Array.from({ length: 5_000 }, () => (current as unknown[])[0]);
         const tries = [...TEXTS, 1e12, -1e12].map((value) => change(body, path, (current) => (Array.isArray(current) ? list(current) : value)));
-        if (tries.some((attempt) => schema.safeParse(attempt).success)) found.add(name.slice(1));
+        // Spaces inside a valid text: what a check that removes them lets through, if nothing else stops it.
+        const spaced: unknown[] = [];
+        change(body, path, (current) => {
+          // Inside, between two signs: around them, `trim()` takes them away.
+          if (typeof current === 'string' && current.trim().length >= 2)
+            spaced.push(change(body, path, () => `${current.slice(0, 1)}${' '.repeat(LONG)}${current.slice(1)}`));
+          return current;
+        });
+        if ([...tries, ...spaced].some((attempt) => schema.safeParse(attempt).success)) found.add(name.slice(1));
       }
     }
     return [...found].sort();

@@ -303,9 +303,9 @@ describe('the proof', () => {
     expect(await again.post('/auth/proof', { method: 'PASSWORD', password: PASSWORD })).toMatchObject({ status: 423, body: { closed: false } });
     // Locked by the failures, this one is not closed: the good password was given.
     expect((await again.session()).status).toBe(200);
-    expect(await rows("SELECT action FROM audit_log WHERE actor_id = $1 AND action IN ('PROOF_REFUSED', 'ACCOUNT_LOCKED') ORDER BY occurred_at", [id])).toEqual(
-      [...Array.from({ length: 4 }, () => ({ action: 'PROOF_REFUSED' })), { action: 'ACCOUNT_LOCKED' }],
-    );
+    expect(
+      await rows("SELECT action FROM audit_log WHERE actor_id = $1 AND action IN ('PROOF_REFUSED', 'ACCOUNT_LOCKED') ORDER BY occurred_at, ctid", [id]),
+    ).toEqual([...Array.from({ length: 4 }, () => ({ action: 'PROOF_REFUSED' })), { action: 'ACCOUNT_LOCKED' }]);
   });
 
   it('counts with the failures of the sign-in for a code', async () => {
@@ -382,7 +382,7 @@ describe('what surrounds a proof', () => {
     expect(await browser.post('/auth/proof', { method: 'PASSWORD', password: 'faux' })).toMatchObject({ body: { attemptsLeft: 1 } });
     expect(await rows('SELECT DISTINCT scope FROM lockouts')).toEqual([{ scope: 'PASSWORD' }]);
     expect((await browser.post('/auth/proof', { method: 'PASSWORD', password: PASSWORD })).status).toBe(204);
-    expect(await rows("SELECT action FROM audit_log WHERE actor_id = $1 AND action LIKE 'PROOF%' ORDER BY occurred_at", [id])).toEqual([
+    expect(await rows("SELECT action FROM audit_log WHERE actor_id = $1 AND action LIKE 'PROOF%' ORDER BY occurred_at, ctid", [id])).toEqual([
       { action: 'PROOF_REFUSED' },
       { action: 'PROOF_GIVEN' },
     ]);

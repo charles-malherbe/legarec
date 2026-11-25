@@ -60,7 +60,8 @@ CREATE TABLE case_contacts (
   FOREIGN KEY (case_id, creditor_id) REFERENCES cases (id, creditor_id),
   UNIQUE (id, case_id),
   FOREIGN KEY (replaced_by_id, case_id) REFERENCES case_contacts (id, case_id),
-  CONSTRAINT case_contacts_invalid CHECK ((status = 'INVALID') = (invalidated_at IS NOT NULL) AND NOT (status = 'INVALID' AND is_primary))
+  CONSTRAINT case_contacts_invalid CHECK ((status = 'INVALID') = (invalidated_at IS NOT NULL) AND NOT (status = 'INVALID' AND is_primary)),
+  CONSTRAINT case_contacts_replaced CHECK (replaced_by_id IS NULL OR status = 'INVALID')
 );
 CREATE UNIQUE INDEX case_contacts_primary ON case_contacts (case_id, kind) WHERE is_primary;
 CREATE UNIQUE INDEX case_contacts_value ON case_contacts (case_id, kind, value_normalized) WHERE status <> 'INVALID';

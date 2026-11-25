@@ -1,12 +1,15 @@
 import { z } from 'zod';
 import { accessCode } from './debtorAccess';
 import { isValidSiren } from './firm';
-import { atMost, EMAIL_MAX, ID_MAX } from './limits';
+import { atMost, EMAIL_MAX, ID_MAX, NUMBER_MAX } from './limits';
 import { AMOUNT_MAX, cents } from './money';
 
 /** Debtors' portal (no account): an identifier and a four-letter access code. */
 export const debtorIdentifier = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('SIREN'), value: z.string().refine(isValidSiren, { error: 'Ce SIREN n’est pas valide (9 chiffres).' }) }),
+  z.object({
+    kind: z.literal('SIREN'),
+    value: z.string().max(NUMBER_MAX, atMost(NUMBER_MAX)).refine(isValidSiren, { error: 'Ce SIREN n’est pas valide (9 chiffres).' }),
+  }),
   z.object({
     kind: z.literal('REFERENCE'),
     value: z

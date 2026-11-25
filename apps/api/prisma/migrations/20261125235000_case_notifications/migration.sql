@@ -7,14 +7,15 @@ ALTER TABLE notifications
   ADD COLUMN creditor_id uuid,
   ADD COLUMN case_count integer,
   DROP CONSTRAINT notifications_facts,
+  -- A comparison with NULL is NULL, which a CHECK lets through: each value is required where it counts.
   ADD CONSTRAINT notifications_facts CHECK (
     actor_id IS NOT NULL AND CASE kind::text
       WHEN 'SUPPORT_ACTION' THEN action IS NOT NULL AND target_id IS NOT NULL
       WHEN 'SUPPORT_TICKET' THEN ticket_id IS NOT NULL
       -- One case, or how many of them.
-      WHEN 'CASE_ASSIGNED' THEN case_count > 0 AND (case_count = 1) = (case_id IS NOT NULL)
+      WHEN 'CASE_ASSIGNED' THEN case_count IS NOT NULL AND case_count > 0 AND (case_count = 1) = (case_id IS NOT NULL)
       -- Neutral (question 91): the colleague who is away, never a case.
-      WHEN 'SUBSTITUTE_NOTICE' THEN target_id IS NOT NULL AND case_count > 0
+      WHEN 'SUBSTITUTE_NOTICE' THEN target_id IS NOT NULL AND case_count IS NOT NULL AND case_count > 0
       ELSE target_id IS NOT NULL
     END),
   ADD CONSTRAINT notifications_case CHECK (case_id IS NULL OR (creditor_id IS NOT NULL AND kind::text = 'CASE_ASSIGNED')),

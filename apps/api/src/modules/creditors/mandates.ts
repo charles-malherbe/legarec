@@ -16,23 +16,41 @@ export function currentOf<T extends { startsOn: Date; endsOn: Date | null }>(man
   return mandates.find((mandate) => stateOf(mandate) === 'CURRENT');
 }
 
-/** Card « Convention de mandat »; an officer reads what they need to act. */
-export function termsOf(mandate: Mandate, short: boolean): { label: string; value: string }[] {
-  const terms: [string, string][] = [
-    ['Honoraires amiable', `${percent(mandate.amicableRateBp)} HT du recouvré`],
-    ['Honoraires judiciaire', `${percent(mandate.litigationRateBp)} HT`],
-    ...(mandate.openingFeeCents
-      ? ([['Frais d’ouverture', `${(mandate.openingFeeCents / 100).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} € HT par dossier`]] as [
-          string,
-          string,
-        ][])
-      : []),
-    ['Indemnité forfaitaire', mandate.fixedIndemnity ? '40 € / facture (professionnels)' : 'Non réclamée'],
-    ['Échéancier sans accord', `≤ ${mandate.planMonthsWithoutConsent} mois`],
-    ['Remise autorisée', `≤ ${percent(mandate.discountMaxBp)}`],
-    ['Passage en contentieux', mandate.litigationNeedsConsent ? 'Sur accord écrit' : 'Sans accord écrit'],
-    ['Reporting', `Mensuel, le ${mandate.reportingDay}`],
-    ['Intérêts de retard', MANDATE_INTEREST_LABELS[mandate.interestMode]],
-  ];
-  return terms.slice(0, short ? 8 : undefined).map(([label, value]) => ({ label, value }));
+/** By their name: the card « Convention » of a creditor, the four lines of a case (mockup « Dossier »), the two of an opening (proposal 2). */
+export function termsOf(mandate: Mandate, view: 'creditor' | 'case' | 'opening'): { label: string; value: string }[] {
+  const amicable = `${percent(mandate.amicableRateBp)} HT du recouvré`;
+  const plan = `≤ ${mandate.planMonthsWithoutConsent} mois`;
+  const discount = `≤ ${percent(mandate.discountMaxBp)}`;
+  const litigation = mandate.litigationNeedsConsent ? 'Sur accord écrit' : 'Sans accord écrit';
+  const indemnity = mandate.fixedIndemnity ? '40 € / facture (professionnels)' : 'Non réclamée';
+  const terms: [string, string][] =
+    view === 'case'
+      ? [
+          ['Honoraires', amicable],
+          ['Échéancier sans accord', plan],
+          ['Remise autorisée', discount],
+          ['Contentieux', litigation],
+        ]
+      : view === 'opening'
+        ? [
+            ['Honoraires amiable', amicable],
+            ['Indemnité forfaitaire', indemnity],
+          ]
+        : [
+            ['Honoraires amiable', amicable],
+            ['Honoraires judiciaire', `${percent(mandate.litigationRateBp)} HT`],
+            ...(mandate.openingFeeCents
+              ? ([['Frais d’ouverture', `${(mandate.openingFeeCents / 100).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} € HT par dossier`]] as [
+                  string,
+                  string,
+                ][])
+              : []),
+            ['Indemnité forfaitaire', indemnity],
+            ['Échéancier sans accord', plan],
+            ['Remise autorisée', discount],
+            ['Passage en contentieux', litigation],
+            ['Reporting', `Mensuel, le ${mandate.reportingDay}`],
+            ['Intérêts de retard', MANDATE_INTEREST_LABELS[mandate.interestMode]],
+          ];
+  return terms.map(([label, value]) => ({ label, value }));
 }

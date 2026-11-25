@@ -11,7 +11,7 @@ const staff = () => new Browser(test);
 const partner = () => new Browser(test, 'partner');
 const entries = (actorOrEntity: string) =>
   rows<{ action: string; actor_kind: string; actor_id: string | null; entity_id: string | null; ip: string | null }>(
-    'SELECT action, actor_kind::text, actor_id, entity_id, host(ip) AS ip FROM audit_log WHERE actor_id = $1 OR entity_id = $1 ORDER BY occurred_at',
+    'SELECT action, actor_kind::text, actor_id, entity_id, host(ip) AS ip FROM audit_log WHERE actor_id = $1 OR entity_id = $1 ORDER BY occurred_at, ctid',
     [actorOrEntity],
   );
 

@@ -106,7 +106,7 @@ export class CreditorsService {
       payouts: [],
       nextPayout: { date: dayOf(new Date()), net: 0, gross: 0, fee: 0 },
       activity: [],
-      mandateTerms: current ? termsOf(current, actor.role === 'CLAIMS_OFFICER') : [],
+      mandateTerms: current ? termsOf(current, 'creditor') : [],
       contact: {
         name: main?.name ?? '',
         title: main?.title ?? '',

@@ -116,7 +116,13 @@ describe('opening a case', () => {
     // From the creditor: nothing of it is verified, so that no code of access leaves for it.
     expect(seen.contacts.map((contact) => contact.verified)).toEqual([false, false]);
     expect(seen.history.map((entry) => [entry.title, entry.actor])).toEqual([['Dossier ouvert', 'Remi Test']]);
-    expect(seen.mandate.terms[0]).toEqual({ label: 'Honoraires amiable', value: '8 % HT du recouvré' });
+    // Those of the mockup, whatever else the mandate says.
+    expect(seen.mandate.terms).toEqual([
+      { label: 'Honoraires', value: '8 % HT du recouvré' },
+      { label: 'Échéancier sans accord', value: '≤ 6 mois' },
+      { label: 'Remise autorisée', value: '≤ 5 %' },
+      { label: 'Contentieux', value: 'Sur accord écrit' },
+    ]);
     expect(await rows('SELECT mandate_id, created_by FROM cases WHERE id = $1', [id])).toEqual([{ mandate_id: creditor.mandate, created_by: test.s.manager }]);
     expect(await rows('SELECT action FROM audit_log WHERE entity_id = $1', [id])).toEqual([{ action: 'CASE_OPENED' }]);
     expect(JSON.stringify(await rows('SELECT * FROM audit_log')) + test.logs.join('')).not.toMatch(/Arnal|51233487/u);
@@ -418,7 +424,7 @@ describe('the coordinates', () => {
     expect((await add('manager', id, phone('04 76 00 00 99', { replaces: first!.id }))).status).toBe(204);
     const all = await stored(id);
     expect(all[0]).toMatchObject({ status: 'INVALID', is_primary: false, replaced_by_id: all[2]!.id });
-    expect(await rows('SELECT what FROM case_contact_events WHERE case_id = $1 ORDER BY occurred_at', [id])).toEqual(
+    expect(await rows('SELECT what FROM case_contact_events WHERE case_id = $1 ORDER BY occurred_at, ctid', [id])).toEqual(
       ['ADDED', 'ADDED', 'ADDED', 'ADDED', 'REPLACED'].map((what) => ({ what })),
     );
     expect((await detail('manager', id)).contacts.map((contact) => contact.value)).not.toContain('04 76 00 00 21');
@@ -740,8 +746,8 @@ describe('what is left out', () => {
 
 describe('what is written of a case', () => {
   const trace = async (id: string) => ({
-    audit: (await rows<{ action: string }>('SELECT action FROM audit_log WHERE entity_id = $1 ORDER BY occurred_at', [id])).map((row) => row.action),
-    history: (await rows<{ kind: string }>('SELECT kind FROM case_events WHERE case_id = $1 ORDER BY occurred_at', [id])).map((row) => row.kind),
+    audit: (await rows<{ action: string }>('SELECT action FROM audit_log WHERE entity_id = $1 ORDER BY occurred_at, ctid', [id])).map((row) => row.action),
+    history: (await rows<{ kind: string }>('SELECT kind FROM case_events WHERE case_id = $1 ORDER BY occurred_at, ctid', [id])).map((row) => row.kind),
   });
   const phone = (value: string, some: object = {}) => ({ kind: 'PHONE', label: 'Mobile', value, primary: false, replaces: null, source: 'CALL', ...some });
   const add = (id: string, body: object) => call('manager', 'POST', `/${id}/coordinates`, body);
@@ -836,6 +842,17 @@ describe('what is written of a case', () => {
     const former = (await contacts(id)).find((contact) => contact.value_normalized === '0476000021')!;
     expect((await call('manager', 'PUT', `/${id}/coordinates/${former.id}`, { primary: true })).status).toBe(204);
     expect([await main('EMAIL'), await main('PHONE')]).toEqual([['compta@exemple.test'], ['0476000021']]);
+  });
+
+  it('takes back a replaced coordinate as it was, replaced by nothing', async () => {
+    const { id } = await open('manager');
+    const number = (await contacts(id)).find((contact) => contact.kind === 'PHONE')!;
+    expect((await add(id, phone('06 00 00 00 77', { replaces: number.id }))).status).toBe(204);
+    const state = async () => rows('SELECT status, replaced_by_id IS NOT NULL AS replaced FROM case_contacts WHERE id = $1', [number.id]);
+    expect(await state()).toEqual([{ status: 'INVALID', replaced: true }]);
+    expect((await call('manager', 'PUT', `/${id}/coordinates/${number.id}`, { status: 'VERIFIED' })).status).toBe(204);
+    expect(await state()).toEqual([{ status: 'VERIFIED', replaced: false }]);
+    await expect(rows('UPDATE case_contacts SET replaced_by_id = id WHERE id = $1', [number.id])).rejects.toThrow(/case_contacts_replaced/u);
   });
 
   it('replaces a coordinate by one of its kind, and takes back one that was set aside', async () => {
@@ -983,7 +1000,8 @@ describe('PostgreSQL itself', () => {
     ],
     [
       'a coordinate replaced by that of another case',
-      'UPDATE case_contacts SET replaced_by_id = (SELECT id FROM case_contacts WHERE case_id <> $1 LIMIT 1) WHERE case_id = $1 AND creditor_id = $2',
+      // Wrong, as a replaced one is: what is left to refuse is the case.
+      "UPDATE case_contacts SET replaced_by_id = (SELECT id FROM case_contacts WHERE case_id <> $1 LIMIT 1), status = 'INVALID', invalidated_at = now(), is_primary = false WHERE case_id = $1 AND creditor_id = $2",
       'case_contacts_replaced_by_id_case_id_fkey',
     ],
   ])('holds no such line: %s', async (what, statement, constraint) => {
