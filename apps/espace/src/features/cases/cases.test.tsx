@@ -112,10 +112,27 @@ describe('case file', () => {
       expect((await call(account, '/cases/demo/access-code')).status).toBe(status);
   });
   it('shows no access code once the case is closed', async () => {
-    server.use(http.get('/api/cases/demo/access-code', () => HttpResponse.json({ code: 'CASE_CLOSED' }, { status: 409 })));
-    openAs('cl', '/debiteurs/demo');
+    openAs('hb', '/debiteurs/castel');
     expect(await screen.findByText(/Ce dossier est clos : le code d’accès/)).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Régénérer le code d’accès' })).toBeNull();
+  });
+  it('says that a code can no longer be read, and draws another one', async () => {
+    server.use(http.get('/api/cases/demo/access-code', () => HttpResponse.json({ code: null, version: 1 }), { once: true }));
+    openAs('cl', '/debiteurs/demo');
+    expect(await screen.findByText('Illisible : régénérez-le')).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Régénérer le code d’accès' }));
+    await confirmWith('Régénérer le code');
+    expect(await screen.findByText('BRTV')).toBeVisible();
+  });
+  it('does not replace the code that a colleague has just given', async () => {
+    openAs('cl', '/debiteurs/demo');
+    expect(await screen.findByText('KXPM')).toBeVisible();
+    await call('cl', '/cases/demo/access-code/regenerate', { version: 1 });
+    await userEvent.click(screen.getByRole('button', { name: 'Régénérer le code d’accès' }));
+    await confirmWith('Régénérer le code');
+    expect(await screen.findByText(/Le code vient de changer/)).toBeVisible();
+    expect(await screen.findByText('BRTV')).toBeVisible();
+    expect(screen.queryByRole('alertdialog')).toBeNull();
   });
   it('replies to the debtor portal and shows proofs of delivery', async () => {
     openAs('cl', '/debiteurs/demo');

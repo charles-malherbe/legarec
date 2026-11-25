@@ -6,8 +6,6 @@ import { Database, type Transaction } from '../../platform/database/database';
 import { conflict } from '../../platform/errors/api-error';
 import { Vault } from './vault';
 
-/** What an older key wrote is encrypted again before the next renewal: these are for what was being written meanwhile. */
-const KEPT = 5;
 /** Renewed from the screen: that of the mailboxes, with the mailboxes. */
 const RENEWABLE: readonly string[] = ['ACCESS_CODE_KEY', 'LOOKUP_KEY'] satisfies InternalSecret[];
 interface Row {
@@ -35,17 +33,13 @@ export class InternalKeys {
     return keysIn(this.database.tx, this.vault, name);
   }
 
-  /** The previous ones still open what they wrote. */
   async renew(name: InternalSecret): Promise<void> {
     const { tx } = this.database;
     const row = await read(tx, name);
     if (!row || !RENEWABLE.includes(name)) throw conflict('CHANGED');
-    const known = JSON.parse(this.vault.open(row.id, row.value_cipher)) as string[];
-    // A digest is never written again: what it was made with stays for good.
-    const values = [draw(), ...known].slice(0, name === 'LOOKUP_KEY' ? undefined : KEPT);
-    const [done] = await tx.$queryRaw<{ done: boolean }[]>`
-      SELECT app.renew_internal_key(${row.id}::uuid, ${this.vault.seal(row.id, JSON.stringify(values))}, ${row.value_cipher}, ${(await this.ring(name)).id}) AS done`;
-    if (!done!.done) throw conflict('RESEAL_PENDING');
+    // No former one is ever thrown away: whatever it wrote, or is writing now, still opens, and a digest is never made again.
+    const values = [draw(), ...(JSON.parse(this.vault.open(row.id, row.value_cipher)) as string[])];
+    await tx.$executeRaw`SELECT app.renew_internal_key(${row.id}::uuid, ${this.vault.seal(row.id, JSON.stringify(values))}, ${row.value_cipher})`;
   }
 }
 

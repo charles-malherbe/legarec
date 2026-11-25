@@ -39,22 +39,16 @@ BEGIN
   ON CONFLICT (name) WHERE status <> 'REVOKED' DO NOTHING;
 END
 $$;
--- `key_id` is the number of the current key, at the head of what it has written. False: something still waits to be written with it.
-CREATE FUNCTION app.renew_internal_key(target uuid, cipher bytea, seen bytea, key_id bytea) RETURNS boolean
+CREATE FUNCTION app.renew_internal_key(target uuid, cipher bytea, seen bytea) RETURNS void
 LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
 BEGIN
   IF NOT app.acts_as_director('TECHNICAL') THEN
     PERFORM app.refuse('42501');
   END IF;
-  IF EXISTS (SELECT 1 FROM public.vault_secrets WHERE id = target AND name = 'ACCESS_CODE_KEY')
-    AND EXISTS (SELECT 1 FROM public.debtor_access_codes WHERE substring(code_cipher FROM 2 FOR 4) <> key_id) THEN
-    RETURN false;
-  END IF;
   UPDATE public.vault_secrets SET value_cipher = cipher, rotated_at = now() WHERE id = target AND kind = 'INTERNAL' AND value_cipher = seen;
   IF NOT FOUND THEN
     PERFORM app.refuse('LG409');
   END IF;
-  RETURN true;
 END
 $$;
 
@@ -94,7 +88,10 @@ BEGIN
   IF NOT FOUND THEN
     PERFORM app.refuse('LG409');
   END IF;
-  INSERT INTO public.debtor_retired_codes (debtor_id, code_hmac) VALUES (debtor, retired) ON CONFLICT DO NOTHING;
+  -- Null when no key opened the former one: it opens nothing either.
+  IF retired IS NOT NULL THEN
+    INSERT INTO public.debtor_retired_codes (debtor_id, code_hmac) VALUES (debtor, retired) ON CONFLICT DO NOTHING;
+  END IF;
   -- The code is common to all the cases: whoever follows another one learns that their letters no longer open anything, not who did it.
   INSERT INTO public.case_events (case_id, creditor_id, kind, title, detail, tone, actor_kind, actor_id, actor_label, on_behalf_of_id)
   SELECT c.id, c.creditor_id, 'ACCESS_CODE_RENEWED', 'Code d’accès régénéré', 'Ancien code inutilisable', 'warning',
@@ -105,7 +102,7 @@ BEGIN
 END
 $$;
 GRANT EXECUTE ON FUNCTION app.internal_key(secret_name), app.first_internal_key(uuid, secret_name, bytea) TO legarec_staff, legarec_worker;
-GRANT EXECUTE ON FUNCTION app.renew_internal_key(uuid, bytea, bytea, bytea), app.access_code(uuid), app.first_access_code(uuid, bytea),
+GRANT EXECUTE ON FUNCTION app.renew_internal_key(uuid, bytea, bytea), app.access_code(uuid), app.first_access_code(uuid, bytea),
   app.renew_access_code(uuid, integer, bytea, bytea, bytea[]) TO legarec_staff;
 RESET ROLE;
 REVOKE CREATE ON SCHEMA app FROM legarec_definer;

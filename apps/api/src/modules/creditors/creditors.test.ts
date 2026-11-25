@@ -302,7 +302,7 @@ describe('the account of the remittances', () => {
       actingFor: 'ADMINISTRATIVE',
     } as const;
     try {
-      const run = (work: Parameters<typeof database.run>[1]) => expect(database.run(manager, work)).rejects.toThrow(/42501|refused/u);
+      const run = (work: Parameters<typeof database.run>[1]) => expect(database.run(manager, work)).rejects.toThrow(/42501|history kept|policy/u);
       const confirm =
         (by: string): Parameters<typeof database.run>[1] =>
         (tx) =>
@@ -310,8 +310,16 @@ describe('the account of the remittances', () => {
       await run(confirm(test.s.director));
       expect(await database.run(manager, confirm(test.s.manager))).toBe(1);
       await run(confirm(test.s.manager));
+      await run((tx) => tx.$executeRaw`UPDATE creditor_bank_accounts SET valid_until = '2099-01-01' WHERE id = ${known}::uuid`);
       await database.run(manager, (tx) => tx.$executeRaw`UPDATE creditor_bank_accounts SET valid_until = now() WHERE id = ${known}::uuid`);
       await run((tx) => tx.$executeRaw`UPDATE creditor_bank_accounts SET valid_until = NULL WHERE id = ${known}::uuid`);
+      // A mandate neither.
+      await run(
+        (
+          tx,
+        ) => tx.$executeRaw`INSERT INTO mandates (creditor_id, starts_on, amicable_rate_bp, litigation_rate_bp, plan_months_without_consent, discount_max_bp, litigation_needs_consent, interest_mode, fixed_indemnity, reporting_day, scenario, created_by)
+          VALUES (${id}::uuid, '2020-01-01', 800, 1200, 6, 500, true, 'NONE', true, 5, 'BUSINESS', ${test.s.director}::uuid)`,
+      );
     } finally {
       await database.close();
     }

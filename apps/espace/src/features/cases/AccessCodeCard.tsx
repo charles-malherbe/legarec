@@ -24,7 +24,13 @@ export function AccessCodeCard({ caseId }: { caseId: string }) {
       confirmLabel: 'Régénérer le code',
       details: [{ k: 'Effet', v: 'Ancien code inutilisable, accès débloqué' }],
       onConfirm: async () => {
-        await change(`/cases/${caseId}/access-code/regenerate`, { body: { version: data?.version } });
+        try {
+          await change(`/cases/${caseId}/access-code/regenerate`, { body: { version: data?.version } });
+        } catch (failure) {
+          if (!(failure instanceof ApiError) || failure.status !== 409) throw failure;
+          await client.invalidateQueries({ queryKey: key });
+          return toast({ message: 'Le code vient de changer : vérifiez celui qui s’affiche.', tone: 'danger' });
+        }
         await client.invalidateQueries({ queryKey: key });
         toast({ message: 'Code d’accès régénéré.' });
       },
@@ -39,8 +45,8 @@ export function AccessCodeCard({ caseId }: { caseId: string }) {
         <div className={layout.stack}>
           <div className={layout.between}>
             <span className={layout.muted}>Code d’accès</span>
-            <strong className={layout.num} aria-live="polite" aria-label={`Code ${data.code.split('').join(' ')}`} role="status">
-              {data.code}
+            <strong className={layout.num} aria-live="polite" aria-label={data.code ? `Code ${data.code.split('').join(' ')}` : 'Code illisible'} role="status">
+              {data.code ?? 'Illisible : régénérez-le'}
             </strong>
           </div>
           <div>

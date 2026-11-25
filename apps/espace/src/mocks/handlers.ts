@@ -123,7 +123,9 @@ const checkProof = http.all('/api/*', async ({ request }) => {
       ? hasDelegation(session, 'TECHNICAL')
       : action.includes('/delegations') || action.includes('/settings')
         ? false
-        : session.role !== 'CLAIMS_OFFICER');
+        : action.includes('/creditors')
+          ? hasDelegation(session, 'ADMINISTRATIVE')
+          : session.role !== 'CLAIMS_OFFICER');
   return mayDo ? HttpResponse.json({ code: 'PROOF_REQUIRED' }, { status: 403 }) : undefined;
 });
 

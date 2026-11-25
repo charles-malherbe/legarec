@@ -1,5 +1,5 @@
 import { isFirmIdentity, settingProblems, settingsSection, type SettingTable } from '@legarec/contracts';
-import { ApiError, saveFile } from '@legarec/platform';
+import { api, ApiError, saveFile } from '@legarec/platform';
 import { Badge, Bouton, Carte, Champ, EtatListe, Reglage, Statut, Tableau, useConfirm, useToast } from '@legarec/ui';
 import { useState } from 'react';
 import { useApi, useChange } from '../../app/data';
@@ -51,15 +51,26 @@ export function SectionBody({ scope, id, label }: { scope: string; id: string; l
       onConfirm: save,
     });
   };
+  const undo = (version: number, former: Record<string, string | boolean>) =>
+    change(`${path}?version=${version}`, { method: 'PUT', body: former }).catch((failure: unknown) =>
+      toast({
+        message:
+          failure instanceof ApiError && failure.status === 409
+            ? 'Cette section vient d’être modifiée par quelqu’un d’autre : rien n’a été annulé.'
+            : 'L’annulation n’a pas abouti.',
+        tone: 'danger',
+      }),
+    );
   const save = async () => {
     setSaving(true);
     try {
       await change(`${path}?version=${data.version}`, { method: 'PUT', body: changed });
       setDraft({});
+      const saved = identity.length > 0 ? null : await api(settingsSection, path).catch(() => null);
       toast({
         message: `« ${label} » enregistré.`,
         // Bank details are only changed through their own confirmation.
-        undo: identity.length > 0 ? undefined : () => void change(path, { method: 'PUT', body: before }),
+        undo: saved ? () => void undo(saved.version, before) : undefined,
       });
     } catch (failure) {
       toast(

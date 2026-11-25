@@ -12,8 +12,15 @@ let test: TestApp;
 let db: Database;
 const rows = async <T extends object = Record<string, unknown>>(sql: string, values: unknown[] = []) => (await test.database.admin.query<T>(sql, values)).rows;
 const get = (as: string, path: string) => test.call('GET', `/staff/settings/${path}`, { as });
-const put = (as: string, path: string, body: unknown) =>
-  test.call('PUT', `/staff/settings/${path}`, { as, body, headers: { 'idempotency-key': randomUUID() } });
+/** With the version that is on the screen. */
+const put = async (as: string, path: string, body: unknown) => {
+  const shown = path.includes('?') ? undefined : ((await get(as, path)).body as { version?: number } | undefined)?.version;
+  return test.call('PUT', `/staff/settings/${path}${path.includes('?') ? '' : `?version=${shown ?? 0}`}`, {
+    as,
+    body,
+    headers: { 'idempotency-key': randomUUID() },
+  });
+};
 const section = async (as: string, path: string) => settingsSection.parse((await get(as, path)).body);
 const field = async (as: string, path: string, id: string) => (await section(as, path)).blocks.flatMap((block) => block.fields).find((item) => item.id === id)!;
 
@@ -202,5 +209,5 @@ it('is refused when someone else has changed the section meanwhile', async () =>
   expect(await put('manager', `firm/relances?version=${version}`, { calls: '2' })).toMatchObject({ status: 409, body: { code: 'CHANGED' } });
   expect((await field('director', 'firm/relances', 'calls')).value).toBe('1');
   expect((await section('director', 'firm/relances')).version).toBeGreaterThan(version);
-  expect((await put('director', 'firm/relances?version=x', { calls: '3' })).status).toBe(422);
+  for (const query of ['?version=x', '?version=', '?']) expect((await put('director', `firm/relances${query}`, { calls: '3' })).status, query).toBe(422);
 });

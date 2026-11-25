@@ -175,7 +175,7 @@ Les 161 routes simulées se répartissent ainsi :
 - [x] Créanciers, mandats et avenants, compte de reversement ; dossiers, factures, coordonnées ; codes d'accès ; recherche, barre du haut, notifications de dossier
 - [x] Écrans « Nouveau créancier » et « Nouveau débiteur » (propositions 1 et 2), fenêtre de réauthentification (proposition 3, accord du cabinet)
 - [x] Mêmes requêtes rejouées contre les simulations et contre l'API ; matrice d'accès de toutes les routes ; essai complet dans un navigateur contre l'API
-- [x] Relecture `relecteur-securite` (lot L et corrections tardives du lot K) : 2 points bloquants, 5 importants et 12 mineurs ; tout ce qui relève du lot est corrigé, avec ses tests
+- [x] Deux relectures `relecteur-securite` : la première (lot L et corrections tardives du lot K), 2 points bloquants, 5 importants et 12 mineurs ; la seconde (corrections), aucun bloquant, 1 important et 9 mineurs ; tout ce qui relève du lot est corrigé, avec ses tests
 - Reporté, avec son lot : dépôt de la convention signée (N), forme juridique par l'API Recherche d'entreprises en tâche de fond (U, avec le score ; d'ici là, saisie à la main), rechiffrement des données sous `VAULT_MASTER_KEY` (X), recherche bornée quand le volume montera (U), envoi du code d'accès (N, O, Q, R)
 
 ## Points à reprendre du front

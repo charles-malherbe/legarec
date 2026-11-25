@@ -3705,7 +3705,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        code: string;
+                        code: string | null;
                         version: number;
                     };
                 };

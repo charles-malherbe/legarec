@@ -89,9 +89,10 @@ GRANT SELECT (id, case_id, creditor_id) ON case_contacts TO legarec_definer;
 GRANT INSERT (case_id, creditor_id, contact_id, actor_id, actor_label, what) ON case_contact_events TO legarec_definer;
 SET LOCAL ROLE legarec_definer;
 
--- « Bâtiplus SAS » and « BATIPLUS » are the same name.
+-- « Bâtiplus S.A.S. » and « BATIPLUS » are the same name, « Dupont & Fils » and « DUPONT ET FILS » too.
 CREATE FUNCTION app.plain_name(name text) RETURNS text LANGUAGE sql STABLE SET search_path = pg_catalog, public, pg_temp AS $$
-  SELECT regexp_replace(regexp_replace(lower(unaccent(name)), '\m(sasu?|sarl|eurl|sa|snc|scs|sca|sci|scop|selarl|selas|ei|eirl|gie|ste|societe)\M', '', 'g'), '[^a-z0-9]', '', 'g')
+  SELECT coalesce(nullif(regexp_replace(regexp_replace(replace(replace(lower(unaccent(name)), '.', ''), '&', ' et '),
+    '\m(sasu?|sarl|eurl|sa|snc|scs|sca|sci|scop|selarl|selas|ei|eirl|gie|ste|societe)\M', '', 'g'), '[^a-z0-9]', '', 'g'), ''), lower(btrim(name)))
 $$;
 -- A company already known is the same debtor for every creditor, without anything of it being shown: neither its name, which
 -- never changes here, nor its cases. Null when what was confirmed is not that debtor. Two individuals are never put together.

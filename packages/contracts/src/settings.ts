@@ -42,7 +42,12 @@ export const settingsSection = z.object({
   tables: z.array(settingTable),
   notes: z.array(z.string()),
 });
-export const settingsVersionQuery = z.object({ version: z.coerce.number().int().min(0).max(1_000_000_000).optional() });
+export const settingsVersionQuery = z.object({
+  version: z
+    .string()
+    .regex(/^\d{1,9}$/u)
+    .transform(Number),
+});
 export type SettingsSection = z.infer<typeof settingsSection>;
 
 /** Keys of the services, by the name the API looks for: nothing else is stored (question 110). */

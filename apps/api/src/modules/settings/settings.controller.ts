@@ -71,11 +71,13 @@ export class SettingsController {
   async section(@Param('scope') name: string, @Param('id') id: string): Promise<z.infer<typeof settingsSection>> {
     const actor = currentActor() as StaffActor;
     const scope = this.scope(name, actor);
+    // Before the values: a change made in between is refused, never overwritten.
+    const version = await this.version(scope, id);
     const item = (await SettingValues.read(this.database.tx)).section(scope, id);
     if (!item) throw notFound();
     return {
       id,
-      version: await this.version(scope, id),
+      version,
       canEdit: this.canEdit(scope, actor),
       blocks: item.blocks.map((block) => ({
         ...block,
@@ -114,7 +116,7 @@ export class SettingsController {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended('settings', 0))`;
     const item = (await SettingValues.read(tx)).section(scope, id);
     if (!item) throw notFound();
-    if (shown !== undefined && shown !== (await this.version(scope, id))) throw conflict('CHANGED');
+    if (shown !== (await this.version(scope, id))) throw conflict('CHANGED');
     const changes = this.changes(item, sent);
     const problems = settingProblems(item, Object.fromEntries(changes.map(({ field, next }) => [field, next])));
     if (Object.keys(problems).length) throw invalid({ fields: Object.keys(problems) });

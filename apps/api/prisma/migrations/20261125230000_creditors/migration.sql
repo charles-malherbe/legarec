@@ -143,10 +143,10 @@ CREATE POLICY worker_read ON creditor_bank_accounts FOR SELECT TO legarec_worker
 -- Closed for good; confirmed once, by whoever made the call.
 CREATE FUNCTION app.keep_account_history() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, public, pg_temp AS $$
 BEGIN
-  IF OLD.valid_until IS NOT NULL
+  IF OLD.valid_until IS NOT NULL OR NEW.valid_until > clock_timestamp() + interval '1 minute'
     OR ((NEW.confirmed_by, NEW.confirmed_at, NEW.confirmed_with) IS DISTINCT FROM (OLD.confirmed_by, OLD.confirmed_at, OLD.confirmed_with)
       AND (OLD.confirmed_by IS NOT NULL OR NEW.confirmed_by IS DISTINCT FROM app.user_id())) THEN
-    PERFORM app.refuse('42501');
+    RAISE EXCEPTION 'account history kept' USING ERRCODE = 'insufficient_privilege';
   END IF;
   RETURN NEW;
 END

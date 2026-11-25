@@ -711,6 +711,17 @@ describe('purge', () => {
     await expect(purge(api, logger)).rejects.toThrow('PURGE_FAILED');
     await expect(api.run({ kind: 'retention' }, (tx) => tx.$queryRaw`SELECT 1`)).rejects.toThrow(/permission denied to set role/u);
   });
+
+  it('looks after something else too, whatever becomes of the purge, and says which one has failed', async () => {
+    const done: string[] = [];
+    const night = (database: Database, after: () => Promise<void>) => maintenance(database, logger, after).maintenance!.purge!();
+    await night(jobs, () => Promise.resolve(void done.push('after')));
+    // The API has no right to purge.
+    await expect(night(api, () => Promise.resolve(void done.push('after')))).rejects.toThrow('PURGE_FAILED');
+    expect(done).toEqual(['after', 'after']);
+    await expect(night(jobs, () => Promise.reject(new TypeError('NIGHT')))).rejects.toThrow('NIGHT');
+    expect(logs.join('')).toContain('night task failed');
+  });
 });
 
 describe('connection to Valkey', () => {

@@ -342,7 +342,12 @@ export const MATRIX: Record<string, MatrixEntry> = {
   'GET /staff/settings/:scope': { path: () => '/staff/settings/firm', expect: staffOf(200) },
   'GET /staff/settings/:scope/:id': { path: () => '/staff/settings/techniques/audit', expect: only({ director: 200, developer: 200, liar: 200 }) },
   'PUT /staff/settings/:scope/:id': {
-    path: () => '/staff/settings/firm/relances',
+    path: async (test) => {
+      const { rows } = await test.database.admin.query<{ version: number }>(
+        "SELECT coalesce(sum(version), 0)::int AS version FROM settings WHERE key LIKE 'firm.relances.%'",
+      );
+      return `/staff/settings/firm/relances?version=${rows[0]!.version}`;
+    },
     // Each caller changes something.
     body: () => ({ calls: String(1 + (settingTurn++ % 2) * 2) }),
     expect: only({ director: 204, manager: 204 }),

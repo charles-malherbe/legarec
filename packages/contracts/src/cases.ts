@@ -144,7 +144,8 @@ export const caseDetail = caseListItem.extend({
   contactLimit: z.string().nullable(),
 });
 export type CaseDetail = z.infer<typeof caseDetail>;
-export const accessCodeResponse = z.object({ code: z.string(), version: z.number().int() });
+/** No code when none of the keys opens it any more. */
+export const accessCodeResponse = z.object({ code: z.string().nullable(), version: z.number().int() });
 /** The code that was on the screen when it was confirmed. */
 export const renewedCode = z.object({ version: z.number().int().positive().max(1_000_000) });
 export const gdprRequestKind = z.enum(['ACCESS', 'RECTIFICATION', 'OBJECTION', 'ERASURE']);
@@ -182,8 +183,15 @@ export const LEGAL_FORMS: Record<string, string> = {
   '6540': 'SCI',
   '9220': 'Association déclarée',
 };
-const typed = (max: number, error: string) => z.string().trim().min(1, { error }).max(max, atMost(max));
-const optionalText = (max: number) => z.string().trim().max(max, atMost(max));
+/** One line: neither PostgreSQL nor a letter takes a control character. */
+const line = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max, atMost(max))
+    .regex(/^\P{Cc}*$/u, { error: 'Retirez les caractères invisibles.' });
+const typed = (max: number, error: string) => line(max).min(1, { error });
+const optionalText = line;
 const digitsOf = (value: string) => value.replace(/\s/gu, '');
 /** « 512 334 871 00088 » or « 512 334 871 ». */
 export const isCompanyNumber = (value: string) => isValidSiret(value) || isValidSiren(value);

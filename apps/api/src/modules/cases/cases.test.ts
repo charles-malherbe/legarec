@@ -487,6 +487,27 @@ describe('a company that is already known', () => {
   });
 
   it.each([
+    ['Martin S.A.R.L.', 'SARL Martin'],
+    ['Dupont & Fils', 'DUPONT ET FILS SAS'],
+    ['SA', 'sa'],
+  ])('« %s » and « %s » are the same name', async (first, second) => {
+    const number = siren();
+    await open('manager', { number, name: first });
+    await open('manager', { number, name: second, creditorId: other.id, mandateId: other.mandate });
+  });
+  it('« SA » and « SCI » are not', async () => {
+    const number = siren();
+    await open('manager', { number, name: 'SA' });
+    expect(await call('manager', 'POST', '', opening({ number, name: 'SCI', creditorId: other.id, mandateId: other.mandate }))).toMatchObject({ status: 409 });
+  });
+
+  it('is sought with what can be written only', async () => {
+    const number = siren();
+    for (const some of [{ city: 'Lyon\u0000' }, { name: 'Nom\u0007' }, { address: '1 rue\nX' }])
+      expect(await call('manager', 'POST', '', opening({ number, ...some }))).toMatchObject({ status: 422, body: { code: 'INVALID' } });
+  });
+
+  it.each([
     ['another name', { name: 'Plomberie Martin' }],
     ['another kind', { kind: 'SOLE_TRADER' as const }],
   ])('is not joined under %s: nothing is recorded', async (_what, some) => {
@@ -533,9 +554,52 @@ describe('PostgreSQL itself', () => {
         );
       await expect(bill(100, test.s.manager)).rejects.toThrow(/42501|policy/u);
       await expect(bill(0, test.s.officerA)).rejects.toThrow(/42501|policy/u);
+      await expect(
+        database.run(
+          manager,
+          (tx) => tx.$executeRaw`INSERT INTO case_invoices (case_id, creditor_id, number, issued_on, due_on, claimed_cents, principal_cents, state, created_by)
+            VALUES (${id}::uuid, ${creditor.id}::uuid, 'SQL-state', '2026-08-01', '2026-09-01', 100, 100, ${'PAID'}::invoice_state, ${test.s.manager}::uuid)`,
+        ),
+      ).rejects.toThrow(/42501|policy/u);
       expect(await bill(0, test.s.manager)).toBe(1);
     } finally {
       await database.close();
     }
+  });
+});
+
+describe('an amendment of the mandate', () => {
+  it('under way is waited for: no case is opened under a mandate that has just ended', async () => {
+    const id = await newCreditor('Créancier en cours');
+    const under = await withMandate(id);
+    const database = new Database(test.database.url('app'));
+    const manager = { kind: 'staff', userId: test.s.manager, role: 'COLLECTION_MANAGER', delegations: [] } as const;
+    try {
+      let opened: ReturnType<typeof call> | undefined;
+      await database.run(manager, async (tx) => {
+        await tx.$queryRaw`SELECT 1 FROM creditors WHERE id = ${id}::uuid FOR NO KEY UPDATE`;
+        opened = call('manager', 'POST', '', opening({ creditorId: id, mandateId: under }));
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        await tx.$executeRaw`UPDATE mandates SET ends_on = '2026-02-01' WHERE id = ${under}::uuid`;
+      });
+      expect(await opened).toMatchObject({ status: 409, body: { code: 'NO_MANDATE' } });
+    } finally {
+      await database.close();
+    }
+  });
+});
+
+describe('the journal of an assignment', () => {
+  it('counts the cases that have changed, and says nothing when none has', async () => {
+    const [left, right] = [await open('manager', { toMe: true }), await open('manager', { toMe: true })];
+    const counts = async () =>
+      (await rows<{ params: { count: number } }>("SELECT params FROM audit_log WHERE action = 'CASES_ASSIGNED' ORDER BY occurred_at, id")).map(
+        (row) => row.params.count,
+      );
+    const before = (await counts()).length;
+    await call('director', 'POST', '/assign', { ids: [left.id], officerId: test.s.officerA });
+    await call('director', 'POST', '/assign', { ids: [left.id, right.id], officerId: test.s.officerA });
+    await call('director', 'POST', '/assign', { ids: [left.id, right.id], officerId: test.s.officerA });
+    expect((await counts()).slice(before)).toEqual([1, 1]);
   });
 });

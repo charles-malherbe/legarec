@@ -52,11 +52,11 @@ export function maintenance(database: Database, logger: AppLogger, after: () => 
   return {
     maintenance: {
       purge: async () => {
-        try {
-          await purge(database, logger);
-        } finally {
-          await after();
-        }
+        const outcomes = await Promise.allSettled([purge(database, logger), after()]);
+        // The purge has already said which of its steps failed.
+        if (outcomes[1].status === 'rejected') logger.error({ errorType: (outcomes[1].reason as Error).name }, 'night task failed');
+        const failed = outcomes.find((outcome) => outcome.status === 'rejected');
+        if (failed) throw failed.reason;
       },
     },
   };

@@ -159,8 +159,12 @@ describe('the simulations', () => {
     const answer = await fetch('/api/delegations/technical', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: '{"active":false}' });
     expect(await answer.json()).toEqual({ code: 'PROOF_REQUIRED' });
     // An ordinary setting asks for nothing.
-    const setting = await fetch('/api/settings/firm/relances', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: '{"calls":"3"}' });
+    const setting = await fetch('/api/settings/firm/relances?version=0', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: '{"calls":"3"}',
+    });
     expect(setting.status).toBe(204);
-    expect((await call('ad', '/settings/firm/cabinet', { holder: 'LEGAREC' }, 'PUT')).status).toBe(204);
+    expect((await call('ad', '/settings/firm/cabinet?version=0', { holder: 'LEGAREC' }, 'PUT')).status).toBe(204);
   });
 });

@@ -5940,6 +5940,7 @@
                   "type": "object",
                   "properties": {
                     "code": {
+                      "nullable": true,
                       "type": "string"
                     },
                     "version": {

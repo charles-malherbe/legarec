@@ -300,18 +300,30 @@ describe('an internal key', () => {
     expect(await keys('LOOKUP_KEY')).toContainEqual(first);
   });
 
-  it('of the codes is not renewed again before every code is encrypted with it: none is lost', async () => {
+  it('of the codes loses none, however often it is renewed before they are encrypted again', async () => {
     const before = await code('officerA', mine);
     const { id } = await keyOf('ACCESS_CODE_KEY');
-    expect((await call('director', 'POST', `/secrets/${id}/rotate`, {})).status).toBe(204);
-    for (let turn = 0; turn < 6; turn += 1)
-      expect(await call('director', 'POST', `/secrets/${id}/rotate`, {})).toMatchObject({ status: 409, body: { code: 'RESEAL_PENDING' } });
+    for (let turn = 0; turn < 7; turn += 1) expect((await call('director', 'POST', `/secrets/${id}/rotate`, {})).status).toBe(204);
     expect(await code('officerA', mine)).toBe(before);
     await worker.run();
-    expect((await call('director', 'POST', `/secrets/${id}/rotate`, {})).status).toBe(204);
-    await worker.run();
     expect(await code('officerA', mine)).toBe(before);
-    expect((await keys('ACCESS_CODE_KEY')).length).toBeLessThanOrEqual(5);
+    expect(new Keyring((await keys('ACCESS_CODE_KEY'))[0]!).isOutdated(await cipher(debtor))).toBe(false);
+  });
+
+  it('that no longer opens a code prevents nothing: another code is drawn, cases are opened, the key is renewed', async () => {
+    const of = await newDebtor();
+    const id = await newCase(of, test.s.officerA);
+    await code('officerA', id);
+    const broken = Buffer.from(await cipher(of));
+    broken[broken.length - 1]! ^= 1;
+    await rows('UPDATE debtor_access_codes SET code_cipher = $2 WHERE debtor_id = $1', [of, broken]);
+    expect((await call('officerA', 'GET', `/cases/${id}/access-code`)).body).toEqual({ code: null, version: 1 });
+    const { id: key } = await keyOf('ACCESS_CODE_KEY');
+    expect((await call('director', 'POST', `/secrets/${key}/rotate`, {})).status).toBe(204);
+    expect((await renew('officerA', id)).status).toBe(204);
+    expect(isAccessCode(await code('officerA', id))).toBe(true);
+    expect(await rows('SELECT 1 FROM debtor_retired_codes WHERE debtor_id = $1', [of])).toEqual([]);
+    expect(test.logs.join('')).toContain('access code unreadable');
   });
 
   it('leaves what it cannot read, and encrypts the rest again', async () => {

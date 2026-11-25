@@ -217,7 +217,8 @@ export const settingsHandlers = [
       const sent = (await request.json()) as Record<string, string | boolean>;
       const key = `${scope}.${item.id}`;
       const shown = new URL(request.url).searchParams.get('version');
-      if (shown !== null && Number(shown) !== (versions[key] ?? 0)) return HttpResponse.json({ code: 'CHANGED' }, { status: 409 });
+      if (shown === null || !/^\d+$/u.test(shown)) return HttpResponse.json({ code: 'INVALID', fields: ['version'] }, { status: 422 });
+      if (Number(shown) !== (versions[key] ?? 0)) return HttpResponse.json({ code: 'CHANGED' }, { status: 409 });
       // Only what really changes is checked, stored and written in the journal.
       const stored = new Map(item.blocks.flatMap((entry) => entry.fields).map((field) => [field.id, field]));
       const changes = Object.fromEntries(
@@ -236,7 +237,7 @@ export const settingsHandlers = [
         audit(session, `Identifiants du cabinet modifiés : ${bank.join(', ')}`);
       }
       audit(session, `Paramètres modifiés : ${item.title}`, scope === 'technical' ? 'TECHNICAL' : 'ADMINISTRATIVE');
-      versions[key] = (versions[key] ?? 0) + 1;
+      versions[key] = (versions[key] ?? 0) + Object.keys(changes).length;
       item.blocks = item.blocks.map((entry) => ({
         ...entry,
         fields: entry.fields.map((field) => {

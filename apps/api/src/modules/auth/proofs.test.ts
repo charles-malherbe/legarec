@@ -82,7 +82,9 @@ interface Case {
   changed: () => Promise<unknown>;
 }
 const audited = (action: string) => async () => (await rows(`SELECT count(*)::int AS n FROM audit_log WHERE action = $1`, [action]))[0];
-const CASES: Partial<Record<SensitiveAction, Case>> = {
+/** Those of one's own second factor have their own tests, below. */
+type OwnFactor = Extract<SensitiveAction, `${string} /account/two-factor${string}`>;
+const CASES: Record<Exclude<SensitiveAction, OwnFactor>, Case> = {
   'POST /members/:id/reset-2fa': {
     method: 'post',
     path: async () => {
@@ -120,7 +122,7 @@ const CASES: Partial<Record<SensitiveAction, Case>> = {
     method: 'change',
     path: async () => {
       await rows('DELETE FROM settings');
-      return '/settings/firm/cabinet';
+      return '/settings/firm/cabinet?version=0';
     },
     body: { iban: 'GB82 WEST 1234 5698 7654 32' },
     status: 204,
@@ -132,6 +134,20 @@ const CASES: Partial<Record<SensitiveAction, Case>> = {
     body: { replaces: null, account: { holder: 'X', iban: 'GB82 WEST 1234 5698 7654 32', bic: 'PSSTFRPPXXX', confirmedWith: '' } },
     status: 204,
     changed: audited('CREDITOR_ACCOUNT_CHANGED'),
+  },
+  'POST /creditors/:id/bank-accounts/:accountId/confirm': {
+    method: 'post',
+    path: async () => {
+      const id = await creditor();
+      const [account] = await rows<{ id: string }>(
+        "INSERT INTO creditor_bank_accounts (creditor_id, holder, iban_cipher, iban_masked, bic, created_by) VALUES ($1, 'X', '\\x00', 'GB82 •••• •••• 5432', 'PSSTFRPPXXX', $2) RETURNING id",
+        [id, test.s.director],
+      );
+      return `/creditors/${id}/bank-accounts/${account!.id}/confirm`;
+    },
+    body: { confirmedWith: 'Élodie Rivaud' },
+    status: 204,
+    changed: async () => rows('SELECT count(*)::int AS n FROM creditor_bank_accounts WHERE confirmed_at IS NOT NULL'),
   },
   'POST /secrets': {
     method: 'post',
@@ -209,9 +225,9 @@ describe('a sensitive action', () => {
   it('is not an ordinary setting', async () => {
     await rows('DELETE FROM settings');
     await age(test.s.director, 7200);
-    expect((await director.change('/settings/firm/relances', { calls: '3' })).status).toBe(204);
-    expect((await director.change('/settings/firm/cabinet', { name: 'LEGAREC SAS' })).status).toBe(204);
-    expect(await director.change('/settings/firm/cabinet', { name: 'X', holder: 'LEGAREC' })).toMatchObject(REQUIRED);
+    expect((await director.change('/settings/firm/relances?version=0', { calls: '3' })).status).toBe(204);
+    expect((await director.change('/settings/firm/cabinet?version=0', { name: 'LEGAREC SAS' })).status).toBe(204);
+    expect(await director.change('/settings/firm/cabinet?version=1', { name: 'X', holder: 'LEGAREC' })).toMatchObject(REQUIRED);
   });
 
   it('is refused for a role before any proof is asked', async () => {

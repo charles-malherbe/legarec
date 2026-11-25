@@ -3,6 +3,7 @@ import { Audit } from '../../platform/audit/audit';
 import { digest, type Binding } from '../../platform/crypto/keyring';
 import { Database } from '../../platform/database/database';
 import { conflict, forbidden, notFound } from '../../platform/errors/api-error';
+import { LOGGER, type AppLogger } from '../../platform/logging/logger';
 import { InternalKeys } from '../vault/internal-keys';
 import { drawCode } from './codes';
 
@@ -11,7 +12,8 @@ export const bindingOf = (debtorId: string): Binding => ({ table: 'debtor_access
 const DRAWS = 20;
 interface Found {
   debtorId: string;
-  code: string;
+  /** Null when no key opens it: another one is drawn. */
+  code: string | null;
   version: number;
 }
 
@@ -22,10 +24,11 @@ export class AccessCodes {
     @Inject(Database) private readonly database: Database,
     @Inject(InternalKeys) private readonly keys: InternalKeys,
     @Inject(Audit) private readonly audit: Audit,
+    @Inject(LOGGER) private readonly logger: AppLogger,
   ) {}
 
   /** In clear for whoever acts on the case, without a trace of it (question 21). */
-  async show(caseId: string): Promise<{ code: string; version: number }> {
+  async show(caseId: string): Promise<{ code: string | null; version: number }> {
     await this.mayAct(caseId);
     const { code, version } = await this.ensure(caseId);
     return { code, version };
@@ -55,7 +58,7 @@ export class AccessCodes {
       const code = drawCode();
       if (code === old) continue;
       const [row] = await this.database.tx.$queryRaw<{ done: boolean }[]>`
-        SELECT app.renew_access_code(${caseId}::uuid, ${seen}::int, ${digests(old)[0]!}, ${ring.encrypt(code, bindingOf(debtorId))}, ${digests(code)}) AS done`;
+        SELECT app.renew_access_code(${caseId}::uuid, ${seen}::int, ${old === null ? null : digests(old)[0]!}::bytea, ${ring.encrypt(code, bindingOf(debtorId))}, ${digests(code)}) AS done`;
       if (!row!.done) continue;
       await this.audit.log({ action: 'ACCESS_CODE_RENEWED', entity: { type: 'case', id: caseId } });
       return;
@@ -68,7 +71,13 @@ export class AccessCodes {
       SELECT debtor_id, code_cipher, version FROM app.access_code(${caseId}::uuid)`;
     if (!row) return null;
     const ring = await this.keys.ring('ACCESS_CODE_KEY');
-    return { debtorId: row.debtor_id, version: row.version, code: ring.decrypt(row.code_cipher, bindingOf(row.debtor_id)).toString() };
+    let code: string | null = null;
+    try {
+      code = ring.decrypt(row.code_cipher, bindingOf(row.debtor_id)).toString();
+    } catch {
+      this.logger.error('access code unreadable');
+    }
+    return { debtorId: row.debtor_id, version: row.version, code };
   }
 
   private async mayAct(caseId: string): Promise<void> {

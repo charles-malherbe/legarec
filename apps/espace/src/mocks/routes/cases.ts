@@ -550,7 +550,9 @@ const acting = (resolve: (item: Stored, session: Session, info: Info) => Respons
 /** As the API: « Bâtiplus SAS » and « BATIPLUS » are the same name. */
 const plainName = (name: string) =>
   normalize(name)
-    .replace(/\b(?:sasu?|sarl|eurl|sa|snc|sci|scop|selarl|selas|ei|eirl|gie|ste|societe)\b/gu, '')
+    .replaceAll('.', '')
+    .replaceAll('&', ' et ')
+    .replace(/\b(?:sasu?|sarl|eurl|sa|snc|scs|sca|sci|scop|selarl|selas|ei|eirl|gie|ste|societe)\b/gu, '')
     .replace(/[^a-z0-9]/gu, '');
 const administers = (session: Session) => session.role === 'DIRECTOR' || hasDelegation(session, 'ADMINISTRATIVE');
 const bulk = (title: string, apply: (item: Stored, body: { officerId?: string; reason?: string }) => void, managerOnly = false) =>
@@ -705,11 +707,11 @@ export const caseHandlers = [
       if (!mandate) return HttpResponse.json({ code: 'NO_MANDATE' }, { status: 409 });
       if (mandate.id !== body.mandateId) return HttpResponse.json({ code: 'CHANGED' }, { status: 409 });
       const siren = sirenOfNumber(body.number);
-      if (body.kind !== 'INDIVIDUAL' && cases.some((item) => item.creditorId === body.creditorId && sirenOf(item) === siren && item.status !== 'SETTLED'))
-        return HttpResponse.json({ code: 'CASE_EXISTS' }, { status: 409 });
       const known = body.kind !== 'INDIVIDUAL' ? cases.find((item) => sirenOf(item) === siren) : undefined;
       if (known && (body.kind !== 'COMPANY' || plainName(known.name) !== plainName(body.name)))
         return HttpResponse.json({ code: 'DEBTOR_MISMATCH' }, { status: 409 });
+      if (body.kind !== 'INDIVIDUAL' && cases.some((item) => item.creditorId === body.creditorId && sirenOf(item) === siren && item.status !== 'SETTLED'))
+        return HttpResponse.json({ code: 'CASE_EXISTS' }, { status: 409 });
       const rank = Object.keys(opened).length + 1;
       const id = `new${rank}`;
       const reference = `LGR-2026-${String(300 + rank).padStart(5, '0')}`;
@@ -791,11 +793,16 @@ export const caseHandlers = [
   ),
   http.get(
     '/api/cases/:id/access-code',
-    acting((item) => HttpResponse.json({ code: codes.get(item.id) ?? 'KXPM', version: codeVersions.get(item.id) ?? 1 })),
+    acting((item) =>
+      item.status === 'SETTLED'
+        ? HttpResponse.json({ code: 'CASE_CLOSED' }, { status: 409 })
+        : HttpResponse.json({ code: codes.get(item.id) ?? 'KXPM', version: codeVersions.get(item.id) ?? 1 }),
+    ),
   ),
   http.post(
     '/api/cases/:id/access-code/regenerate',
     acting(async (item, session, { request }) => {
+      if (item.status === 'SETTLED') return HttpResponse.json({ code: 'CASE_CLOSED' }, { status: 409 });
       const known = codeVersions.get(item.id) ?? 1;
       if (((await request.json()) as { version: number }).version !== known) return HttpResponse.json({ code: 'CHANGED' }, { status: 409 });
       codeVersions.set(item.id, known + 1);
