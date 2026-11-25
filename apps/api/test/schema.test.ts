@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
@@ -138,7 +138,28 @@ const DEBTORS = 'debtors SELECT (anonymized_at, created_at, id, kind, legal_form
 describe('rights of the roles that face the outside', () => {
   // Any addition shows here: it must be wanted.
   const expected: Record<string, string[]> = {
-    legarec_auth: [],
+    // Sign-in: the credentials of one account at a time, which its policies choose.
+    legarec_auth: [
+      'auth_tokens INSERT (expires_at, purpose, session_id, token_hash, user_id)',
+      'auth_tokens SELECT (created_at, expires_at, id, opened_at, purpose, session_id, token_hash, used_at, user_id)',
+      'auth_tokens UPDATE (expires_at, opened_at, used_at)',
+      'backup_codes DELETE (*)',
+      'backup_codes INSERT (code_hash, user_id)',
+      'backup_codes SELECT (code_hash, id, used_at, user_id)',
+      'backup_codes UPDATE (used_at)',
+      'second_factors DELETE (*)',
+      'second_factors INSERT (confirmed_at, credential_id, id, kind, public_key, secret_cipher, sign_count, transports, user_id)',
+      'second_factors SELECT (confirmed_at, created_at, credential_id, id, kind, last_step, last_used_at, public_key, secret_cipher, sign_count, transports, user_id)',
+      'second_factors UPDATE (confirmed_at, last_step, last_used_at, secret_cipher, sign_count)',
+      'user_devices INSERT (expires_at, label, token_hash, user_id)',
+      'user_devices SELECT (expires_at, id, token_hash, user_id)',
+      'user_devices UPDATE (expires_at, label, last_seen_at)',
+      'user_sessions INSERT (device_label, expires_at, ip, mobile, persistent, portal, second_factor_at, second_factor_needed, token_hash, user_id)',
+      'user_sessions SELECT (created_at, device_label, expires_at, id, ip, last_seen_at, mobile, persistent, portal, proved_at, revoked_at, second_factor_at, second_factor_needed, user_id)',
+      'user_sessions UPDATE (expires_at, last_seen_at, proved_at, revoked_at, second_factor_at, token_hash)',
+      'users SELECT (creditor_id, email, first_name, id, last_name, last_seen_at, password_hash, role, status, two_factor_required)',
+      'users UPDATE (last_seen_at, password_changed_at, password_hash, status)',
+    ],
     legarec_hook: ['webhook_events INSERT (id, provider, provider_event_id)', 'webhook_events SELECT (id, provider, provider_event_id)'],
     legarec_public: [],
     legarec_service: IDEMPOTENCY,
@@ -181,28 +202,49 @@ describe('rights of the roles inside', () => {
       DEBTORS,
       'delegations SELECT (granted_at, granted_by, id, kind, withdrawn_at, withdrawn_by)',
       ...IDEMPOTENCY,
+      'mailbox_requests SELECT (created_at, decided_at, decided_by, id, local, requested_by, status, user_id)',
+      'notification_preferences INSERT (email, in_app, kind, user_id)',
+      'notification_preferences SELECT (email, in_app, kind, user_id)',
+      'notification_preferences UPDATE (email, in_app)',
+      'notifications SELECT (action, actor_id, created_at, id, kind, read_at, target_id, ticket_id, user_id)',
+      'notifications UPDATE (read_at)',
       'retention_runs SELECT (id, kind, ran_at, removed)',
-      'users SELECT (created_at, creditor_id, disabled_at, email, extension, first_name, id, last_name, last_seen_at, role, status)',
+      'support_tickets SELECT (created_at, id, message, number, status, subject, user_id)',
+      'users SELECT (absent_from, absent_until, anonymized_at, auto_reply, created_at, creditor_id, daily_summary, density, disabled_at, email, extension, first_name, id, invited_at, last_name, last_seen_at, low_vision, password_changed_at, quiet_hours, role, status, substitute_id, theme, two_factor_required)',
+      // One's own line: never the role, the address, the status nor the credentials.
+      'users UPDATE (absent_from, absent_until, auto_reply, daily_summary, density, first_name, last_name, low_vision, quiet_hours, substitute_id, theme)',
     ],
     legarec_worker: [
+      // The links leave with the e-mails that it sends, and are kept nowhere.
+      'auth_tokens INSERT (expires_at, purpose, token_hash, user_id)',
+      'auth_tokens SELECT (id, purpose, used_at, user_id)',
+      'auth_tokens UPDATE (used_at)',
       CASE_EVENTS,
       CASES,
       // The first letter opens the reminders and the portal of the debtor: only the worker that sent it records it.
       'cases UPDATE (closed_on, external_reference, first_letter_on, first_letter_reference, status, version)',
       CREDITORS,
       DEBTORS,
+      'delegations SELECT (granted_at, granted_by, id, kind, withdrawn_at, withdrawn_by)',
       'outbox SELECT (acting_for, actor_id, actor_kind, claimed_at, created_at, done_at, failed_at, failure, id, name, payload, published_at, queue, run_at, started_at)',
       'outbox UPDATE (claimed_at, done_at, failed_at, failure, published_at, started_at)',
-      'users SELECT (creditor_id, email, first_name, id, last_name, role, status)',
+      'second_factors SELECT (confirmed_at, id, kind, user_id)',
+      'support_tickets SELECT (created_at, id, message, number, subject, user_id)',
+      'user_sessions SELECT (created_at, device_label, id, ip, user_id)',
+      'users SELECT (creditor_id, email, first_name, id, invited_by, last_name, role, status, two_factor_required)',
       'webhook_events SELECT (id, processed_at, provider, provider_event_id, received_at, status)',
       'webhook_events UPDATE (processed_at, status)',
     ],
     legarec_retention: [
       'idempotency_keys DELETE (*)',
       'idempotency_keys SELECT (created_at)',
+      'notifications DELETE (*)',
+      'notifications SELECT (created_at)',
       'outbox DELETE (*)',
       'outbox SELECT (done_at, failed_at, id)',
       'retention_runs INSERT (kind, removed)',
+      'support_tickets DELETE (*)',
+      'support_tickets SELECT (created_at)',
       'task_keys DELETE (*)',
       'task_keys SELECT (created_at, task_id)',
       'webhook_events DELETE (*)',
@@ -212,19 +254,51 @@ describe('rights of the roles inside', () => {
       'audit_log DELETE (*)',
       'audit_log INSERT (*)',
       'audit_log SELECT (id, occurred_at)',
+      'auth_tokens DELETE (*)',
+      'auth_tokens SELECT (expires_at, id, opened_at, purpose, session_id, token_hash, used_at, user_id)',
+      'auth_tokens UPDATE (used_at)',
+      'backup_codes DELETE (*)',
+      'backup_codes SELECT (user_id)',
       'case_events INSERT (*)',
       'case_events SELECT (actor_id, case_id, kind, occurred_at)',
       'cases SELECT (creditor_id, debtor_id, first_letter_on, id, officer_id, version)',
       'cases UPDATE (officer_id, version)',
       'creditors SELECT (id, portal_enabled)',
+      'delegations INSERT (granted_by, kind)',
       'delegations SELECT (*)',
+      'delegations UPDATE (withdrawn_at, withdrawn_by)',
+      'lockouts DELETE (*)',
+      'lockouts INSERT (*)',
+      'lockouts SELECT (*)',
+      'lockouts UPDATE (*)',
+      'mailbox_requests DELETE (*)',
+      'mailbox_requests INSERT (local, requested_by, user_id)',
+      'mailbox_requests SELECT (user_id)',
+      'notification_preferences DELETE (*)',
+      'notification_preferences SELECT (user_id)',
+      'notifications DELETE (*)',
+      'notifications INSERT (action, actor_id, kind, target_id, ticket_id, user_id)',
+      'notifications SELECT (user_id)',
       'number_sequences INSERT (*)',
       'number_sequences SELECT (*)',
       'number_sequences UPDATE (*)',
       'outbox INSERT (*)',
+      // Closes, never gives: no secret, no key of a security key, no code is read by a function.
+      'second_factors DELETE (*)',
+      'second_factors SELECT (confirmed_at, user_id)',
+      'support_tickets INSERT (id, message, number, subject, user_id)',
+      'support_tickets SELECT (id, user_id)',
       'task_keys INSERT (*)',
       'task_keys SELECT (key, name, owner)',
-      'users SELECT (creditor_id, first_name, id, last_name, role, status)',
+      'user_devices DELETE (*)',
+      'user_devices SELECT (expires_at, user_id)',
+      'user_sessions DELETE (*)',
+      'user_sessions SELECT (expires_at, id, last_seen_at, portal, proved_at, revoked_at, second_factor_at, second_factor_needed, token_hash, user_id)',
+      'user_sessions UPDATE (last_seen_at, revoked_at)',
+      'users DELETE (*)',
+      'users INSERT (creditor_id, email, first_name, invited_at, invited_by, last_name, role)',
+      'users SELECT (anonymized_at, creditor_id, disabled_at, email, first_name, id, invited_at, invited_by, last_name, password_hash, role, status, substitute_id, two_factor_required)',
+      'users UPDATE (anonymized_at, disabled_at, disabled_by, disabled_reason, email, extension, first_name, invited_at, last_name, last_seen_at, password_hash, role, status, substitute_id, two_factor_required)',
     ],
   };
   it.each(Object.entries(expected))('%s', async (role, rights) => {
@@ -281,6 +355,25 @@ describe('rights on the functions', () => {
     ['assign_cases', ['staff']],
     ['next_number', ['staff', 'worker']],
     ['purge_audit', ['retention']],
+    ['purge_sign_ins', ['retention']],
+    ['anonymize_accounts', ['retention']],
+    // The sign-in.
+    ...['account_of', 'account_of_link', 'inviter_name', 'resume_session', 'take_attempt', 'clear_attempts', 'subject', 'proved_subject', 'tell_reset'].map(
+      (name) => [name, ['auth']] as [string, string[]],
+    ),
+    // The accounts of the others: each function checks who is acting.
+    ...[
+      ...['invite_member', 'cancel_invitation', 'disable_member', 'enable_member', 'set_member_role', 'set_extension', 'support'],
+      ...['account_states', 'locked', 'set_delegation', 'open_ticket', 'acts_as_director'],
+    ].map((name) => [name, ['staff']] as [string, string[]]),
+    ['portal_officer', ['partner']],
+    ['create_director', ['worker']],
+    ['ticket_reader', ['worker']],
+    // Called by the functions above only.
+    ...['close_account', 'release_cases', 'digests', 'refuse', 'tell_director', 'end_technical_delegation'].map((name) => [name, []] as [string, string[]]),
+    // Triggers.
+    ['open_delegations', []],
+    ['require_for_developer', []],
     ['can_read_case', ['staff']],
     ['can_act_on_case', ['staff']],
     ['is_claims_officer', ['staff']],
@@ -302,6 +395,9 @@ describe('rights on the functions', () => {
     const listed = [
       'add_case_event note_consultation assign_cases next_number purge_audit can_read_case can_act_on_case is_claims_officer director_id secure secure_case_table append_only refuse_change',
       'log enqueue staff_role has_delegation partner_creditor on_behalf_of actor_kind actor_label actor_id actor_key',
+      'purge_sign_ins anonymize_accounts account_of account_of_link inviter_name resume_session take_attempt clear_attempts subject proved_subject tell_reset',
+      'invite_member cancel_invitation disable_member enable_member set_member_role set_extension support account_states locked set_delegation open_ticket acts_as_director',
+      'portal_officer create_director ticket_reader close_account release_cases digests refuse tell_director end_technical_delegation open_delegations require_for_developer',
       'uuid_v7 setting user_id creditor_id debtor_id only_identifiers audit_params',
     ].flatMap((names) => names.split(' '));
     const found = await rows<{ proname: string }>(
@@ -376,7 +472,7 @@ describe('migrations', () => {
     // The bootstrap, run in that database, gives it to its owner.
     await own.query(readFileSync(fileURLToPath(new URL('../prisma/bootstrap.sql', import.meta.url)), 'utf8'));
     await own.end();
-    expect(await migrate(url.href, directory)).toHaveLength(1);
+    expect(await migrate(url.href, directory)).toEqual(readdirSync(directory).filter((entry) => entry !== 'migration_lock.toml'));
     const [row] = await rows<{ datacl: string }>('SELECT datacl::text FROM pg_database WHERE datname = $1', [name]);
     expect(row!.datacl).not.toMatch(/[{,]=/u);
   });

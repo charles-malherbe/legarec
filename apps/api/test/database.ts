@@ -65,7 +65,6 @@ export async function seed(admin: pg.Client) {
   const officerB = await user('CLAIMS_OFFICER', 'Beno');
   const partnerA = await user('CREDITOR', 'Paula', creditorA);
   const partnerB = await user('CREDITOR', 'Quentin', creditorB);
-  for (const kind of ['TECHNICAL', 'ADMINISTRATIVE']) await admin.query('INSERT INTO delegations (kind, granted_by) VALUES ($1, $2)', [kind, director]);
   const debtor = (kind: string, name: string, siren: string | null) =>
     one('INSERT INTO debtors (kind, name, siren) VALUES ($1, $2, $3) RETURNING id', [kind, name, siren]);
   const debtorA = await debtor('COMPANY', 'Débiteur UN', '800000001');
