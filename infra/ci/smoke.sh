@@ -135,3 +135,11 @@ ok logs
 docker compose stop worker
 [ "$(docker inspect --format '{{.State.ExitCode}}' "$(docker compose ps --all --quiet worker)")" = 0 ] || fail 'the worker did not end by itself'
 ok 'worker stopped'
+
+# The restoration of docs/deploiement.md, for real
+docker compose stop api postgres
+docker compose run --rm --no-deps --volume legarec-app_postgres-data:/var/lib/postgresql/data --entrypoint legarec-pgbackrest sauvegarde --delta restore
+docker compose up --detach --wait
+expect 200 https://api.legarec.fr/health
+docker compose run --rm migration | grep -q 'nothing to apply' || fail 'migrations, after a restoration'
+ok restoration
