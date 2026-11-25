@@ -1,64 +1,87 @@
-import { describe, expect, it, vi } from 'vitest';
-import type { Database } from '../database/database';
-import { Audit } from './audit';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { createTestDatabase, seed, type Seed, type TestDatabase } from '../../../test/database';
+import { Database } from '../database/database';
+import { AUDIT_ACTIONS, auditSentence } from './actions';
+import { Audit, type AuditEntry } from './audit';
 
-function audit() {
-  const written = vi.fn((_sql: TemplateStringsArray, ..._values: unknown[]) => Promise.resolve(1));
-  return { written, audit: new Audit({ tx: { $executeRaw: written } } as unknown as Database) };
-}
+let test: TestDatabase;
+let s: Seed;
+let api: Database;
+beforeAll(async () => {
+  test = await createTestDatabase();
+  s = await seed(test.admin);
+  api = new Database(test.url('app'));
+});
+afterAll(async () => {
+  await api.close();
+  await test.drop();
+});
 
-describe('summary of a line of the audit log', () => {
-  it.each([
-    'Échéancier validé',
-    'Code d’accès régénéré',
-    '3 dossiers confiés à un autre gestionnaire',
-    'Facture FA-2026-0042 émise',
-    'Rapport exporté : 1 250 lignes, du 01/11/2026 au 25/11/2026',
-    'Durée des sessions : 30 minutes',
-  ])('may say « %s »', async (summary) => {
-    const { audit: target, written } = audit();
-    await target.log({ action: 'PROBE', summary });
-    expect(written).toHaveBeenCalledOnce();
-    expect(written.mock.calls[0]!.slice(1)).toEqual(['PROBE', null, null, summary]);
+const log = (params: AuditEntry['params'], entity?: AuditEntry['entity']) =>
+  api.run({ kind: 'staff', userId: s.director, role: 'DIRECTOR', delegations: [] }, () => new Audit(api).log({ action: 'SECRET_SAVED', entity, params }));
+const last = async () =>
+  (
+    await test.admin.query<{ params: unknown; entity_type: string; entity_id: string }>(
+      'SELECT params, entity_type, entity_id FROM audit_log ORDER BY occurred_at DESC LIMIT 1',
+    )
+  ).rows[0]!;
+
+describe('details of a line of the audit log', () => {
+  it.each<[string, AuditEntry['params']]>([
+    ['nothing', {}],
+    ['an identifier', { caseId: '01a2125f-3eeb-7d5a-a7da-e46706b4e5a8' }],
+    ['a date', { from: '2026-11-25' }],
+    ['a role', { role: 'COLLECTION_MANAGER' }],
+    ['a technical name', { secret: 'RESEND_API_KEY' }],
+    ['a short number', { months: 8, count: 999 }],
+    ['yes or no', { active: true }],
+  ])('may hold %s', async (_what, params) => {
+    await log(params);
+    expect((await last()).params).toEqual(params);
   });
 
-  it.each([
-    ['an e-mail address', 'Message envoyé à jean.martin@exemple.test'],
-    ['the reference of a case', 'Dossier LGR-2026-00001 modifié'],
-    ['a SIREN', 'Entreprise 800000001 ajoutée'],
-    ['a mobile number', 'Appel au 0612345678'],
-    ['a spaced number', 'Appel au 06 12 34 56 78'],
-    ['a dotted number', 'Appel au 06.12.34.56.78'],
-    ['a dashed number', 'Appel au 06-12-34-56-78'],
-    ['an IBAN', 'Virement depuis FR7630006000011234567890189'],
-    ['a spaced IBAN', 'Virement depuis FR76 3000 6000 0112 3456 7890 189'],
-    ['a foreign IBAN', 'Virement depuis DE89 3704 0044 0532 0130 00'],
-  ])('never holds %s', async (_what, summary) => {
-    const { audit: target, written } = audit();
-    const refused = target.log({ action: 'PROBE', summary });
-    await expect(refused).rejects.toThrow('Personal data in the audit summary of PROBE');
-    // The error itself must not quote it: it ends in the log of the API.
-    await refused.catch((error: Error) => expect(error.message).not.toContain(summary));
-    expect(written).not.toHaveBeenCalled();
+  it.each<[string, unknown]>([
+    ['an e-mail address', { to: 'jean.martin@exemple.test' }],
+    ['the reference of a case', { reference: 'LGR-2026-00001' }],
+    ['a SIREN', { siren: '800000001' }],
+    ['a SIREN as a number', { siren: 800000001 }],
+    ['a spaced SIREN', { siren: '800 000 001' }],
+    ['a SIRET', { siret: '80000000100012' }],
+    ['a mobile number', { phone: '0612345678' }],
+    ['an international number', { phone: '+33612345678' }],
+    ['a spaced number', { phone: '06 12 34 56 78' }],
+    ['an IBAN', { iban: 'FR7630006000011234567890189' }],
+    ['an access code', { code: 'KXPM' }],
+    ['a name in capitals', { who: 'DUPONT' }],
+    ['a name', { who: 'Jean Martin' }],
+    ['an amount', { cents: 125000 }],
+    ['a six-digit code', { code: 123456 }],
+    ['a decimal', { rate: 12.5 }],
+    ['a sentence', { text: 'Message envoyé' }],
+    ['an object', { inside: { who: 'x' } }],
+    ['a list', { list: ['x'] }],
+    ['nothing at all', { empty: null }],
+    ['an address as the name of a field', { 'jean@exemple.test': true }],
+  ])('never holds %s', async (_what, params) => {
+    await expect(log(params as AuditEntry['params'])).rejects.toThrow(/audit_log_params_check/u);
   });
 
-  // Defect: `\b` before `+` never matches after a space, so the international form is let through.
-  it.fails.each(['Appel au +33612345678', 'Appel au +33 6 12 34 56 78'])('never holds an international number: %s', async (summary) => {
-    await expect(audit().audit.log({ action: 'PROBE', summary })).rejects.toThrow('Personal data');
+  it('carries the entity by its number', async () => {
+    await log({}, { type: 'case', id: s.cases.ofA });
+    expect(await last()).toEqual({ params: {}, entity_type: 'case', entity_id: s.cases.ofA });
   });
-  // Defect: nine digits in a row only; a SIREN grouped by three and a SIRET, which begins with a SIREN, are let through.
-  it.fails.each(['Entreprise 800 000 001 ajoutée', 'Établissement 80000000100012 ajouté', 'Établissement 800 000 001 00012 ajouté'])(
-    'never holds a SIREN written otherwise: %s',
-    async (summary) => {
-      await expect(audit().audit.log({ action: 'PROBE', summary })).rejects.toThrow('Personal data');
-    },
-  );
+});
 
-  it('carries the entity by its number, as a parameter and never in the text of the query', async () => {
-    const { audit: target, written } = audit();
-    await target.log({ action: 'PROBE', entity: { type: 'case', id: '01a2125f-3eeb-7d5a-a7da-e46706b4e5a8' }, summary: 'Essai' });
-    const [sql, ...values] = written.mock.calls[0]!;
-    expect(values).toEqual(['PROBE', 'case', '01a2125f-3eeb-7d5a-a7da-e46706b4e5a8', 'Essai']);
-    expect(sql.join('?')).toBe('SELECT app.log(?, ?, ?::uuid, ?)');
+describe('sentence shown', () => {
+  it('comes from the catalogue, filled with the details', () => {
+    expect(auditSentence('PLAN_APPROVED', { months: 8 })).toBe('Échéancier de 8 mois validé');
+    expect(auditSentence('SECRET_SAVED', { secret: 'RESEND_API_KEY' })).toBe('Secret enregistré : RESEND_API_KEY');
+    expect(auditSentence('UNKNOWN_ACTION', {})).toBe('UNKNOWN_ACTION');
+  });
+  it('exists for every action, under a name PostgreSQL accepts', () => {
+    for (const [action, sentence] of Object.entries(AUDIT_ACTIONS)) {
+      expect(action).toMatch(/^[A-Z][A-Z0-9_]{2,63}$/u);
+      expect(sentence.length).toBeGreaterThan(3);
+    }
   });
 });

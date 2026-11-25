@@ -1,35 +1,22 @@
-import { Inject, Injectable, type CallHandler, type ExecutionContext, type NestInterceptor } from '@nestjs/common';
-import type { Response } from 'express';
-import { finalize, type Observable } from 'rxjs';
+import type { RequestHandler } from 'express';
 import type { AppRequest } from '../access/access.guard';
-import { LOGGER, type AppLogger } from './logger';
+import type { AppLogger } from './logger';
 
-/** One line per answered request: the model of the route, never its path, its query nor its body. */
-@Injectable()
-export class AccessLogInterceptor implements NestInterceptor {
-  constructor(@Inject(LOGGER) private readonly logger: AppLogger) {}
-
-  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
-    const http = context.switchToHttp();
-    const request = http.getRequest<AppRequest>();
-    const response = http.getResponse<Response>();
+/**
+ * One line per request, refused ones included (origin, type, sign-in, rights): the model of the route, never its path,
+ * its query nor its body. Placed first, so that nothing escapes it.
+ */
+export function accessLog(logger: AppLogger): RequestHandler {
+  return (request, response, next) => {
     const started = performance.now();
-    return next.handle().pipe(
-      finalize(() => {
-        response.once('finish', () => {
-          this.logger.info(
-            {
-              requestId: request.requestId,
-              method: request.method,
-              route: (request.route as { path?: string } | undefined)?.path,
-              status: response.statusCode,
-              ms: Math.round(performance.now() - started),
-              actor: request.actor?.kind,
-            },
-            'request',
-          );
-        });
-      }),
-    );
-  }
+    response.once('close', () => {
+      const { requestId, actor, route, method } = request as AppRequest & { route?: { path?: unknown } };
+      const path = typeof route?.path === 'string' ? route.path : undefined;
+      logger[response.statusCode >= 500 ? 'error' : 'info'](
+        { requestId, method, route: path ?? 'unmatched', status: response.statusCode, ms: Math.round(performance.now() - started), actor: actor?.kind },
+        'request',
+      );
+    });
+    next();
+  };
 }
