@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // Starts the API and the worker for development: services, migrations, build on change, restart.
+// With `account`, runs the command of the accounts instead: `pnpm --filter @legarec/api account lien cl@legarec.fr`.
 // The test keys of the firm, if any, come from the `.env` of this checkout; their values are never printed.
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
@@ -7,7 +8,7 @@ import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseEnv } from 'node:util';
-import { start, values } from './services.mjs';
+import { MAILS, start, values } from './services.mjs';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const API = join(ROOT, 'apps', 'api');
@@ -21,16 +22,26 @@ const services = values();
 const pick = (source, names) => Object.fromEntries(names.filter((name) => source[name] !== undefined).map((name) => [name, source[name]]));
 const COMMON = ['VALKEY_URL', 'VAULT_MASTER_KEY', 'SESSION_SIGNING_KEY'];
 /** Each program receives what it needs, and a single account of PostgreSQL: its own. */
-const NEEDS = { migrate: ['MIGRATION_DATABASE_URL'], main: [...COMMON, 'DATABASE_URL'], worker: [...COMMON, 'JOBS_DATABASE_URL'] };
+const NEEDS = {
+  migrate: ['MIGRATION_DATABASE_URL'],
+  main: [...COMMON, 'DATABASE_URL'],
+  worker: [...COMMON, 'JOBS_DATABASE_URL'],
+  account: [...COMMON, 'JOBS_DATABASE_URL'],
+};
 const envOf = (name) => ({
-  ...pick(process.env, ['PATH', 'HOME', 'LANG', 'TZ', 'LOG_LEVEL']),
+  ...pick(process.env, ['PATH', 'HOME', 'LANG', 'TZ', 'LOG_LEVEL', 'STAFF_PORTAL_URL', 'PARTNER_PORTAL_URL', 'DEBTOR_PORTAL_URL']),
   NODE_ENV: 'development',
   PORT: process.env.PORT ?? '3000',
   ...(name === 'migrate' ? {} : pick(own, TEST_KEYS)),
+  ...(name === 'worker' ? { DEV_MAIL_DIR: MAILS } : {}),
   ...pick(services, NEEDS[name]),
 });
-const run = (name) => spawn(process.execPath, ['--enable-source-maps', `dist/${name}.js`], { cwd: API, env: envOf(name), stdio: 'inherit' });
-const wait = (child) => new Promise((resolve) => child.once('exit', resolve));
+const run = (name, ...args) => spawn(process.execPath, ['--enable-source-maps', `dist/${name}.js`, ...args], { cwd: API, env: envOf(name), stdio: 'inherit' });
+/** Already over, or to come. */
+const wait = (child) =>
+  new Promise((resolve) => (child.exitCode === null && child.signalCode === null ? child.once('exit', resolve) : resolve(child.exitCode)));
+
+if (process.argv[2] === 'account') process.exit(await wait(run('account', ...process.argv.slice(3))));
 
 const { build } = await import(createRequire(join(API, 'package.json')).resolve('vite'));
 
