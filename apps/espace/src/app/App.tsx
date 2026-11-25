@@ -4,6 +4,9 @@ import { MantineProvider } from '@mantine/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { lazy, Suspense, useState } from 'react';
 import { Navigate, Outlet, Route, Routes } from 'react-router';
+import { BillingPage } from '../features/billing/BillingPage';
+import { NotificationsPage } from '../features/notifications/NotificationsPage';
+import { TeamPage } from '../features/team/TeamPage';
 import { CallsPage } from '../features/calls/CallsPage';
 import { EmailsPage } from '../features/emails/EmailsPage';
 import { SmsPage } from '../features/sms/SmsPage';
@@ -23,6 +26,8 @@ import { Shell } from './Shell';
 
 // FullCalendar is only loaded with the agenda.
 const RemindersPage = lazy(() => import('../features/reminders/RemindersPage').then((module) => ({ default: module.RemindersPage })));
+
+const ReportsPage = lazy(() => import('../features/reports/ReportsPage').then((module) => ({ default: module.ReportsPage })));
 
 function RequireSession() {
   const { data, isPending, isError } = useSession();
@@ -64,6 +69,17 @@ export function App() {
                     <Route path="appels" element={<CallsPage />} />
                     <Route path="e-mails" element={<EmailsPage />} />
                     <Route path="sms" element={<SmsPage />} />
+                    <Route path="notifications" element={<NotificationsPage />} />
+                    <Route
+                      path="rapports"
+                      element={
+                        <Suspense fallback={null}>
+                          <ReportsPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route path="equipe" element={<TeamPage />} />
+                    <Route path="facturation" element={<BillingPage />} />
                     <Route path="contentieux" element={<LitigationPage />} />
                   </Route>
                 </Route>

@@ -4,19 +4,8 @@ import { canAccessBilling, canAccessTechnicalSettings, hasDelegation, type Sessi
 export function canOpen(path: string, user: Session): boolean {
   if (path.startsWith('/parametres/techniques')) return canAccessTechnicalSettings(user);
   if (path.startsWith('/facturation')) return canAccessBilling(user);
-  const caseRoutes = [
-    '/creanciers',
-    '/debiteurs',
-    '/relances',
-    '/echeanciers',
-    '/contentieux',
-    '/appels',
-    '/e-mails',
-    '/sms',
-    '/documents',
-    '/equipe',
-    '/rapports',
-  ];
+  if (path.startsWith('/equipe')) return user.role !== 'CLAIMS_OFFICER';
+  const caseRoutes = ['/creanciers', '/debiteurs', '/relances', '/echeanciers', '/contentieux', '/appels', '/e-mails', '/sms', '/documents', '/rapports'];
   if (user.role === 'DEVELOPER') return !caseRoutes.some((route) => path.startsWith(route));
   return true;
 }

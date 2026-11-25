@@ -17,7 +17,7 @@ export const OFFICERS: Record<string, { name: string; role: Role }> = {
   cl: { name: 'Camille Laurent', role: 'COLLECTION_MANAGER' },
   hb: { name: 'Hugo Benali', role: 'CLAIMS_OFFICER' },
   sm: { name: 'Sarah Morel', role: 'CLAIMS_OFFICER' },
-  ad: { name: 'Antoine Delmas', role: 'DIRECTOR' },
+  ad: { name: 'Marie Dubreuil', role: 'DIRECTOR' },
 };
 type Stored = Omit<CaseListItem, 'canAct' | 'officer'> & { group: CaseFilter };
 const row = (
