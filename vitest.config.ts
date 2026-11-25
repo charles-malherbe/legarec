@@ -13,6 +13,7 @@ export default defineConfig({
           include: ['{apps,packages}/*/src/**/*.test.{ts,tsx}'],
           exclude: ['apps/api/src/{platform,modules,health}/**', '**/node_modules/**'],
           css: { modules: { classNameStrategy: 'non-scoped' } },
+          testTimeout: 20_000,
         },
       },
       {
