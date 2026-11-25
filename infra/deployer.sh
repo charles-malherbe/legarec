@@ -3,7 +3,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 [ "$(id -u)" = 0 ] || { echo 'À lancer par root (sudo).' >&2; exit 1; }
-[ -z "$(git status --porcelain)" ] || { echo 'Le dépôt contient des modifications : rien n’est déployé.' >&2; exit 1; }
+[ -z "$(git status --porcelain)" ] || { echo "Le dépôt contient des modifications : rien ne sera déployé." >&2; exit 1; }
 missing=0
 for name in caddy api worker migration postgres pgbackrest valkey gatus grafana; do
   file="/etc/legarec/$name.env"

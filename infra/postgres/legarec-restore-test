@@ -5,8 +5,8 @@ set -euo pipefail
 data=/restauration/data
 socket=/restauration/socket
 trap 'pg_ctl --pgdata "$data" --mode immediate --silent stop 2>/dev/null || true; rm -rf "$data" "$socket"' EXIT
-rm -rf "$data"
-mkdir -m 700 -p "$socket"
+rm -rf "$data" "$socket"
+mkdir -m 700 "$socket"
 # The journal is fetched with the keys of the backups, like everything else.
 legarec-pgbackrest --pg1-path="$data" --archive-mode=off --type=default \
   --recovery-option=restore_command="legarec-pgbackrest --pg1-path=$data archive-get %f \"%p\"" restore
