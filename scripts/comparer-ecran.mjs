@@ -33,7 +33,7 @@ const refPath = (w) => sections.map((s) => join(capDir, s, `${ecran}-${w}.png`))
 const outDir = join(root, '.comparaisons', ecran);
 mkdirSync(outDir, { recursive: true });
 
-const browser = await chromium.launch();
+const browser = await chromium.launch({ args: ['--font-render-hinting=none'] });
 const rapport = { ecran, url, seuil, date: new Date().toISOString(), largeurs: [] };
 let echec = false;
 try {

@@ -137,6 +137,18 @@ export function Topbar(props: TopbarProps) {
             })}
           </ol>
         </nav>
+        <button
+          type="button"
+          className={css.iconButton}
+          aria-pressed={display.lowVision}
+          aria-label="Mode malvoyant"
+          title="Mode malvoyant : texte agrandi, contraste renforcé"
+          onClick={() => display.onLowVision(!display.lowVision)}
+        >
+          <span aria-hidden className={css.aa}>
+            Aa
+          </span>
+        </button>
         <div role="search" className={css.searchBox}>
           <button
             type="button"
@@ -170,18 +182,6 @@ export function Topbar(props: TopbarProps) {
             )}
           </div>
           <span aria-hidden className={css.divider} />
-          <button
-            type="button"
-            className={css.iconButton}
-            aria-pressed={display.lowVision}
-            aria-label="Mode malvoyant"
-            title="Mode malvoyant : texte agrandi, contraste renforcé"
-            onClick={() => display.onLowVision(!display.lowVision)}
-          >
-            <span aria-hidden className={css.aa}>
-              Aa
-            </span>
-          </button>
           <Link to={props.helpHref} className={`${css.iconButton} ${css.help}`} aria-label="Centre d'aide" title="Centre d'aide">
             <Icone icon="help" size={18} />
           </Link>

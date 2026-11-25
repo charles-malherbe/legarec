@@ -81,7 +81,7 @@ export function Champ(props: ChampProps) {
         {type === 'select' ? (
           <NativeSelect
             {...shared}
-            rightSection={null}
+            rightSection={<span hidden />}
             data={(props.options ?? []).map((option) => (typeof option === 'string' ? { value: option, label: option } : option))}
           />
         ) : type === 'textarea' ? (

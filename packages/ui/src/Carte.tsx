@@ -36,7 +36,7 @@ export function Carte({
   layout,
 }: CarteProps) {
   return (
-    <section aria-label={title} className={css.root} data-tone={tone} style={layout}>
+    <section className={css.root} data-tone={tone} style={layout}>
       {title && (
         <div className={css.head} data-open={children ? true : undefined}>
           <div className={css.text}>

@@ -382,6 +382,9 @@
 .dot[data-tone='rose'] {
   background: var(--danger);
 }
+.footer .rule {
+  margin: var(--sp-1) 0;
+}
 .footer {
   margin-top: auto;
   padding-top: var(--sp-2);

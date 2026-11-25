@@ -57,7 +57,7 @@
   align-items: center;
   justify-content: center;
   font-variant-numeric: tabular-nums;
-  background: var(--border);
+  background: var(--bleu-200);
   color: var(--text-2);
 }
 .tab[aria-selected='true'] .count {

@@ -2,7 +2,9 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
-const config = JSON.parse(readFileSync(new URL('../scripts/ecrans.json', import.meta.url), 'utf8')) as Record<string, { app: string; route: string }> & { _bases: Record<string, string> };
+const config = JSON.parse(readFileSync(new URL('../scripts/ecrans.json', import.meta.url), 'utf8')) as Record<string, { app: string; route: string }> & {
+  _bases: Record<string, string>;
+};
 const DONE = JSON.parse(readFileSync(new URL('./done.json', import.meta.url), 'utf8')) as string[];
 /** Extra routes without a mockup capture. */
 const EXTRA = JSON.parse(readFileSync(new URL('./extra.json', import.meta.url), 'utf8')) as Record<string, { app: string; route: string }>;
@@ -26,7 +28,15 @@ for (const [name, screen] of Object.entries(screens)) {
           }, mode);
           expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), `${mode}: horizontal scroll`).toBeLessThanOrEqual(0);
           const { violations } = await new AxeBuilder({ page }).analyze();
-          expect(violations.map((item) => `${mode} ${item.id}: ${item.nodes.slice(0, 3).map((node) => `${node.target.join(' ')} ${node.any[0]?.message ?? ''}`).join(' | ')}`)).toEqual([]);
+          expect(
+            violations.map(
+              (item) =>
+                `${mode} ${item.id}: ${item.nodes
+                  .slice(0, 3)
+                  .map((node) => `${node.target.join(' ')} ${node.any[0]?.message ?? ''}`)
+                  .join(' | ')}`,
+            ),
+          ).toEqual([]);
         }
       });
     }
