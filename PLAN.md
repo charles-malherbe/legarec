@@ -166,7 +166,7 @@ Les 161 routes simulées se répartissent ainsi :
 - [x] Portails : étapes ajoutées à la connexion (second facteur exigé, trop de tentatives, blocage), session tenue ouverte par l'activité, `VITE_API` ; simulations et API rejouent les mêmes requêtes
 - [x] Essai complet dans un navigateur contre l'API (connexion, second facteur, lien reçu, support, mauvais portail, blocage)
 - [x] Relectures `relecteur-securite` et `testeur` : le point bloquant, les points importants et presque tous les mineurs corrigés ; 327 protections retirées une à une, 315 vues par un test, les 12 autres équivalentes ou doublées. Restent assumés : `attemptsLeft` peut trahir un compte dont le titulaire se connecte entre deux essais ; plus de cinq connexions justes au même instant en bloquent une partie
-- Reporté, avec son lot : second facteur et session du débiteur (O), comptes de service (X), réauthentification avant une action sensible (L, question 122), SMS au Directeur (R, question 113), envoi réel (Q), invitation d'un collaborateur après sa boîte (R), bascule de l'espace (après U).
+- Reporté, avec son lot : second facteur et session du débiteur (O), comptes de service et commande de remplacement du Directeur (X, question 124), réauthentification avant une action sensible (L, question 122 : fenêtre montrée avant développement), SMS au Directeur (R, question 113), envoi réel (Q), invitation d'un collaborateur après sa boîte (R), bascule de l'espace (après U).
 
 ## Points à reprendre du front
 
