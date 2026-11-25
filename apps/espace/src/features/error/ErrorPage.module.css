@@ -1,0 +1,97 @@
+.root {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: var(--sp-8) var(--sp-4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2);
+  color: var(--text);
+}
+.box {
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-4);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2h);
+  text-decoration: none;
+}
+.logo {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-md);
+  background: var(--app-icon-bg);
+  color: var(--app-icon-fg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  line-height: 1;
+}
+.logo::before {
+  content: 'L';
+}
+.name {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--marine-text);
+}
+.code {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.title {
+  margin: 0;
+  font-size: var(--fs-3xl);
+  line-height: 1.2;
+}
+.rule {
+  width: 44px;
+  height: 4px;
+  border-radius: var(--r-full);
+  background: var(--or);
+}
+.text {
+  margin: 0;
+  font-size: var(--fs-md);
+  line-height: 1.6;
+  color: var(--text-2);
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+.reference {
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+}
+.reference code {
+  font-family: var(--font-mono);
+}
+.foot {
+  align-self: stretch;
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--border);
+}
+.denied {
+  max-width: 520px;
+  margin: var(--sp-12) auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.deniedTitle {
+  margin: 0;
+  font-size: var(--fs-2xl);
+}

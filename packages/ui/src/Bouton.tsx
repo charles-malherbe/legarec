@@ -56,15 +56,17 @@ export function Bouton(props: BoutonProps) {
       {iconRight && <Icone icon={iconRight} size={ICON_SIZE[size]} />}
     </>
   );
+  // tokens.css recolours every link in dark mode; an inline colour keeps the button variant.
+  const linkStyle = { ...layout, color: 'var(--c-fg)' };
   if (href && !disabled) {
     if (href.startsWith('/'))
       return (
-        <Link to={href} onClick={onPress} {...look}>
+        <Link to={href} onClick={onPress} {...look} style={linkStyle}>
           {content}
         </Link>
       );
     return (
-      <a href={href} onClick={onPress} {...look}>
+      <a href={href} onClick={onPress} {...look} style={linkStyle}>
         {content}
       </a>
     );

@@ -4,3 +4,6 @@ export * from './calls';
 export * from './debtorAccess';
 export * from './sms';
 export * from './format';
+export * from './shell';
+export * from './dashboard';
+export * from './auth';

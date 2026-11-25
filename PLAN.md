@@ -13,12 +13,12 @@
 - [x] Annexe « Architecture » consignée (`docs/architecture.md`), décisions et questions manquantes ajoutées
 
 ## Lot A0 — Initialisation
-- [ ] Monorepo pnpm + Turborepo, TypeScript strict, ESLint, Prettier, `pnpm verifier`, GitHub Actions
-- [ ] `packages/tokens` : tokens.css, thèmes espace et public, polices locales
-- [ ] `packages/contracts` : schémas Zod, centimes, rôles, codes 3CX
-- [ ] `packages/platform` : téléphone, notifications, fichiers, liens
-- [ ] `packages/ui` : Icone, Bouton, Badge, Statut, Avatar, Champ, Interrupteur, Case, Reglage, Onglets, Carte, Tuile, Alerte, Progression, Indicateur, EtatListe, Pagination, Tableau, Toast, Confirm, PageHeader, Toolbar, PiedDePage, Sidebar, Topbar, SuggestionIA
-- [ ] Page de démonstration de la bibliothèque, tests et axe
+- [x] Monorepo pnpm + Turborepo, TypeScript strict, ESLint, Prettier, `pnpm verifier`, GitHub Actions
+- [x] `packages/tokens` : tokens.css, thèmes espace et public, polices locales
+- [x] `packages/contracts` : schémas Zod, centimes, rôles, codes 3CX
+- [x] `packages/platform` : téléphone, notifications, fichiers, liens
+- [x] `packages/ui` : Icone, Bouton, Badge, Statut, Avatar, Champ, Interrupteur, Case, Reglage, Onglets, Carte, Tuile, Alerte, Progression, Indicateur, EtatListe, Pagination, Tableau, Toast, Confirm, PageHeader, Toolbar, PiedDePage, Sidebar, Topbar, SuggestionIA
+- [ ] Page de démonstration de la bibliothèque et comparaison à `Bibliotheque-1440` (tests unitaires et axe faits)
 
 ## Lot A — Socle de l'espace
 | Écran | Route | Composants propres | MSW | Confirm | États propres | Points ouverts |
@@ -27,6 +27,11 @@
 | [ ] Connexion | /connexion | PiedDePage | auth | — | login, code TOTP, clé WebAuthn, mot de passe oublié, réinitialisation, lien expiré, activation en 3 étapes, verrouillage 15 min, mauvais portail | 33 |
 | [ ] Erreur | /erreur-demo, * | PiedDePage | — | — | 403, 404, 500 | — |
 | [ ] Main | / | Toolbar, Indicateur | Main | — | par rôle : global (Directeur), équipe (Responsable), personnel (Gestionnaire), technique (Développeur) | tableau du Développeur absent de la maquette |
+
+**État au 24/11/2026.** Coquille, Connexion, Erreur et Main écrits, testés (Vitest) ; axe sans violation et aucun défilement horizontal à 390, 768, 1024 et 1440 px (normal, malvoyant ; sombre à 1440). Non cochés car il reste : parcours Playwright versionnés, relectures par les agents, et l'écart visuel :
+- Erreur : 1,5 % / 2,1 % / 5,4 % (1440 / 1024 / 390) ;
+- Main : 7,3 % / 7,0 % / 12,5 % (décalages de quelques pixels, espace fine des montants, bouton « Aa » ajouté à la Topbar, bloc des créanciers) ;
+- Connexion : 8,4 % / 10,9 % / 25,0 % (bloc « Démonstration », logo et badge PCI retirés, champs vides, saisie du code par cases au lieu du pavé).
 
 ## Lot B — Portefeuille
 | Écran | Route | Composants propres | MSW | Confirm | États propres | Points ouverts |

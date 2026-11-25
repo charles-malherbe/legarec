@@ -94,3 +94,18 @@
   font-size: var(--fs-xs);
   color: var(--text-3);
 }
+
+.root[data-tight] .table {
+  min-width: 720px;
+}
+.root[data-tight] :is(th, td):not(:first-child):not(:last-child) {
+  padding-left: var(--sp-2);
+  padding-right: var(--sp-2);
+}
+.root[data-tight] th {
+  white-space: normal;
+}
+
+.root[data-tight] td {
+  font-size: var(--fs-base);
+}

@@ -13,7 +13,8 @@
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
     "verifier": "pnpm -s typecheck && pnpm -s lint && pnpm -s test",
-    "comparer": "node scripts/comparer-ecran.mjs"
+    "comparer": "node scripts/comparer-ecran.mjs",
+    "e2e": "playwright test"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.14.0",

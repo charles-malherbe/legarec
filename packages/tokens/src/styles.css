@@ -1,7 +1,5 @@
 @import './fonts.css';
 @import './tokens.css';
-body {
-  margin: 0;
-  background: var(--surface-2);
-  color: var(--text);
-}
+body { margin: 0; background: var(--surface-2); color: var(--text); font-size: var(--fs-md); }
+/* Mantine sets 1.55 on body; the mockup uses the natural line height, except in low-vision mode. */
+:root:not([data-a11y='malvoyant']) body { line-height: normal; }

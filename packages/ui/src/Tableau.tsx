@@ -47,6 +47,8 @@ export interface TableauProps<Row> extends LayoutProps {
   sticky?: boolean;
   bordered?: boolean;
   dense?: boolean;
+  /** Narrow inner gutters and a minimum width, for tables with many columns. */
+  tight?: boolean;
   state?: Pick<EtatListeProps, 'kind' | 'title' | 'text' | 'actionLabel' | 'onAction'>;
   emptyTitle?: string;
   activeRowId?: string;
@@ -91,6 +93,7 @@ export function Tableau<Row extends object>(props: TableauProps<Row>) {
       className={css.root}
       data-bordered={props.bordered !== false || undefined}
       data-dense={props.dense || undefined}
+      data-tight={props.tight || undefined}
       style={props.layout}
     >
       <Table unstyled className={css.table}>
