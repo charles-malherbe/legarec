@@ -7,7 +7,8 @@ root=/opt/legarec
 # Root only runs what root wrote: never the working copy of someone else.
 [ "$(dirname "$(dirname "$(readlink -f "$0")")")" = "$root" ] || stop "À lancer depuis $root."
 [ -z "$(find "$root" ! -user root -print -quit)" ] || stop "$root doit appartenir entièrement à root."
-[ -z "$(find "$root" ! -type l -perm /022 -print -quit)" ] || stop "$root ne doit être modifiable que par root."
+open="$(find "$root" ! -type l -perm /022 -print -quit)"
+[ -z "$open" ] || stop "$root ne doit être modifiable que par root : $open"
 cd "$root"
 [ -z "$(git status --porcelain)" ] || stop 'Le dépôt contient des modifications : rien ne sera déployé.'
 git merge-base --is-ancestor HEAD refs/remotes/origin/main || stop 'Cette version ne vient pas de main : rien ne sera déployé.'
