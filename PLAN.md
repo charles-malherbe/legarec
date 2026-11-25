@@ -166,6 +166,7 @@ Les 161 routes simulées se répartissent ainsi :
 - [x] Portails : étapes ajoutées à la connexion (second facteur exigé, trop de tentatives, blocage), session tenue ouverte par l'activité, `VITE_API` ; simulations et API rejouent les mêmes requêtes
 - [x] Essai complet dans un navigateur contre l'API (connexion, second facteur, lien reçu, support, mauvais portail, blocage)
 - [x] Relectures `relecteur-securite` et `testeur` : le point bloquant, les points importants et presque tous les mineurs corrigés ; 327 protections retirées une à une, 315 vues par un test, les 12 autres équivalentes ou doublées. Restent assumés : `attemptsLeft` peut trahir un compte dont le titulaire se connecte entre deux essais ; plus de cinq connexions justes au même instant en bloquent une partie
+- [x] Seconde relecture sécurité, demandée par le cabinet : aucun point bloquant ; 2 importants et les mineurs corrigés, avec leurs tests (session relue au moment d'agir, changement de personne dans les portails, ordre des verrous, conservation, Directeur prévenu, déconnexion non reçue)
 - Reporté, avec son lot : second facteur et session du débiteur (O), comptes de service et commande de remplacement du Directeur (X, question 124), réauthentification avant une action sensible (L, question 122 : fenêtre montrée avant développement), SMS au Directeur (R, question 113), envoi réel (Q), invitation d'un collaborateur après sa boîte (R), bascule de l'espace (après U).
 
 ## Points à reprendre du front
@@ -190,6 +191,8 @@ Les 161 routes simulées se répartissent ainsi :
 | Écran Secrets : liste de noms attendus, « Renouveler » qui demande la nouvelle valeur, « Révoquer » masqué pour les clés internes, `SESSION_SIGNING_KEY` retirée, « Environnement » réel (108 à 110) | L |
 | Appels : « Transcription en direct » devient une transcription proposée après l'appel (question 72) | W |
 | Tableau des permissions : « Valider un échéancier, une remise ou un abandon de créance », « Ses dossiers » pour le Directeur (question 86) ; « Validations » : accord du créancier après celui du Responsable | M |
+| Portail paiement : mêmes règles que les deux autres au changement de personne (`key`, autres onglets, déconnexion non reçue) | O |
+| Caddy masque les jetons des liens de réinitialisation et d'invitation dans ses journaux (`docs/api.md`) : à vérifier avant d'activer un journal d'accès | X |
 | Remplaçant : notifications neutres à envoyer avec celles des dossiers (texte de Mon compte déjà ajusté) | L |
 | Cloche de la barre du haut : notifications encore simulées (`/shell`), page Notifications déjà réelle | L |
 | Tableau de bord : `queryFn` absente de la requête `shell` (erreur dans la console) ; Paramètres : « Annuler » actif pendant l'enregistrement | L, U |
