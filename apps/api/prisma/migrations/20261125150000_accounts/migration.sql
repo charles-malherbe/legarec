@@ -13,7 +13,7 @@ CREATE TYPE token_purpose AS ENUM ('INVITATION', 'RESET', 'WEBAUTHN');
 CREATE TYPE attempt_scope AS ENUM ('SIGN_IN', 'SECOND_FACTOR', 'PASSWORD');
 CREATE TYPE ticket_status AS ENUM ('OPEN', 'CLOSED');
 CREATE TYPE request_status AS ENUM ('OPEN', 'DONE', 'CANCELLED');
-CREATE TYPE notification_kind AS ENUM ('SUPPORT_ACTION', 'SUPPORT_TICKET', 'PASSWORD_RESET', 'DELEGATION_ENDED');
+CREATE TYPE notification_kind AS ENUM ('SUPPORT_ACTION', 'SUPPORT_TICKET', 'PASSWORD_RESET', 'DELEGATION_ENDED', 'DEVELOPER_CHANGED');
 -- What the support does to an account; the sentence shown comes from a catalogue.
 CREATE TYPE support_action AS ENUM ('RESET_LINK', 'SECOND_FACTOR_REQUIRED', 'SECOND_FACTOR_RESET', 'ACCOUNT_UNLOCKED');
 
@@ -372,16 +372,15 @@ $$;
 CREATE FUNCTION app.tell_reset() RETURNS void LANGUAGE sql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
   SELECT app.tell_director('PASSWORD_RESET', app.proved_subject(), app.proved_subject()) WHERE app.actor_kind() = 'STAFF'
 $$;
--- The technical delegation was given to someone: it ends when a delegate puts another one in their place.
+-- The technical delegation was given to someone: it ends when a delegate puts another one in their place. Told to the Director
+-- each time, whether or not it was open: that role reads the journal and the technical settings.
 CREATE FUNCTION app.end_technical_delegation() RETURNS void LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
 BEGIN
   IF app.staff_role() = 'DIRECTOR' THEN
     RETURN;
   END IF;
   UPDATE public.delegations SET withdrawn_at = now(), withdrawn_by = app.user_id() WHERE kind = 'TECHNICAL' AND withdrawn_at IS NULL;
-  IF FOUND THEN
-    PERFORM app.tell_director('DELEGATION_ENDED', app.user_id(), app.user_id());
-  END IF;
+  PERFORM app.tell_director((CASE WHEN FOUND THEN 'DELEGATION_ENDED' ELSE 'DEVELOPER_CHANGED' END)::public.notification_kind, app.user_id(), app.user_id());
 END
 $$;
 -- Nothing open stays open: sessions, links, known browsers.
@@ -389,6 +388,12 @@ CREATE FUNCTION app.close_account(target uuid) RETURNS void LANGUAGE sql VOLATIL
   UPDATE public.user_sessions SET revoked_at = now() WHERE user_id = target AND revoked_at IS NULL;
   UPDATE public.auth_tokens SET used_at = now() WHERE user_id = target AND used_at IS NULL;
   DELETE FROM public.user_devices WHERE user_id = target;
+$$;
+-- With those they replace, always in the same order: two people who replace each other may leave at the same time.
+CREATE FUNCTION app.take_with_substituted(target uuid) RETURNS void LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+BEGIN
+  PERFORM 1 FROM public.users WHERE id = target OR substitute_id = target ORDER BY id FOR UPDATE;
+END
 $$;
 -- The cases of someone who leaves or changes role have no officer any more: the manager gives them to someone else.
 CREATE FUNCTION app.release_cases(target uuid) RETURNS integer LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
@@ -455,6 +460,7 @@ LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public,
 DECLARE
   account record;
 BEGIN
+  PERFORM app.take_with_substituted(target);
   SELECT id, role, status INTO account FROM public.users WHERE id = target FOR UPDATE;
   IF NOT FOUND OR account.status <> 'ACTIVE' THEN
     PERFORM app.refuse('LG404');
@@ -498,6 +504,7 @@ LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public,
 DECLARE
   account record;
 BEGIN
+  PERFORM app.take_with_substituted(target);
   SELECT id, role, status INTO account FROM public.users WHERE id = target FOR UPDATE;
   IF NOT FOUND THEN
     PERFORM app.refuse('LG404');
@@ -539,7 +546,8 @@ DECLARE
   mine constant public.user_role := app.staff_role();
   touched boolean := true;
 BEGIN
-  SELECT id, role, status INTO account FROM public.users WHERE id = target FOR UPDATE;
+  -- Nothing is closed for good here: two people who support each other do not wait for each other.
+  SELECT id, role, status INTO account FROM public.users WHERE id = target FOR NO KEY UPDATE;
   IF NOT FOUND THEN
     PERFORM app.refuse('LG404');
   END IF;
@@ -562,6 +570,8 @@ BEGIN
       touched := FOUND;
       DELETE FROM public.backup_codes WHERE user_id = target;
       UPDATE public.user_sessions SET revoked_at = now() WHERE user_id = target AND revoked_at IS NULL;
+      -- What was being set up goes with it: challenges of a key, step of an invitation.
+      UPDATE public.auth_tokens SET used_at = now() WHERE user_id = target AND purpose <> 'RESET' AND used_at IS NULL;
     WHEN 'ACCOUNT_UNLOCKED' THEN
       touched := EXISTS (SELECT 1 FROM public.lockouts WHERE key_hash = ANY (app.digests(keys)) AND locked_until > now());
       DELETE FROM public.lockouts WHERE key_hash = ANY (app.digests(keys));
@@ -656,11 +666,13 @@ DECLARE
   removed integer := 0;
   batch integer;
 BEGIN
-  DELETE FROM public.auth_tokens WHERE least(used_at, expires_at) < now() - interval '48 hours';
+  -- Never waiting for a line that someone else holds: it goes at the next purge.
+  DELETE FROM public.auth_tokens WHERE id IN (SELECT t.id FROM public.auth_tokens t WHERE least(t.used_at, t.expires_at) < now() - interval '48 hours' FOR UPDATE SKIP LOCKED);
   GET DIAGNOSTICS batch = ROW_COUNT;
   removed := removed + batch;
-  DELETE FROM public.user_sessions s WHERE least(revoked_at, expires_at, last_seen_at + interval '30 minutes') < now() - interval '48 hours'
-    AND NOT EXISTS (SELECT 1 FROM public.auth_tokens t WHERE t.session_id = s.id);
+  DELETE FROM public.user_sessions WHERE id IN (
+    SELECT s.id FROM public.user_sessions s WHERE least(s.revoked_at, s.expires_at, s.last_seen_at + interval '30 minutes') < now() - interval '48 hours'
+      AND NOT EXISTS (SELECT 1 FROM public.auth_tokens t WHERE t.session_id = s.id) FOR UPDATE SKIP LOCKED);
   GET DIAGNOSTICS batch = ROW_COUNT;
   removed := removed + batch;
   DELETE FROM public.user_devices WHERE expires_at < now();
@@ -678,11 +690,14 @@ DECLARE
   old uuid[];
   forgotten uuid[];
 BEGIN
-  SELECT coalesce(array_agg(id), '{}') INTO forgotten FROM public.users WHERE status = 'INVITED' AND password_hash IS NULL AND invited_at < now() - interval '1 year';
+  -- Held until the end, so that none of them is opened again meanwhile; one that someone holds waits for the next purge.
+  SELECT coalesce(array_agg(held.id), '{}') INTO forgotten FROM (
+    SELECT u.id FROM public.users u WHERE u.status = 'INVITED' AND u.password_hash IS NULL AND u.invited_at < now() - interval '1 year' ORDER BY u.id FOR UPDATE SKIP LOCKED) held;
   DELETE FROM public.auth_tokens WHERE user_id = ANY (forgotten);
   DELETE FROM public.mailbox_requests WHERE user_id = ANY (forgotten);
   DELETE FROM public.users WHERE id = ANY (forgotten);
-  SELECT coalesce(array_agg(id), '{}') INTO old FROM public.users WHERE status = 'DISABLED' AND anonymized_at IS NULL AND disabled_at < now() - interval '2 years';
+  SELECT coalesce(array_agg(held.id), '{}') INTO old FROM (
+    SELECT u.id FROM public.users u WHERE u.status = 'DISABLED' AND u.anonymized_at IS NULL AND u.disabled_at < now() - interval '2 years' ORDER BY u.id FOR UPDATE SKIP LOCKED) held;
   DELETE FROM public.second_factors WHERE user_id = ANY (old);
   DELETE FROM public.backup_codes WHERE user_id = ANY (old);
   DELETE FROM public.auth_tokens WHERE user_id = ANY (old);

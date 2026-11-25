@@ -19,8 +19,8 @@ const SIGN_INS: RateLimit = { name: 'sign-in', max: 30, seconds: 600 };
 const CODES: RateLimit = { name: 'second-factor', max: 30, seconds: 600 };
 const STARTS: RateLimit = { name: 'second-factor-start', max: 60, seconds: 600 };
 const FORGOTTEN: RateLimit = { name: 'forgotten', max: 10, seconds: 3_600 };
-/** By address, whoever asks: the holder or the support. */
-export const LINKS_BY_ADDRESS: RateLimit = { name: 'links', max: 3, seconds: 3_600 };
+/** By address. The support has its own count: a stranger who asks does not keep it from helping. */
+const LINKS_BY_ADDRESS: RateLimit = { name: 'links', max: 3, seconds: 3_600 };
 
 const locked = () => new ApiError(423, 'LOCKED');
 /** The password has to be given again. */
@@ -62,22 +62,26 @@ export class SignIn {
     };
     if (!(await this.passwords.verify(account?.passwordHash, password)) || !account) throw await wrong();
     const own = ownPortal(account.role);
-    const opened = await this.accounts.as(subject, async (tx) => {
-      // Reset, changed or disabled while it was being checked: what was typed is no longer its password.
-      const now = await tx.user.findUnique({ where: { id: subject }, select: { passwordHash: true, role: true, status: true, twoFactorRequired: true } });
-      if (now?.passwordHash !== account.passwordHash || now?.role !== account.role || now.status !== 'ACTIVE') return 'CHANGED';
-      await this.accounts.clearAttempts(tx, key);
-      if (own !== portal) {
-        await this.audit.log({ action: 'WRONG_PORTAL' });
-        return null;
-      }
-      const methods = await this.factors.methods(tx, subject);
-      const needed = methods.length > 0 || now.twoFactorRequired;
-      const session = await this.sessions.open(tx, portal, subject, { needed, persistent: remember });
-      if (needed) await this.audit.log({ action: 'PASSWORD_ACCEPTED' });
-      else await this.welcome(tx, subject, session.id, account.role);
-      return { session, methods, needed };
-    });
+    const opened = await this.accounts.as(
+      subject,
+      async (tx) => {
+        // Reset, changed or disabled while it was being checked: what was typed is no longer its password.
+        const now = await tx.user.findUnique({ where: { id: subject }, select: { passwordHash: true, role: true, status: true, twoFactorRequired: true } });
+        if (now?.passwordHash !== account.passwordHash || now?.role !== account.role || now.status !== 'ACTIVE') return 'CHANGED' as const;
+        await this.accounts.clearAttempts(tx, key);
+        if (own !== portal) {
+          await this.audit.log({ action: 'WRONG_PORTAL' });
+          return null;
+        }
+        const methods = await this.factors.methods(tx, subject);
+        const needed = methods.length > 0 || now.twoFactorRequired;
+        const session = await this.sessions.open(tx, portal, subject, { needed, persistent: remember });
+        if (needed) await this.audit.log({ action: 'PASSWORD_ACCEPTED' });
+        else await this.welcome(tx, subject, session.id, account.role);
+        return { session, methods, needed };
+      },
+      () => 'CHANGED' as const,
+    );
     if (opened === 'CHANGED') throw await wrong();
     if (!opened)
       return {

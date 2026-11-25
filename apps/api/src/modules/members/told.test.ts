@@ -83,12 +83,12 @@ describe('support', () => {
     expect((await support('developer', id, 'unlock')).status).toBe(409);
   });
 
-  it('sends three links an hour at most to one address, with those that its holder asks for', async () => {
+  it('sends three links an hour at most to one account, whatever is asked by strangers, who are counted apart', async () => {
     const { id, email } = await newAccount(test);
-    expect((await new Browser(test).post('/auth/forgot-password', { email: email.toUpperCase() })).status).toBe(204);
-    expect((await support('developer', id, 'reset-link')).status).toBe(204);
-    expect((await support('manager', id, 'reset-link')).status).toBe(204);
+    for (const as of ['developer', 'manager', 'director']) expect((await support(as, id, 'reset-link')).status).toBe(204);
     expect(await support('director', id, 'reset-link')).toMatchObject({ status: 429, body: { code: 'TOO_MANY' } });
+    expect((await new Browser(test).post('/auth/forgot-password', { email: email.toUpperCase() })).status).toBe(204);
+    for (let i = 0; i < 2; i += 1) expect((await new Browser(test).post('/auth/forgot-password', { email })).status).toBe(204);
     expect((await new Browser(test).post('/auth/forgot-password', { email })).status).toBe(429);
     expect(await read()).toHaveLength(2);
   });
@@ -166,6 +166,41 @@ describe('password reset by a link', () => {
   });
 });
 
+describe('what nobody can bury', () => {
+  it('an unread notification, whatever was read since', async () => {
+    const { id } = await newAccount(test);
+    await support('developer', id, 'require-2fa');
+    await rows(
+      `INSERT INTO notifications (user_id, kind, action, actor_id, target_id, created_at, read_at)
+       SELECT $1, 'SUPPORT_ACTION', 'ACCOUNT_UNLOCKED', $2, $3, now() + interval '1 second', now() FROM generate_series(1, 501)`,
+      [test.s.director, test.s.developer, id],
+    );
+    const shown = await read();
+    expect(shown).toHaveLength(500);
+    // The oldest one, and still there.
+    expect(shown.at(-1)).toBe('Devon Test (Développeur) a exigé la double authentification pour Nora Test');
+  });
+
+  it('the support, limited by whoever gives it, the Director apart', async () => {
+    const { id } = await newAccount(test);
+    const locked = async (as: string) => {
+      const answers = [];
+      for (let i = 0; i < 31; i += 1) answers.push((await support(as, id, 'unlock')).status);
+      return answers;
+    };
+    // Nothing to unlock: each of them is refused, and counted.
+    const answers = await locked('developer');
+    expect([answers[0], answers.at(-1)]).toEqual([409, 429]);
+    expect(new Set(await locked('director'))).toEqual(new Set([409]));
+  });
+
+  it('a link sent by the support, whoever has asked for one before', async () => {
+    const { id, email } = await newAccount(test);
+    for (let i = 0; i < 3; i += 1) expect((await new Browser(real).post('/auth/forgot-password', { email })).status).toBe(204);
+    expect((await support('director', id, 'reset-link')).status).toBe(204);
+  });
+});
+
 describe('the technical delegation', () => {
   const ENDED = 'Remi Test (Responsable du recouvrement) a changé le titulaire du rôle Développeur : la délégation technique a pris fin';
   const without = async (work: () => Promise<unknown>) => {
@@ -198,13 +233,13 @@ describe('the technical delegation', () => {
     });
   });
 
-  it('is not said to end when it had been withdrawn already', async () => {
+  it('is not said to end when it had been withdrawn already, but the new Developer is', async () => {
     await rows("UPDATE delegations SET withdrawn_at = now(), withdrawn_by = granted_by WHERE kind = 'TECHNICAL' AND withdrawn_at IS NULL");
     await without(async () => {
       const { id } = await newAccount(test);
       expect((await call('manager', 'PUT', `/staff/members/${id}/role`, { role: 'DEVELOPER' })).status).toBe(204);
       expect(await delegation()).toEqual([]);
-      expect(await read()).toEqual([]);
+      expect(await read()).toEqual(['Remi Test (Responsable du recouvrement) a changé le titulaire du rôle Développeur']);
     });
   });
 

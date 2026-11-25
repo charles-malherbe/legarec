@@ -1,8 +1,12 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { CHEAP, startApp, type TestApp } from '../../../test/app';
+import { CHEAP, ORIGINS, startApp, type TestApp } from '../../../test/app';
+import { Authenticator } from '../../../test/authenticator';
 import { Browser, codeOf, emailOf, freezeClock, givePassword, newAccount, PASSWORD, setUpTotp } from '../../../test/browser';
 import { newToken } from '../../platform/crypto/keyring';
+import { Database } from '../../platform/database/database';
+import { Accounts } from './accounts';
 import { AuthKeys } from './keys';
+import { drawLink } from './link-tokens';
 import { SecondFactors } from './second-factors';
 
 /** What happens to an account while it is being proved. */
@@ -114,7 +118,8 @@ describe('a password changed in two places', () => {
     const browsers = [staff(), staff(), staff()];
     for (const browser of browsers) await browser.login(email);
     const answers = await Promise.all(browsers.map((browser, i) => browser.change('/account/password', { current: PASSWORD, next: `${NEXT}${i}` })));
-    expect(answers.map((answer) => answer.status).sort()).toEqual([204, 422, 422]);
+    // The sessions of the others are closed by the first one.
+    expect(answers.map((answer) => answer.status).sort()).toEqual([204, 401, 401]);
     const won = answers.findIndex((answer) => answer.status === 204);
     expect((await staff().login(email, `${NEXT}${won}`)).status).toBe(200);
   });
@@ -138,6 +143,158 @@ describe('sessions in use', () => {
       for (const { status } of answers) expect(status).toBeOneOf([200, 204, 401]);
       for (const browser of browsers) expect((await browser.session()).status).toBe(401);
       expect((await director.post(`/members/${id}/enable`)).status).toBe(204);
+    }
+  });
+});
+
+/** Once the guard of the route has let the request in, and before its account is taken. */
+const beforeTaking = (work: () => Promise<unknown>) => {
+  const takeAttempt = Accounts.prototype.takeAttempt;
+  vi.spyOn(Accounts.prototype, 'takeAttempt').mockImplementationOnce(async function (this: Accounts, ...args) {
+    await work();
+    return takeAttempt.apply(this, args);
+  });
+};
+const REFUSED_SESSION = { status: 401, body: { code: 'UNAUTHORIZED' } };
+const director = async () => {
+  const browser = staff();
+  await browser.login(await emailOf(test, test.s.director));
+  return browser;
+};
+const factorsOf = (id: string) => rows('SELECT kind FROM second_factors WHERE user_id = $1 AND confirmed_at IS NOT NULL', [id]);
+
+describe('a session closed while it asks for something about its own account', () => {
+  it('does not change the password, nor closes the session of the holder', async () => {
+    const { email } = await newAccount(test);
+    const [holder, thief] = [staff(), staff()];
+    for (const browser of [holder, thief]) await browser.login(email);
+    meanwhile(async () => expect((await holder.delete('/account/sessions')).status).toBe(204));
+    expect(await thief.change('/account/password', { current: PASSWORD, next: NEXT })).toMatchObject(REFUSED_SESSION);
+    expect((await holder.session()).status).toBe(200);
+    expect((await staff().login(email)).status).toBe(200);
+  });
+
+  it('sets up no second factor once the password has been reset', async () => {
+    const { id, email } = await newAccount(test);
+    const thief = staff();
+    await thief.login(email);
+    const { key } = (await thief.post('/account/two-factor/totp')).body as { key: string };
+    const token = await resetLink(id);
+    beforeTaking(async () => expect((await staff().post(`/auth/reset/${token}`, { password: NEXT })).status).toBe(204));
+    expect(await thief.post('/account/two-factor/totp/verify', { code: codeOf(key) })).toMatchObject(REFUSED_SESSION);
+    expect(await factorsOf(id)).toEqual([]);
+    expect((await staff().login(email, NEXT)).body).toMatchObject({ status: 'OK' });
+  });
+
+  it('registers no key once the support has reset the second factor', async () => {
+    const support = await director();
+    const { id, email } = await newAccount(test);
+    const thief = staff();
+    await thief.login(email);
+    await setUpTotp(thief);
+    const { challenge } = (await thief.post('/account/two-factor/webauthn')).body as { challenge: string };
+    beforeTaking(async () => expect((await support.post(`/members/${id}/reset-2fa`)).status).toBe(204));
+    expect(await thief.post('/account/two-factor/webauthn/verify', new Authenticator(ORIGINS.staff).register(challenge))).toMatchObject(REFUSED_SESSION);
+    expect(await factorsOf(id)).toEqual([]);
+    // Its challenge is closed too, whichever session would bring it.
+    expect(await rows('SELECT 1 FROM auth_tokens WHERE user_id = $1 AND used_at IS NULL', [id])).toEqual([]);
+  });
+
+  it('writes nothing on an account disabled meanwhile', async () => {
+    const support = await director();
+    const { id, email } = await newAccount(test);
+    const holder = staff();
+    await holder.login(email);
+    const { key } = (await holder.post('/account/two-factor/totp')).body as { key: string };
+    beforeTaking(async () => expect((await support.post(`/members/${id}/disable`, { reason: 'Essai', cases: 0 })).status).toBe(204));
+    const tasks = async () => (await rows<{ n: number }>("SELECT count(*)::int AS n FROM outbox WHERE name = 'second-factor-enabled'"))[0]!.n;
+    const before = await tasks();
+    expect(await holder.post('/account/two-factor/totp/verify', { code: codeOf(key) })).toMatchObject(REFUSED_SESSION);
+    expect(await factorsOf(id)).toEqual([]);
+    expect(await rows('SELECT 1 FROM backup_codes WHERE user_id = $1', [id])).toEqual([]);
+    expect(await tasks()).toBe(before);
+  });
+
+  it.each<[string, (browser: Browser) => Promise<{ status: number }>]>([
+    ['starts an application', (browser) => browser.post('/account/two-factor/totp')],
+    ['starts a key', (browser) => browser.post('/account/two-factor/webauthn')],
+    ['removes the second factor', (browser) => browser.delete('/account/two-factor')],
+    ['closes the other sessions', (browser) => browser.delete('/account/sessions')],
+  ])('never %s', async (_name, ask) => {
+    const { id, email } = await newAccount(test);
+    const [holder, thief] = [staff(), staff()];
+    await holder.login(email);
+    const { key } = await setUpTotp(holder);
+    await thief.login(email);
+    await thief.post('/auth/two-factor', { method: 'TOTP', code: codeOf(key) });
+    expect((await thief.session()).status).toBe(200);
+    // Between the guard and the account.
+    const own = Accounts.prototype.own;
+    vi.spyOn(Accounts.prototype, 'own').mockImplementationOnce(async function (this: Accounts, ...args) {
+      await rows('UPDATE user_sessions SET revoked_at = now() WHERE user_id = $1 AND second_factor_needed', [id]);
+      return own.apply(this, args) as never;
+    });
+    expect(await ask(thief)).toMatchObject(REFUSED_SESSION);
+    expect(await factorsOf(id)).toEqual([{ kind: 'TOTP' }]);
+    expect(await live(id)).toHaveLength(1);
+  });
+});
+
+describe('a link drawn by the worker', () => {
+  const draw = (id: string, midway: () => Promise<unknown>, jobs: Database) =>
+    jobs.run({ kind: 'worker', job: 'email' }, async (tx) => {
+      // Between the new link and the former ones.
+      const { findUnique } = tx.user;
+      vi.spyOn(tx.user, 'findUnique').mockImplementationOnce(((args: never) => midway().then(() => findUnique.call(tx.user, args))) as never);
+      await drawLink(tx, keys, { purpose: 'RESET', userId: id, token: newToken() });
+    });
+
+  it('does not stop the account from being disabled at the same time', async () => {
+    const support = await director();
+    const jobs = new Database(test.database.url('jobs'));
+    try {
+      const { id } = await newAccount(test);
+      await resetLink(id);
+      let disabled: Promise<{ status: number }> | undefined;
+      await draw(
+        id,
+        async () => {
+          disabled = support.post(`/members/${id}/disable`, { reason: 'Essai', cases: 0 });
+          await new Promise((done) => setTimeout(done, 300));
+        },
+        jobs,
+      );
+      expect((await disabled!).status).toBe(204);
+      expect(await rows('SELECT 1 FROM auth_tokens WHERE user_id = $1 AND used_at IS NULL', [id])).toEqual([]);
+    } finally {
+      await jobs.close();
+    }
+  });
+
+  it('is drawn for nobody once the account is disabled, and once only otherwise', async () => {
+    const jobs = new Database(test.database.url('jobs'));
+    const one = (id: string) => jobs.run({ kind: 'worker', job: 'email' }, (tx) => drawLink(tx, keys, { purpose: 'RESET', userId: id, token: newToken() }));
+    try {
+      const closed = await newAccount(test, { status: 'DISABLED' });
+      await expect(one(closed.id)).rejects.toThrow('ACCOUNT_CHANGED');
+      expect(await rows('SELECT 1 FROM auth_tokens WHERE user_id = $1', [closed.id])).toEqual([]);
+      const { id } = await newAccount(test);
+      await Promise.all(Array.from({ length: 5 }, () => one(id)));
+      expect(await rows('SELECT 1 FROM auth_tokens WHERE user_id = $1 AND used_at IS NULL', [id])).toHaveLength(1);
+    } finally {
+      await jobs.close();
+    }
+  });
+});
+
+describe('two people who replace each other', () => {
+  it('leave at the same time without an incident', async () => {
+    const support = await director();
+    for (let i = 0; i < 6; i += 1) {
+      const [a, b] = [await newAccount(test), await newAccount(test)];
+      await rows('UPDATE users SET substitute_id = CASE id WHEN $1 THEN $2::uuid ELSE $1::uuid END WHERE id IN ($1, $2)', [a.id, b.id]);
+      const answers = await Promise.all([a, b].map(({ id }) => support.post(`/members/${id}/disable`, { reason: 'Essai', cases: 0 })));
+      expect(answers.map((answer) => answer.status)).toEqual([204, 204]);
     }
   });
 });

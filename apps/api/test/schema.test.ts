@@ -370,7 +370,9 @@ describe('rights on the functions', () => {
     ['create_director', ['worker']],
     ['ticket_reader', ['worker']],
     // Called by the functions above only.
-    ...['close_account', 'release_cases', 'digests', 'refuse', 'tell_director', 'end_technical_delegation'].map((name) => [name, []] as [string, string[]]),
+    ...['close_account', 'release_cases', 'digests', 'refuse', 'tell_director', 'end_technical_delegation', 'take_with_substituted'].map(
+      (name) => [name, []] as [string, string[]],
+    ),
     // Triggers.
     ['open_delegations', []],
     ['require_for_developer', []],
@@ -397,7 +399,7 @@ describe('rights on the functions', () => {
       'log enqueue staff_role has_delegation partner_creditor on_behalf_of actor_kind actor_label actor_id actor_key',
       'purge_sign_ins anonymize_accounts account_of account_of_link inviter_name resume_session take_attempt clear_attempts subject proved_subject tell_reset',
       'invite_member cancel_invitation disable_member enable_member set_member_role set_extension support account_states locked set_delegation open_ticket acts_as_director',
-      'portal_officer create_director ticket_reader close_account release_cases digests refuse tell_director end_technical_delegation open_delegations require_for_developer',
+      'portal_officer create_director ticket_reader close_account release_cases digests refuse tell_director end_technical_delegation take_with_substituted open_delegations require_for_developer',
       'uuid_v7 setting user_id creditor_id debtor_id only_identifiers audit_params',
     ].flatMap((names) => names.split(' '));
     const found = await rows<{ proname: string }>(

@@ -171,7 +171,7 @@ export class AccountService {
       throw new ApiError(422, 'INVALID_CREDENTIALS');
     }
     const passwordHash = await this.passwords.hash(next);
-    await this.accounts.as(id, async (tx) => {
+    await this.accounts.own(actor, async (tx) => {
       const now = new Date();
       // Reset or changed while it was being checked.
       const { passwordHash: before } = await tx.user.findUniqueOrThrow({ where: { id }, select: { passwordHash: true } });
@@ -188,7 +188,7 @@ export class AccountService {
   }
 
   startTotp(actor: StaffActor) {
-    return this.accounts.as(actor.userId, async (tx) => this.factors.startTotp(tx, await this.holder(tx, actor)));
+    return this.accounts.own(actor, async (tx) => this.factors.startTotp(tx, await this.holder(tx, actor)));
   }
 
   verifyTotp(actor: StaffActor, code: string): Promise<{ backupCodes: string[] }> {
@@ -196,7 +196,7 @@ export class AccountService {
   }
 
   keyOptions(actor: StaffActor) {
-    return this.accounts.as(actor.userId, async (tx) => this.factors.registrationOptions(tx, 'staff', await this.holder(tx, actor), actor.session?.id));
+    return this.accounts.own(actor, async (tx) => this.factors.registrationOptions(tx, 'staff', await this.holder(tx, actor), actor.session?.id));
   }
 
   verifyKey(actor: StaffActor, response: unknown): Promise<{ backupCodes: string[] }> {
@@ -204,7 +204,7 @@ export class AccountService {
   }
 
   async disable(actor: StaffActor): Promise<void> {
-    await this.accounts.as(actor.userId, async (tx) => {
+    await this.accounts.own(actor, async (tx) => {
       const { twoFactorRequired } = await tx.user.findUniqueOrThrow({ where: { id: actor.userId }, select: { twoFactorRequired: true } });
       if (twoFactorRequired) throw forbidden();
       await this.factors.removeAll(tx, actor.userId);
@@ -216,7 +216,7 @@ export class AccountService {
     const key = this.keys.attempt('second-factor', actor.userId);
     const attempt = await this.accounts.takeAttempt(key, 'SECOND_FACTOR');
     if (!attempt.allowed) throw new ApiError(423, 'LOCKED');
-    const codes = await this.accounts.as(actor.userId, async (tx) => {
+    const codes = await this.accounts.own(actor, async (tx) => {
       const factor = await confirm(tx);
       if (!factor) return null;
       await this.accounts.clearAttempts(tx, key);
@@ -243,7 +243,7 @@ export class AccountService {
   }
 
   private closeSessions(actor: StaffActor, which: { id?: string | { not: string } }): Promise<number> {
-    return this.accounts.as(actor.userId, async (tx) => {
+    return this.accounts.own(actor, async (tx) => {
       const { count } = await tx.userSession.updateMany({ where: { userId: actor.userId, ...which, revokedAt: null }, data: { revokedAt: new Date() } });
       if (count) await this.audit.log({ action: 'SESSIONS_CLOSED', params: { count: Math.min(count, 999) } });
       return count;

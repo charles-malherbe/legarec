@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { Writable } from 'node:stream';
+import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDatabase, seed, type Seed, type TestDatabase } from '../../../test/database';
 import { Database } from '../database/database';
@@ -189,6 +190,23 @@ describe('accounts', () => {
     const id = await disabled('25 months');
     await rows("UPDATE users SET status = 'ACTIVE', disabled_at = NULL, disabled_by = NULL, disabled_reason = NULL WHERE id = $1", [id]);
     expect(await purge(jobs, logger)).toMatchObject({ accounts: 0 });
+  });
+
+  it('opened again while they are being forgotten are kept whole', async () => {
+    const id = await disabled('25 months');
+    const other = new pg.Client({ connectionString: test.adminUrl });
+    await other.connect();
+    try {
+      await other.query('BEGIN');
+      await other.query("UPDATE users SET status = 'ACTIVE', disabled_at = NULL, disabled_by = NULL, disabled_reason = NULL WHERE id = $1", [id]);
+      expect(await purge(jobs, logger)).toMatchObject({ accounts: 0 });
+      await other.query('COMMIT');
+    } finally {
+      await other.end();
+    }
+    expect(await rows('SELECT status, last_name, anonymized_at FROM users WHERE id = $1', [id])).toEqual([
+      { status: 'ACTIVE', last_name: 'Nom-MARK', anonymized_at: null },
+    ]);
   });
 });
 

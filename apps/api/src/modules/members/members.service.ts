@@ -7,11 +7,10 @@ import { Audit } from '../../platform/audit/audit';
 import { Database } from '../../platform/database/database';
 import { conflict, forbidden, invalid, notFound } from '../../platform/errors/api-error';
 import { ago, capitalized } from '../../platform/format';
-import { RateLimits } from '../../platform/limits/rate-limits';
+import { RateLimits, type RateLimit } from '../../platform/limits/rate-limits';
 import { Outbox } from '../../platform/queue/outbox';
 import type { StaffActor } from '../account/account.service';
 import { AuthKeys } from '../auth/keys';
-import { LINKS_BY_ADDRESS } from '../auth/sign-in';
 
 export type SupportAction = 'RESET_LINK' | 'SECOND_FACTOR_REQUIRED' | 'SECOND_FACTOR_RESET' | 'ACCOUNT_UNLOCKED';
 const NOTED: Record<SupportAction, AuditAction> = {
@@ -21,6 +20,10 @@ const NOTED: Record<SupportAction, AuditAction> = {
   ACCOUNT_UNLOCKED: 'ACCOUNT_UNLOCKED',
 };
 const ONLINE_MS = 5 * 60_000;
+/** By account helped. */
+const LINKS_BY_SUPPORT: RateLimit = { name: 'support-links', max: 3, seconds: 3_600 };
+/** By whoever helps: each of them is told to the Director, who must be able to read them. */
+const SUPPORT_ACTIONS: RateLimit = { name: 'support', max: 30, seconds: 3_600 };
 
 interface Target {
   id: string;
@@ -158,11 +161,12 @@ export class MembersService {
   async support(actor: StaffActor, id: string, action: SupportAction): Promise<void> {
     const target = await this.target(id);
     if (!this.maySupport(actor, target, action)) throw forbidden();
+    if (actor.role !== 'DIRECTOR') await this.limits.take(SUPPORT_ACTIONS, actor.userId);
     await this.database.tx.$executeRaw`SELECT app.support(${id}::uuid, ${action}::support_action, ${this.attempts(target)}::text[])`;
     await this.audit.log({ action: NOTED[action], entity: { type: 'user', id } });
     if (action !== 'RESET_LINK') return;
     // Beyond, nothing of the above stays.
-    await this.limits.take(LINKS_BY_ADDRESS, target.email.toLowerCase());
+    await this.limits.take(LINKS_BY_SUPPORT, target.id);
     await this.outbox.add({ queue: 'email', name: 'reset-link', payload: { userId: id } });
   }
 

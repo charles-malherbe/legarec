@@ -140,8 +140,10 @@ export class Sessions {
   async close(portal: AccountPortal): Promise<void> {
     const session = await this.current(portal);
     if (session)
-      await this.accounts.as(session.userId, (tx) =>
-        tx.userSession.updateMany({ where: { id: session.id, revokedAt: null }, data: { revokedAt: new Date() } }),
+      await this.accounts.as(
+        session.userId,
+        async (tx) => void (await tx.userSession.updateMany({ where: { id: session.id, revokedAt: null }, data: { revokedAt: new Date() } })),
+        () => undefined,
       );
     cookies().clear(portal);
   }

@@ -21,6 +21,7 @@ const SUPPORT: Record<SupportAction, (of: string) => string> = {
   ACCOUNT_UNLOCKED: (of) => `a débloqué ${of === '' ? 'votre compte' : `le compte de ${of}`}`,
 };
 
+const SHOWN = 500;
 const JOURNAL = { href: '/parametres/techniques/audit', cta: 'Voir le journal' };
 const TEAM = { href: '/equipe', cta: 'Ouvrir l’équipe' };
 
@@ -34,21 +35,26 @@ export class NotificationsController {
   @ApiOkResponse({ standardSchema: z.array(notificationItem) })
   async list(): Promise<NotificationItem[]> {
     const person = { select: { id: true, firstName: true, lastName: true, role: true } } as const;
-    const found = await this.database.tx.notification.findMany({
-      select: {
-        id: true,
-        userId: true,
-        kind: true,
-        action: true,
-        createdAt: true,
-        readAt: true,
-        actor: person,
-        target: person,
-        ticket: { select: { number: true, subject: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 500,
-    });
+    const some = (readAt: null | { not: null }, take: number) =>
+      this.database.tx.notification.findMany({
+        where: { readAt },
+        select: {
+          id: true,
+          userId: true,
+          kind: true,
+          action: true,
+          createdAt: true,
+          readAt: true,
+          actor: person,
+          target: person,
+          ticket: { select: { number: true, subject: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take,
+      });
+    // Those that were read give way: nothing unread is pushed out by them.
+    const unread = await some(null, SHOWN);
+    const found = [...unread, ...(await some({ not: null }, SHOWN - unread.length))].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     const now = new Date();
     return found.map(({ id, userId, kind, action, createdAt, readAt, actor, target, ticket }) => {
       const day = daysAgo(createdAt, now);
@@ -70,6 +76,8 @@ export class NotificationsController {
               href: '/compte',
               cta: 'Ouvrir mon compte',
             };
+          case 'DEVELOPER_CHANGED':
+            return { text: `${signed(actor)} a changé le titulaire du rôle Développeur`, meta: 'Équipe', ...TEAM };
           default:
             return { text: `${signed(actor)} ${SUPPORT[action!](self ? '' : name(target))}`, meta: 'Support des comptes', ...JOURNAL };
         }

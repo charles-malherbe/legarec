@@ -41,7 +41,7 @@ export class Links {
   async reset(portal: AccountPortal, token: string, password: string): Promise<void> {
     const id = await this.holder(portal, 'RESET', token);
     const passwordHash = await this.passwords.hash(password);
-    await this.accounts.as(id, async (tx) => {
+    await this.holding(id, async (tx) => {
       const now = new Date();
       await this.use(tx, id, 'RESET', token, { usedAt: now });
       const { email } = await this.choose(tx, id, password, passwordHash);
@@ -58,12 +58,12 @@ export class Links {
   async choosePassword(portal: AccountPortal, token: string, password: string): Promise<{ totpKey: string }> {
     const id = await this.holder(portal, 'INVITATION', token);
     const passwordHash = await this.passwords.hash(password);
-    await this.accounts.as(id, async (tx) => {
+    await this.holding(id, async (tx) => {
       await this.use(tx, id, 'INVITATION', token, { openedAt: new Date(), expiresAt: new Date(Date.now() + SETUP_MS) }, false);
       await this.choose(tx, id, password, passwordHash);
       await this.audit.log({ action: 'ACCOUNT_ACTIVATED' });
     });
-    const { key } = await this.accounts.as(id, async (tx) => {
+    const { key } = await this.holding(id, async (tx) => {
       const user = await tx.user.findUniqueOrThrow({ where: { id }, select: { id: true, email: true } });
       return this.factors.startTotp(tx, user);
     });
@@ -75,7 +75,7 @@ export class Links {
     const key = this.keys.attempt('second-factor', id);
     const attempt = await this.accounts.takeAttempt(key, 'SECOND_FACTOR');
     if (!attempt.allowed) throw new ApiError(423, 'LOCKED');
-    const backupCodes = await this.accounts.as(id, async (tx) => {
+    const backupCodes = await this.holding(id, async (tx) => {
       const factor = await this.factors.confirmTotp(tx, id, code);
       if (!factor) return null;
       await this.use(tx, id, 'INVITATION', token, { usedAt: new Date() }, true);
@@ -89,6 +89,13 @@ export class Links {
       throw new ApiError(401, 'INVALID_CODE', { attemptsLeft: attempt.left });
     }
     return { backupCodes };
+  }
+
+  /** By the holder of the link. Their account disabled meanwhile, the link is no more. */
+  private holding<T>(id: string, work: (tx: Transaction) => Promise<T>): Promise<T> {
+    return this.accounts.as(id, work, () => {
+      throw expired();
+    });
   }
 
   /** Account of a live link, on its own portal. */
