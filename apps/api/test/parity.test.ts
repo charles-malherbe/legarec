@@ -49,7 +49,20 @@ beforeAll(async () => {
     creditorId: s.creditorA,
     reset: await link('RESET', s.officerA),
     invitation: await link('INVITATION', rows[0]!.id),
+    mandate: (
+      await database.admin.query<{ id: string }>(
+        `INSERT INTO mandates (creditor_id, starts_on, amicable_rate_bp, litigation_rate_bp, plan_months_without_consent, discount_max_bp, litigation_needs_consent, interest_mode, fixed_indemnity, reporting_day, scenario)
+         VALUES ($1, '2026-01-01', 800, 1200, 6, 500, true, 'NONE', true, 5, 'BUSINESS') RETURNING id`,
+        [s.creditorA],
+      )
+    ).rows[0]!.id,
+    caseOfDirector: s.cases.ofDirector,
+    caseOfManager: s.cases.unassigned,
   };
+  // Beyond the references of the test set.
+  await database.admin.query(
+    "INSERT INTO number_sequences (kind, year, last_value) VALUES ('CASE', extract(year FROM now() AT TIME ZONE 'Europe/Paris')::int, 1000)",
+  );
   const invited = await database.admin.query<{ id: string }>(
     `INSERT INTO users (role, status, first_name, last_name, email, creditor_id, invited_by, invited_at)
      VALUES ('CREDITOR', 'INVITED', 'Paul', 'Roche', 'p.roche@energiesrhone.example', $1, $2, now()) RETURNING id`,

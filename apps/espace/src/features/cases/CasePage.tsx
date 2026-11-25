@@ -26,7 +26,7 @@ export function CasePage() {
         <EtatListe kind="loading" />
       </div>
     );
-  if (error instanceof ApiError && error.status === 403) return <AccessDenied />;
+  if (error instanceof ApiError && (error.status === 403 || error.status === 404)) return <AccessDenied />;
   if (error || !data)
     return (
       <div className={layout.card}>

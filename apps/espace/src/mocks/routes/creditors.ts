@@ -16,6 +16,7 @@ import { audit } from '../audit';
 import { done, guarded, notFound, staffWithCases } from '../http';
 import { mayRead } from '../visibility';
 import { OFFICERS, readable } from './cases';
+import { creditorFacts } from './creditorFacts';
 import { administers } from './steering';
 
 export const CREDITORS: CreditorListItem[] = [
@@ -302,6 +303,25 @@ const onFile = (allow: (session: Session) => boolean, resolve: (file: Stored, se
   });
 const onAccount = (resolve: (file: Stored, session: Session, info: Info) => Response | Promise<Response>) =>
   onFile(administers, (file, session, info) => (file.bankAccount?.id === info.params.accountId ? resolve(file, session, info) : notFound()));
+const percent = (bp: number) => `${(bp / 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} %`;
+creditorFacts.list = () => listed().map(({ id, name }) => ({ id, name }));
+creditorFacts.mandateOf = (id) => {
+  const mandate = fileOf(id)?.mandates.find((item) => item.state === 'CURRENT');
+  return mandate
+    ? {
+        id: mandate.id,
+        since: mandate.startsOn,
+        scenario: mandate.scenario,
+        fixedIndemnity: mandate.fixedIndemnity,
+        hasContract: mandate.hasContract,
+        terms: [
+          { label: 'Honoraires amiable', value: `${percent(mandate.amicableRateBp)} HT du recouvré` },
+          { label: 'Indemnité forfaitaire', value: mandate.fixedIndemnity ? '40 € / facture (professionnels)' : 'Non réclamée' },
+        ],
+      }
+    : null;
+};
+creditorFacts.nextOf = (id) => fileOf(id)?.mandates.find((item) => item.state === 'TO_COME')?.startsOn ?? null;
 const knownManager = (id: string | null) => id === null || id in OFFICERS;
 
 const formHandlers = [

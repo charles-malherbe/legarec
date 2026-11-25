@@ -1,5 +1,10 @@
 import {
   accountData,
+  caseCheckResult,
+  caseChoices,
+  caseDetail,
+  caseList,
+  caseOpened,
   creditorChoices,
   creditorCreated,
   creditorDetail,
@@ -68,6 +73,24 @@ const CREDITOR = {
     reportingDay: 5,
     scenario: 'BUSINESS',
   },
+};
+const CASE = {
+  externalReference: '',
+  kind: 'COMPANY',
+  number: '732829072',
+  name: 'Menuiserie Arnal',
+  nameConfirmed: true,
+  legalForm: '',
+  address: '18 chemin des Scieurs',
+  postalCode: '38500',
+  city: 'Voiron',
+  contactName: '',
+  contactTitle: '',
+  contacts: [],
+  invoices: [{ number: 'F-1', externalRef: '', issuedOn: '2026-08-28', dueOn: '2026-09-27', amount: 48_600, left: 48_600 }],
+  scenario: 'BUSINESS',
+  toMe: false,
+  expected: { principal: 48_600, invoices: 1 },
 };
 /** Example IBAN of the international standard, not a real account. */
 const ACCOUNT = { holder: 'X', iban: 'GB82 WEST 1234 5698 7654 32', bic: 'PSSTFRPPXXX', confirmedWith: '' };
@@ -294,6 +317,50 @@ export const ACCOUNT_PARITY: Parity[] = [
   { as: 'nobody', request: 'GET /auth/proof', status: 401, answer: code('UNAUTHORIZED') },
   { as: 'manager', request: 'POST /auth/proof', body: { method: 'TOTP', code: '000000' }, status: 422, answer: refused('INVALID') },
   { as: 'nobody', request: 'POST /auth/proof', body: { method: 'PASSWORD', password: 'x' }, status: 401, answer: code('UNAUTHORIZED') },
+
+  ...each(['director', 'manager', 'officer'], () => ({
+    request: 'POST /cases/search?creditor=all&status=all&officer=all',
+    body: { query: '' },
+    status: 200,
+    answer: caseList,
+  })),
+  { as: 'developer', request: 'POST /cases/search?creditor=all&status=all&officer=all', body: { query: '' }, status: 403, answer: code('FORBIDDEN') },
+  ...each(['director', 'manager'], () => ({ request: 'GET /cases/choices', status: 200, answer: caseChoices })),
+  ...each(['developer', 'officer'], () => ({ request: 'GET /cases/choices', status: 403, answer: code('FORBIDDEN') })),
+  ...each(['director', 'manager', 'officer'], () => ({ request: `GET /cases/${UNKNOWN}`, status: 404, answer: code('NOT_FOUND') })),
+  { as: 'manager', request: 'GET /cases/{caseOfDirector}', status: 404, answer: code('NOT_FOUND') },
+  { as: 'director', request: 'GET /cases/{caseOfDirector}', status: 200, answer: caseDetail },
+  { as: 'manager', request: 'POST /cases/check', body: { creditorId: '{creditorId}', number: '' }, status: 200, answer: caseCheckResult },
+  { as: 'manager', request: 'POST /cases/check', body: { creditorId: UNKNOWN, number: '' }, status: 404, answer: code('NOT_FOUND') },
+  { as: 'officer', request: 'POST /cases/check', body: { creditorId: '{creditorId}', number: '' }, status: 403, answer: code('FORBIDDEN') },
+  { as: 'manager', request: 'POST /cases', body: { ...CASE, creditorId: '{creditorId}', mandateId: UNKNOWN }, ...CHANGED },
+  { as: 'manager', request: 'POST /cases', body: { ...CASE, creditorId: '{creditorId}', mandateId: '{mandate}' }, status: 200, answer: caseOpened },
+  { as: 'director', request: 'POST /cases', body: { ...CASE, creditorId: '{creditorId}', mandateId: '{mandate}' }, status: 409, answer: code('CASE_EXISTS') },
+  { as: 'officer', request: 'POST /cases', body: { ...CASE, creditorId: '{creditorId}', mandateId: '{mandate}' }, status: 403, answer: code('FORBIDDEN') },
+  { as: 'manager', request: 'POST /cases', body: { ...CASE, number: '123' }, status: 422, answer: refused('INVALID') },
+  {
+    as: 'manager',
+    request: `POST /cases/${UNKNOWN}/invoices`,
+    body: { version: 1, invoices: CASE.invoices, expected: CASE.expected },
+    status: 404,
+    answer: code('NOT_FOUND'),
+  },
+  {
+    as: 'director',
+    request: 'POST /cases/{caseOfManager}/invoices',
+    body: { version: 1, invoices: CASE.invoices, expected: CASE.expected },
+    status: 403,
+    answer: code('FORBIDDEN'),
+  },
+  { as: 'director', request: 'POST /cases/assign', body: { ids: [UNKNOWN], officerId: '{officer}' }, status: 403, answer: code('FORBIDDEN') },
+  {
+    as: 'director',
+    request: 'POST /cases/assign',
+    body: { ids: ['{caseOfManager}'], officerId: '{developer}' },
+    status: 422,
+    answer: refused('INVALID_OFFICER'),
+  },
+  { as: 'officer', request: 'POST /cases/assign', body: { ids: ['{caseOfManager}'], officerId: '{officer}' }, status: 403, answer: code('FORBIDDEN') },
 ];
 
 /** Sign-in of the creditors. */
