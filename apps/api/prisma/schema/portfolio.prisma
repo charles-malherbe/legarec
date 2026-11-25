@@ -43,6 +43,7 @@ enum ActorKind {
   CREDITOR
   DEBTOR
   SERVICE
+  HOOK
   SYSTEM
   ANONYMOUS
 

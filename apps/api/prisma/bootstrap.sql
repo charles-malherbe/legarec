@@ -27,7 +27,15 @@ $$;
 
 -- No inherited right: without SET LOCAL ROLE, every statement ends in "permission denied".
 GRANT legarec_auth, legarec_staff, legarec_partner, legarec_debtor, legarec_hook, legarec_public, legarec_service TO legarec_app WITH INHERIT FALSE, SET TRUE;
--- A task born from a collaborator runs with the rights of that collaborator; the others run as the worker.
-GRANT legarec_worker, legarec_retention, legarec_staff TO legarec_jobs WITH INHERIT FALSE, SET TRUE;
+-- A task runs with the rights of its author (collaborator, creditor, debtor); the scheduled ones as the worker.
+GRANT legarec_worker, legarec_retention, legarec_staff, legarec_partner, legarec_debtor TO legarec_jobs WITH INHERIT FALSE, SET TRUE;
+
+-- Nothing runs, waits or stays open for ever.
+ALTER ROLE legarec_app SET statement_timeout = '15s';
+ALTER ROLE legarec_app SET lock_timeout = '5s';
+ALTER ROLE legarec_app SET idle_in_transaction_session_timeout = '30s';
+ALTER ROLE legarec_jobs SET statement_timeout = '60s';
+ALTER ROLE legarec_jobs SET lock_timeout = '10s';
+ALTER ROLE legarec_jobs SET idle_in_transaction_session_timeout = '120s';
 -- The migrations hand the definer functions over to their owner.
 GRANT legarec_definer TO legarec_owner WITH INHERIT FALSE, SET TRUE;

@@ -187,7 +187,9 @@ describe('worker and retention', () => {
   it('run a task of a collaborator with the rights of that collaborator', async () => {
     expect(await jobs.run({ kind: 'worker', job: 'test' }, (tx) => tx.case.count())).toBe(4);
     expect(await jobs.run(actors().officerA, (tx) => tx.case.count())).toBe(1);
-    await expect(jobs.run(actors().partnerA, (tx) => tx.case.count())).rejects.toThrow(/permission denied to set role/u);
-    await expect(jobs.run({ kind: 'anonymous' }, (tx) => tx.case.count())).rejects.toThrow(/permission denied to set role/u);
+    expect(await jobs.run(actors().partnerA, (tx) => tx.case.count())).toBe(2);
+    expect(await jobs.run(actors().debtorB, (tx) => tx.case.count())).toBe(1);
+    for (const kind of ['anonymous', 'hook', 'public'] as const)
+      await expect(jobs.run({ kind }, (tx) => tx.case.count())).rejects.toThrow(/permission denied to set role/u);
   });
 });

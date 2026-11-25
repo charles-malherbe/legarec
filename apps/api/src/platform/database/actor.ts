@@ -1,4 +1,5 @@
 import type { Delegation, Role } from '@legarec/contracts';
+import type { RequestFacts } from '../http/context';
 
 /** Who is acting. The kind decides the PostgreSQL role of the transaction; the rest feeds the row-level security. */
 export type Actor =
@@ -8,7 +9,7 @@ export type Actor =
   | { kind: 'debtor'; debtorId: string }
   | { kind: 'hook' }
   | { kind: 'public' }
-  | { kind: 'service'; accountId: string }
+  | { kind: 'service'; accountId: string; scopes: readonly string[] }
   | { kind: 'worker'; job: string }
   | { kind: 'retention' };
 
@@ -25,12 +26,6 @@ export const DATABASE_ROLE: Record<ActorKind, string> = {
   worker: 'legarec_worker',
   retention: 'legarec_retention',
 };
-
-/** Facts about the request kept with the audit log. Never a path, a query string or a body. */
-export interface RequestFacts {
-  requestId?: string;
-  ip?: string;
-}
 
 /** Every context variable is set, even to an empty value: nothing is inherited from a previous transaction. */
 export function contextOf(actor: Actor, facts: RequestFacts): Record<string, string> {

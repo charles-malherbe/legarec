@@ -1,7 +1,8 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { PrismaClient, type Prisma } from '../../generated/prisma/client';
-import { contextOf, type Actor, type RequestFacts } from './actor';
+import { requestFacts, type RequestFacts } from '../http/context';
+import { contextOf, type Actor } from './actor';
 
 export type Transaction = Prisma.TransactionClient;
 interface Scope {
@@ -18,19 +19,21 @@ export class Database {
   private readonly client: PrismaClient;
   private readonly scope = new AsyncLocalStorage<Scope>();
 
-  constructor(url: string, options: { poolSize?: number } = {}) {
+  constructor(url: string, options: { poolSize?: number; timeoutMs?: number } = {}) {
     this.client = new PrismaClient({ adapter: new PrismaPg({ connectionString: url, max: options.poolSize ?? 10 }), errorFormat: 'minimal' });
+    this.timeoutMs = options.timeoutMs ?? TIMEOUT_MS;
   }
+  private readonly timeoutMs: number;
 
   /** Runs `work` in a new transaction. Everything rolls back if it throws. */
-  async run<T>(actor: Actor, work: (tx: Transaction) => Promise<T>, facts: RequestFacts = {}): Promise<T> {
+  async run<T>(actor: Actor, work: (tx: Transaction) => Promise<T>, facts: RequestFacts = requestFacts()): Promise<T> {
     const context = contextOf(actor, facts);
     return this.client.$transaction(
       async (tx) => {
         await tx.$queryRawUnsafe(ENTER, ...CONTEXT_NAMES.map((name) => context[name]));
         return this.scope.run({ actor, tx }, () => work(tx));
       },
-      { timeout: TIMEOUT_MS, maxWait: 5_000 },
+      { timeout: this.timeoutMs, maxWait: 5_000 },
     );
   }
 

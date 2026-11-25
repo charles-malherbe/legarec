@@ -47,7 +47,6 @@ model User {
   withdrawnDelegations Delegation[] @relation("withdrawnBy")
   eventsOnBehalf       CaseEvent[]
   auditOnBehalf        AuditEntry[]
-  tasks                OutboxTask[]
 
   @@map("users")
 }

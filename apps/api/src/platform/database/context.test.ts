@@ -50,7 +50,7 @@ describe('context of the transaction', () => {
       debtorA(),
       { kind: 'hook' },
       { kind: 'public' },
-      { kind: 'service', accountId: randomUUID() },
+      { kind: 'service', accountId: randomUUID(), scopes: [] },
       { kind: 'worker', job: 'x' },
       { kind: 'retention' },
     ];
@@ -74,7 +74,7 @@ describe('context of the transaction', () => {
       ['success', () => single.run(delegate(), (tx) => tx.case.count(), facts)],
       ['creditor', () => single.run(partnerA(), (tx) => tx.case.count(), facts)],
       ['debtor', () => single.run(debtorA(), (tx) => tx.case.count(), facts)],
-      ['service', () => single.run({ kind: 'service', accountId: randomUUID() }, () => Promise.resolve(), facts)],
+      ['service', () => single.run({ kind: 'service', accountId: randomUUID(), scopes: [] }, () => Promise.resolve(), facts)],
       ['exception', () => single.run(director(), () => Promise.reject(new Error('stop')), facts)],
       ['refusal', () => single.run(partnerA(), (tx) => tx.auditEntry.count(), facts)],
     ];

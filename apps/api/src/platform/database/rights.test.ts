@@ -21,6 +21,7 @@ afterAll(async () => {
   await test.drop();
 });
 
+const SERVICE = randomUUID();
 type Staff = Extract<Actor, { kind: 'staff' }>;
 const staff = (userId: string, role: Staff['role'], more: Partial<Staff> = {}): Actor => ({ kind: 'staff', userId, role, delegations: [], ...more });
 const actors = () => ({
@@ -40,7 +41,7 @@ const actors = () => ({
   anonymous: { kind: 'anonymous' } as Actor,
   hook: { kind: 'hook' } as Actor,
   public: { kind: 'public' } as Actor,
-  service: { kind: 'service', accountId: randomUUID() } as Actor,
+  service: { kind: 'service', accountId: SERVICE, scopes: [] } as Actor,
   worker: { kind: 'worker', job: 'test' } as Actor,
   retention: { kind: 'retention' } as Actor,
 });
@@ -134,13 +135,6 @@ describe('history of a case: who writes', () => {
       await whileStatus(s.officerA, status, () => expect(write('officerA', s.cases.ofA)).rejects.toThrow(/case not found/u));
       await whileStatus(s.partnerA, status, () => expect(write('partnerA', s.cases.ofA)).rejects.toThrow(/case not found/u));
     }
-  });
-
-  it('refuses a worker without the name of its task', async () => {
-    const nameless: Actor = { kind: 'worker', job: '' };
-    await expect(
-      jobs.run(nameless, (tx) => tx.$executeRaw`SELECT app.add_case_event(${s.cases.ofA}::uuid, 'PROBE', 'Essai', NULL, 'neutral'::event_tone, false)`),
-    ).rejects.toThrow(/case not found/u);
   });
 
   it('opens once the first letter has left', async () => {
@@ -261,7 +255,7 @@ describe('audit log', () => {
   const log = async (actor: Actor) => {
     const action = marker();
     const database = actor.kind === 'worker' || actor.kind === 'retention' ? jobs : api;
-    await database.run(actor, (tx) => tx.$executeRaw`SELECT app.log(${action}, NULL, NULL, 'Essai')`);
+    await database.run(actor, (tx) => tx.$executeRaw`SELECT app.log(${action}, NULL, NULL, '{}'::jsonb)`);
     return (await rows('SELECT actor_kind, actor_id, actor_label, on_behalf_of_id FROM audit_log WHERE action = $1', [action]))[0];
   };
 
@@ -269,11 +263,11 @@ describe('audit log', () => {
     ['officerA', 'STAFF', 'Alba Test', (seeded) => seeded.officerA],
     ['partnerA', 'CREDITOR', 'Créancier', (seeded) => seeded.partnerA],
     ['debtorA', 'DEBTOR', 'Débiteur', (seeded) => seeded.debtorA],
-    ['service', 'SERVICE', 'Compte de service', () => null],
+    ['service', 'SERVICE', 'Compte de service', () => SERVICE],
     ['worker', 'SYSTEM', 'Application', () => null],
     ['retention', 'SYSTEM', 'Application', () => null],
     ['anonymous', 'ANONYMOUS', 'Inconnu', () => null],
-    ['hook', 'ANONYMOUS', 'Inconnu', () => null],
+    ['hook', 'HOOK', 'Prestataire', () => null],
     // What the API claims is not believed: the line names nobody rather than the wrong person.
     ['borrowed', 'ANONYMOUS', 'Inconnu', () => null],
     ['forged', 'ANONYMOUS', 'Inconnu', () => null],
@@ -321,11 +315,18 @@ describe('audit log', () => {
 
     it('stops at once when the delegation is withdrawn, although the session still holds it', async () => {
       await whileWithdrawn('ADMINISTRATIVE', async () => {
-        expect(await log(manager())).toMatchObject({ actor_label: 'Remi Test', on_behalf_of_id: null });
+        await expect(log(manager())).rejects.toThrow(/delegation withdrawn/u);
+        // Nor the history of a case, nor a task: the whole action stops.
+        await expect(
+          api.run(manager(), (tx) => tx.$executeRaw`SELECT app.add_case_event(${s.cases.ofA}::uuid, 'NOTE', 'Essai', NULL, 'neutral'::event_tone, false)`),
+        ).rejects.toThrow(/delegation withdrawn/u);
+        await expect(api.run(manager(), () => new Outbox(api).add({ queue: 'maintenance', name: 'probe', payload: {} }))).rejects.toThrow(
+          /delegation withdrawn/u,
+        );
         // The other delegation is not concerned.
         expect(await log(developer())).toMatchObject({ on_behalf_of_id: s.director });
       });
-      await whileWithdrawn('TECHNICAL', async () => expect(await log(developer())).toMatchObject({ on_behalf_of_id: null }));
+      await whileWithdrawn('TECHNICAL', () => expect(log(developer())).rejects.toThrow(/delegation withdrawn/u));
       expect(await log(manager())).toMatchObject({ on_behalf_of_id: s.director });
     });
 
@@ -336,12 +337,27 @@ describe('audit log', () => {
         acting(s.officerA, 'COLLECTION_MANAGER', 'ADMINISTRATIVE'),
         acting(s.partnerA, 'COLLECTION_MANAGER', 'ADMINISTRATIVE'),
       ])
-        expect(await log(actor)).toMatchObject({ on_behalf_of_id: null });
+        await expect(log(actor)).rejects.toThrow(/delegation withdrawn/u);
     });
 
-    it('names no one when the account of the Director or of the delegate is disabled', async () => {
-      await whileStatus(s.director, 'DISABLED', async () => expect(await log(manager())).toMatchObject({ on_behalf_of_id: null }));
-      await whileStatus(s.manager, 'DISABLED', async () => expect(await log(manager())).toMatchObject({ actor_label: 'Inconnu', on_behalf_of_id: null }));
+    it('stops when the account of the Director or of the delegate is disabled', async () => {
+      await whileStatus(s.director, 'DISABLED', () => expect(log(manager())).rejects.toThrow(/delegation withdrawn/u));
+      await whileStatus(s.manager, 'DISABLED', () => expect(log(manager())).rejects.toThrow(/delegation withdrawn/u));
+    });
+
+    it('stops with the Director who gave it: the next one decides again', async () => {
+      const [next] = await rows<{ id: string }>(
+        "INSERT INTO users (role, status, first_name, last_name, email) VALUES ('CLAIMS_OFFICER', 'ACTIVE', 'Nina', 'Test', 'nina@exemple.test') RETURNING id",
+      );
+      await test.admin.query("UPDATE users SET role = 'CLAIMS_OFFICER' WHERE id = $1", [s.director]);
+      await test.admin.query("UPDATE users SET role = 'DIRECTOR' WHERE id = $1", [next!.id]);
+      try {
+        await expect(log(manager())).rejects.toThrow(/delegation withdrawn/u);
+      } finally {
+        await test.admin.query("UPDATE users SET role = 'CLAIMS_OFFICER' WHERE id = $1", [next!.id]);
+        await test.admin.query("UPDATE users SET role = 'DIRECTOR' WHERE id = $1", [s.director]);
+      }
+      expect(await log(manager())).toMatchObject({ on_behalf_of_id: s.director });
     });
   });
 
@@ -361,7 +377,7 @@ describe('audit log', () => {
     'cannot be written nor erased directly by %s',
     async (name) => {
       await expect(
-        as(name, (tx) => tx.$executeRaw`INSERT INTO audit_log (actor_kind, actor_label, action, summary) VALUES ('STAFF', 'Dora Test', 'FORGED', 'x')`),
+        as(name, (tx) => tx.$executeRaw`INSERT INTO audit_log (actor_kind, actor_label, action) VALUES ('STAFF', 'Dora Test', 'FORGED')`),
       ).rejects.toThrow(/denied/u);
       await expect(as(name, (tx) => tx.$executeRaw`DELETE FROM audit_log`)).rejects.toThrow(/denied/u);
       await expect(as(name, (tx) => tx.$executeRaw`UPDATE audit_log SET actor_label = 'x'`)).rejects.toThrow(/denied/u);
@@ -386,31 +402,35 @@ describe('audit log', () => {
 });
 
 describe('numbers', () => {
-  const next = (name: Name, kind = 'PROBE', year = 2026) =>
-    as(name, async (tx) => (await tx.$queryRaw<{ n: number }[]>`SELECT app.next_number(${kind}, ${year}::integer) AS n`)[0]!.n);
+  const draw = (name: Name, kind = 'PROBE') =>
+    as(name, async (tx) => (await tx.$queryRaw<{ for_year: number; number: number }[]>`SELECT * FROM app.next_number(${kind})`)[0]!);
+  const next = async (name: Name, kind?: string) => (await draw(name, kind)).number;
 
   it('are drawn by the team and the worker only', async () => {
     const first = await next('officerA');
     expect(await next('worker')).toBe(first + 1);
     for (const name of ['partnerA', 'debtorA', 'anonymous', 'hook', 'public', 'service', 'retention'] as const)
       await expect(next(name), name).rejects.toThrow(/permission denied for function next_number/u);
+    // The Developer handles no case; an account that is not what it claims draws nothing.
+    for (const name of ['developer', 'borrowed'] as const) await expect(next(name), name).rejects.toThrow(/number refused/u);
     expect(await next('director')).toBe(first + 2);
   });
 
   it('leave no gap when the transaction that drew one fails', async () => {
     const first = await next('officerA', 'ROLLED');
     await as('officerA', async (tx) => {
-      await tx.$queryRaw`SELECT app.next_number('ROLLED', 2026)`;
+      await tx.$queryRaw`SELECT app.next_number('ROLLED')`;
       throw new Error('stop');
     }).catch(() => undefined);
     expect(await next('officerA', 'ROLLED')).toBe(first + 1);
   });
 
-  it('start again each year, for each kind', async () => {
-    expect(await next('officerA', 'YEARLY', 2026)).toBe(1);
-    expect(await next('officerA', 'YEARLY', 2026)).toBe(2);
-    expect(await next('officerA', 'YEARLY', 2027)).toBe(1);
-    expect(await next('officerA', 'OTHER', 2026)).toBe(1);
+  it('belong to the year of Paris, never to one the caller would choose, and start again each year for each kind', async () => {
+    const [today] = await rows<{ year: number }>("SELECT extract(year FROM now() AT TIME ZONE 'Europe/Paris')::int AS year");
+    await test.admin.query("INSERT INTO number_sequences (kind, year, last_value) VALUES ('YEARLY', $1, 41)", [today!.year + 1]);
+    expect(await draw('officerA', 'YEARLY')).toEqual({ for_year: today!.year, number: 1 });
+    expect(await draw('officerA', 'YEARLY')).toEqual({ for_year: today!.year, number: 2 });
+    expect(await next('officerA', 'OTHER')).toBe(1);
   });
 
   it('can be neither read nor changed directly', async () => {
@@ -475,7 +495,7 @@ describe('idempotency keys', () => {
     // Nobody else, the Director included: an answer kept for a replay is not for other eyes.
     for (const name of ['director', 'developer', 'officerB', 'partnerB', 'debtorB'] as const) {
       expect(await as(name, (tx) => tx.idempotencyKey.findMany({ select: { actor: true } })), name).toEqual([]);
-      expect(await as(name, (tx) => tx.$executeRaw`UPDATE idempotency_keys SET result = '{"forged":true}'::jsonb`), name).toBe(0);
+      expect(await as(name, (tx) => tx.$executeRaw`UPDATE idempotency_keys SET result = '\\x00'`), name).toBe(0);
     }
     expect(await rows('SELECT 1 FROM idempotency_keys WHERE result IS NOT NULL')).toEqual([]);
   });
@@ -488,7 +508,9 @@ describe('idempotency keys', () => {
       ['debtorB', `user:${s.officerA}`],
     ] as const)
       await expect(insert(name, actor), `${name} as ${actor}`).rejects.toThrow(/row-level security/u);
-    for (const name of ['anonymous', 'hook', 'public', 'service', 'worker'] as const) await expect(insert(name, 'user:x'), name).rejects.toThrow(/denied/u);
+    await expect(insert('service', `user:${s.officerA}`)).rejects.toThrow(/row-level security/u);
+    expect(await insert('service', `service:${SERVICE}`)).toBe(1);
+    for (const name of ['anonymous', 'hook', 'public', 'worker'] as const) await expect(insert(name, 'user:x'), name).rejects.toThrow(/denied/u);
   });
 
   it('cannot be forgotten by the one who used them', async () => {
@@ -497,7 +519,7 @@ describe('idempotency keys', () => {
         as(name, (tx) => tx.$executeRaw`DELETE FROM idempotency_keys`),
         name,
       ).rejects.toThrow(/denied/u);
-    await expect(as('officerA', (tx) => tx.$executeRaw`UPDATE idempotency_keys SET request_hash = '\\x01'`)).rejects.toThrow(/denied/u);
+    await expect(as('officerA', (tx) => tx.$executeRaw`UPDATE idempotency_keys SET actor = 'user:x'`)).rejects.toThrow(/denied/u);
   });
 });
 
@@ -506,17 +528,60 @@ describe('tasks', () => {
     const dedupeKey = `probe:${randomUUID()}`;
     const database = name === 'worker' || name === 'retention' ? jobs : api;
     await as(name, () => new Outbox(database).add({ queue: 'maintenance', name: 'probe', payload: payload as Record<string, string>, dedupeKey }));
-    return (await rows('SELECT actor_id, payload FROM outbox WHERE dedupe_key = $1', [dedupeKey]))[0];
+    return (
+      await rows('SELECT o.actor_kind, o.actor_id, o.acting_for, o.payload FROM outbox o JOIN task_keys k ON k.task_id = o.id WHERE k.key = $1', [dedupeKey])
+    )[0];
   };
 
-  it('keep the collaborator who started them, read from the session', async () => {
-    expect(await add('officerA')).toMatchObject({ actor_id: s.officerA });
-    expect(await add('liar')).toMatchObject({ actor_id: s.officerA });
-    // Neither a creditor, a debtor, a webhook nor an account that is not what it claims.
-    for (const name of ['partnerA', 'debtorA', 'anonymous', 'hook', 'service', 'worker', 'borrowed'] as const)
-      expect(await add(name), name).toMatchObject({ actor_id: null });
-    await whileStatus(s.officerA, 'DISABLED', async () => expect(await add('officerA')).toMatchObject({ actor_id: null }));
+  it('keep who started them, read from the session', async () => {
+    const author = (kind: string, id: string | null) => ({ actor_kind: kind, actor_id: id, acting_for: null });
+    expect(await add('officerA')).toMatchObject(author('STAFF', s.officerA));
+    expect(await add('liar')).toMatchObject(author('STAFF', s.officerA));
+    expect(await add('partnerA')).toMatchObject(author('CREDITOR', s.partnerA));
+    expect(await add('debtorA')).toMatchObject(author('DEBTOR', s.debtorA));
+    expect(await add('service')).toMatchObject(author('SERVICE', SERVICE));
+    expect(await add('hook')).toMatchObject(author('HOOK', null));
+    expect(await add('anonymous')).toMatchObject(author('ANONYMOUS', null));
+    expect(await add('worker')).toMatchObject(author('SYSTEM', null));
   });
+
+  it('are refused to whoever is nobody: they would otherwise run with more rights', async () => {
+    for (const name of ['borrowed', 'forged'] as const) await expect(add(name), name).rejects.toThrow(/unknown author/u);
+    await whileStatus(s.officerA, 'DISABLED', () => expect(add('officerA')).rejects.toThrow(/unknown author/u));
+    await whileStatus(s.partnerA, 'INVITED', () => expect(add('partnerA')).rejects.toThrow(/unknown author/u));
+    await test.admin.query('UPDATE creditors SET portal_enabled = false WHERE id = $1', [s.creditorA]);
+    await expect(add('partnerA')).rejects.toThrow(/unknown author/u);
+    await test.admin.query('UPDATE creditors SET portal_enabled = true WHERE id = $1', [s.creditorA]);
+  });
+
+  it('keep the delegation they rest on', async () => {
+    const dedupeKey = `probe:${randomUUID()}`;
+    await api.run(staff(s.manager, 'COLLECTION_MANAGER', { actingFor: 'ADMINISTRATIVE' }), () =>
+      new Outbox(api).add({ queue: 'maintenance', name: 'probe', payload: {}, dedupeKey }),
+    );
+    expect(await rows('SELECT o.acting_for FROM outbox o JOIN task_keys k ON k.task_id = o.id WHERE k.key = $1', [dedupeKey])).toEqual([
+      { acting_for: 'ADMINISTRATIVE' },
+    ]);
+  });
+
+  it('are queued once per key, for ever: even once the task is purged', async () => {
+    const dedupeKey = `probe:${randomUUID()}`;
+    const queue = () => as('officerA', () => new Outbox(api).add({ queue: 'maintenance', name: 'probe', payload: {}, dedupeKey }));
+    expect(await queue()).toBe(true);
+    expect(await queue()).toBe(false);
+    await test.admin.query('DELETE FROM outbox');
+    expect(await queue()).toBe(false);
+    expect(await rows('SELECT 1 FROM outbox')).toEqual([]);
+  });
+
+  it.each(['sms:33612345678', 'code:kxpm', 'reminder:jean', 'probe', `Probe:${randomUUID()}`, `probe:${randomUUID()}:jean`])(
+    'refuse a key that is not a name and an identifier: %s',
+    async (dedupeKey) => {
+      await expect(as('officerA', () => new Outbox(api).add({ queue: 'maintenance', name: 'probe', payload: {}, dedupeKey }))).rejects.toThrow(
+        /task_keys_key_check/u,
+      );
+    },
+  );
 
   it('are neither read, written nor erased directly', async () => {
     for (const name of ['director', 'developer', 'officerA', 'partnerA', 'debtorA', 'anonymous', 'hook', 'service'] as const) {
@@ -525,7 +590,10 @@ describe('tasks', () => {
         name,
       ).rejects.toThrow(/denied/u);
       await expect(
-        as(name, (tx) => tx.$executeRaw`INSERT INTO outbox (queue, name, payload, actor_id) VALUES ('sms', 'x-x', '{}', ${s.director}::uuid)`),
+        as(
+          name,
+          (tx) => tx.$executeRaw`INSERT INTO outbox (queue, name, payload, actor_kind, actor_id) VALUES ('sms', 'x-x', '{}', 'STAFF', ${s.director}::uuid)`,
+        ),
         name,
       ).rejects.toThrow(/denied/u);
     }
@@ -545,8 +613,9 @@ describe('tasks', () => {
   it.each<[string, unknown]>([
     ['nothing', {}],
     ['an identifier', { caseId: '01a2125f-3eeb-7d5a-a7da-e46706b4e5a8' }],
-    ['a code', { template: 'FORMAL_NOTICE', step: 'REMINDER_2' }],
-    ['a small number and a flag', { count: 999999, zero: 0, urgent: true }],
+    ['a listed code', { template: 'FORMAL_NOTICE', channel: 'REGISTERED_LETTER' }],
+    ['a date', { plannedOn: '2026-12-05' }],
+    ['a small number and a flag', { count: 999, zero: 0, urgent: true }],
   ])('accept %s', async (_what, payload) => {
     expect(await add('officerA', payload as Record<string, unknown>)).toMatchObject({ payload });
   });
@@ -576,20 +645,25 @@ describe('tasks', () => {
     ['an empty text', { a: '' }],
     ['a good value beside a bad one', { a: 'FORMAL_NOTICE', b: 'Jean Martin' }],
     ['a code that is too long', { a: 'A'.repeat(65) }],
+    ['a code that is not listed', { a: 'REMINDER_2' }],
+    ['a name in capitals', { a: 'DUPONT' }],
+    ['an access code in disguise', { a: 'CODE_KXPM' }],
+    ['a six-digit code', { a: 123456 }],
+    ['four digits', { a: 1234 }],
+    ['an impossible date', { a: '2026-13-45' }],
+    ['a date and a name', { a: '2026-12-05 Jean' }],
   ])('refuse %s', async (_what, payload) => {
     await expect(add('officerA', payload as Record<string, unknown>)).rejects.toThrow(/outbox_payload_check|non-object/u);
   });
 
-  // Defect: the names of the fields are not checked, so anything may hide there.
-  it.fails.each([{ 'jean@exemple.test': true }, { 'Atelier Mistral': 1 }, { '0612345678': true }])(
+  it.each([{ 'jean@exemple.test': true }, { 'Atelier Mistral': 1 }, { '0612345678': true }])(
     'refuse personal data as the name of a field: %j',
     async (payload) => {
       await expect(add('officerA', payload)).rejects.toThrow(/outbox_payload_check/u);
     },
   );
 
-  // Defect: an IBAN, a VAT number or a letter reference has the shape of a code in capitals.
-  it.fails.each(['FR7630006000011234567890189', 'FR12800000001', 'RIB_30006000011234567890189'])('refuse %s, which is not a code', async (value) => {
+  it.each(['FR7630006000011234567890189', 'FR12800000001', 'RIB_30006000011234567890189'])('refuse %s, which is not a code', async (value) => {
     await expect(add('officerA', { a: value })).rejects.toThrow(/outbox_payload_check/u);
   });
 });

@@ -6,6 +6,14 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE EXTENSION IF NOT EXISTS unaccent;
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 
+-- Nobody connects by default, nor creates temporary objects; the two programs are named.
+DO $$
+BEGIN
+  EXECUTE format('REVOKE ALL ON DATABASE %I FROM PUBLIC', current_database());
+  EXECUTE format('GRANT CONNECT ON DATABASE %I TO legarec_app, legarec_jobs', current_database());
+END
+$$;
+
 CREATE SCHEMA app;
 REVOKE ALL ON SCHEMA public, app FROM PUBLIC;
 GRANT USAGE ON SCHEMA public, app TO
@@ -35,19 +43,38 @@ CREATE FUNCTION app.actor_key() RETURNS text LANGUAGE sql STABLE PARALLEL SAFE A
   SELECT CASE
     WHEN app.user_id() IS NOT NULL THEN 'user:' || app.user_id()
     WHEN app.debtor_id() IS NOT NULL THEN 'debtor:' || app.debtor_id()
+    WHEN app.setting('service') IS NOT NULL THEN 'service:' || app.setting('service')
   END
 $$;
 
--- Payloads of the queues carry identifiers and codes only: no sentence, address, number or name.
+-- Codes a task may carry. Closed list, extended by the migrations: a name in capitals is not a code.
+CREATE TYPE task_code AS ENUM ('FRIENDLY', 'FIRM', 'FORMAL_NOTICE', 'PAYMENT_PLAN', 'CLEARANCE', 'EMAIL', 'SMS', 'LETTER', 'REGISTERED_LETTER');
+CREATE TYPE user_role AS ENUM ('DEVELOPER', 'DIRECTOR', 'COLLECTION_MANAGER', 'CLAIMS_OFFICER', 'CREDITOR');
+
+-- Payload of a task: identifiers, dates, listed codes, yes or no, and numbers too short to be a code.
 CREATE FUNCTION app.only_identifiers(payload jsonb) RETURNS boolean LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
   SELECT jsonb_typeof(payload) = 'object' AND NOT EXISTS (
     SELECT 1 FROM jsonb_each(payload) AS entry(name, value)
-    WHERE CASE jsonb_typeof(value)
-      WHEN 'string' THEN value #>> '{}' !~ '^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[A-Z][A-Z0-9_]{4,63})$'
-      WHEN 'number' THEN value #>> '{}' !~ '^[0-9]{1,6}$'
+    WHERE name !~ '^[a-z][A-Za-z]{0,39}$' OR CASE jsonb_typeof(value)
+      WHEN 'string' THEN value #>> '{}' !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+        AND value #>> '{}' !~ '^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$'
+        AND NOT (value #>> '{}') = ANY (enum_range(NULL::public.task_code)::text[])
+      WHEN 'number' THEN value #>> '{}' !~ '^[0-9]{1,3}$'
       WHEN 'boolean' THEN false
       ELSE true
     END
+  )
+$$;
+-- Details of an audit entry: the same, with roles and technical names in capitals (RESEND_API_KEY). The sentence shown
+-- comes from a catalogue, so that no text typed by anyone ever enters the journal.
+CREATE FUNCTION app.audit_params(params jsonb) RETURNS boolean LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
+  SELECT jsonb_typeof(params) = 'object' AND NOT EXISTS (
+    SELECT 1 FROM jsonb_each(params) AS entry(name, value)
+    WHERE NOT (
+      app.only_identifiers(jsonb_build_object(name, value))
+      OR (name ~ '^[a-z][A-Za-z]{0,39}$' AND jsonb_typeof(value) = 'string' AND (
+        (value #>> '{}') = ANY (enum_range(NULL::public.user_role)::text[]) OR value #>> '{}' ~ '^[A-Z]{2,20}(_[A-Z]{2,20}){1,5}$'))
+    )
   )
 $$;
 
@@ -78,10 +105,9 @@ $$;
 
 -- ---------------------------------------------------------------- Types
 
-CREATE TYPE user_role AS ENUM ('DEVELOPER', 'DIRECTOR', 'COLLECTION_MANAGER', 'CLAIMS_OFFICER', 'CREDITOR');
 CREATE TYPE user_status AS ENUM ('INVITED', 'ACTIVE', 'DISABLED');
 CREATE TYPE delegation_kind AS ENUM ('TECHNICAL', 'ADMINISTRATIVE');
-CREATE TYPE actor_kind AS ENUM ('STAFF', 'CREDITOR', 'DEBTOR', 'SERVICE', 'SYSTEM', 'ANONYMOUS');
+CREATE TYPE actor_kind AS ENUM ('STAFF', 'CREDITOR', 'DEBTOR', 'SERVICE', 'HOOK', 'SYSTEM', 'ANONYMOUS');
 CREATE TYPE creditor_status AS ENUM ('ACTIVE', 'ENDED');
 CREATE TYPE debtor_kind AS ENUM ('COMPANY', 'SOLE_TRADER', 'INDIVIDUAL');
 CREATE TYPE case_status AS ENUM ('NEW', 'OVERDUE', 'REMINDER', 'FORMAL_NOTICE', 'PROMISE', 'PLAN', 'DISPUTE', 'LITIGATION', 'SETTLED', 'LOST');
@@ -211,7 +237,7 @@ CREATE TABLE audit_log (
   action text NOT NULL CHECK (action ~ '^[A-Z][A-Z0-9_]{2,63}$'),
   entity_type text CHECK (entity_type ~ '^[a-z][a-z_]{1,63}$'),
   entity_id uuid,
-  summary text NOT NULL CHECK (length(summary) BETWEEN 1 AND 300),
+  params jsonb NOT NULL DEFAULT '{}' CHECK (app.audit_params(params)),
   ip inet,
   request_id uuid
 );
@@ -221,17 +247,28 @@ CALL app.append_only('audit_log');
 
 CREATE TABLE outbox (
   id uuid PRIMARY KEY DEFAULT app.uuid_v7(),
-  queue text NOT NULL CHECK (queue ~ '^[a-z][a-z-]{1,31}$'),
+  queue text NOT NULL CHECK (queue IN ('email', 'staff-email', 'sms', 'letter', 'pdf', 'imap', 'reminders', 'maintenance')),
   name text NOT NULL CHECK (name ~ '^[a-z][a-z-]{1,63}$'),
   payload jsonb NOT NULL CHECK (app.only_identifiers(payload)),
-  -- Collaborator who started the task: the worker runs it with their rights, checked again.
-  actor_id uuid REFERENCES users (id),
-  dedupe_key text UNIQUE CHECK (dedupe_key ~ '^[a-z0-9:-]{1,120}$'),
+  -- Who started it, and on behalf of whom: the worker runs it with their rights, checked again.
+  actor_kind actor_kind NOT NULL,
+  actor_id uuid,
+  acting_for delegation_kind,
   run_at timestamptz(3),
   created_at timestamptz(3) NOT NULL DEFAULT now(),
-  published_at timestamptz(3)
+  claimed_at timestamptz(3),
+  published_at timestamptz(3),
+  done_at timestamptz(3),
+  failed_at timestamptz(3),
+  CONSTRAINT outbox_author CHECK ((actor_kind IN ('STAFF', 'CREDITOR', 'DEBTOR', 'SERVICE')) = (actor_id IS NOT NULL))
 );
 CREATE INDEX outbox_pending ON outbox (created_at) WHERE published_at IS NULL;
+-- A key is used once and for all, even after its task is purged.
+CREATE TABLE task_keys (
+  key text PRIMARY KEY CHECK (key ~ '^[a-z][a-z-]{1,30}:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(:[0-9]{1,3})?$'),
+  task_id uuid NOT NULL,
+  created_at timestamptz(3) NOT NULL DEFAULT now()
+);
 
 CREATE TABLE webhook_events (
   id uuid PRIMARY KEY DEFAULT app.uuid_v7(),
@@ -249,71 +286,95 @@ CREATE TABLE idempotency_keys (
   route text NOT NULL,
   request_hash bytea NOT NULL,
   status integer,
-  result jsonb,
+  -- Encrypted; never a value shown only once.
+  result bytea,
   created_at timestamptz(3) NOT NULL DEFAULT now(),
   PRIMARY KEY (actor, key)
 );
 CREATE INDEX idempotency_keys_created ON idempotency_keys (created_at);
+
+-- Counts of each purge: what was removed, never what it was.
+CREATE TABLE retention_runs (
+  id uuid PRIMARY KEY DEFAULT app.uuid_v7(),
+  kind text NOT NULL CHECK (kind ~ '^[a-z][a-z-]{1,31}$'),
+  removed integer NOT NULL CHECK (removed >= 0),
+  ran_at timestamptz(3) NOT NULL DEFAULT clock_timestamp()
+);
 
 -- ---------------------------------------------------------------- Functions that see more than their caller
 -- Owned by legarec_definer: no login, rights limited to the columns below.
 
 GRANT SELECT (id, role, status, first_name, last_name, creditor_id) ON users TO legarec_definer;
 GRANT SELECT ON delegations TO legarec_definer;
-GRANT SELECT (id, name) ON creditors TO legarec_definer;
+GRANT SELECT (id, portal_enabled) ON creditors TO legarec_definer;
 GRANT SELECT (id, creditor_id, debtor_id, officer_id, first_letter_on, version) ON cases TO legarec_definer;
 GRANT UPDATE (officer_id, version) ON cases TO legarec_definer;
-GRANT INSERT ON case_events, audit_log, outbox TO legarec_definer;
-GRANT SELECT (dedupe_key) ON outbox TO legarec_definer;
+GRANT INSERT ON case_events, audit_log, outbox, task_keys TO legarec_definer;
+GRANT SELECT (case_id, kind, actor_id, occurred_at) ON case_events TO legarec_definer;
+GRANT SELECT (key) ON task_keys TO legarec_definer;
 GRANT SELECT (id, occurred_at), DELETE ON audit_log TO legarec_definer;
 GRANT SELECT, INSERT, UPDATE ON number_sequences TO legarec_definer;
 
 -- Role of the signed-in collaborator, read from the table and never from the request.
-CREATE FUNCTION app.staff_role() RETURNS user_role LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+CREATE FUNCTION app.staff_role() RETURNS user_role LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
   SELECT role FROM public.users WHERE id = app.user_id() AND status = 'ACTIVE' AND role <> 'CREDITOR'
 $$;
-CREATE FUNCTION app.is_claims_officer(candidate uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+CREATE FUNCTION app.is_claims_officer(candidate uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
   SELECT EXISTS (SELECT 1 FROM public.users WHERE id = candidate AND role = 'CLAIMS_OFFICER')
 $$;
-CREATE FUNCTION app.director_id() RETURNS uuid LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+CREATE FUNCTION app.director_id() RETURNS uuid LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
   SELECT id FROM public.users WHERE role = 'DIRECTOR' AND status = 'ACTIVE'
 $$;
-CREATE FUNCTION app.has_delegation(wanted delegation_kind) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+CREATE FUNCTION app.has_delegation(wanted delegation_kind) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
   SELECT coalesce(
     app.staff_role() = (CASE wanted WHEN 'TECHNICAL' THEN 'DEVELOPER' WHEN 'ADMINISTRATIVE' THEN 'COLLECTION_MANAGER' END)::public.user_role
-    AND EXISTS (SELECT 1 FROM public.delegations WHERE kind = wanted AND withdrawn_at IS NULL), false)
+    -- Given by the Director in office: the delegations of a former one stop with them.
+    AND EXISTS (SELECT 1 FROM public.delegations WHERE kind = wanted AND withdrawn_at IS NULL AND granted_by = app.director_id()), false)
 $$;
 -- A creditor account only works for its own creditor, whatever the request says.
-CREATE FUNCTION app.partner_creditor() RETURNS uuid LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public AS $$
-  SELECT creditor_id FROM public.users WHERE id = app.user_id() AND status = 'ACTIVE' AND role = 'CREDITOR' AND creditor_id = app.creditor_id()
+CREATE FUNCTION app.partner_creditor() RETURNS uuid LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+  SELECT u.creditor_id FROM public.users u JOIN public.creditors c ON c.id = u.creditor_id
+  WHERE u.id = app.user_id() AND u.status = 'ACTIVE' AND u.role = 'CREDITOR' AND u.creditor_id = app.creditor_id() AND c.portal_enabled
 $$;
--- The Director, when the current action rests on one of the delegations, checked again here.
-CREATE FUNCTION app.on_behalf_of() RETURNS uuid LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public AS $$
-  SELECT CASE WHEN app.setting('acting_for') IS NOT NULL AND app.has_delegation(app.setting('acting_for')::public.delegation_kind) THEN app.director_id() END
+-- The Director, when the current action rests on one of the delegations. Withdrawn meanwhile, it stops the action.
+CREATE FUNCTION app.on_behalf_of() RETURNS uuid LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+BEGIN
+  IF app.setting('acting_for') IS NULL THEN
+    RETURN NULL;
+  END IF;
+  IF NOT app.has_delegation(app.setting('acting_for')::public.delegation_kind) THEN
+    RAISE EXCEPTION 'delegation withdrawn' USING ERRCODE = 'insufficient_privilege';
+  END IF;
+  RETURN app.director_id();
+END
 $$;
-CREATE FUNCTION app.actor_kind() RETURNS actor_kind LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+-- Read from the role of the transaction, which no variable can imitate. An identity that is no longer recognised
+-- (disabled account, closed portal) is nobody.
+CREATE FUNCTION app.actor_kind() RETURNS actor_kind LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
   SELECT (CASE
-    WHEN app.staff_role() IS NOT NULL THEN 'STAFF'
-    WHEN app.partner_creditor() IS NOT NULL THEN 'CREDITOR'
-    WHEN app.debtor_id() IS NOT NULL THEN 'DEBTOR'
-    WHEN app.setting('service') IS NOT NULL THEN 'SERVICE'
-    WHEN app.setting('job') IS NOT NULL THEN 'SYSTEM'
+    WHEN current_setting('role') = 'legarec_staff' AND app.staff_role() IS NOT NULL THEN 'STAFF'
+    WHEN current_setting('role') = 'legarec_partner' AND app.partner_creditor() IS NOT NULL THEN 'CREDITOR'
+    WHEN current_setting('role') = 'legarec_debtor' AND app.debtor_id() IS NOT NULL THEN 'DEBTOR'
+    WHEN current_setting('role') = 'legarec_service' AND app.setting('service') IS NOT NULL THEN 'SERVICE'
+    WHEN current_setting('role') = 'legarec_hook' THEN 'HOOK'
+    WHEN current_setting('role') IN ('legarec_worker', 'legarec_retention') THEN 'SYSTEM'
     ELSE 'ANONYMOUS'
   END)::public.actor_kind
 $$;
 -- Name shown in the journals: a debtor or a creditor is never named there.
-CREATE FUNCTION app.actor_label() RETURNS text LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+CREATE FUNCTION app.actor_label() RETURNS text LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
   SELECT CASE app.actor_kind()
     WHEN 'STAFF' THEN (SELECT first_name || ' ' || last_name FROM public.users WHERE id = app.user_id())
     WHEN 'CREDITOR' THEN 'Créancier'
     WHEN 'DEBTOR' THEN 'Débiteur'
     WHEN 'SERVICE' THEN 'Compte de service'
+    WHEN 'HOOK' THEN 'Prestataire'
     WHEN 'SYSTEM' THEN 'Application'
     ELSE 'Inconnu'
   END
 $$;
-CREATE FUNCTION app.actor_id() RETURNS uuid LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public AS $$
-  SELECT CASE app.actor_kind() WHEN 'STAFF' THEN app.user_id() WHEN 'CREDITOR' THEN app.user_id() WHEN 'DEBTOR' THEN app.debtor_id() END
+CREATE FUNCTION app.actor_id() RETURNS uuid LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+  SELECT CASE app.actor_kind() WHEN 'STAFF' THEN app.user_id() WHEN 'CREDITOR' THEN app.user_id() WHEN 'DEBTOR' THEN app.debtor_id() WHEN 'SERVICE' THEN app.setting('service')::uuid END
 $$;
 
 -- Case access rules of the team; same rules as canReadCase() and canActOnCase() of packages/contracts.
@@ -333,14 +394,14 @@ CREATE FUNCTION app.can_act_on_case(officer uuid) RETURNS boolean LANGUAGE sql S
 $$;
 
 -- Single door of the audit log: the actor and « on behalf of » come from the context, never from a parameter.
-CREATE FUNCTION app.log(action text, entity_type text, entity_id uuid, summary text) RETURNS void
-LANGUAGE sql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public AS $$
-  INSERT INTO public.audit_log (actor_kind, actor_id, actor_label, on_behalf_of_id, action, entity_type, entity_id, summary, ip, request_id)
+CREATE FUNCTION app.log(action text, entity_type text, entity_id uuid, params jsonb) RETURNS void
+LANGUAGE sql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+  INSERT INTO public.audit_log (actor_kind, actor_id, actor_label, on_behalf_of_id, action, entity_type, entity_id, params, ip, request_id)
   VALUES (app.actor_kind(), app.actor_id(), app.actor_label(), app.on_behalf_of(), $1, $2, $3, $4, app.setting('ip')::inet, app.setting('request_id')::uuid)
 $$;
 -- Single door of the history of a case: whoever cannot act on the case cannot write in it.
 CREATE FUNCTION app.add_case_event(target uuid, kind text, title text, detail text, tone event_tone, visible_to_creditor boolean) RETURNS void
-LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE
   owner public.cases.creditor_id%TYPE;
 BEGIN
@@ -360,31 +421,57 @@ END
 $$;
 -- The only thing written without acting on the case: the Director read a case held by someone else.
 CREATE FUNCTION app.note_consultation(target uuid) RETURNS void
-LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
 BEGIN
   INSERT INTO public.case_events (case_id, creditor_id, kind, title, actor_kind, actor_id, actor_label)
   SELECT c.id, c.creditor_id, 'CASE_VIEWED', 'Dossier consulté', app.actor_kind(), app.actor_id(), app.actor_label()
   FROM public.cases c
-  WHERE c.id = target AND app.can_read_case(c.officer_id) AND NOT app.can_act_on_case(c.officer_id);
+  WHERE c.id = target AND app.can_read_case(c.officer_id) AND NOT app.can_act_on_case(c.officer_id)
+    -- One line an hour, however many times the screen is refreshed.
+    AND NOT EXISTS (
+      SELECT 1 FROM public.case_events e
+      WHERE e.case_id = target AND e.kind = 'CASE_VIEWED' AND e.actor_id = app.actor_id() AND e.occurred_at > now() - interval '1 hour'
+    );
 END
 $$;
--- Queues a task with the transaction: nothing leaves if it rolls back.
-CREATE FUNCTION app.enqueue(queue text, name text, payload jsonb, dedupe_key text, run_at timestamptz) RETURNS void
-LANGUAGE sql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public AS $$
-  INSERT INTO public.outbox (queue, name, payload, actor_id, dedupe_key, run_at)
-  VALUES ($1, $2, $3, CASE WHEN app.staff_role() IS NOT NULL THEN app.user_id() END, $4, $5)
-  ON CONFLICT (dedupe_key) DO NOTHING
+-- Queues a task with the transaction: nothing leaves if it rolls back. False when its key was already used.
+CREATE FUNCTION app.enqueue(queue text, name text, payload jsonb, dedupe_key text, run_at timestamptz) RETURNS boolean
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+DECLARE
+  task constant uuid := app.uuid_v7();
+  author constant public.actor_kind := app.actor_kind();
+BEGIN
+  -- Nobody recognised: the task would otherwise lose its author, and with it the limits of their rights.
+  IF author = 'ANONYMOUS' AND current_setting('role') <> 'legarec_auth' THEN
+    RAISE EXCEPTION 'unknown author' USING ERRCODE = 'insufficient_privilege';
+  END IF;
+  IF dedupe_key IS NOT NULL THEN
+    INSERT INTO public.task_keys (key, task_id) VALUES (dedupe_key, task) ON CONFLICT DO NOTHING;
+    IF NOT FOUND THEN
+      RETURN false;
+    END IF;
+  END IF;
+  INSERT INTO public.outbox (id, queue, name, payload, actor_kind, actor_id, acting_for, run_at)
+  VALUES (task, queue, name, payload, author, app.actor_id(), CASE WHEN app.on_behalf_of() IS NOT NULL THEN app.setting('acting_for')::public.delegation_kind END, run_at);
+  RETURN true;
+END
 $$;
--- Yearly counter without any gap: the row stays locked until the end of the transaction.
-CREATE FUNCTION app.next_number(wanted text, for_year integer) RETURNS integer
-LANGUAGE sql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+-- Yearly counter without any gap: the row stays locked until the end of the transaction. The year is that of Paris.
+CREATE FUNCTION app.next_number(wanted text, OUT for_year integer, OUT number integer)
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+BEGIN
+  IF app.actor_kind() NOT IN ('STAFF', 'SYSTEM') OR app.staff_role() = 'DEVELOPER' THEN
+    RAISE EXCEPTION 'number refused' USING ERRCODE = 'insufficient_privilege';
+  END IF;
+  for_year := extract(year FROM now() AT TIME ZONE 'Europe/Paris');
   INSERT INTO public.number_sequences AS s (kind, year, last_value) VALUES (wanted, for_year, 1)
   ON CONFLICT (kind, year) DO UPDATE SET last_value = s.last_value + 1
-  RETURNING last_value
+  RETURNING last_value INTO number;
+END
 $$;
 -- Assigns cases: the Director, or the manager with the administrative delegation. Returns the number of cases changed.
 CREATE FUNCTION app.assign_cases(targets uuid[], officer uuid) RETURNS integer
-LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE
   changed integer;
 BEGIN
@@ -404,7 +491,7 @@ END
 $$;
 -- Purge of the retention: one year of audit.
 CREATE FUNCTION app.purge_audit() RETURNS integer
-LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE
   removed integer;
 BEGIN
@@ -440,14 +527,14 @@ DO $$
 DECLARE
   everyone constant text := 'legarec_auth, legarec_staff, legarec_partner, legarec_debtor, legarec_hook, legarec_service, legarec_worker, legarec_retention, legarec_definer';
 BEGIN
-  EXECUTE 'GRANT EXECUTE ON FUNCTION app.uuid_v7(), app.setting(text), app.user_id(), app.creditor_id(), app.debtor_id(), app.actor_key(), app.only_identifiers(jsonb) TO ' || everyone;
+  EXECUTE 'GRANT EXECUTE ON FUNCTION app.uuid_v7(), app.setting(text), app.user_id(), app.creditor_id(), app.debtor_id(), app.actor_key(), app.only_identifiers(jsonb), app.audit_params(jsonb) TO ' || everyone;
   EXECUTE 'GRANT EXECUTE ON FUNCTION app.staff_role(), app.has_delegation(delegation_kind), app.partner_creditor(), app.on_behalf_of(), app.actor_kind(), app.actor_label(), app.actor_id() TO ' || everyone;
-  EXECUTE 'GRANT EXECUTE ON FUNCTION app.log(text, text, uuid, text), app.enqueue(text, text, jsonb, text, timestamptz) TO ' || everyone;
+  EXECUTE 'GRANT EXECUTE ON FUNCTION app.log(text, text, uuid, jsonb), app.enqueue(text, text, jsonb, text, timestamptz) TO ' || everyone;
 END
 $$;
 GRANT EXECUTE ON FUNCTION app.director_id(), app.is_claims_officer(uuid), app.can_read_case(uuid), app.can_act_on_case(uuid) TO legarec_staff, legarec_definer;
 GRANT EXECUTE ON FUNCTION app.add_case_event(uuid, text, text, text, event_tone, boolean) TO legarec_staff, legarec_partner, legarec_debtor, legarec_worker;
-GRANT EXECUTE ON FUNCTION app.next_number(text, integer) TO legarec_staff, legarec_worker;
+GRANT EXECUTE ON FUNCTION app.next_number(text) TO legarec_staff, legarec_worker;
 GRANT EXECUTE ON FUNCTION app.assign_cases(uuid[], uuid), app.note_consultation(uuid) TO legarec_staff;
 GRANT EXECUTE ON FUNCTION app.purge_audit() TO legarec_retention;
 -- The owner changes last: the rights granted above stay.
@@ -457,9 +544,9 @@ DECLARE
 BEGIN
   FOREACH signature IN ARRAY ARRAY[
     'app.staff_role()', 'app.is_claims_officer(uuid)', 'app.director_id()', 'app.has_delegation(delegation_kind)', 'app.partner_creditor()',
-    'app.on_behalf_of()', 'app.actor_kind()', 'app.actor_label()', 'app.actor_id()', 'app.log(text, text, uuid, text)',
+    'app.on_behalf_of()', 'app.actor_kind()', 'app.actor_label()', 'app.actor_id()', 'app.log(text, text, uuid, jsonb)',
     'app.add_case_event(uuid, text, text, text, event_tone, boolean)', 'app.enqueue(text, text, jsonb, text, timestamptz)',
-    'app.note_consultation(uuid)', 'app.next_number(text, integer)', 'app.assign_cases(uuid[], uuid)', 'app.purge_audit()'
+    'app.note_consultation(uuid)', 'app.next_number(text)', 'app.assign_cases(uuid[], uuid)', 'app.purge_audit()'
   ] LOOP
     EXECUTE format('ALTER FUNCTION %s OWNER TO legarec_definer', signature);
   END LOOP;
@@ -477,6 +564,8 @@ CALL app.secure('cases');
 CALL app.secure('number_sequences');
 CALL app.secure('audit_log');
 CALL app.secure('outbox');
+CALL app.secure('task_keys');
+CALL app.secure('retention_runs');
 CALL app.secure('webhook_events');
 CALL app.secure('idempotency_keys');
 CALL app.secure_case_table('case_events');
@@ -492,7 +581,9 @@ CREATE POLICY definer_write ON audit_log FOR INSERT TO legarec_definer WITH CHEC
 CREATE POLICY definer_purge_read ON audit_log FOR SELECT TO legarec_definer USING (true);
 CREATE POLICY definer_purge ON audit_log FOR DELETE TO legarec_definer USING (true);
 CREATE POLICY definer_write ON outbox FOR INSERT TO legarec_definer WITH CHECK (true);
-CREATE POLICY definer_read ON outbox FOR SELECT TO legarec_definer USING (true);
+CREATE POLICY definer_write ON task_keys FOR INSERT TO legarec_definer WITH CHECK (true);
+CREATE POLICY definer_read ON task_keys FOR SELECT TO legarec_definer USING (true);
+CREATE POLICY definer_read ON case_events FOR SELECT TO legarec_definer USING (true);
 CREATE POLICY definer_all ON number_sequences TO legarec_definer USING (true) WITH CHECK (true);
 
 -- Cases: the team by role, a creditor by its own account, a debtor by its own identity.
@@ -501,22 +592,24 @@ CREATE POLICY staff_act ON cases FOR UPDATE TO legarec_staff USING (app.can_act_
 CREATE POLICY partner_read ON cases FOR SELECT TO legarec_partner USING (creditor_id = (SELECT app.partner_creditor()));
 CREATE POLICY debtor_read ON cases FOR SELECT TO legarec_debtor USING (debtor_id = (SELECT app.debtor_id()) AND first_letter_on IS NOT NULL);
 CREATE POLICY worker_all ON cases TO legarec_worker USING (true) WITH CHECK (true);
-GRANT SELECT ON cases TO legarec_staff, legarec_worker;
--- Neither the owner, the creditor, the debtor nor the reference of a case can be updated directly.
-GRANT UPDATE (status, external_reference, first_letter_reference, first_letter_on, closed_on, version) ON cases TO legarec_staff, legarec_worker;
+GRANT SELECT (id, reference, creditor_id, debtor_id, officer_id, status, external_reference, first_letter_reference, first_letter_on, opened_on, closed_on, version, created_at) ON cases TO legarec_staff, legarec_worker;
+-- Neither the officer, the creditor, the debtor nor the reference of a case can be updated directly. The first letter opens
+-- the reminders and the portal of the debtor: only the worker that sent it records it.
+GRANT UPDATE (status, external_reference, closed_on, version) ON cases TO legarec_staff, legarec_worker;
+GRANT UPDATE (first_letter_reference, first_letter_on) ON cases TO legarec_worker;
 GRANT SELECT (id, reference, creditor_id, debtor_id, status, external_reference, opened_on, closed_on) ON cases TO legarec_partner;
 GRANT SELECT (id, reference, creditor_id, debtor_id, status, opened_on, closed_on) ON cases TO legarec_debtor;
 
 -- History: what a creditor sees is marked as such; a debtor does not read it.
 CREATE POLICY partner_read ON case_events FOR SELECT TO legarec_partner USING (visible_to_creditor AND case_id IN (SELECT c.id FROM cases c));
-GRANT SELECT ON case_events TO legarec_staff, legarec_worker;
+GRANT SELECT (id, case_id, creditor_id, kind, title, detail, tone, actor_kind, actor_id, actor_label, on_behalf_of_id, visible_to_creditor, occurred_at) ON case_events TO legarec_staff, legarec_worker;
 GRANT SELECT (id, case_id, creditor_id, kind, title, detail, tone, actor_kind, actor_label, visible_to_creditor, occurred_at) ON case_events TO legarec_partner;
 
 CREATE POLICY staff_read ON debtors FOR SELECT TO legarec_staff USING (id IN (SELECT c.debtor_id FROM cases c));
 CREATE POLICY partner_read ON debtors FOR SELECT TO legarec_partner USING (id IN (SELECT c.debtor_id FROM cases c));
 CREATE POLICY debtor_read ON debtors FOR SELECT TO legarec_debtor USING (id = (SELECT app.debtor_id()));
 CREATE POLICY worker_all ON debtors TO legarec_worker USING (true) WITH CHECK (true);
-GRANT SELECT ON debtors TO legarec_staff, legarec_worker;
+GRANT SELECT (id, kind, name, siren, legal_form_code, legal_form_source, legal_form_checked_at, anonymized_at, created_at) ON debtors TO legarec_staff, legarec_worker;
 GRANT SELECT (id, kind, name, siren) ON debtors TO legarec_partner, legarec_debtor;
 
 -- Creditors: never the Developer; an officer sees the creditors of their own cases.
@@ -526,7 +619,7 @@ CREATE POLICY staff_read ON creditors FOR SELECT TO legarec_staff USING (
 );
 CREATE POLICY partner_read ON creditors FOR SELECT TO legarec_partner USING (id = (SELECT app.partner_creditor()));
 CREATE POLICY worker_all ON creditors TO legarec_worker USING (true) WITH CHECK (true);
-GRANT SELECT ON creditors TO legarec_staff, legarec_worker;
+GRANT SELECT (id, name, siren, status, portal_enabled, created_at) ON creditors TO legarec_staff, legarec_worker;
 GRANT SELECT (id, name, siren, status) ON creditors TO legarec_partner;
 
 -- Accounts: colleagues see each other; a creditor account is seen with its creditor; a creditor sees itself.
@@ -539,30 +632,35 @@ GRANT SELECT (id, role, status, first_name, last_name, email, creditor_id, exten
 GRANT SELECT (id, role, status, first_name, last_name, email, creditor_id) ON users TO legarec_partner, legarec_worker;
 
 CREATE POLICY staff_read ON delegations FOR SELECT TO legarec_staff USING ((SELECT app.staff_role()) IS NOT NULL);
-GRANT SELECT ON delegations TO legarec_staff;
+GRANT SELECT (id, kind, granted_by, granted_at, withdrawn_by, withdrawn_at) ON delegations TO legarec_staff;
 
 -- Audit: read by the Director and the Developer; written by app.log() only.
 CREATE POLICY staff_read ON audit_log FOR SELECT TO legarec_staff USING ((SELECT app.staff_role()) IN ('DIRECTOR', 'DEVELOPER'));
-GRANT SELECT ON audit_log TO legarec_staff;
+GRANT SELECT (id, occurred_at, actor_kind, actor_id, actor_label, on_behalf_of_id, action, entity_type, entity_id, params, ip, request_id) ON audit_log TO legarec_staff;
 
 -- Queues: written by app.enqueue() only, read by the worker.
 CREATE POLICY worker_all ON outbox TO legarec_worker USING (true) WITH CHECK (true);
-GRANT SELECT, UPDATE (published_at) ON outbox TO legarec_worker;
-CREATE POLICY retention_purge ON outbox TO legarec_retention USING (published_at IS NOT NULL);
-GRANT SELECT (id, published_at), DELETE ON outbox TO legarec_retention;
+GRANT SELECT (id, queue, name, payload, actor_kind, actor_id, acting_for, run_at, created_at, claimed_at, published_at, done_at, failed_at), UPDATE (claimed_at, published_at, done_at, failed_at) ON outbox TO legarec_worker;
+CREATE POLICY retention_purge ON outbox TO legarec_retention USING (done_at IS NOT NULL OR failed_at IS NOT NULL);
+GRANT SELECT (id, done_at, failed_at), DELETE ON outbox TO legarec_retention;
+CREATE POLICY retention_write ON retention_runs FOR INSERT TO legarec_retention WITH CHECK (true);
+CREATE POLICY staff_read ON retention_runs FOR SELECT TO legarec_staff USING ((SELECT app.staff_role()) IN ('DIRECTOR', 'DEVELOPER'));
+GRANT INSERT (kind, removed) ON retention_runs TO legarec_retention;
+GRANT SELECT (id, kind, removed, ran_at) ON retention_runs TO legarec_staff;
 
 -- Webhooks: recorded before anyone is identified, handled by the worker.
 CREATE POLICY hook_write ON webhook_events FOR INSERT TO legarec_hook WITH CHECK (true);
 CREATE POLICY hook_read ON webhook_events FOR SELECT TO legarec_hook USING (true);
 CREATE POLICY worker_all ON webhook_events TO legarec_worker USING (true) WITH CHECK (true);
 GRANT INSERT (id, provider, provider_event_id), SELECT (id, provider, provider_event_id) ON webhook_events TO legarec_hook;
-GRANT SELECT, UPDATE (status, processed_at) ON webhook_events TO legarec_worker;
+GRANT SELECT (id, provider, provider_event_id, status, received_at, processed_at), UPDATE (status, processed_at) ON webhook_events TO legarec_worker;
 CREATE POLICY retention_purge ON webhook_events TO legarec_retention USING (status <> 'RECEIVED');
 GRANT SELECT (id, status, received_at), DELETE ON webhook_events TO legarec_retention;
 
 -- Idempotency: each actor sees its own keys.
-CREATE POLICY actor_own ON idempotency_keys TO legarec_staff, legarec_partner, legarec_debtor USING (actor = (SELECT app.actor_key())) WITH CHECK (actor = (SELECT app.actor_key()));
-GRANT SELECT, INSERT, UPDATE (status, result) ON idempotency_keys TO legarec_staff, legarec_partner, legarec_debtor;
+CREATE POLICY actor_own ON idempotency_keys TO legarec_staff, legarec_partner, legarec_debtor, legarec_service USING (actor = (SELECT app.actor_key())) WITH CHECK (actor = (SELECT app.actor_key()));
+GRANT SELECT (actor, key, route, request_hash, status, result, created_at), INSERT (actor, key, route, request_hash), UPDATE (route, request_hash, status, result, created_at)
+  ON idempotency_keys TO legarec_staff, legarec_partner, legarec_debtor, legarec_service;
 CREATE POLICY retention_purge ON idempotency_keys TO legarec_retention USING (true);
 GRANT SELECT (created_at), DELETE ON idempotency_keys TO legarec_retention;
 

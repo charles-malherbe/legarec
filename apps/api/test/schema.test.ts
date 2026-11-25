@@ -1,8 +1,9 @@
-import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
+import { migrate } from '../src/platform/database/migrate';
 import { createTestDatabase, type TestDatabase } from './database';
+import { readPrismaSchema } from './prisma-schema';
 
 /** These rules hold for every table, those of the next lots included. */
 let test: TestDatabase;
@@ -101,7 +102,7 @@ describe('functions that see more than their caller', () => {
   it('belong to a role without login, with a fixed search path', async () => {
     const wrong = await rows(`
       SELECT p.proname, r.rolname, p.proconfig FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace JOIN pg_roles r ON r.oid = p.proowner
-      WHERE n.nspname IN ('app', 'public') AND p.prosecdef AND (r.rolname <> 'legarec_definer' OR r.rolcanlogin OR p.proconfig IS DISTINCT FROM ARRAY['search_path=pg_catalog, public'])`);
+      WHERE n.nspname IN ('app', 'public') AND p.prosecdef AND (r.rolname <> 'legarec_definer' OR r.rolcanlogin OR p.proconfig IS DISTINCT FROM ARRAY['search_path=pg_catalog, public, pg_temp'])`);
     expect(wrong).toEqual([]);
   });
 });
@@ -121,29 +122,37 @@ const rightsOf = async (role: string) =>
     )
   ).map((row) => row.entry);
 
+const IDEMPOTENCY = [
+  'idempotency_keys INSERT (actor, key, request_hash, route)',
+  'idempotency_keys SELECT (actor, created_at, key, request_hash, result, route, status)',
+  'idempotency_keys UPDATE (created_at, request_hash, result, route, status)',
+];
+const CASE_EVENTS =
+  'case_events SELECT (actor_id, actor_kind, actor_label, case_id, creditor_id, detail, id, kind, occurred_at, on_behalf_of_id, title, tone, visible_to_creditor)';
+const CASES =
+  'cases SELECT (closed_on, created_at, creditor_id, debtor_id, external_reference, first_letter_on, first_letter_reference, id, officer_id, opened_on, reference, status, version)';
+const CREDITORS = 'creditors SELECT (created_at, id, name, portal_enabled, siren, status)';
+const DEBTORS = 'debtors SELECT (anonymized_at, created_at, id, kind, legal_form_checked_at, legal_form_code, legal_form_source, name, siren)';
+
 describe('rights of the roles that face the outside', () => {
   // Any addition shows here: it must be wanted.
   const expected: Record<string, string[]> = {
     legarec_auth: [],
     legarec_hook: ['webhook_events INSERT (id, provider, provider_event_id)', 'webhook_events SELECT (id, provider, provider_event_id)'],
     legarec_public: [],
-    legarec_service: [],
+    legarec_service: IDEMPOTENCY,
     legarec_partner: [
       'case_events SELECT (actor_kind, actor_label, case_id, creditor_id, detail, id, kind, occurred_at, title, tone, visible_to_creditor)',
       'cases SELECT (closed_on, creditor_id, debtor_id, external_reference, id, opened_on, reference, status)',
       'creditors SELECT (id, name, siren, status)',
       'debtors SELECT (id, kind, name, siren)',
-      'idempotency_keys INSERT (*)',
-      'idempotency_keys SELECT (*)',
-      'idempotency_keys UPDATE (result, status)',
+      ...IDEMPOTENCY,
       'users SELECT (creditor_id, email, first_name, id, last_name, role, status)',
     ],
     legarec_debtor: [
       'cases SELECT (closed_on, creditor_id, debtor_id, id, opened_on, reference, status)',
       'debtors SELECT (id, kind, name, siren)',
-      'idempotency_keys INSERT (*)',
-      'idempotency_keys SELECT (*)',
-      'idempotency_keys UPDATE (result, status)',
+      ...IDEMPOTENCY,
     ],
   };
   it.each(Object.entries(expected))('%s', async (role, rights) => {
@@ -163,35 +172,36 @@ describe('rights of the roles inside', () => {
   // Any addition shows here too: the team reads, and writes by the functions; only the purge erases.
   const expected: Record<string, string[]> = {
     legarec_staff: [
-      'audit_log SELECT (*)',
-      'case_events SELECT (*)',
-      'cases SELECT (*)',
-      'cases UPDATE (closed_on, external_reference, first_letter_on, first_letter_reference, status, version)',
-      'creditors SELECT (*)',
-      'debtors SELECT (*)',
-      'delegations SELECT (*)',
-      'idempotency_keys INSERT (*)',
-      'idempotency_keys SELECT (*)',
-      'idempotency_keys UPDATE (result, status)',
+      'audit_log SELECT (action, actor_id, actor_kind, actor_label, entity_id, entity_type, id, ip, occurred_at, on_behalf_of_id, params, request_id)',
+      CASE_EVENTS,
+      CASES,
+      'cases UPDATE (closed_on, external_reference, status, version)',
+      CREDITORS,
+      DEBTORS,
+      'delegations SELECT (granted_at, granted_by, id, kind, withdrawn_at, withdrawn_by)',
+      ...IDEMPOTENCY,
+      'retention_runs SELECT (id, kind, ran_at, removed)',
       'users SELECT (created_at, creditor_id, disabled_at, email, extension, first_name, id, last_name, last_seen_at, role, status)',
     ],
     legarec_worker: [
-      'case_events SELECT (*)',
-      'cases SELECT (*)',
+      CASE_EVENTS,
+      CASES,
+      // The first letter opens the reminders and the portal of the debtor: only the worker that sent it records it.
       'cases UPDATE (closed_on, external_reference, first_letter_on, first_letter_reference, status, version)',
-      'creditors SELECT (*)',
-      'debtors SELECT (*)',
-      'outbox SELECT (*)',
-      'outbox UPDATE (published_at)',
+      CREDITORS,
+      DEBTORS,
+      'outbox SELECT (acting_for, actor_id, actor_kind, claimed_at, created_at, done_at, failed_at, id, name, payload, published_at, queue, run_at)',
+      'outbox UPDATE (claimed_at, done_at, failed_at, published_at)',
       'users SELECT (creditor_id, email, first_name, id, last_name, role, status)',
-      'webhook_events SELECT (*)',
+      'webhook_events SELECT (id, processed_at, provider, provider_event_id, received_at, status)',
       'webhook_events UPDATE (processed_at, status)',
     ],
     legarec_retention: [
       'idempotency_keys DELETE (*)',
       'idempotency_keys SELECT (created_at)',
       'outbox DELETE (*)',
-      'outbox SELECT (id, published_at)',
+      'outbox SELECT (done_at, failed_at, id)',
+      'retention_runs INSERT (kind, removed)',
       'webhook_events DELETE (*)',
       'webhook_events SELECT (id, received_at, status)',
     ],
@@ -200,15 +210,17 @@ describe('rights of the roles inside', () => {
       'audit_log INSERT (*)',
       'audit_log SELECT (id, occurred_at)',
       'case_events INSERT (*)',
+      'case_events SELECT (actor_id, case_id, kind, occurred_at)',
       'cases SELECT (creditor_id, debtor_id, first_letter_on, id, officer_id, version)',
       'cases UPDATE (officer_id, version)',
-      'creditors SELECT (id, name)',
+      'creditors SELECT (id, portal_enabled)',
       'delegations SELECT (*)',
       'number_sequences INSERT (*)',
       'number_sequences SELECT (*)',
       'number_sequences UPDATE (*)',
       'outbox INSERT (*)',
-      'outbox SELECT (dedupe_key)',
+      'task_keys INSERT (*)',
+      'task_keys SELECT (key)',
       'users SELECT (creditor_id, first_name, id, last_name, role, status)',
     ],
   };
@@ -237,6 +249,9 @@ describe('rights of the roles inside', () => {
       'legarec_app > legarec_public',
       'legarec_app > legarec_service',
       'legarec_app > legarec_staff',
+      // A task runs with the rights of its author.
+      'legarec_jobs > legarec_debtor',
+      'legarec_jobs > legarec_partner',
       'legarec_jobs > legarec_retention',
       'legarec_jobs > legarec_staff',
       'legarec_jobs > legarec_worker',
@@ -283,7 +298,7 @@ describe('rights on the functions', () => {
     const listed = [
       'add_case_event note_consultation assign_cases next_number purge_audit can_read_case can_act_on_case is_claims_officer director_id secure secure_case_table append_only refuse_change',
       'log enqueue staff_role has_delegation partner_creditor on_behalf_of actor_kind actor_label actor_id actor_key',
-      'uuid_v7 setting user_id creditor_id debtor_id only_identifiers',
+      'uuid_v7 setting user_id creditor_id debtor_id only_identifiers audit_params',
     ].flatMap((names) => names.split(' '));
     const found = await rows<{ proname: string }>(
       "SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'app' ORDER BY 1",
@@ -292,13 +307,63 @@ describe('rights on the functions', () => {
   });
 });
 
+describe('database', () => {
+  it('lets nobody connect but the two programs, as the migrations leave it', async () => {
+    const [row] = await rows<{ datacl: string }>('SELECT datacl::text FROM pg_database WHERE datname = $1', [inject('template')]);
+    // `=Tc/` would be the right of everyone to connect and to create temporary objects.
+    expect(row!.datacl).not.toMatch(/[{,]=/u);
+    expect(row!.datacl.match(/legarec_(?:app|jobs)=\w+/gu)?.sort()).toEqual(['legarec_app=c', 'legarec_jobs=c']);
+  });
+
+  it('stops what runs, waits or stays open for too long', async () => {
+    const settings = await rows<{ rolname: string; setting: string[] }>(
+      "SELECT rolname, rolconfig AS setting FROM pg_roles WHERE rolname IN ('legarec_app', 'legarec_jobs') ORDER BY 1",
+    );
+    for (const { setting } of settings)
+      for (const name of ['statement_timeout', 'lock_timeout', 'idle_in_transaction_session_timeout'])
+        expect(setting.some((value) => value.startsWith(`${name}=`))).toBe(true);
+    expect(settings).toHaveLength(2);
+  });
+});
+
 describe('schema', () => {
-  it('is the same in Prisma and in the migrations', () => {
-    const result = spawnSync('pnpm', ['exec', 'prisma', 'migrate', 'diff', '--from-config-datasource', '--to-schema', 'prisma/schema', '--exit-code'], {
-      cwd: fileURLToPath(new URL('..', import.meta.url)),
-      env: { ...process.env, MIGRATION_DATABASE_URL: test.url('owner'), PRISMA_HIDE_UPDATE_MESSAGE: '1' },
-      encoding: 'utf8',
-    });
-    expect(result.status, result.stdout + result.stderr).toBe(0);
+  const announced = readPrismaSchema(fileURLToPath(new URL('../prisma/schema', import.meta.url)));
+
+  it('has the same tables and columns in Prisma and in the migrations', async () => {
+    const columns = await rows<{ relname: string; attname: string; type: string; nullable: boolean }>(`
+      SELECT c.relname, a.attname, format_type(a.atttypid, a.atttypmod) AS type, NOT a.attnotnull AS nullable
+      FROM pg_attribute a JOIN pg_class c ON c.oid = a.attrelid JOIN pg_namespace n ON n.oid = c.relnamespace
+      WHERE ${TABLES} AND a.attnum > 0 AND NOT a.attisdropped`);
+    const found: Record<string, Record<string, unknown>> = {};
+    for (const { relname, attname, type, nullable } of columns) (found[relname] ??= {})[attname] = { type, nullable };
+    expect(announced.tables).toEqual(found);
+  });
+
+  it('has the same keys', async () => {
+    const keys = await rows<{ relname: string; columns: string[] }>(`
+      SELECT c.relname, array_agg(a.attname::text ORDER BY k.position) AS columns
+      FROM pg_constraint p JOIN pg_class c ON c.oid = p.conrelid JOIN pg_namespace n ON n.oid = c.relnamespace
+      CROSS JOIN LATERAL unnest(p.conkey) WITH ORDINALITY AS k(number, position) JOIN pg_attribute a ON a.attrelid = c.oid AND a.attnum = k.number
+      WHERE ${TABLES} AND p.contype = 'p' GROUP BY c.relname`);
+    expect(announced.keys).toEqual(Object.fromEntries(keys.map((row) => [row.relname, row.columns])));
+  });
+
+  it('has the same lists of values', async () => {
+    const enums = await rows<{ typname: string; labels: string[] }>(
+      'SELECT t.typname, array_agg(e.enumlabel::text ORDER BY e.enumsortorder) AS labels FROM pg_type t JOIN pg_enum e ON e.enumtypid = t.oid GROUP BY t.typname',
+    );
+    expect(announced.enums).toEqual(Object.fromEntries(enums.map((row) => [row.typname, row.labels])));
+  });
+});
+
+describe('migrations', () => {
+  const directory = fileURLToPath(new URL('../prisma/migrations', import.meta.url));
+
+  it('run once, and refuse one that changed after it was applied or that is missing', async () => {
+    expect(await migrate(test.url('owner'), directory)).toEqual([]);
+    await test.admin.query("UPDATE _prisma_migrations SET checksum = 'x'");
+    await expect(migrate(test.url('owner'), directory)).rejects.toThrow('changed after it was applied');
+    await test.admin.query("UPDATE _prisma_migrations SET migration_name = '20200101000000_gone'");
+    await expect(migrate(test.url('owner'), directory)).rejects.toThrow('absent from the code');
   });
 });
