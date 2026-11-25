@@ -1,0 +1,16 @@
+{
+  "name": "@legarec/tokens",
+  "private": true,
+  "type": "module",
+  "version": "0.0.0",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@mantine/core": "9.8.2"
+  }
+}

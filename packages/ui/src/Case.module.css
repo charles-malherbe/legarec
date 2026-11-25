@@ -1,0 +1,27 @@
+.root {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--sp-2h);
+  cursor: pointer;
+}
+.input {
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--marine);
+  flex-shrink: 0;
+}
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-0h);
+}
+.label {
+  font-size: var(--fs-base);
+  color: var(--text);
+}
+.description {
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+  color: var(--text-3);
+}

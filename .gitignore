@@ -10,3 +10,7 @@ dist/
 apps/bureau/src-tauri/target/
 apps/bureau/src-tauri/gen/
 apps/espace/dist-bureau/
+.turbo/
+*.tsbuildinfo
+playwright-report/
+test-results/

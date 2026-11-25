@@ -1,0 +1,42 @@
+.root {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1h);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.root[data-size='md'] {
+  font-size: var(--fs-base);
+}
+.root[data-strong] {
+  font-weight: 600;
+  color: var(--t-fg);
+}
+.root[data-wrap] {
+  white-space: normal;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-full);
+  background: var(--t-dot);
+  flex-shrink: 0;
+}
+.root[data-size='md'] .dot {
+  width: 10px;
+  height: 10px;
+}
+.dot[data-pulse] {
+  animation: pulse 1.6s infinite;
+}
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--success-ring);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 6px var(--success-ring-0);
+  }
+}
