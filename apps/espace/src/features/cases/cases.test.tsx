@@ -31,7 +31,8 @@ describe('case access', () => {
       expect((await call('ad', path, body)).status).toBe(403);
     expect((await call('ad', '/cases/reminders', { ids: ['demo'] })).status).toBe(403);
     expect((await call('ad', '/cases/reminders', { ids: ['lagarde'] })).status).toBe(204);
-    expect((await call('hb', '/cases/demo')).status).toBe(403);
+    // The same answer as for a case that does not exist.
+    expect((await call('hb', '/cases/demo')).status).toBe(404);
     expect((await call('hb', '/cases/assign', { ids: ['helio'], officerId: 'hb' })).status).toBe(403);
     expect((await call('dev', '/cases/demo')).status).toBe(403);
   });

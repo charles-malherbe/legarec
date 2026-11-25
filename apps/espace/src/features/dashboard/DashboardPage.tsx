@@ -113,7 +113,7 @@ export function DashboardPage() {
         actions={[
           { label: 'Exporter', disabled: true },
           { label: 'Démarrer ma session d’appels', href: '/appels' },
-          { label: '+ Nouveau dossier', primary: true, kbd: 'N', href: '/debiteurs' },
+          ...(user.role === 'CLAIMS_OFFICER' ? [] : [{ label: '+ Nouveau dossier', primary: true, kbd: 'N', href: '/debiteurs/nouveau' }]),
         ]}
       />
       <Toolbar

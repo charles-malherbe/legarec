@@ -80,5 +80,9 @@
     "app": "espace",
     "route": "/parametres/techniques/secrets",
     "account": "dev"
+  },
+  "NewCase": {
+    "app": "espace",
+    "route": "/debiteurs/nouveau"
   }
 }

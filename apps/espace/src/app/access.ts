@@ -6,7 +6,8 @@ export function canOpen(path: string, user: Session): boolean {
   if (path.startsWith('/facturation')) return canAccessBilling(user);
   if (path.startsWith('/equipe')) return user.role !== 'CLAIMS_OFFICER';
   // The firm's own right of the Director and of the manager.
-  if (/^\/creanciers\/(?:nouveau$|[^/]+\/modifier$)/u.test(path)) return user.role === 'DIRECTOR' || user.role === 'COLLECTION_MANAGER';
+  if (path === '/debiteurs/nouveau' || /^\/creanciers\/(?:nouveau$|[^/]+\/modifier$)/u.test(path))
+    return user.role === 'DIRECTOR' || user.role === 'COLLECTION_MANAGER';
   const caseRoutes = ['/creanciers', '/debiteurs', '/relances', '/echeanciers', '/contentieux', '/appels', '/e-mails', '/sms', '/documents', '/rapports'];
   if (user.role === 'DEVELOPER') return !caseRoutes.some((route) => path.startsWith(route));
   return true;

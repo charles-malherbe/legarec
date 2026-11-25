@@ -64,7 +64,7 @@ export function CreditorPage() {
           <div className={layout.inline}>
             <Bouton variant="secondary" label="Importer des factures (CSV)" disabled />
             <Bouton variant="secondary" label="Rapport créancier" disabled />
-            <Bouton label="+ Ajouter un débiteur" disabled />
+            {canChange && <Bouton label="+ Ajouter un débiteur" href={`/debiteurs/nouveau?creancier=${data.id}`} />}
           </div>
         </div>
         <dl className={layout.figures}>

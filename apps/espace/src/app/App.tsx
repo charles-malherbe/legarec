@@ -18,6 +18,7 @@ import { ComposePage } from '../features/documents/ComposePage';
 import { DocumentsPage } from '../features/documents/DocumentsPage';
 import { EmailsPage } from '../features/emails/EmailsPage';
 import { SmsPage } from '../features/sms/SmsPage';
+import { CaseFormPage } from '../features/cases/CaseFormPage';
 import { CasePage } from '../features/cases/CasePage';
 import { CasesPage } from '../features/cases/CasesPage';
 import { CreditorFormPage } from '../features/creditors/CreditorFormPage';
@@ -87,6 +88,7 @@ export function App() {
               <Route path="creanciers/:id" element={<CreditorPage />} />
               <Route path="creanciers/:id/modifier" element={<CreditorFormPage />} />
               <Route path="debiteurs" element={<CasesPage />} />
+              <Route path="debiteurs/nouveau" element={<CaseFormPage />} />
               <Route path="debiteurs/:id" element={<CasePage />} />
               <Route
                 path="relances"
