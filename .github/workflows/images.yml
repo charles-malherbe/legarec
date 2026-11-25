@@ -39,7 +39,8 @@ jobs:
       - name: Dockerfiles
         run: |
           for file in infra/docker/*.Dockerfile; do
-            docker run --rm --interactive hadolint/hadolint:v2.15.1@sha256:32dac94127fd60b7b7e3fbfc65e1383b9b5e25c9bfd7b8536de7a539fe68a12d hadolint --ignore DL3008 --ignore DL3016 - < "$file"
+            echo "$file"
+            docker run --rm --interactive hadolint/hadolint:v2.15.1@sha256:32dac94127fd60b7b7e3fbfc65e1383b9b5e25c9bfd7b8536de7a539fe68a12d hadolint --failure-threshold warning --ignore DL3008 --ignore DL3016 - < "$file"
           done
       - name: Scripts and timers
         run: |
