@@ -152,7 +152,7 @@ status.legarec.fr {
 		reverse_proxy grafana:3000
 	}
 	# Results pushed by the worker and the backups stay inside.
-	@push path_regexp ^/api/v1/endpoints/[^/]+/external/?$
+	@push path_regexp (?i)^/api/v1/endpoints/[^/]+/external/?$
 	handle @push {
 		respond 404
 	}

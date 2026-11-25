@@ -139,8 +139,8 @@ Déploiements suivants : `sudo git -C /opt/legarec checkout main`, `sudo git -C 
 Retour en arrière : `sudo git -C /opt/legarec checkout <version précédente>`, puis l'étape 2. Si une migration a été appliquée entre-temps, elle refuse de continuer : restaurer la sauvegarde faite juste avant, ou corriger par une nouvelle version. Ne jamais lancer `docker compose down --volumes`.
 
 ### Restaurer la base
-À faire à deux, `legarec` étant le raccourci ci-dessus. GitHub Actions rejoue les étapes 3 à 6 à chaque changement.
-1. Arrêter les minuteries, l'accès et les programmes.
+À faire à deux, `legarec` étant le raccourci ci-dessus. GitHub Actions rejoue les étapes 3 à 6 à chaque changement, pour le dernier état ; la restauration à un instant précis n'est pas encore essayée automatiquement.
+1. Arrêter les minuteries, l'accès et les programmes. Attendre la fin d'une sauvegarde déjà lancée : `sudo docker ps --filter name=sauvegarde` ne liste rien.
 
    ```bash
    sudo systemctl stop 'legarec-*.timer'
@@ -150,7 +150,16 @@ Retour en arrière : `sudo git -C /opt/legarec checkout <version précédente>`,
    legarec stop caddy api worker postgres
    ```
 
-2. Garder l'état actuel : copier le volume `legarec-app_postgres-data` dans un dossier lisible par root seul, effacé à la fin.
+2. Garder l'état actuel. C'est une copie en clair de toute la base : dossier lisible par root seul, à effacer (`sudo rm -r /root/legarec-avant`) dès la restauration vérifiée.
+
+   ```bash
+   sudo install -d -m 700 /root/legarec-avant
+   ```
+
+   ```bash
+   sudo cp -a "$(sudo docker volume inspect --format '{{.Mountpoint}}' legarec-app_postgres-data)" /root/legarec-avant/
+   ```
+
 3. Restaurer le dernier état. Pour un instant précis, ajouter l'heure à la fin, par exemple `"2026-12-01 09:00:00+01"`.
 
    ```bash
@@ -163,13 +172,13 @@ Retour en arrière : `sudo git -C /opt/legarec checkout <version précédente>`,
    legarec up -d --wait postgres
    ```
 
-5. Bloquer les tâches en cours : un courrier, un SMS ou un e-mail peut être parti après l'instant restauré. Elles deviennent « incertaines » ; une personne vérifie chez le fournisseur. Rien ne repart seul.
+5. Bloquer les tâches en file, celles prévues plus tard comprises : un courrier, un SMS ou un e-mail peut être parti après l'instant restauré. Elles deviennent « incertaines » ; une personne vérifie chez le fournisseur, dans les 30 jours (60 quand la question 120 sera appliquée).
 
    ```bash
    legarec exec postgres legarec-hold-tasks
    ```
 
-6. Rejouer la purge avant d'ouvrir l'accès (des données effacées sont revenues) ; la commande reste à écrire, voir « Reste à faire ». Puis tout démarrer.
+6. Rejouer la purge avant d'ouvrir l'accès (des données effacées sont revenues) ; **la commande n'existe pas encore : condition de mise en service**, voir « Reste à faire ». Puis tout démarrer.
 
    ```bash
    legarec up -d --wait
@@ -221,6 +230,7 @@ Journaux : ni adresse IP, ni chemin, ni en-tête dans ceux de Caddy ; ni requêt
 
 ## Choix faits, à connaître
 - **Valeurs lues dans un fichier monté**, jamais dans l'environnement du conteneur : `docker inspect` ne montre rien. `pgbackrest.env` est monté dans deux conteneurs, seule exception : c'est PostgreSQL qui envoie son journal.
+- **Contrôles internes** : un compte du serveur peut lire leurs noms et leur état (réseau de sortie des alertes) ; écrire demande un jeton.
 - **Deux Gatus** : Gatus ne sait pas cacher un contrôle à certains visiteurs. Caddy montre l'un ou l'autre selon l'adresse IP.
 - **Grafana** : `status.legarec.fr/journaux`, depuis les adresses du cabinet (aucun nouveau domaine).
 - **Journaux** : Docker les remet à un collecteur par un fichier de communication propre à Legarec ; ni accès à Docker, ni lecture des autres conteneurs du serveur.
@@ -247,7 +257,9 @@ Posées dans la discussion. Elles sont à reporter dans `QUESTIONS.md`, que cett
 - Chemin des modèles d'e-mails une fois l'API construite (lot Q) : `apps/api/src/emails/renderer.ts` remonte de deux dossiers depuis le fichier source ; à vérifier depuis `dist/`.
 - n8n : avec les comptes de service ; conteneur et valeurs (`N8N_ENCRYPTION_KEY`) à ajouter, sur un réseau partagé avec l'API seule. Sa route existe déjà dans Caddy, réservée aux adresses du cabinet : elle répond 502 d'ici là.
 - Gatus : contrôle du bucket des documents (lot N).
-- Purge à la demande après une restauration : aujourd'hui, seule la tâche quotidienne du worker la lance. Une commande est à écrire dans l'API.
+- **Condition de mise en service** : purge à la demande après une restauration. Aujourd'hui, seule la tâche quotidienne du worker la lance ; sans elle, des données effacées redeviennent visibles jusqu'à son passage. Une commande est à écrire dans l'API.
+- **Condition de mise en service** : `legarec-hold-tasks` ne bloque que les tâches en file (`outbox`). Chaque lot qui ajoute un planning dans PostgreSQL (relances, envois groupés, notifications) l'étend à ses tables, avec un test : sinon une relance déjà partie redeviendrait due.
+- `pgbackrest verify` chaque semaine (trou ancien dans le journal) et essai automatique d'une restauration à un instant précis.
 - Contrôle de plusieurs copies de l'API : non prévu, une seule à la fois.
 
 **Changements à faire dans des fichiers que cette branche ne touche pas** :

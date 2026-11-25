@@ -15,6 +15,9 @@ git merge-base --is-ancestor HEAD refs/remotes/origin/main || stop 'Cette versio
 
 # Group of each file of values: the same table as docs/deploiement.md.
 declare -A group=([caddy]=10110 [api]=10101 [worker]=10102 [migration]=10104 [postgres]=999 [pgbackrest]=999 [restauration]=999 [valkey]=10115 [gatus]=10111 [grafana]=10114)
+# The job of GitHub Actions is told apart by its folder too, which the server does not have.
+ci=false
+if [ "${GITHUB_ACTIONS:-}" = true ] && [ -d /var/lib/legarec-ci ]; then ci=true; fi
 wrong=0
 tell() { echo "$1" >&2; wrong=1; }
 [ "$(stat -c %u:%a /etc/legarec 2>/dev/null)" = 0:700 ] || tell 'Dossier /etc/legarec absent ou mal protégé (root, 700).'
@@ -24,7 +27,7 @@ for name in "${!group[@]}"; do
   [ -f "$file" ] || { tell "Fichier absent : $file"; continue; }
   [ "$(stat -c %u:%g:%a "$file")" = "0:${group[$name]}:640" ] || tell "Droits de $file : root, groupe ${group[$name]}, 640 attendus."
   while IFS= read -r key; do
-    [ "${GITHUB_ACTIONS:-}" = true ] && [[ "$key" == PGBACKREST_REPO1_S3_* ]] && continue
+    [ "$ci" = true ] && [[ "$key" == PGBACKREST_REPO1_S3_* ]] && continue
     grep -qE "^$key=[^[]" "$file" && ! grep -qE "^$key=.*\[" "$file" || tell "Valeur absente ou entre crochets : $key dans $file"
   done < <(sed -n 's/^\([A-Z0-9_]*\)=.*/\1/p' "infra/valeurs/$name.env.exemple")
 done
@@ -34,7 +37,7 @@ LEGAREC_VERSION="$(git rev-parse --short=12 HEAD)"
 export LEGAREC_VERSION
 files=(--file docker-compose.yml)
 # GitHub Actions tries this very script, without any way out to the Internet.
-[ "${GITHUB_ACTIONS:-}" != true ] || files+=(--file infra/ci/compose.ci.yml)
+[ "$ci" = false ] || files+=(--file infra/ci/compose.ci.yml)
 # No file of values by default: neither `.env` nor COMPOSE_FILE is read.
 unset COMPOSE_FILE COMPOSE_PROFILES
 compose() { docker compose "${files[@]}" --env-file /dev/null "$@"; }

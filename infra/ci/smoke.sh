@@ -77,6 +77,7 @@ expect 200 https://status.legarec.fr/journaux/login
 get https://status.legarec.fr/api/v1/endpoints/statuses | grep -q 'Loki' || fail 'internal checks for the firm'
 expect 404 'https://status.legarec.fr/api/v1/endpoints/taches_worker/external?success=true' --request POST
 expect 404 'https://status.legarec.fr/api/v1/endpoints/taches_worker/external/?success=true' --request POST
+expect 404 'https://status.legarec.fr/API/v1/endpoints/taches_worker/EXTERNAL?success=true' --request POST
 ok 'addresses of the firm'
 
 # Containers
@@ -98,6 +99,7 @@ mapfile -t images < <(docker image ls --quiet --filter 'reference=legarec/*')
 absent 'a value in an image' -Ff /tmp/values -- docker image inspect "${images[@]}"
 absent 'a value in a command line' -Ff /tmp/values -- ps -eo args
 absent 'the password of the superuser in the server' -Ff /tmp/values -- docker compose exec -T postgres sh -c 'cat /proc/[0-9]*/environ | tr "\0" "\n"'
+grep -q '^PGDATA=' /tmp/said || fail 'witness: the environment of the server was not read'
 ok containers
 
 # Only the networks they need. A witness shows that the tool works.
@@ -144,6 +146,10 @@ if grep -rqa "$mark" /var/lib/legarec-ci/depot; then fail 'a backup is not encry
 for file in /var/lib/legarec-ci/depot/backup/legarec/backup.info /var/lib/legarec-ci/depot/archive/legarec/archive.info; do
   [ "$(head -c 8 "$file")" = Salted__ ] || fail "not encrypted: $file"
 done
+# And a file of the journal.
+journal="$(find /var/lib/legarec-ci/depot/archive -type f -name '0*.zst' -print -quit)"
+[ -n "$journal" ] || fail 'no journal to look into'
+[ "$(head -c 8 "$journal")" = Salted__ ] || fail "not encrypted: $journal"
 sql 'DROP TABLE ci_mark'
 heard="$(get https://status.legarec.fr/api/v1/endpoints/statuses)"
 for key in taches_worker sauvegardes_sauvegarde sauvegardes_essai-de-restauration; do
