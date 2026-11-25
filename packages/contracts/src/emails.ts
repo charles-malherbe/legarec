@@ -10,7 +10,8 @@ const optional = z.string().optional();
 /** The kit's reminders ask for a SIREN: they are for companies only, never for an individual. */
 const siren = z.string().regex(/^\d{3} ?\d{3} ?\d{3}$/u);
 const count = z.number().int().nonnegative();
-const url = z.url({ protocol: /^https$/u });
+/** HTTPS; the portals of a development machine too. */
+const url = z.union([z.url({ protocol: /^https$/u }), z.url({ protocol: /^http$/u, hostname: /^localhost$/u })]);
 const flag = z.boolean();
 
 export const emailSchemas = {

@@ -292,6 +292,10 @@
   font-family: var(--font-mono);
   font-size: var(--fs-sm);
 }
+/* A form whose fields are laid out with those of the page. */
+.contents {
+  display: contents;
+}
 .secret {
   padding: var(--sp-4);
   border: 1px solid var(--border);

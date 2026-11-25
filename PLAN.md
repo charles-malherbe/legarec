@@ -129,7 +129,7 @@ Les 161 routes simulées se répartissent ainsi :
 |---|---|---|
 | [x] J0 | Documentation : décisions 65 à 111, points à confirmer, `PLAN.md`, `docs/`, `.claude/rules/api.md` | — |
 | [x] J | Socle : services de développement, NestJS, Prisma, rôles et RLS, audit, erreurs, journaux masqués, OpenAPI, outbox, banc de tests, GitHub Actions (services PostgreSQL et Valkey, Node 26), corps de requêtes Zod manquants, en-tête `Idempotency-Key` dans `packages/platform/src/http.ts` | 0 |
-| [ ] K | Comptes : connexion, 2FA, sessions, invitations, délégations, support, premier Directeur par commande | 40 (`auth`, `account`, `members`, `delegations`, `support-tickets`) |
+| [x] K | Comptes : connexion, 2FA, sessions, invitations, délégations, support, premier Directeur par commande | 40 (`auth`, `account`, `members`, `delegations`, `support-tickets`) |
 | [ ] L | Portefeuille : paramètres et coffre, créanciers et mandats, débiteurs, dossiers, coordonnées, code d'accès, recherche, notifications. **Écrans** créancier et débiteur | 21 |
 | [ ] M | Argent : intérêts, paiements, promesses, litiges, échéanciers | 7 |
 | [ ] N | Documents : S3 (disque local en développement), antivirus, modèles, PDF, téléchargements, valeurs entre crochets, logos | 16 |
@@ -158,15 +158,16 @@ Les 161 routes simulées se répartissent ainsi :
 - [x] Relectures `relecteur-securite` (deux fois) et `testeur` : points bloquants, importants et mineurs corrigés ; les protections retirées une à une (41 essais) font échouer un test, sauf une, doublée par une autre
 - Aucune route des portails n'est encore branchée : les écrans restent sur les simulations.
 
-## Lot K — à prévoir (contre-relecture du lot J)
-- `legarec_auth` n'a encore aucun droit : sessions, empreintes, seconds facteurs et verrouillages par fonctions ; rôle, statut, portail et délégations relus à chaque requête, jamais crus sur parole.
-- Session sans second facteur : règle « second facteur attendu », Développeur bloqué sans second facteur, réauthentification récente pour les actions sensibles.
-- Journal des connexions : aujourd'hui « Inconnu », sans identifiant ; catalogue `AUDIT_ACTIONS` à compléter.
-- Débiteur et compte de service : liés à une session vivante ou à un compte non révoqué (aujourd'hui tout identifiant est reconnu) ; portées relues.
-- `Database.run()` hors du module de connexion : à interdire par ESLint.
-- Délégations et comptes : fonctions pour donner, retirer, désactiver et fermer les sessions ; un nouveau Directeur ne doit pas être bloqué par l'ancienne ligne de délégation.
-- Limites par IP, bloc /64 et compte (Valkey absent = refus) ; cookies `__Host-` ; ancienne clé de signature acceptée pendant son renouvellement ; inactivité non prolongée par une requête de fond.
-- Matrice d'accès : compte de service, comptes invités et désactivés, portail fermé, session sans second facteur.
+## Lot K — Comptes (état au 25/11/2026)
+- [x] Tables des comptes, rôle PostgreSQL de la connexion limité à un compte à la fois, fonctions pour agir sur le compte des autres ; 57 routes, matrice d'accès complète, vraies sessions essayées sur chaque route (compte désactivé, invité, portail fermé, second facteur manquant, autre portail, rôle changé)
+- [x] Connexion, second facteur (application, clé de sécurité, codes de secours), sessions, « Rester connecté », nouveau navigateur signalé, mot de passe oublié, invitations, premier Directeur et liens par commande
+- [x] Mon compte, équipe, délégations, support (Directeur prévenu dans l'application), questions au support, notifications du support
+- [x] E-mails de compte du kit, préparés par le worker et simulés jusqu'au lot Q ; purges (sessions 48 heures, comptes désactivés 2 ans, notifications et questions 2 ans, durées techniques de la question 120)
+- [x] Portails : étapes ajoutées à la connexion (second facteur exigé, trop de tentatives, blocage), session tenue ouverte par l'activité, `VITE_API` ; simulations et API rejouent les mêmes requêtes
+- [x] Essai complet dans un navigateur contre l'API (connexion, second facteur, lien reçu, support, mauvais portail, blocage)
+- [x] Relectures `relecteur-securite` et `testeur` : le point bloquant, les points importants et presque tous les mineurs corrigés ; 327 protections retirées une à une, 315 vues par un test, les 12 autres équivalentes ou doublées. Restent assumés : `attemptsLeft` peut trahir un compte dont le titulaire se connecte entre deux essais ; plus de cinq connexions justes au même instant en bloquent une partie
+- [x] Seconde relecture sécurité, demandée par le cabinet : aucun point bloquant ; 2 importants et les mineurs corrigés, avec leurs tests (session relue au moment d'agir, changement de personne dans les portails, ordre des verrous, conservation, Directeur prévenu, déconnexion non reçue)
+- Reporté, avec son lot : second facteur et session du débiteur (O), comptes de service et commande de remplacement du Directeur (X, question 124), réauthentification avant une action sensible (L, question 122 : fenêtre montrée avant développement), SMS au Directeur (R, question 113), envoi réel (Q), invitation d'un collaborateur après sa boîte (R), bascule de l'espace (après U).
 
 ## Points à reprendre du front
 
@@ -179,7 +180,7 @@ Les 161 routes simulées se répartissent ainsi :
 | Code d'accès retiré de tout message entrant ; copie masquée des courriers pour le créancier et les lecteurs sans droit d'agir : **sans cela, un créancier verrait le code qui ouvre les dossiers de tous les créanciers du débiteur** | N, O, R |
 | Plafonds sur tous les envois (fiche, groupé, SMS, e-mails, courriers, appels) et fenêtre de dérogation motivée | Q |
 | Blocage d'un accès : notification au gestionnaire, historique | O |
-| Invitation envoyée après la création de la boîte | K, R |
+| Invitation d'un collaborateur : le texte annonce l'attente de sa boîte (K) ; l'envoi part avec la création de la boîte | R |
 | « Accepter cet échéancier » ; textes « signature électronique » (Échéanciers, Facturation, Rédiger, modèles, aide) | O, S |
 | Premier courrier : seul un courrier postal compte (fiche, Rédiger, aide, scénarios) | Q |
 | Forme juridique affichée et corrigeable ; score absent si inconnue, entrepreneur individuel ou particulier | L, U |
@@ -187,11 +188,14 @@ Les 161 routes simulées se répartissent ainsi :
 | Fiche débiteur : la relance envoie un destinataire libre et des libellés ; devient un contact du dossier et des codes | Q |
 | Appel entrant lu une seule fois : interrogation toutes les 5 secondes | T |
 | Échec d'envoi et quota par boîte : compteur dans Valkey, plus en mémoire | R |
-| Support : « Réinitialiser la double authentification » et « Débloquer », absents de l'écran | K |
 | Écran Secrets : liste de noms attendus, « Renouveler » qui demande la nouvelle valeur, « Révoquer » masqué pour les clés internes, `SESSION_SIGNING_KEY` retirée, « Environnement » réel (108 à 110) | L |
 | Appels : « Transcription en direct » devient une transcription proposée après l'appel (question 72) | W |
 | Tableau des permissions : « Valider un échéancier, une remise ou un abandon de créance », « Ses dossiers » pour le Directeur (question 86) ; « Validations » : accord du créancier après celui du Responsable | M |
-| Absence : le remplaçant reçoit des notifications neutres (Mon compte, « Absence et remplacement ») | K |
+| Portail paiement : mêmes règles que les deux autres au changement de personne (`key`, autres onglets, déconnexion non reçue) | O |
+| Caddy masque les jetons des liens de réinitialisation et d'invitation dans ses journaux (`docs/api.md`) : à vérifier avant d'activer un journal d'accès | X |
+| Remplaçant : notifications neutres à envoyer avec celles des dossiers (texte de Mon compte déjà ajusté) | L |
+| Cloche de la barre du haut : notifications encore simulées (`/shell`), page Notifications déjà réelle | L |
+| Tableau de bord : `queryFn` absente de la requête `shell` (erreur dans la console) ; Paramètres : « Annuler » actif pendant l'enregistrement | L, U |
 | Données personnelles : durées modifiables et anonymisation désactivable à l'écran, alors qu'elles sont fixées ; page Confidentialité à compléter (durées, suivi des e-mails avant de l'activer) | Q, V |
 | Synchronisation d'un contact avec l'annuaire 3CX (`HANDOFF.md`) : annuaire commun à toute l'équipe, écart à signaler avant développement | T |
 

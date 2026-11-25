@@ -1,4 +1,4 @@
-import { ROLE_LABELS, type AccountData, type Session } from '@legarec/contracts';
+import { NOTIFICATION_KINDS, ROLE_LABELS, type AccountData, type Session } from '@legarec/contracts';
 import { http, HttpResponse } from 'msw';
 import { audit } from '../audit';
 import { done, forbidden, guarded, notFound } from '../http';
@@ -6,16 +6,6 @@ import { currentSession, state } from '../state';
 
 type Info = { request: Request; params: Record<string, unknown> };
 const staff = (session: Session) => session.role !== 'CREDITOR';
-const PREFS: [string, string, string, boolean, boolean][] = [
-  ['payment', 'Paiement reçu', 'Virement rapproché ou chèque encaissé', true, true],
-  ['promise', 'Promesse non tenue', 'Le jour suivant la date promise', true, true],
-  ['message', 'Réponse d’un débiteur', 'E-mail, SMS ou message de l’espace débiteur', true, false],
-  ['deadline', 'Délai judiciaire proche', '10 jours, 3 jours et la veille', true, true],
-  ['creditor', 'Décision d’un créancier', 'Accord ou refus d’échéancier, de contentieux', true, true],
-  ['failure', 'Échec d’envoi', 'E-mail rejeté, SMS non distribué', true, false],
-  ['import', 'Import de factures terminé', 'Nouvelles créances confiées', true, false],
-  ['mention', 'Mention par un collègue', 'Dans une note de dossier', true, true],
-];
 const seed = (session: Session): AccountData => ({
   signature: [],
   absence: { substituteId: '', from: '', to: '', autoReply: false },
@@ -33,7 +23,7 @@ const seed = (session: Session): AccountData => ({
     { id: 's2', device: 'Navigateur mobile · iPhone', meta: 'Paris · il y a 2 h', mobile: true, current: false },
     { id: 's3', device: 'Edge · Windows (poste accueil)', meta: 'Paris · 18 nov. 2026', mobile: false, current: false },
   ],
-  notifications: PREFS.map(([id, label, detail, inApp, email]) => ({ id, label, detail, inApp, email })),
+  notifications: NOTIFICATION_KINDS.map((kind) => ({ ...kind })),
   dailySummary: true,
   quietHours: true,
 });
@@ -48,7 +38,13 @@ const own = (session: Session) => {
   accounts.set(session.userId, item);
   return item;
 };
-const withoutCases = new Set(['payment', 'promise', 'message', 'deadline', 'creditor', 'failure', 'import', 'mention']);
+/** Backup codes come with the first factor only. */
+const enabled = (session: Session, method: 'TOTP' | 'WEBAUTHN') => {
+  const first = !own(session).twoFactor.enabled;
+  own(session).twoFactor = { ...own(session).twoFactor, enabled: true, method, since: '2026-11-24' };
+  return { backupCodes: first ? BACKUP_CODES : [] };
+};
+export const BACKUP_CODES = ['4821-7730', '1093-5562', '7740-2218', '3365-9014', '6628-1047', '9950-3381', '2074-8816', '5517-4493'];
 
 export const accountHandlers = [
   http.get(
@@ -60,7 +56,8 @@ export const accountHandlers = [
       return HttpResponse.json({
         ...data,
         signature,
-        notifications: session.role === 'DEVELOPER' ? data.notifications.filter((item) => !withoutCases.has(item.id)) : data.notifications,
+        // All of them concern cases.
+        notifications: session.role === 'DEVELOPER' ? [] : data.notifications,
       });
     }),
   ),
@@ -103,8 +100,7 @@ export const accountHandlers = [
     guarded<Info>(staff, async ({ request }, session) => {
       const { code } = (await request.json()) as { code: string };
       if (code !== '123456') return HttpResponse.json({ code: 'INVALID_CODE' }, { status: 422 });
-      own(session).twoFactor = { ...own(session).twoFactor, enabled: true, method: 'TOTP', since: '2026-11-24' };
-      return done();
+      return HttpResponse.json(enabled(session, 'TOTP'));
     }),
   ),
   http.post(
@@ -122,8 +118,7 @@ export const accountHandlers = [
   http.post(
     '/api/account/two-factor/webauthn/verify',
     guarded(staff, (_info, session) => {
-      own(session).twoFactor = { ...own(session).twoFactor, enabled: true, method: 'WEBAUTHN', since: '2026-11-24' };
-      return done();
+      return HttpResponse.json(enabled(session, 'WEBAUTHN'));
     }),
   ),
   http.delete(
@@ -160,6 +155,7 @@ export const accountHandlers = [
       (session) => session.role === 'DIRECTOR',
       async ({ params, request }, session) => {
         const { active } = (await request.json()) as { active: boolean };
+        if (params.kind !== 'technical' && params.kind !== 'administrative') return notFound();
         const kind = params.kind === 'technical' ? 'TECHNICAL' : 'ADMINISTRATIVE';
         audit(session, `Délégation ${kind === 'TECHNICAL' ? 'technique' : 'administrative'} ${active ? 'redonnée' : 'retirée'}`);
         state.delegations = active ? [...new Set([...state.delegations, kind] as const)] : state.delegations.filter((item) => item !== kind);

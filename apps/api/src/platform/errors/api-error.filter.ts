@@ -28,7 +28,16 @@ function toApiError(error: unknown): ApiError | null {
     case 'P2002':
     case '23505':
       return new ApiError(409, 'CONFLICT');
-    // An identifier that is not one designates nothing.
+    // Two changes waited for each other, or one waited too long: nothing of it was done, it may be asked again.
+    case '40P01':
+    case '55P03':
+    case 'P2034':
+      return new ApiError(409, 'CONFLICT');
+    // Raised by our own functions (app.refuse): what was asked no longer holds.
+    case 'LG409':
+      return new ApiError(409, 'CHANGED');
+    // Nothing there; an identifier that is not one designates nothing either.
+    case 'LG404':
     case 'P2025':
     case 'P2023':
     case 'P2007':

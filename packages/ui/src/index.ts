@@ -30,6 +30,7 @@ export * from './Topbar';
 export * from './idle';
 export * from './BoutonsAffichage';
 export * from './PageConnexion';
+export * from './DoubleAuthentification';
 export * from './FormulaireConnexion';
 export * from './PagesMotDePasse';
 export * from './EntetePublique';

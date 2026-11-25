@@ -34,6 +34,7 @@ const read = () => {
   }
 };
 export const state = { accountId: read(), failures: new Map<string, number>() };
+export const partnerOf = (email: string) => ACCOUNTS.find((item) => item.email === email)?.userId ?? 'none';
 export function setPartner(id: string) {
   state.accountId = id;
   try {
@@ -246,9 +247,28 @@ export const handlers = [
   }),
   http.post('/api/auth/forgot-password', () => done()),
   http.get('/api/auth/reset/:token', ({ params }) =>
-    params.token === 'demo' ? HttpResponse.json({ email: 'c.besson@materiauxdelta.example' }) : HttpResponse.json({ code: 'EXPIRED' }, { status: 410 }),
+    params.token === 'demo'
+      ? HttpResponse.json({ email: 'c.besson@materiauxdelta.example', firstName: 'Claire', twoFactorRequired: false })
+      : HttpResponse.json({ code: 'EXPIRED' }, { status: 410 }),
   ),
   http.post('/api/auth/reset/:token', () => done()),
+  http.get('/api/auth/invitation/:token', ({ params }) =>
+    params.token === 'demo'
+      ? HttpResponse.json({
+          email: 'p.roche@energiesrhone.example',
+          firstName: 'Paul',
+          invitedBy: 'Camille Laurent',
+          role: 'CREDITOR',
+          twoFactorRequired: false,
+        })
+      : HttpResponse.json({ code: 'EXPIRED' }, { status: 410 }),
+  ),
+  http.post('/api/auth/invitation/:token/password', () => HttpResponse.json({ totpKey: 'DEMO DEMO DEMO DEMO' })),
+  http.post('/api/auth/invitation/:token/totp', async ({ request }) =>
+    ((await request.json()) as { code: string }).code === '123456'
+      ? HttpResponse.json({ backupCodes: ['4821-7730', '1093-5562', '7740-2218', '3365-9014', '6628-1047', '9950-3381', '2074-8816', '5517-4493'] })
+      : HttpResponse.json({ code: 'INVALID_CODE', attemptsLeft: 4 }, { status: 401 }),
+  ),
   http.get(
     '/api/portal/dashboard',
     owned((creditorId) =>

@@ -96,6 +96,8 @@ class StaffProbeController {
   @Post('twice')
   async twice(@Query('with', { schema: z.string() }) how: string) {
     if (how === 'model') throw new Prisma.PrismaClientKnownRequestError(SECRET, { code: 'P2002', clientVersion: 'test', meta: { target: [SECRET] } });
+    if (how === 'deadlock') await this.database.tx.$executeRaw`DO 'BEGIN RAISE EXCEPTION ''x'' USING ERRCODE = ''40P01''; END'`;
+    if (how === 'lock') await this.database.tx.$executeRaw`DO 'BEGIN RAISE EXCEPTION ''x'' USING ERRCODE = ''55P03''; END'`;
     const data = { actor: `user:${(this.database.actor as { userId: string }).userId}`, key: randomUUID() };
     for (let i = 0; i < 2; i += 1)
       await this.database.tx
@@ -336,7 +338,7 @@ describe('headers of the answers', () => {
       'access-control-request-headers': 'x-anything',
     });
     expect(answer.headers['access-control-allow-methods']).toBe('GET, POST, PUT, DELETE');
-    expect(answer.headers['access-control-allow-headers']).toBe('Content-Type, Idempotency-Key');
+    expect(answer.headers['access-control-allow-headers']).toBe('Content-Type, Idempotency-Key, X-Background');
   });
 });
 
@@ -436,8 +438,8 @@ describe('bodies', () => {
 describe('errors', () => {
   const get = (path: string) => raw('GET', `/staff/probe/${path}`, from('officerA'));
 
-  it('of PostgreSQL or Prisma on a value already taken answer 409, whichever way they come', async () => {
-    for (const how of ['model', 'sql']) {
+  it('of PostgreSQL or Prisma on a value already taken, or on two changes that wait for each other, answer 409', async () => {
+    for (const how of ['model', 'sql', 'deadlock', 'lock']) {
       const answer = await raw('POST', `/staff/probe/twice?with=${how}`, from('officerA'));
       expect(answer, how).toMatchObject({ status: 409, body: { code: 'CONFLICT' } });
       expect(Object.keys(answer.body as object), how).toEqual(['code']);

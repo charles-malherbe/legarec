@@ -16,6 +16,7 @@ import { http, HttpResponse } from 'msw';
 import { audit } from '../audit';
 import { done, forbidden, guarded, notFound, staffWithCases } from '../http';
 import { addMailboxRequest, closeMailboxRequestOf } from '../mailboxRequests';
+import { state } from '../state';
 import { mayRead } from '../visibility';
 
 type Info = { request: Request; params: Record<string, unknown> };
@@ -341,6 +342,7 @@ const m = (
   creditor,
   sessions: status === 'ACTIVE' ? 1 : 0,
   twoFactorRequired: role === 'DEVELOPER',
+  locked: false,
   activity: status === 'ACTIVE' ? [{ what: 'Connexion réussie', when: lastSeen }] : [],
 });
 const seedMembers = () => [
@@ -361,6 +363,8 @@ const MEMBER_CREDITORS = [
   { id: 'tl', name: 'TransAlp Leasing' },
   { id: 'ch', name: 'Crédit Horizon' },
 ];
+/** What was asked no longer holds. */
+const changed = () => HttpResponse.json({ code: 'CHANGED' }, { status: 409 });
 /** Account support is part of the technical delegation; the Director's own account is out of the manager's reach. */
 const manages = (session: Session) => administers(session) || hasDelegation(session, 'TECHNICAL');
 let members = seedMembers();
@@ -419,6 +423,8 @@ const seedDocuments = () => [
   doc('CT-2026-0005', 'CONTRACT', 'Crédit Horizon', '199 603 085', 'Convention et mandat judiciaire', '2026-04-10', null, '24 mois', 'Signée', 'success'),
 ];
 let documents = seedDocuments();
+/** What the sign-in knows of an account. */
+export const memberOf = (email: string) => members.find((item) => item.email === email && item.status === 'ACTIVE');
 /** Accounts that may hold cases: active, and with a role that handles them. */
 export const mayHoldCases = (id: string) =>
   members.some((item) => item.id === id && item.status === 'ACTIVE' && ['CLAIMS_OFFICER', 'COLLECTION_MANAGER', 'DIRECTOR'].includes(item.role));
@@ -577,10 +583,11 @@ export const steeringHandlers = [
   ),
   http.post(
     '/api/members/:id/disable',
-    guarded<Info>(administers, ({ params }, session) => {
+    guarded<Info>(administers, async ({ params, request }, session) => {
       const item = members.find((entry) => entry.id === params.id);
-      if (!item) return notFound();
+      if (item?.status !== 'ACTIVE') return notFound();
       if (item.role === 'DIRECTOR' || item.id === session.userId) return forbidden();
+      if (((await request.json()) as { cases: number }).cases !== item.cases) return HttpResponse.json({ code: 'CHANGED' }, { status: 409 });
       audit(session, `Compte désactivé (${ROLE_LABELS[item.role]})`, 'ADMINISTRATIVE');
       item.status = 'DISABLED';
       item.cases = 0;
@@ -609,8 +616,10 @@ export const steeringHandlers = [
     guarded<Info>(manages, ({ params }, session) => {
       const item = members.find((entry) => entry.id === params.id);
       if (!item) return notFound();
-      if (session.role === 'DEVELOPER' && item.role === 'CREDITOR') return forbidden();
+      // The accounts of the creditors do not exist for the Developer; nobody supports themselves.
+      if (session.role === 'DEVELOPER' && item.role === 'CREDITOR') return notFound();
       if (item.role === 'DIRECTOR' && session.role === 'COLLECTION_MANAGER') return forbidden();
+      if (params.action !== 'enable' && (item.id === session.userId || item.status !== 'ACTIVE')) return forbidden();
       const delegation = session.role === 'DEVELOPER' ? 'TECHNICAL' : 'ADMINISTRATIVE';
       switch (params.action) {
         case 'reset-link':
@@ -619,8 +628,22 @@ export const steeringHandlers = [
         case 'require-2fa':
           // Nobody imposes it on the Director.
           if (item.role === 'DIRECTOR' && session.role !== 'DIRECTOR') return forbidden();
+          if (item.twoFactorRequired) return changed();
           item.twoFactorRequired = true;
           audit(session, 'Double authentification exigée', delegation);
+          return done();
+        case 'reset-2fa':
+          if (session.role !== 'DIRECTOR' && (item.role === 'DEVELOPER' || (session.role === 'COLLECTION_MANAGER' && item.role !== 'CREDITOR')))
+            return forbidden();
+          if (!item.twoFactor) return changed();
+          item.twoFactor = false;
+          audit(session, 'Double authentification réinitialisée', delegation);
+          return done();
+        case 'unlock':
+          if (!item.locked) return changed();
+          item.locked = false;
+          state.failures.delete(item.email);
+          audit(session, 'Compte débloqué', delegation);
           return done();
         case 'enable':
           if (!administers(session)) return forbidden();

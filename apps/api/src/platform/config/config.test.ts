@@ -56,6 +56,25 @@ describe('startup values', () => {
     expect(readConfig({ ...production, ...portals })).toMatchObject({ STAFF_PORTAL_URL: 'https://espace.legarec.fr', MYSENDINGBOX_ENV: 'test' });
   });
 
+  it('writes the simulated messages in a folder of this machine, never in production', () => {
+    const { DATABASE_URL: _api, ...rest } = base();
+    const worker = { ...rest, JOBS_DATABASE_URL: 'postgresql://jobs:pw@127.0.0.1:55432/legarec_dev' };
+    expect(readWorkerConfig(worker).DEV_MAIL_DIR).toBeUndefined();
+    expect(readWorkerConfig({ ...worker, DEV_MAIL_DIR: '/home/x/mails' }).DEV_MAIL_DIR).toBe('/home/x/mails');
+    expect(() => readWorkerConfig({ ...worker, DEV_MAIL_DIR: 'mails' })).toThrow('DEV_MAIL_DIR');
+    const deployed = {
+      ...worker,
+      ...portals,
+      NODE_ENV: 'production',
+      JOBS_DATABASE_URL: 'postgresql://jobs:pw@postgres:5432/legarec',
+      VALKEY_URL: 'redis://:pw@valkey:6379/0',
+    };
+    expect(readWorkerConfig(deployed).DEV_MAIL_DIR).toBeUndefined();
+    expect(() => readWorkerConfig({ ...deployed, DEV_MAIL_DIR: '/home/x/mails' })).toThrow('Refused in production: DEV_MAIL_DIR');
+    // The API sends nothing: it does not know that folder.
+    expect(readConfig({ ...base(), DEV_MAIL_DIR: '/home/x/mails' })).not.toHaveProperty('DEV_MAIL_DIR');
+  });
+
   it('keeps the AI off unless it is explicitly on', () => {
     expect(readConfig(base()).AI_ENABLED).toBeUndefined();
     expect(() => readConfig({ ...base(), AI_ENABLED: '1' })).toThrow('AI_ENABLED');

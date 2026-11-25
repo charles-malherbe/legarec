@@ -31,7 +31,8 @@ describe('risk score', () => {
 
 describe('accounts', () => {
   it('never reactivates a second holder of a unique role, nor an invitation', async () => {
-    expect(await status('cl', '/members/dev/disable', { reason: 'x' })).toBe(204);
+    expect(await status('cl', '/members/dev/disable', { reason: 'x', cases: 3 })).toBe(409);
+    expect(await status('cl', '/members/dev/disable', { reason: 'x', cases: 0 })).toBe(204);
     expect(await status('cl', '/members/hb/role', { role: 'DEVELOPER' }, 'PUT')).toBe(204);
     expect(await status('cl', '/members/dev/enable', {})).toBe(409);
     expect(await status('cl', '/members/nk/enable', {})).toBe(403);

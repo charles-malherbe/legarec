@@ -1,11 +1,13 @@
-import { billingTotals, vatNumber } from '@legarec/contracts';
+import { billingTotals, vatNumber, type Member } from '@legarec/contracts';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { axeViolations } from '../../../../../packages/ui/src/testing';
 import { resetSteering } from '../../mocks/routes/steering';
 import { call, mockApi, openAs } from '../../testing';
 
-mockApi();
+const server = mockApi();
 beforeEach(resetSteering);
 const inDialog = async () => within(await screen.findByRole('alertdialog'));
 
@@ -39,6 +41,114 @@ describe('members', () => {
     await userEvent.type(dialog.getByLabelText('Motif'), 'Départ');
     await userEvent.click(dialog.getByRole('button', { name: 'Désactiver' }));
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Désactiver Thomas Giraud' })).toBeNull());
+  });
+  it('refuses to disable an account whose cases have changed since', async () => {
+    openAs('cl', '/equipe');
+    await userEvent.click(await screen.findByRole('button', { name: 'Désactiver Thomas Giraud' }));
+    const dialog = await inDialog();
+    server.use(http.post('/api/members/:id/disable', () => HttpResponse.json({ code: 'CHANGED' }, { status: 409 })));
+    await userEvent.type(dialog.getByLabelText('Motif'), 'Départ');
+    await userEvent.click(dialog.getByRole('button', { name: 'Désactiver' }));
+    expect(await dialog.findByRole('alert')).toBeVisible();
+    expect(screen.queryByText('Compte désactivé, dossiers remis au Responsable.')).toBeNull();
+  });
+  it('tells that the invitation of a collaborator waits for their mailbox', async () => {
+    openAs('ad', '/equipe');
+    await userEvent.click(await screen.findByRole('button', { name: '+ Créer un compte' }));
+    await userEvent.type(screen.getByLabelText(/Prénom/), 'Zoé');
+    await userEvent.type(screen.getByLabelText(/^Nom/), 'Marchand');
+    await userEvent.type(screen.getByLabelText(/Adresse professionnelle/), 'zm@legarec.fr');
+    await userEvent.click(screen.getByRole('button', { name: 'Envoyer l’invitation' }));
+    const dialog = await inDialog();
+    expect(dialog.getByText(/dès que sa boîte est créée/)).toBeVisible();
+    await userEvent.click(dialog.getByRole('button', { name: 'Envoyer l’invitation' }));
+    expect(await screen.findByText('Compte créé : l’invitation part dès que la boîte existe.')).toBeVisible();
+  });
+  it('resets a second factor and unlocks an account, and tells the Director', async () => {
+    const { members } = (await (await call('ad', '/members')).json()) as { members: Member[] };
+    server.use(
+      http.get('/api/members', () =>
+        HttpResponse.json({
+          members: members.map((item) => ({ ...item, locked: item.id === 'hb' })),
+          canInvite: false,
+          canDisable: false,
+          canEditExtension: true,
+          canSupport: true,
+          creditors: [],
+        }),
+      ),
+      http.post('/api/members/hb/unlock', () => new HttpResponse(null, { status: 204 })),
+    );
+    openAs('dev', '/equipe');
+    await userEvent.click(await screen.findByRole('button', { name: 'Gérer : Hugo Benali' }));
+    const card = within(screen.getByRole('region', { name: 'Compte de Hugo Benali' }));
+    expect(card.getByText('Bloqué')).toBeVisible();
+    await userEvent.click(card.getByRole('button', { name: 'Débloquer' }));
+    const unlocking = await inDialog();
+    expect(unlocking.getByText(/Le Directeur en est prévenu/)).toBeVisible();
+    await userEvent.click(unlocking.getByRole('button', { name: 'Débloquer' }));
+    expect(await screen.findByText('Compte débloqué.')).toBeVisible();
+    await userEvent.click(card.getByRole('button', { name: 'Réinitialiser la double authentification' }));
+    const resetting = await inDialog();
+    expect(resetting.getByText(/vérifié l’identité de la personne/)).toBeVisible();
+    await userEvent.click(resetting.getByRole('button', { name: 'Réinitialiser' }));
+    expect(await screen.findByText('Double authentification réinitialisée.')).toBeVisible();
+  });
+  it('keeps the window open, and says so, when the support is refused', async () => {
+    openAs('dev', '/equipe');
+    await userEvent.click(await screen.findByRole('button', { name: 'Gérer : Hugo Benali' }));
+    const card = within(screen.getByRole('region', { name: 'Compte de Hugo Benali' }));
+    for (const refusal of [() => HttpResponse.json({ code: 'FORBIDDEN' }, { status: 403 }), () => HttpResponse.error()]) {
+      server.use(http.post('/api/members/:id/reset-link', refusal, { once: true }));
+      await userEvent.click(card.getByRole('button', { name: 'Envoyer un lien de réinitialisation' }));
+      const dialog = await inDialog();
+      await userEvent.click(dialog.getByRole('button', { name: 'Envoyer le lien' }));
+      expect(await dialog.findByRole('alert')).toHaveTextContent('L’action n’a pas abouti');
+      expect(screen.queryByText('Lien de réinitialisation envoyé.')).toBeNull();
+      await userEvent.click(dialog.getByRole('button', { name: 'Annuler' }));
+    }
+  });
+  it('has no axe violation in the account of someone, nor in what it asks to confirm', async () => {
+    const { members } = (await (await call('ad', '/members')).json()) as { members: Member[] };
+    server.use(
+      http.get('/api/members', () =>
+        HttpResponse.json({
+          members: members.map((item) => ({ ...item, locked: true, activity: [{ what: 'Connexion réussie', when: 'À l’instant' }] })),
+          canInvite: true,
+          canDisable: true,
+          canEditExtension: true,
+          canSupport: true,
+          creditors: [],
+        }),
+      ),
+    );
+    openAs('ad', '/equipe');
+    await userEvent.click(await screen.findByRole('button', { name: 'Gérer : Hugo Benali' }));
+    const card = screen.getByRole('region', { name: 'Compte de Hugo Benali' });
+    expect(card).toHaveFocus();
+    expect(await axeViolations(card)).toEqual([]);
+    await userEvent.click(within(card).getByRole('button', { name: 'Débloquer' }));
+    expect(await axeViolations(await screen.findByRole('alertdialog'))).toEqual([]);
+    // Nobody is told of what the Director does themselves.
+    expect((await inDialog()).queryByText(/Le Directeur en est prévenu/)).toBeNull();
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+  });
+  it.each([
+    // [who, whose account, buttons shown]
+    ['ad', 'Nora Petit', ['Envoyer un lien de réinitialisation', 'Réinitialiser la double authentification']],
+    ['dev', 'Hugo Benali', ['Envoyer un lien de réinitialisation', 'Réinitialiser la double authentification', 'Exiger la 2FA']],
+    ['dev', 'Nora Petit', []],
+    ['cl', 'Hugo Benali', ['Envoyer un lien de réinitialisation', 'Exiger la 2FA']],
+    ['cl', 'Nora Petit', ['Envoyer un lien de réinitialisation']],
+    ['cl', 'Marie Dubreuil', []],
+    ['cl', 'Camille Laurent', []],
+  ])('shows to %s, for the account of %s, only what may be done', async (who, name, shown) => {
+    openAs(who, '/equipe');
+    await userEvent.click(await screen.findByRole('button', { name: `Gérer : ${name}` }));
+    const card = within(screen.getByRole('region', { name: `Compte de ${name}` }));
+    const support = ['Envoyer un lien de réinitialisation', 'Exiger la 2FA', 'Réinitialiser la double authentification', 'Débloquer'];
+    expect(support.filter((label) => card.queryByRole('button', { name: label })).sort()).toEqual([...shown].sort());
   });
   it('gives the Developer only accounts and extensions', async () => {
     openAs('dev', '/equipe');

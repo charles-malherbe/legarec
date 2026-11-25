@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import openapiTS, { astToString, type OpenAPI3 } from 'openapi-typescript';
 import { fileURLToPath } from 'node:url';
@@ -40,11 +40,15 @@ describe('access matrix', () => {
 
   it.each(Object.entries(MATRIX))('%s answers each caller as expected', async (id, entry) => {
     const [method = '', path = ''] = id.split(' ');
-    const target = entry.path?.(test.s) ?? path;
     for (const [as, status] of Object.entries(entry.expect)) {
-      // A change that commits asks for a key; a new one each time, or the second caller would read the answer of the first.
-      const headers = method === 'GET' ? undefined : { 'idempotency-key': randomUUID() };
-      const answer = await test.call(method, target, { as: as === 'nobody' ? undefined : as, body: entry.body, headers });
+      const target = (await entry.path?.(test)) ?? path;
+      const headers = {
+        // Each caller on its own network: the limits are not what is tested here.
+        'x-forwarded-for': `10.${randomBytes(3).join('.')}`,
+        // A change that commits asks for a key; a new one each time, or the second caller would read the answer of the first.
+        ...(method === 'GET' ? {} : { 'idempotency-key': randomUUID() }),
+      };
+      const answer = await test.call(method, target, { as: as === 'nobody' ? undefined : as, body: entry.body?.(), headers });
       expect(answer.status, `${id} for ${as}`).toBe(status);
     }
   });

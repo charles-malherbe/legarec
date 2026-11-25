@@ -349,14 +349,32 @@ describe('audit log', () => {
       const [next] = await rows<{ id: string }>(
         "INSERT INTO users (role, status, first_name, last_name, email) VALUES ('CLAIMS_OFFICER', 'ACTIVE', 'Nina', 'Test', 'nina@exemple.test') RETURNING id",
       );
+      const given = () =>
+        rows(
+          'SELECT kind::text, granted_by, withdrawn_by FROM delegations WHERE withdrawn_at IS NULL OR withdrawn_by IS DISTINCT FROM granted_by ORDER BY kind',
+        );
+      const open = { withdrawn_by: null, granted_by: s.director };
+      expect(await given()).toEqual([
+        { kind: 'ADMINISTRATIVE', ...open },
+        { kind: 'TECHNICAL', ...open },
+      ]);
       await test.admin.query("UPDATE users SET role = 'CLAIMS_OFFICER' WHERE id = $1", [s.director]);
+      await expect(log(manager())).rejects.toThrow(/delegation withdrawn/u);
       await test.admin.query("UPDATE users SET role = 'DIRECTOR' WHERE id = $1", [next!.id]);
       try {
         await expect(log(manager())).rejects.toThrow(/delegation withdrawn/u);
+        // Ended, and not given again by themselves: they were open from the first day of the application only.
+        expect(await given()).toEqual([
+          { kind: 'ADMINISTRATIVE', ...open, withdrawn_by: next!.id },
+          { kind: 'TECHNICAL', ...open, withdrawn_by: next!.id },
+        ]);
       } finally {
         await test.admin.query("UPDATE users SET role = 'CLAIMS_OFFICER' WHERE id = $1", [next!.id]);
         await test.admin.query("UPDATE users SET role = 'DIRECTOR' WHERE id = $1", [s.director]);
       }
+      await expect(log(manager())).rejects.toThrow(/delegation withdrawn/u);
+      await as('director', (tx) => tx.$queryRaw`SELECT app.set_delegation('ADMINISTRATIVE', true)`);
+      await as('director', (tx) => tx.$queryRaw`SELECT app.set_delegation('TECHNICAL', true)`);
       expect(await log(manager())).toMatchObject({ on_behalf_of_id: s.director });
     });
   });

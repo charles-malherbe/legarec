@@ -1,4 +1,5 @@
 import { caseDetail, creditorDetail, hasDelegation, ROLE_LABELS, searchHit, shellData, type Notification } from '@legarec/contracts';
+import { signOut } from '@legarec/platform';
 import { applyDisplay } from '@legarec/tokens';
 import { useIdle, SessionExpiry, Sidebar, Topbar, type SidebarGroup, type Tone } from '@legarec/ui';
 import { useDebouncedValue } from '@mantine/hooks';
@@ -176,12 +177,16 @@ export function Shell() {
 
   const logout = useCallback(async () => {
     // Whatever the API answers, nothing must stay on screen nor in the cache.
-    await api(z.undefined(), '/auth/logout', { method: 'POST' }).catch(() => undefined);
+    await signOut();
     client.clear();
     client.setQueryData(SESSION_KEY, null);
     await navigate('/connexion');
   }, [client, navigate]);
-  const idle = useIdle(useCallback(() => void logout(), [logout]));
+  const idle = useIdle(
+    useCallback(() => void logout(), [logout]),
+    // A closed session comes back as nobody: the sign-in page opens.
+    useCallback(() => void client.refetchQueries({ queryKey: SESSION_KEY }), [client]),
+  );
   const goTo = useCallback(
     (letter: string) => {
       const target = GO_TO[letter];

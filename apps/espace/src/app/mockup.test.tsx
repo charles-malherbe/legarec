@@ -81,7 +81,7 @@ it('manages an account and refuses a second holder of a unique role', async () =
 });
 it('keeps creditor accounts away from the Developer and roles away from officers', async () => {
   expect(await (await call('dev', '/members')).text()).not.toMatch(/Besson|Matériaux Delta/);
-  expect((await call('dev', '/members/cb/reset-link', {})).status).toBe(403);
+  expect((await call('dev', '/members/cb/reset-link', {})).status).toBe(404);
   expect((await call('dev', '/members/hb/role', { role: 'CLAIMS_OFFICER' }, 'PUT')).status).toBe(403);
   expect((await call('hb', '/members/sm/role', { role: 'CLAIMS_OFFICER' }, 'PUT')).status).toBe(403);
   expect((await call('cl', '/members/cl/role', { role: 'DIRECTOR' }, 'PUT')).status).toBe(403);

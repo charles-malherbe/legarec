@@ -26,8 +26,12 @@ export function saveFile(blob: Blob, fileName: string): void {
 }
 
 export function openExternal(url: string): void {
-  const { protocol } = new URL(url);
-  if (protocol !== 'https:') throw new Error('Only https links can be opened');
+  const { protocol, hostname } = new URL(url);
+  // The other portal of a development machine.
+  const local = import.meta.env.DEV && protocol === 'http:' && hostname === 'localhost';
+  if (protocol !== 'https:' && !local) throw new Error('Only https links can be opened');
   window.open(url, '_blank', 'noopener,noreferrer');
 }
 export * from './http';
+export * from './session';
+export * from './simulation';

@@ -19,6 +19,14 @@ afterEach(() => vi.unstubAllGlobals());
 const change = (body: unknown = { text: 'Bonjour' }) => api(z.undefined(), '/cases/demo/notes', { method: 'POST', body });
 const keys = () => sent.map((item) => item.key);
 
+describe('what the screen asks by itself', () => {
+  it('says so, so that it does not keep the session open', async () => {
+    await api(z.undefined(), '/calls/incoming', { background: true });
+    await api(z.undefined(), '/auth/session');
+    expect(sent.map(({ init }) => new Headers(init.headers).get('x-background'))).toEqual(['1', null]);
+  });
+});
+
 describe('key of a change', () => {
   it('is a number drawn for each change, and absent from a reading', async () => {
     await change();

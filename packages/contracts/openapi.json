@@ -36,6 +36,2974 @@
           "portal": "health"
         }
       }
+    },
+    "/staff/auth/session": {
+      "get": {
+        "operationId": "StaffAuthController_session",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "userId": {
+                      "type": "string"
+                    },
+                    "firstName": {
+                      "type": "string"
+                    },
+                    "lastName": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string",
+                      "format": "email",
+                      "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                    },
+                    "role": {
+                      "type": "string",
+                      "enum": [
+                        "DEVELOPER",
+                        "DIRECTOR",
+                        "COLLECTION_MANAGER",
+                        "CLAIMS_OFFICER",
+                        "CREDITOR"
+                      ]
+                    },
+                    "activeDelegations": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "TECHNICAL",
+                          "ADMINISTRATIVE"
+                        ]
+                      }
+                    },
+                    "directorName": {
+                      "type": "string"
+                    },
+                    "twoFactorEnabled": {
+                      "type": "boolean"
+                    },
+                    "extension": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "preferences": {
+                      "type": "object",
+                      "properties": {
+                        "theme": {
+                          "type": "string",
+                          "enum": [
+                            "light",
+                            "dark",
+                            "system"
+                          ]
+                        },
+                        "density": {
+                          "type": "string",
+                          "enum": [
+                            "comfortable",
+                            "compact"
+                          ]
+                        },
+                        "lowVision": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "theme",
+                        "density",
+                        "lowVision"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "userId",
+                    "firstName",
+                    "lastName",
+                    "email",
+                    "role",
+                    "activeDelegations",
+                    "directorName",
+                    "twoFactorEnabled",
+                    "extension",
+                    "preferences"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      }
+    },
+    "/staff/auth/login": {
+      "post": {
+        "operationId": "StaffAuthController_login",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "OK"
+                          ]
+                        },
+                        "session": {
+                          "nullable": true,
+                          "type": "object",
+                          "properties": {
+                            "userId": {
+                              "type": "string"
+                            },
+                            "firstName": {
+                              "type": "string"
+                            },
+                            "lastName": {
+                              "type": "string"
+                            },
+                            "email": {
+                              "type": "string",
+                              "format": "email",
+                              "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                            },
+                            "role": {
+                              "type": "string",
+                              "enum": [
+                                "DEVELOPER",
+                                "DIRECTOR",
+                                "COLLECTION_MANAGER",
+                                "CLAIMS_OFFICER",
+                                "CREDITOR"
+                              ]
+                            },
+                            "activeDelegations": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "TECHNICAL",
+                                  "ADMINISTRATIVE"
+                                ]
+                              }
+                            },
+                            "directorName": {
+                              "type": "string"
+                            },
+                            "twoFactorEnabled": {
+                              "type": "boolean"
+                            },
+                            "extension": {
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "preferences": {
+                              "type": "object",
+                              "properties": {
+                                "theme": {
+                                  "type": "string",
+                                  "enum": [
+                                    "light",
+                                    "dark",
+                                    "system"
+                                  ]
+                                },
+                                "density": {
+                                  "type": "string",
+                                  "enum": [
+                                    "comfortable",
+                                    "compact"
+                                  ]
+                                },
+                                "lowVision": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "theme",
+                                "density",
+                                "lowVision"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "userId",
+                            "firstName",
+                            "lastName",
+                            "email",
+                            "role",
+                            "activeDelegations",
+                            "directorName",
+                            "twoFactorEnabled",
+                            "extension",
+                            "preferences"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "session"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "TWO_FACTOR"
+                          ]
+                        },
+                        "methods": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "TOTP",
+                              "WEBAUTHN"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "methods"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "SETUP_REQUIRED"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "WRONG_PORTAL"
+                          ]
+                        },
+                        "portal": {
+                          "type": "string",
+                          "enum": [
+                            "espace",
+                            "partenaires"
+                          ]
+                        },
+                        "url": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "portal",
+                        "url"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "anonymous": true
+        }
+      }
+    },
+    "/staff/auth/two-factor": {
+      "post": {
+        "operationId": "StaffAuthController_secondFactor",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "OK"
+                          ]
+                        },
+                        "session": {
+                          "nullable": true,
+                          "type": "object",
+                          "properties": {
+                            "userId": {
+                              "type": "string"
+                            },
+                            "firstName": {
+                              "type": "string"
+                            },
+                            "lastName": {
+                              "type": "string"
+                            },
+                            "email": {
+                              "type": "string",
+                              "format": "email",
+                              "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                            },
+                            "role": {
+                              "type": "string",
+                              "enum": [
+                                "DEVELOPER",
+                                "DIRECTOR",
+                                "COLLECTION_MANAGER",
+                                "CLAIMS_OFFICER",
+                                "CREDITOR"
+                              ]
+                            },
+                            "activeDelegations": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "TECHNICAL",
+                                  "ADMINISTRATIVE"
+                                ]
+                              }
+                            },
+                            "directorName": {
+                              "type": "string"
+                            },
+                            "twoFactorEnabled": {
+                              "type": "boolean"
+                            },
+                            "extension": {
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "preferences": {
+                              "type": "object",
+                              "properties": {
+                                "theme": {
+                                  "type": "string",
+                                  "enum": [
+                                    "light",
+                                    "dark",
+                                    "system"
+                                  ]
+                                },
+                                "density": {
+                                  "type": "string",
+                                  "enum": [
+                                    "comfortable",
+                                    "compact"
+                                  ]
+                                },
+                                "lowVision": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "theme",
+                                "density",
+                                "lowVision"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "userId",
+                            "firstName",
+                            "lastName",
+                            "email",
+                            "role",
+                            "activeDelegations",
+                            "directorName",
+                            "twoFactorEnabled",
+                            "extension",
+                            "preferences"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "session"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "TWO_FACTOR"
+                          ]
+                        },
+                        "methods": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "TOTP",
+                              "WEBAUTHN"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "methods"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "SETUP_REQUIRED"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "WRONG_PORTAL"
+                          ]
+                        },
+                        "portal": {
+                          "type": "string",
+                          "enum": [
+                            "espace",
+                            "partenaires"
+                          ]
+                        },
+                        "url": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "portal",
+                        "url"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "anonymous": true
+        }
+      }
+    },
+    "/staff/auth/two-factor/webauthn": {
+      "post": {
+        "operationId": "StaffAuthController_keyOptions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "challenge": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "challenge"
+                  ],
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "anonymous": true
+        }
+      }
+    },
+    "/staff/auth/setup/totp": {
+      "post": {
+        "operationId": "StaffAuthController_startSetup",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "uri": {
+                      "type": "string"
+                    },
+                    "key": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "uri",
+                    "key"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "anonymous": true
+        }
+      }
+    },
+    "/staff/auth/setup/totp/verify": {
+      "post": {
+        "operationId": "StaffAuthController_finishSetup",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "backupCodes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "session": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "userId": {
+                          "type": "string"
+                        },
+                        "firstName": {
+                          "type": "string"
+                        },
+                        "lastName": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string",
+                          "format": "email",
+                          "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                        },
+                        "role": {
+                          "type": "string",
+                          "enum": [
+                            "DEVELOPER",
+                            "DIRECTOR",
+                            "COLLECTION_MANAGER",
+                            "CLAIMS_OFFICER",
+                            "CREDITOR"
+                          ]
+                        },
+                        "activeDelegations": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "TECHNICAL",
+                              "ADMINISTRATIVE"
+                            ]
+                          }
+                        },
+                        "directorName": {
+                          "type": "string"
+                        },
+                        "twoFactorEnabled": {
+                          "type": "boolean"
+                        },
+                        "extension": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "preferences": {
+                          "type": "object",
+                          "properties": {
+                            "theme": {
+                              "type": "string",
+                              "enum": [
+                                "light",
+                                "dark",
+                                "system"
+                              ]
+                            },
+                            "density": {
+                              "type": "string",
+                              "enum": [
+                                "comfortable",
+                                "compact"
+                              ]
+                            },
+                            "lowVision": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "theme",
+                            "density",
+                            "lowVision"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "userId",
+                        "firstName",
+                        "lastName",
+                        "email",
+                        "role",
+                        "activeDelegations",
+                        "directorName",
+                        "twoFactorEnabled",
+                        "extension",
+                        "preferences"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "backupCodes",
+                    "session"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "anonymous": true
+        }
+      }
+    },
+    "/staff/auth/logout": {
+      "post": {
+        "operationId": "StaffAuthController_logout",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "anonymous": true
+        }
+      }
+    },
+    "/staff/auth/forgot-password": {
+      "post": {
+        "operationId": "StaffAuthController_forgot",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "anonymous": true
+        }
+      }
+    },
+    "/staff/auth/reset/{token}": {
+      "get": {
+        "operationId": "StaffAuthController_resetInfo",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "email": {
+                      "type": "string",
+                      "format": "email",
+                      "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                    },
+                    "firstName": {
+                      "type": "string"
+                    },
+                    "invitedBy": {
+                      "type": "string"
+                    },
+                    "role": {
+                      "type": "string",
+                      "enum": [
+                        "DEVELOPER",
+                        "DIRECTOR",
+                        "COLLECTION_MANAGER",
+                        "CLAIMS_OFFICER",
+                        "CREDITOR"
+                      ]
+                    },
+                    "twoFactorRequired": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "email",
+                    "firstName",
+                    "twoFactorRequired"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "anonymous": true
+        }
+      },
+      "post": {
+        "operationId": "StaffAuthController_reset",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "anonymous": true
+        }
+      }
+    },
+    "/staff/auth/invitation/{token}": {
+      "get": {
+        "operationId": "StaffAuthController_invitationInfo",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "email": {
+                      "type": "string",
+                      "format": "email",
+                      "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                    },
+                    "firstName": {
+                      "type": "string"
+                    },
+                    "invitedBy": {
+                      "type": "string"
+                    },
+                    "role": {
+                      "type": "string",
+                      "enum": [
+                        "DEVELOPER",
+                        "DIRECTOR",
+                        "COLLECTION_MANAGER",
+                        "CLAIMS_OFFICER",
+                        "CREDITOR"
+                      ]
+                    },
+                    "twoFactorRequired": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "email",
+                    "firstName",
+                    "twoFactorRequired"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "anonymous": true
+        }
+      }
+    },
+    "/staff/auth/invitation/{token}/password": {
+      "post": {
+        "operationId": "StaffAuthController_choosePassword",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "totpKey": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "totpKey"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "anonymous": true
+        }
+      }
+    },
+    "/staff/auth/invitation/{token}/totp": {
+      "post": {
+        "operationId": "StaffAuthController_verifyTotp",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "backupCodes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "backupCodes"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "anonymous": true
+        }
+      }
+    },
+    "/partner/auth/session": {
+      "get": {
+        "operationId": "PartnerAuthController_session",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "userId": {
+                      "type": "string"
+                    },
+                    "firstName": {
+                      "type": "string"
+                    },
+                    "lastName": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string",
+                      "format": "email",
+                      "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                    },
+                    "creditor": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "initials": {
+                          "type": "string"
+                        },
+                        "siren": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "initials",
+                        "siren"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "officer": {
+                      "type": "string"
+                    },
+                    "unread": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "userId",
+                    "firstName",
+                    "lastName",
+                    "email",
+                    "creditor",
+                    "officer",
+                    "unread"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "partner"
+        }
+      }
+    },
+    "/partner/auth/login": {
+      "post": {
+        "operationId": "PartnerAuthController_login",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "OK"
+                          ]
+                        },
+                        "session": {
+                          "nullable": true,
+                          "type": "object",
+                          "properties": {
+                            "userId": {
+                              "type": "string"
+                            },
+                            "firstName": {
+                              "type": "string"
+                            },
+                            "lastName": {
+                              "type": "string"
+                            },
+                            "email": {
+                              "type": "string",
+                              "format": "email",
+                              "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                            },
+                            "role": {
+                              "type": "string",
+                              "enum": [
+                                "DEVELOPER",
+                                "DIRECTOR",
+                                "COLLECTION_MANAGER",
+                                "CLAIMS_OFFICER",
+                                "CREDITOR"
+                              ]
+                            },
+                            "activeDelegations": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "TECHNICAL",
+                                  "ADMINISTRATIVE"
+                                ]
+                              }
+                            },
+                            "directorName": {
+                              "type": "string"
+                            },
+                            "twoFactorEnabled": {
+                              "type": "boolean"
+                            },
+                            "extension": {
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "preferences": {
+                              "type": "object",
+                              "properties": {
+                                "theme": {
+                                  "type": "string",
+                                  "enum": [
+                                    "light",
+                                    "dark",
+                                    "system"
+                                  ]
+                                },
+                                "density": {
+                                  "type": "string",
+                                  "enum": [
+                                    "comfortable",
+                                    "compact"
+                                  ]
+                                },
+                                "lowVision": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "theme",
+                                "density",
+                                "lowVision"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "userId",
+                            "firstName",
+                            "lastName",
+                            "email",
+                            "role",
+                            "activeDelegations",
+                            "directorName",
+                            "twoFactorEnabled",
+                            "extension",
+                            "preferences"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "session"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "TWO_FACTOR"
+                          ]
+                        },
+                        "methods": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "TOTP",
+                              "WEBAUTHN"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "methods"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "SETUP_REQUIRED"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "WRONG_PORTAL"
+                          ]
+                        },
+                        "portal": {
+                          "type": "string",
+                          "enum": [
+                            "espace",
+                            "partenaires"
+                          ]
+                        },
+                        "url": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "portal",
+                        "url"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "partner",
+          "anonymous": true
+        }
+      }
+    },
+    "/partner/auth/two-factor": {
+      "post": {
+        "operationId": "PartnerAuthController_secondFactor",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "OK"
+                          ]
+                        },
+                        "session": {
+                          "nullable": true,
+                          "type": "object",
+                          "properties": {
+                            "userId": {
+                              "type": "string"
+                            },
+                            "firstName": {
+                              "type": "string"
+                            },
+                            "lastName": {
+                              "type": "string"
+                            },
+                            "email": {
+                              "type": "string",
+                              "format": "email",
+                              "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                            },
+                            "role": {
+                              "type": "string",
+                              "enum": [
+                                "DEVELOPER",
+                                "DIRECTOR",
+                                "COLLECTION_MANAGER",
+                                "CLAIMS_OFFICER",
+                                "CREDITOR"
+                              ]
+                            },
+                            "activeDelegations": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "TECHNICAL",
+                                  "ADMINISTRATIVE"
+                                ]
+                              }
+                            },
+                            "directorName": {
+                              "type": "string"
+                            },
+                            "twoFactorEnabled": {
+                              "type": "boolean"
+                            },
+                            "extension": {
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "preferences": {
+                              "type": "object",
+                              "properties": {
+                                "theme": {
+                                  "type": "string",
+                                  "enum": [
+                                    "light",
+                                    "dark",
+                                    "system"
+                                  ]
+                                },
+                                "density": {
+                                  "type": "string",
+                                  "enum": [
+                                    "comfortable",
+                                    "compact"
+                                  ]
+                                },
+                                "lowVision": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "theme",
+                                "density",
+                                "lowVision"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "userId",
+                            "firstName",
+                            "lastName",
+                            "email",
+                            "role",
+                            "activeDelegations",
+                            "directorName",
+                            "twoFactorEnabled",
+                            "extension",
+                            "preferences"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "session"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "TWO_FACTOR"
+                          ]
+                        },
+                        "methods": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "TOTP",
+                              "WEBAUTHN"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "methods"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "SETUP_REQUIRED"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "WRONG_PORTAL"
+                          ]
+                        },
+                        "portal": {
+                          "type": "string",
+                          "enum": [
+                            "espace",
+                            "partenaires"
+                          ]
+                        },
+                        "url": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "portal",
+                        "url"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "partner",
+          "anonymous": true
+        }
+      }
+    },
+    "/partner/auth/two-factor/webauthn": {
+      "post": {
+        "operationId": "PartnerAuthController_keyOptions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "challenge": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "challenge"
+                  ],
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "partner",
+          "anonymous": true
+        }
+      }
+    },
+    "/partner/auth/setup/totp": {
+      "post": {
+        "operationId": "PartnerAuthController_startSetup",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "uri": {
+                      "type": "string"
+                    },
+                    "key": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "uri",
+                    "key"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "partner",
+          "anonymous": true
+        }
+      }
+    },
+    "/partner/auth/setup/totp/verify": {
+      "post": {
+        "operationId": "PartnerAuthController_finishSetup",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "backupCodes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "session": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "userId": {
+                          "type": "string"
+                        },
+                        "firstName": {
+                          "type": "string"
+                        },
+                        "lastName": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string",
+                          "format": "email",
+                          "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                        },
+                        "role": {
+                          "type": "string",
+                          "enum": [
+                            "DEVELOPER",
+                            "DIRECTOR",
+                            "COLLECTION_MANAGER",
+                            "CLAIMS_OFFICER",
+                            "CREDITOR"
+                          ]
+                        },
+                        "activeDelegations": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "TECHNICAL",
+                              "ADMINISTRATIVE"
+                            ]
+                          }
+                        },
+                        "directorName": {
+                          "type": "string"
+                        },
+                        "twoFactorEnabled": {
+                          "type": "boolean"
+                        },
+                        "extension": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "preferences": {
+                          "type": "object",
+                          "properties": {
+                            "theme": {
+                              "type": "string",
+                              "enum": [
+                                "light",
+                                "dark",
+                                "system"
+                              ]
+                            },
+                            "density": {
+                              "type": "string",
+                              "enum": [
+                                "comfortable",
+                                "compact"
+                              ]
+                            },
+                            "lowVision": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "theme",
+                            "density",
+                            "lowVision"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "userId",
+                        "firstName",
+                        "lastName",
+                        "email",
+                        "role",
+                        "activeDelegations",
+                        "directorName",
+                        "twoFactorEnabled",
+                        "extension",
+                        "preferences"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "backupCodes",
+                    "session"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "partner",
+          "anonymous": true
+        }
+      }
+    },
+    "/partner/auth/logout": {
+      "post": {
+        "operationId": "PartnerAuthController_logout",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "partner",
+          "anonymous": true
+        }
+      }
+    },
+    "/partner/auth/forgot-password": {
+      "post": {
+        "operationId": "PartnerAuthController_forgot",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "partner",
+          "anonymous": true
+        }
+      }
+    },
+    "/partner/auth/reset/{token}": {
+      "get": {
+        "operationId": "PartnerAuthController_resetInfo",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "email": {
+                      "type": "string",
+                      "format": "email",
+                      "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                    },
+                    "firstName": {
+                      "type": "string"
+                    },
+                    "invitedBy": {
+                      "type": "string"
+                    },
+                    "role": {
+                      "type": "string",
+                      "enum": [
+                        "DEVELOPER",
+                        "DIRECTOR",
+                        "COLLECTION_MANAGER",
+                        "CLAIMS_OFFICER",
+                        "CREDITOR"
+                      ]
+                    },
+                    "twoFactorRequired": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "email",
+                    "firstName",
+                    "twoFactorRequired"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "partner",
+          "anonymous": true
+        }
+      },
+      "post": {
+        "operationId": "PartnerAuthController_reset",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "partner",
+          "anonymous": true
+        }
+      }
+    },
+    "/partner/auth/invitation/{token}": {
+      "get": {
+        "operationId": "PartnerAuthController_invitationInfo",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "email": {
+                      "type": "string",
+                      "format": "email",
+                      "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                    },
+                    "firstName": {
+                      "type": "string"
+                    },
+                    "invitedBy": {
+                      "type": "string"
+                    },
+                    "role": {
+                      "type": "string",
+                      "enum": [
+                        "DEVELOPER",
+                        "DIRECTOR",
+                        "COLLECTION_MANAGER",
+                        "CLAIMS_OFFICER",
+                        "CREDITOR"
+                      ]
+                    },
+                    "twoFactorRequired": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "email",
+                    "firstName",
+                    "twoFactorRequired"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "partner",
+          "anonymous": true
+        }
+      }
+    },
+    "/partner/auth/invitation/{token}/password": {
+      "post": {
+        "operationId": "PartnerAuthController_choosePassword",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "totpKey": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "totpKey"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "partner",
+          "anonymous": true
+        }
+      }
+    },
+    "/partner/auth/invitation/{token}/totp": {
+      "post": {
+        "operationId": "PartnerAuthController_verifyTotp",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "backupCodes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "backupCodes"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "partner",
+          "anonymous": true
+        }
+      }
+    },
+    "/staff/auth/preferences": {
+      "put": {
+        "operationId": "PreferencesController_save",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      }
+    },
+    "/staff/account": {
+      "get": {
+        "operationId": "AccountController_data",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "signature": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "absence": {
+                      "type": "object",
+                      "properties": {
+                        "substituteId": {
+                          "type": "string"
+                        },
+                        "from": {
+                          "type": "string"
+                        },
+                        "to": {
+                          "type": "string"
+                        },
+                        "autoReply": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "substituteId",
+                        "from",
+                        "to",
+                        "autoReply"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "substitutes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "passwordChangedOn": {
+                      "type": "string"
+                    },
+                    "twoFactor": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "method": {
+                          "nullable": true,
+                          "type": "string",
+                          "enum": [
+                            "TOTP",
+                            "WEBAUTHN"
+                          ]
+                        },
+                        "mandatory": {
+                          "type": "boolean"
+                        },
+                        "since": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "enabled",
+                        "method",
+                        "mandatory",
+                        "since"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "sessions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "device": {
+                            "type": "string"
+                          },
+                          "meta": {
+                            "type": "string"
+                          },
+                          "mobile": {
+                            "type": "boolean"
+                          },
+                          "current": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "device",
+                          "meta",
+                          "mobile",
+                          "current"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "notifications": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": "string"
+                          },
+                          "inApp": {
+                            "type": "boolean"
+                          },
+                          "email": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "label",
+                          "detail",
+                          "inApp",
+                          "email"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "dailySummary": {
+                      "type": "boolean"
+                    },
+                    "quietHours": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "signature",
+                    "absence",
+                    "substitutes",
+                    "passwordChangedOn",
+                    "twoFactor",
+                    "sessions",
+                    "notifications",
+                    "dailySummary",
+                    "quietHours"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "account"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      }
+    },
+    "/staff/account/profile": {
+      "put": {
+        "operationId": "AccountController_saveProfile",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "account"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      }
+    },
+    "/staff/account/absence": {
+      "put": {
+        "operationId": "AccountController_saveAbsence",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "account"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      }
+    },
+    "/staff/account/notifications": {
+      "put": {
+        "operationId": "AccountController_savePreferences",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "account"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      }
+    },
+    "/staff/account/password": {
+      "put": {
+        "operationId": "AccountController_changePassword",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "account"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      }
+    },
+    "/staff/account/two-factor/totp": {
+      "post": {
+        "operationId": "AccountController_startTotp",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "uri": {
+                      "type": "string"
+                    },
+                    "key": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "uri",
+                    "key"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "account"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      }
+    },
+    "/staff/account/two-factor/totp/verify": {
+      "post": {
+        "operationId": "AccountController_verifyTotp",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "backupCodes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "backupCodes"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "account"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      }
+    },
+    "/staff/account/two-factor/webauthn": {
+      "post": {
+        "operationId": "AccountController_keyOptions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "challenge": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "challenge"
+                  ],
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "account"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      }
+    },
+    "/staff/account/two-factor/webauthn/verify": {
+      "post": {
+        "operationId": "AccountController_verifyKey",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "backupCodes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "backupCodes"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "account"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      }
+    },
+    "/staff/account/two-factor": {
+      "delete": {
+        "operationId": "AccountController_disable",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "account"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      }
+    },
+    "/staff/account/sessions/{id}": {
+      "delete": {
+        "operationId": "AccountController_closeSession",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "account"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      }
+    },
+    "/staff/account/sessions": {
+      "delete": {
+        "operationId": "AccountController_closeOthers",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "account"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      }
+    },
+    "/staff/members": {
+      "get": {
+        "operationId": "MembersController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "members": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "firstName": {
+                            "type": "string"
+                          },
+                          "lastName": {
+                            "type": "string"
+                          },
+                          "email": {
+                            "type": "string",
+                            "format": "email",
+                            "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                          },
+                          "role": {
+                            "type": "string",
+                            "enum": [
+                              "DEVELOPER",
+                              "DIRECTOR",
+                              "COLLECTION_MANAGER",
+                              "CLAIMS_OFFICER",
+                              "CREDITOR"
+                            ]
+                          },
+                          "extension": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "ACTIVE",
+                              "INVITED",
+                              "DISABLED"
+                            ]
+                          },
+                          "twoFactor": {
+                            "type": "boolean"
+                          },
+                          "cases": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "lastSeen": {
+                            "type": "string"
+                          },
+                          "creditor": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "sessions": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "twoFactorRequired": {
+                            "type": "boolean"
+                          },
+                          "locked": {
+                            "type": "boolean"
+                          },
+                          "activity": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "what": {
+                                  "type": "string"
+                                },
+                                "when": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "what",
+                                "when"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "firstName",
+                          "lastName",
+                          "email",
+                          "role",
+                          "extension",
+                          "status",
+                          "twoFactor",
+                          "cases",
+                          "lastSeen",
+                          "creditor",
+                          "sessions",
+                          "twoFactorRequired",
+                          "locked",
+                          "activity"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "canInvite": {
+                      "type": "boolean"
+                    },
+                    "canDisable": {
+                      "type": "boolean"
+                    },
+                    "canEditExtension": {
+                      "type": "boolean"
+                    },
+                    "canSupport": {
+                      "type": "boolean"
+                    },
+                    "creditors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "members",
+                    "canInvite",
+                    "canDisable",
+                    "canEditExtension",
+                    "canSupport",
+                    "creditors"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "members"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "DEVELOPER"
+          ]
+        }
+      },
+      "post": {
+        "operationId": "MembersController_invite",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "members"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      }
+    },
+    "/staff/members/{id}": {
+      "delete": {
+        "operationId": "MembersController_cancelInvitation",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "members"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      }
+    },
+    "/staff/members/{id}/disable": {
+      "post": {
+        "operationId": "MembersController_disable",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "members"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      }
+    },
+    "/staff/members/{id}/enable": {
+      "post": {
+        "operationId": "MembersController_enable",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "members"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      }
+    },
+    "/staff/members/{id}/role": {
+      "put": {
+        "operationId": "MembersController_changeRole",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "members"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      }
+    },
+    "/staff/members/{id}/extension": {
+      "put": {
+        "operationId": "MembersController_setExtension",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "members"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [],
+          "delegations": [
+            "TECHNICAL"
+          ]
+        }
+      }
+    },
+    "/staff/members/{id}/reset-link": {
+      "post": {
+        "operationId": "MembersController_sendResetLink",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "members"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "TECHNICAL",
+            "ADMINISTRATIVE"
+          ]
+        }
+      }
+    },
+    "/staff/members/{id}/require-2fa": {
+      "post": {
+        "operationId": "MembersController_requireSecondFactor",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "members"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "TECHNICAL",
+            "ADMINISTRATIVE"
+          ]
+        }
+      }
+    },
+    "/staff/members/{id}/reset-2fa": {
+      "post": {
+        "operationId": "MembersController_resetSecondFactor",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "members"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "TECHNICAL",
+            "ADMINISTRATIVE"
+          ]
+        }
+      }
+    },
+    "/staff/members/{id}/unlock": {
+      "post": {
+        "operationId": "MembersController_unlock",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "members"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "TECHNICAL",
+            "ADMINISTRATIVE"
+          ]
+        }
+      }
+    },
+    "/staff/delegations": {
+      "get": {
+        "operationId": "DelegationsController_data",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "technical": {
+                      "type": "boolean"
+                    },
+                    "administrative": {
+                      "type": "boolean"
+                    },
+                    "developer": {
+                      "type": "string"
+                    },
+                    "manager": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "technical",
+                    "administrative",
+                    "developer",
+                    "manager"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "delegations"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ]
+        }
+      }
+    },
+    "/staff/delegations/{kind}": {
+      "put": {
+        "operationId": "DelegationsController_set",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "delegations"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ]
+        }
+      }
+    },
+    "/staff/support-tickets": {
+      "post": {
+        "operationId": "SupportController_open",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "number": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "number"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "support"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      }
+    },
+    "/staff/notifications": {
+      "get": {
+        "operationId": "NotificationsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "PAYMENT",
+                          "MESSAGE",
+                          "REMINDER",
+                          "LITIGATION",
+                          "CREDITOR",
+                          "SYSTEM"
+                        ]
+                      },
+                      "unread": {
+                        "type": "boolean"
+                      },
+                      "day": {
+                        "type": "string",
+                        "enum": [
+                          "TODAY",
+                          "YESTERDAY",
+                          "EARLIER"
+                        ]
+                      },
+                      "time": {
+                        "type": "string"
+                      },
+                      "text": {
+                        "type": "string"
+                      },
+                      "meta": {
+                        "type": "string"
+                      },
+                      "href": {
+                        "type": "string"
+                      },
+                      "cta": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "kind",
+                      "unread",
+                      "day",
+                      "time",
+                      "text",
+                      "meta",
+                      "href",
+                      "cta"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "notifications"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      },
+      "put": {
+        "operationId": "NotificationsController_mark",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "notifications"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      }
+    },
+    "/staff/notifications/read": {
+      "post": {
+        "operationId": "NotificationsController_markRead",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "notifications"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      }
     }
   },
   "info": {

@@ -10,7 +10,7 @@ import { letterTemplate } from './documents';
 import { EMAIL_MAX, ID_MAX } from './limits';
 import { AMOUNT_MAX, enteredAmount } from './money';
 import { newClaim } from './portal';
-import { session } from './roles';
+import { preferences } from './roles';
 import { newMailbox, newSecret, redirectionTarget } from './settings';
 import { billingType, newMember, staffRole } from './steering';
 
@@ -109,7 +109,8 @@ export const billingBody = z.object({
 });
 
 export const memberRoleBody = z.object({ role: staffRole });
-export const reasonBody = z.object({ reason: line(500) });
+/** With the number of cases announced by the confirmation: refused when it has changed since. */
+export const disableMemberBody = z.object({ reason: line(500), cases: z.number().int().min(0).max(1_000_000) });
 export const extensionBody = z.object({
   extension: z
     .string()
@@ -142,7 +143,8 @@ export const REQUEST_BODIES = {
     'POST /auth/reset/:token': passwordBody,
     'POST /auth/invitation/:token/password': passwordBody,
     'POST /auth/invitation/:token/totp': oneTimeCodeBody,
-    'PUT /auth/preferences': session.shape.preferences,
+    'POST /auth/setup/totp/verify': oneTimeCodeBody,
+    'PUT /auth/preferences': preferences,
     'POST /notifications/read': readBody,
     'PUT /notifications': notificationsBody,
     'POST /search': searchBody,
@@ -187,7 +189,7 @@ export const REQUEST_BODIES = {
     'PUT /reports/scheduled/:id': activeBody,
     'POST /members': newMember,
     'PUT /members/:id/role': memberRoleBody,
-    'POST /members/:id/disable': reasonBody,
+    'POST /members/:id/disable': disableMemberBody,
     'PUT /members/:id/extension': extensionBody,
     'PUT /settings/:scope/:id': settingsBody,
     'POST /secrets': newSecret,
@@ -207,6 +209,7 @@ export const REQUEST_BODIES = {
     'POST /auth/reset/:token': passwordBody,
     'POST /auth/invitation/:token/password': passwordBody,
     'POST /auth/invitation/:token/totp': oneTimeCodeBody,
+    'POST /auth/setup/totp/verify': oneTimeCodeBody,
     'POST /portal/plans/:id/decision': partnerDecisionBody,
     'POST /portal/claims': claimBody,
     'POST /portal/messages/:id': portalMessageBody,

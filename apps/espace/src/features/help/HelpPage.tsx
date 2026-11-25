@@ -231,7 +231,7 @@ function Support() {
             type="textarea"
             value={message}
             error={error}
-            placeholder="Décrivez votre question ; indiquez la référence du dossier si besoin."
+            placeholder="Décrivez votre question, sans nom ni référence de dossier."
             onChange={setMessage}
           />
           <Bouton type="submit" full label="Envoyer la demande" />

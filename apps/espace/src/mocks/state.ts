@@ -14,6 +14,9 @@ const read = () => {
 export const state = {
   accountId: (read() ?? 'cl') as string | null,
   pending: null as string | null,
+  /** The account signing in already has a second factor. */
+  setUp: true,
+  wrongCodes: 0,
   failures: new Map<string, number>(),
   readNotifications: new Set<string>(),
   priorities: new Map<string, boolean>(),

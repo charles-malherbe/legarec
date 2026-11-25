@@ -8,6 +8,8 @@
     "typecheck": "tsc -p tsconfig.json",
     "build": "pnpm -s generate && vite build",
     "dev": "node ../../infra/dev/api.mjs",
+    "account": "node ../../infra/dev/api.mjs account",
+    "seed": "node prisma/seed/seed.mjs",
     "migrate": "node dist/migrate.js"
   },
   "dependencies": {
@@ -18,10 +20,13 @@
     "@nestjs/swagger": "12.1.2",
     "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "7.10.1",
+    "@simplewebauthn/server": "14.1.0",
+    "argon2": "0.45.2",
     "bullmq": "6.7.9",
     "handlebars": "4.7.10",
     "ioredis": "6.1.0",
     "libphonenumber-js": "1.13.17",
+    "otplib": "13.6.0",
     "pg": "8.23.1",
     "pino": "10.4.0",
     "reflect-metadata": "0.2.2",

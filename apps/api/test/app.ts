@@ -5,16 +5,17 @@ import { Writable } from 'node:stream';
 import { inject } from 'vitest';
 import { createApp } from '../src/app';
 import type { ActorResolver, Portal } from '../src/platform/access/access';
-import { readConfig } from '../src/platform/config/config';
+import { readConfig, type Config } from '../src/platform/config/config';
+import { Passwords } from '../src/platform/crypto/passwords';
 import type { Actor } from '../src/platform/database/actor';
 import { Database } from '../src/platform/database/database';
 import { createLogger } from '../src/platform/logging/logger';
-import { connectValkey } from '../src/platform/queue/valkey';
+import { connectValkey, type Valkey } from '../src/platform/queue/valkey';
 import { createTestDatabase, seed, type Seed, type TestDatabase } from './database';
 
 export const ORIGINS = { staff: 'http://localhost:5173', partner: 'http://localhost:5174', debtor: 'http://localhost:5175' };
 
-/** The test header names an actor of the set; the real sessions come with the accounts. */
+/** The test header names an actor of the set, unless the application is started with its real sessions. */
 export const ACTOR_HEADER = 'x-test-actor';
 class TestResolver implements ActorResolver {
   constructor(private readonly actors: () => Record<string, Actor>) {}
@@ -23,9 +24,16 @@ class TestResolver implements ActorResolver {
   }
 }
 
+/** Cheap enough for a test: what is proved here is never the cost of a password. */
+export const CHEAP = new Passwords({ memoryCost: 1_024, timeCost: 2 });
+
 export interface TestApp {
   app: NestExpressApplication;
+  config: Config;
   database: TestDatabase;
+  /** Connection of the API to the database. */
+  pool: Database;
+  valkey: Valkey;
   s: Seed;
   logs: string[];
   call(
@@ -41,9 +49,11 @@ interface Options {
   env?: Record<string, string>;
   /** Application that keeps its database and its people: this one starts next to it, as after a deployment. */
   next?: TestApp;
+  /** The sessions of the cookies, as in production, instead of the test header. */
+  sessions?: boolean;
 }
 
-export async function startApp(controllers: Type[] = [], { env = {}, next }: Options = {}): Promise<TestApp> {
+export async function startApp(controllers: Type[] = [], { env = {}, next, sessions = false }: Options = {}): Promise<TestApp> {
   const database = next?.database ?? (await createTestDatabase());
   const s = next?.s ?? (await seed(database.admin));
   const logs: string[] = [];
@@ -75,7 +85,8 @@ export async function startApp(controllers: Type[] = [], { env = {}, next }: Opt
   const logger = createLogger('debug', new Writable({ write: (chunk: Buffer, _encoding, done) => (logs.push(chunk.toString()), done()) }));
   const pool = new Database(config.DATABASE_URL);
   const drop = () => (next ? Promise.resolve() : database.drop());
-  const app = await createApp({ config, logger, database: pool, valkey, resolver: new TestResolver(actors), controllers }).catch(async (error: unknown) => {
+  const resolver = sessions ? {} : { resolver: new TestResolver(actors) };
+  const app = await createApp({ config, logger, database: pool, valkey, passwords: CHEAP, controllers, ...resolver }).catch(async (error: unknown) => {
     await Promise.all([pool.close(), valkey.quit()]);
     await drop();
     throw error;
@@ -91,7 +102,10 @@ export async function startApp(controllers: Type[] = [], { env = {}, next }: Opt
   const base = await app.getUrl();
   return {
     app,
+    config,
     database,
+    pool,
+    valkey,
     s,
     logs,
     call: async (method, path, options = {}) => {

@@ -20,6 +20,11 @@ export type Delegation = z.infer<typeof delegation>;
 /** The only role that may receive each delegation of the Director. */
 export const DELEGATE_ROLE: Record<Delegation, Role> = { TECHNICAL: 'DEVELOPER', ADMINISTRATIVE: 'COLLECTION_MANAGER' };
 
+export const preferences = z.object({
+  theme: z.enum(['light', 'dark', 'system']),
+  density: z.enum(['comfortable', 'compact']),
+  lowVision: z.boolean(),
+});
 export const session = z.object({
   userId: z.string(),
   firstName: z.string(),
@@ -30,11 +35,7 @@ export const session = z.object({
   directorName: z.string(),
   twoFactorEnabled: z.boolean(),
   extension: z.string().nullable(),
-  preferences: z.object({
-    theme: z.enum(['light', 'dark', 'system']),
-    density: z.enum(['comfortable', 'compact']),
-    lowVision: z.boolean(),
-  }),
+  preferences,
 });
 export type Session = z.infer<typeof session>;
 

@@ -11,10 +11,19 @@ export class ApiError extends Error {
   }
 }
 
-async function read<T extends z.ZodType>(schema: T, response: Response): Promise<z.infer<T>> {
+const lost = new Set<() => void>();
+/** Told when the API knows nobody any more: the session has ended, by itself, elsewhere or by someone else. */
+export function onSessionLost(listener: () => void): () => void {
+  lost.add(listener);
+  return () => void lost.delete(listener);
+}
+
+async function read<T extends z.ZodType>(schema: T, response: Response, path: string): Promise<z.infer<T>> {
   const body: unknown = response.status === 204 ? undefined : await response.json().catch(() => undefined);
-  if (!response.ok) throw new ApiError(response.status, body);
-  return schema.parse(body);
+  if (response.ok) return schema.parse(body);
+  // The sign-in itself answers for the proof that it was given.
+  if (response.status === 401 && !path.startsWith('/auth/')) for (const tell of lost) tell();
+  throw new ApiError(response.status, body);
 }
 
 /**
@@ -54,8 +63,15 @@ function keyOf(print: string): string {
   return kept.key;
 }
 
+export interface ApiInit {
+  method?: string;
+  body?: unknown;
+  /** Asked by the screen itself, at regular intervals: it does not keep the session open. */
+  background?: boolean;
+}
+
 /** Session travels in an httpOnly cookie: no token is ever readable here. */
-export async function api<T extends z.ZodType>(schema: T, path: string, init: { method?: string; body?: unknown } = {}): Promise<z.infer<T>> {
+export async function api<T extends z.ZodType>(schema: T, path: string, init: ApiInit = {}): Promise<z.infer<T>> {
   const method = init.method ?? 'GET';
   const body = init.body === undefined ? undefined : JSON.stringify(init.body);
   if (path.endsWith('/logout')) unknownOutcome.clear();
@@ -66,12 +82,13 @@ export async function api<T extends z.ZodType>(schema: T, path: string, init: { 
     headers: {
       ...(body === undefined ? {} : { 'content-type': 'application/json' }),
       ...(print === null ? {} : { 'idempotency-key': keyOf(print) }),
+      ...(init.background ? { 'x-background': '1' } : {}),
     },
     body,
   });
   // After a failure of the API or of the proxy, nobody knows whether the change was made: the key is kept.
   if (print !== null && response.status < 500) unknownOutcome.delete(print);
-  return read(schema, response);
+  return read(schema, response, path);
 }
 
 /** Sends a file as is: the API checks and analyses it. Its name never goes into the URL nor a header. */
@@ -82,5 +99,5 @@ export async function upload<T extends z.ZodType>(schema: T, path: string, file:
     headers: { 'content-type': file.type || 'application/octet-stream' },
     body: await file.arrayBuffer(),
   });
-  return read(schema, response);
+  return read(schema, response, path);
 }

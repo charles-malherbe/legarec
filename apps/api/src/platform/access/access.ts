@@ -8,7 +8,7 @@ export { PREFIX, type Portal } from '../http/origin';
 export type StaffRole = Exclude<Role, 'CREDITOR'>;
 
 export type AccessRule =
-  | { portal: 'staff'; anonymous?: boolean; roles?: readonly StaffRole[]; delegation?: Delegation }
+  | { portal: 'staff'; anonymous?: boolean; roles?: readonly StaffRole[]; delegations?: readonly Delegation[] }
   | { portal: 'partner' | 'debtor'; anonymous?: boolean }
   | { portal: 'public' | 'hook' | 'health' }
   | { portal: 'service'; scope: string };
@@ -18,8 +18,9 @@ const rule = (value: AccessRule) => SetMetadata(ACCESS, value);
 
 /** A route without one of these decorators stops the API from starting. */
 export const Staff = (...roles: StaffRole[]) => rule({ portal: 'staff', roles });
-/** Allowed to these roles, and to the holder of a delegation of the Director, who then acts on their behalf. */
-export const StaffOrDelegate = (delegation: Delegation, ...roles: StaffRole[]) => rule({ portal: 'staff', roles, delegation });
+/** Allowed to these roles, and to the holder of one of these delegations of the Director, who then acts on their behalf. */
+export const StaffOrDelegate = (delegation: Delegation | readonly Delegation[], ...roles: StaffRole[]) =>
+  rule({ portal: 'staff', roles, delegations: typeof delegation === 'string' ? [delegation] : delegation });
 /** Any signed-in collaborator. */
 export const AnyStaff = () => rule({ portal: 'staff' });
 export const Partner = () => rule({ portal: 'partner' });
@@ -31,16 +32,11 @@ export const Hook = () => rule({ portal: 'hook' });
 export const ServiceAccount = (scope: string) => rule({ portal: 'service', scope });
 export const Health = () => rule({ portal: 'health' });
 
-/** Finds out who is calling. Nobody before the accounts exist; replaced by the sessions. */
+/** Finds out who is calling, from the cookie of the portal. */
 export interface ActorResolver {
   resolve(portal: Portal, request: { headers: Record<string, unknown> }): Promise<Actor | null>;
 }
 export const ACTOR_RESOLVER = Symbol('ACTOR_RESOLVER');
-export class NobodyResolver implements ActorResolver {
-  resolve(): Promise<null> {
-    return Promise.resolve(null);
-  }
-}
 
 /** Nobody has to be signed in. */
 export const isOpen = (access: AccessRule) =>
@@ -58,6 +54,6 @@ export function allow(access: AccessRule, actor: Actor | null): Actor | null | f
   if (access.portal === 'service') return actor.kind === 'service' && actor.scopes.includes(access.scope) ? actor : false;
   if (access.portal !== 'staff' || actor.kind !== 'staff') return actor;
   if (!access.roles || access.roles.includes(actor.role)) return actor;
-  if (access.delegation && actor.delegations.includes(access.delegation)) return { ...actor, actingFor: access.delegation };
-  return false;
+  const held = access.delegations?.find((kind) => actor.delegations.includes(kind));
+  return held ? { ...actor, actingFor: held } : false;
 }

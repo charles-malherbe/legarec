@@ -28,7 +28,7 @@ import { LitigationPage } from '../features/litigation/LitigationPage';
 import { LoginPage } from '../features/login/LoginPage';
 import { PlansPage } from '../features/plans/PlansPage';
 import { CreditorScopeProvider } from './creditorScope';
-import { useSession } from './session';
+import { CurrentUser, useSession, useSessionEnd } from './session';
 import { Shell } from './Shell';
 
 // FullCalendar is only loaded with the agenda.
@@ -40,10 +40,25 @@ const ReportsPage = lazy(() => import('../features/reports/ReportsPage').then((m
 const LibraryPage = import.meta.env.DEV ? lazy(() => import('../features/library/LibraryPage').then((module) => ({ default: module.LibraryPage }))) : null;
 
 function RequireSession() {
-  const { data, isPending, isError } = useSession();
+  const { data, isPending } = useSession();
+  useSessionEnd();
   if (isPending) return null;
-  if (isError) return <ErrorPage code={500} />;
-  return data ? <Outlet /> : <Navigate to="/connexion" replace />;
+  // A single answer that fails changes nothing: what is on screen stays.
+  if (data === undefined) return <ErrorPage code={500} />;
+  return data ? (
+    // Another person, another screen: nothing typed, asked nor about to be confirmed by the former one is left.
+    <CurrentUser key={data.userId} value={data}>
+      <ToastProvider>
+        <ConfirmProvider>
+          <CreditorScopeProvider>
+            <Outlet />
+          </CreditorScopeProvider>
+        </ConfirmProvider>
+      </ToastProvider>
+    </CurrentUser>
+  ) : (
+    <Navigate to="/connexion" replace />
+  );
 }
 
 export function App() {
@@ -51,77 +66,71 @@ export function App() {
   return (
     <MantineProvider theme={espaceTheme} cssVariablesResolver={cssVariablesResolver}>
       <QueryClientProvider client={client}>
-        <ToastProvider>
-          <ConfirmProvider>
-            <CreditorScopeProvider>
-              <Routes>
-                <Route path="/connexion" element={<LoginPage />} />
-                <Route path="/mot-de-passe-oublie" element={<ForgotPasswordPage />} />
-                <Route path="/reinitialisation/:token" element={<ResetPasswordPage />} />
-                <Route path="/activation/:token" element={<ActivationPage />} />
-                <Route path="/mentions-legales" element={<PageLegale page="mentions" />} />
-                <Route path="/confidentialite" element={<PageLegale page="confidentialite" />} />
-                <Route path="/cookies" element={<PageLegale page="cookies" />} />
-                <Route path="/erreur-demo" element={<ErrorPage code={404} />} />
-                <Route element={<RequireSession />}>
-                  <Route element={<Shell />}>
-                    <Route index element={<DashboardPage />} />
-                    <Route path="creanciers" element={<CreditorsPage />} />
-                    <Route path="creanciers/:id" element={<CreditorPage />} />
-                    <Route path="debiteurs" element={<CasesPage />} />
-                    <Route path="debiteurs/:id" element={<CasePage />} />
-                    <Route
-                      path="relances"
-                      element={
-                        <Suspense fallback={null}>
-                          <RemindersPage />
-                        </Suspense>
-                      }
-                    />
-                    <Route path="echeanciers" element={<PlansPage />} />
-                    <Route path="appels" element={<CallsPage />} />
-                    <Route path="e-mails" element={<EmailsPage />} />
-                    <Route path="sms" element={<SmsPage />} />
-                    <Route path="notifications" element={<NotificationsPage />} />
-                    <Route
-                      path="rapports"
-                      element={
-                        <Suspense fallback={null}>
-                          <ReportsPage />
-                        </Suspense>
-                      }
-                    />
-                    <Route path="equipe" element={<TeamPage />} />
-                    <Route path="facturation" element={<BillingPage />} />
-                    <Route path="documents" element={<DocumentsPage />} />
-                    <Route path="documents/rediger" element={<ComposePage />} />
-                    <Route path="contentieux" element={<LitigationPage />} />
-                    <Route path="parametres" element={<SettingsPage />} />
-                    <Route path="parametres/champs-de-fusion" element={<MergeFieldsPage />} />
-                    <Route path="parametres/modeles/:id" element={<TemplatePage />} />
-                    <Route path="parametres/techniques" element={<SettingsPage key="techniques" scope="techniques" />} />
-                    <Route path="parametres/techniques/:section" element={<SettingsPage key="techniques" scope="techniques" />} />
-                    <Route path="parametres/:section" element={<SettingsPage />} />
-                    {LibraryPage && (
-                      <Route
-                        path="bibliotheque"
-                        element={
-                          <Suspense fallback={null}>
-                            <LibraryPage />
-                          </Suspense>
-                        }
-                      />
-                    )}
-                    <Route path="compte" element={<AccountPage />} />
-                    <Route path="aide" element={<HelpPage />} />
-                    <Route path="aide/:slug" element={<ArticlePage />} />
-                  </Route>
-                </Route>
-                <Route path="*" element={<ErrorPage code={404} />} />
-              </Routes>
-            </CreditorScopeProvider>
-          </ConfirmProvider>
-        </ToastProvider>
+        <Routes>
+          <Route path="/connexion" element={<LoginPage />} />
+          <Route path="/mot-de-passe-oublie" element={<ForgotPasswordPage />} />
+          <Route path="/reinitialisation/:token" element={<ResetPasswordPage />} />
+          <Route path="/activation/:token" element={<ActivationPage />} />
+          <Route path="/mentions-legales" element={<PageLegale page="mentions" />} />
+          <Route path="/confidentialite" element={<PageLegale page="confidentialite" />} />
+          <Route path="/cookies" element={<PageLegale page="cookies" />} />
+          <Route path="/erreur-demo" element={<ErrorPage code={404} />} />
+          <Route element={<RequireSession />}>
+            <Route element={<Shell />}>
+              <Route index element={<DashboardPage />} />
+              <Route path="creanciers" element={<CreditorsPage />} />
+              <Route path="creanciers/:id" element={<CreditorPage />} />
+              <Route path="debiteurs" element={<CasesPage />} />
+              <Route path="debiteurs/:id" element={<CasePage />} />
+              <Route
+                path="relances"
+                element={
+                  <Suspense fallback={null}>
+                    <RemindersPage />
+                  </Suspense>
+                }
+              />
+              <Route path="echeanciers" element={<PlansPage />} />
+              <Route path="appels" element={<CallsPage />} />
+              <Route path="e-mails" element={<EmailsPage />} />
+              <Route path="sms" element={<SmsPage />} />
+              <Route path="notifications" element={<NotificationsPage />} />
+              <Route
+                path="rapports"
+                element={
+                  <Suspense fallback={null}>
+                    <ReportsPage />
+                  </Suspense>
+                }
+              />
+              <Route path="equipe" element={<TeamPage />} />
+              <Route path="facturation" element={<BillingPage />} />
+              <Route path="documents" element={<DocumentsPage />} />
+              <Route path="documents/rediger" element={<ComposePage />} />
+              <Route path="contentieux" element={<LitigationPage />} />
+              <Route path="parametres" element={<SettingsPage />} />
+              <Route path="parametres/champs-de-fusion" element={<MergeFieldsPage />} />
+              <Route path="parametres/modeles/:id" element={<TemplatePage />} />
+              <Route path="parametres/techniques" element={<SettingsPage key="techniques" scope="techniques" />} />
+              <Route path="parametres/techniques/:section" element={<SettingsPage key="techniques" scope="techniques" />} />
+              <Route path="parametres/:section" element={<SettingsPage />} />
+              {LibraryPage && (
+                <Route
+                  path="bibliotheque"
+                  element={
+                    <Suspense fallback={null}>
+                      <LibraryPage />
+                    </Suspense>
+                  }
+                />
+              )}
+              <Route path="compte" element={<AccountPage />} />
+              <Route path="aide" element={<HelpPage />} />
+              <Route path="aide/:slug" element={<ArticlePage />} />
+            </Route>
+          </Route>
+          <Route path="*" element={<ErrorPage code={404} />} />
+        </Routes>
       </QueryClientProvider>
     </MantineProvider>
   );

@@ -95,6 +95,8 @@ export const member = z.object({
   creditor: z.string().nullable(),
   sessions: z.number().int(),
   twoFactorRequired: z.boolean(),
+  /** Closed for fifteen minutes after five failures. */
+  locked: z.boolean(),
   activity: z.array(z.object({ what: z.string(), when: z.string() })),
 });
 export type Member = z.infer<typeof member>;
@@ -156,7 +158,8 @@ export const newMember = z.discriminatedUnion('role', [
       .email()
       .max(EMAIL_MAX, atMost(EMAIL_MAX))
       .toLowerCase()
-      .regex(/@legarec\.fr$/u)
+      // What a mailbox may be called.
+      .regex(/^[a-z0-9](?:[a-z0-9.-]{0,30}[a-z0-9])?@legarec\.fr$/u)
       .refine((value) => !isReservedAddress(value.split('@')[0] ?? '')),
   }),
   z.object({ ...person, role: z.literal('CREDITOR'), email: z.email().max(EMAIL_MAX, atMost(EMAIL_MAX)), creditorId: z.string().min(1).max(ID_MAX) }),

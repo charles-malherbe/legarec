@@ -12,7 +12,7 @@ export interface PrismaSchema {
 }
 
 const NATIVE: Record<string, string> = { Uuid: 'uuid', Citext: 'citext', Date: 'date', Inet: 'inet' };
-const SCALAR: Record<string, string> = { String: 'text', Int: 'integer', Boolean: 'boolean', Json: 'jsonb', Bytes: 'bytea' };
+const SCALAR: Record<string, string> = { String: 'text', Int: 'integer', BigInt: 'bigint', Boolean: 'boolean', Json: 'jsonb', Bytes: 'bytea' };
 const mapped = (text: string) => /@{1,2}map\("([^"]+)"\)/u.exec(text)?.[1];
 
 /** Tables, columns, keys and lists announced to the Prisma client: compared with the database, so that neither drifts. */

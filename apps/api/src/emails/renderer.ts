@@ -4,6 +4,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+/** From the sources, for the tests: a program gives its own folder, as it is found once built. */
 export const TEMPLATES_DIR = fileURLToPath(new URL('../../templates/emails/', import.meta.url));
 export interface RenderedEmail {
   subject: string;
@@ -21,7 +22,7 @@ export class EmailRenderer {
 
   constructor(
     private readonly config: EmailConfig,
-    private readonly dir = TEMPLATES_DIR,
+    private readonly dir: string,
   ) {
     const read = (file: string) => readFileSync(join(dir, file), 'utf8');
     this.engine.registerPartial('layout', read('layout.hbs'));

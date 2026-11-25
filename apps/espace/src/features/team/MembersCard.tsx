@@ -54,7 +54,7 @@ export function MembersCard() {
           : { k: 'Dossiers à réattribuer', v: `${item.cases}${manager ? ` → ${manager.firstName} ${manager.lastName}` : ''}` },
       ],
       onConfirm: async (reason) => {
-        await change(`/members/${item.id}/disable`, { body: { reason } });
+        await change(`/members/${item.id}/disable`, { body: { reason, cases: item.cases } });
         toast({ message: item.role === 'CREDITOR' ? 'Compte désactivé.' : 'Compte désactivé, dossiers remis au Responsable.' });
       },
     });
@@ -261,7 +261,9 @@ function InviteForm({ creditors, onDone }: { creditors: { id: string; name: stri
   const submit = () =>
     confirm({
       title: 'Envoyer cette invitation ?',
-      body: 'La personne reçoit un lien valable 72 heures pour choisir son mot de passe.',
+      body: partner
+        ? 'La personne reçoit un lien valable 72 heures pour choisir son mot de passe.'
+        : 'La personne reçoit, dès que sa boîte est créée, un lien valable 72 heures pour choisir son mot de passe.',
       confirmLabel: 'Envoyer l’invitation',
       details: [
         { k: 'Nom', v: `${firstName} ${lastName}` },
@@ -276,7 +278,7 @@ function InviteForm({ creditors, onDone }: { creditors: { id: string; name: stri
         setDuplicate(false);
         try {
           await change('/members', { body: { firstName, lastName, email, role, creditorId: partner ? creditorId : undefined } });
-          toast({ message: 'Invitation envoyée.' });
+          toast({ message: partner ? 'Invitation envoyée.' : 'Compte créé : l’invitation part dès que la boîte existe.' });
           onDone();
         } catch (error) {
           if (error instanceof ApiError && error.status === 409) {

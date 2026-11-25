@@ -4,18 +4,26 @@ import type { AppLogger } from '../logging/logger';
 import type { ScheduledHandlers } from './jobs';
 import { QUEUE_PREFIX } from './publisher';
 
+const counted = (rows: { removed: number }[]) => rows[0]?.removed ?? 0;
 /** What has outlived its purpose. Each duration is written here or in its SQL function, never passed. */
 const STEPS: readonly [kind: string, remove: (tx: Transaction) => Promise<number>][] = [
-  ['audit', async (tx) => (await tx.$queryRaw<{ removed: number }[]>`SELECT app.purge_audit() AS removed`)[0]?.removed ?? 0],
+  ['audit', async (tx) => counted(await tx.$queryRaw`SELECT app.purge_audit() AS removed`)],
   ['idempotency', (tx) => tx.$executeRaw`DELETE FROM idempotency_keys WHERE created_at < now() - interval '48 hours'`],
-  ['outbox', (tx) => tx.$executeRaw`DELETE FROM outbox WHERE done_at < now() - interval '7 days' OR failed_at < now() - interval '30 days'`],
+  ['outbox', (tx) => tx.$executeRaw`DELETE FROM outbox WHERE done_at < now() - interval '14 days' OR failed_at < now() - interval '60 days'`],
   [
     'task-keys',
     (tx) => tx.$executeRaw`
-      DELETE FROM task_keys k WHERE created_at < now() - interval '1 year'
+      DELETE FROM task_keys k WHERE created_at < now() - interval '2 years'
         AND NOT EXISTS (SELECT 1 FROM outbox o WHERE o.id = k.task_id AND o.done_at IS NULL AND o.failed_at IS NULL)`,
   ],
-  ['webhooks', (tx) => tx.$executeRaw`DELETE FROM webhook_events WHERE received_at < now() - interval '30 days'`],
+  ['webhooks', (tx) => tx.$executeRaw`DELETE FROM webhook_events WHERE received_at < now() - interval '60 days'`],
+  // Sessions and links 48 hours after their end, failures one year.
+  ['sign-ins', async (tx) => counted(await tx.$queryRaw`SELECT app.purge_sign_ins() AS removed`)],
+  // Disabled for two years.
+  ['accounts', async (tx) => counted(await tx.$queryRaw`SELECT app.anonymize_accounts() AS removed`)],
+  ['notifications', (tx) => tx.$executeRaw`DELETE FROM notifications WHERE created_at < now() - interval '2 years'`],
+  // After the notifications, of the same age, that refer to them.
+  ['support-tickets', (tx) => tx.$executeRaw`DELETE FROM support_tickets WHERE created_at < now() - interval '2 years'`],
 ];
 
 /** Each step stands alone: one that fails neither undoes nor prevents the others. Counts are kept, never what was removed. */

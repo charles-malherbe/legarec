@@ -1,8 +1,15 @@
 import 'reflect-metadata';
+import { fileURLToPath } from 'node:url';
+import { provisionalEmailConfig } from './emails/config';
+import { EmailsService } from './emails/emails.service';
+import { EmailRenderer } from './emails/renderer';
+import { SimulatedTransport } from './emails/transport';
+import { accountJobs } from './modules/auth/auth.jobs';
+import { AuthKeys } from './modules/auth/keys';
 import { readWorkerConfig } from './platform/config/config';
 import { Database } from './platform/database/database';
 import { createLogger } from './platform/logging/logger';
-import { startWorkers, type Workers } from './platform/queue/jobs';
+import { startWorkers, type JobHandlers, type Workers } from './platform/queue/jobs';
 import { maintenance, scheduleMaintenance } from './platform/queue/maintenance';
 import { OutboxPublisher } from './platform/queue/publisher';
 import { connectValkey, whenReady } from './platform/queue/valkey';
@@ -16,6 +23,11 @@ const publishing = connectValkey(config.VALKEY_URL, 'api');
 for (const link of [connection, publishing]) link.on('error', () => logger.warn('valkey unreachable'));
 
 const publisher = new OutboxPublisher(database, logger, publishing);
+const emailSettings = provisionalEmailConfig();
+// Next to the folder of the sources, as to that of the programs once built.
+const templates = fileURLToPath(new URL('../templates/emails/', import.meta.url));
+const emails = new EmailsService(new EmailRenderer(emailSettings, templates), new SimulatedTransport(logger, config.DEV_MAIL_DIR), emailSettings);
+const handlers: JobHandlers = { email: accountJobs({ keys: new AuthKeys(config), portals: config, send: (name, to, data) => emails.send(name, to, data) }) };
 let workers: Workers | undefined;
 let hourly: NodeJS.Timeout | undefined;
 let stopping = false;
@@ -39,7 +51,7 @@ async function main() {
   if (stopping) return;
   // Started again by its container, in a clean state.
   const onDead = () => void stop(1);
-  workers = startWorkers({ database, logger, connection, handlers: {}, scheduled: maintenance(database, logger), onDead });
+  workers = startWorkers({ database, logger, connection, handlers, scheduled: maintenance(database, logger), onDead });
   publisher.start();
   const schedule = () => scheduleMaintenance(connection).catch(() => logger.warn('maintenance not scheduled'));
   // Again every hour: the schedule lives in Valkey, and would be lost with it.

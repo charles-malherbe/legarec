@@ -23,32 +23,315 @@ enum DelegationKind {
   @@map("delegation_kind")
 }
 
+enum AccountPortal {
+  STAFF
+  PARTNER
+
+  @@map("account_portal")
+}
+
+enum UserTheme {
+  light
+  dark
+  system
+
+  @@map("user_theme")
+}
+
+enum UserDensity {
+  comfortable
+  compact
+
+  @@map("user_density")
+}
+
+enum FactorKind {
+  TOTP
+  WEBAUTHN
+
+  @@map("factor_kind")
+}
+
+enum TokenPurpose {
+  INVITATION
+  RESET
+  WEBAUTHN
+
+  @@map("token_purpose")
+}
+
+enum AttemptScope {
+  SIGN_IN
+  SECOND_FACTOR
+  PASSWORD
+
+  @@map("attempt_scope")
+}
+
+enum TicketStatus {
+  OPEN
+  CLOSED
+
+  @@map("ticket_status")
+}
+
+enum RequestStatus {
+  OPEN
+  DONE
+  CANCELLED
+
+  @@map("request_status")
+}
+
+enum NotificationKind {
+  SUPPORT_ACTION
+  SUPPORT_TICKET
+  PASSWORD_RESET
+  DELEGATION_ENDED
+  DEVELOPER_CHANGED
+
+  @@map("notification_kind")
+}
+
+enum SupportAction {
+  RESET_LINK
+  SECOND_FACTOR_REQUIRED
+  SECOND_FACTOR_RESET
+  ACCOUNT_UNLOCKED
+
+  @@map("support_action")
+}
+
 /// One holder at most for DIRECTOR, COLLECTION_MANAGER and DEVELOPER (partial unique index in SQL).
 model User {
-  id             String     @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
-  role           UserRole
-  status         UserStatus @default(INVITED)
-  firstName      String     @map("first_name")
-  lastName       String     @map("last_name")
-  email          String     @unique @db.Citext
-  creditorId     String?    @map("creditor_id") @db.Uuid
-  extension      String?
-  lastSeenAt     DateTime?  @map("last_seen_at") @db.Timestamptz(3)
-  disabledAt     DateTime?  @map("disabled_at") @db.Timestamptz(3)
-  disabledById   String?    @map("disabled_by") @db.Uuid
-  disabledReason String?    @map("disabled_reason")
-  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  id                String      @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  role              UserRole
+  status            UserStatus  @default(INVITED)
+  firstName         String      @map("first_name")
+  lastName          String      @map("last_name")
+  email             String      @unique @db.Citext
+  creditorId        String?     @map("creditor_id") @db.Uuid
+  extension         String?
+  lastSeenAt        DateTime?   @map("last_seen_at") @db.Timestamptz(3)
+  disabledAt        DateTime?   @map("disabled_at") @db.Timestamptz(3)
+  disabledById      String?     @map("disabled_by") @db.Uuid
+  disabledReason    String?     @map("disabled_reason")
+  createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  /// Read by legarec_auth only.
+  passwordHash      String?     @map("password_hash")
+  passwordChangedAt DateTime?   @map("password_changed_at") @db.Timestamptz(3)
+  twoFactorRequired Boolean     @default(dbgenerated("false")) @map("two_factor_required")
+  theme             UserTheme   @default(dbgenerated("'light'::user_theme"))
+  density           UserDensity @default(dbgenerated("'comfortable'::user_density"))
+  lowVision         Boolean     @default(dbgenerated("false")) @map("low_vision")
+  dailySummary      Boolean     @default(dbgenerated("true")) @map("daily_summary")
+  quietHours        Boolean     @default(dbgenerated("true")) @map("quiet_hours")
+  substituteId      String?     @map("substitute_id") @db.Uuid
+  absentFrom        DateTime?   @map("absent_from") @db.Date
+  absentUntil       DateTime?   @map("absent_until") @db.Date
+  autoReply         Boolean     @default(dbgenerated("false")) @map("auto_reply")
+  invitedById       String?     @map("invited_by") @db.Uuid
+  invitedAt         DateTime?   @map("invited_at") @db.Timestamptz(3)
+  anonymizedAt      DateTime?   @map("anonymized_at") @db.Timestamptz(3)
 
-  creditor             Creditor?    @relation(fields: [creditorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  disabledBy           User?        @relation("disabledBy", fields: [disabledById], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  disabledUsers        User[]       @relation("disabledBy")
+  creditor             Creditor?                @relation(fields: [creditorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  disabledBy           User?                    @relation("disabledBy", fields: [disabledById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  disabledUsers        User[]                   @relation("disabledBy")
+  substitute           User?                    @relation("substitute", fields: [substituteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  substituteOf         User[]                   @relation("substitute")
+  invitedBy            User?                    @relation("invitedBy", fields: [invitedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  invitedUsers         User[]                   @relation("invitedBy")
   cases                Case[]
-  grantedDelegations   Delegation[] @relation("grantedBy")
-  withdrawnDelegations Delegation[] @relation("withdrawnBy")
+  grantedDelegations   Delegation[]             @relation("grantedBy")
+  withdrawnDelegations Delegation[]             @relation("withdrawnBy")
   eventsOnBehalf       CaseEvent[]
   auditOnBehalf        AuditEntry[]
+  devices              UserDevice[]
+  sessions             UserSession[]
+  factors              SecondFactor[]
+  backupCodes          BackupCode[]
+  tokens               AuthToken[]
+  preferences          NotificationPreference[]
+  notifications        Notification[]           @relation("recipient")
+  notificationsBy      Notification[]           @relation("actor")
+  notificationsAbout   Notification[]           @relation("target")
+  tickets              SupportTicket[]
+  mailboxRequests      MailboxRequest[]         @relation("holder")
+  mailboxesAsked       MailboxRequest[]         @relation("requestedBy")
+  mailboxesDecided     MailboxRequest[]         @relation("decidedBy")
 
   @@map("users")
+}
+
+/// A browser already seen: an unknown one is told to the holder. It opens nothing.
+model UserDevice {
+  id         String   @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  tokenHash  Bytes    @map("token_hash")
+  label      String
+  createdAt  DateTime @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
+  lastSeenAt DateTime @default(dbgenerated("now()")) @map("last_seen_at") @db.Timestamptz(3)
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([userId, tokenHash])
+  @@map("user_devices")
+}
+
+model UserSession {
+  id                 String        @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  userId             String        @map("user_id") @db.Uuid
+  portal             AccountPortal
+  tokenHash          Bytes         @unique @map("token_hash")
+  deviceLabel        String        @map("device_label")
+  mobile             Boolean       @default(dbgenerated("false"))
+  ip                 String?       @db.Inet
+  /// Decided when signing in: what is required later applies to the next sign-in.
+  secondFactorNeeded Boolean       @map("second_factor_needed")
+  secondFactorAt     DateTime?     @map("second_factor_at") @db.Timestamptz(3)
+  persistent         Boolean       @default(dbgenerated("false"))
+  createdAt          DateTime      @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
+  /// Last proof of identity: password or second factor.
+  provedAt           DateTime      @default(dbgenerated("now()")) @map("proved_at") @db.Timestamptz(3)
+  lastSeenAt         DateTime      @default(dbgenerated("now()")) @map("last_seen_at") @db.Timestamptz(3)
+  expiresAt          DateTime      @map("expires_at") @db.Timestamptz(3)
+  revokedAt          DateTime?     @map("revoked_at") @db.Timestamptz(3)
+
+  user   User        @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  tokens AuthToken[]
+
+  @@map("user_sessions")
+}
+
+/// Application (encrypted secret) or security key (public key).
+model SecondFactor {
+  id           String     @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  userId       String     @map("user_id") @db.Uuid
+  kind         FactorKind
+  secretCipher Bytes?     @map("secret_cipher")
+  lastStep     Int?       @map("last_step")
+  credentialId String?    @unique @map("credential_id")
+  publicKey    Bytes?     @map("public_key")
+  signCount    BigInt?    @map("sign_count")
+  transports   String?
+  createdAt    DateTime   @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
+  confirmedAt  DateTime?  @map("confirmed_at") @db.Timestamptz(3)
+  lastUsedAt   DateTime?  @map("last_used_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([userId], map: "second_factors_user")
+  @@map("second_factors")
+}
+
+model BackupCode {
+  id        String    @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  codeHash  String    @map("code_hash")
+  createdAt DateTime  @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([userId], map: "backup_codes_user")
+  @@map("backup_codes")
+}
+
+/// Links of invitation and reset, challenges of the security keys: only their digest is kept.
+model AuthToken {
+  id        String       @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  purpose   TokenPurpose
+  userId    String       @map("user_id") @db.Uuid
+  sessionId String?      @map("session_id") @db.Uuid
+  tokenHash Bytes        @unique @map("token_hash")
+  createdAt DateTime     @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
+  expiresAt DateTime     @map("expires_at") @db.Timestamptz(3)
+  /// Invitation: the password is chosen, the second factor may still be set up.
+  openedAt  DateTime?    @map("opened_at") @db.Timestamptz(3)
+  usedAt    DateTime?    @map("used_at") @db.Timestamptz(3)
+
+  user    User         @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  session UserSession? @relation(fields: [sessionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("auth_tokens")
+}
+
+/// Written by app.take_attempt() only; the key is a keyed digest, so that nobody is named here.
+model Lockout {
+  keyHash       Bytes        @id @map("key_hash")
+  scope         AttemptScope
+  failures      Int
+  lastFailureAt DateTime     @default(dbgenerated("now()")) @map("last_failure_at") @db.Timestamptz(3)
+  lockedUntil   DateTime?    @map("locked_until") @db.Timestamptz(3)
+
+  @@map("lockouts")
+}
+
+model NotificationPreference {
+  userId String  @map("user_id") @db.Uuid
+  kind   String
+  inApp  Boolean @map("in_app")
+  email  Boolean
+
+  user User @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([userId, kind])
+  @@map("notification_preferences")
+}
+
+/// Facts only: the sentence is written when it is read, with the rights of the reader.
+model Notification {
+  id        String           @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  kind      NotificationKind
+  action    SupportAction?
+  actorId   String?          @map("actor_id") @db.Uuid
+  targetId  String?          @map("target_id") @db.Uuid
+  ticketId  String?          @map("ticket_id") @db.Uuid
+  createdAt DateTime         @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
+  readAt    DateTime?        @map("read_at") @db.Timestamptz(3)
+
+  user   User           @relation("recipient", fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  actor  User?          @relation("actor", fields: [actorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  target User?          @relation("target", fields: [targetId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ticket SupportTicket? @relation(fields: [ticketId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([userId, createdAt(sort: Desc)], map: "notifications_user")
+  @@map("notifications")
+}
+
+model SupportTicket {
+  id        String       @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  number    String       @unique
+  userId    String       @map("user_id") @db.Uuid
+  subject   String
+  message   String
+  status    TicketStatus @default(dbgenerated("'OPEN'::ticket_status"))
+  createdAt DateTime     @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  notifications Notification[]
+
+  @@map("support_tickets")
+}
+
+/// Mailbox to create for an invited collaborator: the invitation leaves once it exists.
+model MailboxRequest {
+  id            String        @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  userId        String        @map("user_id") @db.Uuid
+  local         String
+  requestedById String        @map("requested_by") @db.Uuid
+  status        RequestStatus @default(dbgenerated("'OPEN'::request_status"))
+  decidedById   String?       @map("decided_by") @db.Uuid
+  createdAt     DateTime      @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
+  decidedAt     DateTime?     @map("decided_at") @db.Timestamptz(3)
+
+  user        User  @relation("holder", fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  requestedBy User  @relation("requestedBy", fields: [requestedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  decidedBy   User? @relation("decidedBy", fields: [decidedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("mailbox_requests")
 }
 
 /// One open delegation at most per kind (partial unique index in SQL).
