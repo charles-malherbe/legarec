@@ -150,11 +150,12 @@ Les 161 routes simulées se répartissent ainsi :
 
 ## Lot J — Socle (état au 25/11/2026)
 - [x] Services de développement sans root ni service système (`infra/dev/services.mjs`), lancement de l'API et du worker (`pnpm --filter @legarec/api dev`)
-- [x] NestJS 12, Prisma 7, trois connexions PostgreSQL, 10 rôles sans connexion, RLS forcée ; 11 tables du socle (comptes, délégations, créanciers, débiteurs, dossiers, historique, numérotation, journal, boîte d'envoi, webhooks, idempotence). Les autres tables arrivent avec leur lot
+- [x] NestJS 12, Prisma 7, trois connexions PostgreSQL, 10 rôles sans connexion, RLS forcée ; 13 tables du socle (comptes, délégations, créanciers, débiteurs, dossiers, historique, numérotation, journal, boîte d'envoi et ses clés, webhooks, idempotence, décomptes des purges). Les autres tables arrivent avec leur lot
 - [x] Règle d'accès obligatoire par route, matrice d'accès, origine exacte par portail, idempotence, erreurs uniformes, journaux sans donnée personnelle, journal et historique en ajout seul
 - [x] Chiffrement AES-256-GCM avec version de clé, clés dérivées par usage ; boîte d'envoi, worker aux droits de l'auteur, purge quotidienne
 - [x] OpenAPI et types des routes générés et vérifiés ; corps de toutes les requêtes des portails en Zod (`packages/contracts/src/requests.ts`), contrôlés aussi par les simulations ; clé d'idempotence envoyée par les portails
-- [x] GitHub Actions : PostgreSQL 17, Valkey 8.1, Node 26
+- [x] GitHub Actions : PostgreSQL 17, Valkey 8.1, Node 26, actions et images désignées par leur empreinte
+- [x] Relectures `relecteur-securite` et `testeur` : tous les points bloquants et importants corrigés (origine contrôlée deux fois, tâche sans auteur refusée, journal sans texte libre, plafonds sur chaque texte, moteur natif de Prisma écarté)
 - Aucune route des portails n'est encore branchée : les écrans restent sur les simulations.
 
 ## Points à reprendre du front

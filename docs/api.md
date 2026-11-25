@@ -9,8 +9,8 @@ But : remplacer les 161 routes simulées (MSW) des trois portails par `apps/api`
 ### Dépôt
 ```
 apps/api/prisma/{schema,migrations,seed}        schéma multi-fichiers, SQL complété à la main
-apps/api/src/main.ts, worker.ts                 API HTTP et workers BullMQ (même code, deux processus)
-apps/api/src/platform/                          config, database, audit, crypto, errors, logging, queue, storage, clock
+apps/api/src/main.ts, worker.ts, migrate.ts     API HTTP, workers BullMQ et migrations (même code, trois programmes)
+apps/api/src/platform/                          access, audit, config, crypto, database, errors, http, logging, queue (puis storage, clock)
 apps/api/src/modules/<domain>/                  controller, service, policy, repository, presenter, tests
 infra/dev/services.mjs                          PostgreSQL et Valkey de développement (sans root ni service, 127.0.0.1:55432 et 56379)
 packages/contracts/{src,openapi.json}           Zod : seule source ; corps de requêtes manquants ajoutés
@@ -20,41 +20,45 @@ Réutilisé tel quel : `canReadCase`, `canActOnCase`, `hasDelegation`, `allocate
 ### Dépendances par lot (versions vérifiées sur npm le 25/11/2026, figées à l'installation)
 | Lot | Paquets |
 |---|---|
-| J | `@nestjs/{common,core,platform-express,testing}` 12.6.0, `@nestjs/swagger` 12.1.2, `reflect-metadata` 0.2.2, `rxjs` 7.8.2, `prisma` + `@prisma/client` + `@prisma/adapter-pg` 7.10.1 (la 8 n'est qu'en rc), `pg` 8.23.1, `bullmq` 6.7.9, `ioredis` 6.1.0, `pino` 10.4.0, `pino-http` 11.0.0 ; dev : `openapi-typescript` 7.13.0, `fast-check` 4.11.0, types |
+| J | `@nestjs/{common,core,platform-express,testing}` 12.6.0, `@nestjs/swagger` 12.1.2, `reflect-metadata` 0.2.2, `rxjs` 7.8.2, `prisma` + `@prisma/client` + `@prisma/adapter-pg` 7.10.1 (la 8 n'est qu'en rc), `pg` 8.23.1, `bullmq` 6.7.9, `ioredis` 6.1.0, `pino` 10.4.0 ; dev : `openapi-typescript` 7.13.0, `fast-check` 4.11.0, types |
 | K | `argon2` 0.45.2, `otplib` 13.6.0, `@simplewebauthn/server` 14.1.0 |
 | N | `@aws-sdk/client-s3` et `s3-request-presigner` 3.1177.0, `file-type` 22.3.0, `qrcode` 1.5.4 et `playwright` 1.65.1 (déjà présents) |
 | P | `csv-parse` 7.0.3, `read-excel-file` 9.3.20, `write-excel-file` 4.1.1, `fflate` 0.8.3 |
 | R | `nodemailer` 10.6.1, `imapflow` 2.12.2, `mailparser` 3.15.0 |
 
-Aucun script d'installation de dépendance ne s'exécute (`allowBuilds` dans `pnpm-workspace.yaml`). `openapi-typescript` n'annonce pas encore TypeScript 6, mais fonctionne avec.
+Aucun script d'installation de dépendance ne s'exécute (`allowBuilds` dans `pnpm-workspace.yaml`). De Prisma, seul le client sert : son moteur natif, téléchargé à la première utilisation hors du fichier de versions, n'est jamais appelé. `node dist/migrate.js` applique les migrations (une transaction et une empreinte par migration, verrou contre deux déploiements simultanés) ; un test compare le schéma Prisma à la base, sans moteur. `openapi-typescript` n'annonce pas encore TypeScript 6, mais fonctionne avec.
 
 Sans dépendance : Resend, MySendingBox, OVH (appels signés : le paquet `ovh` date de 2019), 3CX, IA compatible OpenAI, ClamAV, limites par IP (Valkey). Construction par Vite, déjà présent.
 
 ### Routes, sessions, en-têtes
 - `https://api.legarec.fr` : `/staff`, `/partner`, `/debtor`, `/public` (valeurs des pages légales), `/hooks`, `/service` (n8n, fermé depuis Internet par Caddy), `/health`. Un rôle PostgreSQL par préfixe. Les chemins des simulations ne changent pas : `VITE_API_URL` vaut `…/staff`, `…/partner`, et la racine pour paiement. En développement, proxy Vite `/api`.
-- Cookies `__Host-` distincts par portail, HttpOnly, Secure, SameSite=Strict ; jeton opaque de 256 bits, haché en base ; fermeture à 30 minutes d'inactivité. En-tête `Origin` strictement égal à l'origine du portail attendu pour le préfixe, refusé s'il manque en écriture ; JSON seulement, hors dépôt de fichier (`upload`) ; `Cache-Control: no-store` partout. Adresse IP posée par Caddy, un seul relais de confiance.
+- Cookies `__Host-` distincts par portail, HttpOnly, Secure, SameSite=Strict ; jeton opaque de 256 bits, haché en base ; fermeture à 30 minutes d'inactivité. En-tête `Origin` strictement égal à l'origine du portail attendu pour le préfixe, refusé s'il manque en écriture, contrôlé avant la route puis de nouveau avec la règle d'accès ; préfixe en minuscules exactes, sinon 404 ; JSON seulement, hors dépôt de fichier (`upload`) ; `Cache-Control: no-store` partout. Adresse IP posée par Caddy, un seul relais de confiance.
 - Jetons (réinitialisation, invitation, lien) : jamais dans un journal. Pino note le modèle de route, Caddy masque ces chemins ; ils font partie du test de fuites.
 - Webhooks : Resend, signature vérifiée sur le corps brut. MySendingBox, aucune signature trouvée dans la partie lue de sa documentation : lettre connue du même environnement, sinon 204 sans appel ; l'API relit la lettre chez lui, une fois par minute et par lettre au plus ; un statut ne recule jamais ; interrogation périodique en complément.
-- Action qui engage : `Idempotency-Key` et, si le récapitulatif porte un montant, un nombre ou un destinataire, valeur attendue ; l'API répond 409 si l'état a changé depuis la confirmation. Clés gardées 24 heures avec l'empreinte du corps (corps différent : 422) ; une valeur affichée une seule fois (mot de passe de boîte, clé, TOTP, codes de secours, code d'accès) n'y est jamais enregistrée : rejeu = 409.
+- Action qui engage : `Idempotency-Key` et, si le récapitulatif porte un montant, un nombre ou un destinataire, valeur attendue ; l'API répond 409 si l'état a changé depuis la confirmation. Seules les routes `@Commits()` gardent une clé : 24 heures, avec l'empreinte HMAC de l'adresse et du corps (corps différent : 422) et la réponse chiffrée ; une valeur affichée une seule fois (mot de passe de boîte, clé, TOTP, codes de secours, code d'accès) n'y est jamais enregistrée : rejeu = 409. Côté portail, la clé reste en mémoire jusqu'à la réponse de l'API (un échec 5xx la garde), une heure au plus, sous l'empreinte SHA-256 du changement ; la déconnexion les efface toutes.
 - Erreurs : mêmes codes que les simulations (`INVALID`, `FORBIDDEN`, `LOCKED`, `SELECTION_CHANGED`…). Une erreur de saisie nomme les champs, jamais ce qui a été tapé.
-- Corps des requêtes : une seule définition, `packages/contracts/src/requests.ts`, lue par l'API et par les simulations, qui refusent ce que l'API refuserait.
+- Corps des requêtes : une seule définition, `packages/contracts/src/requests.ts`, lue par l'API et par les simulations, qui refusent ce que l'API refuserait. Chaque texte et chaque liste y a un plafond, testé (`packages/contracts/src/limits.ts`) ; un corps ou un paramètre sans schéma empêche l'API de démarrer.
 
 ### Règles de code
-Une requête = une transaction `Database.run(actor, fn)` ; ESLint interdit Prisma ailleurs. Aucun appel externe dans une transaction : `outbox`, puis BullMQ. Les tâches ne portent que des identifiants. SQL brut limité à : `SET LOCAL ROLE`, `set_config`, séquences, verrous consultatifs, recherche trigramme, agrégats.
+Une requête = une transaction `Database.run(actor, fn)` ; ESLint interdit Prisma ailleurs. Aucun appel externe dans une transaction : `outbox`, puis BullMQ. Une tâche de Valkey ne porte que son numéro : son nom, son auteur et ses identifiants sont relus dans `outbox`. SQL brut limité à : séquences, verrous consultatifs, recherche trigramme, agrégats ; `SET ROLE` et `set_config` dans `src/platform` seulement ; imports dynamiques de Prisma, `pg`, BullMQ ou ioredis interdits ailleurs (ESLint).
 
-## Schéma PostgreSQL / Prisma (98 tables)
+Journaux : une ligne par requête (route modèle, statut, durée, acteur par son type), champs d'une liste fermée ; ni adresse, ni corps, ni message d'erreur de la base ou d'un prestataire.
 
-Chaque lot ajoute ses tables par une migration ; le lot J pose les 11 du socle. `test/schema.test.ts` applique les mêmes règles à toutes : RLS forcée, clé composite, aucun droit par défaut, fonctions à `search_path` fixe, accord entre Prisma et la base.
+## Schéma PostgreSQL / Prisma (99 tables)
+
+Chaque lot ajoute ses tables par une migration ; le lot J pose les 13 du socle. `test/schema.test.ts` applique les mêmes règles à toutes : RLS forcée, clé composite, aucun droit par défaut, fonctions à `search_path` fixe, accord entre Prisma et la base.
 
 ### Conventions
 Clés UUID v7 ; `created_at` partout ; dates `timestamptz` ou `date` ; montants en centimes `integer` (`*_cents`, contrôle de plafond), taux en points de base. **Cloisonnement** : toute table liée à un dossier porte `case_id` et `creditor_id`, avec clé étrangère composite vers `cases(id, creditor_id)`, sans cascade (`NO ACTION`), et `CHECK (case_id IS NULL OR creditor_id IS NOT NULL)` : un `creditor_id` faux est impossible. Une référence entre deux tables d'un dossier porte aussi `case_id`, pour ne jamais relier deux dossiers. `reference`, `creditor_id`, `debtor_id` et `officer_id` d'un dossier ne se modifient jamais directement. `[c+cr]` ci-dessous désigne ce couple. Énumérations = celles des contrats, complétées (`NEW`, `LOST`, `CREDIT_NOTE`, `QUEUED`, `UNCERTAIN`).
 
 ### Rôles PostgreSQL et sécurité par ligne
-Connexions : `legarec_owner` (migrations), `legarec_app` (API HTTP), `legarec_jobs` (worker), toutes `NOINHERIT` et sans `BYPASSRLS`. Chaque transaction passe par `SET LOCAL ROLE` vers un rôle sans connexion : `legarec_auth`, `legarec_staff`, `legarec_partner`, `legarec_debtor`, `legarec_hook`, `legarec_public`, `legarec_service` pour l'API ; `legarec_worker`, `legarec_retention`, `legarec_staff` pour le worker. Oubli = « permission denied », testé. Variables `app.user_id`, `app.creditor_id`, `app.debtor_id`, `app.acting_for` : le rôle et les délégations sont relus dans les tables, jamais crus sur parole. RLS activée **et forcée** sur toutes les tables ; droits par colonne pour tous les rôles ; aucun droit par défaut.
+Connexions : `legarec_owner` (migrations), `legarec_app` (API HTTP), `legarec_jobs` (worker), toutes `NOINHERIT` et sans `BYPASSRLS`. Chaque transaction passe par `SET LOCAL ROLE` vers un rôle sans connexion : `legarec_auth`, `legarec_staff`, `legarec_partner`, `legarec_debtor`, `legarec_hook`, `legarec_public`, `legarec_service` pour l'API ; `legarec_worker` et `legarec_retention` pour le worker, plus `legarec_staff`, `legarec_partner` et `legarec_debtor` pour les tâches nées d'un utilisateur. Oubli = « permission denied », testé. Durées limitées par connexion (requête, attente d'un verrou, transaction inactive). Variables `app.user_id`, `app.creditor_id`, `app.debtor_id`, `app.acting_for` : le rôle et les délégations sont relus dans les tables, jamais crus sur parole. RLS activée **et forcée** sur toutes les tables ; droits par colonne pour tous les rôles ; aucun droit par défaut.
 
 Fonctions `app.*` : `SECURITY DEFINER`, `search_path` fixe, propriétaire `legarec_definer` (sans connexion, droits limités aux colonnes utiles) : `staff_role`, `can_read_case`, `can_act_on_case`, `assign_cases` (dossiers lisibles par l'acteur, destinataire actif), `note_consultation`, `contacts_left` (un nombre, sans montrer les contacts des autres), `log`, `add_case_event`, `enqueue`, `next_number`, `purge_audit`, `anonymize_case`.
 
-Tâche née d'un utilisateur : `outbox.actor_id` ; le worker l'exécute avec le rôle de cet utilisateur, droits relus à l'exécution. `legarec_worker` sert aux seules tâches planifiées. `legarec_hook` insère dans `webhook_events`, rien d'autre.
+Type d'acteur : lu dans le rôle PostgreSQL de la transaction, jamais dans une variable ; un compte désactivé ou un portail fermé devient « personne ». Une délégation retirée, ou donnée par un Directeur remplacé, arrête l'action.
+
+Tâche née d'un utilisateur : `outbox.actor_kind`, `actor_id` et `acting_for`, remplis par PostgreSQL ; sans auteur reconnu, elle est refusée. Le worker l'exécute avec le rôle de cet auteur, droits relus à l'exécution, et seulement si la tâche déclare qu'elle peut venir de lui (`from`). `legarec_worker` sert aux tâches planifiées et à ce que l'application fait après avoir vérifié les droits de l'auteur (`asApplication`). `legarec_hook` insère dans `webhook_events`, ajoute une tâche et note au journal, rien d'autre.
 
 | Classe | Lecture | Écriture |
 |---|---|---|
@@ -189,9 +193,10 @@ Tâche née d'un utilisateur : `outbox.actor_id` ; le worker l'exécute avec le 
 **Plateforme, RGPD, IA**
 | Table | Colonnes utiles | Contraintes, index | RLS |
 |---|---|---|---|
-| `audit_log` | occurred_at, actor_kind, actor_id?, actor_label, on_behalf_of_id?, action, entity_type?, entity_id?, summary (sans nom, référence ni valeur), ip, request_id | **ajout seul** : ni UPDATE, ni DELETE, ni TRUNCATE ; `actor_label` d'un débiteur ou d'un créancier : son rôle, jamais un nom ; purge à 1 an par `app.purge_audit()`, durée écrite dans la fonction, décompte gardé | AUDIT |
-| `outbox`, `webhook_events`, `idempotency_keys` | queue, payload (identifiants), actor_id?, dedupe_key, published_at? ; provider, provider_event_id, status ; actor, key, route, request_hash, status, result (jamais une valeur affichée une fois) | UQ dedupe_key, (provider, event), (actor, key) | SYS |
-| `gdpr_requests`, `retention_runs` | debtor_id, [c+cr], kind, origin, received_on, due_on, status, handled_by?, transmitted_to_creditor_at? ; started_at, counts | index (status, due_on) | ADMIN |
+| `audit_log` | occurred_at, actor_kind, actor_id?, actor_label, on_behalf_of_id?, action, entity_type?, entity_id?, params (identifiants, dates, rôles, noms techniques, nombres de 3 chiffres au plus ; phrase française du catalogue `AUDIT_ACTIONS`, aucun texte libre), ip, request_id | **ajout seul** : ni UPDATE, ni DELETE, ni TRUNCATE ; `actor_label` d'un débiteur ou d'un créancier : son rôle, jamais un nom ; purge à 1 an par `app.purge_audit()`, durée écrite dans la fonction, décompte gardé | AUDIT |
+| `outbox`, `task_keys`, `webhook_events`, `idempotency_keys` | queue, name, payload (identifiants, dates, codes d'une liste fermée), actor_kind, actor_id?, acting_for?, run_at?, claimed_at?, published_at?, done_at?, failed_at? ; key, task_id (une tâche au plus par clé) ; provider, provider_event_id, status ; actor, key, route, request_hash, status, result (chiffré, jamais une valeur affichée une fois) | UQ dedupe_key, (provider, event), (actor, key) | SYS |
+| `gdpr_requests` | debtor_id, [c+cr], kind, origin, received_on, due_on, status, handled_by?, transmitted_to_creditor_at? | index (status, due_on) | ADMIN |
+| `retention_runs` | kind, removed (un nombre), ran_at | ajout par `legarec_retention` seul | AUDIT |
 | `ai_suggestions` | function, [c+cr], input_digest, output, model, prompt_version, tokens, cost, status, decided_by?, decided_at? | — | CASE |
 | `ai_usage` | month, cost, alerted_at?, paused_at? | — | TECH |
 
@@ -207,7 +212,7 @@ CREATE POLICY cases_act     ON cases FOR UPDATE TO legarec_staff   USING (app.ca
 CREATE POLICY cases_partner ON cases FOR SELECT TO legarec_partner USING (creditor_id = app.creditor_id());
 CREATE POLICY cases_debtor  ON cases FOR SELECT TO legarec_debtor  USING (debtor_id  = app.debtor_id());
 ```
-Extensions : `citext`, `pg_trgm`, `unaccent`, `btree_gist`. Index partiels, EXCLUDE, RLS et déclencheurs sont en SQL (les index partiels de Prisma 7 sont en préversion) ; un test refuse toute dérive entre schéma et base. Factures, avoirs et quittances : numérotation continue dans la même transaction.
+Extensions : `citext`, `pg_trgm`, `unaccent`, `btree_gist`. Index partiels, EXCLUDE, RLS et déclencheurs sont en SQL (les index partiels de Prisma 7 sont en préversion) ; un test refuse toute dérive entre schéma et base. Factures, avoirs et quittances : numérotation continue dans la même transaction, par `app.next_number()` (année de Paris, refusée au Développeur et aux rôles externes).
 
 **Imputation** : intérêts de tout le dossier, puis principal de la facture la plus ancienne à la plus récente, puis indemnités ; reste en trop-perçu. Chèque impayé : écritures d'annulation, jamais d'effacement.
 
@@ -240,7 +245,7 @@ Une clé dérivée par usage (HKDF). La version de clé est dans l'en-tête de c
 | 1 an | journal d'audit, verrouillages, journal de l'IA |
 | 30 jours | imports non confirmés, fichiers non rattachés |
 
-Exceptions : les quittances restent 10 ans même si le dossier est anonymisé à 5 ans ; un débiteur partagé est anonymisé avec son dernier dossier. « Ajout seul » s'entend hors `legarec_retention`, par `purge_audit()` et `anonymize_case()` : durée écrite dans la fonction, sans paramètre, décompte gardé. La purge se rejoue après toute restauration. Durées non décidées (sauvegardes, journaux techniques, sessions, notifications, présence 3CX, comptes) : question 115.
+Exceptions : les quittances restent 10 ans même si le dossier est anonymisé à 5 ans ; un débiteur partagé est anonymisé avec son dernier dossier. « Ajout seul » s'entend hors `legarec_retention`, par `purge_audit()` et `anonymize_case()` : durée écrite dans la fonction, sans paramètre, décompte gardé. La purge se rejoue après toute restauration. Durées non décidées (sauvegardes, journaux techniques, sessions, notifications, présence 3CX, comptes) : question 115. En place au lot J : clés d'idempotence 24 heures, tâches faites 7 jours, tâches abandonnées et webhooks 30 jours ; chaque étape de la purge est indépendante et laisse son décompte.
 
 ## Clés et secrets : noms, emplacement, saisie
 
