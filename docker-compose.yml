@@ -102,8 +102,9 @@ services:
     user: '10101:10101'
     command: [node, --env-file=/run/secrets/api, --max-old-space-size=384, dist/main.js]
     secrets: [api]
-    mem_limit: 512m
-    memswap_limit: 512m
+    # Three passwords are checked at once, 64 MB each, outside of the memory of Node.
+    mem_limit: 768m
+    memswap_limit: 768m
     stop_grace_period: 40s
     networks: [api, donnees]
     depends_on: &services

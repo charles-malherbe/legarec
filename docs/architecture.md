@@ -51,19 +51,21 @@ Décisions du 24/11/2026, reprises de l'annexe « Architecture » de `PROMPT-FRO
   dossiers/{id}/emails/, dossiers/{id}/enregistrements/ (question 104), imports/. Noms de fichiers : identifiants générés, nom d'origine conservé en base.
 - Sauvegardes : pgBackRest 2.59.3 minimum (projet maintenu, relancé en mai 2026 après l'annonce d'avril),
   chiffrement activé, dépôt dans un bucket séparé (legarec-sauvegardes) avec ses propres clés et le versioning activé ;
-  restauration testée automatiquement et régulièrement dans un conteneur temporaire.
-- Surveillance : Gatus surveille aussi les sauvegardes et les tests de restauration.
+  restauration testée chaque semaine dans un conteneur temporaire. Conservation : 56 jours restaurables, 70 jours au
+  plus pour une donnée effacée, versions comprises.
+- Surveillance : Gatus surveille aussi les sauvegardes (alerte après 26 heures), les tests de restauration et le worker ;
+  alertes par e-mail (clé Resend dédiée).
+- Serveur de production : VPS réservé à Legarec, sans développement ni Claude Code (docs/deploiement.md).
 - Proxy inverse : Caddy, seul service exposé sur Internet (ports 80 et 443), dans le docker compose de production ;
-  un Caddyfile versionné dans le dépôt (infra/caddy/Caddyfile), validé par caddy validate dans pnpm verifier.
+  un Caddyfile versionné dans le dépôt (infra/caddy/Caddyfile), validé par caddy validate dans GitHub Actions (.github/workflows/images.yml).
   - HTTPS automatique (Let's Encrypt), HTTP redirigé vers HTTPS, HSTS ; en-têtes de sécurité par portail
     (CSP, X-Content-Type-Options, Referrer-Policy, Permissions-Policy) ; compression ; journaux d'accès JSON
     sans données personnelles ni paramètres de requête.
-  - Routage : espace, partenaires et paiement vers leurs fichiers statiques (repli sur index.html pour les routes
-    du front) ; api.legarec.fr vers l'API ; n8n.legarec.fr et status.legarec.fr vers leurs conteneurs,
+  - Routage : espace, partenaires et paiement vers leurs conteneurs de fichiers statiques (repli sur index.html pour
+    les routes du front) ; api.legarec.fr vers l'API ; n8n.legarec.fr et status.legarec.fr vers leurs conteneurs,
     n8n restreint (adresses IP autorisées ou authentification devant).
-  - status.legarec.fr : proxy inverse vers le conteneur Gatus (reverse_proxy gatus:8080), page publique
-    limitée aux services utiles aux utilisateurs (portails, API) ; les contrôles internes (sauvegardes, restauration,
-    files, base) restent visibles seulement depuis les adresses IP autorisées ou derrière authentification.
+  - status.legarec.fr : deux Gatus, choisis par Caddy selon l'adresse IP ; page publique limitée aux services utiles aux utilisateurs (portails, API) ; les contrôles internes (sauvegardes, restauration,
+    files, base) et les journaux (Grafana, status.legarec.fr/journaux) visibles seulement depuis les adresses IP autorisées.
   - Redirections, une par ligne dans le Caddyfile avec un commentaire, sans transmettre de paramètre ni de donnée
     personnelle :
     - http → https sur tous les sous-domaines (automatique) ;

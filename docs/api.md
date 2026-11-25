@@ -258,7 +258,7 @@ Une clé dérivée par usage (HKDF). La version de clé est dans l'en-tête de c
 | 2 ans | notifications, questions au support ; compte désactivé, puis anonymisé ; clés de tâches |
 | 1 an | journal d'audit, verrouillages, invitation jamais ouverte (question 131), journal de l'IA, présence 3CX (12 mois) |
 | 6 mois | enregistrements, transcriptions, SMS non rattachés, messages non vérifiés |
-| 70 jours | sauvegardes et versions S3 |
+| 70 jours | sauvegardes (56 jours restaurables, versions comprises) et versions S3 des documents |
 | 60 jours | journaux techniques, tâches abandonnées, webhooks |
 | 14 jours | tâches faites |
 | 48 heures après la fin | sessions et liens des comptes, clés d'idempotence |
@@ -285,7 +285,7 @@ Exceptions : les quittances restent 10 ans même si le dossier est anonymisé à
 
 - **Valeurs de démarrage** : `VAULT_MASTER_KEY`, `VALKEY_URL`, `SESSION_SIGNING_KEY` ; un seul compte PostgreSQL par programme : `DATABASE_URL` (API), `JOBS_DATABASE_URL` (worker), `MIGRATION_DATABASE_URL` (migrations). Une adresse incomplète est refusée au démarrage, en production aussi. Réglages non secrets du même fichier : `AI_ENABLED` (absent = IA éteinte), `MYSENDINGBOX_ENV`, `IA_MODELE_RAPIDE`, `IA_MODELE_AVANCE`, `AI_BASE_URL`, `SCW_REGION`, `SCW_DOCUMENTS_BUCKET`, `STAFF_PORTAL_URL`, `PARTNER_PORTAL_URL`, `DEBTOR_PORTAL_URL`. Pendant un renouvellement, l'ancienne clé reste sous le même nom suivi de `_PREVIOUS`.
 - **Clés internes** : `MAILBOX_SECRETS_KEY`, `ACCESS_CODE_KEY`, `LOOKUP_KEY` : tirées au hasard par l'API, chiffrées par `VAULT_MASTER_KEY`, renouvelables depuis l'écran (les données sont rechiffrées), jamais révocables. Écart assumé avec `PROMPT-FRONT.md`, qui prévoit une `MAILBOX_SECRETS_KEY` saisie (question 73). Jusqu'au coffre (lot L), les empreintes des essais et le chiffrement des applications viennent de clés dérivées de `VAULT_MASTER_KEY`.
-- **Autres conteneurs (lot X)** : PostgreSQL `POSTGRES_PASSWORD` ; pgBackRest `PGBACKREST_REPO1_S3_KEY`, `PGBACKREST_REPO1_S3_KEY_SECRET`, `PGBACKREST_REPO1_CIPHER_PASS` ; n8n `N8N_ENCRYPTION_KEY` et sa clé de compte de service (créée dans l'application, affichée une fois) ; Grafana `GF_SECURITY_ADMIN_PASSWORD` ; Gatus `GATUS_ALERT_KEY`.
+- **Autres conteneurs (lot X)** : PostgreSQL `POSTGRES_PASSWORD` ; mots de passe des trois comptes `LEGAREC_OWNER_PASSWORD`, `LEGAREC_APP_PASSWORD`, `LEGAREC_JOBS_PASSWORD` ; Valkey `VALKEY_PASSWORD` ; pgBackRest `PGBACKREST_REPO1_S3_KEY`, `PGBACKREST_REPO1_S3_KEY_SECRET`, `PGBACKREST_REPO1_CIPHER_PASS`, `PGBACKREST_REPO1_S3_REGION`, `PGBACKREST_REPO1_S3_ENDPOINT` (clé en lecture seule pour l'essai de restauration) ; Caddy `ACME_EMAIL`, `AUTHORIZED_IPS`, `SCW_REGION` ; n8n `N8N_ENCRYPTION_KEY` et sa clé de compte de service (créée dans l'application, affichée une fois) ; Grafana `GF_SECURITY_ADMIN_PASSWORD`, `GF_SECURITY_SECRET_KEY` ; Gatus `GATUS_ALERT_KEY`, `GATUS_ALERT_TO`, `GATUS_WORKER_TOKEN`, `GATUS_BACKUP_TOKEN`, `GATUS_RESTORE_TOKEN` (chacun est le `GATUS_PUSH_TOKEN` de son programme, avec `GATUS_PUSH_URL` pour le worker). Fichiers, groupes et droits : `docs/deploiement.md`. `TRUSTED_PROXIES` ne s'écrit jamais vide : il vaudrait 0.
 
 | Service (lot) | Noms des clés | Où la créer, avec quels droits | En développement |
 |---|---|---|---|

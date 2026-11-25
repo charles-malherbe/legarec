@@ -10,7 +10,7 @@ Première partie du lot X. Fichiers préparés par Claude Code, vérifiés par G
 |---|---|---|---|---|
 | `caddy` | Seul exposé (80, 443) : HTTPS, en-têtes, routage | 10110 | 192 Mo | oui |
 | `espace`, `partenaires`, `paiement` | Fichiers des portails | 10103 | 3 × 48 Mo | non |
-| `api` | API | 10101 | 512 Mo | non |
+| `api` | API | 10101 | 768 Mo | non |
 | `worker` | Tâches (même image que l'API), arrêt en 90 s au plus | 10102 | 768 Mo | oui |
 | `migration` | Une exécution par déploiement | 10104 | 256 Mo | non |
 | `postgres` | Base, envoi continu du journal aux sauvegardes | 999 | 1,5 Go | oui (bucket) |
@@ -21,7 +21,7 @@ Première partie du lot X. Fichiers préparés par Claude Code, vérifiés par G
 | `gatus-interne` | Contrôles internes et alertes | 10111 | 96 Mo | oui (alertes) |
 | `journaux`, `loki`, `grafana` | Journaux techniques, 60 jours | 10113, 10001, 10114 | 96, 384 et 320 Mo | non |
 
-Conteneurs permanents : 4,6 Go au plus. Réserver 2,5 Go pour ClamAV et n8n, à venir. Aucun conteneur ne tourne en root, ni sous le compte 1000 (premier compte du serveur). Systèmes de fichiers en lecture seule, aucun droit Linux, réseaux séparés et fermés au serveur lui-même : un portail ne joint pas la base, n8n ne joindra que l'API, et un autre compte du serveur ne joint ni l'API, ni Loki, ni la base.
+Conteneurs permanents : 4,9 Go au plus. Réserver 2,5 Go pour ClamAV et n8n, à venir. Aucun conteneur ne tourne en root, ni sous le compte 1000 (premier compte du serveur). Systèmes de fichiers en lecture seule, aucun droit Linux, réseaux séparés et fermés au serveur lui-même : un portail ne joint pas la base, n8n ne joindra que l'API, et un autre compte du serveur ne joint ni l'API, ni Loki, ni la base.
 
 | Fichiers | Contenu |
 |---|---|
@@ -131,7 +131,12 @@ sudo install -o root -g 10101 -m 640 /opt/legarec/infra/valeurs/api.env.exemple 
    sudo systemctl enable --now legarec-sauvegarde.timer legarec-sauvegarde-complete.timer legarec-essai-restauration.timer
    ```
 
-5. Premier Directeur, par commande (lot K). Le lien s'affiche une fois dans le terminal.
+5. Premier Directeur, une seule fois. Le lien s'affiche une fois dans le terminal ; toujours `exec`, jamais `run`. Ajouter à la fin l'adresse, le prénom et le nom.
+
+   ```bash
+   legarec exec worker node --env-file=/run/secrets/worker dist/account.js director
+   ```
+
 6. Clé Resend, puis les autres clés, dans Paramètres techniques > Secrets.
 7. Invitations des collaborateurs, puis des créanciers.
 
@@ -173,7 +178,7 @@ Retour en arrière : `sudo git -C /opt/legarec checkout <version précédente>`,
    legarec up -d --wait postgres
    ```
 
-5. Bloquer les tâches en file, celles prévues plus tard comprises : un courrier, un SMS ou un e-mail peut être parti après l'instant restauré. Elles deviennent « incertaines » ; une personne vérifie chez le fournisseur, dans les 30 jours (60 quand la question 120 sera appliquée).
+5. Bloquer les tâches en file, celles prévues plus tard comprises : un courrier, un SMS ou un e-mail peut être parti après l'instant restauré. Elles deviennent « incertaines » ; une personne vérifie chez le fournisseur, dans les 60 jours.
 
    ```bash
    legarec exec postgres legarec-hold-tasks
@@ -201,7 +206,7 @@ Après le premier déploiement, puis après chaque changement de ces fichiers.
 - [ ] `https://api.legarec.fr/health` répond ; `https://api.legarec.fr/service/x` répond 404.
 - [ ] Depuis un téléphone hors du Wi-Fi du cabinet : `n8n.legarec.fr` et `status.legarec.fr/journaux` répondent 403 ; `status.legarec.fr` ne montre que les portails et l'API.
 - [ ] Depuis le cabinet : `status.legarec.fr` montre aussi sauvegardes, worker et journaux ; `status.legarec.fr/journaux` demande un mot de passe.
-- [ ] En IPv4 et en IPv6 : deux appareils de réseaux différents sont vus avec deux adresses différentes (journal d'audit, après le lot K).
+- [ ] En IPv4 et en IPv6 : deux appareils de réseaux différents sont vus avec deux adresses différentes (journal d'audit).
 
 **Sauvegardes**
 - [ ] `sauvegarde` et `essai-restauration` en vert dans les contrôles internes ; prochains passages : `systemctl list-timers 'legarec-*'`.
@@ -239,23 +244,8 @@ Journaux : ni adresse IP, ni chemin, ni en-tête dans ceux de Caddy ; ni requêt
 - **Bucket injoignable** : le journal de PostgreSQL attend sur le disque, 8 Go au plus (près de 2 jours à plein débit), puis il est abandonné plutôt que de remplir le disque ; l'alerte arrive avant (26 heures sans sauvegarde).
 - **PostgreSQL** n'écrit plus ses lignes ERROR, qui citent souvent des données ; l'API note leur code.
 
-## Décisions du cabinet (25/11/2026)
-À reporter dans `DECISIONS.md` après la fusion du lot K, qui modifie ce fichier ; lignes prêtes :
-
-| Date | Décision | Raison |
-|---|---|---|
-| 25/11/2026 | Production de Legarec sur un VPS réservé, sans développement ni Claude Code ; remplace le serveur partagé | Réponse du cabinet, relecture sécurité |
-| 25/11/2026 | Sauvegardes : 56 jours restaurables, 7 jours de plus pour la complète hebdomadaire et 7 jours de versions dans `legarec-sauvegardes`, soit 70 jours au plus pour une donnée effacée ; précise la question 115 | Réponse du cabinet, RGPD |
-| 25/11/2026 | Alertes de surveillance : e-mail par une clé Resend dédiée, qui ne peut qu'envoyer | Réponse du cabinet |
-| 25/11/2026 | Journaux techniques : Grafana sur `status.legarec.fr/journaux`, depuis les adresses du cabinet | Réponse du cabinet |
-| 25/11/2026 | Sauvegardes : alerte après 26 heures sans sauvegarde réussie | Réponse du cabinet |
-| 25/11/2026 | `.claude/settings.json` : `docker compose ps` et `docker compose logs` retirés des commandes autorisées sans confirmation, par le cabinet lui-même ; d'ici là, Claude Code ne les utilise pas | Réponse du cabinet, relecture sécurité |
-
-Le bucket des documents (`legarec-documents`) garde les 70 jours de versions de la question 115 ; à revoir au lot N.
-
 ## Reste à faire (fin du lot X)
 - **Bascule de MSW vers l'API**, portail par portail (`VITE_API`, `PLAN.md`) ; avant elle, aucun portail ne fonctionne en production.
-- Premier Directeur par commande : dépend du lot K.
 - ClamAV : avec le lot N (1,5 à 2 Go de mémoire) ; l'API et le worker auront alors besoin du bucket `legarec-documents`, donc d'un accès à Internet pour l'API.
 - Chromium (PDF) : avec le lot N ; image et mémoire du worker à revoir, fils d'exécution et polices compris.
 - Chemin des modèles d'e-mails une fois l'API construite (lot Q) : `apps/api/src/emails/renderer.ts` remonte de deux dossiers depuis le fichier source ; à vérifier depuis `dist/`.
@@ -264,11 +254,5 @@ Le bucket des documents (`legarec-documents`) garde les 70 jours de versions de 
 - **Condition de mise en service** : purge à la demande après une restauration. Aujourd'hui, seule la tâche quotidienne du worker la lance ; sans elle, des données effacées redeviennent visibles jusqu'à son passage. Une commande est à écrire dans l'API.
 - **Condition de mise en service** : `legarec-hold-tasks` ne bloque que les tâches en file (`outbox`). Chaque lot qui ajoute un planning dans PostgreSQL (relances, envois groupés, notifications) l'étend à ses tables, avec un test : sinon une relance déjà partie redeviendrait due.
 - `pgbackrest verify` chaque semaine (trou ancien dans le journal) et essai automatique d'une restauration à un instant précis.
+- Versions du bucket `legarec-documents` : 70 jours (question 115), à revoir au lot N.
 - Contrôle de plusieurs copies de l'API : non prévu, une seule à la fois.
-
-**Changements à faire dans des fichiers que cette branche ne touche pas** :
-- `package.json` : `"deployer": "sudo /opt/legarec/infra/deployer.sh"` (`pnpm deployer`), jamais le script de la copie de développement.
-- `docs/architecture.md` : `caddy validate` est lancé par `.github/workflows/images.yml`, pas par `pnpm verifier` ; portails servis par leurs conteneurs, derrière Caddy.
-- `docs/api.md` : `TRUSTED_PROXIES` ne doit pas être écrit vide (il vaudrait 0) ; noms ajoutés : `LEGAREC_OWNER_PASSWORD`, `LEGAREC_APP_PASSWORD`, `LEGAREC_JOBS_PASSWORD`, `VALKEY_PASSWORD`, `GATUS_PUSH_URL`, `GATUS_PUSH_TOKEN`, `GATUS_WORKER_TOKEN`, `GATUS_BACKUP_TOKEN`, `GATUS_RESTORE_TOKEN`, `GATUS_ALERT_TO`, `GF_SECURITY_SECRET_KEY`, `AUTHORIZED_IPS`, `ACME_EMAIL`, `PGBACKREST_REPO1_S3_REGION`, `PGBACKREST_REPO1_S3_ENDPOINT`.
-- `.claude/settings.json` : retirer `docker compose ps` et `docker compose logs` des commandes autorisées sans confirmation, maintenant que le compose de production est à la racine (par le cabinet).
-- `PLAN.md` : première partie du lot X faite.
