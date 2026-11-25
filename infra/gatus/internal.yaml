@@ -1,0 +1,98 @@
+# status.legarec.fr from the addresses of the firm: every check, and the alerts.
+storage:
+  type: sqlite
+  path: /data/gatus.db
+web:
+  port: 8080
+concurrency: 2
+ui:
+  title: Legarec · Contrôles internes
+  header: Contrôles internes
+  dashboard-heading: Contrôles internes Legarec
+  dashboard-subheading: Portails, API, tâches, sauvegardes, journaux
+  dark-mode: false
+alerting:
+  # An e-mail by Resend, with a key of its own that can only send.
+  custom:
+    url: https://api.resend.com/emails
+    method: POST
+    headers:
+      Authorization: 'Bearer ${GATUS_ALERT_KEY}'
+      Content-Type: application/json
+    body: |
+      {"from": "LEGAREC <ne-pas-repondre@mail.legarec.fr>", "to": ["${GATUS_ALERT_TO}"],
+       "subject": "Surveillance Legarec : [ENDPOINT_NAME] ([ALERT_TRIGGERED_OR_RESOLVED])",
+       "text": "[ENDPOINT_GROUP], [ENDPOINT_NAME] : [ALERT_DESCRIPTION]"}
+    placeholders:
+      ALERT_TRIGGERED_OR_RESOLVED:
+        TRIGGERED: en panne
+        RESOLVED: rétabli
+    default-alert:
+      enabled: true
+      failure-threshold: 3
+      success-threshold: 2
+      send-on-resolved: true
+      minimum-reminder-interval: 6h
+endpoints:
+  - name: Espace collaborateurs
+    group: portails
+    url: https://espace.legarec.fr/
+    interval: 1m
+    conditions: ['[STATUS] == 200', '[CERTIFICATE_EXPIRATION] > 240h']
+    alerts: [{ type: custom, description: portail injoignable ou certificat bientôt expiré }]
+  - name: Portail partenaires
+    group: portails
+    url: https://partenaires.legarec.fr/
+    interval: 1m
+    conditions: ['[STATUS] == 200', '[CERTIFICATE_EXPIRATION] > 240h']
+    alerts: [{ type: custom, description: portail injoignable ou certificat bientôt expiré }]
+  - name: Espace de paiement
+    group: portails
+    url: https://paiement.legarec.fr/
+    interval: 1m
+    conditions: ['[STATUS] == 200', '[CERTIFICATE_EXPIRATION] > 240h']
+    alerts: [{ type: custom, description: portail injoignable ou certificat bientôt expiré }]
+  - name: API, base et files
+    group: api
+    url: https://api.legarec.fr/health
+    interval: 1m
+    conditions: ['[STATUS] == 200', '[BODY].status == ok', '[CERTIFICATE_EXPIRATION] > 240h']
+    alerts: [{ type: custom, description: 'API, PostgreSQL ou Valkey injoignable' }]
+  - name: Fichiers publics
+    group: fichiers
+    url: https://media.legarec.fr/marque/legarec-logo-negatif.svg
+    interval: 10m
+    conditions: ['[STATUS] == 200']
+    alerts: [{ type: custom, description: media.legarec.fr ne répond plus }]
+  - name: Loki
+    group: journaux
+    url: http://loki:3100/ready
+    interval: 2m
+    conditions: ['[STATUS] == 200']
+    alerts: [{ type: custom, description: journaux techniques non enregistrés }]
+  - name: Collecte
+    group: journaux
+    url: http://journaux:2020/api/v1/health
+    interval: 2m
+    conditions: ['[STATUS] == 200']
+    alerts: [{ type: custom, description: journaux techniques non collectés }]
+# Told by the programs themselves. Nothing heard in time is a failure.
+external-endpoints:
+  - name: worker
+    group: taches
+    token: ${GATUS_PUSH_TOKEN}
+    heartbeat:
+      interval: 5m
+    alerts: [{ type: custom, failure-threshold: 1, description: "le worker ne lit plus ses files : relances, envois et purges arrêtés" }]
+  - name: sauvegarde
+    group: sauvegardes
+    token: ${GATUS_PUSH_TOKEN}
+    heartbeat:
+      interval: 26h
+    alerts: [{ type: custom, failure-threshold: 1, description: aucune sauvegarde réussie depuis 26 heures }]
+  - name: essai-de-restauration
+    group: sauvegardes
+    token: ${GATUS_PUSH_TOKEN}
+    heartbeat:
+      interval: 192h
+    alerts: [{ type: custom, failure-threshold: 1, description: aucun essai de restauration réussi depuis 8 jours }]

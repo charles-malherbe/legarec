@@ -1,0 +1,9 @@
+apiVersion: 1
+datasources:
+  - name: Journaux techniques
+    uid: loki
+    type: loki
+    url: http://loki:3100
+    access: proxy
+    isDefault: true
+    editable: false
