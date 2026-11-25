@@ -33,7 +33,8 @@ describe('key of a change', () => {
     const release: (() => void)[] = [];
     answer = () => new Promise<Response>((resolve) => release.push(() => resolve(ok())));
     const both = [change(), change(), change({ text: 'Autre' })];
-    await vi.waitFor(() => expect(release).toHaveLength(3));
+    // Already gone: a click leaves at once.
+    expect(sent).toHaveLength(3);
     for (const go of release) go();
     await Promise.all(both);
     expect(keys()[1]).toBe(keys()[0]);
@@ -145,7 +146,19 @@ describe('keys kept in memory', () => {
     expect(await again(601)).not.toBe(second);
   });
 
-  it('are kept under a digest: what was typed is nowhere', async () => {
+  it('are told apart by one character, at any place of a long change', async () => {
+    answer = offline;
+    const long = 'x'.repeat(5_000);
+    const texts = [long, ...[0, 1, 2_500, 4_998, 4_999].map((at) => `${long.slice(0, at)}y${long.slice(at + 1)}`), `${long}x`, long.slice(1)];
+    for (const text of texts) await change({ text }).catch(() => undefined);
+    expect(new Set(keys()).size).toBe(texts.length);
+    // Thousands of changes that look alike: no key is given twice.
+    sent.length = 0;
+    for (let i = 0; i < 3_000; i += 1) await change({ amount: 100_000 + i }).catch(() => undefined);
+    expect(new Set(keys()).size).toBe(3_000);
+  });
+
+  it('are kept under a print: what was typed is nowhere', async () => {
     const written = vi.spyOn(Map.prototype, 'set');
     answer = offline;
     await api(z.undefined(), '/account/password', { method: 'PUT', body: { current: 'phrase secrète', next: 'x' } }).catch(() => undefined);
