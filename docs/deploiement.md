@@ -21,7 +21,7 @@ Première partie du lot X. Fichiers préparés par Claude Code, vérifiés par G
 | `gatus-interne` | Contrôles internes et alertes | 10111 | 96 Mo | oui (alertes) |
 | `journaux`, `loki`, `grafana` | Journaux techniques, 60 jours | 10113, 10001, 10114 | 96, 384 et 320 Mo | non |
 
-Conteneurs permanents : 4,6 Go au plus. Réserver 2,5 Go pour ClamAV et n8n, à venir. Aucun conteneur ne tourne en root, ni sous le compte 1000 (`debian`, utilisé pour le développement sur ce serveur). Systèmes de fichiers en lecture seule, aucun droit Linux, réseaux séparés et fermés au serveur lui-même : un portail ne joint pas la base, n8n ne joindra que l'API, et un autre compte du serveur ne joint ni l'API, ni Loki, ni la base.
+Conteneurs permanents : 4,6 Go au plus. Réserver 2,5 Go pour ClamAV et n8n, à venir. Aucun conteneur ne tourne en root, ni sous le compte 1000 (premier compte du serveur). Systèmes de fichiers en lecture seule, aucun droit Linux, réseaux séparés et fermés au serveur lui-même : un portail ne joint pas la base, n8n ne joindra que l'API, et un autre compte du serveur ne joint ni l'API, ni Loki, ni la base.
 
 | Fichiers | Contenu |
 |---|---|
@@ -37,11 +37,11 @@ Conteneurs permanents : 4,6 Go au plus. Réserver 2,5 Go pour ClamAV et n8n, à 
 ## À préparer
 
 ### Serveur
-- [ ] Ports 80 et 443 libres, ou reprise du proxy actuel décidée (voir « Questions »).
-- [ ] Docker 28 ou plus récent, Compose 2.30 ou plus récent ; 5 Go de mémoire libres, 40 Go de disque libres.
+- [ ] VPS réservé à Legarec (décision du cabinet) : rien d'autre dessus, ni développement, ni Claude Code ; 8 Go de mémoire au moins. Ports 80 et 443 libres.
+- [ ] Docker 28 ou plus récent, Compose 2.30 ou plus récent ; 40 Go de disque libres.
 - [ ] Aucun projet Compose nommé `legarec-app` (`docker compose ls`) ni réseau 10.213.0.0/24 sur ce serveur.
 - [ ] Comptes libres : `getent passwd 10001 10101 10102 10103 10104 10110 10111 10113 10114 10115` ne répond rien ; 999 (PostgreSQL) n'est celui d'aucune personne.
-- [ ] `id debian` : ni groupe `docker`, ni accès à `/var/lib/docker`. Tant que le développement reste sur ce serveur, ce compte n'en est séparé que par `sudo` : d'où le conseil d'un VPS réservé (voir « Questions »).
+- [ ] Connexion SSH par clé, réservée au cabinet ; aucun compte de ce serveur utilisé pour le développement.
 - [ ] Pare-feu : 80/tcp, 443/tcp, 443/udp ouverts ; rien d'autre pour Legarec. Refuser aux réseaux de Docker l'accès aux autres services du serveur.
 - [ ] Dépôt cloné dans `/opt/legarec`, propriété de root, hors de portée de Claude Code : `git clone`, branche `main`. Clé de déploiement GitHub en lecture seule.
 - [ ] Disque rempli à moins de 90 % : au-delà, Loki n'enregistre plus les journaux (alerte « Collecte »).
@@ -53,7 +53,7 @@ Conteneurs permanents : 4,6 Go au plus. Réserver 2,5 Go pour ClamAV et n8n, à 
 
 ### Scaleway
 - [ ] Bucket `legarec-sauvegardes`, privé, versions activées, **clé propre à ce bucket**. Politique du bucket : cette clé ne peut ni effacer une version, ni couper les versions, ni changer le cycle de vie ; seconde clé, en lecture seule, pour l'essai de restauration.
-- [ ] Règle de cycle de vie : versions remplacées ou supprimées effacées après 70 jours (durée à confirmer, voir « Questions »).
+- [ ] Règle de cycle de vie : versions remplacées ou supprimées effacées après 7 jours.
 - [ ] Bucket `legarec-media`, public en lecture, liste du contenu désactivée, logos déposés.
 
 ### Resend
@@ -216,14 +216,14 @@ Après le premier déploiement, puis après chaque changement de ces fichiers.
 - [ ] `legarec ps` : tous en marche ; seul `caddy` publie des ports.
 - [ ] `docker inspect` d'un conteneur : aucune valeur de `/etc/legarec/`.
 - [ ] Redémarrage du serveur : tout revient seul.
-- [ ] Depuis l'utilisateur `debian`, sans `sudo` : `/etc/legarec` illisible.
+- [ ] Depuis un compte sans `sudo` : `/etc/legarec` illisible.
 
 ## Conservation
 
 | Données | Durée | Où |
 |---|---|---|
-| Sauvegardes | 70 jours (la complète hebdomadaire la plus ancienne reste jusqu'à 7 jours de plus, pour que chaque jour reste restaurable) | `infra/postgres/pgbackrest.conf` |
-| Versions du bucket effacées ou remplacées | 70 jours de plus, soit 147 jours au plus pour une donnée effacée (voir « Questions ») | Règle du bucket |
+| Sauvegardes | 56 jours restaurables (la complète hebdomadaire la plus ancienne reste jusqu'à 7 jours de plus) | `infra/postgres/pgbackrest.conf` |
+| Versions du bucket effacées ou remplacées | 7 jours de plus, soit 70 jours au plus pour une donnée effacée | Règle du bucket |
 | Journaux techniques | 60 jours | `infra/loki/loki.yaml` |
 | Copie locale de Docker (`docker compose logs`) | 2 Mo par conteneur, effacée à chaque déploiement | `docker-compose.yml` |
 
@@ -239,16 +239,19 @@ Journaux : ni adresse IP, ni chemin, ni en-tête dans ceux de Caddy ; ni requêt
 - **Bucket injoignable** : le journal de PostgreSQL attend sur le disque, 8 Go au plus (près de 2 jours à plein débit), puis il est abandonné plutôt que de remplir le disque ; l'alerte arrive avant (26 heures sans sauvegarde).
 - **PostgreSQL** n'écrit plus ses lignes ERROR, qui citent souvent des données ; l'API note leur code.
 
-## Questions ouvertes au cabinet
-Posées dans la discussion. Elles sont à reporter dans `QUESTIONS.md`, que cette branche ne modifie pas.
+## Décisions du cabinet (25/11/2026)
+À reporter dans `DECISIONS.md` après la fusion du lot K, qui modifie ce fichier ; lignes prêtes :
 
-| Question | Options | Retenu en attendant |
+| Date | Décision | Raison |
 |---|---|---|
-| Serveur : la production actuelle occupe déjà le serveur, et sans doute les ports 80 et 443 | A. VPS réservé à Legarec ; B. même serveur, ses sites actuels repris dans le Caddyfile | Rien : le déploiement échoue si les ports sont pris. Conseil : A |
-| Versions S3 : 70 jours de sauvegarde puis 70 jours de version supprimée font 140 jours et plus | A. 56 jours de sauvegarde et 7 jours de versions, soit 70 au plus ; B. 70 et 70 | B, la lettre de la question 115. Conseil : A |
-| Alertes | A. e-mail par une clé Resend dédiée ; B. SMS OVH | A |
-| Grafana | A. `status.legarec.fr/journaux` ; B. nouveau domaine ; C. tunnel SSH | A |
-| Alerte quand le bucket est injoignable : 26 heures | A. garder ; B. contrôle horaire du journal | A |
+| 25/11/2026 | Production de Legarec sur un VPS réservé, sans développement ni Claude Code ; remplace le serveur partagé | Réponse du cabinet, relecture sécurité |
+| 25/11/2026 | Sauvegardes : 56 jours restaurables, 7 jours de plus pour la complète hebdomadaire et 7 jours de versions dans `legarec-sauvegardes`, soit 70 jours au plus pour une donnée effacée ; précise la question 115 | Réponse du cabinet, RGPD |
+| 25/11/2026 | Alertes de surveillance : e-mail par une clé Resend dédiée, qui ne peut qu'envoyer | Réponse du cabinet |
+| 25/11/2026 | Journaux techniques : Grafana sur `status.legarec.fr/journaux`, depuis les adresses du cabinet | Réponse du cabinet |
+| 25/11/2026 | Sauvegardes : alerte après 26 heures sans sauvegarde réussie | Réponse du cabinet |
+| 25/11/2026 | `.claude/settings.json` : `docker compose ps` et `docker compose logs` retirés des commandes autorisées sans confirmation, par le cabinet lui-même ; d'ici là, Claude Code ne les utilise pas | Réponse du cabinet, relecture sécurité |
+
+Le bucket des documents (`legarec-documents`) garde les 70 jours de versions de la question 115 ; à revoir au lot N.
 
 ## Reste à faire (fin du lot X)
 - **Bascule de MSW vers l'API**, portail par portail (`VITE_API`, `PLAN.md`) ; avant elle, aucun portail ne fonctionne en production.
