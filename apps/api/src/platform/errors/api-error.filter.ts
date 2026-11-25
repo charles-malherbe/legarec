@@ -1,6 +1,6 @@
 import { Catch, HttpException, Inject, type ArgumentsHost, type ExceptionFilter } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { Prisma } from '../../generated/prisma/client';
+import { databaseCode } from '../database/codes';
 import { LOGGER, type AppLogger } from '../logging/logger';
 import { ApiError } from './api-error';
 
@@ -15,13 +15,6 @@ const BY_STATUS: Record<number, string> = {
   422: 'INVALID',
   429: 'TOO_MANY',
 };
-
-/** Code of PostgreSQL when it refused (42501, 23505…), otherwise the code of Prisma. */
-export function databaseCode(error: unknown): string | undefined {
-  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return undefined;
-  const meta = error.meta as { driverAdapterError?: { cause?: { originalCode?: string } } } | undefined;
-  return meta?.driverAdapterError?.cause?.originalCode ?? error.code;
-}
 
 function toApiError(error: unknown): ApiError | null {
   if (error instanceof ApiError) return error;
@@ -64,11 +57,13 @@ export class ApiErrorFilter implements ExceptionFilter {
       return;
     }
     const known = toApiError(error);
+    const code = databaseCode(error);
     if (known) {
+      // Answered as a mistake of the caller; a defect of a query would look the same, and is seen here.
+      if (code) this.logger.warn({ requestId: request.requestId, databaseCode: code, stack: safeStack(error) }, 'refused value');
       response.status(known.status).json({ code: known.code, ...known.details });
       return;
     }
-    const code = databaseCode(error);
     // A refusal of PostgreSQL behind the guards is a defect of the API, or an attempt: never a detail for the caller.
     this.logger.error(
       { requestId: request.requestId, errorType: (error as Error)?.name, databaseCode: code, stack: safeStack(error) },
@@ -78,13 +73,16 @@ export class ApiErrorFilter implements ExceptionFilter {
   }
 }
 
-/** Stack without its first line: a message may quote a value. */
+const FRAME = /^\s+at (?:async |new )?(?:[\w$.<>[\] ]+ \()?(?:file:\/\/|node:|\/)[^()\s]+:\d+:\d+\)?$/u;
+/** Frames of the stack, and nothing of the message: it may quote a value, on several lines. */
 function safeStack(error: unknown): string | undefined {
-  return error instanceof Error
-    ? error.stack
-        ?.split('\n')
-        .filter((line) => /^\s+at /u.test(line))
-        .slice(0, 12)
-        .join('\n')
-    : undefined;
+  if (!(error instanceof Error) || !error.stack) return undefined;
+  const { stack, message } = error;
+  const start = message ? stack.indexOf(message) : -1;
+  return stack
+    .slice(start < 0 ? 0 : start + message.length)
+    .split('\n')
+    .filter((line) => FRAME.test(line))
+    .slice(0, 12)
+    .join('\n');
 }

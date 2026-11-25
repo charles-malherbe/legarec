@@ -32,12 +32,14 @@ const ALLOWED = new Set([
 ]);
 /** Words, paths of our own code, numbers: nothing that looks like a sentence, an address or a name. */
 const TECHNICAL = /^[A-Za-z0-9_.:/*-]{0,120}$/u;
+/** An access code. The only words of four capitals are the methods of HTTP. */
+const CODE = /^[A-Z]{4}$/u;
 
 function technical(name: string, value: unknown): unknown {
   if (typeof value === 'number' || typeof value === 'boolean') return value;
   if (typeof value !== 'string') return undefined;
   if (name === 'stack') return value;
-  return TECHNICAL.test(value) ? value : undefined;
+  return TECHNICAL.test(value) && (name === 'method' || !CODE.test(value)) ? value : undefined;
 }
 
 function keep(fields: Record<string, unknown>): Record<string, unknown> {

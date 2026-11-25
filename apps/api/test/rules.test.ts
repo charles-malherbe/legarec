@@ -143,6 +143,31 @@ describe('doors to PostgreSQL and to Valkey', () => {
     expect(await problems('modules/cases/cases.service.ts', `export const x = () => ${code};`)).toContain('no-restricted-syntax');
   });
 
+  it.each([
+    [
+      'a value in the message',
+      "import type { AppLogger } from '../logging/logger';\nexport const x = (logger: AppLogger, code: string) => logger.info({}, `code ${code}`);",
+    ],
+    ['a value added to it', "export const x = (logger: { warn(text: string): void }, code: string) => logger.warn('code ' + code);"],
+    [
+      'the one of a class',
+      'export class X { constructor(private readonly logger: { error(a: object, b: string): void }) {} go(code: string) { this.logger.error({}, `code ${code}`); } }',
+    ],
+  ])('let no line of the log carry more than its fields: %s', async (_what, code) => {
+    for (const file of ['modules/cases/cases.service.ts', 'platform/queue/sample.ts'])
+      expect(await problems(file, code), file).toContain('no-restricted-syntax');
+  });
+  it('leave the console alone, and a constant message as it is', async () => {
+    expect(await problems('platform/queue/sample.ts', "console.info('x');")).toContain('no-console');
+    const constant = 'export const x = (logger: { info(a: object, b: string): void }) => logger.info({ count: 1 + 1 }, `done`);';
+    expect((await problems('modules/cases/cases.service.ts', constant)).filter((rule) => rule?.startsWith('no-'))).toEqual([]);
+  });
+  it('let only the platform read the request itself', async () => {
+    const code = "import { createParamDecorator } from '@nestjs/common';\nexport const x = createParamDecorator;";
+    expect(await problems('modules/cases/cases.controller.ts', code)).toContain('no-restricted-imports');
+    expect(await problems('platform/http/raw-body.ts', code)).not.toContain('no-restricted-imports');
+  });
+
   it.each(["SELECT set_config('app.user_id', '', true)", 'SET LOCAL ROLE legarec_worker', 'set role legarec_auth', 'RESET ROLE'])(
     'let no query change who is acting: %s',
     async (sql) => {

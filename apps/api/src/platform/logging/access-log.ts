@@ -12,8 +12,10 @@ export function accessLog(logger: AppLogger): RequestHandler {
     response.once('close', () => {
       const { requestId, actor, route, method } = request as AppRequest & { route?: { path?: unknown } };
       const path = typeof route?.path === 'string' ? route.path : undefined;
-      logger[response.statusCode >= 500 ? 'error' : 'info'](
-        { requestId, method, route: path ?? 'unmatched', status: response.statusCode, ms: Math.round(performance.now() - started), actor: actor?.kind },
+      // Closed before its answer was complete: the caller is gone, whatever status was about to be sent.
+      const status = response.writableFinished ? response.statusCode : 499;
+      logger[status >= 500 ? 'error' : 'info'](
+        { requestId, method, route: path ?? 'unmatched', status, ms: Math.round(performance.now() - started), actor: actor?.kind },
         'request',
       );
     });

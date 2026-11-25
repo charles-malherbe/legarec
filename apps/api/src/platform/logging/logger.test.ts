@@ -51,6 +51,14 @@ describe('fields of a line', () => {
     }
   });
 
+  it('never hold an access code, even where a word is allowed', () => {
+    const { logger, text, last } = capture();
+    for (const field of ['route', 'actor', 'queue', 'task', 'errorType', 'context', 'kind']) logger.info({ [field]: 'KXPM' }, 'event');
+    expect(text()).not.toContain('KXPM');
+    logger.info({ method: 'POST' }, 'event');
+    expect(last()).toMatchObject({ method: 'POST' });
+  });
+
   it('never hold a request nor an answer given whole', () => {
     const { logger, text } = capture();
     logger.info({ req: { url: `/x?token=${SECRET}`, headers: { cookie: SECRET } }, res: { headers: { 'set-cookie': SECRET } } }, 'event');
