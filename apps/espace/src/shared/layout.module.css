@@ -441,3 +441,12 @@
     max-width: 92%;
   }
 }
+
+@media (max-width: 767px) {
+  .list > li {
+    flex-wrap: wrap;
+  }
+  .list > li > .grow {
+    flex: 1 1 200px;
+  }
+}

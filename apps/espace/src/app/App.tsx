@@ -2,7 +2,7 @@ import { cssVariablesResolver, espaceTheme } from '@legarec/tokens';
 import { ConfirmProvider, ToastProvider } from '@legarec/ui';
 import { MantineProvider } from '@mantine/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { Navigate, Outlet, Route, Routes } from 'react-router';
 import { CasePage } from '../features/cases/CasePage';
 import { CasesPage } from '../features/cases/CasesPage';
@@ -10,11 +10,16 @@ import { CreditorPage } from '../features/creditors/CreditorPage';
 import { CreditorsPage } from '../features/creditors/CreditorsPage';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { ErrorPage } from '../features/error/ErrorPage';
+import { LitigationPage } from '../features/litigation/LitigationPage';
 import { LoginPage } from '../features/login/LoginPage';
 import { ActivationPage, ForgotPasswordPage, ResetPasswordPage } from '../features/login/PasswordPages';
+import { PlansPage } from '../features/plans/PlansPage';
 import { CreditorScopeProvider } from './creditorScope';
 import { useSession } from './session';
 import { Shell } from './Shell';
+
+// FullCalendar is only loaded with the agenda.
+const RemindersPage = lazy(() => import('../features/reminders/RemindersPage').then((module) => ({ default: module.RemindersPage })));
 
 function RequireSession() {
   const { data, isPending, isError } = useSession();
@@ -44,6 +49,16 @@ export function App() {
                     <Route path="creanciers/:id" element={<CreditorPage />} />
                     <Route path="debiteurs" element={<CasesPage />} />
                     <Route path="debiteurs/:id" element={<CasePage />} />
+                    <Route
+                      path="relances"
+                      element={
+                        <Suspense fallback={null}>
+                          <RemindersPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route path="echeanciers" element={<PlansPage />} />
+                    <Route path="contentieux" element={<LitigationPage />} />
                   </Route>
                 </Route>
                 <Route path="*" element={<ErrorPage code={404} />} />
