@@ -143,7 +143,7 @@ describe('outbox', () => {
     expect(await add({ dedupeKey })).toBe(false);
     expect(await publisher().publish()).toBe(1);
     expect(await add({ dedupeKey })).toBe(false);
-    await test.admin.query("UPDATE outbox SET done_at = now() - interval '8 days'");
+    await test.admin.query("UPDATE outbox SET done_at = now() - interval '15 days'");
     await purge(jobs, logger);
     expect(await rows('SELECT 1 FROM outbox')).toEqual([]);
     expect(await add({ dedupeKey })).toBe(false);
@@ -665,22 +665,22 @@ describe('purge', () => {
       INSERT INTO idempotency_keys (actor, key, route, request_hash, created_at) VALUES
         ('user:x', gen_random_uuid(), 'r', '\\x00', now() - interval '49 hours'), ('user:x', gen_random_uuid(), 'r', '\\x00', now() - interval '47 hours');
       INSERT INTO webhook_events (provider, provider_event_id, status, received_at) VALUES
-        ('RESEND', 'old', 'PROCESSED', now() - interval '31 days'), ('RESEND', 'late', 'RECEIVED', now() - interval '31 days'), ('RESEND', 'new', 'PROCESSED', now());
+        ('RESEND', 'old', 'PROCESSED', now() - interval '61 days'), ('RESEND', 'late', 'RECEIVED', now() - interval '61 days'), ('RESEND', 'new', 'PROCESSED', now() - interval '59 days');
       INSERT INTO outbox (queue, name, payload, actor_kind, published_at, done_at, failed_at, failure) VALUES
-        ('sms', 'x-x', '{}', 'SYSTEM', now(), now() - interval '8 days', NULL, NULL), ('sms', 'x-x', '{}', 'SYSTEM', now(), NULL, now() - interval '31 days', 'TASK_FAILED'),
-        ('sms', 'x-x', '{}', 'SYSTEM', now(), NULL, now() - interval '8 days', 'TASK_FAILED'), ('sms', 'x-x', '{}', 'SYSTEM', now() - interval '90 days', NULL, NULL, NULL),
+        ('sms', 'x-x', '{}', 'SYSTEM', now(), now() - interval '15 days', NULL, NULL), ('sms', 'x-x', '{}', 'SYSTEM', now(), NULL, now() - interval '61 days', 'TASK_FAILED'),
+        ('sms', 'x-x', '{}', 'SYSTEM', now(), now() - interval '13 days', NULL, NULL), ('sms', 'x-x', '{}', 'SYSTEM', now(), NULL, now() - interval '59 days', 'TASK_FAILED'), ('sms', 'x-x', '{}', 'SYSTEM', now() - interval '90 days', NULL, NULL, NULL),
         ('sms', 'x-x', '{}', 'SYSTEM', NULL, NULL, NULL, NULL);
       DELETE FROM task_keys;
       INSERT INTO task_keys (owner, name, key, task_id, created_at) VALUES
-        ('team', 'x-x', 'x-x:00000000-0000-0000-0000-000000000001', gen_random_uuid(), now() - interval '13 months'),
-        ('team', 'x-x', 'x-x:00000000-0000-0000-0000-000000000002', gen_random_uuid(), now() - interval '11 months'),
-        ('team', 'x-x', 'x-x:00000000-0000-0000-0000-000000000003', (SELECT id FROM outbox WHERE published_at IS NULL), now() - interval '13 months');
+        ('team', 'x-x', 'x-x:00000000-0000-0000-0000-000000000001', gen_random_uuid(), now() - interval '25 months'),
+        ('team', 'x-x', 'x-x:00000000-0000-0000-0000-000000000002', gen_random_uuid(), now() - interval '23 months'),
+        ('team', 'x-x', 'x-x:00000000-0000-0000-0000-000000000003', (SELECT id FROM outbox WHERE published_at IS NULL), now() - interval '25 months');
       INSERT INTO audit_log (occurred_at, actor_kind, actor_label, action) VALUES
         (now() - interval '13 months', 'SYSTEM', 'Application', 'OLD_ENTRY'), (now() - interval '11 months', 'SYSTEM', 'Application', 'KEPT_ENTRY');`);
-    const counts = { audit: 1, idempotency: 1, outbox: 2, 'task-keys': 1, webhooks: 1 };
+    const counts = { audit: 1, idempotency: 1, outbox: 2, 'task-keys': 1, webhooks: 1, 'sign-ins': 0, accounts: 0, notifications: 0, 'support-tickets': 0 };
     expect(await purge(jobs, logger)).toEqual(counts);
     expect(await rows('SELECT action FROM audit_log')).toEqual([{ action: 'KEPT_ENTRY' }]);
-    const kept = await rows<{ kind: string; removed: number }>('SELECT kind, removed FROM retention_runs ORDER BY ran_at DESC LIMIT 5');
+    const kept = await rows<{ kind: string; removed: number }>('SELECT kind, removed FROM retention_runs ORDER BY ran_at DESC LIMIT 9');
     expect(Object.fromEntries(kept.map((row) => [row.kind, row.removed]))).toEqual(counts);
     // The key of a task still to come is kept, however old it is.
     expect(await rows('SELECT right(key, 1) AS key FROM task_keys ORDER BY key')).toEqual([{ key: '2' }, { key: '3' }]);
@@ -688,7 +688,7 @@ describe('purge', () => {
 
   it('goes on when one of its steps fails, and says so', async () => {
     await test.admin.query('REVOKE DELETE ON idempotency_keys FROM legarec_retention');
-    await test.admin.query("INSERT INTO outbox (queue, name, payload, actor_kind, done_at) VALUES ('sms', 'x-x', '{}', 'SYSTEM', now() - interval '8 days')");
+    await test.admin.query("INSERT INTO outbox (queue, name, payload, actor_kind, done_at) VALUES ('sms', 'x-x', '{}', 'SYSTEM', now() - interval '15 days')");
     try {
       await expect(purge(jobs, logger)).rejects.toThrow('PURGE_FAILED');
       expect(await rows('SELECT 1 FROM outbox')).toEqual([]);
@@ -703,7 +703,7 @@ describe('purge', () => {
     await Promise.all([scheduleMaintenance(valkey, prefix), scheduleMaintenance(valkey, prefix)]);
     expect(await valkey.zcard(`${prefix}:maintenance:repeat`)).toBe(1);
     await queue().add('purge', {});
-    await until(() => logged('purge done') === 5);
+    await until(() => logged('purge done') === 9);
   });
 
   it('is out of reach of the HTTP API', async () => {
