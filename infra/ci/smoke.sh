@@ -171,9 +171,11 @@ status "https://media.legarec.fr/$mark?code=$mark" --user-agent "$mark" --cookie
 loki() { docker compose exec -T grafana wget -qO- "http://loki:3100/loki/api/v1/$1"; }
 for _ in $(seq 30); do
   loki 'query_range?query=%7Bapplication%3D%22legarec%22%2Ccontainer%3D~%22.*caddy.*%22%7D&limit=1000' > /tmp/caddy.json
-  grep -q 'media.legarec.fr' /tmp/caddy.json && break
+  # The last of the requests above: the bucket cannot be reached from here.
+  grep -qE 'status[\\]+":502' /tmp/caddy.json && break
   sleep 3
 done
+grep -qE 'status[\\]+":502' /tmp/caddy.json || fail 'last request not collected'
 grep -q 'paiement.legarec.fr' /tmp/caddy.json || fail 'logs of Caddy not collected'
 grep -q '/debtor' /tmp/caddy.json || fail 'family of the route not logged'
 loki 'query_range?query=%7Bapplication%3D%22legarec%22%7D&limit=5000' > /tmp/all.json
