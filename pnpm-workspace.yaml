@@ -5,3 +5,14 @@ saveExact: true
 savePrefix: ''
 minimumReleaseAge: 1440
 minimumReleaseAgeStrict: true
+# No install script runs: telemetry (@scarf/scarf), an optional native accelerator (msgpackr-extract)
+# and the engine downloads of Prisma (the client needs none).
+allowBuilds:
+  '@prisma/engines': false
+  '@scarf/scarf': false
+  msgpackr-extract: false
+  prisma: false
+# Works with TypeScript 6; its peer range has not been widened yet.
+peerDependencyRules:
+  allowedVersions:
+    'openapi-typescript>typescript': '6'

@@ -3,7 +3,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['**/node_modules/**', '**/dist/**', 'maquette/**', 'kits/**', '.comparaisons/**', '.claude/worktrees/**', '**/mockServiceWorker.js', 'apps/api/templates/**'] },
+  { ignores: ['**/node_modules/**', '**/dist/**', 'maquette/**', 'kits/**', '.comparaisons/**', '.claude/worktrees/**', '**/mockServiceWorker.js', 'apps/api/templates/**', 'apps/api/src/generated/**', '**/*.generated.ts'] },
   // Another checkout of the repository may live under .claude/worktrees: each one is its own root.
   { languageOptions: { parserOptions: { tsconfigRootDir: import.meta.dirname } } },
   js.configs.recommended,
@@ -16,6 +16,23 @@ export default tseslint.config(
   },
   {
     files: ['**/*.mjs'],
-    languageOptions: { globals: { process: 'readonly', console: 'readonly', URL: 'readonly', Buffer: 'readonly', document: 'readonly', Image: 'readonly' } },
+    languageOptions: { globals: { process: 'readonly', console: 'readonly', URL: 'readonly', Buffer: 'readonly', document: 'readonly', Image: 'readonly', setTimeout: 'readonly' } },
+  },
+  {
+    // One door to PostgreSQL: outside of the platform, only Database.run() and the transaction it opened.
+    files: ['apps/api/src/**/*.ts'],
+    ignores: ['apps/api/src/platform/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            { group: ['**/generated/prisma/**', '@prisma/*', 'pg'], message: 'Use Database: one transaction, with the rights of its actor.' },
+            { group: ['bullmq', 'ioredis'], message: 'Use Outbox: the task leaves with the transaction.' },
+          ],
+        },
+      ],
+      'no-restricted-properties': ['error', { property: '$queryRawUnsafe' }, { property: '$executeRawUnsafe' }],
+    },
   },
 );

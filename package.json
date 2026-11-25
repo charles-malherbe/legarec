@@ -4,7 +4,7 @@
   "type": "module",
   "packageManager": "pnpm@12.23.0",
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=26.0.0"
   },
   "scripts": {
     "dev": "turbo run dev",
@@ -12,9 +12,11 @@
     "typecheck": "turbo run typecheck",
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
-    "verifier": "pnpm -s typecheck && pnpm -s lint && pnpm -s test",
+    "verifier": "pnpm -s --filter @legarec/api generate && pnpm -s typecheck && pnpm -s lint && pnpm -s test",
     "comparer": "node scripts/comparer-ecran.mjs",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "services": "node infra/dev/services.mjs",
+    "openapi": "UPDATE_OPENAPI=1 vitest run --project api apps/api/test/openapi.test.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.14.0",
@@ -24,7 +26,7 @@
     "@testing-library/jest-dom": "8.0.0",
     "@testing-library/react": "16.3.3",
     "@testing-library/user-event": "14.6.13",
-    "@types/node": "^22.20.5",
+    "@types/node": "26.6.6",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.3.0",

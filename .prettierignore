@@ -7,3 +7,6 @@ pnpm-lock.yaml
 .claude
 apps/api/templates
 **/__snapshots__
+apps/api/src/generated
+**/*.generated.ts
+packages/contracts/openapi.json
