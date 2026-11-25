@@ -29,10 +29,10 @@ export function MemberDetail({ item, canManage, canSupport }: { item: Member; ca
     { k: 'Compte', v: name },
     { k: 'Adresse', v: item.email },
   ];
-  const act = (action: 'reset-link' | 'require-2fa' | 'enable', title: string, body: string, confirmLabel: string, message: string) =>
+  const act = (action: 'reset-link' | 'require-2fa' | 'reset-2fa' | 'unlock' | 'enable', title: string, body: string, confirmLabel: string, message: string) =>
     confirm({
       title,
-      body,
+      body: action === 'enable' || user.role === 'DIRECTOR' ? body : `${body} Le Directeur en est prévenu.`,
       details: recap,
       confirmLabel,
       onConfirm: async () => {
@@ -41,8 +41,9 @@ export function MemberDetail({ item, canManage, canSupport }: { item: Member; ca
           await change(`/members/${item.id}/${action}`);
           toast({ message });
         } catch (error) {
-          if (!(error instanceof ApiError) || error.status !== 409) throw error;
-          setTaken((error.body as { holder?: string }).holder ?? 'une autre personne');
+          const holder = error instanceof ApiError && error.status === 409 ? (error.body as { holder?: string }).holder : undefined;
+          if (!holder) throw error;
+          setTaken(holder);
         }
       },
     });
@@ -58,11 +59,15 @@ export function MemberDetail({ item, canManage, canSupport }: { item: Member; ca
           await change(`/members/${item.id}/role`, { method: 'PUT', body: { role } });
           toast({ message: 'Rôle modifié.' });
         } catch (error) {
-          if (!(error instanceof ApiError) || error.status !== 409) throw error;
-          setTaken((error.body as { holder?: string }).holder ?? 'une autre personne');
+          const holder = error instanceof ApiError && error.status === 409 ? (error.body as { holder?: string }).holder : undefined;
+          if (!holder) throw error;
+          setTaken(holder);
         }
       },
     });
+  const supported = canSupport && item.status === 'ACTIVE' && item.id !== user.userId && !(item.role === 'DIRECTOR' && user.role === 'COLLECTION_MANAGER');
+  // That of the Developer: the Director alone. The others: the Developer; those of the creditors, who have none: the manager.
+  const resets = user.role === 'DIRECTOR' || (user.role === 'DEVELOPER' ? item.role !== 'DEVELOPER' : item.role === 'CREDITOR');
   const editableRole = canManage && item.role !== 'CREDITOR' && item.role !== 'DIRECTOR' && item.id !== user.userId && item.status === 'ACTIVE';
   const heading = useRef<HTMLDivElement>(null);
   // The detail opens below the list: bring the keyboard to it.
@@ -74,6 +79,7 @@ export function MemberDetail({ item, canManage, canSupport }: { item: Member; ca
           <div className={layout.inline}>
             <Badge label={ROLE_LABELS[item.role]} tone="marine" />
             {item.creditor && <Badge label={item.creditor} />}
+            {item.locked && <Badge label="Bloqué" tone="danger" />}
           </div>
           <p className={layout.muted}>{MISSIONS[item.role]}</p>
           {editableRole && (
@@ -103,7 +109,7 @@ export function MemberDetail({ item, canManage, canSupport }: { item: Member; ca
               <dd>{item.sessions}</dd>
             </div>
           </dl>
-          {canSupport && item.status === 'ACTIVE' && !(item.role === 'DIRECTOR' && user.role === 'COLLECTION_MANAGER') && (
+          {supported && (
             <div className={layout.inline}>
               <Bouton
                 variant="secondary"
@@ -131,6 +137,38 @@ export function MemberDetail({ item, canManage, canSupport }: { item: Member; ca
                       'Elle sera demandée à sa prochaine connexion.',
                       'Exiger la 2FA',
                       'Double authentification exigée.',
+                    )
+                  }
+                />
+              )}
+              {item.twoFactor && resets && (
+                <Bouton
+                  variant="secondary"
+                  size="sm"
+                  label="Réinitialiser la double authentification"
+                  onPress={() =>
+                    act(
+                      'reset-2fa',
+                      `Réinitialiser la double authentification de ${name} ?`,
+                      'Application, clé et codes de secours sont retirés, les sessions fermées. À faire après avoir vérifié l’identité de la personne.',
+                      'Réinitialiser',
+                      'Double authentification réinitialisée.',
+                    )
+                  }
+                />
+              )}
+              {item.locked && (
+                <Bouton
+                  variant="secondary"
+                  size="sm"
+                  label="Débloquer"
+                  onPress={() =>
+                    act(
+                      'unlock',
+                      `Débloquer le compte de ${name} ?`,
+                      'Les tentatives échouées sont effacées : la connexion est possible tout de suite.',
+                      'Débloquer',
+                      'Compte débloqué.',
                     )
                   }
                 />

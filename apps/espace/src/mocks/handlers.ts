@@ -3,8 +3,8 @@ import { http, HttpResponse, type HttpHandler } from 'msw';
 import { ACCOUNTS, DEMO_PASSWORD } from './accounts';
 import dashboardData from './dashboard.json';
 import { documentHandlers } from './routes/documents';
-import { steeringHandlers } from './routes/steering';
-import { accountHandlers } from './routes/account';
+import { memberOf, steeringHandlers } from './routes/steering';
+import { accountHandlers, BACKUP_CODES } from './routes/account';
 import { settingsHandlers } from './routes/settings';
 import { templateHandlers } from './routes/templates';
 import { callHandlers } from './routes/calls';
@@ -90,6 +90,15 @@ const searchIndex = (session: NonNullable<ReturnType<typeof currentSession>>) =>
 ];
 const normalize = (text: string) => text.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
 
+/** Five wrong codes close the sign-in under way. */
+const wrongCode = () => {
+  if (!state.pending) return unauthorized();
+  state.wrongCodes += 1;
+  if (state.wrongCodes < MAX_FAILURES) return HttpResponse.json({ code: 'INVALID_CODE', attemptsLeft: MAX_FAILURES - state.wrongCodes }, { status: 401 });
+  state.pending = null;
+  return HttpResponse.json({ code: 'LOCKED' }, { status: 423 });
+};
+
 /** What the API would refuse is refused here too: every body matches its contract. */
 const checkBody = http.all('/api/*', async ({ request }) => {
   if (!request.headers.get('content-type')?.startsWith('application/json')) return undefined;
@@ -134,9 +143,11 @@ export const handlers: HttpHandler[] = [
     }
     state.failures.delete(email);
     if (creditor) return HttpResponse.json({ status: 'WRONG_PORTAL', portal: 'partenaires', url: 'https://partenaires.legarec.fr' });
-    if (staff && (staff.twoFactorEnabled || staff.role === 'DEVELOPER')) {
+    const member = memberOf(email);
+    if (staff && (staff.twoFactorEnabled || member?.twoFactorRequired)) {
       state.pending = staff.userId;
-      return HttpResponse.json({ status: 'TWO_FACTOR', methods: ['TOTP', 'WEBAUTHN'] });
+      state.setUp = member?.twoFactor === true || staff.twoFactorEnabled;
+      return HttpResponse.json(state.setUp ? { status: 'TWO_FACTOR', methods: ['TOTP', 'WEBAUTHN'] } : { status: 'SETUP_REQUIRED' });
     }
     setAccount(staff?.userId ?? null);
     return HttpResponse.json({ status: 'OK', session: currentSession() });
@@ -144,10 +155,24 @@ export const handlers: HttpHandler[] = [
   http.post('/api/auth/two-factor', async ({ request }) => {
     const { method, code } = (await request.json()) as { method: string; code?: string };
     const accepted = method === 'WEBAUTHN' || (method === 'BACKUP_CODE' ? code === '4821-7730' : code === '123456');
-    if (!state.pending || !accepted) return HttpResponse.json({ code: 'INVALID_CODE' }, { status: 401 });
+    if (!state.pending || !accepted) return wrongCode();
     setAccount(state.pending);
     state.pending = null;
+    state.wrongCodes = 0;
     return HttpResponse.json({ status: 'OK', session: currentSession() });
+  }),
+  http.post('/api/auth/setup/totp', () =>
+    state.pending && !state.setUp
+      ? HttpResponse.json({ uri: 'otpauth://totp/Legarec:demo?secret=DEMODEMODEMODEMO&issuer=Legarec', key: 'DEMO DEMO DEMO DEMO' })
+      : unauthorized(),
+  ),
+  http.post('/api/auth/setup/totp/verify', async ({ request }) => {
+    const { code } = (await request.json()) as { code: string };
+    if (!state.pending || state.setUp) return unauthorized();
+    if (code !== '123456') return wrongCode();
+    setAccount(state.pending);
+    state.pending = null;
+    return HttpResponse.json({ backupCodes: BACKUP_CODES, session: currentSession() });
   }),
   http.post('/api/auth/two-factor/webauthn', () =>
     state.pending ? HttpResponse.json({ challenge: 'ZGVtby1jaGFsbGVuZ2U', rpId: 'localhost', allowCredentials: [], timeout: 60000 }) : unauthorized(),
@@ -171,7 +196,7 @@ export const handlers: HttpHandler[] = [
   http.post('/api/auth/invitation/:token/password', () => HttpResponse.json({ totpKey: 'DEMO DEMO DEMO DEMO' })),
   http.post('/api/auth/invitation/:token/totp', async ({ request }) =>
     ((await request.json()) as { code: string }).code === '123456'
-      ? HttpResponse.json({ backupCodes: ['4821-7730', '1093-5562', '7740-2218', '3365-9014'] })
+      ? HttpResponse.json({ backupCodes: BACKUP_CODES })
       : HttpResponse.json({ code: 'INVALID_CODE' }, { status: 401 }),
   ),
   http.get('/api/shell', () => {

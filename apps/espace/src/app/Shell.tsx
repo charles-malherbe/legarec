@@ -181,7 +181,11 @@ export function Shell() {
     client.setQueryData(SESSION_KEY, null);
     await navigate('/connexion');
   }, [client, navigate]);
-  const idle = useIdle(useCallback(() => void logout(), [logout]));
+  const idle = useIdle(
+    useCallback(() => void logout(), [logout]),
+    // A closed session comes back as nobody: the sign-in page opens.
+    useCallback(() => void client.refetchQueries({ queryKey: SESSION_KEY }), [client]),
+  );
   const goTo = useCallback(
     (letter: string) => {
       const target = GO_TO[letter];

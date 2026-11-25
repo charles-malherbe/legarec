@@ -14,6 +14,8 @@ export function mockApi() {
   afterEach(() => {
     server.resetHandlers();
     state.failures.clear();
+    state.pending = null;
+    state.wrongCodes = 0;
     state.priorities.clear();
     setAccount('none');
   });

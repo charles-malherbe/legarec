@@ -1,6 +1,7 @@
 import {
   absenceForm,
   accountData,
+  backupCodes,
   delegationsData,
   formatDate,
   passwordForm,
@@ -11,11 +12,30 @@ import {
   type AccountData,
   type AccountSession,
 } from '@legarec/contracts';
-import { Alerte, Avatar, Badge, Bouton, Carte, Case, Champ, EtatListe, Icone, Onglets, PageHeader, Reglage, Tableau, useConfirm, useToast } from '@legarec/ui';
+import {
+  Alerte,
+  Avatar,
+  Badge,
+  Bouton,
+  Carte,
+  Case,
+  Champ,
+  CodesSecours,
+  EtatListe,
+  Icone,
+  OFFLINE,
+  Onglets,
+  PageHeader,
+  Reglage,
+  Tableau,
+  useConfirm,
+  useToast,
+} from '@legarec/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import type { ZodType } from 'zod';
 import { useApi, useChange } from '../../app/data';
+import { ApiError } from '../../app/api';
 import { SESSION_KEY, useCurrentUser, useUpdatePreferences } from '../../app/session';
 import layout from '@legarec/ui/layout.module.css';
 import css from './Account.module.css';
@@ -29,6 +49,17 @@ const TABS = [
 const issues = (schema: ZodType, value: unknown) => {
   const parsed = schema.safeParse(value);
   return parsed.success ? null : Object.fromEntries(parsed.error.issues.map((issue) => [String(issue.path[0]), issue.message]));
+};
+
+const LOCKED = 'Compte bloqué pendant 15 minutes après 5 tentatives échouées.';
+const passwordError = (error: unknown) => {
+  if (!(error instanceof ApiError) || error.status >= 500) return OFFLINE;
+  // The screen goes back to the sign-in.
+  if (error.status === 401) return '';
+  if (error.status === 423) return LOCKED;
+  return (error.body as { code?: string } | undefined)?.code === 'INVALID'
+    ? 'Le nouveau mot de passe doit être différent de votre adresse e-mail.'
+    : 'Mot de passe actuel incorrect.';
 };
 
 export function AccountPage() {
@@ -127,7 +158,10 @@ function Profile({ data }: { data: AccountData }) {
       <div className={layout.aside}>
         {user.role === 'DIRECTOR' && <Delegations />}
         {user.role !== 'DEVELOPER' && (
-          <Carte title="Absence et remplacement" description="Pendant votre absence, vos appels, e-mails et tâches sont redirigés vers votre remplaçant.">
+          <Carte
+            title="Absence et remplacement"
+            description="Pendant votre absence, votre remplaçant reçoit des notifications neutres, sans accès à vos dossiers ; le Responsable peut les réattribuer."
+          >
             <form
               className={layout.stack}
               onSubmit={(event) => {
@@ -207,8 +241,8 @@ function Security({ data }: { data: AccountData }) {
       await change('/account/password', { method: 'PUT', body: form });
       setForm({ current: '', next: '' });
       toast({ message: 'Mot de passe modifié.' });
-    } catch {
-      setErrors({ current: 'Mot de passe actuel incorrect.' });
+    } catch (error) {
+      setErrors({ current: passwordError(error) });
     }
   };
   const signOut = (targets: AccountSession[], all: boolean) =>
@@ -299,22 +333,29 @@ function TwoFactor({ data }: { data: AccountData }) {
   const toast = useToast();
   const [setup, setSetup] = useState<{ image: string; key: string } | null>(null);
   const [code, setCode] = useState('');
+  const [codes, setCodes] = useState<string[]>([]);
   const [error, setError] = useState('');
   const { twoFactor } = data;
   const startTotp = async () => {
     setError('');
-    const result = await change('/account/two-factor/totp', { schema: totpSetup });
-    const { toDataURL } = await import('qrcode');
-    setSetup({ key: result.key, image: await toDataURL(result.uri, { margin: 1, width: 180 }) });
+    try {
+      const result = await change('/account/two-factor/totp', { schema: totpSetup });
+      const { toDataURL } = await import('qrcode');
+      setSetup({ key: result.key, image: await toDataURL(result.uri, { margin: 1, width: 180 }) });
+    } catch {
+      setError(OFFLINE);
+    }
   };
   const verify = async () => {
     try {
-      await change('/account/two-factor/totp/verify', { body: { code: code.replace(/\s/g, '') } });
+      const result = await change('/account/two-factor/totp/verify', { body: { code: code.replace(/\s/g, '') }, schema: backupCodes });
+      setCodes(result.backupCodes);
       setSetup(null);
       setCode('');
       toast({ message: 'Double authentification activée.' });
-    } catch {
-      setError('Code incorrect. Vérifiez l’heure de votre appareil et réessayez.');
+    } catch (caught) {
+      const status = caught instanceof ApiError ? caught.status : 0;
+      setError(status === 422 ? 'Code incorrect. Vérifiez l’heure de votre appareil et réessayez.' : status === 423 ? LOCKED : OFFLINE);
     }
   };
   const startKey = async () => {
@@ -323,7 +364,7 @@ function TwoFactor({ data }: { data: AccountData }) {
       const options = await change('/account/two-factor/webauthn', { schema: webauthnOptions });
       const { startRegistration } = await import('@simplewebauthn/browser');
       const response = await startRegistration({ optionsJSON: options as never });
-      await change('/account/two-factor/webauthn/verify', { body: response });
+      setCodes((await change('/account/two-factor/webauthn/verify', { body: response, schema: backupCodes })).backupCodes);
       toast({ message: 'Clé de sécurité enregistrée.' });
     } catch {
       setError('La clé de sécurité n’a pas été enregistrée. Réessayez ou choisissez l’application d’authentification.');
@@ -354,7 +395,16 @@ function TwoFactor({ data }: { data: AccountData }) {
     >
       <div className={layout.stack}>
         {error && <Alerte tone="danger" text={error} />}
-        {setup ? (
+        {codes.length > 0 ? (
+          <>
+            <span className={layout.strong}>Codes de secours</span>
+            <p className={layout.body}>Ils vous permettent de vous connecter si vous perdez votre téléphone.</p>
+            <CodesSecours codes={codes} />
+            <div className={layout.inline}>
+              <Bouton size="sm" label="J'ai conservé mes codes" onPress={() => setCodes([])} />
+            </div>
+          </>
+        ) : setup ? (
           <form
             className={layout.stack}
             onSubmit={(event) => {

@@ -4,7 +4,7 @@ import { Avatar, Bouton, BoutonsAffichage, EntetePublique, PiedDePage, SessionEx
 import { useLocalStorage } from '@mantine/hooks';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect } from 'react';
-import { Outlet } from 'react-router';
+import { Outlet, useNavigate } from 'react-router';
 import { z } from 'zod';
 import css from './Portal.module.css';
 import { SESSION_KEY, usePartner } from './data';
@@ -12,6 +12,7 @@ import { SESSION_KEY, usePartner } from './data';
 export function Shell() {
   const user = usePartner();
   const client = useQueryClient();
+  const navigate = useNavigate();
   const [dark, setDark] = useLocalStorage({ key: 'lg-login-dark', defaultValue: false });
   const [lowVision, setLowVision] = useLocalStorage({ key: 'lg-login-a11y', defaultValue: false });
   useEffect(() => applyDisplay(dark ? 'dark' : 'light', lowVision), [dark, lowVision]);
@@ -19,8 +20,13 @@ export function Shell() {
     await api(z.undefined(), '/auth/logout', { method: 'POST' }).catch(() => undefined);
     client.clear();
     client.setQueryData(SESSION_KEY, null);
-  }, [client]);
-  const idle = useIdle(useCallback(() => void logout(), [logout]));
+    // Nothing is drawn again by itself once the cache is empty.
+    await navigate('/connexion');
+  }, [client, navigate]);
+  const idle = useIdle(
+    useCallback(() => void logout(), [logout]),
+    useCallback(() => void client.refetchQueries({ queryKey: SESSION_KEY }), [client]),
+  );
   return (
     <div data-brand className={css.root}>
       <a href="#contenu" className={css.skip}>

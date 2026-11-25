@@ -1,4 +1,4 @@
-import { loginError, loginRequest, loginResponse, webauthnOptions, type LoginResponse } from '@legarec/contracts';
+import { loginError, loginRequest, loginResponse, setupDone, totpSetup, webauthnOptions, type LoginResponse } from '@legarec/contracts';
 import { api, ApiError, openExternal } from '@legarec/platform';
 import { PinInput } from '@mantine/core';
 import { useForm, schemaResolver } from '@mantine/form';
@@ -8,13 +8,44 @@ import { Alerte } from './Alerte';
 import { Bouton } from './Bouton';
 import { Case } from './Case';
 import { Champ } from './Champ';
+import { CodesSecours, SaisieApplication } from './DoubleAuthentification';
 import { Icone } from './Icone';
 import { PageConnexion, PORTAILS, PortailContext } from './PageConnexion';
 import css from './PageConnexion.module.css';
 
-type Failure = { locked: boolean; attemptsLeft: number };
-
+type Failure = { kind: 'WRONG'; attemptsLeft: number } | { kind: 'LOCKED' | 'CODES_LOCKED' | 'TOO_MANY' | 'OFFLINE' | 'TOO_LATE' };
 type OpenSession = Extract<LoginResponse, { status: 'OK' }>['session'];
+
+const WRONG_CODE = 'Code incorrect ou expiré. Vérifiez l’heure de votre téléphone, puis saisissez le nouveau code affiché.';
+export const TOO_MANY = 'Trop de tentatives depuis votre réseau. Réessayez dans quelques minutes.';
+export const OFFLINE = 'Le service ne répond pas. Vérifiez votre connexion et réessayez.';
+const LOCKED = 'Compte bloqué pendant 15 minutes après 5 tentatives échouées.';
+
+function messageOf(failure: Failure): string {
+  switch (failure.kind) {
+    case 'LOCKED':
+      return `${LOCKED} Vous pouvez aussi réinitialiser votre mot de passe.`;
+    case 'CODES_LOCKED':
+      return LOCKED;
+    case 'TOO_MANY':
+      return TOO_MANY;
+    case 'OFFLINE':
+      return OFFLINE;
+    case 'TOO_LATE':
+      return 'Votre connexion a expiré : saisissez de nouveau votre mot de passe.';
+    default:
+      return `E-mail ou mot de passe incorrect. Il vous reste ${failure.attemptsLeft} tentative${failure.attemptsLeft > 1 ? 's' : ''} avant le blocage temporaire du compte.`;
+  }
+}
+const codeOf = (error: unknown) => {
+  const body = error instanceof ApiError ? loginError.safeParse(error.body) : undefined;
+  return body?.success ? body.data : { code: 'OFFLINE' as const, attemptsLeft: undefined };
+};
+const failureOf = (error: unknown): Failure => {
+  const { code, attemptsLeft = 0 } = codeOf(error);
+  if (code === 'INVALID_CREDENTIALS') return { kind: 'WRONG', attemptsLeft };
+  return { kind: code === 'LOCKED' || code === 'TOO_MANY' ? code : code === 'UNAUTHORIZED' ? 'TOO_LATE' : 'OFFLINE' };
+};
 
 export function FormulaireConnexion({ onSession }: { onSession: (session: OpenSession) => void }) {
   const name = useContext(PortailContext);
@@ -24,71 +55,110 @@ export function FormulaireConnexion({ onSession }: { onSession: (session: OpenSe
   const [remember, setRemember] = useState(false);
   const [failure, setFailure] = useState<Failure | null>(null);
   const [methods, setMethods] = useState<('TOTP' | 'WEBAUTHN')[] | null>(null);
+  const [setupKey, setSetupKey] = useState<string | null>(null);
+  const [opened, setOpened] = useState<{ codes: string[]; session: OpenSession } | null>(null);
   const [wrongPortal, setWrongPortal] = useState<string | null>(null);
-  const [codeError, setCodeError] = useState(false);
+  const [codeError, setCodeError] = useState<string | null>(null);
+  /** A refused code leaves the field empty, ready for the next one. */
+  const [tries, setTries] = useState(0);
   const [backup, setBackup] = useState<string | null>(null);
-  const [keyError, setKeyError] = useState(false);
-  const [offline, setOffline] = useState(false);
   const [busy, setBusy] = useState(false);
   const form = useForm({ initialValues: { email: '', password: '', portal: name }, validate: schemaResolver(loginRequest, { sync: true }) });
 
-  const finish = (result: LoginResponse) => {
+  const restart = (next: Failure | null = null) => {
+    setMethods(null);
+    setSetupKey(null);
+    setBackup(null);
+    setCodeError(null);
+    setFailure(next);
+  };
+  const finish = async (result: LoginResponse) => {
     if (result.status === 'WRONG_PORTAL') setWrongPortal(result.url);
     else if (result.status === 'TWO_FACTOR') setMethods(result.methods);
+    else if (result.status === 'SETUP_REQUIRED') setSetupKey((await api(totpSetup, '/auth/setup/totp', { method: 'POST' })).key);
     else onSession(result.session);
   };
   const submit = form.onSubmit(async (values) => {
     setBusy(true);
-    setOffline(false);
     try {
-      finish(await api(loginResponse, '/auth/login', { method: 'POST', body: { ...values, remember } }));
+      await finish(await api(loginResponse, '/auth/login', { method: 'POST', body: { ...values, remember } }));
       setFailure(null);
     } catch (error) {
-      const body = error instanceof ApiError ? loginError.safeParse(error.body) : undefined;
-      if (!body?.success) setOffline(true);
-      else setFailure({ locked: body.data.code === 'LOCKED', attemptsLeft: body.data.attemptsLeft ?? 0 });
+      setFailure(failureOf(error));
     } finally {
       setBusy(false);
     }
   });
-  const verify = async (code: string, method: 'TOTP' | 'BACKUP_CODE' = 'TOTP') => {
+  /** Second factor: five wrong codes close everything, and the sign-in starts again. */
+  const prove = async (step: () => Promise<void>, wrong = WRONG_CODE) => {
     setBusy(true);
-    setCodeError(false);
+    setCodeError(null);
     try {
-      finish(await api(loginResponse, '/auth/two-factor', { method: 'POST', body: { method, code } }));
-    } catch {
-      setCodeError(true);
+      await step();
+    } catch (error) {
+      const { code } = codeOf(error);
+      setTries((count) => count + 1);
+      if (code === 'LOCKED') restart({ kind: 'CODES_LOCKED' });
+      else if (code === 'UNAUTHORIZED') restart({ kind: 'TOO_LATE' });
+      else setCodeError(code === 'TOO_MANY' ? TOO_MANY : code === 'OFFLINE' && (error instanceof ApiError || error instanceof TypeError) ? OFFLINE : wrong);
     } finally {
       setBusy(false);
     }
   };
-
-  const signInWithKey = async () => {
-    setBusy(true);
-    setKeyError(false);
-    try {
+  const verify = (code: string, method: 'TOTP' | 'BACKUP_CODE' = 'TOTP') =>
+    prove(async () => finish(await api(loginResponse, '/auth/two-factor', { method: 'POST', body: { method, code } })));
+  const signInWithKey = () =>
+    prove(async () => {
       const options = await api(webauthnOptions, '/auth/two-factor/webauthn', { method: 'POST' });
       const { startAuthentication } = await import('@simplewebauthn/browser');
       const response = await startAuthentication({ optionsJSON: options as never });
-      finish(await api(loginResponse, '/auth/two-factor', { method: 'POST', body: { method: 'WEBAUTHN', response } }));
-    } catch {
-      setKeyError(true);
-    } finally {
-      setBusy(false);
-    }
-  };
+      await finish(await api(loginResponse, '/auth/two-factor', { method: 'POST', body: { method: 'WEBAUTHN', response } }));
+    }, 'La clé de sécurité n’a pas été reconnue. Réessayez ou utilisez un code.');
+  const setUp = (code: string) =>
+    prove(async () => {
+      const { session, backupCodes } = await api(setupDone, '/auth/setup/totp/verify', { method: 'POST', body: { code } });
+      setOpened({ codes: backupCodes, session });
+    }, 'Code incorrect ou expiré.');
 
+  const goBack = <Bouton variant="ghost" size="sm" label="← Retour" onPress={() => restart()} layout={{ alignSelf: 'flex-start' }} />;
+  if (opened)
+    return (
+      <PageConnexion>
+        <div className={css.step}>
+          <div className={css.heading}>
+            <h2>Codes de secours</h2>
+            <p>Ils vous permettent de vous connecter si vous perdez votre téléphone.</p>
+          </div>
+          <CodesSecours codes={opened.codes} />
+          <Bouton size="lg" label="J'ai conservé mes codes · accéder à Legarec" onPress={() => onSession(opened.session)} />
+        </div>
+      </PageConnexion>
+    );
+  if (setupKey !== null)
+    return (
+      <PageConnexion>
+        <div className={css.step}>
+          {goBack}
+          <div className={css.heading}>
+            <h2>Double authentification</h2>
+            <p>Ajoutez une seconde vérification à la connexion. Obligatoire pour le rôle Développeur.</p>
+          </div>
+          <SaisieApplication totpKey={setupKey} error={codeError ?? undefined} busy={busy} onVerify={(code) => void setUp(code)} />
+        </div>
+      </PageConnexion>
+    );
   if (methods) {
     return (
       <PageConnexion>
         <div className={css.step}>
-          <Bouton variant="ghost" size="sm" label="← Retour" onPress={() => setMethods(null)} layout={{ alignSelf: 'flex-start' }} />
+          {goBack}
           <div className={css.heading}>
             <h2>Vérification en deux étapes</h2>
             <p>Saisissez le code à 6 chiffres affiché dans votre application d&apos;authentification.</p>
             <p>Obligatoire pour le rôle Développeur, recommandée pour les autres.</p>
           </div>
           <PinInput
+            key={tries}
             unstyled
             length={6}
             type="number"
@@ -100,11 +170,10 @@ export function FormulaireConnexion({ onSession }: { onSession: (session: OpenSe
             onComplete={(code) => void verify(code)}
             getInputProps={(index) => ({ 'aria-label': `Chiffre ${index + 1} du code` })}
           />
-          {codeError && <Alerte tone="danger" text="Code incorrect ou expiré. Vérifiez l’heure de votre téléphone, puis saisissez le nouveau code affiché." />}
+          {codeError && <Alerte tone="danger" text={codeError} />}
           {methods.includes('WEBAUTHN') && (
             <Bouton variant="secondary" size="lg" icon="key" label="Utiliser une clé de sécurité" disabled={busy} onPress={() => void signInWithKey()} />
           )}
-          {keyError && <Alerte tone="danger" text="La clé de sécurité n’a pas été reconnue. Réessayez ou utilisez un code." />}
           {backup === null ? (
             <Bouton variant="link" size="sm" label="Utiliser un code de secours" onPress={() => setBackup('')} layout={{ alignSelf: 'flex-start' }} />
           ) : (
@@ -123,6 +192,7 @@ export function FormulaireConnexion({ onSession }: { onSession: (session: OpenSe
       </PageConnexion>
     );
   }
+  const locked = failure?.kind === 'LOCKED' || failure?.kind === 'CODES_LOCKED';
   return (
     <PageConnexion>
       <form className={css.step} onSubmit={submit} noValidate>
@@ -181,19 +251,9 @@ export function FormulaireConnexion({ onSession }: { onSession: (session: OpenSe
             <Link to="/mot-de-passe-oublie">Mot de passe oublié ?</Link>
           </div>
         </div>
-        {failure && (
-          <Alerte
-            tone={failure.locked ? 'danger' : 'warning'}
-            text={
-              failure.locked
-                ? 'Compte bloqué pendant 15 minutes après 5 tentatives échouées. Vous pouvez aussi réinitialiser votre mot de passe.'
-                : `E-mail ou mot de passe incorrect. Il vous reste ${failure.attemptsLeft} tentative${failure.attemptsLeft > 1 ? 's' : ''} avant le blocage temporaire du compte.`
-            }
-          />
-        )}
-        {offline && <Alerte tone="danger" text="Le service ne répond pas. Vérifiez votre connexion et réessayez." />}
+        {failure && <Alerte tone={failure.kind === 'WRONG' ? 'warning' : 'danger'} text={messageOf(failure)} />}
         <div className={css.links}>
-          <Bouton type="submit" size="lg" full label="Se connecter" loading={busy} disabled={failure?.locked} onPress={() => {}} />
+          <Bouton type="submit" size="lg" full label="Se connecter" loading={busy} disabled={locked} onPress={() => {}} />
           <span>Vous avez reçu une invitation ? Ouvrez le lien de votre e-mail pour activer votre compte.</span>
           <span>
             {name === 'espace' ? 'Vous êtes créancier ?' : 'Collaborateur Legarec ?'} <a href={`https://${other}`}>Aller sur {other}</a>

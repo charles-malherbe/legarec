@@ -1,14 +1,16 @@
 import { checkTemplate } from '@legarec/contracts/templateCheck';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it } from 'vitest';
+import { axeViolations } from '../../../../../packages/ui/src/testing';
 import { resetAccounts } from '../../mocks/routes/account';
 import { resetSettings } from '../../mocks/routes/settings';
 import { resetSteering } from '../../mocks/routes/steering';
 import { resetTemplates } from '../../mocks/routes/templates';
 import { call, mockApi, openAs } from '../../testing';
 
-mockApi();
+const server = mockApi();
 afterEach(() => {
   resetSettings();
   resetTemplates();
@@ -333,6 +335,88 @@ describe('account and help', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Déconnecter les autres sessions' }));
     await userEvent.click((await inDialog()).getByRole('button', { name: 'Déconnecter les autres sessions' }));
     await waitFor(() => expect(screen.queryByText('Navigateur mobile · iPhone')).toBeNull());
+  });
+  it('shows the backup codes once, after the first second factor', async () => {
+    openAs('hb', '/compte');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Sécurité et connexion' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Utiliser une application' }));
+    await userEvent.type(await screen.findByLabelText('Code à 6 chiffres'), '123456');
+    await userEvent.click(screen.getByRole('button', { name: 'Activer' }));
+    expect(await screen.findByText('Codes de secours')).toBeVisible();
+    expect(screen.getAllByText(/^\d{4}-\d{4}$/)).toHaveLength(8);
+    await userEvent.click(screen.getByRole('button', { name: "J'ai conservé mes codes" }));
+    expect(screen.queryByText('Codes de secours')).toBeNull();
+    // A second one brings no new code.
+    await userEvent.click(screen.getByRole('button', { name: 'Changer d’application' }));
+    await userEvent.type(await screen.findByLabelText('Code à 6 chiffres'), '123456');
+    await userEvent.click(screen.getByRole('button', { name: 'Activer' }));
+    await waitFor(() => expect(screen.queryByLabelText('Code à 6 chiffres')).toBeNull());
+    expect(screen.queryByText('Codes de secours')).toBeNull();
+  });
+  it.each([
+    [422, { code: 'INVALID_CREDENTIALS' }, 'Mot de passe actuel incorrect.'],
+    [422, { code: 'INVALID', fields: ['password'] }, 'Le nouveau mot de passe doit être différent de votre adresse e-mail.'],
+    [423, { code: 'LOCKED' }, 'Compte bloqué pendant 15 minutes après 5 tentatives échouées.'],
+  ])('explains the refusal of a password: %s %j', async (status, body, text) => {
+    server.use(http.put('/api/account/password', () => HttpResponse.json(body, { status })));
+    openAs('cl', '/compte');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Sécurité et connexion' }));
+    await userEvent.type(screen.getByLabelText('Mot de passe actuel'), 'motdepasse12');
+    await userEvent.type(screen.getByLabelText('Nouveau mot de passe'), 'Un-mot-de-passe-9!');
+    await userEvent.click(screen.getByRole('button', { name: 'Mettre à jour le mot de passe' }));
+    expect(await screen.findByText(text)).toBeVisible();
+  });
+  it('says that the network is cut, rather than that the password is wrong', async () => {
+    server.use(http.put('/api/account/password', () => HttpResponse.error()));
+    openAs('cl', '/compte');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Sécurité et connexion' }));
+    await userEvent.type(screen.getByLabelText('Mot de passe actuel'), 'motdepasse12');
+    await userEvent.type(screen.getByLabelText('Nouveau mot de passe'), 'Un-mot-de-passe-9!');
+    await userEvent.click(screen.getByRole('button', { name: 'Mettre à jour le mot de passe' }));
+    expect(await screen.findByText('Le service ne répond pas. Vérifiez votre connexion et réessayez.')).toBeVisible();
+    expect(screen.getByLabelText('Nouveau mot de passe')).toHaveValue('Un-mot-de-passe-9!');
+  });
+  it('refuses a wrong code of the application, and lets one give up', async () => {
+    openAs('hb', '/compte');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Sécurité et connexion' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Utiliser une application' }));
+    await userEvent.type(await screen.findByLabelText('Code à 6 chiffres'), '000000');
+    await userEvent.click(screen.getByRole('button', { name: 'Activer' }));
+    expect(await screen.findByText(/Code incorrect/)).toBeVisible();
+    expect(screen.queryByText('Codes de secours')).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Annuler' }));
+    expect(screen.queryByLabelText('Code à 6 chiffres')).toBeNull();
+    expect(screen.getByText('Non activée')).toBeVisible();
+  });
+  it('has no axe violation on the security of the account, from the code to the backup codes', async () => {
+    openAs('hb', '/compte');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Sécurité et connexion' }));
+    const main = screen.getByRole('main');
+    expect(await axeViolations(main)).toEqual([]);
+    await userEvent.click(screen.getByRole('button', { name: 'Utiliser une application' }));
+    await userEvent.type(await screen.findByLabelText('Code à 6 chiffres'), '123456');
+    expect(await axeViolations(main)).toEqual([]);
+    await userEvent.click(screen.getByRole('button', { name: 'Activer' }));
+    expect(await screen.findByText('Codes de secours')).toBeVisible();
+    expect(await axeViolations(main)).toEqual([]);
+  });
+  it('says that the service is away, or that the account is locked, while a second factor is set up', async () => {
+    openAs('cl', '/compte');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Sécurité et connexion' }));
+    server.use(http.post('/api/account/two-factor/totp', () => HttpResponse.json({ code: 'INTERNAL' }, { status: 500 }), { once: true }));
+    const start = screen.getByRole('button', { name: /application/ });
+    await userEvent.click(start);
+    expect(await screen.findByText(/Le service ne répond pas/)).toBeVisible();
+    await userEvent.click(start);
+    await userEvent.type(await screen.findByLabelText('Code à 6 chiffres'), '123456');
+    server.use(http.post('/api/account/two-factor/totp/verify', () => HttpResponse.json({ code: 'LOCKED' }, { status: 423 })));
+    await userEvent.click(screen.getByRole('button', { name: 'Activer' }));
+    expect(await screen.findByText(/Compte bloqué pendant 15 minutes/)).toBeVisible();
+  });
+  it('says what a substitute receives', async () => {
+    openAs('cl', '/compte');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Profil' }));
+    expect(await screen.findByText(/notifications neutres, sans accès à vos dossiers/)).toBeVisible();
   });
   it('cannot switch off the second factor of the Developer', async () => {
     expect((await call('dev', '/account/two-factor', undefined, 'DELETE')).status).toBe(403);

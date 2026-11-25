@@ -9,6 +9,8 @@ export function LoginPage() {
   return (
     <FormulaireConnexion
       onSession={(session) => {
+        // Whoever was there before.
+        client.clear();
         if (session) client.setQueryData(SESSION_KEY, session);
         void navigate('/');
       }}

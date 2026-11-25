@@ -21,19 +21,33 @@ import { DocumentsPage } from '../features/DocumentsPage';
 import { HelpPage } from '../features/HelpPage';
 import { MessagesPage } from '../features/MessagesPage';
 import { PayoutsPage } from '../features/PayoutsPage';
-import { SESSION_KEY, useSession } from './data';
+import { CurrentPartner, SESSION_KEY, useSession, useSessionEnd } from './data';
 import { Shell } from './Shell';
 
 function RequireSession() {
-  const { data, isPending, isError, refetch } = useSession();
+  const { data, isPending, refetch } = useSession();
+  useSessionEnd();
   if (isPending) return null;
-  if (isError) return <EtatListe kind="error" onAction={() => void refetch()} />;
-  return data ? <Outlet /> : <Navigate to="/connexion" replace />;
+  // A single answer that fails changes nothing: what is on screen stays.
+  if (data === undefined) return <EtatListe kind="error" onAction={() => void refetch()} />;
+  return data ? (
+    <CurrentPartner value={data}>
+      <Outlet />
+    </CurrentPartner>
+  ) : (
+    <Navigate to="/connexion" replace />
+  );
 }
 function LoginPage() {
   const client = useQueryClient();
   const navigate = useNavigate();
-  return <FormulaireConnexion onSession={() => void client.resetQueries({ queryKey: SESSION_KEY }).then(() => navigate('/'))} />;
+  const open = async () => {
+    // Whoever was there before.
+    client.clear();
+    await client.resetQueries({ queryKey: SESSION_KEY });
+    await navigate('/');
+  };
+  return <FormulaireConnexion onSession={() => void open()} />;
 }
 
 export function App() {

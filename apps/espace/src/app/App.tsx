@@ -28,7 +28,7 @@ import { LitigationPage } from '../features/litigation/LitigationPage';
 import { LoginPage } from '../features/login/LoginPage';
 import { PlansPage } from '../features/plans/PlansPage';
 import { CreditorScopeProvider } from './creditorScope';
-import { useSession } from './session';
+import { CurrentUser, useSession, useSessionEnd } from './session';
 import { Shell } from './Shell';
 
 // FullCalendar is only loaded with the agenda.
@@ -40,10 +40,18 @@ const ReportsPage = lazy(() => import('../features/reports/ReportsPage').then((m
 const LibraryPage = import.meta.env.DEV ? lazy(() => import('../features/library/LibraryPage').then((module) => ({ default: module.LibraryPage }))) : null;
 
 function RequireSession() {
-  const { data, isPending, isError } = useSession();
+  const { data, isPending } = useSession();
+  useSessionEnd();
   if (isPending) return null;
-  if (isError) return <ErrorPage code={500} />;
-  return data ? <Outlet /> : <Navigate to="/connexion" replace />;
+  // A single answer that fails changes nothing: what is on screen stays.
+  if (data === undefined) return <ErrorPage code={500} />;
+  return data ? (
+    <CurrentUser value={data}>
+      <Outlet />
+    </CurrentUser>
+  ) : (
+    <Navigate to="/connexion" replace />
+  );
 }
 
 export function App() {
