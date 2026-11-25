@@ -1,0 +1,84 @@
+enum WebhookStatus {
+  RECEIVED
+  PROCESSED
+  IGNORED
+  FAILED
+
+  @@map("webhook_status")
+}
+
+/// Yearly counters without gap; used by app.next_number() only.
+model NumberSequence {
+  kind      String
+  year      Int
+  lastValue Int    @map("last_value")
+
+  @@id([kind, year])
+  @@map("number_sequences")
+}
+
+/// Append-only; written by app.log() only.
+model AuditEntry {
+  id           String    @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  occurredAt   DateTime  @default(dbgenerated("clock_timestamp()")) @map("occurred_at") @db.Timestamptz(3)
+  actorKind    ActorKind @map("actor_kind")
+  actorId      String?   @map("actor_id") @db.Uuid
+  actorLabel   String    @map("actor_label")
+  onBehalfOfId String?   @map("on_behalf_of_id") @db.Uuid
+  action       String
+  entityType   String?   @map("entity_type")
+  entityId     String?   @map("entity_id") @db.Uuid
+  summary      String
+  ip           String?   @db.Inet
+  requestId    String?   @map("request_id") @db.Uuid
+
+  onBehalfOf User? @relation(fields: [onBehalfOfId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([occurredAt(sort: Desc)], map: "audit_log_occurred")
+  @@index([actorId, occurredAt(sort: Desc)], map: "audit_log_actor")
+  @@map("audit_log")
+}
+
+/// Written by app.enqueue() only; identifiers, never personal data.
+model OutboxTask {
+  id          String    @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  queue       String
+  name        String
+  payload     Json
+  /// Collaborator who started the task: the worker runs it with their rights.
+  actorId     String?   @map("actor_id") @db.Uuid
+  dedupeKey   String?   @unique @map("dedupe_key")
+  runAt       DateTime? @map("run_at") @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  publishedAt DateTime? @map("published_at") @db.Timestamptz(3)
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("outbox")
+}
+
+model WebhookEvent {
+  id              String        @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  provider        String
+  providerEventId String        @map("provider_event_id")
+  status          WebhookStatus @default(RECEIVED)
+  receivedAt      DateTime      @default(now()) @map("received_at") @db.Timestamptz(3)
+  processedAt     DateTime?     @map("processed_at") @db.Timestamptz(3)
+
+  @@unique([provider, providerEventId])
+  @@map("webhook_events")
+}
+
+model IdempotencyKey {
+  actor       String
+  key         String   @db.Uuid
+  route       String
+  requestHash Bytes    @map("request_hash")
+  status      Int?
+  result      Json?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@id([actor, key])
+  @@index([createdAt], map: "idempotency_keys_created")
+  @@map("idempotency_keys")
+}
