@@ -35,7 +35,7 @@ function tools() {
   }
   return null;
 }
-// The private folder comes last: the libraries of the system, kept up to date, are preferred.
+// The libraries of the private folder are only used by the programs of that folder.
 const env = () => ({ ...process.env, LD_LIBRARY_PATH: [process.env.LD_LIBRARY_PATH, join(ROOT, 'usr/lib/x86_64-linux-gnu')].filter(Boolean).join(':') });
 
 export function install() {
@@ -97,6 +97,20 @@ async function waitFor(port, name) {
   throw new Error(`${name} ne répond pas sur ${HOST}:${port}. Voir ${HOME}.`);
 }
 
+/** Passwords only go to our own servers, never to another program that would hold the port. */
+const postgresRuns = (bin) => spawnSync(join(bin, 'pg_ctl'), ['-D', DATA, 'status'], { env: env(), stdio: 'ignore' }).status === 0;
+function valkeyPid() {
+  try {
+    const pid = Number(readFileSync(join(HOME, 'valkey.pid'), 'utf8'));
+    return readFileSync(`/proc/${pid}/cmdline`, 'utf8').includes('valkey-server') ? pid : null;
+  } catch {
+    return null;
+  }
+}
+async function refuseTaken(port) {
+  if (await listening(port)) throw new Error(`Le port ${port} est pris par un autre programme. Rien n’a été démarré.`);
+}
+
 function initCluster(bin) {
   if (existsSync(join(DATA, 'PG_VERSION'))) return;
   privateDir(DATA);
@@ -143,7 +157,8 @@ function initCluster(bin) {
 
 async function startPostgres(bin) {
   initCluster(bin);
-  if (!(await listening(POSTGRES_PORT))) {
+  if (!postgresRuns(bin)) {
+    await refuseTaken(POSTGRES_PORT);
     const log = openSync(join(HOME, 'postgres.log'), 'a', 0o600);
     const started = spawnSync(join(bin, 'pg_ctl'), ['-D', DATA, '-w', 'start'], { env: env(), stdio: ['ignore', log, log] });
     closeSync(log);
@@ -153,7 +168,8 @@ async function startPostgres(bin) {
 }
 
 async function startValkey(bin) {
-  if (!(await listening(VALKEY_PORT))) {
+  if (!valkeyPid()) {
+    await refuseTaken(VALKEY_PORT);
     privateDir(CACHE);
     const config = join(HOME, 'valkey.conf');
     const password = new URL(values().VALKEY_URL).password;
@@ -165,6 +181,7 @@ async function startValkey(bin) {
         `dir ${CACHE}`,
         `requirepass ${password}`,
         'appendonly yes',
+        'maxmemory 256mb',
         'maxmemory-policy noeviction',
         'databases 64',
         'daemonize yes',
@@ -212,12 +229,9 @@ export async function start() {
 export async function stop() {
   const bin = tools();
   if (!bin) return;
-  if (existsSync(join(DATA, 'postmaster.pid')))
-    spawnSync(join(bin.postgres, 'pg_ctl'), ['-D', DATA, '-m', 'fast', '-w', 'stop'], { env: env(), stdio: 'ignore' });
-  if (await listening(VALKEY_PORT)) {
-    const pid = Number(existsSync(join(HOME, 'valkey.pid')) && readFileSync(join(HOME, 'valkey.pid'), 'utf8'));
-    if (pid) process.kill(pid, 'SIGTERM');
-  }
+  if (postgresRuns(bin.postgres)) spawnSync(join(bin.postgres, 'pg_ctl'), ['-D', DATA, '-m', 'fast', '-w', 'stop'], { env: env(), stdio: 'ignore' });
+  const pid = valkeyPid();
+  if (pid) process.kill(pid, 'SIGTERM');
 }
 
 const command = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1] ? (process.argv[2] ?? 'status') : null;
@@ -227,11 +241,12 @@ else if (command === 'start') {
   say(`PostgreSQL (${POSTGRES_PORT}) et Valkey (${VALKEY_PORT}) prêts sur ${HOST}. Valeurs de développement : ${VALUES}`);
 } else if (command === 'stop') await stop();
 else if (command === 'status') {
-  for (const [name, port] of [
-    ['PostgreSQL', POSTGRES_PORT],
-    ['Valkey', VALKEY_PORT],
+  const bin = tools();
+  for (const [name, port, runs] of [
+    ['PostgreSQL', POSTGRES_PORT, bin && postgresRuns(bin.postgres)],
+    ['Valkey', VALKEY_PORT, valkeyPid() !== null],
   ])
-    say(`${name} ${HOST}:${port} : ${(await listening(port)) ? 'démarré' : 'arrêté'}`);
+    say(`${name} ${HOST}:${port} : ${runs ? 'démarré' : (await listening(port)) ? 'port pris par un autre programme' : 'arrêté'}`);
 } else if (command) {
   say('Usage : node infra/dev/services.mjs install | start | stop | status');
   process.exitCode = 1;

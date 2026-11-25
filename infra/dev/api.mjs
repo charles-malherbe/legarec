@@ -14,20 +14,33 @@ const API = join(ROOT, 'apps', 'api');
 const ENV_FILE = join(ROOT, '.env');
 
 await start();
+/** Test keys a `.env` may give: nothing else of it reaches a program. The services of this machine always win. */
+const TEST_KEYS = ['RESEND_API_KEY', 'RESEND_ACCOUNT_API_KEY', 'RESEND_WEBHOOK_SECRET', 'MYSENDINGBOX_TEST_API_KEY', 'DEV_RECIPIENTS'];
 const own = existsSync(ENV_FILE) ? parseEnv(readFileSync(ENV_FILE, 'utf8')) : {};
-// The services of this machine always win: a `.env` cannot point the API at another database.
-const env = { ...own, ...process.env, NODE_ENV: 'development', PORT: process.env.PORT ?? '3000', ...values() };
-const run = (command, args, options = {}) => spawn(command, args, { cwd: API, env, stdio: 'inherit', ...options });
+const services = values();
+const pick = (source, names) => Object.fromEntries(names.filter((name) => source[name] !== undefined).map((name) => [name, source[name]]));
+const COMMON = ['VALKEY_URL', 'VAULT_MASTER_KEY', 'SESSION_SIGNING_KEY', 'DATABASE_URL'];
+/** Each program receives what it needs: the API never holds the account of the migrations, nor that of the worker. */
+const NEEDS = { migrate: ['MIGRATION_DATABASE_URL'], main: COMMON, worker: [...COMMON, 'JOBS_DATABASE_URL'] };
+const envOf = (name) => ({
+  ...pick(process.env, ['PATH', 'HOME', 'LANG', 'TZ', 'LOG_LEVEL']),
+  NODE_ENV: 'development',
+  PORT: process.env.PORT ?? '3000',
+  ...(name === 'migrate' ? {} : pick(own, TEST_KEYS)),
+  ...pick(services, NEEDS[name]),
+});
+const run = (name) => spawn(process.execPath, ['--enable-source-maps', `dist/${name}.js`], { cwd: API, env: envOf(name), stdio: 'inherit' });
 const wait = (child) => new Promise((resolve) => child.once('exit', resolve));
 
-if ((await wait(run('pnpm', ['exec', 'prisma', 'migrate', 'deploy']))) !== 0) process.exit(1);
 const { build } = await import(createRequire(join(API, 'package.json')).resolve('vite'));
 
 let children = [];
 async function restart() {
   for (const child of children) child.kill('SIGTERM');
   await Promise.all(children.map(wait));
-  children = ['main', 'worker'].map((name) => run(process.execPath, ['--enable-source-maps', `dist/${name}.js`]));
+  children = [];
+  if ((await wait(run('migrate'))) !== 0) return;
+  children = ['main', 'worker'].map(run);
 }
 const watcher = await build({ root: API, configFile: join(API, 'vite.config.ts'), logLevel: 'warn', build: { watch: {} } });
 watcher.on('event', (event) => {
