@@ -6,10 +6,4 @@ Claude Code : ajoute ici toute question que la maquette, `HANDOFF.md` ou `DECISI
 |---|---|---|---|
 | 70 | OVH accepte-t-il les liens dans les SMS envoyés d'un numéro mobile virtuel ? | SMS simulés ; si les liens sont refusés, le choix de l'expéditeur se rouvre | À demander à OVH par le cabinet, avant le lot R |
 | 71 | La licence 3CX est-elle Enterprise 8SC ou plus (exigée par l'API Call Control) ? | Standard simulé | À vérifier par le cabinet, avant le lot T |
-| 79 | Coordonnées d'un débiteur séparées par créancier : avis du juriste | Décision appliquée | Juriste, avant la mise en service |
-| 84 | Suivi des ouvertures et des clics : avis du juriste ; nom du second domaine Resend pour les e-mails de compte | Suivi coupé | Cabinet (domaine) avant le lot Q ; juriste avant la mise en service |
-| 85 | Relances du kit sans rappel du premier courrier, alors que la règle du cabinet l'exige à chaque démarche : avis du juriste | Kit inchangé | Juriste, avant la mise en service |
-| 98 | Point de départ des intérêts d'un particulier : avis du juriste | Distribution de la mise en demeure, à défaut son envoi | Juriste, avant la mise en service |
 | 106 | IA auto-hébergée : l'essai mesuré sur le serveur convient-il ? | IA désactivée | Essai au lot W, puis juriste |
-| 119 | `.claude/settings.json` préautorise `pnpm exec prisma *`, qui peut télécharger et lancer le moteur natif de Prisma, alors que le projet s'en passe | Ligne laissée telle quelle (fichier non modifiable par Claude Code) ; Claude Code n'utilise que `pnpm --filter @legarec/api generate`, qui ne l'appelle pas. Conseil : retirer la ligne | À trancher par le cabinet, sans urgence |
-| 120 | Durées de conservation techniques non décidées par la question 115 | En place au lot J : tâches faites 7 jours, tâches abandonnées 30 jours, leurs clés (un identifiant) 1 an, webhooks reçus 30 jours | À confirmer par le cabinet, avant le lot V |
