@@ -1,0 +1,32 @@
+# Static server of one portal, behind Caddy: plain HTTP on an internal network.
+{
+	admin off
+	auto_https off
+	persist_config off
+	log default {
+		output stdout
+		format filter {
+			wrap json
+			fields {
+				request delete
+			}
+		}
+	}
+}
+
+:8080 {
+	root * /srv
+	respond /health 200
+	# A missing file is an error, not the page: a browser would keep the page as if it were the file.
+	handle /assets/* {
+		@present file
+		header @present Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+	# Every route of the portal is the same page, checked each time: a new version is seen at once.
+	handle {
+		header Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+}

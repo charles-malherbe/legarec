@@ -1,0 +1,225 @@
+# Reverse proxy of production, after kits/caddy/Caddyfile.exemple. No secret here: the values that depend on the server
+# come from /etc/legarec/caddy.env (ACME_EMAIL, AUTHORIZED_IPS, SCW_REGION). Without AUTHORIZED_IPS, nobody is authorised.
+{
+	email {$ACME_EMAIL}
+	# No remote control, and nothing written but the certificates.
+	admin off
+	persist_config off
+	grace_period 20s
+	servers {
+		timeouts {
+			read_header 10s
+			read_body 60s
+			idle 2m
+		}
+	}
+	# What goes wrong, without the address of the caller, the headers, nor the path (it may carry a token).
+	log default {
+		output stdout
+		format filter {
+			wrap json
+			fields {
+				request delete
+				user_id delete
+				resp_headers delete
+			}
+		}
+	}
+}
+
+# One line per request: host, method, status, duration, size. Never the address of the caller, the headers nor the path.
+(access_log) {
+	log {
+		output stdout
+		format filter {
+			wrap json
+			fields {
+				request>remote_ip delete
+				request>remote_port delete
+				request>client_ip delete
+				request>headers delete
+				request>uri delete
+				request>tls delete
+				user_id delete
+				resp_headers delete
+			}
+		}
+	}
+}
+
+# Same, with the family of the route: the API itself logs the model of each route.
+(api_access_log) {
+	log {
+		output stdout
+		format filter {
+			wrap json
+			fields {
+				request>remote_ip delete
+				request>remote_port delete
+				request>client_ip delete
+				request>headers delete
+				request>uri regexp "^/(?:(staff|partner|debtor|public|hooks|service|health)(?:[/?].*)?$|.*)" "/${1}"
+				request>tls delete
+				user_id delete
+				resp_headers delete
+			}
+		}
+	}
+}
+
+# Headers of every site. Set last, over those of the containers.
+(security) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		-Server
+		-Via
+		defer
+	}
+	encode zstd gzip
+}
+
+# {args[0]}: container of the portal. Nothing comes from elsewhere, except the API, the logos and the styles that
+# Mantine and FullCalendar write in the page ('unsafe-inline' for the styles only, never for the scripts).
+(portal) {
+	import security
+	import access_log
+	header {
+		Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://media.legarec.fr; connect-src https://api.legarec.fr; frame-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'; object-src 'none'; manifest-src 'self'"
+		Referrer-Policy {args[1]}
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		X-Frame-Options "DENY"
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Resource-Policy "same-origin"
+		defer
+	}
+	request_body {
+		max_size 1KB
+	}
+	reverse_proxy {args[0]}:8080
+}
+
+# Only from the addresses of the firm.
+(firm_only) {
+	@outside not remote_ip {$AUTHORIZED_IPS}
+	respond @outside 403
+}
+
+espace.legarec.fr {
+	import portal espace strict-origin-when-cross-origin
+}
+
+partenaires.legarec.fr {
+	import portal partenaires strict-origin-when-cross-origin
+}
+
+# The path may carry the link of a letter or of a text message: it never leaves with a click.
+paiement.legarec.fr {
+	import portal paiement no-referrer
+}
+
+api.legarec.fr {
+	import security
+	import api_access_log
+	# Root only, to the status page.
+	redir / https://status.legarec.fr 302
+	# Service accounts (n8n) reach the API from inside.
+	@service path /service /service/*
+	respond @service 404
+	# The largest attachment the screens accept is 25 MB.
+	request_body {
+		max_size 28MB
+	}
+	reverse_proxy api:3000 {
+		# Not set by the caller: Caddy replaces X-Forwarded-For with the address it sees.
+		header_up -Forwarded
+		header_up -X-Real-IP
+	}
+}
+
+status.legarec.fr {
+	import security
+	import access_log
+	header {
+		Referrer-Policy "no-referrer"
+		X-Frame-Options "DENY"
+	}
+	@firm remote_ip {$AUTHORIZED_IPS}
+	# Technical logs (Grafana), from the addresses of the firm only, behind its own password.
+	@logs path /journaux /journaux/*
+	handle @logs {
+		import firm_only
+		reverse_proxy grafana:3000
+	}
+	# Results pushed by the worker and the backups stay inside.
+	@push path /api/v1/endpoints/*/external
+	handle @push {
+		respond 404
+	}
+	# Internal checks (backups, restore tests, tasks, logs), from the addresses of the firm only.
+	handle @firm {
+		reverse_proxy gatus-interne:8080
+	}
+	# Everybody else: the portals and the API.
+	handle {
+		reverse_proxy gatus:8080
+	}
+}
+
+n8n.legarec.fr {
+	import security
+	import access_log
+	import firm_only
+	# Its container comes with the service accounts (end of lot X): 502 until then.
+	reverse_proxy n8n:5678
+}
+
+media.legarec.fr {
+	import security
+	import access_log
+	# Root only, to the public website.
+	redir / https://legarec.fr 302
+	@change not method GET HEAD
+	respond @change 405
+	# Public bucket (its listing is off on the side of the bucket).
+	rewrite * ?
+	reverse_proxy https://legarec-media.s3.{$SCW_REGION}.scw.cloud {
+		header_up Host legarec-media.s3.{$SCW_REGION}.scw.cloud
+		header_up -Authorization
+		header_up -Cookie
+		header_down -Set-Cookie
+		# Versioned paths, never replaced: kept for a year, but not an error.
+		@found status 200 206 304
+		handle_response @found {
+			header Cache-Control "public, max-age=31536000, immutable"
+			copy_response
+		}
+	}
+}
+
+# Redirections, without any parameter.
+www.espace.legarec.fr {
+	# Same address without www.
+	redir https://espace.legarec.fr{path} 301
+}
+
+www.partenaires.legarec.fr {
+	# Same address without www.
+	redir https://partenaires.legarec.fr{path} 301
+}
+
+www.paiement.legarec.fr {
+	# Same address without www.
+	redir https://paiement.legarec.fr{path} 301
+}
+
+mail.legarec.fr {
+	# Sends e-mails only: its web page is the public website.
+	redir https://legarec.fr 301
+}
+
+# Asked by the health check of its own container; reachable from nowhere else.
+http://127.0.0.1:8081 {
+	bind 127.0.0.1
+	respond /health 200
+}
