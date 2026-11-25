@@ -20,20 +20,21 @@ Deux ambiances sur les mêmes composants, en deux thèmes dérivés du thème de
 - `partenaires` et `paiement` : plus aérés et rassurants, titres Lora (`data-brand` dans la maquette).
 
 ## API (apps/api → api.legarec.fr)
-- **NestJS** (Node.js, TypeScript), API REST documentée (OpenAPI).
-- **PostgreSQL + Prisma**. Filtrage par créancier dans chaque requête (et sécurité par ligne PostgreSQL si possible).
-- **Valkey + BullMQ** (`VALKEY_URL`) : scénarios de relance, envois groupés, synchronisation IMAP, reversements ; workers dans un conteneur séparé ; persistance AOF, `maxmemory-policy noeviction`.
-- **Documents** : modèles HTML Handlebars, PDF générés par **Playwright** (Chromium).
+- **NestJS 12** sur **Node 26 LTS** (TypeScript), API REST : entrées validées par les schémas Zod de `packages/contracts`, OpenAPI produit par `@nestjs/swagger` (`nestjs-zod` abandonné). Versions et dépendances par lot : `docs/api.md`.
+- **PostgreSQL 17 + Prisma 7** (adaptateur `pg`). Filtrage par créancier dans chaque requête et sécurité par ligne PostgreSQL, activée et forcée sur toutes les tables.
+- **Valkey 8.1 + BullMQ 6** (`VALKEY_URL`) : scénarios de relance, envois groupés, synchronisation IMAP, reversements ; workers dans un conteneur séparé ; persistance AOF, `maxmemory-policy noeviction`.
+- **Documents** : modèles HTML Handlebars, PDF générés par **Playwright** (Chromium) ; fichiers reçus contrôlés par **ClamAV**.
 - **E-mails** : kit `kits/emails-handlebars` (25 modèles) et ajout `staff-message`, rendus par handlebars 4.x dans `apps/api/templates/emails/` ; envoi par Resend (automatiques) ou par SMTP OVH de la boîte du collaborateur (nodemailer).
 - **Fichiers** : **Scaleway Object Storage** (API S3).
-- **IA** : couche fournisseur (adaptateurs Anthropic et compatible OpenAI pour Scaleway et OVH), deux niveaux de modèle configurables ; voir `docs/ia.md`.
-- **OVH** : API OVHcloud (gestion des boîtes MX Plan, SMS), clés aux droits limités.
+- **IA** : auto-hébergée si l'essai du lot W convient ; couche fournisseur (adaptateurs Anthropic et compatible OpenAI pour Scaleway et OVH), deux niveaux de modèle configurables ; voir `docs/ia.md`.
+- **OVH** : API OVHcloud (gestion des boîtes MX Plan, SMS), appels signés sans le paquet `ovh`, clés aux droits limités.
+- **Développement** : PostgreSQL et Valkey des paquets Debian, lancés par `infra/dev/services.mjs` (utilisateur courant, 127.0.0.1) ; Node 26 par nvm.
 
 ## Services externes
 Voir `docs/domaines-et-services.md`.
 
 ## Hébergement, code, qualité
-- Conteneurs **Docker** sur un **VPS** : un `docker-compose.yml` (api, worker, trois fronts, PostgreSQL, Valkey, n8n, Gatus, **Caddy**). Caddy est le seul service exposé (HTTPS automatique) ; référence : `kits/caddy/Caddyfile.exemple`, à reprendre dans `infra/caddy/Caddyfile`.
+- Conteneurs **Docker** sur un **VPS** : un `docker-compose.yml` (api, worker, trois fronts, PostgreSQL, Valkey, ClamAV, n8n, Gatus, **Caddy**). Caddy est le seul service exposé (HTTPS automatique) ; référence : `kits/caddy/Caddyfile.exemple`, à reprendre dans `infra/caddy/Caddyfile`.
 - Code sur **GitHub, avec GitHub Actions** pour les vérifications : `.github/workflows/` lance `pnpm verifier` sur chaque pull request. Aucun secret de production ni déploiement dans GitHub Actions ; le déploiement reste `pnpm deployer`, lancé par le cabinet.
 - Mises à jour : versions exactes figées ; Renovate propose les mises à jour, vérifiées par GitHub Actions avant fusion.
 - Tests : **Vitest** (logique), **Playwright** (parcours + comparaison visuelle avec `maquette/captures/`), **axe** (accessibilité).
