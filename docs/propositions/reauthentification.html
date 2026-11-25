@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="fr" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Proposition 5 · Réauthentification</title>
+    <link rel="stylesheet" href="propositions.css" />
+  </head>
+  <body>
+    <svg class="sprite" aria-hidden="true">
+      <symbol id="i-alert" viewBox="0 0 24 24">
+        <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"></path>
+      </symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24">
+        <path d="M5 11h14a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1zM8 11V7a4 4 0 0 1 8 0v4"></path>
+      </symbol>
+    </svg>
+    <main class="board" aria-labelledby="titre">
+      <div>
+        <header>
+          <h1 id="titre">Réauthentification avant une action sensible</h1>
+          <p>
+            Question 122. La fenêtre s’ouvre après la confirmation habituelle, seulement si la dernière preuve (mot de passe ou code) date de plus de 10
+            minutes. Une fois confirmée, l’action demandée part sans être ressaisie.
+          </p>
+        </header>
+        <h2 class="hidden">États de la fenêtre</h2>
+        <div class="states">
+          <figure class="state">
+            <figcaption><strong>Sans double authentification</strong><span>Le mot de passe est demandé</span></figcaption>
+            <div class="veil">
+              <div class="dialog" role="group" aria-label="Confirmez que c’est bien vous">
+                <div class="head">
+                  <span class="mark"
+                    ><svg class="icone" aria-hidden="true" data-size="xl"><use href="#i-lock"></use></svg
+                  ></span>
+                  <div>
+                    <h3>Confirmez que c’est bien vous</h3>
+                    <p>Cette action est sensible. Rien n’est enregistré tant que vous n’avez pas confirmé.</p>
+                  </div>
+                </div>
+                <dl>
+                  <div>
+                    <dt>Action</dt>
+                    <dd>Remplacer l’IBAN du compte dédié</dd>
+                  </div>
+                </dl>
+                <div class="field">
+                  <div class="champ">
+                    <label for="f1">Mot de passe</label>
+                    <div class="row"><input id="f1" class="input" type="password" value="motdepasse12" autocomplete="current-password" /></div>
+                  </div>
+                </div>
+                <div class="foot">
+                  <span class="hint">Échap pour annuler</span><button type="button" class="bouton" data-variant="secondary"><span>Annuler</span></button
+                  ><button type="button" class="bouton"><span>Confirmer</span></button>
+                </div>
+              </div>
+            </div>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Avec l’application d’authentification</strong><span>Le code est demandé, pas le mot de passe</span></figcaption>
+            <div class="veil">
+              <div class="dialog" role="group" aria-label="Confirmez que c’est bien vous">
+                <div class="head">
+                  <span class="mark"
+                    ><svg class="icone" aria-hidden="true" data-size="xl"><use href="#i-lock"></use></svg
+                  ></span>
+                  <div>
+                    <h3>Confirmez que c’est bien vous</h3>
+                    <p>Cette action est sensible. Rien n’est enregistré tant que vous n’avez pas confirmé.</p>
+                  </div>
+                </div>
+                <dl>
+                  <div>
+                    <dt>Action</dt>
+                    <dd>Remplacer l’IBAN du compte dédié</dd>
+                  </div>
+                </dl>
+                <div class="field">
+                  <div class="champ">
+                    <label for="f2">Code à 6 chiffres</label>
+                    <div class="row">
+                      <input
+                        id="f2"
+                        class="input"
+                        type="text"
+                        value="418 203"
+                        aria-describedby="f2-d"
+                        inputmode="numeric"
+                        autocomplete="one-time-code"
+                        maxlength="6"
+                      />
+                    </div>
+                    <span class="help" id="f2-d">Affiché dans votre application. Un code de secours convient aussi.</span>
+                  </div>
+                </div>
+                <div class="foot">
+                  <span class="hint">Échap pour annuler</span><button type="button" class="bouton" data-variant="secondary"><span>Annuler</span></button
+                  ><button type="button" class="bouton"><span>Confirmer</span></button>
+                </div>
+              </div>
+            </div>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Avec une clé de sécurité</strong><span>Le navigateur demande la clé</span></figcaption>
+            <div class="veil">
+              <div class="dialog" role="group" aria-label="Confirmez que c’est bien vous">
+                <div class="head">
+                  <span class="mark"
+                    ><svg class="icone" aria-hidden="true" data-size="xl"><use href="#i-lock"></use></svg
+                  ></span>
+                  <div>
+                    <h3>Confirmez que c’est bien vous</h3>
+                    <p>Cette action est sensible. Rien n’est enregistré tant que vous n’avez pas confirmé.</p>
+                  </div>
+                </div>
+                <dl>
+                  <div>
+                    <dt>Action</dt>
+                    <dd>Remplacer l’IBAN du compte dédié</dd>
+                  </div>
+                </dl>
+                <div class="field"><p>Insérez ou approchez votre clé de sécurité quand votre navigateur la demande.</p></div>
+                <div class="foot">
+                  <span class="hint">Échap pour annuler</span><button type="button" class="bouton" data-variant="secondary"><span>Annuler</span></button
+                  ><button type="button" class="bouton" data-variant="link"><span>Utiliser un code</span></button
+                  ><button type="button" class="bouton"><span>Utiliser ma clé</span></button>
+                </div>
+              </div>
+            </div>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Code ou mot de passe faux</strong><span>La fenêtre reste ouverte, la saisie de l’action est gardée</span></figcaption>
+            <div class="veil">
+              <div class="dialog" role="group" aria-label="Confirmez que c’est bien vous">
+                <div class="head">
+                  <span class="mark"
+                    ><svg class="icone" aria-hidden="true" data-size="xl"><use href="#i-lock"></use></svg
+                  ></span>
+                  <div>
+                    <h3>Confirmez que c’est bien vous</h3>
+                    <p>Cette action est sensible. Rien n’est enregistré tant que vous n’avez pas confirmé.</p>
+                  </div>
+                </div>
+                <dl>
+                  <div>
+                    <dt>Action</dt>
+                    <dd>Remplacer l’IBAN du compte dédié</dd>
+                  </div>
+                </dl>
+                <div class="field">
+                  <div class="champ">
+                    <label for="f3">Code à 6 chiffres</label>
+                    <div class="row">
+                      <input
+                        id="f3"
+                        class="input"
+                        type="text"
+                        value="418 203"
+                        aria-describedby="f3-d"
+                        aria-invalid="true"
+                        inputmode="numeric"
+                        autocomplete="one-time-code"
+                        maxlength="6"
+                      />
+                    </div>
+                    <span class="error" id="f3-d"
+                      ><svg class="icone" aria-hidden="true" data-size="sm"><use href="#i-alert"></use></svg
+                      ><span>Code incorrect. Il vous reste 3 tentatives.</span></span
+                    >
+                  </div>
+                </div>
+                <div class="foot">
+                  <span class="hint">Échap pour annuler</span><button type="button" class="bouton" data-variant="secondary"><span>Annuler</span></button
+                  ><button type="button" class="bouton"><span>Confirmer</span></button>
+                </div>
+              </div>
+            </div>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Cinq échecs</strong><span>Cette session se ferme, comme après 5 mots de passe faux dans Mon compte</span></figcaption>
+            <div class="veil">
+              <div class="dialog" role="group" aria-label="Session fermée">
+                <div class="head">
+                  <span class="mark" data-tone="danger"
+                    ><svg class="icone" aria-hidden="true" data-size="xl"><use href="#i-lock"></use></svg
+                  ></span>
+                  <div>
+                    <h3>Session fermée</h3>
+                    <p>Trop de tentatives. Par sécurité, votre session est fermée. Rien n’a été enregistré.</p>
+                  </div>
+                </div>
+                <div class="field"></div>
+                <div class="foot">
+                  <span class="hint">Échap pour annuler</span><button type="button" class="bouton"><span>Aller à la connexion</span></button>
+                </div>
+              </div>
+            </div>
+          </figure>
+          <figure class="state" data-wide>
+            <figcaption><strong>Actions concernées</strong><span>Les autres actions gardent leur seule fenêtre de confirmation</span></figcaption>
+            <section class="carte">
+              <div class="body" data-padding="none">
+                <div class="tableau" role="group" tabindex="0" aria-label="Actions concernées">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Écran</th>
+                        <th>Action</th>
+                        <th>Qui</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>Mon compte</td>
+                        <td>Retirer la double authentification ; ajouter une application ou une clé quand il y en a déjà une</td>
+                        <td>Tous</td>
+                      </tr>
+                      <tr>
+                        <td>Équipe</td>
+                        <td>Réinitialiser la double authentification d’un collaborateur ; changer le rôle d’un collaborateur</td>
+                        <td>Directeur, Responsable, Développeur selon leurs droits</td>
+                      </tr>
+                      <tr>
+                        <td>Délégations</td>
+                        <td>Donner ou retirer une délégation</td>
+                        <td>Directeur</td>
+                      </tr>
+                      <tr>
+                        <td>Paramètres du cabinet</td>
+                        <td>SIREN, TVA, IBAN, BIC, titulaire, banque, ordre et adresse des chèques</td>
+                        <td>Directeur</td>
+                      </tr>
+                      <tr>
+                        <td>Fiche créancier</td>
+                        <td>Ajouter ou remplacer le compte de reversement</td>
+                        <td>Directeur, Responsable délégué</td>
+                      </tr>
+                      <tr>
+                        <td>Paramètres techniques</td>
+                        <td>Ajouter, renouveler ou révoquer un secret</td>
+                        <td>Développeur délégué, Directeur</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+          </figure>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>
