@@ -13,7 +13,7 @@ RUN pnpm install --frozen-lockfile --filter legarec --filter "@legarec/${PORTAL}
 RUN test -n "$VITE_API_URL" && VITE_API_URL="$VITE_API_URL" pnpm --filter "@legarec/${PORTAL}" build
 # The simulated API never ships.
 RUN ! grep -rlE "mockServiceWorker|setupWorker" "apps/${PORTAL}/dist"
-RUN ! find "apps/${PORTAL}/dist" -name "*.map" | grep .
+RUN test -z "$(find "apps/${PORTAL}/dist" -name "*.map")"
 
 FROM caddy:2.11.9-alpine@sha256:003a97808e781aa9f7e75cc2f43d34d461099031faf5e20faefb9f61126836f0
 ARG PORTAL

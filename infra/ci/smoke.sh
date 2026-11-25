@@ -77,7 +77,8 @@ done
 # No value, in what Docker shows of the containers nor in the images.
 cut -s -d= -f2- /etc/legarec/*.env | grep -E '^[0-9a-f]{48}$|^[A-Za-z0-9+/]{43}=$' | sort -u > /tmp/values
 [ "$(wc -l < /tmp/values)" -ge 10 ] || fail 'no value to look for'
-docker inspect $(docker compose ps --all --quiet) | grep -qFf /tmp/values && fail 'a value in docker inspect'
+mapfile -t ids < <(docker compose ps --all --quiet)
+docker inspect "${ids[@]}" | grep -qFf /tmp/values && fail 'a value in docker inspect'
 ps -eo args | grep -Ff /tmp/values | grep -qv grep && fail 'a value in a command line'
 ok containers
 

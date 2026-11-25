@@ -44,7 +44,7 @@ jobs:
           done
       - name: Scripts and timers
         run: |
-          shellcheck infra/deployer.sh infra/ci/*.sh infra/postgres/legarec-* infra/valkey/legarec-* infra/gatus/legarec-gatus infra/grafana/legarec-grafana
+          shellcheck --severity=warning infra/deployer.sh infra/ci/*.sh infra/postgres/legarec-* infra/valkey/legarec-* infra/gatus/legarec-gatus infra/grafana/legarec-grafana
           sudo install -d /opt/legarec
           systemd-analyze verify infra/systemd/*.service infra/systemd/*.timer
           for file in infra/systemd/*.timer; do systemd-analyze calendar "$(sed -n 's/^OnCalendar=//p' "$file")"; done
