@@ -8,16 +8,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     # Empty services, thrown away with the job: their password protects nothing. No secret here, ever.
+    # Actions and images are named by their digest: a tag can be moved, a digest cannot.
     services:
       postgres:
-        image: postgres:17.12
+        image: postgres:17.12@sha256:87c8b42f423b45d5247e6aa8fdb2e7762fec164c68a50fe3eb07e7bfcaf4dbcf
         env:
           POSTGRES_PASSWORD: verifier
         ports:
           - 127.0.0.1:55432:5432
         options: --health-cmd "pg_isready -U postgres" --health-interval 2s --health-timeout 2s --health-retries 30
       valkey:
-        image: valkey/valkey:8.1.1
+        image: valkey/valkey:8.1.12@sha256:5032c4dd7abe08d6fd9382054608183e2bf1f7e3895ef619b8784698454325f7
         ports:
           - 127.0.0.1:56379:6379
         options: --health-cmd "valkey-cli ping" --health-interval 2s --health-timeout 2s --health-retries 30
@@ -25,9 +26,11 @@ jobs:
       TEST_ADMIN_DATABASE_URL: postgresql://postgres:verifier@127.0.0.1:55432/postgres
       TEST_VALKEY_URL: redis://127.0.0.1:56379/0
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: .nvmrc
           cache: pnpm
