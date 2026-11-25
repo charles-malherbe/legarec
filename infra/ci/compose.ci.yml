@@ -8,6 +8,8 @@ services:
     volumes: ['/var/lib/legarec-ci/depot:/depot']
   essai-restauration:
     volumes: ['/var/lib/legarec-ci/depot:/depot']
+  restauration:
+    volumes: ['/var/lib/legarec-ci/depot:/depot']
 networks:
   sortie-worker: { internal: true }
   sortie-base: { internal: true }

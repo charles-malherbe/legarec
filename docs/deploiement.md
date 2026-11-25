@@ -15,6 +15,7 @@ Première partie du lot X. Fichiers préparés par Claude Code, vérifiés par G
 | `migration` | Une exécution par déploiement | 10104 | 256 Mo | non |
 | `postgres` | Base, envoi continu du journal aux sauvegardes | 999 | 1,5 Go | oui (bucket) |
 | `sauvegarde`, `essai-restauration` | Une exécution par minuterie | 999 | 384 et 512 Mo | oui (bucket) |
+| `restauration` | À la main, base arrêtée | 999 | 384 Mo | oui (bucket) |
 | `valkey` | Files d'attente | 10115 | 512 Mo | non |
 | `gatus` | Page d'état publique | 10111 | 96 Mo | non |
 | `gatus-interne` | Contrôles internes et alertes | 10111 | 96 Mo | oui (alertes) |
@@ -160,10 +161,10 @@ Retour en arrière : `sudo git -C /opt/legarec checkout <version précédente>`,
    sudo cp -a "$(sudo docker volume inspect --format '{{.Mountpoint}}' legarec-app_postgres-data)" /root/legarec-avant/
    ```
 
-3. Restaurer le dernier état. Pour un instant précis, ajouter l'heure à la fin, par exemple `"2026-12-01 09:00:00+01"`.
+3. Restaurer le dernier état. Pour un instant précis, ajouter l'heure à la fin : `legarec run --rm restauration "2026-12-01 09:00:00+01"`.
 
    ```bash
-   legarec run --rm --no-deps --volume legarec-app_postgres-data:/var/lib/postgresql/data --entrypoint legarec-restore sauvegarde /var/lib/postgresql/data
+   legarec run --rm restauration
    ```
 
 4. Démarrer la base seule.

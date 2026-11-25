@@ -191,7 +191,7 @@ ok 'worker stopped'
 
 # The restoration of docs/deploiement.md, for real
 docker compose stop caddy api postgres
-docker compose run --rm --no-deps --volume legarec-app_postgres-data:/var/lib/postgresql/data --entrypoint legarec-restore sauvegarde /var/lib/postgresql/data
+docker compose run --rm restauration
 docker compose up --detach --wait postgres
 docker compose exec -T postgres psql --username postgres --dbname legarec --tuples-only --no-align --command 'SELECT pg_is_in_recovery()' > /tmp/said
 for _ in $(seq 30); do

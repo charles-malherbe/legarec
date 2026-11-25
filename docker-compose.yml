@@ -198,6 +198,17 @@ services:
     memswap_limit: 512m
     depends_on: []
 
+  # Run by hand, the server being stopped (docs/deploiement.md): the only one that may replace the data folder.
+  restauration:
+    <<: *backup
+    profiles: [restauration]
+    entrypoint: [legarec-restore, /var/lib/postgresql/data]
+    command: []
+    secrets: [{ source: restauration, target: pgbackrest }]
+    volumes: ['postgres-data:/var/lib/postgresql/data']
+    networks: [sortie-base]
+    depends_on: []
+
   valkey:
     <<: *container
     image: legarec/valkey:${LEGAREC_VERSION:?}
