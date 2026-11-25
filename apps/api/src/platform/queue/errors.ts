@@ -6,7 +6,7 @@ export class GiveUp extends Error {
   }
 }
 
-/** Nothing has left yet: the task may be tried again, even when a second run would do harm. */
+/** Nothing has left yet: the task is tried again, for as long as it takes, even when a second run would do harm. */
 export class TryLater extends Error {
   override readonly name = 'TryLater';
   constructor(readonly code: string) {

@@ -326,24 +326,48 @@ describe('a task', () => {
     expect(seen).toEqual(['run']);
   });
 
-  it('is tried again when the database was away, rather than given up', async () => {
+  /** Every try but the last one, at once rather than after its delay. */
+  const tryAgain = async (tries: () => number) => {
+    const later = queue();
+    for (let i = 1; i <= 5; i += 1) {
+      await until(() => tries() === i);
+      if (i === 5) break;
+      await until(async () => (await later.getDelayedCount()) === 1);
+      await (await later.getDelayed())[0]!.promote();
+    }
+    await until(async () => (await inValkey()).length === 0);
+  };
+
+  it('is never given up because the database was away: it comes back by itself', async () => {
     const seen: string[] = [];
-    let cut = true;
+    let cuts = 0;
+    let away = true;
     const shaky = Object.create(jobs) as Database;
     shaky.run = ((who: Actor, ...rest: [never]) => {
-      if (who.kind !== 'staff' || !cut) return jobs.run(who, ...rest);
-      cut = false;
+      if (who.kind !== 'staff' || !away) return jobs.run(who, ...rest);
+      cuts += 1;
       return Promise.reject(new Error('Connection terminated'));
     }) as Database['run'];
     work(async () => void seen.push('run'), { repeatable: false, database: shaky });
-    const later = queue();
     await add();
     await publisher().publish();
-    await until(async () => (await later.getDelayedCount()) === 1);
-    expect(await state()).toMatchObject({ started: false, failure: null });
-    await (await later.getDelayed())[0]!.promote();
+    await tryAgain(() => cuts);
+    expect([await state(), logged('task abandoned')]).toEqual([{ published: true, started: false, done: false, failure: null }, 0]);
+    away = false;
+    await test.admin.query("UPDATE outbox SET published_at = now() - interval '2 hours'");
+    expect(await publisher().putBack()).toBe(1);
+    await publisher().publish();
     await ended();
     expect([seen, (await state()).failure]).toEqual([['run'], null]);
+  });
+
+  it.each([false, true])('is never given up while nothing has left (repeatable: %s)', async (repeatable) => {
+    let tries = 0;
+    work(() => ((tries += 1), Promise.reject(new TryLater('PROVIDER_AWAY'))), { repeatable });
+    await add();
+    await publisher().publish();
+    await tryAgain(() => tries);
+    expect([await state(), logged('task abandoned')]).toEqual([{ published: true, started: false, done: false, failure: null }, 0]);
   });
 
   it('leaves nothing in Valkey but its number, and nothing in the logs', async () => {
@@ -448,13 +472,23 @@ describe('a task that must not run twice', () => {
     const handlers = { [name]: { send: { from: EVERYONE, repeatable: true, run: () => Promise.resolve() } } };
     expect(() => startWorkers({ database: jobs, logger, connection: valkey, handlers, prefix })).toThrow(`Never repeatable in the queue ${name}: send`);
   });
+
+  it('does not share its name with a schedule, that would run in its place', () => {
+    const handlers = { maintenance: { purge: { from: EVERYONE, repeatable: true, run: () => Promise.resolve() } } };
+    const scheduled = maintenance(jobs, logger);
+    expect(() => startWorkers({ database: jobs, logger, connection: valkey, handlers, scheduled, prefix })).toThrow(
+      'Both a task and a schedule in the queue maintenance: purge',
+    );
+  });
 });
 
 describe('rights of a task', () => {
   const counting = (from?: readonly AuthorKind[]) => {
     const seen: number[][] = [];
-    const run: JobDefinition['run'] = async ({ asAuthor, asApplication }) =>
-      void seen.push(await Promise.all([asAuthor((tx) => tx.case.count()), asApplication(always, (tx) => tx.case.count())]));
+    const run: JobDefinition['run'] = async ({ asAuthor, authorize }) => {
+      const asApplication = await authorize(always);
+      seen.push(await Promise.all([asAuthor((tx) => tx.case.count()), asApplication((tx) => tx.case.count())]));
+    };
     work(run, { from });
     return seen;
   };
@@ -497,14 +531,10 @@ describe('rights of a task', () => {
     ['the application', () => jobs.run({ kind: 'worker', job: 'x' }, () => new Outbox(jobs).add({ queue: 'maintenance', name: 'sample', payload: {} }))],
   ])('belong to nobody when nobody had signed in: %s', async (_who, start) => {
     const seen: unknown[] = [];
-    work(async ({ asAuthor, asApplication }) => {
+    work(async ({ asAuthor, authorize }) => {
       // There is nobody to check.
-      seen.push(
-        await asApplication(
-          () => Promise.reject(new Error('asked')),
-          (tx) => tx.case.count(),
-        ),
-      );
+      const asApplication = await authorize(() => Promise.reject(new Error('asked')));
+      seen.push(await asApplication((tx) => tx.case.count()));
       await asAuthor((tx) => tx.case.count());
     });
     await start(() => add());
@@ -521,11 +551,34 @@ describe('rights of a task', () => {
     ['the Director on the case of an officer', actor.director, 'ofA', false],
   ])('open those of the application only to who may act: %s', async (_who, author, target, allowed) => {
     const seen: number[] = [];
-    work(async ({ asApplication }) => void seen.push(await asApplication(mayActOn(s.cases[target]), (tx) => tx.case.count())));
+    work(async ({ authorize }) => {
+      const asApplication = await authorize(mayActOn(s.cases[target]));
+      seen.push(await asApplication((tx) => tx.case.count()));
+    });
     await add({}, author());
     await publisher().publish();
     await ended();
     expect([seen, (await state()).failure]).toEqual(allowed ? [[4], null] : [[], 'NOT_ALLOWED']);
+  });
+
+  it('stay open once checked: what has left is recorded, whatever has changed meanwhile', async () => {
+    const seen: unknown[] = [];
+    const give = (officer: string) => test.admin.query('UPDATE cases SET officer_id = $2 WHERE id = $1', [s.cases.ofA, officer]);
+    work(async ({ authorize }) => {
+      const asApplication = await authorize(mayActOn(s.cases.ofA));
+      await give(s.officerB);
+      seen.push(await asApplication((tx) => tx.$executeRaw`UPDATE cases SET first_letter_on = '2026-11-21' WHERE id = ${s.cases.ofA}::uuid`));
+      await authorize(mayActOn(s.cases.ofA));
+      seen.push('allowed again');
+    });
+    await add();
+    await publisher().publish();
+    try {
+      await ended();
+      expect([seen, (await state()).failure]).toEqual([[1], 'NOT_ALLOWED']);
+    } finally {
+      await give(s.officerA);
+    }
   });
 
   it('are read when it runs: a case given to someone else since is out of reach', async () => {

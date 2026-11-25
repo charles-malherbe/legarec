@@ -12,16 +12,18 @@ import { QUEUE_PREFIX } from './publisher';
 export type AuthorKind = 'STAFF' | 'CREDITOR' | 'DEBTOR' | 'SERVICE' | 'HOOK' | 'SYSTEM' | 'ANONYMOUS';
 /** Answers true when the author holds the right to what follows. */
 export type Check = (tx: Transaction) => Promise<boolean>;
+export type Run = <T>(work: (tx: Transaction) => Promise<T>) => Promise<T>;
 export interface JobContext {
   taskId: string;
   payload: TaskPayload;
   /** With the rights of the author, read again now. Refused when nobody had signed in. */
-  asAuthor<T>(work: (tx: Transaction) => Promise<T>): Promise<T>;
+  asAuthor: Run;
   /**
-   * With those of the application, once the author has passed the check: seeing a case does not prove the right to act
-   * on it. The check is not asked when nobody had signed in (a provider, the application itself, the sign-in page).
+   * Opens those of the application, once the author has passed the check: seeing a case does not prove the right to act
+   * on it. Asked once, before anything leaves; what has left can then be recorded, whatever has changed meanwhile. Not
+   * asked when nobody had signed in (a provider, the application itself, the sign-in page).
    */
-  asApplication<T>(check: Check, work: (tx: Transaction) => Promise<T>): Promise<T>;
+  authorize(check: Check): Promise<Run>;
 }
 export interface JobDefinition {
   /** Who may start it: a task from anyone else is refused. */
@@ -53,7 +55,7 @@ interface Stored {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
 const worker = (job: string): Actor => ({ kind: 'worker', job });
 
-/** The author may act on this case: what `asApplication` asks for most tasks of the team. */
+/** The author may act on this case: what most tasks of the team ask first. */
 export const mayActOn =
   (caseId: string): Check =>
   async (tx) => {
@@ -99,14 +101,21 @@ function contextOf(database: Database, task: Stored, author: Actor | null): JobC
       if (!author) throw new GiveUp('NO_AUTHOR');
       return database.run(author, work);
     },
-    asApplication: async (check, work) => {
+    authorize: async (check) => {
       if (author && (await database.run(author, check)) !== true) throw new GiveUp('NOT_ALLOWED');
-      return database.run(worker(task.name), work);
+      return (work) => database.run(worker(task.name), work);
     },
   };
 }
 
-async function runTask(parts: { database: Database; logger: AppLogger; handlers: JobHandlers }, queue: QueueName, id: string): Promise<void> {
+interface Taken {
+  definition: JobDefinition;
+  context: JobContext;
+  set(change: (tx: Transaction) => Promise<number>): Promise<number>;
+}
+
+/** Takes the task, or null when there is nothing to do. Whatever fails here, nothing has started. */
+async function take(parts: { database: Database; logger: AppLogger; handlers: JobHandlers }, queue: QueueName, id: string): Promise<Taken | null> {
   const { database, logger } = parts;
   const read = async () =>
     (
@@ -121,8 +130,8 @@ async function runTask(parts: { database: Database; logger: AppLogger; handlers:
   const task = UUID.test(id) ? await read() : undefined;
   if (!task || task.queue !== queue) throw new GiveUp('UNKNOWN_TASK');
   // Delivered twice, or before its time: done once, at its time.
-  if (task.settled || task.early) return;
-  const set = (change: (tx: Transaction) => Promise<number>) => database.run(worker(task.name), change);
+  if (task.settled || task.early) return null;
+  const set: Taken['set'] = (change) => database.run(worker(task.name), change);
   const definition = parts.handlers[queue]?.[task.name];
   if (!definition) {
     // Queued by a newer version of the API: back in the table, until a worker knows it.
@@ -130,7 +139,7 @@ async function runTask(parts: { database: Database; logger: AppLogger; handlers:
     await set(
       (tx) => tx.$executeRaw`UPDATE outbox SET published_at = NULL, claimed_at = now() WHERE id = ${id}::uuid AND done_at IS NULL AND failed_at IS NULL`,
     );
-    return;
+    return null;
   }
   if (!definition.from.includes(task.actor_kind)) throw new GiveUp('AUTHOR_REFUSED');
   const author = await authorOf(database, task);
@@ -140,13 +149,16 @@ async function runTask(parts: { database: Database; logger: AppLogger; handlers:
       UPDATE outbox SET started_at = now()
       WHERE id = ${id}::uuid AND done_at IS NULL AND failed_at IS NULL AND (run_at IS NULL OR run_at <= now()) AND (started_at IS NULL OR ${definition.repeatable})`,
   );
-  if (taken !== 1) {
-    if ((await read())?.settled !== false) return;
-    // Started once and never ended: nobody knows what has left.
-    throw new GiveUp('UNCERTAIN');
-  }
+  if (taken === 1) return { definition, context: contextOf(database, task, author), set };
+  if ((await read())?.settled !== false) return null;
+  // Started once and never ended: nobody knows what has left.
+  throw new GiveUp('UNCERTAIN');
+}
+
+async function execute({ definition, context, set }: Taken): Promise<void> {
+  const id = context.taskId;
   try {
-    await definition.run(contextOf(database, task, author));
+    await definition.run(context);
   } catch (error) {
     if (error instanceof TryLater) await set((tx) => tx.$executeRaw`UPDATE outbox SET started_at = NULL WHERE id = ${id}::uuid AND done_at IS NULL`);
     else if (!definition.repeatable && !(error instanceof GiveUp)) throw new GiveUp('UNCERTAIN');
@@ -181,6 +193,8 @@ export function startWorkers(parts: {
   for (const [queue, definitions] of Object.entries(parts.handlers)) {
     const wrong = Object.entries(definitions).filter(([, { repeatable }]) => repeatable && ONE_TRY.has(queue as QueueName));
     if (wrong.length) throw new Error(`Never repeatable in the queue ${queue}: ${wrong.map(([name]) => name).join(', ')}`);
+    const both = Object.keys(definitions).filter((name) => name in (scheduled[queue as QueueName] ?? {}));
+    if (both.length) throw new Error(`Both a task and a schedule in the queue ${queue}: ${both.join(', ')}`);
   }
   let stopping = false;
   const names = [...new Set([...Object.keys(parts.handlers), ...Object.keys(scheduled)])] as QueueName[];
@@ -189,15 +203,23 @@ export function startWorkers(parts: {
       queue,
       async (job: Job) => {
         const id = job.id ?? '';
+        let taken: Taken | null = null;
         try {
           const planned = scheduled[queue]?.[job.name];
-          await (planned ? planned() : runTask(parts, queue, id));
+          if (planned) await planned();
+          else {
+            taken = await take(parts, queue, id);
+            if (taken) await execute(taken);
+          }
         } catch (error) {
           const code = codeOf(error);
-          const final = error instanceof GiveUp || job.attemptsMade + 1 >= (job.opts.attempts ?? 1);
-          logger.error({ queue, task: job.name, taskId: id, attempt: job.attemptsMade + 1, errorType: code }, final ? 'task abandoned' : 'task failed');
+          const last = job.attemptsMade + 1 >= (job.opts.attempts ?? 1);
+          // A task that has not started, or from which nothing has left, is never abandoned: Valkey forgets it, the table
+          // does not, and it is published again an hour later.
+          const abandoned = error instanceof GiveUp || (last && taken !== null && !(error instanceof TryLater));
+          logger.error({ queue, task: job.name, taskId: id, attempt: job.attemptsMade + 1, errorType: code }, abandoned ? 'task abandoned' : 'task failed');
           // Kept in the table, with its key: nothing starts it again without a decision.
-          if (final && UUID.test(id))
+          if (abandoned && UUID.test(id))
             await database
               .run(
                 worker(queue),
@@ -205,7 +227,7 @@ export function startWorkers(parts: {
                   tx.$executeRaw`UPDATE outbox SET failed_at = now(), failure = ${code} WHERE id = ${id}::uuid AND queue = ${queue} AND done_at IS NULL AND failed_at IS NULL`,
               )
               .catch(() => logger.error({ queue, taskId: id }, 'failure not recorded'));
-          throw final ? new UnrecoverableError(code) : Object.assign(new Error(code), { stack: '' });
+          throw abandoned ? new UnrecoverableError(code) : Object.assign(new Error(code), { stack: '' });
         }
       },
       { connection: parts.connection, prefix: parts.prefix ?? QUEUE_PREFIX, concurrency: parts.concurrency?.[queue] ?? 1, autorun: false },

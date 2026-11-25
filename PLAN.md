@@ -142,7 +142,7 @@ Les 161 routes simulées se répartissent ainsi :
 | [ ] U | Contentieux, rapports, équipe, tableaux de bord, score de risque | 8 |
 | [ ] V | RGPD : registre, exports, anonymisation, purges | 3 |
 | [ ] W | IA : couche compatible OpenAI, essai mesuré, quatre fonctions | 3 |
-| [ ] X | Exploitation : Dockerfiles, compose, `infra/caddy/Caddyfile`, pgBackRest, Gatus, Loki, `bootstrap.sql` exécuté dans la base de l'application, sonde de santé du worker ; bascule finale | — |
+| [ ] X | Exploitation : Dockerfiles, compose, `infra/caddy/Caddyfile`, pgBackRest, Gatus, Loki, `bootstrap.sql` exécuté dans la base de l'application, sonde de santé du worker et délai d'arrêt d'au moins une minute ; bascule finale | — |
 
 **Bascule** : chaque lot ajoute ses préfixes à une liste `VITE_API` (développement) : MSW laisse passer ces routes vers l'API. La valeur par défaut bascule portail par portail : paiement après O, partenaires après P, espace après U. Chaque lot rejoue les mêmes requêtes contre MSW et contre l'API et valide les deux par le même schéma Zod. En mode mixte, un lien vers un écran non branché peut ne pas trouver le dossier (développement seulement). MSW reste pour les tests de composants.
 
