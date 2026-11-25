@@ -19,9 +19,9 @@ const TEST_KEYS = ['RESEND_API_KEY', 'RESEND_ACCOUNT_API_KEY', 'RESEND_WEBHOOK_S
 const own = existsSync(ENV_FILE) ? parseEnv(readFileSync(ENV_FILE, 'utf8')) : {};
 const services = values();
 const pick = (source, names) => Object.fromEntries(names.filter((name) => source[name] !== undefined).map((name) => [name, source[name]]));
-const COMMON = ['VALKEY_URL', 'VAULT_MASTER_KEY', 'SESSION_SIGNING_KEY', 'DATABASE_URL'];
-/** Each program receives what it needs: the API never holds the account of the migrations, nor that of the worker. */
-const NEEDS = { migrate: ['MIGRATION_DATABASE_URL'], main: COMMON, worker: [...COMMON, 'JOBS_DATABASE_URL'] };
+const COMMON = ['VALKEY_URL', 'VAULT_MASTER_KEY', 'SESSION_SIGNING_KEY'];
+/** Each program receives what it needs, and a single account of PostgreSQL: its own. */
+const NEEDS = { migrate: ['MIGRATION_DATABASE_URL'], main: [...COMMON, 'DATABASE_URL'], worker: [...COMMON, 'JOBS_DATABASE_URL'] };
 const envOf = (name) => ({
   ...pick(process.env, ['PATH', 'HOME', 'LANG', 'TZ', 'LOG_LEVEL']),
   NODE_ENV: 'development',

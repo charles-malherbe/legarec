@@ -102,7 +102,8 @@ const postgresRuns = (bin) => spawnSync(join(bin, 'pg_ctl'), ['-D', DATA, 'statu
 function valkeyPid() {
   try {
     const pid = Number(readFileSync(join(HOME, 'valkey.pid'), 'utf8'));
-    return readFileSync(`/proc/${pid}/cmdline`, 'utf8').includes('valkey-server') ? pid : null;
+    // Its name and its port: another Valkey of this machine may have been given the same number.
+    return readFileSync(`/proc/${pid}/cmdline`, 'utf8').includes(`valkey-server ${HOST}:${VALKEY_PORT}`) ? pid : null;
   } catch {
     return null;
   }

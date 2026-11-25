@@ -7,6 +7,18 @@ export function parseUrl(value: string): URL | null {
   return URL.canParse(value) ? new URL(value) : null;
 }
 
+/** Complete address of a database. Without a server or a name, `pg` would fall back on port 5432 of this machine. */
+export function isDatabaseUrl(value: string): boolean {
+  const url = /^postgresql:\/\//u.test(value) ? parseUrl(value) : null;
+  return url !== null && url.hostname !== '' && url.pathname.length > 1;
+}
+
+/** Complete address of a Valkey, with a server. */
+export function isValkeyUrl(value: string): boolean {
+  const url = /^rediss?:\/\//u.test(value) ? parseUrl(value) : null;
+  return url !== null && url.hostname !== '';
+}
+
 /**
  * Address of a service of development: this machine, a port of our own, and nothing hidden after it. `pg` lets a
  * parameter (`?host=`, `?port=`) override the address, so none is accepted.

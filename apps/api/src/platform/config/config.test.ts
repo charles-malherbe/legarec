@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { ConfigError, readConfig } from './config';
+import { assertTestUrl } from '../../../test/globalSetup';
+import { ConfigError, readConfig, readMigrationUrl, readWorkerConfig } from './config';
 
 const base = () => ({
   NODE_ENV: 'development',
@@ -129,6 +130,59 @@ describe('addresses of the services', () => {
     expect(error).toBeInstanceOf(ConfigError);
     expect((error as Error).message).toContain(name);
     expect(`${(error as Error).message} ${JSON.stringify(error)}`).not.toContain('zz-secret-zz');
+  });
+});
+
+describe('account of each program', () => {
+  const { DATABASE_URL: api, ...rest } = base();
+  const jobs = 'postgresql://jobs:pw@127.0.0.1:55432/legarec_dev';
+  const owner = 'postgresql://owner:pw@127.0.0.1:55432/legarec_dev';
+
+  it('is its own, and the only one it needs', () => {
+    expect(readConfig({ ...rest, DATABASE_URL: api })).toMatchObject({ DATABASE_URL: api });
+    expect(() => readConfig({ ...rest, JOBS_DATABASE_URL: jobs })).toThrow('Missing or invalid startup values: DATABASE_URL');
+    expect(readWorkerConfig({ ...rest, JOBS_DATABASE_URL: jobs })).toMatchObject({ JOBS_DATABASE_URL: jobs });
+    expect(() => readWorkerConfig({ ...rest, DATABASE_URL: api })).toThrow('Missing or invalid startup values: JOBS_DATABASE_URL');
+    expect(readMigrationUrl({ MIGRATION_DATABASE_URL: owner })).toBe(owner);
+    expect(() => readMigrationUrl({ DATABASE_URL: api, JOBS_DATABASE_URL: jobs })).toThrow('MIGRATION_DATABASE_URL');
+  });
+
+  // Without a server or a database, `pg` falls back on port 5432 of this machine: production is there.
+  it.each([
+    '',
+    'zz-secret-zz',
+    'postgresql://',
+    'postgresql:///legarec',
+    'postgresql://127.0.0.1:55432',
+    'postgresql://127.0.0.1:55432/',
+    'mysql://o:zz-secret-zz@h:1/x',
+  ])('is a complete address, in production too: %j', (value) => {
+    const production = { ...rest, ...portals, NODE_ENV: 'production' };
+    for (const read of [
+      () => readConfig({ ...production, DATABASE_URL: value }),
+      () => readWorkerConfig({ ...production, JOBS_DATABASE_URL: value }),
+      () => readMigrationUrl({ NODE_ENV: 'production', MIGRATION_DATABASE_URL: value }),
+    ]) {
+      expect(read).toThrow(ConfigError);
+      expect(read).not.toThrow('zz-secret-zz');
+    }
+  });
+  it.each(['redis://', 'redis:///0', 'http://127.0.0.1:56379'])('is completed by a Valkey that has a server: %s', (value) => {
+    expect(() => readConfig({ ...base(), ...portals, NODE_ENV: 'production', VALKEY_URL: value })).toThrow('VALKEY_URL');
+  });
+
+  it.each([
+    'postgresql://owner:pw@127.0.0.1:5432/legarec',
+    'postgresql://owner:pw@127.0.0.1/legarec',
+    'postgresql://owner:pw@db.exemple.test:55432/legarec',
+    'postgresql://owner:pw@127.0.0.1:55432/legarec?port=5432',
+  ])('never reaches production: %s', (value) => {
+    expect(() => readMigrationUrl({ MIGRATION_DATABASE_URL: value })).toThrow('never port 5432 or 6379');
+    expect(() => readConfig({ ...base(), MIGRATION_DATABASE_URL: value })).toThrow('MIGRATION_DATABASE_URL');
+    expect(() => readWorkerConfig({ ...rest, JOBS_DATABASE_URL: value })).toThrow('JOBS_DATABASE_URL');
+    expect(() => assertTestUrl(value, 'TEST_ADMIN_DATABASE_URL')).toThrow('TEST_ADMIN_DATABASE_URL');
+    // Deployed, the migrations go where they are told.
+    expect(readMigrationUrl({ NODE_ENV: 'production', MIGRATION_DATABASE_URL: value })).toBe(value);
   });
 });
 
