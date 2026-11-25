@@ -1,0 +1,360 @@
+# Production. Never started by Claude Code: docs/deploiement.md.
+# - Caddy is the only container that publishes ports.
+# - No value here: each container reads its own file of /etc/legarec, mounted as a file (nothing in `docker inspect`).
+# - No container runs as root, nor as the account of the server used for development (1000).
+name: legarec-app
+
+x-container: &container
+  restart: unless-stopped
+  read_only: true
+  init: true
+  cap_drop: [ALL]
+  security_opt: ['no-new-privileges:true']
+  pids_limit: 200
+  tmpfs: ['/tmp:size=64m,mode=1777']
+  # Handed to the collector, through a socket that only root opens. A collector that is away never holds a container back.
+  logging:
+    driver: fluentd
+    options:
+      fluentd-address: unix:///var/lib/legarec/journaux/fluent.sock
+      fluentd-async: 'true'
+      mode: non-blocking
+      max-buffer-size: 4m
+      tag: legarec.{{.Name}}
+      cache-max-size: 1m
+      cache-max-file: '2'
+
+# The collector and Loki cannot log to themselves.
+x-own-log: &own-log
+  driver: local
+  options: { max-size: 1m, max-file: '2' }
+
+x-health: &health
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 60s
+  start_interval: 3s
+
+x-portal: &portal
+  <<: *container
+  user: '10103:10103'
+  mem_limit: 48m
+  memswap_limit: 48m
+  networks: [portails]
+  healthcheck:
+    <<: *health
+    test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1:8080/health']
+
+services:
+  caddy:
+    <<: *container
+    image: legarec/caddy:${LEGAREC_VERSION:?}
+    build: { context: ., dockerfile: infra/docker/caddy.Dockerfile }
+    user: '10110:10110'
+    sysctls: { net.ipv4.ip_unprivileged_port_start: 80 }
+    ports: ['80:80', '443:443', '443:443/udp']
+    secrets: [caddy]
+    volumes: ['caddy-data:/data', 'caddy-config:/config']
+    mem_limit: 192m
+    memswap_limit: 192m
+    stop_grace_period: 30s
+    networks:
+      entree:
+      portails:
+      api:
+      # The public addresses, as the monitoring reaches them without leaving the server.
+      etat:
+        aliases: [espace.legarec.fr, partenaires.legarec.fr, paiement.legarec.fr, api.legarec.fr, media.legarec.fr]
+    healthcheck:
+      <<: *health
+      test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1:8081/health']
+
+  espace:
+    <<: *portal
+    image: legarec/espace:${LEGAREC_VERSION:?}
+    build:
+      context: .
+      dockerfile: infra/docker/portail.Dockerfile
+      args: { PORTAL: espace, VITE_API_URL: 'https://api.legarec.fr/staff' }
+
+  partenaires:
+    <<: *portal
+    image: legarec/partenaires:${LEGAREC_VERSION:?}
+    build:
+      context: .
+      dockerfile: infra/docker/portail.Dockerfile
+      args: { PORTAL: partenaires, VITE_API_URL: 'https://api.legarec.fr/partner' }
+
+  paiement:
+    <<: *portal
+    image: legarec/paiement:${LEGAREC_VERSION:?}
+    build:
+      context: .
+      dockerfile: infra/docker/portail.Dockerfile
+      # The root: this portal already names /debtor and /public in its paths.
+      args: { PORTAL: paiement, VITE_API_URL: 'https://api.legarec.fr' }
+
+  api: &api
+    <<: *container
+    image: legarec/api:${LEGAREC_VERSION:?}
+    build: { context: ., dockerfile: infra/docker/api.Dockerfile }
+    user: '10101:10101'
+    command: [node, --env-file=/run/secrets/api, --max-old-space-size=384, dist/main.js]
+    secrets: [api]
+    mem_limit: 512m
+    memswap_limit: 512m
+    stop_grace_period: 40s
+    networks: [api, donnees]
+    depends_on: &services
+      postgres: { condition: service_healthy }
+      valkey: { condition: service_healthy }
+    healthcheck:
+      <<: *health
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/health').then((answer) => process.exit(answer.ok ? 0 : 1), () => process.exit(1))"]
+
+  worker:
+    <<: *container
+    image: legarec/api:${LEGAREC_VERSION:?}
+    user: '10102:10102'
+    command: [node, --env-file=/run/secrets/worker, --max-old-space-size=512, dist/worker.js]
+    secrets: [worker]
+    mem_limit: 768m
+    memswap_limit: 768m
+    # A task under way ends before the worker stops: a letter or a text message cut short would have an unknown outcome.
+    stop_grace_period: 90s
+    networks: [donnees, surveillance, sortie-worker]
+    depends_on: *services
+    healthcheck:
+      <<: *health
+      interval: 60s
+      test: [CMD, node, --env-file=/run/secrets/worker, worker-health.mjs]
+
+  # One run before each deployment, with the only account that may change the tables.
+  migration:
+    <<: *container
+    image: legarec/api:${LEGAREC_VERSION:?}
+    profiles: [deploiement]
+    restart: 'no'
+    user: '10104:10104'
+    command: [node, --env-file=/run/secrets/migration, dist/migrate.js]
+    secrets: [migration]
+    mem_limit: 256m
+    memswap_limit: 256m
+    networks: [donnees]
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  postgres:
+    <<: *container
+    image: legarec/postgres:${LEGAREC_VERSION:?}
+    build: { context: ., dockerfile: infra/docker/postgres.Dockerfile }
+    user: '999:999'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: legarec
+      # The same collation as in development; checksums find a damaged page.
+      POSTGRES_INITDB_ARGS: --auth-local=peer --auth-host=scram-sha-256 --encoding=UTF8 --locale=C.UTF-8 --locale-provider=icu --icu-locale=fr-FR --data-checksums
+    secrets: [postgres, pgbackrest]
+    volumes: ['postgres-data:/var/lib/postgresql/data', 'postgres-socket:/var/run/postgresql']
+    shm_size: 256m
+    mem_limit: 1536m
+    memswap_limit: 1536m
+    stop_signal: SIGINT
+    stop_grace_period: 120s
+    networks: [donnees, sortie-base]
+    healthcheck:
+      <<: *health
+      # By the network: while the data folder is being created, the server only hears its local socket.
+      test: [CMD, pg_isready, -q, -h, 127.0.0.1, -U, legarec_app, -d, legarec]
+
+  # One run by the timers of infra/systemd: `sauvegarde incr`, `sauvegarde full`.
+  sauvegarde: &backup
+    <<: *container
+    image: legarec/postgres:${LEGAREC_VERSION:?}
+    profiles: [sauvegarde]
+    restart: 'no'
+    user: '999:999'
+    entrypoint: [legarec-backup]
+    command: [incr]
+    secrets: [pgbackrest]
+    # Reads the data folder, and nothing of it changes; talks to the server by its local socket.
+    volumes: ['postgres-data:/var/lib/postgresql/data:ro', 'postgres-socket:/var/run/postgresql']
+    mem_limit: 384m
+    memswap_limit: 384m
+    networks: [surveillance, sortie-base]
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  # One run a week by the timer: a temporary server, in a folder of its own, that disappears with it.
+  essai-restauration:
+    <<: *backup
+    entrypoint: [legarec-restore-test]
+    command: []
+    # A key of its own, that only reads.
+    secrets: [{ source: restauration, target: pgbackrest }]
+    volumes: ['/restauration']
+    mem_limit: 512m
+    memswap_limit: 512m
+    depends_on: []
+
+  # Run by hand, the server being stopped (docs/deploiement.md): the only one that may replace the data folder.
+  restauration:
+    <<: *backup
+    profiles: [restauration]
+    entrypoint: [legarec-restore, /var/lib/postgresql/data]
+    command: []
+    secrets: [{ source: restauration, target: pgbackrest }]
+    volumes: ['postgres-data:/var/lib/postgresql/data']
+    networks: [sortie-base]
+    depends_on: []
+
+  valkey:
+    <<: *container
+    image: legarec/valkey:${LEGAREC_VERSION:?}
+    build: { context: ., dockerfile: infra/docker/valkey.Dockerfile }
+    # The image has its own init.
+    init: false
+    user: '10115:10115'
+    secrets: [valkey]
+    volumes: ['valkey-data:/data']
+    mem_limit: 512m
+    memswap_limit: 512m
+    stop_grace_period: 30s
+    networks: [donnees]
+    healthcheck:
+      <<: *health
+      test: [CMD, legarec-valkey-health]
+
+  # Public status page.
+  gatus:
+    <<: *container
+    image: legarec/gatus:${LEGAREC_VERSION:?}
+    build: { context: ., dockerfile: infra/docker/gatus.Dockerfile }
+    user: '10111:10111'
+    environment: { GATUS_CONFIG_PATH: /etc/gatus/public.yaml, GATUS_LOG_LEVEL: WARN }
+    volumes: ['gatus-data:/data']
+    mem_limit: 96m
+    memswap_limit: 96m
+    networks: [etat]
+    healthcheck: &gatus-health
+      <<: *health
+      test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1:8080/health']
+
+  # Internal checks and alerts, shown to the addresses of the firm only.
+  gatus-interne:
+    <<: *container
+    image: legarec/gatus:${LEGAREC_VERSION:?}
+    user: '10111:10111'
+    environment: { GATUS_CONFIG_PATH: /etc/gatus/internal.yaml, GATUS_LOG_LEVEL: WARN }
+    secrets: [gatus]
+    volumes: ['gatus-interne-data:/data']
+    mem_limit: 96m
+    memswap_limit: 96m
+    networks: [etat, journaux, surveillance, sortie-alertes]
+    healthcheck: *gatus-health
+
+  # Collector of the technical logs. Neither shell nor health check in its image: checked by gatus-interne.
+  journaux:
+    <<: *container
+    image: legarec/journaux:${LEGAREC_VERSION:?}
+    build: { context: ., dockerfile: infra/docker/journaux.Dockerfile }
+    user: '10113:10113'
+    logging: *own-log
+    volumes: ['/var/lib/legarec/journaux:/journaux']
+    mem_limit: 96m
+    memswap_limit: 96m
+    networks: [journaux]
+
+  # Technical logs, 60 days. Neither shell nor health check in its image: checked by gatus-interne.
+  loki:
+    <<: *container
+    image: legarec/loki:${LEGAREC_VERSION:?}
+    build: { context: ., dockerfile: infra/docker/loki.Dockerfile }
+    user: '10001:10001'
+    logging: *own-log
+    volumes: ['loki-data:/loki']
+    mem_limit: 384m
+    memswap_limit: 384m
+    networks: [journaux]
+
+  # Technical logs on screen: status.legarec.fr/journaux, from the addresses of the firm only.
+  grafana:
+    <<: *container
+    image: legarec/grafana:${LEGAREC_VERSION:?}
+    build: { context: ., dockerfile: infra/docker/grafana.Dockerfile }
+    user: '10114:10114'
+    environment:
+      GF_SERVER_ROOT_URL: https://status.legarec.fr/journaux/
+      GF_SERVER_SERVE_FROM_SUB_PATH: 'true'
+      GF_SECURITY_COOKIE_SECURE: 'true'
+      GF_SECURITY_COOKIE_SAMESITE: strict
+      GF_SECURITY_DISABLE_GRAVATAR: 'true'
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_AUTH_ANONYMOUS_ENABLED: 'false'
+      GF_ANALYTICS_REPORTING_ENABLED: 'false'
+      GF_ANALYTICS_CHECK_FOR_UPDATES: 'false'
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: 'false'
+      GF_NEWS_NEWS_FEED_ENABLED: 'false'
+      GF_PLUGINS_PREINSTALL_DISABLED: 'true'
+      GF_LOG_MODE: console
+      # A warning quotes the address of who failed to sign in.
+      GF_LOG_LEVEL: error
+      # A snapshot would outlive the logs.
+      GF_SNAPSHOTS_ENABLED: 'false'
+      GF_SNAPSHOTS_EXTERNAL_ENABLED: 'false'
+    secrets: [grafana]
+    volumes: ['grafana-data:/var/lib/grafana']
+    mem_limit: 320m
+    memswap_limit: 320m
+    networks: [etat, journaux]
+    healthcheck:
+      <<: *health
+      test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1:3000/api/health']
+
+# A container only meets those it needs. Closed: no way out to the Internet, and no way in from the server itself, whose
+# other users would otherwise reach the containers by their addresses (logs, API behind Caddy).
+x-closed: &closed
+  internal: true
+  driver_opts:
+    com.docker.network.bridge.gateway_mode_ipv4: isolated
+
+networks:
+  # IPv6 too: otherwise every IPv6 caller would have the address of the gateway, and share its limits.
+  entree: { enable_ipv6: true }
+  portails: *closed
+  api: *closed
+  donnees:
+    <<: *closed
+    # Named in infra/postgres/pg_hba.conf: the only addresses that may open the database.
+    ipam: { config: [{ subnet: 10.213.0.0/24 }] }
+  etat: *closed
+  journaux: *closed
+  surveillance: *closed
+  sortie-worker: {}
+  sortie-base: {}
+  sortie-alertes: {}
+
+volumes:
+  caddy-data:
+  caddy-config:
+  postgres-data:
+  postgres-socket:
+  valkey-data:
+  gatus-data:
+  gatus-interne-data:
+  loki-data:
+  grafana-data:
+
+# One file per container, owned by root, readable by the group of its container only (docs/deploiement.md).
+secrets:
+  caddy: { file: /etc/legarec/caddy.env }
+  api: { file: /etc/legarec/api.env }
+  worker: { file: /etc/legarec/worker.env }
+  migration: { file: /etc/legarec/migration.env }
+  postgres: { file: /etc/legarec/postgres.env }
+  pgbackrest: { file: /etc/legarec/pgbackrest.env }
+  restauration: { file: /etc/legarec/restauration.env }
+  valkey: { file: /etc/legarec/valkey.env }
+  gatus: { file: /etc/legarec/gatus.env }
+  grafana: { file: /etc/legarec/grafana.env }

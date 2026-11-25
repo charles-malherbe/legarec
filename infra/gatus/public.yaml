@@ -1,0 +1,42 @@
+# status.legarec.fr, public page: what the users need, and nothing else.
+storage:
+  type: sqlite
+  path: /data/gatus.db
+web:
+  port: 8080
+concurrency: 2
+ui:
+  title: Legarec · État des services
+  header: État des services
+  dashboard-heading: État des services Legarec
+  dashboard-subheading: Disponibilité des portails
+  dark-mode: false
+endpoints:
+  - name: Espace collaborateurs
+    group: Portails
+    url: https://espace.legarec.fr/
+    interval: 1m
+    conditions: ['[STATUS] == 200']
+    ui: &hidden
+      hide-conditions: true
+      hide-errors: true
+      hide-hostname: true
+      hide-url: true
+  - name: Portail partenaires
+    group: Portails
+    url: https://partenaires.legarec.fr/
+    interval: 1m
+    conditions: ['[STATUS] == 200']
+    ui: *hidden
+  - name: Espace de paiement
+    group: Portails
+    url: https://paiement.legarec.fr/
+    interval: 1m
+    conditions: ['[STATUS] == 200']
+    ui: *hidden
+  - name: Service des données
+    group: API
+    url: https://api.legarec.fr/health
+    interval: 1m
+    conditions: ['[STATUS] == 200', '[BODY].status == ok']
+    ui: *hidden

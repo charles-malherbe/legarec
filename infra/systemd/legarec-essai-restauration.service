@@ -1,0 +1,12 @@
+[Unit]
+Description=Legarec : Essai de restauration chaque lundi
+Requires=docker.service
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/legarec
+ExecStart=/usr/bin/docker compose --file docker-compose.yml --env-file /etc/legarec/version.env run --rm essai-restauration
+TimeoutStartSec=6h
+# The container already logs to Loki, where its lines end after 60 days.
+StandardOutput=null

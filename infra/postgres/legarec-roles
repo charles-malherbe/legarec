@@ -1,0 +1,21 @@
+#!/bin/bash
+# Roles of the API (apps/api/prisma/bootstrap.sql), in the database of the application, then their passwords.
+# Run when the data folder is created, and again by hand for a new password: safe to run again.
+set -euo pipefail
+run() { psql --no-psqlrc --quiet --set ON_ERROR_STOP=1 --username postgres --dbname legarec "$@"; }
+run --file /usr/local/share/legarec/bootstrap.sql
+OWNER_PASSWORD="$(legarec-value LEGAREC_OWNER_PASSWORD)"
+APP_PASSWORD="$(legarec-value LEGAREC_APP_PASSWORD)"
+JOBS_PASSWORD="$(legarec-value LEGAREC_JOBS_PASSWORD)"
+export OWNER_PASSWORD APP_PASSWORD JOBS_PASSWORD
+run <<'SQL'
+SET log_min_error_statement = panic;
+\getenv owner OWNER_PASSWORD
+\getenv app APP_PASSWORD
+\getenv jobs JOBS_PASSWORD
+ALTER ROLE legarec_owner PASSWORD :'owner';
+ALTER ROLE legarec_app PASSWORD :'app';
+ALTER ROLE legarec_jobs PASSWORD :'jobs';
+REVOKE ALL ON DATABASE legarec FROM PUBLIC;
+GRANT CONNECT ON DATABASE legarec TO legarec_app, legarec_jobs;
+SQL

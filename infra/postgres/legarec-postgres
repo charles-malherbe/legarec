@@ -1,0 +1,7 @@
+#!/bin/bash
+# Entry point: the password of the superuser is only given to the creation of the data folder, never to the server.
+set -euo pipefail
+if [ "${1:-}" = postgres ] && [ ! -s "$PGDATA/PG_VERSION" ]; then
+  POSTGRES_PASSWORD="$(legarec-value POSTGRES_PASSWORD)" docker-ensure-initdb.sh "$@"
+fi
+exec docker-entrypoint.sh "$@"
