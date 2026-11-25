@@ -231,20 +231,24 @@ Extensions : `citext`, `pg_trgm`, `unaccent`, `btree_gist`. Index partiels, EXCL
 
 Une clé dérivée par usage (HKDF). La version de clé est dans l'en-tête de chaque `*_cipher` ; données liées : table, identifiant, colonne. Une ancienne clé se garde aussi longtemps que les sauvegardes qu'elle ouvre.
 
-**Code d'accès, en clair nulle part** : le PDF envoyé qui porte le code n'est pas conservé, seule la copie sans code l'est, avec l'empreinte de l'original (question 118) ; `snapshot` sans code ; code retiré des messages entrants et des transcriptions ; avertissement avant de partager une pièce reçue.
+**Code d'accès, en clair nulle part** : l'original envoyé qui porte le code est gardé chiffré, lisible par le Directeur seul ; partout ailleurs, la copie sans code (question 118, chiffrement à préciser au lot N) ; `snapshot` sans code ; code retiré des messages entrants et des transcriptions ; avertissement avant de partager une pièce reçue.
 
-**À qui part le code (question 112, à confirmer par le cabinet)** : le code ouvre les dossiers de tous les créanciers du débiteur, alors que l'adresse, l'e-mail et le mobile viennent du dépôt de chacun. Par défaut, il ne part que vers une coordonnée confirmée pour ce débiteur par un collaborateur, jamais vers une coordonnée venue du seul dépôt d'un créancier ; courrier à une entreprise : adresse d'un établissement connu de l'API Recherche d'entreprises ; sinon, envoi sans code. Test : B dépose contre le débiteur de A avec ses propres coordonnées, aucun canal ne lui livre le code.
+**À qui part le code (question 112)** : le code ouvre les dossiers de tous les créanciers du débiteur, alors que l'adresse, l'e-mail et le mobile viennent du dépôt de chacun. Il ne part que vers une coordonnée confirmée pour ce débiteur par un collaborateur, jamais vers une coordonnée venue du seul dépôt d'un créancier ; courrier à une entreprise : adresse d'un établissement connu de l'API Recherche d'entreprises ; sinon, envoi sans code. Test : B dépose contre le débiteur de A avec ses propres coordonnées, aucun canal ne lui livre le code.
 
-**Accès débiteur** : régénérer un code ferme les sessions et les appareils mémorisés ; un blocage en cours n'est jamais purgé ; Valkey absent = accès refusé ; seuil global de tentatives et plafond de SMS par jour et par IP, avec alerte (question 114). Un dépôt sur un SIREN déjà connu reste invisible du débiteur tant que la raison sociale n'est pas confirmée ; le nom enregistré n'est jamais écrasé.
+**Accès débiteur** : régénérer un code ferme les sessions et les appareils mémorisés ; un blocage en cours n'est jamais purgé ; Valkey absent = accès refusé ; au-delà de 200 échecs par heure au total, alerte puis accès suspendu 15 minutes pour les adresses IP en cause ; SMS du code : 5 par jour et par numéro, 20 par jour et par adresse IP (question 114). Un dépôt sur un SIREN déjà connu reste invisible du débiteur tant que la raison sociale n'est pas confirmée ; le nom enregistré n'est jamais écrasé.
 
 ## Conservation (tâche quotidienne, rôle `legarec_retention`)
 
 | Durée | Données |
 |---|---|
 | 5 ans après clôture | dossiers, historique, échanges, pièces : anonymisés, fichiers S3 supprimés |
-| 10 ans | factures du cabinet, quittances, paiements, reversements |
-| 6 mois | enregistrements, transcriptions, SMS non rattachés, messages non vérifiés, présence 3CX |
-| 1 an | journal d'audit, verrouillages, journal de l'IA |
+| 10 ans | factures du cabinet, quittances, paiements, reversements, registre RGPD |
+| 2 ans | notifications ; compte désactivé, puis anonymisé |
+| 1 an | journal d'audit, verrouillages, journal de l'IA, présence 3CX (12 mois) |
+| 6 mois | enregistrements, transcriptions, SMS non rattachés, messages non vérifiés |
+| 70 jours | sauvegardes et versions S3 |
+| 60 jours | journaux techniques |
+| 48 heures après la fin | sessions, clés d'idempotence |
 | 30 jours | imports non confirmés, fichiers non rattachés |
 
 Exceptions : les quittances restent 10 ans même si le dossier est anonymisé à 5 ans ; un débiteur partagé est anonymisé avec son dernier dossier. « Ajout seul » s'entend hors `legarec_retention`, par `purge_audit()` et `anonymize_case()` : durée écrite dans la fonction, sans paramètre, décompte gardé. La purge se rejoue après toute restauration. Durées non décidées (sauvegardes, journaux techniques, sessions, notifications, présence 3CX, comptes) : question 115. En place au lot J : clés d'idempotence 24 heures, tâches faites 7 jours, tâches abandonnées et webhooks 30 jours, clés de tâches 1 an ; chaque étape de la purge est indépendante et laisse son décompte.
