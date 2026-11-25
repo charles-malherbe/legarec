@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import openapiTS, { astToString, type OpenAPI3 } from 'openapi-typescript';
 import { fileURLToPath } from 'node:url';
@@ -41,7 +42,9 @@ describe('access matrix', () => {
     const [method = '', path = ''] = id.split(' ');
     const target = entry.path?.(test.s) ?? path;
     for (const [as, status] of Object.entries(entry.expect)) {
-      const answer = await test.call(method, target, { as: as === 'nobody' ? undefined : as, body: entry.body });
+      // A change that commits asks for a key; a new one each time, or the second caller would read the answer of the first.
+      const headers = method === 'GET' ? undefined : { 'idempotency-key': randomUUID() };
+      const answer = await test.call(method, target, { as: as === 'nobody' ? undefined : as, body: entry.body, headers });
       expect(answer.status, `${id} for ${as}`).toBe(status);
     }
   });

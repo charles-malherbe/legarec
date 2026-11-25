@@ -33,6 +33,11 @@ export default tseslint.config(
         },
       ],
       'no-restricted-properties': ['error', { property: '$queryRawUnsafe' }, { property: '$executeRawUnsafe' }],
+      'no-restricted-syntax': [
+        'error',
+        { selector: 'ImportExpression[source.value=/^(@prisma\\u002f|pg$|bullmq$|ioredis$)|generated\\u002fprisma/]', message: 'Use Database or Outbox.' },
+        { selector: 'TemplateElement[value.raw=/set_config|\\b(re)?set\\s+(local\\s+|session\\s+)?(role|session)\\b/i]', message: 'Only Database.run() decides who is acting.' },
+      ],
     },
   },
 );

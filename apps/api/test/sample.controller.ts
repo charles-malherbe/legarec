@@ -39,7 +39,7 @@ export class StaffSampleController {
   @HttpCode(204)
   async addNote(@Param('id') id: string, @Body({ schema: note }) body: z.infer<typeof note>) {
     await this.database.tx.$executeRaw`SELECT app.add_case_event(${id}::uuid, 'NOTE', 'Note', ${body.text}, 'neutral'::event_tone, false)`;
-    await this.audit.log({ action: 'NOTE_ADDED', entity: { type: 'case', id }, summary: 'Note ajoutée à un dossier' });
+    await this.audit.log({ action: 'CASE_NOTE_ADDED', entity: { type: 'case', id } });
     await this.outbox.add({ queue: 'maintenance', name: 'sample', payload: { caseId: id } });
   }
 
@@ -47,8 +47,8 @@ export class StaffSampleController {
   @Staff('DIRECTOR')
   @Commits()
   async number() {
-    const [row] = await this.database.tx.$queryRaw<{ n: number }[]>`SELECT app.next_number('SAMPLE', 2026) AS n`;
-    return { number: row!.n };
+    const [row] = await this.database.tx.$queryRaw<{ for_year: number; number: number }[]>`SELECT * FROM app.next_number('SAMPLE')`;
+    return { number: row!.number };
   }
 
   @Post('password')
@@ -63,21 +63,21 @@ export class StaffSampleController {
   @StaffOrDelegate('ADMINISTRATIVE', 'DIRECTOR')
   @HttpCode(204)
   async settings() {
-    await this.audit.log({ action: 'SETTING_CHANGED', summary: 'Réglage modifié' });
+    await this.audit.log({ action: 'SETTING_CHANGED' });
   }
 
   @Post('fail')
   @AnyStaff()
   @Commits()
   async fail(@Body({ schema: note }) body: z.infer<typeof note>) {
-    await this.audit.log({ action: 'NEVER_KEPT', summary: 'Annulé avec la transaction' });
+    await this.audit.log({ action: 'SECRET_SAVED', params: { secret: 'NEVER_KEPT' } });
     throw new Error(`unexpected ${body.text}`);
   }
 
   @Post('leak')
   @AnyStaff()
   async leak() {
-    await this.audit.log({ action: 'LEAK', summary: 'Dossier LGR-2026-00001 modifié' });
+    await this.audit.log({ action: 'PLAN_APPROVED', params: { reference: 'LGR-2026-00001' } });
   }
 
   @Post('refused')

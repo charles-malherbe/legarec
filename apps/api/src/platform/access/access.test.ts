@@ -1,8 +1,11 @@
-import { All, Controller, Get, Post, Put, Scope, type ExecutionContext, type Type } from '@nestjs/common';
+import { All, Body, Controller, Get, Post, Put, Query, Scope, type ExecutionContext, type Type } from '@nestjs/common';
 import { DiscoveryModule, Reflector } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
+import type { Config } from '../config/config';
 import type { Actor } from '../database/actor';
+import { Commits, NoTransaction } from '../http/transaction.interceptor';
 import {
   ACCESS,
   allow,
@@ -32,7 +35,7 @@ const ACTORS: Record<string, Actor> = {
   officer: staff('CLAIMS_OFFICER'),
   partner: { kind: 'partner', userId: 'p', creditorId: 'c' },
   debtor: { kind: 'debtor', debtorId: 'd' },
-  service: { kind: 'service', accountId: 's' },
+  service: { kind: 'service', accountId: 's', scopes: ['calls'] },
   // Never found by a session: none of them may pass for a signed-in person.
   anonymous: { kind: 'anonymous' },
   public: { kind: 'public' },
@@ -116,13 +119,15 @@ describe('rules', () => {
     });
   });
 
-  // Defect: the scope is written on the route and read by nothing; any service account opens any service route.
-  it.fails('keep a service account to its scope', () => {
-    const account = { kind: 'service', accountId: 's', scopes: ['calls'] } as unknown as Actor;
+  it('keep a service account to its scopes', () => {
+    const account: Actor = { kind: 'service', accountId: 's', scopes: ['calls'] };
     expect(allow({ portal: 'service', scope: 'calls' }, account)).toBeTruthy();
     expect(allow({ portal: 'service', scope: 'secrets' }, account)).toBe(false);
+    expect(allow({ portal: 'service', scope: 'calls' }, { ...account, scopes: [] })).toBe(false);
   });
 });
+
+const CONFIG = { STAFF_PORTAL_URL: 'https://staff.test', PARTNER_PORTAL_URL: 'https://partner.test', DEBTOR_PORTAL_URL: 'https://debtor.test' } as Config;
 
 describe('guard', () => {
   class Routes {
@@ -135,7 +140,7 @@ describe('guard', () => {
     open() {}
   }
   const request = (handler: () => void, type: Type = Routes) => {
-    const http = { headers: {} } as Record<string, unknown>;
+    const http = { method: 'GET', headers: {} } as Record<string, unknown>;
     return {
       http,
       context: { getHandler: () => handler, getClass: () => type, switchToHttp: () => ({ getRequest: () => http }) } as unknown as ExecutionContext,
@@ -144,7 +149,7 @@ describe('guard', () => {
   const { prototype } = Routes;
   const guard = (actor: Actor | null) => {
     const resolve = vi.fn(() => Promise.resolve(actor));
-    return { resolve, guard: new AccessGuard(new Reflector(), { resolve }) };
+    return { resolve, guard: new AccessGuard(new Reflector(), { resolve }, CONFIG) };
   };
 
   it('refuses a route without any rule, even to the Director, without looking who calls', async () => {
@@ -179,8 +184,23 @@ describe('guard', () => {
     expect((http.actor as Actor).kind).toBe(name === 'health' ? 'public' : name);
   });
 
+  it.each([
+    ['another portal', 'POST', 'https://partner.test'],
+    ['no origin at all', 'POST', undefined],
+    ['no origin at all', 'DELETE', undefined],
+    ['another site', 'GET', 'https://exemple.test'],
+  ])('checks the origin again, from the rule of the route: %s, %s', async (_what, method, origin) => {
+    const { guard: target, resolve } = guard(ACTORS.director!);
+    const { context, http } = request(prototype.staff);
+    Object.assign(http, { method, headers: { origin } });
+    await expect(target.canActivate(context)).rejects.toMatchObject({ status: 403, code: 'FORBIDDEN' });
+    expect(resolve).not.toHaveBeenCalled();
+    Object.assign(http, { headers: { origin: 'https://staff.test' } });
+    expect(await target.canActivate(context)).toBe(true);
+  });
+
   it('lets nobody in until the sessions exist', async () => {
-    const target = new AccessGuard(new Reflector(), new NobodyResolver());
+    const target = new AccessGuard(new Reflector(), new NobodyResolver(), CONFIG);
     await expect(target.canActivate(request(prototype.staff).context)).rejects.toMatchObject({ status: 401 });
   });
 });
@@ -199,7 +219,10 @@ describe('routes', () => {
       checkRoutes(found);
       return [];
     } catch (error) {
-      return (error as Error).message.replace(/^[^:]*: /u, '').split(', ');
+      return (error as Error).message
+        .replace('Routes refused: ', '')
+        .split('; ')
+        .map((fault) => fault.split(': ')[0]!);
     }
   };
 
@@ -238,7 +261,8 @@ describe('routes', () => {
       'POST /staff/scoped/:id/action',
       'PUT /staff/child/inherited',
     ]);
-    expect(await refused(Many, Child, Scoped)).toEqual([]);
+    // A route that answers every method would commit on a reading, without origin nor key.
+    expect(await refused(Many, Child, Scoped)).toEqual(['ALL /staff/many/any', 'ALL /staff/several/any']);
   });
 
   it('need a rule each, wherever they come from', async () => {
@@ -339,15 +363,58 @@ describe('routes', () => {
     [{ portal: 'service', scope: 'x' }, '/service'],
     [{ portal: 'health' }, '/health'],
   ])('keep %j under %s', (access, prefix) => {
-    expect(() =>
-      checkRoutes([
-        { id: `GET ${prefix}`, access },
-        { id: `GET ${prefix}/x`, access },
-      ]),
-    ).not.toThrow();
+    const route = (id: string, rule: AccessRule | undefined = access) => ({ id, access: rule, commits: false, ownTransactions: false, unchecked: [] });
+    expect(() => checkRoutes([route(`GET ${prefix}`), route(`GET ${prefix}/x`)])).not.toThrow();
     for (const other of ['/staff', '/partner', '/debtor', '/public', '/hooks', '/service', '/health', '/'].filter((path) => path !== prefix))
-      expect(() => checkRoutes([{ id: `GET ${other}/x`, access }]), other).toThrow(`GET ${other}/x`);
-    expect(() => checkRoutes([{ id: `GET ${prefix}x`, access }])).toThrow(`GET ${prefix}x`);
-    expect(() => checkRoutes([{ id: `GET ${prefix}/x`, access: undefined }])).toThrow(`GET ${prefix}/x`);
+      expect(() => checkRoutes([route(`GET ${other}/x`)]), other).toThrow(`GET ${other}/x`);
+    expect(() => checkRoutes([route(`GET ${prefix}x`)])).toThrow(`GET ${prefix}x`);
+    expect(() => checkRoutes([{ ...route(`GET ${prefix}/x`), access: undefined }])).toThrow(`GET ${prefix}/x: no access rule`);
+  });
+
+  it('cannot commit where the key would be ignored, nor read a body or a query without schema', async () => {
+    @Controller('staff/silent')
+    class Silent {
+      @Get('reading')
+      @AnyStaff()
+      @Commits()
+      reading() {}
+      @Post('apart')
+      @AnyStaff()
+      @Commits()
+      @NoTransaction()
+      apart() {}
+      @Post('body')
+      @AnyStaff()
+      body(@Body() _body: unknown) {}
+      @Get('query')
+      @AnyStaff()
+      query(@Query() _query: unknown) {}
+      @Post('fine')
+      @AnyStaff()
+      @Commits()
+      fine(@Body({ schema: z.object({}) }) _body: unknown) {}
+    }
+    @Controller('partner/login')
+    class Login {
+      @Post()
+      @Anonymous('partner')
+      @Commits()
+      login() {}
+    }
+    @Controller('hooks/provider')
+    class Provider {
+      @Post()
+      @Hook()
+      @Commits()
+      receive() {}
+    }
+    expect((await refused(Silent, Login, Provider)).sort()).toEqual([
+      'GET /staff/silent/query',
+      'GET /staff/silent/reading',
+      'POST /hooks/provider',
+      'POST /partner/login',
+      'POST /staff/silent/apart',
+      'POST /staff/silent/body',
+    ]);
   });
 });

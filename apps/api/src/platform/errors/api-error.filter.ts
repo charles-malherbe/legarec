@@ -25,7 +25,9 @@ export function databaseCode(error: unknown): string | undefined {
 
 function toApiError(error: unknown): ApiError | null {
   if (error instanceof ApiError) return error;
-  if (error instanceof HttpException) return new ApiError(error.getStatus(), BY_STATUS[error.getStatus()] ?? 'INVALID_REQUEST');
+  // Above 500, it is a defect: logged and answered like any other.
+  if (error instanceof HttpException)
+    return error.getStatus() < 500 ? new ApiError(error.getStatus(), BY_STATUS[error.getStatus()] ?? 'INVALID_REQUEST') : null;
   // Thrown by the body parser of Express, before any controller.
   const status = (error as { status?: unknown; type?: unknown } | null)?.type !== undefined ? (error as { status?: unknown }).status : undefined;
   if (typeof status === 'number' && status >= 400 && status < 500) return new ApiError(status, BY_STATUS[status] ?? 'INVALID_REQUEST');
@@ -33,8 +35,16 @@ function toApiError(error: unknown): ApiError | null {
     case 'P2002':
     case '23505':
       return new ApiError(409, 'CONFLICT');
+    // An identifier that is not one designates nothing.
     case 'P2025':
+    case 'P2023':
+    case 'P2007':
+    case '22P02':
       return new ApiError(404, 'NOT_FOUND');
+    // A character PostgreSQL cannot hold.
+    case '22021':
+    case '22P05':
+      return new ApiError(422, 'INVALID');
     default:
       return null;
   }

@@ -183,7 +183,7 @@ describe('repeated requests', () => {
 describe('transaction of the request', () => {
   it('keeps nothing of a request that fails', async () => {
     await test.call('POST', '/staff/sample/fail', { as: 'officerA', body: { text: 'x' }, ...keyed() });
-    expect(await rows("SELECT 1 FROM audit_log WHERE action = 'NEVER_KEPT'")).toEqual([]);
+    expect(await rows("SELECT 1 FROM audit_log WHERE action = 'SECRET_SAVED'")).toEqual([]);
   });
   it('gives consecutive numbers, without gap, to concurrent requests', async () => {
     const answers = await Promise.all(Array.from({ length: 12 }, () => test.call('POST', '/staff/sample/number', { as: 'director', ...keyed() })));
@@ -228,9 +228,9 @@ describe('history and audit', () => {
     const [line] = await rows<{ ip: string }>('SELECT host(ip) AS ip FROM audit_log ORDER BY occurred_at DESC LIMIT 1');
     expect(line).toEqual({ ip: '198.51.100.7' });
   });
-  it('refuse a summary that looks like personal data', async () => {
+  it('refuse anything that is not an identifier, a date, a role, a technical name or a short number', async () => {
     expect((await test.call('POST', '/staff/sample/leak', { as: 'officerA' })).status).toBe(500);
-    expect(await rows("SELECT 1 FROM audit_log WHERE action = 'LEAK'")).toEqual([]);
+    expect(await rows("SELECT 1 FROM audit_log WHERE action = 'PLAN_APPROVED'")).toEqual([]);
   });
   it('can be neither changed, emptied nor deleted, even by the owner of the tables', async () => {
     for (const table of ['audit_log', 'case_events']) {
@@ -264,12 +264,17 @@ describe('logs', () => {
 describe('outbox', () => {
   it('keeps the author of a task, and identifiers only', async () => {
     await test.call('POST', `/staff/sample/cases/${test.s.cases.ofA}/notes`, { as: 'officerA', body: { text: 'x' }, ...keyed() });
-    const [task] = await rows<Record<string, unknown>>("SELECT actor_id, payload FROM outbox WHERE name = 'sample' ORDER BY created_at DESC LIMIT 1");
-    expect(task).toEqual({ actor_id: test.s.officerA, payload: { caseId: test.s.cases.ofA } });
+    const [task] = await rows<Record<string, unknown>>(
+      "SELECT actor_kind, actor_id, acting_for, payload FROM outbox WHERE name = 'sample' ORDER BY created_at DESC LIMIT 1",
+    );
+    expect(task).toEqual({ actor_kind: 'STAFF', actor_id: test.s.officerA, acting_for: null, payload: { caseId: test.s.cases.ofA } });
   });
-  it.each(['KXPM', 'jean@exemple.test', '06 12 34 56 78', 'Atelier Mistral', '800000001'])('refuses %s in a payload', async (value) => {
-    await expect(
-      test.database.admin.query("INSERT INTO outbox (queue, name, payload) VALUES ('sms', 'x-x', jsonb_build_object('v', $1::text))", [value]),
-    ).rejects.toThrow(/outbox_payload_check/u);
-  });
+  it.each(['KXPM', 'CODE_KXPM', 'DUPONT', 'jean@exemple.test', '06 12 34 56 78', 'Atelier Mistral', '800000001', 'FR7630006000011234567890189', 123456])(
+    'refuses %s in a payload',
+    async (value) => {
+      await expect(
+        test.database.admin.query("INSERT INTO outbox (queue, name, actor_kind, payload) VALUES ('sms', 'x-x', 'SYSTEM', $1)", [JSON.stringify({ v: value })]),
+      ).rejects.toThrow(/outbox_payload_check/u);
+    },
+  );
 });

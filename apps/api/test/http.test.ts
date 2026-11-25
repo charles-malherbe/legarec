@@ -1,5 +1,4 @@
 import {
-  All,
   Body,
   Controller,
   Delete,
@@ -20,6 +19,7 @@ import { gzipSync } from 'node:zlib';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { Anonymous, AnyStaff, Debtor, Partner, Staff, StaffOrDelegate } from '../src/platform/access/access';
+import { Prisma } from '../src/generated/prisma/client';
 import { Audit } from '../src/platform/audit/audit';
 import { Database } from '../src/platform/database/database';
 import { Commits, OneTimeAnswer } from '../src/platform/http/transaction.interceptor';
@@ -50,12 +50,8 @@ class StaffProbeController {
     return body;
   }
   @Get('query')
-  query(@Query() query: Record<string, unknown>) {
+  query(@Query({ schema: z.record(z.string(), z.unknown()) }) query: Record<string, unknown>) {
     return query;
-  }
-  @All('any')
-  any() {
-    return { any: true };
   }
   @Get('director')
   @Staff('DIRECTOR')
@@ -68,44 +64,42 @@ class StaffProbeController {
   @HttpCode(204)
   async act(@Param('id') id: string) {
     await this.database.tx.$executeRaw`SELECT app.add_case_event(${id}::uuid, 'PROBE_ACT', 'Essai', NULL, 'neutral'::event_tone, false)`;
-    await this.audit.log({ action: 'PROBE_ACT', entity: { type: 'case', id }, summary: 'Essai' });
+    await this.audit.log({ action: 'PROBE_ACT' as never, entity: { type: 'case', id } });
     await this.outbox.add({ queue: 'maintenance', name: 'probe-act', payload: { caseId: id } });
   }
   @Put('value')
   @Commits()
   async value() {
-    const [row] = await this.database.tx.$queryRaw<{ n: number }[]>`SELECT app.next_number('PROBE_VALUE', 2026) AS n`;
-    return { number: row!.n, list: [1, 'deux', null], at: new Date(0), absent: undefined, text: 'é « » 🙂'.slice(0, 5) };
+    const [row] = await this.database.tx.$queryRaw<{ number: number }[]>`SELECT number FROM app.next_number('PROBE_VALUE')`;
+    return { number: row!.number, list: [1, 'deux', null], at: new Date(0), absent: undefined, text: 'é « » 🙂'.slice(0, 5) };
   }
   @Delete('value')
   @Commits()
   async remove() {
-    await this.audit.log({ action: 'PROBE_REMOVED', summary: 'Essai' });
+    await this.audit.log({ action: 'PROBE_REMOVED' as never });
     return null;
   }
   @Post('secret')
   @Commits()
   @OneTimeAnswer()
   async secret() {
-    await this.audit.log({ action: 'PROBE_SECRET', summary: 'Essai' });
+    await this.audit.log({ action: 'PROBE_SECRET' as never });
     return { password: SECRET };
   }
   @Post('late/:id')
   @StaffOrDelegate('ADMINISTRATIVE', 'DIRECTOR')
   @HttpCode(204)
   async late() {
-    await this.audit.log({ action: 'PROBE_DELEGATED', summary: 'Essai' });
+    await this.audit.log({ action: 'PROBE_DELEGATED' as never });
   }
 
   @Post('twice')
-  async twice(@Query('with') how: string) {
-    const data = { actor: `user:${(this.database.actor as { userId: string }).userId}`, key: randomUUID(), route: 'probe', requestHash: Buffer.from(SECRET) };
-    for (let i = 0; i < 2; i += 1) {
-      if (how === 'model') await this.database.tx.idempotencyKey.create({ data, select: { key: true } });
-      else
-        await this.database.tx
-          .$executeRaw`INSERT INTO idempotency_keys (actor, key, route, request_hash) VALUES (${data.actor}, ${data.key}::uuid, ${SECRET}, '\\x00')`;
-    }
+  async twice(@Query('with', { schema: z.string() }) how: string) {
+    if (how === 'model') throw new Prisma.PrismaClientKnownRequestError(SECRET, { code: 'P2002', clientVersion: 'test', meta: { target: [SECRET] } });
+    const data = { actor: `user:${(this.database.actor as { userId: string }).userId}`, key: randomUUID() };
+    for (let i = 0; i < 2; i += 1)
+      await this.database.tx
+        .$executeRaw`INSERT INTO idempotency_keys (actor, key, route, request_hash) VALUES (${data.actor}, ${data.key}::uuid, ${SECRET}, '\\x00')`;
   }
   @Get('missing')
   missing() {
@@ -220,8 +214,7 @@ describe('spelling of the path', () => {
     expect(await changed()).toBe(before);
   });
 
-  // Defect: Express ignores the case of the path, the check of the origin does not. `/STAFF` reaches the routes of `/staff` unchecked.
-  it.fails.each(['/STAFF/sample/settings', '/Staff/sample/settings', '/sTAFF/sample/settings'])('nor does %s', async (path) => {
+  it.each(['/STAFF/sample/settings', '/Staff/sample/settings', '/sTAFF/sample/settings'])('nor does %s', async (path) => {
     const before = await changed();
     for (const origin of [undefined, ORIGINS.partner, ORIGINS.debtor, 'https://exemple.test']) {
       const answer = await raw('POST', path, { [ACTOR_HEADER]: 'director', ...(origin ? { origin } : {}) });
@@ -229,7 +222,7 @@ describe('spelling of the path', () => {
     }
     expect(await changed()).toBe(before);
   });
-  it.fails.each([
+  it.each([
     ['/STAFF/sample/cases', 'officerA', 'https://exemple.test'],
     ['/PARTNER/sample/cases', 'partnerA', ORIGINS.debtor],
     ['/DEBTOR/sample/cases', 'debtorA', ORIGINS.partner],
@@ -241,8 +234,7 @@ describe('spelling of the path', () => {
     expect(await raw('GET', '/staff/sample/cases/%E0%A4%A', from('officerA'))).toMatchObject({ status: 400, body: { code: 'INVALID_REQUEST' } });
   });
 
-  // Defect: an identifier that is not one reaches PostgreSQL, and its refusal ends in a 500 and an error in the log.
-  it.fails.each(['demo', '%00', '1', `${'x'.repeat(2_000)}`])('answers 404 to an identifier that is not one', async (id) => {
+  it.each(['demo', '%00', '1', `${'x'.repeat(2_000)}`])('answers 404 to an identifier that is not one', async (id) => {
     expect((await raw('GET', `/staff/sample/cases/${id}`, from('officerA'))).status).toBe(404);
   });
 
@@ -325,15 +317,20 @@ describe('headers of the answers', () => {
 });
 
 describe('every method of a route', () => {
-  it.each(['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])('%s obeys the same rule', async (method) => {
-    expect((await raw(method, '/staff/probe/any', { origin: ORIGINS.staff })).status).toBe(401);
-    expect((await raw(method, '/staff/probe/any', from('partnerA'))).status).toBe(403);
-    expect((await raw(method, '/staff/probe/any', from('officerA', 'partner'))).status).toBe(403);
-    expect([200, 201]).toContain((await raw(method, '/staff/probe/any', from('officerA'))).status);
+  it.each([
+    ['GET', '/staff/sample/cases'],
+    ['POST', '/staff/probe/echo'],
+    ['PUT', '/staff/probe/value'],
+    ['DELETE', '/staff/probe/value'],
+  ])('%s %s obeys the same rule', async (method, path) => {
+    expect((await raw(method, path, { origin: ORIGINS.staff })).status).toBe(401);
+    expect((await raw(method, path, from('partnerA'))).status).toBe(403);
+    expect((await raw(method, path, from('officerA', 'partner'))).status).toBe(403);
+    expect([401, 403]).not.toContain((await raw(method, path, from('officerA'))).status);
   });
   it('a change without any origin is refused, whatever its method', async () => {
     for (const method of ['POST', 'PUT', 'PATCH', 'DELETE'])
-      expect((await raw(method, '/staff/probe/any', { [ACTOR_HEADER]: 'officerA' })).status, method).toBe(403);
+      expect((await raw(method, '/staff/probe/value', { [ACTOR_HEADER]: 'officerA' })).status, method).toBe(403);
   });
   it('HEAD obeys the rule of GET', async () => {
     expect((await raw('HEAD', '/staff/sample/cases', { origin: ORIGINS.staff })).status).toBe(401);
@@ -401,8 +398,7 @@ describe('bodies', () => {
     expect((await post(json, good)).status).toBe(201);
   });
 
-  // Defect: PostgreSQL refuses this character in a text, and the API answers that it has failed.
-  it.fails('with a character that PostgreSQL cannot keep are refused, not a failure', async () => {
+  it('with a character that PostgreSQL cannot keep are refused, not a failure', async () => {
     const answer = await raw(
       'POST',
       `/staff/sample/cases/${test.s.cases.ofA}/notes`,
@@ -437,8 +433,7 @@ describe('errors', () => {
     expect(test.logs.join('')).not.toContain(SECRET);
   });
 
-  // Defect: a failure thrown as an exception of NestJS is announced as a fault of the caller, and leaves nothing in the log.
-  it.fails('of NestJS that are failures of the API look like any other failure', async () => {
+  it('of NestJS that are failures of the API look like any other failure', async () => {
     const answer = await get('broken');
     expect(answer).toMatchObject({ status: 500, body: { code: 'INTERNAL', requestId: answer.headers['x-request-id'] } });
     expect(test.logs.join('')).toContain('unexpected error');
@@ -581,16 +576,46 @@ describe('repeated requests', () => {
     ]);
   });
 
-  // Defect: a digest without any key. A copy of the database is enough to try every six-digit code or likely password.
-  it.fails('never leave a digest that a copy of the database is enough to guess', async () => {
+  it('never leave a digest that a copy of the database is enough to guess', async () => {
     const value = randomUUID();
     const body = { text: '123456' };
-    await raw('POST', '/staff/probe/echo', { ...from('officerA'), ...key(value), 'content-type': 'application/json' }, JSON.stringify(body));
+    const path = `/staff/sample/cases/${test.s.cases.ofA}/notes`;
+    await raw('POST', path, { ...from('officerA'), ...key(value), 'content-type': 'application/json' }, JSON.stringify(body));
     const [kept] = await rows<{ request_hash: Buffer }>('SELECT request_hash FROM idempotency_keys WHERE key = $1', [value]);
     const guess = createHash('sha256')
-      .update(JSON.stringify(['POST', '/staff/probe/echo', body]))
+      .update(JSON.stringify(['POST', path, body]))
       .digest();
+    expect(kept!.request_hash).toHaveLength(32);
     expect(kept!.request_hash.equals(guess)).toBe(false);
+  });
+
+  it('keep their answer encrypted, bound to their key', async () => {
+    const value = randomUUID();
+    const answer = await raw('PUT', '/staff/probe/value', { ...from('officerA'), ...key(value) });
+    expect(answer.status).toBe(200);
+    const [kept] = await rows<{ result: Buffer }>('SELECT result FROM idempotency_keys WHERE key = $1', [value]);
+    expect(kept!.result.toString('latin1')).not.toContain('deux');
+    // Moved to another key, it no longer opens: nothing of it is given back.
+    const other = randomUUID();
+    await raw('PUT', '/staff/probe/value', { ...from('officerA'), ...key(other) });
+    await test.database.admin.query('UPDATE idempotency_keys SET result = $2 WHERE key = $1', [other, kept!.result]);
+    expect((await raw('PUT', '/staff/probe/value', { ...from('officerA'), ...key(other) })).status).toBe(500);
+  });
+
+  it('need no key, and keep none, for what commits nothing', async () => {
+    const before = await count('idempotency_keys');
+    const answer = await raw('POST', '/staff/probe/echo', { ...from('officerA'), ...key(), 'content-type': 'application/json' }, JSON.stringify({ text: 'x' }));
+    expect(answer.status).toBe(201);
+    expect(await count('idempotency_keys')).toBe(before);
+  });
+
+  it('free their key after a day', async () => {
+    const value = randomUUID();
+    const before = await traces(test.s.cases.ofA);
+    await act(test.s.cases.ofA, value);
+    await test.database.admin.query("UPDATE idempotency_keys SET created_at = now() - interval '25 hours' WHERE key = $1", [value]);
+    expect((await act(test.s.cases.ofA, value)).status).toBe(204);
+    expect(await traces(test.s.cases.ofA)).toEqual(before.map((number) => number + 2));
   });
 });
 
@@ -646,8 +671,7 @@ describe('delegation', () => {
     expect((await lines()).at(-1)).toEqual({ actor_label: 'Remi Test', on_behalf_of_id: test.s.director });
   });
 
-  // Defect: the guard believes the delegations of the session; the action goes through, and nobody is named as its principal.
-  it.fails('withdrawn during the session: the action itself is refused', async () => {
+  it('withdrawn during the session: the action itself is refused', async () => {
     await withdraw();
     try {
       expect((await act('manager')).status).toBe(403);
@@ -676,8 +700,7 @@ describe('address of the caller', () => {
     });
     expect((await rows<{ ip: string }>('SELECT host(ip) AS ip FROM audit_log ORDER BY occurred_at DESC LIMIT 1'))[0]).toEqual({ ip: '127.0.0.1' });
   });
-  // Defect: a value that is not an address makes the line of the audit fail, and the whole request with it.
-  it.fails('never makes a request fail when it is not an address', async () => {
+  it('never makes a request fail when it is not an address', async () => {
     expect((await raw('POST', '/staff/sample/settings', { ...from('director'), 'x-forwarded-for': 'unknown' })).status).toBe(204);
   });
 });
@@ -713,12 +736,13 @@ describe('log of the requests', () => {
     expect(await lines(answer)).toMatchObject([{ route: '/staff/sample/cases/:id', status: 404, actor: 'staff' }]);
   });
 
-  // Defect: a request refused before its route (no session, wrong portal, wrong origin, unknown route) leaves no line at all.
-  it.fails.each<[string, () => Promise<Answer>, number]>([
+  it.each<[string, () => Promise<Answer>, number]>([
     ['a stranger', () => raw('GET', '/staff/sample/cases', { origin: ORIGINS.staff }), 401],
     ['the wrong person', () => raw('GET', '/staff/sample/cases', from('partnerA')), 403],
     ['another portal', () => raw('GET', '/staff/sample/cases', from('officerA', 'partner')), 403],
     ['an unknown route', () => raw('GET', '/staff/unknown', from('officerA')), 404],
+    ['an unknown prefix', () => raw('GET', '/STAFF/sample/cases', from('officerA')), 404],
+    ['a body of another type', () => raw('POST', '/staff/probe/echo', { ...from('officerA'), 'content-type': 'text/plain' }, 'x'), 415],
   ])('has a line for %s', async (_what, request, status) => {
     const answer = await request();
     expect(answer.status).toBe(status);

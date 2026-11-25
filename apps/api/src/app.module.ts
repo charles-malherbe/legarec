@@ -11,7 +11,6 @@ import { Database } from './platform/database/database';
 import { invalid } from './platform/errors/api-error';
 import { ApiErrorFilter } from './platform/errors/api-error.filter';
 import { TransactionInterceptor } from './platform/http/transaction.interceptor';
-import { AccessLogInterceptor } from './platform/logging/access-log';
 import { LOGGER, type AppLogger } from './platform/logging/logger';
 import { Outbox } from './platform/queue/outbox';
 import { VALKEY, type Valkey } from './platform/queue/valkey';
@@ -49,8 +48,6 @@ export class AppModule implements OnApplicationBootstrap, OnApplicationShutdown 
         Outbox,
         { provide: APP_FILTER, useClass: ApiErrorFilter },
         { provide: APP_GUARD, useClass: AccessGuard },
-        // Outermost first: the line of the log is written once the transaction is over.
-        { provide: APP_INTERCEPTOR, useClass: AccessLogInterceptor },
         { provide: APP_INTERCEPTOR, useClass: TransactionInterceptor },
         {
           provide: APP_PIPE,

@@ -1,6 +1,7 @@
 import { Body, Controller, Post, Query, RequestMethod } from '@nestjs/common';
 import { METHOD_METADATA, PATH_METADATA, ROUTE_ARGS_METADATA } from '@nestjs/common/constants.js';
-import { DiscoveryService, MetadataScanner } from '@nestjs/core';
+import { DiscoveryModule, DiscoveryService, MetadataScanner } from '@nestjs/core';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { REQUEST_BODIES } from '@legarec/contracts';
 import { ESLint } from 'eslint';
 import { fileURLToPath } from 'node:url';
@@ -76,20 +77,27 @@ describe('what a route receives', () => {
     oneField(@Body('ids') _ids: unknown, @Query('page') _page: string) {}
   }
   let test: TestApp;
-  let sample: TestApp;
+  let sample: TestingModule;
   beforeAll(async () => {
-    [test, sample] = await Promise.all([startApp(), startApp([SampleController])]);
+    test = await startApp();
+    sample = await Test.createTestingModule({ imports: [DiscoveryModule], controllers: [SampleController] }).compile();
   });
-  afterAll(() => Promise.all([test.stop(), sample.stop()]));
+  afterAll(() => Promise.all([test.stop(), sample.close()]));
 
   it('is seen by this check: without schema, or with another one than the portals', () => {
-    expect(inputsOf(sample.app)).toHaveLength(5);
-    expect(wrong(sample.app)).toEqual([
+    expect(inputsOf(sample)).toHaveLength(5);
+    expect(wrong(sample)).toEqual([
       'body of POST /staff/cases/assign',
       'body of POST /staff/cases/litigation',
       'body of POST /staff/cases/reminders',
       'query of POST /staff/cases/reminders',
     ]);
+  });
+
+  it('stops the API from starting when it has no schema', async () => {
+    await expect(startApp([SampleController])).rejects.toThrow(
+      'POST /staff/cases/assign: body without schema; POST /staff/cases/reminders: query and body without schema',
+    );
   });
 
   it('matches the contract of the portals, on every route', () => {
@@ -131,8 +139,15 @@ describe('doors to PostgreSQL and to Valkey', () => {
     expect((await problems('modules/cases/cases.service.ts', code)).filter((rule) => rule?.startsWith('no-restricted'))).toEqual([]);
   });
 
-  // Defect: the rule reads the static imports only.
-  it.fails('are closed to an import made at run time', async () => {
-    expect((await problems('modules/cases/cases.service.ts', "export const x = () => import('pg');")).length).toBeGreaterThan(0);
+  it.each(["import('pg')", "import('bullmq')", "import('../../generated/prisma/client')"])('are closed to an import made at run time: %s', async (code) => {
+    expect(await problems('modules/cases/cases.service.ts', `export const x = () => ${code};`)).toContain('no-restricted-syntax');
   });
+
+  it.each(["SELECT set_config('app.user_id', '', true)", 'SET LOCAL ROLE legarec_worker', 'set role legarec_auth', 'RESET ROLE'])(
+    'let no query change who is acting: %s',
+    async (sql) => {
+      const code = `export const x = (tx: { $queryRaw(text: TemplateStringsArray): unknown }) => tx.$queryRaw\`${sql}\`;`;
+      expect(await problems('modules/cases/cases.service.ts', code)).toContain('no-restricted-syntax');
+    },
+  );
 });
