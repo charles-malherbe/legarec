@@ -45,7 +45,7 @@ Règles détaillées chargées automatiquement selon les fichiers touchés : `.c
 ## Règles non négociables
 - Un créancier ne voit **que ses dossiers**, et chaque rôle n'accède qu'aux dossiers prévus : filtrage dans l'API, jamais seulement dans l'interface.
 - Paiement par chèque et virement uniquement : aucune carte, aucun prélèvement SEPA, aucun prestataire de paiement.
-- Secrets uniquement côté serveur, en variables d'environnement ou chiffrés en base (mots de passe des boîtes OVH) ; jamais dans le code, Git, les journaux, les tests ni GitHub Actions. Jamais de jeton dans localStorage.
+- Secrets uniquement côté serveur : chiffrés en base (clés des services saisies dans Paramètres techniques > Secrets, mots de passe des boîtes OVH), ou en variables d'environnement pour les valeurs de démarrage ; jamais dans le code, Git, les journaux, les tests ni GitHub Actions. En développement, `.env` temporaire avec des clés de test seulement. Jamais de jeton dans localStorage.
 - Toute action qui engage (envoi, LRAR, désactivation, dépôt, paiement, procédure, boîte OVH) passe par `Confirm` avec récapitulatif. Action réversible : `Toast` avec « Annuler ».
 - Paramètres techniques : Développeur (et Directeur). Double authentification obligatoire pour le Développeur, proposée aux autres. Journal d'audit des actions sensibles (qui, quoi, quand, pour le compte de qui).
 - Pas de valeur de style en dur : uniquement le thème issu de `tokens.css`. Le rendu par défaut de Mantine (bleu, badges en majuscules) ne doit jamais apparaître.
