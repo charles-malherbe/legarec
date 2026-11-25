@@ -48,7 +48,7 @@ const config = emailConfig.parse({
   website_url: 'https://www.legarec.fr',
   website_label: 'www.legarec.fr',
 });
-const renderer = new EmailRenderer(config);
+const renderer = new EmailRenderer(config, TEMPLATES_DIR);
 const count = (html: string, part: string) => html.split(part).length - 1;
 
 describe('kit', () => {

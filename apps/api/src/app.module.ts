@@ -2,15 +2,19 @@ import { Module, StandardSchemaValidationPipe, type DynamicModule, type OnApplic
 import { Inject } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE, DiscoveryModule, ModuleRef } from '@nestjs/core';
 import { HealthController } from './health/health.controller';
-import { ACTOR_RESOLVER, NobodyResolver, type ActorResolver } from './platform/access/access';
+import { controllers, providers } from './modules';
+import { SessionResolver } from './modules/auth/sessions';
+import { ACTOR_RESOLVER, type ActorResolver } from './platform/access/access';
 import { AccessGuard } from './platform/access/access.guard';
 import { checkRoutes, routesOf } from './platform/access/routes';
 import { Audit } from './platform/audit/audit';
 import { CONFIG, type Config } from './platform/config/config';
+import { PASSWORDS, Passwords } from './platform/crypto/passwords';
 import { Database } from './platform/database/database';
 import { invalid } from './platform/errors/api-error';
 import { ApiErrorFilter } from './platform/errors/api-error.filter';
 import { TransactionInterceptor } from './platform/http/transaction.interceptor';
+import { RateLimits } from './platform/limits/rate-limits';
 import { LOGGER, type AppLogger } from './platform/logging/logger';
 import { Outbox } from './platform/queue/outbox';
 import { VALKEY, type Valkey } from './platform/queue/valkey';
@@ -20,8 +24,9 @@ export interface AppParts {
   logger: AppLogger;
   database: Database;
   valkey: Valkey;
-  /** Replaced by the sessions as soon as the accounts exist. */
+  /** Of the tests: the sessions otherwise. */
   resolver?: ActorResolver;
+  passwords?: Passwords;
   controllers?: Type[];
 }
 
@@ -37,15 +42,18 @@ export class AppModule implements OnApplicationBootstrap, OnApplicationShutdown 
     return {
       module: AppModule,
       imports: [DiscoveryModule],
-      controllers: [HealthController, ...(parts.controllers ?? [])],
+      controllers: [HealthController, ...controllers, ...(parts.controllers ?? [])],
       providers: [
         { provide: CONFIG, useValue: parts.config },
         { provide: LOGGER, useValue: parts.logger },
         { provide: Database, useValue: parts.database },
         { provide: VALKEY, useValue: parts.valkey },
-        { provide: ACTOR_RESOLVER, useValue: parts.resolver ?? new NobodyResolver() },
+        { provide: PASSWORDS, useValue: parts.passwords ?? new Passwords() },
+        ...(parts.resolver ? [{ provide: ACTOR_RESOLVER, useValue: parts.resolver }] : [{ provide: ACTOR_RESOLVER, useExisting: SessionResolver }]),
         Audit,
         Outbox,
+        RateLimits,
+        ...providers,
         { provide: APP_FILTER, useClass: ApiErrorFilter },
         { provide: APP_GUARD, useClass: AccessGuard },
         { provide: APP_INTERCEPTOR, useClass: TransactionInterceptor },
@@ -54,7 +62,9 @@ export class AppModule implements OnApplicationBootstrap, OnApplicationShutdown 
           useValue: new StandardSchemaValidationPipe({
             // Only the place of each error: a message could quote what was typed.
             exceptionFactory: (issues) =>
-              invalid({ fields: issues.map((issue) => (issue.path ?? []).map((part) => String(typeof part === 'object' ? part.key : part)).join('.')) }),
+              invalid({
+                fields: [...new Set(issues.map((issue) => (issue.path ?? []).map((part) => String(typeof part === 'object' ? part.key : part)).join('.')))],
+              }),
           }),
         },
       ],
