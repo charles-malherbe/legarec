@@ -57,11 +57,109 @@ model Creditor {
   status        CreditorStatus @default(ACTIVE)
   portalEnabled Boolean        @default(true) @map("portal_enabled")
   createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  legalName     String?        @map("legal_name")
+  vatNumber     String?        @map("vat_number")
+  sector        String?
+  address       String?
+  postalCode    String?        @map("postal_code")
+  city          String?
+  managerId     String?        @map("manager_id") @db.Uuid
+  version       Int            @default(1)
+  updatedBy     String?        @map("updated_by") @db.Uuid
+  updatedAt     DateTime       @default(now()) @map("updated_at") @db.Timestamptz(3)
 
-  users User[]
-  cases Case[]
+  users        User[]                @relation("AccountsOfCreditor")
+  manager      User?                 @relation("ManagedCreditors", fields: [managerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cases        Case[]
+  contacts     CreditorContact[]
+  mandates     Mandate[]
+  bankAccounts CreditorBankAccount[]
 
   @@map("creditors")
+}
+
+model CreditorContact {
+  id         String   @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  creditorId String   @map("creditor_id") @db.Uuid
+  name       String
+  title      String?
+  email      String   @db.Citext
+  phone      String?
+  isMain     Boolean  @default(false) @map("is_main")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  creditor Creditor @relation(fields: [creditorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([creditorId], map: "creditor_contacts_creditor")
+  @@map("creditor_contacts")
+}
+
+enum MandateInterest {
+  ECB_PLUS_TEN
+  CONTRACT
+  NONE
+
+  @@map("mandate_interest")
+}
+
+enum ScenarioCode {
+  BUSINESS
+  CONSUMER
+  KEY_ACCOUNTS
+
+  @@map("scenario_code")
+}
+
+/// One line per version; never two at the same time (exclusion in SQL).
+model Mandate {
+  id                       String          @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  creditorId               String          @map("creditor_id") @db.Uuid
+  amendsId                 String?         @map("amends_id") @db.Uuid
+  startsOn                 DateTime        @map("starts_on") @db.Date
+  endsOn                   DateTime?       @map("ends_on") @db.Date
+  amicableRateBp           Int             @map("amicable_rate_bp")
+  litigationRateBp         Int             @map("litigation_rate_bp")
+  openingFeeCents          Int             @default(0) @map("opening_fee_cents")
+  planMonthsWithoutConsent Int             @map("plan_months_without_consent")
+  discountMaxBp            Int             @map("discount_max_bp")
+  litigationNeedsConsent   Boolean         @map("litigation_needs_consent")
+  deferSmallRemittances    Boolean         @default(false) @map("defer_small_remittances")
+  interestMode             MandateInterest @map("interest_mode")
+  contractRateBp           Int?            @map("contract_rate_bp")
+  fixedIndemnity           Boolean         @map("fixed_indemnity")
+  reportingDay             Int             @map("reporting_day")
+  scenario                 ScenarioCode
+  createdBy                String?         @map("created_by") @db.Uuid
+  createdAt                DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  creditor Creditor  @relation(fields: [creditorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  amends   Mandate?  @relation("Amendments", fields: [amendsId, creditorId], references: [id, creditorId], onDelete: NoAction, onUpdate: NoAction)
+  amended  Mandate[] @relation("Amendments")
+
+  @@unique([id, creditorId], map: "mandates_id_creditor")
+  @@map("mandates")
+}
+
+/// The IBAN is encrypted by the API, and read by app.creditor_iban() alone.
+model CreditorBankAccount {
+  id            String    @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  creditorId    String    @map("creditor_id") @db.Uuid
+  holder        String
+  ibanCipher    Bytes     @map("iban_cipher")
+  ibanMasked    String    @map("iban_masked")
+  bic           String
+  validFrom     DateTime  @default(now()) @map("valid_from") @db.Timestamptz(3)
+  validUntil    DateTime? @map("valid_until") @db.Timestamptz(3)
+  confirmedBy   String?   @map("confirmed_by") @db.Uuid
+  confirmedAt   DateTime? @map("confirmed_at") @db.Timestamptz(3)
+  confirmedWith String?   @map("confirmed_with")
+  createdBy     String    @map("created_by") @db.Uuid
+  onBehalfOfId  String?   @map("on_behalf_of_id") @db.Uuid
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  creditor Creditor @relation(fields: [creditorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("creditor_bank_accounts")
 }
 
 /// SIREN unique when present (partial unique index in SQL); never for an individual.

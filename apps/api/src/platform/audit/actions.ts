@@ -38,6 +38,13 @@ export const AUDIT_ACTIONS = {
   DELEGATION_WITHDRAWN: 'Délégation {delegation} retirée',
   LINK_DRAWN: 'Lien créé depuis le serveur',
   DIRECTOR_CREATED: 'Compte du Directeur créé depuis le serveur',
+  // Creditors
+  CREDITOR_CREATED: 'Créancier créé',
+  CREDITOR_CHANGED: 'Fiche d’un créancier modifiée',
+  MANDATE_AMENDED: 'Avenant enregistré',
+  CREDITOR_ACCOUNT_CHANGED: 'Compte de reversement enregistré',
+  CREDITOR_ACCOUNT_CONFIRMED: 'Compte de reversement confirmé par téléphone',
+  CREDITOR_IBAN_SHOWN: 'IBAN d’un créancier affiché',
   // Platform
   CASE_NOTE_ADDED: 'Note ajoutée à un dossier',
   SETTING_CHANGED: 'Paramètres modifiés : {count}',

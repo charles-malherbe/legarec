@@ -7,6 +7,7 @@ import { newReminder } from './collection';
 import { coordinate, coordinateKind, coordinateSource, emailCategory, outgoingMessage } from './communication';
 import { debtorAccess, debtorIdentifier, debtorMessage, debtorRequest, limitedMessage } from './debtor';
 import { letterTemplate } from './documents';
+import { bankAccountChange, bankAccountConfirmation, creditorChanges, mandateAmendment, newCreditor } from './creditors';
 import { EMAIL_MAX, ID_MAX } from './limits';
 import { AMOUNT_MAX, enteredAmount } from './money';
 import { newClaim } from './portal';
@@ -160,6 +161,11 @@ export const REQUEST_BODIES = {
     'PUT /calls/incoming': incomingCallBody,
     'POST /calls/:id/qualification': callQualification,
     'POST /calls/:id/ai-decision': aiDecisionBody,
+    'POST /creditors': newCreditor,
+    'PUT /creditors/:id': creditorChanges,
+    'POST /creditors/:id/amendments': mandateAmendment,
+    'POST /creditors/:id/bank-accounts': bankAccountChange,
+    'POST /creditors/:id/bank-accounts/:accountId/confirm': bankAccountConfirmation,
     'POST /cases/:id/coordinates': newCoordinateBody,
     'PUT /cases/:id/coordinates/:coordinateId': coordinateBody,
     'POST /cases/search': searchBody,

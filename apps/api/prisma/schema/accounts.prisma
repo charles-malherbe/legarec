@@ -134,7 +134,8 @@ model User {
   invitedAt         DateTime?   @map("invited_at") @db.Timestamptz(3)
   anonymizedAt      DateTime?   @map("anonymized_at") @db.Timestamptz(3)
 
-  creditor             Creditor?                @relation(fields: [creditorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  creditor             Creditor?                @relation("AccountsOfCreditor", fields: [creditorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  managedCreditors     Creditor[]               @relation("ManagedCreditors")
   disabledBy           User?                    @relation("disabledBy", fields: [disabledById], references: [id], onDelete: NoAction, onUpdate: NoAction)
   disabledUsers        User[]                   @relation("disabledBy")
   substitute           User?                    @relation("substitute", fields: [substituteId], references: [id], onDelete: NoAction, onUpdate: NoAction)

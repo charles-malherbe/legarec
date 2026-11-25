@@ -33,6 +33,34 @@ describe('bodies of the requests', () => {
 });
 
 type Portal = keyof typeof REQUEST_BODIES;
+const IDENTITY = {
+  legalName: 'X SAS',
+  name: 'X',
+  sector: '',
+  vatNumber: '',
+  address: '6 rue du Four',
+  postalCode: '69100',
+  city: 'Villeurbanne',
+  managerId: null,
+  portalEnabled: true,
+};
+const CONTACTS = [{ name: 'Élodie Rivaud', title: '', email: 'e.rivaud@exemple.test', phone: '', isMain: true }];
+const MANDATE = {
+  startsOn: '2026-01-01',
+  endsOn: null,
+  amicableRateBp: 800,
+  litigationRateBp: 1200,
+  openingFeeCents: 0,
+  planMonthsWithoutConsent: 6,
+  discountMaxBp: 500,
+  litigationNeedsConsent: true,
+  deferSmallRemittances: false,
+  interestMode: 'NONE',
+  contractRateBp: null,
+  fixedIndemnity: true,
+  reportingDay: 5,
+  scenario: 'BUSINESS',
+};
 const passkey = {
   id: 'cle',
   rawId: 'cle',
@@ -116,6 +144,13 @@ const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly
       { ...qualification, outcome: 'NO_ANSWER', tcxCode: 'NON_REPONSE', interlocutor: '', notes: '', announced: false },
     ],
     'POST /calls/:id/ai-decision': [{ decision: 'ACCEPTED' }, { decision: 'IGNORED' }],
+    'POST /creditors': [{ siren: '732829320', identity: IDENTITY, contacts: CONTACTS, mandate: MANDATE }],
+    'PUT /creditors/:id': [{ version: 1, identity: IDENTITY, contacts: CONTACTS }],
+    'POST /creditors/:id/amendments': [{ amends: 'm1', mandate: MANDATE }],
+    'POST /creditors/:id/bank-accounts': [
+      { replaces: null, account: { holder: 'X', iban: 'GB82 WEST 1234 5698 7654 32', bic: 'PSSTFRPPXXX', confirmedWith: '' } },
+    ],
+    'POST /creditors/:id/bank-accounts/:accountId/confirm': [{ confirmedWith: 'Élodie Rivaud' }],
     'POST /cases/:id/coordinates': [
       { kind: 'PHONE', label: 'Mobile', value: '0611223344', primary: false, replaces: 'p1', source: 'CALL' },
       { kind: 'EMAIL', label: 'Comptabilité', value: 'compta@batiplus.example', primary: true, replaces: null, source: 'CREDITOR' },

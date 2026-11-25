@@ -3528,6 +3528,1091 @@
           ]
         }
       }
+    },
+    "/staff/creditors": {
+      "get": {
+        "operationId": "CreditorsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "initials": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "sector": {
+                        "type": "string"
+                      },
+                      "siren": {
+                        "type": "string"
+                      },
+                      "debtors": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "invoices": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "outstanding": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "recovered": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "rate": {
+                        "type": "number"
+                      },
+                      "fee": {
+                        "type": "string"
+                      },
+                      "owner": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "ACTIVE",
+                          "RENEWAL"
+                        ]
+                      },
+                      "statusLabel": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "initials",
+                      "name",
+                      "sector",
+                      "siren",
+                      "debtors",
+                      "invoices",
+                      "outstanding",
+                      "recovered",
+                      "rate",
+                      "fee",
+                      "owner",
+                      "status",
+                      "statusLabel"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "creditors"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      },
+      "post": {
+        "operationId": "CreditorsController_create",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "creditors"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER"
+          ]
+        }
+      }
+    },
+    "/staff/creditors/choices": {
+      "get": {
+        "operationId": "CreditorsController_choices",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "managers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "bankAccess": {
+                      "type": "string",
+                      "enum": [
+                        "EDIT",
+                        "NONE"
+                      ]
+                    },
+                    "defaults": {
+                      "type": "object",
+                      "properties": {
+                        "amicableRateBp": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 10000
+                        }
+                      },
+                      "required": [
+                        "amicableRateBp"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "managers",
+                    "bankAccess",
+                    "defaults"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "creditors"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER"
+          ]
+        }
+      }
+    },
+    "/staff/creditors/{id}": {
+      "get": {
+        "operationId": "CreditorsController_detail",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "initials": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "sector": {
+                      "type": "string"
+                    },
+                    "siren": {
+                      "type": "string"
+                    },
+                    "debtors": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "invoices": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "outstanding": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "recovered": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "rate": {
+                      "type": "number"
+                    },
+                    "fee": {
+                      "type": "string"
+                    },
+                    "owner": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ACTIVE",
+                        "RENEWAL"
+                      ]
+                    },
+                    "statusLabel": {
+                      "type": "string"
+                    },
+                    "mandateSince": {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    "ownerName": {
+                      "type": "string"
+                    },
+                    "totalDebtors": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "portfolio": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": "string"
+                          },
+                          "amount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "daysLate": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "OVERDUE",
+                              "PROMISE",
+                              "REMINDER",
+                              "DISPUTE",
+                              "SETTLED",
+                              "PLAN",
+                              "FORMAL_NOTICE",
+                              "LITIGATION"
+                            ]
+                          },
+                          "statusLabel": {
+                            "type": "string"
+                          },
+                          "invoices": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "number": {
+                                  "type": "string"
+                                },
+                                "externalRef": {
+                                  "type": "string"
+                                },
+                                "due": {
+                                  "type": "string",
+                                  "format": "date",
+                                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                                },
+                                "total": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "left": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "UNPAID",
+                                    "PARTIAL",
+                                    "DISPUTED",
+                                    "REMINDED",
+                                    "PLAN"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "number",
+                                "externalRef",
+                                "due",
+                                "total",
+                                "left",
+                                "state"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "reference",
+                          "amount",
+                          "daysLate",
+                          "status",
+                          "statusLabel",
+                          "invoices"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "payouts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "date": {
+                            "type": "string",
+                            "format": "date",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                          },
+                          "collections": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "gross": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "fee": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "net": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "date",
+                          "collections",
+                          "gross",
+                          "fee",
+                          "net"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "nextPayout": {
+                      "type": "object",
+                      "properties": {
+                        "date": {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                        },
+                        "net": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "gross": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "fee": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "date",
+                        "net",
+                        "gross",
+                        "fee"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "activity": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "who": {
+                            "type": "string"
+                          },
+                          "what": {
+                            "type": "string"
+                          },
+                          "when": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "nullable": true,
+                            "type": "string",
+                            "enum": [
+                              "OVERDUE",
+                              "PROMISE",
+                              "REMINDER",
+                              "DISPUTE",
+                              "SETTLED",
+                              "PLAN",
+                              "FORMAL_NOTICE",
+                              "LITIGATION"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "who",
+                          "what",
+                          "when",
+                          "status"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "mandateTerms": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "label",
+                          "value"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "contact": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "phone": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string",
+                          "format": "email",
+                          "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                        },
+                        "portalEnabled": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "title",
+                        "phone",
+                        "email",
+                        "portalEnabled"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "initials",
+                    "name",
+                    "sector",
+                    "siren",
+                    "debtors",
+                    "invoices",
+                    "outstanding",
+                    "recovered",
+                    "rate",
+                    "fee",
+                    "owner",
+                    "status",
+                    "statusLabel",
+                    "mandateSince",
+                    "ownerName",
+                    "totalDebtors",
+                    "portfolio",
+                    "payouts",
+                    "nextPayout",
+                    "activity",
+                    "mandateTerms",
+                    "contact"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "creditors"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      },
+      "put": {
+        "operationId": "CreditorsController_change",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "creditors"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER"
+          ]
+        }
+      }
+    },
+    "/staff/creditors/{id}/file": {
+      "get": {
+        "operationId": "CreditorsController_file",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "siren": {
+                      "type": "string"
+                    },
+                    "identity": {
+                      "type": "object",
+                      "properties": {
+                        "legalName": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 150
+                        },
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 150
+                        },
+                        "sector": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "vatNumber": {
+                          "type": "string"
+                        },
+                        "address": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 300
+                        },
+                        "postalCode": {
+                          "type": "string",
+                          "pattern": "^\\d{5}$"
+                        },
+                        "city": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 120
+                        },
+                        "managerId": {
+                          "nullable": true,
+                          "type": "string",
+                          "maxLength": 64
+                        },
+                        "portalEnabled": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "legalName",
+                        "name",
+                        "sector",
+                        "vatNumber",
+                        "address",
+                        "postalCode",
+                        "city",
+                        "managerId",
+                        "portalEnabled"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "contacts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 120
+                          },
+                          "title": {
+                            "type": "string",
+                            "maxLength": 120
+                          },
+                          "email": {
+                            "type": "string",
+                            "maxLength": 254,
+                            "format": "email",
+                            "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                          },
+                          "phone": {
+                            "type": "string",
+                            "maxLength": 30
+                          },
+                          "isMain": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "title",
+                          "email",
+                          "phone",
+                          "isMain"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "mandates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "amicableRateBp": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 10000
+                          },
+                          "litigationRateBp": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 10000
+                          },
+                          "openingFeeCents": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 2000000000
+                          },
+                          "planMonthsWithoutConsent": {
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "enum": [
+                                  3
+                                ]
+                              },
+                              {
+                                "type": "number",
+                                "enum": [
+                                  6
+                                ]
+                              },
+                              {
+                                "type": "number",
+                                "enum": [
+                                  12
+                                ]
+                              }
+                            ]
+                          },
+                          "discountMaxBp": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 10000
+                          },
+                          "litigationNeedsConsent": {
+                            "type": "boolean"
+                          },
+                          "deferSmallRemittances": {
+                            "type": "boolean"
+                          },
+                          "interestMode": {
+                            "type": "string",
+                            "enum": [
+                              "ECB_PLUS_TEN",
+                              "CONTRACT",
+                              "NONE"
+                            ]
+                          },
+                          "contractRateBp": {
+                            "nullable": true,
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 10000
+                          },
+                          "fixedIndemnity": {
+                            "type": "boolean"
+                          },
+                          "reportingDay": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 28
+                          },
+                          "scenario": {
+                            "type": "string",
+                            "enum": [
+                              "BUSINESS",
+                              "CONSUMER",
+                              "KEY_ACCOUNTS"
+                            ]
+                          },
+                          "startsOn": {
+                            "type": "string",
+                            "format": "date",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                          },
+                          "endsOn": {
+                            "nullable": true,
+                            "type": "string",
+                            "format": "date",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "CURRENT",
+                              "TO_COME",
+                              "ENDED"
+                            ]
+                          },
+                          "hasContract": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "amicableRateBp",
+                          "litigationRateBp",
+                          "openingFeeCents",
+                          "planMonthsWithoutConsent",
+                          "discountMaxBp",
+                          "litigationNeedsConsent",
+                          "deferSmallRemittances",
+                          "interestMode",
+                          "contractRateBp",
+                          "fixedIndemnity",
+                          "reportingDay",
+                          "scenario",
+                          "startsOn",
+                          "endsOn",
+                          "id",
+                          "state",
+                          "hasContract"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "openCases": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "updatedBy": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    },
+                    "bankAccess": {
+                      "type": "string",
+                      "enum": [
+                        "EDIT",
+                        "NONE"
+                      ]
+                    },
+                    "bankAccount": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "holder": {
+                          "type": "string"
+                        },
+                        "masked": {
+                          "type": "string"
+                        },
+                        "bic": {
+                          "type": "string"
+                        },
+                        "since": {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                        },
+                        "confirmed": {
+                          "nullable": true,
+                          "type": "object",
+                          "properties": {
+                            "on": {
+                              "type": "string",
+                              "format": "date",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                            },
+                            "with": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "on",
+                            "with"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "holder",
+                        "masked",
+                        "bic",
+                        "since",
+                        "confirmed"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "version",
+                    "siren",
+                    "identity",
+                    "contacts",
+                    "mandates",
+                    "openCases",
+                    "updatedBy",
+                    "updatedAt",
+                    "bankAccess",
+                    "bankAccount"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "creditors"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER"
+          ]
+        }
+      }
+    },
+    "/staff/creditors/{id}/amendments": {
+      "post": {
+        "operationId": "CreditorsController_amend",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "creditors"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER"
+          ]
+        }
+      }
+    },
+    "/staff/creditors/{id}/bank-accounts": {
+      "post": {
+        "operationId": "CreditorsController_replace",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "creditors"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      }
+    },
+    "/staff/creditors/{id}/bank-accounts/{accountId}/confirm": {
+      "post": {
+        "operationId": "CreditorsController_confirm",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "creditors"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      }
+    },
+    "/staff/creditors/{id}/bank-accounts/{accountId}/reveal": {
+      "post": {
+        "operationId": "CreditorsController_reveal",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "iban": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "iban"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "creditors"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      }
     }
   },
   "info": {

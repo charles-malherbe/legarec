@@ -944,6 +944,134 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/staff/creditors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CreditorsController_list"];
+        put?: never;
+        post: operations["CreditorsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/creditors/choices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CreditorsController_choices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/creditors/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CreditorsController_detail"];
+        put: operations["CreditorsController_change"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/creditors/{id}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CreditorsController_file"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/creditors/{id}/amendments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CreditorsController_amend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/creditors/{id}/bank-accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CreditorsController_replace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/creditors/{id}/bank-accounts/{accountId}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CreditorsController_confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/creditors/{id}/bank-accounts/{accountId}/reveal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CreditorsController_reveal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2561,6 +2689,359 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    CreditorsController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        initials: string;
+                        name: string;
+                        sector: string;
+                        siren: string;
+                        debtors: number;
+                        invoices: number;
+                        outstanding: number;
+                        recovered: number;
+                        rate: number;
+                        fee: string;
+                        owner: string;
+                        /** @enum {string} */
+                        status: "ACTIVE" | "RENEWAL";
+                        statusLabel: string;
+                    }[];
+                };
+            };
+        };
+    };
+    CreditorsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+        };
+    };
+    CreditorsController_choices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        managers: {
+                            id: string;
+                            name: string;
+                        }[];
+                        /** @enum {string} */
+                        bankAccess: "EDIT" | "NONE";
+                        defaults: {
+                            amicableRateBp: number;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    CreditorsController_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        initials: string;
+                        name: string;
+                        sector: string;
+                        siren: string;
+                        debtors: number;
+                        invoices: number;
+                        outstanding: number;
+                        recovered: number;
+                        rate: number;
+                        fee: string;
+                        owner: string;
+                        /** @enum {string} */
+                        status: "ACTIVE" | "RENEWAL";
+                        statusLabel: string;
+                        /** Format: date */
+                        mandateSince: string;
+                        ownerName: string;
+                        totalDebtors: number;
+                        portfolio: {
+                            id: string;
+                            name: string;
+                            reference: string;
+                            amount: number;
+                            daysLate: number;
+                            /** @enum {string} */
+                            status: "OVERDUE" | "PROMISE" | "REMINDER" | "DISPUTE" | "SETTLED" | "PLAN" | "FORMAL_NOTICE" | "LITIGATION";
+                            statusLabel: string;
+                            invoices: {
+                                number: string;
+                                externalRef: string;
+                                /** Format: date */
+                                due: string;
+                                total: number;
+                                left: number;
+                                /** @enum {string} */
+                                state: "UNPAID" | "PARTIAL" | "DISPUTED" | "REMINDED" | "PLAN";
+                            }[];
+                        }[];
+                        payouts: {
+                            id: string;
+                            /** Format: date */
+                            date: string;
+                            collections: number;
+                            gross: number;
+                            fee: number;
+                            net: number;
+                        }[];
+                        nextPayout: {
+                            /** Format: date */
+                            date: string;
+                            net: number;
+                            gross: number;
+                            fee: number;
+                        };
+                        activity: {
+                            id: string;
+                            who: string;
+                            what: string;
+                            when: string;
+                            /** @enum {string|null} */
+                            status: "OVERDUE" | "PROMISE" | "REMINDER" | "DISPUTE" | "SETTLED" | "PLAN" | "FORMAL_NOTICE" | "LITIGATION" | null;
+                        }[];
+                        mandateTerms: {
+                            label: string;
+                            value: string;
+                        }[];
+                        contact: {
+                            name: string;
+                            title: string;
+                            phone: string;
+                            /** Format: email */
+                            email: string;
+                            portalEnabled: boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    CreditorsController_change: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreditorsController_file: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        version: number;
+                        siren: string;
+                        identity: {
+                            legalName: string;
+                            name: string;
+                            sector: string;
+                            vatNumber: string;
+                            address: string;
+                            postalCode: string;
+                            city: string;
+                            managerId: string | null;
+                            portalEnabled: boolean;
+                        };
+                        contacts: {
+                            name: string;
+                            title: string;
+                            /** Format: email */
+                            email: string;
+                            phone: string;
+                            isMain: boolean;
+                        }[];
+                        mandates: {
+                            amicableRateBp: number;
+                            litigationRateBp: number;
+                            openingFeeCents: number;
+                            planMonthsWithoutConsent: 3 | 6 | 12;
+                            discountMaxBp: number;
+                            litigationNeedsConsent: boolean;
+                            deferSmallRemittances: boolean;
+                            /** @enum {string} */
+                            interestMode: "ECB_PLUS_TEN" | "CONTRACT" | "NONE";
+                            contractRateBp: number | null;
+                            fixedIndemnity: boolean;
+                            reportingDay: number;
+                            /** @enum {string} */
+                            scenario: "BUSINESS" | "CONSUMER" | "KEY_ACCOUNTS";
+                            /** Format: date */
+                            startsOn: string;
+                            /** Format: date */
+                            endsOn: string | null;
+                            id: string;
+                            /** @enum {string} */
+                            state: "CURRENT" | "TO_COME" | "ENDED";
+                            hasContract: boolean;
+                        }[];
+                        openCases: number;
+                        updatedBy: string | null;
+                        updatedAt: string;
+                        /** @enum {string} */
+                        bankAccess: "EDIT" | "NONE";
+                        bankAccount: {
+                            id: string;
+                            holder: string;
+                            masked: string;
+                            bic: string;
+                            /** Format: date */
+                            since: string;
+                            confirmed: {
+                                /** Format: date */
+                                on: string;
+                                with: string;
+                            } | null;
+                        } | null;
+                    };
+                };
+            };
+        };
+    };
+    CreditorsController_amend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreditorsController_replace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreditorsController_confirm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreditorsController_reveal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        iban: string;
+                    };
+                };
             };
         };
     };

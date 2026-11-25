@@ -69,6 +69,42 @@ let settingTurn = 0;
 const technical = only({ director: 204, developer: 204 });
 const hidden = { ...technical, liar: 404 };
 
+const creditor =
+  (then = '', prepare?: (test: TestApp, id: string) => Promise<string>) =>
+  async (test: TestApp) => {
+    const { rows } = await test.database.admin.query<{ id: string }>("INSERT INTO creditors (name) VALUES ('Nouveau') RETURNING id");
+    const { id } = rows[0]!;
+    return `/staff/creditors/${id}${then}${prepare ? await prepare(test, id) : ''}`;
+  };
+const bankAccount = (then: string) => async (test: TestApp, id: string) => {
+  const { rows } = await test.database.admin.query<{ id: string }>(
+    "INSERT INTO creditor_bank_accounts (creditor_id, holder, iban_cipher, iban_masked, bic, created_by) VALUES ($1, 'x', '\\x00', 'GB82 •••• •••• 5432', 'PSSTFRPPXXX', $2) RETURNING id",
+    [id, test.s.director],
+  );
+  return `/bank-accounts/${rows[0]!.id}/${then}`;
+};
+const creditorBody = () => ({
+  identity: { legalName: 'X', name: 'X', sector: '', vatNumber: '', address: 'x', postalCode: '69000', city: 'Lyon', managerId: null, portalEnabled: true },
+  contacts: [{ name: 'X', title: '', email: email(), phone: '', isMain: true }],
+});
+const MANDATE = {
+  startsOn: '2026-01-01',
+  endsOn: null,
+  amicableRateBp: 800,
+  litigationRateBp: 1200,
+  openingFeeCents: 0,
+  planMonthsWithoutConsent: 6,
+  discountMaxBp: 500,
+  litigationNeedsConsent: true,
+  deferSmallRemittances: false,
+  interestMode: 'NONE',
+  contractRateBp: null,
+  fixedIndemnity: true,
+  reportingDay: 5,
+  scenario: 'BUSINESS',
+};
+const ACCOUNT = { holder: 'X', iban: 'GB82 WEST 1234 5698 7654 32', bic: 'PSSTFRPPXXX', confirmedWith: '' };
+
 /** The same sign-in on both portals, open to whoever is there: the answer does not depend on it. */
 const signIn = (portal: 'staff' | 'partner'): Record<string, MatrixEntry> => {
   const code = () => ({ code: 'xxxxxx' });
@@ -153,6 +189,50 @@ export const MATRIX: Record<string, MatrixEntry> = {
   'PUT /staff/delegations/:kind': { path: () => '/staff/delegations/technical', body: () => ({ active: true }), expect: only({ director: 204 }) },
   'POST /staff/support-tickets': { body: () => ({ subject: 'Question', message: 'Une question du banc de test.' }), expect: staffOf(200) },
   // The liar sees nothing of it.
+  // An officer: the creditors of their cases. The liar is one.
+  'GET /staff/creditors': { expect: only({ director: 200, manager: 200, managerAlone: 200, officerA: 200, officerB: 200, liar: 200 }) },
+  'GET /staff/creditors/:id': {
+    path: (test) => `/staff/creditors/${test.s.creditorA}`,
+    expect: only({ director: 200, manager: 200, managerAlone: 200, officerA: 200, officerB: 404, liar: 200 }),
+  },
+  'GET /staff/creditors/choices': { expect: only({ director: 200, manager: 200, managerAlone: 200, liar: 200 }) },
+  'GET /staff/creditors/:id/file': { path: creditor('/file'), expect: only({ director: 200, manager: 200, managerAlone: 200, liar: 404 }) },
+  'POST /staff/creditors': {
+    path: async (test) => {
+      await test.database.admin.query("DELETE FROM mandates USING creditors c WHERE c.id = creditor_id AND c.siren = '732829320'");
+      await test.database.admin.query("DELETE FROM creditor_contacts USING creditors c WHERE c.id = creditor_id AND c.siren = '732829320'");
+      await test.database.admin.query("DELETE FROM creditors WHERE siren = '732829320'");
+      return '/staff/creditors';
+    },
+    body: () => ({ siren: '732829320', ...creditorBody(), mandate: MANDATE }),
+    expect: only({ director: 200, manager: 200, managerAlone: 200 }),
+  },
+  'PUT /staff/creditors/:id': {
+    path: creditor(),
+    body: () => ({ version: 1, ...creditorBody() }),
+    expect: only({ director: 204, manager: 204, managerAlone: 204, liar: 404 }),
+  },
+  // Nothing to amend: what the test of the creditors proves otherwise.
+  'POST /staff/creditors/:id/amendments': {
+    path: creditor('/amendments'),
+    body: () => ({ amends: randomUUID(), mandate: MANDATE }),
+    expect: only({ director: 409, manager: 409, managerAlone: 409, liar: 404 }),
+  },
+  'POST /staff/creditors/:id/bank-accounts': {
+    path: creditor('/bank-accounts'),
+    body: () => ({ replaces: null, account: ACCOUNT }),
+    expect: only({ director: 204, manager: 204, liar: 404 }),
+  },
+  'POST /staff/creditors/:id/bank-accounts/:accountId/confirm': {
+    path: creditor('', bankAccount('confirm')),
+    body: () => ({ confirmedWith: 'X' }),
+    expect: only({ director: 204, manager: 204, liar: 409 }),
+  },
+  // Not encrypted with the key of the tests: refused to all but those who may read it.
+  'POST /staff/creditors/:id/bank-accounts/:accountId/reveal': {
+    path: creditor('', bankAccount('reveal')),
+    expect: only({ director: 500, manager: 500, liar: 404 }),
+  },
   'GET /staff/settings/:scope': { path: () => '/staff/settings/firm', expect: staffOf(200) },
   'GET /staff/settings/:scope/:id': { path: () => '/staff/settings/techniques/audit', expect: only({ director: 200, developer: 200, liar: 200 }) },
   'PUT /staff/settings/:scope/:id': {

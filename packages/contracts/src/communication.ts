@@ -100,7 +100,7 @@ export const qualification = z.object({
 });
 export type Qualification = z.infer<typeof qualification>;
 
-const FRENCH_PHONE = /^(\+33\s?|0)[1-9](\s?\d{2}){4}$/;
+export const FRENCH_PHONE = /^(\+33\s?|0)[1-9](\s?\d{2}){4}$/;
 export const formatPhone = (value: string) => {
   const digits = value.replace(/\s/g, '').replace(/^\+33/, '0');
   return /^0\d{9}$/.test(digits) ? digits.replace(/(\d{2})(?=\d)/g, '$1 ') : value;

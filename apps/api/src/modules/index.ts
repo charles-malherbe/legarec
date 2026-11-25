@@ -9,6 +9,8 @@ import { SecondFactors } from './auth/second-factors';
 import { SessionResolver, Sessions } from './auth/sessions';
 import { SignIn } from './auth/sign-in';
 import { SessionViews } from './auth/views';
+import { CreditorsController } from './creditors/creditors.controller';
+import { CreditorsService } from './creditors/creditors.service';
 import { DelegationsController } from './delegations/delegations.controller';
 import { MembersController } from './members/members.controller';
 import { MembersService } from './members/members.service';
@@ -30,6 +32,7 @@ export const controllers: Type[] = [
   NotificationsController,
   SecretsController,
   SettingsController,
+  CreditorsController,
 ];
 export const providers: Provider[] = [
   AuthKeys,
@@ -43,4 +46,5 @@ export const providers: Provider[] = [
   AccountService,
   MembersService,
   Vault,
+  CreditorsService,
 ];
