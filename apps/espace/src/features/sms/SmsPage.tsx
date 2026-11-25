@@ -24,6 +24,7 @@ const STATUS: Record<NonNullable<SmsThread['status']>, [string, Tone]> = {
   REMINDER: ['En relance', 'info'],
   SETTLED: ['Réglé', 'success'],
 };
+const DRAFT_ID = 'sms-draft';
 type Filter = 'all' | 'unread' | 'todo' | 'unlinked';
 const FILTERS: [Filter, string, (item: SmsThread) => boolean][] = [
   ['all', 'Toutes', (item) => item.linked],
@@ -92,6 +93,14 @@ export function SmsPage() {
         toast({ message: 'SMS envoyé.' });
       },
     });
+  // A read-only conversation offers no action at all.
+  const canWrite = !!current?.linked && current.canAct !== false;
+  const startNew = () => {
+    const erased = draft;
+    setDraft('');
+    document.getElementById(DRAFT_ID)?.focus();
+    if (erased.trim()) toast({ message: 'Message effacé.', undo: () => setDraft(erased) });
+  };
   const s = data?.stats;
   return (
     <>
@@ -107,12 +116,13 @@ export function SmsPage() {
                 { label: 'Envoyés en novembre', value: s ? s.sent.toLocaleString('fr-FR') : '', sub: 'dont 1 196 automatiques' },
                 { label: 'Taux de réponse', value: s ? `${s.answers} %` : '', sub: '▲ 3 pts', tone: 'success' },
                 { label: 'Distribués', value: s ? `${s.delivered.toLocaleString('fr-FR')} %` : '', sub: 'sur 30 jours' },
-                { label: 'Désinscriptions (STOP)', value: String(s?.stops ?? ''), sub: 'numéros ce mois' },
+                { label: 'Désinscriptions (STOP)', value: s ? `${s.stopRate.toLocaleString('fr-FR')} %` : '', sub: s ? `${s.stops} numéros ce mois` : '' },
               ]
         }
         actions={[
           { label: 'Modèles de SMS', href: '/parametres/modeles/sms' },
           ...(user.role === 'COLLECTION_MANAGER' ? [{ label: 'Envoi groupé', href: '/documents/rediger' }] : []),
+          ...(canWrite ? [{ label: '+ Nouveau SMS', primary: true, kbd: 'N', onPress: startNew }] : []),
         ]}
       />
       <Toolbar
@@ -221,7 +231,15 @@ export function SmsPage() {
                       </button>
                     ))}
                   </div>
-                  <Champ label="Votre SMS" type="textarea" rows={3} value={draft} placeholder={`Écrire un SMS à ${current.contact}…`} onChange={setDraft} />
+                  <Champ
+                    fieldId={DRAFT_ID}
+                    label="Votre SMS"
+                    type="textarea"
+                    rows={3}
+                    value={draft}
+                    placeholder={`Écrire un SMS à ${current.contact}…`}
+                    onChange={setDraft}
+                  />
                   <Case label="Ajouter le lien de l’espace débiteur" checked={withLink} onToggle={setWithLink} />
                   <div className={layout.between}>
                     <span className={layout.text} aria-live="polite">

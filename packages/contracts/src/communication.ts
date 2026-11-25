@@ -227,7 +227,7 @@ export const smsData = z.object({
   total: z.number().int(),
   stopNotice: z.string(),
   /** Figures of the firm: never for a claims officer. */
-  stats: z.object({ sent: z.number().int(), delivered: z.number(), answers: z.number().int(), stops: z.number().int() }).nullable(),
+  stats: z.object({ sent: z.number().int(), delivered: z.number(), answers: z.number().int(), stops: z.number().int(), stopRate: z.number() }).nullable(),
 });
 
 /** Message of an employee: one valid address, and a real case or none. */

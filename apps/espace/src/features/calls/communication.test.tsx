@@ -161,6 +161,30 @@ describe('e-mails', () => {
 });
 
 describe('SMS', () => {
+  it('starts a new SMS with its button or N, with undo, and shows the STOP rate', async () => {
+    openAs('cl', '/sms');
+    const field = await screen.findByLabelText('Votre SMS');
+    expect(screen.getByText(/^0,6.%$/)).toBeVisible();
+    expect(screen.getByText('8 numéros ce mois')).toBeVisible();
+    await userEvent.type(field, 'Bonjour');
+    await userEvent.click(screen.getByRole('button', { name: /Nouveau SMS/ }));
+    expect(field).toHaveFocus();
+    expect(field).toHaveValue('');
+    await userEvent.click(await screen.findByRole('button', { name: 'Annuler' }));
+    expect(field).toHaveValue('Bonjour');
+    (document.activeElement as HTMLElement).blur();
+    await userEvent.keyboard('n');
+    expect(field).toHaveFocus();
+    expect(field).toHaveValue('');
+  });
+  it('offers no action on a read-only conversation', async () => {
+    openAs('ad', '/sms');
+    expect(await screen.findByText(/^Lecture seule/)).toBeVisible();
+    for (const name of [/Nouveau SMS/, /Appeler/, /Enregistrer une promesse/]) {
+      expect(screen.queryByRole('button', { name })).toBeNull();
+      expect(screen.queryByRole('link', { name })).toBeNull();
+    }
+  });
   it('warns when a character drops the limit to 70 and confirms the billing', async () => {
     openAs('cl', '/sms');
     await userEvent.type(await screen.findByLabelText('Votre SMS'), 'Reçu, peut-être demain');
