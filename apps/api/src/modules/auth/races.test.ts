@@ -241,29 +241,34 @@ describe('a session closed while it asks for something about its own account', (
 });
 
 describe('a link drawn by the worker', () => {
-  const draw = (id: string, midway: () => Promise<unknown>, jobs: Database) =>
-    jobs.run({ kind: 'worker', job: 'email' }, async (tx) => {
-      // Between the new link and the former ones.
-      const { findUnique } = tx.user;
-      vi.spyOn(tx.user, 'findUnique').mockImplementationOnce(((args: never) => midway().then(() => findUnique.call(tx.user, args))) as never);
-      await drawLink(tx, keys, { purpose: 'RESET', userId: id, token: newToken() });
-    });
-
-  it('does not stop the account from being disabled at the same time', async () => {
+  it.each(['before', 'after'])('does not stop the account from being disabled just %s its new line is written', async (when) => {
     const support = await director();
     const jobs = new Database(test.database.url('jobs'));
     try {
       const { id } = await newAccount(test);
       await resetLink(id);
       let disabled: Promise<{ status: number }> | undefined;
-      await draw(
-        id,
-        async () => {
-          disabled = support.post(`/members/${id}/disable`, { reason: 'Essai', cases: 0 });
-          await new Promise((done) => setTimeout(done, 300));
-        },
-        jobs,
-      );
+      const disable = async () => {
+        disabled = support.post(`/members/${id}/disable`, { reason: 'Essai', cases: 0 });
+        await new Promise((done) => setTimeout(done, 300));
+      };
+      const drawn = jobs
+        .run({ kind: 'worker', job: 'email' }, async (tx) => {
+          const { create } = tx.authToken;
+          vi.spyOn(tx.authToken, 'create').mockImplementationOnce((async (args: never) => {
+            if (when === 'before') await disable();
+            const made = await create.call(tx.authToken, args);
+            if (when === 'after') await disable();
+            return made;
+          }) as never);
+          await drawLink(tx, keys, { purpose: 'RESET', userId: id, token: newToken() });
+        })
+        .then(
+          () => 'drawn',
+          (error: Error) => error.message,
+        );
+      // Disabled first, it gets no link; otherwise its link is closed with the rest.
+      expect(await drawn).toBe(when === 'before' ? 'ACCOUNT_CHANGED' : 'drawn');
       expect((await disabled!).status).toBe(204);
       expect(await rows('SELECT 1 FROM auth_tokens WHERE user_id = $1 AND used_at IS NULL', [id])).toEqual([]);
     } finally {
@@ -290,11 +295,31 @@ describe('a link drawn by the worker', () => {
 describe('two people who replace each other', () => {
   it('leave at the same time without an incident', async () => {
     const support = await director();
-    for (let i = 0; i < 6; i += 1) {
-      const [a, b] = [await newAccount(test), await newAccount(test)];
-      await rows('UPDATE users SET substitute_id = CASE id WHEN $1 THEN $2::uuid ELSE $1::uuid END WHERE id IN ($1, $2)', [a.id, b.id]);
-      const answers = await Promise.all([a, b].map(({ id }) => support.post(`/members/${id}/disable`, { reason: 'Essai', cases: 0 })));
-      expect(answers.map((answer) => answer.status)).toEqual([204, 204]);
-    }
+    const [a, b] = [await newAccount(test), await newAccount(test)];
+    await rows('UPDATE users SET substitute_id = CASE id WHEN $1 THEN $2::uuid ELSE $1::uuid END WHERE id IN ($1, $2)', [a.id, b.id]);
+    await rows('UPDATE cases SET officer_id = CASE id WHEN $1 THEN $2::uuid ELSE $3::uuid END WHERE id IN ($1, $4)', [
+      test.s.cases.ofA,
+      a.id,
+      b.id,
+      test.s.cases.ofB,
+    ]);
+    // Both are under way, each past its own account, before either goes on.
+    await rows('BEGIN');
+    await rows('SELECT 1 FROM cases WHERE id = ANY ($1::uuid[]) FOR UPDATE', [[test.s.cases.ofA, test.s.cases.ofB]]);
+    const leaving = [a, b].map(({ id }) => support.post(`/members/${id}/disable`, { reason: 'Essai', cases: 1 }));
+    await new Promise((done) => setTimeout(done, 500));
+    await rows('COMMIT');
+    expect((await Promise.all(leaving)).map((answer) => answer.status)).toEqual([204, 204]);
+  });
+});
+
+describe('an account disabled once it was found', () => {
+  it('is never acted on: nothing runs, and nobody is told', async () => {
+    const accounts = new Accounts(test.app.get(Database));
+    const { id } = await newAccount(test, { status: 'DISABLED' });
+    const work = vi.fn(() => Promise.resolve('done'));
+    await expect(accounts.as(id, work)).rejects.toMatchObject({ status: 401 });
+    expect(await accounts.as(id, work, () => 'gone')).toBe('gone');
+    expect(work).not.toHaveBeenCalled();
   });
 });
