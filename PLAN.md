@@ -128,7 +128,7 @@ Les 161 routes simulées se répartissent ainsi :
 | Lot | Contenu | Routes reprises |
 |---|---|---|
 | [x] J0 | Documentation : décisions 65 à 111, points à confirmer, `PLAN.md`, `docs/`, `.claude/rules/api.md` | — |
-| [ ] J | Socle : services de développement, NestJS, Prisma, rôles et RLS, audit, erreurs, journaux masqués, OpenAPI, outbox, banc de tests, GitHub Actions (services PostgreSQL et Valkey, Node 26), corps de requêtes Zod manquants, en-tête `Idempotency-Key` dans `packages/platform/src/http.ts` | 0 |
+| [x] J | Socle : services de développement, NestJS, Prisma, rôles et RLS, audit, erreurs, journaux masqués, OpenAPI, outbox, banc de tests, GitHub Actions (services PostgreSQL et Valkey, Node 26), corps de requêtes Zod manquants, en-tête `Idempotency-Key` dans `packages/platform/src/http.ts` | 0 |
 | [ ] K | Comptes : connexion, 2FA, sessions, invitations, délégations, support, premier Directeur par commande | 40 (`auth`, `account`, `members`, `delegations`, `support-tickets`) |
 | [ ] L | Portefeuille : paramètres et coffre, créanciers et mandats, débiteurs, dossiers, coordonnées, code d'accès, recherche, notifications. **Écrans** créancier et débiteur | 21 |
 | [ ] M | Argent : intérêts, paiements, promesses, litiges, échéanciers | 7 |
@@ -147,6 +147,15 @@ Les 161 routes simulées se répartissent ainsi :
 **Bascule** : chaque lot ajoute ses préfixes à une liste `VITE_API` (développement) : MSW laisse passer ces routes vers l'API. La valeur par défaut bascule portail par portail : paiement après O, partenaires après P, espace après U. Chaque lot rejoue les mêmes requêtes contre MSW et contre l'API et valide les deux par le même schéma Zod. En mode mixte, un lien vers un écran non branché peut ne pas trouver le dossier (développement seulement). MSW reste pour les tests de composants.
 
 **À fournir par le cabinet, jamais par Claude Code** : clés de test Resend et MySendingBox dans le `.env` (Q), Scaleway en option (N), voir `docs/api.md`, « Clés et secrets » ; compte SMS avec numéro virtuel (R) ; licence et identifiants 3CX (T) ; second domaine Resend (Q) ; valeurs entre crochets (N) ; déploiement (X). Sans elles, les adaptateurs tournent en mode simulé.
+
+## Lot J — Socle (état au 25/11/2026)
+- [x] Services de développement sans root ni service système (`infra/dev/services.mjs`), lancement de l'API et du worker (`pnpm --filter @legarec/api dev`)
+- [x] NestJS 12, Prisma 7, trois connexions PostgreSQL, 10 rôles sans connexion, RLS forcée ; 11 tables du socle (comptes, délégations, créanciers, débiteurs, dossiers, historique, numérotation, journal, boîte d'envoi, webhooks, idempotence). Les autres tables arrivent avec leur lot
+- [x] Règle d'accès obligatoire par route, matrice d'accès, origine exacte par portail, idempotence, erreurs uniformes, journaux sans donnée personnelle, journal et historique en ajout seul
+- [x] Chiffrement AES-256-GCM avec version de clé, clés dérivées par usage ; boîte d'envoi, worker aux droits de l'auteur, purge quotidienne
+- [x] OpenAPI et types des routes générés et vérifiés ; corps de toutes les requêtes des portails en Zod (`packages/contracts/src/requests.ts`), contrôlés aussi par les simulations ; clé d'idempotence envoyée par les portails
+- [x] GitHub Actions : PostgreSQL 17, Valkey 8.1, Node 26
+- Aucune route des portails n'est encore branchée : les écrans restent sur les simulations.
 
 ## Points à reprendre du front
 

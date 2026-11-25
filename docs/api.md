@@ -26,6 +26,8 @@ Réutilisé tel quel : `canReadCase`, `canActOnCase`, `hasDelegation`, `allocate
 | P | `csv-parse` 7.0.3, `read-excel-file` 9.3.20, `write-excel-file` 4.1.1, `fflate` 0.8.3 |
 | R | `nodemailer` 10.6.1, `imapflow` 2.12.2, `mailparser` 3.15.0 |
 
+Aucun script d'installation de dépendance ne s'exécute (`allowBuilds` dans `pnpm-workspace.yaml`). `openapi-typescript` n'annonce pas encore TypeScript 6, mais fonctionne avec.
+
 Sans dépendance : Resend, MySendingBox, OVH (appels signés : le paquet `ovh` date de 2019), 3CX, IA compatible OpenAI, ClamAV, limites par IP (Valkey). Construction par Vite, déjà présent.
 
 ### Routes, sessions, en-têtes
@@ -34,12 +36,15 @@ Sans dépendance : Resend, MySendingBox, OVH (appels signés : le paquet `ovh` d
 - Jetons (réinitialisation, invitation, lien) : jamais dans un journal. Pino note le modèle de route, Caddy masque ces chemins ; ils font partie du test de fuites.
 - Webhooks : Resend, signature vérifiée sur le corps brut. MySendingBox, aucune signature trouvée dans la partie lue de sa documentation : lettre connue du même environnement, sinon 204 sans appel ; l'API relit la lettre chez lui, une fois par minute et par lettre au plus ; un statut ne recule jamais ; interrogation périodique en complément.
 - Action qui engage : `Idempotency-Key` et, si le récapitulatif porte un montant, un nombre ou un destinataire, valeur attendue ; l'API répond 409 si l'état a changé depuis la confirmation. Clés gardées 24 heures avec l'empreinte du corps (corps différent : 422) ; une valeur affichée une seule fois (mot de passe de boîte, clé, TOTP, codes de secours, code d'accès) n'y est jamais enregistrée : rejeu = 409.
-- Erreurs : mêmes codes que les simulations (`INVALID`, `FORBIDDEN`, `LOCKED`, `SELECTION_CHANGED`…).
+- Erreurs : mêmes codes que les simulations (`INVALID`, `FORBIDDEN`, `LOCKED`, `SELECTION_CHANGED`…). Une erreur de saisie nomme les champs, jamais ce qui a été tapé.
+- Corps des requêtes : une seule définition, `packages/contracts/src/requests.ts`, lue par l'API et par les simulations, qui refusent ce que l'API refuserait.
 
 ### Règles de code
 Une requête = une transaction `Database.run(actor, fn)` ; ESLint interdit Prisma ailleurs. Aucun appel externe dans une transaction : `outbox`, puis BullMQ. Les tâches ne portent que des identifiants. SQL brut limité à : `SET LOCAL ROLE`, `set_config`, séquences, verrous consultatifs, recherche trigramme, agrégats.
 
 ## Schéma PostgreSQL / Prisma (98 tables)
+
+Chaque lot ajoute ses tables par une migration ; le lot J pose les 11 du socle. `test/schema.test.ts` applique les mêmes règles à toutes : RLS forcée, clé composite, aucun droit par défaut, fonctions à `search_path` fixe, accord entre Prisma et la base.
 
 ### Conventions
 Clés UUID v7 ; `created_at` partout ; dates `timestamptz` ou `date` ; montants en centimes `integer` (`*_cents`, contrôle de plafond), taux en points de base. **Cloisonnement** : toute table liée à un dossier porte `case_id` et `creditor_id`, avec clé étrangère composite vers `cases(id, creditor_id)`, sans cascade (`NO ACTION`), et `CHECK (case_id IS NULL OR creditor_id IS NOT NULL)` : un `creditor_id` faux est impossible. Une référence entre deux tables d'un dossier porte aussi `case_id`, pour ne jamais relier deux dossiers. `reference`, `creditor_id`, `debtor_id` et `officer_id` d'un dossier ne se modifient jamais directement. `[c+cr]` ci-dessous désigne ce couple. Énumérations = celles des contrats, complétées (`NEW`, `LOST`, `CREDIT_NOTE`, `QUEUED`, `UNCERTAIN`).
