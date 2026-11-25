@@ -24,7 +24,8 @@ Décisions du 24/11/2026, reprises de l'annexe « Architecture » de `PROMPT-FRO
   lancée par un worker sans demande d'un utilisateur.
 - SMS : OVHcloud ; expéditeur sous forme de numéro (et non le nom « LEGAREC ») pour recevoir les réponses,
   rattachées au dossier par numéro de téléphone ; numéro mobile virtuel d'un compte dédié (question 70).
-- Téléphonie : API Call Control de 3CX (question 71) ; enregistrements repris dans S3 et supprimés à 6 mois.
+- Téléphonie : API Call Control de 3CX (question 71) ; enregistrements repris dans S3 et supprimés à 6 mois
+  (copie restée dans 3CX et appels sans annonce : question 117).
 - Contrats : schémas Zod de packages/contracts → OpenAPI produit par NestJS 12 (@nestjs/swagger ; nestjs-zod abandonné, question 66) → types des routes générés
   par openapi-typescript, régénérés et vérifiés par pnpm verifier (en local et dans GitHub Actions).
 - Montants : centimes entiers ; taux d'intérêt légal dans une table mise à jour chaque semestre.
@@ -40,8 +41,8 @@ Décisions du 24/11/2026, reprises de l'annexe « Architecture » de `PROMPT-FRO
 - Antivirus : ClamAV ; tout fichier reçu reste en quarantaine jusqu'au résultat (question 87).
 - IA : auto-hébergée si l'essai mesuré du lot W convient, sinon nouveau choix (questions 72 et 106) ; transcription
   après l'appel seulement ; couche fournisseur (interface unique ; adaptateurs Anthropic et compatible OpenAI pour Scaleway et OVH).
-  Les deux niveaux de docs/ia.md (IA_MODELE_RAPIDE, IA_MODELE_AVANCE) pointent par défaut vers Claude Haiku 5.5
-  et Claude Sonnet 5.5, jamais en dur ; budget et journal de docs/ia.md conservés, avec le coût de chaque appel ;
+  Les deux niveaux de docs/ia.md (IA_MODELE_RAPIDE, IA_MODELE_AVANCE) n'ont pas de valeur par défaut : variable absente =
+  IA éteinte ; budget et journal de docs/ia.md conservés, avec le coût de chaque appel ;
   seules les données nécessaires sont envoyées ; IA désactivée en production tant que le contrat de sous-traitance
   n'est pas signé.
 - Fichiers des dossiers (Scaleway S3, bucket legarec-documents) : répertoires en français, sans accents ni espaces :

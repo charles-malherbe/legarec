@@ -113,7 +113,7 @@
 
 # Plan de la mission API
 
-Validé par le cabinet le 25/11/2026. Architecture, schéma, sécurité, clés et tests : `docs/api.md`. Décisions : `DECISIONS.md` (questions 65 à 111). Points à confirmer : `QUESTIONS.md`.
+Validé par le cabinet le 25/11/2026. Architecture, schéma, sécurité, clés et tests : `docs/api.md`. Décisions : `DECISIONS.md` (questions 65 à 111). Points à trancher ou à confirmer : `QUESTIONS.md`.
 
 ## Conventions de la mission API
 - Une branche `lot/<lettre>` et une PR par lot, un commit par module ; le cabinet fusionne. Le code commence quand le lot J0 est fusionné.
@@ -170,7 +170,10 @@ Les 161 routes simulées se répartissent ainsi :
 | Support : « Réinitialiser la double authentification » et « Débloquer », absents de l'écran | K |
 | Écran Secrets : liste de noms attendus, « Renouveler » qui demande la nouvelle valeur, « Révoquer » masqué pour les clés internes, `SESSION_SIGNING_KEY` retirée, « Environnement » réel (108 à 110) | L |
 | Appels : « Transcription en direct » devient une transcription proposée après l'appel (question 72) | W |
-| Tableau des permissions : « Valider un échéancier, une remise ou un abandon de créance », « Ses dossiers » pour le Directeur (question 86) | M |
+| Tableau des permissions : « Valider un échéancier, une remise ou un abandon de créance », « Ses dossiers » pour le Directeur (question 86) ; « Validations » : accord du créancier après celui du Responsable | M |
+| Absence : le remplaçant reçoit des notifications neutres (Mon compte, « Absence et remplacement ») | K |
+| Données personnelles : durées modifiables et anonymisation désactivable à l'écran, alors qu'elles sont fixées ; page Confidentialité à compléter (durées, suivi des e-mails avant de l'activer) | Q, V |
+| Synchronisation d'un contact avec l'annuaire 3CX (`HANDOFF.md`) : annuaire commun à toute l'équipe, écart à signaler avant développement | T |
 
 ## Risques et limites
 
@@ -179,12 +182,13 @@ Les 161 routes simulées se répartissent ainsi :
 - Mémoire du VPS (11,7 Go, 7,5 libres) : ClamAV environ 1,2 Go, modèle local 3 à 4 Go, plus la production. L'essai du lot W le mesure avant tout choix.
 - À faire valider par le juriste : kit sans rappel du premier courrier (85), suivi des e-mails (84), intérêts des particuliers (98), coordonnées (79). Suivi dans `QUESTIONS.md`.
 - Numéro virtuel OVH : si les liens y sont refusés, la question 70 se rouvre.
-- Code d'accès court (331 776 combinaisons) : d'où limites, blocage, réponses identiques et exclusion des mots courants.
+- Code d'accès court (331 776 combinaisons) : d'où limites, blocage, réponses identiques et exclusion des mots courants. Coordonnées fournies par les créanciers : question 112, à trancher avant le lot O.
+- Pouvoirs du Développeur sur le compte du Directeur : question 113, à trancher avant le lot K.
 - Les PR sont volumineuses (K, L, R) : un commit par module pour faciliter la relecture.
 
 ## Vérification
 
-1. `sudo apt-get install --no-install-recommends postgresql-17 valkey-server` (16 paquets nouveaux, aucun mis à jour ; services désactivés), puis `node infra/dev/services.mjs start`.
+1. `node infra/dev/services.mjs start` : paquets Debian téléchargés, vérifiés par apt et extraits dans un dossier privé, sans `sudo` ni service, car les ports 5432 et 6379 de la machine sont déjà pris ; les tests refusent ces deux ports.
 2. `pnpm verifier` : types, lint, tests unitaires, base réelle, matrice d'accès, contrats, dérive de schéma.
 3. `pnpm e2e` contre l'API pour les portails basculés, axe, quatre largeurs ; `/comparer` sur les écrans modifiés.
 4. Recette de cloisonnement : deux créanciers, deux gestionnaires, deux débiteurs ; aucune donnée croisée à l'écran, dans l'API ni en SQL.
