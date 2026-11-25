@@ -1,6 +1,9 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
+
+// The front tests share the machine with those of the API: one second, the default, is too short under load.
+configure({ asyncUtilTimeout: 5_000 });
 
 afterEach(cleanup);
 

@@ -70,7 +70,7 @@ export default async function setup(project: TestProject) {
     .sort()) {
     hash.update(name).update(readFileSync(join(MIGRATIONS, name, 'migration.sql')));
   }
-  const template = `legarec_template_${hash.digest('hex').slice(0, 12)}`;
+  const template = `legarec_tpl_${hash.digest('hex').slice(0, 12)}`;
   const testPrefix = `legarec_test_${Date.now().toString(36)}_`;
   const admin = new pg.Client({ connectionString: adminUrl });
   await admin.connect();
@@ -80,9 +80,13 @@ export default async function setup(project: TestProject) {
       await admin.query(bootstrap);
       for (const [role, password] of Object.entries(passwords)) await admin.query(`ALTER ROLE legarec_${role} PASSWORD ${admin.escapeLiteral(password)}`);
     }
-    const { rows } = await admin.query<{ datname: string }>("SELECT datname FROM pg_database WHERE datname ~ '^legarec_(template|test)_'");
-    const old = rows.map((row) => row.datname).filter((name) => (name.startsWith('legarec_template_') ? name !== template : isStale(name)));
-    for (const name of old) await admin.query(`DROP DATABASE IF EXISTS ${admin.escapeIdentifier(name)} WITH (FORCE)`);
+    // Other checkouts of the repository run their tests here too: a template nobody has used for a day is dropped, not theirs.
+    const { rows } = await admin.query<{ datname: string; used: string | null }>(
+      "SELECT datname, shobj_description(oid, 'pg_database') AS used FROM pg_database WHERE datname ~ '^legarec_(tpl|template|test)_'",
+    );
+    const unused = (used: string | null) => Number(used ?? 0) < Date.now() - 86_400_000;
+    const old = rows.filter(({ datname, used }) => datname !== template && (datname.startsWith('legarec_test_') ? isStale(datname) : unused(used)));
+    for (const { datname } of old) await admin.query(`DROP DATABASE IF EXISTS ${admin.escapeIdentifier(datname)} WITH (FORCE)`);
     if (!rows.some((row) => row.datname === template)) {
       const building = `${template}_building`;
       await admin.query(`DROP DATABASE IF EXISTS ${building} WITH (FORCE)`);
@@ -94,6 +98,7 @@ export default async function setup(project: TestProject) {
       await migrate(url.href, MIGRATIONS);
       await admin.query(`ALTER DATABASE ${building} RENAME TO ${template}`);
     }
+    await admin.query(`COMMENT ON DATABASE ${template} IS '${Date.now()}'`);
   } finally {
     await admin.end();
   }
