@@ -1,16 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-import { api } from './http';
+import { api, ApiError, upload } from './http';
 
-const sent: { method: string; key: string | null }[] = [];
+const sent: { method: string; key: string | null; init: RequestInit; url: string }[] = [];
 let answer: () => Response | Promise<Response>;
 const ok = () => new Response(null, { status: 204 });
 
 beforeEach(() => {
   sent.length = 0;
   answer = ok;
-  vi.stubGlobal('fetch', (_url: string, init: RequestInit) => {
-    sent.push({ method: init.method ?? 'GET', key: new Headers(init.headers).get('idempotency-key') });
+  vi.stubGlobal('fetch', (url: string, init: RequestInit) => {
+    sent.push({ method: init.method ?? 'GET', key: new Headers(init.headers).get('idempotency-key'), init, url });
     return Promise.resolve(answer());
   });
 });
@@ -57,5 +57,139 @@ describe('key of a change', () => {
     await change().catch(() => undefined);
     await change().catch(() => undefined);
     expect(keys()[1]).not.toBe(keys()[0]);
+  });
+});
+
+describe('keys kept in memory', () => {
+  const offline = () => Promise.reject(new TypeError('network'));
+  const lose = async (count: number, from = 0) => {
+    answer = offline;
+    sent.length = 0;
+    for (let i = from; i < from + count; i += 1) await change({ number: i }).catch(() => undefined);
+    const known = keys();
+    sent.length = 0;
+    return known;
+  };
+  /** Key of one more try of that change, still without any answer. */
+  const again = async (number: number) => {
+    sent.length = 0;
+    await change({ number }).catch(() => undefined);
+    return keys()[0];
+  };
+
+  it('are fifty at most: beyond, the oldest is forgotten, and that one only', async () => {
+    const known = await lose(51);
+    expect(new Set(known).size).toBe(51);
+    // Number 1 to 50 are still known; 0 was the oldest.
+    expect(await again(50)).toBe(known[50]);
+    expect(await again(1)).toBe(known[1]);
+    const renewed = await again(0);
+    expect(renewed).toMatch(/^[0-9a-f-]{36}$/u);
+    expect(known).not.toContain(renewed);
+  });
+
+  it('keep first the changes tried again lately', async () => {
+    const known = await lose(50, 100);
+    // The oldest one is tried again: it is now the most recent.
+    expect(await again(100)).toBe(known[0]);
+    await lose(1, 200);
+    expect(await again(100)).toBe(known[0]);
+    expect(await again(101)).not.toBe(known[1]);
+  });
+
+  it('are forgotten once answered, whatever the answer of the API', async () => {
+    for (const [index, status] of [200, 400, 401, 403, 404, 409, 413, 422, 429, 500].entries()) {
+      const [first] = await lose(1, 300 + index);
+      answer = () => new Response('{}', { status });
+      await api(z.unknown(), '/cases/demo/notes', { method: 'POST', body: { number: 300 + index } }).catch(() => undefined);
+      expect(keys(), String(status)).toEqual([first]);
+      answer = offline;
+      expect(await again(300 + index), String(status)).not.toBe(first);
+    }
+  });
+
+  it.each([502, 503, 504])('are kept when the proxy answers %s in place of the API', async (status) => {
+    const [first] = await lose(1, 400 + status);
+    answer = () => new Response('<html>', { status });
+    await change({ number: 400 + status }).catch(() => undefined);
+    answer = offline;
+    expect(await again(400 + status)).toBe(first);
+  });
+
+  it('differ from one path, one method and one body to the other', async () => {
+    answer = offline;
+    const tries: [string, { method: string; body?: unknown }][] = [
+      ['/cases/a/notes', { method: 'POST', body: { text: 'x' } }],
+      ['/cases/b/notes', { method: 'POST', body: { text: 'x' } }],
+      ['/cases/a/notes', { method: 'PUT', body: { text: 'x' } }],
+      ['/cases/a/notes', { method: 'POST', body: { text: 'y' } }],
+      ['/cases/a/notes', { method: 'POST' }],
+      ['/cases/a/notes', { method: 'DELETE' }],
+    ];
+    for (const [path, init] of [...tries, ...tries]) await api(z.undefined(), path, init).catch(() => undefined);
+    expect(new Set(keys()).size).toBe(tries.length);
+    expect(keys().slice(tries.length)).toEqual(keys().slice(0, tries.length));
+  });
+
+  it('say nothing of the change, and go nowhere but in their header', async () => {
+    answer = offline;
+    await api(z.undefined(), '/cases/demo/notes', { method: 'POST', body: { text: 'Bonjour' } }).catch(() => undefined);
+    const [{ key, url, init }] = sent as [(typeof sent)[0]];
+    expect(url).toBe('/api/cases/demo/notes');
+    expect(init.body).toBe('{"text":"Bonjour"}');
+    expect(`${url} ${String(init.body)}`).not.toContain(key);
+    expect([localStorage.length, sessionStorage.length, document.cookie]).toEqual([0, 0, '']);
+  });
+});
+
+describe('requests', () => {
+  it('carry the cookie of the session, and no token', async () => {
+    await api(z.undefined(), '/cases');
+    await change();
+    for (const { init } of sent) {
+      expect(init.credentials).toBe('include');
+      expect(new Headers(init.headers).get('authorization')).toBeNull();
+    }
+  });
+
+  it('announce JSON only when they carry a body', async () => {
+    await api(z.undefined(), '/cases');
+    await api(z.undefined(), '/cases/demo/read', { method: 'POST' });
+    await change({});
+    expect(sent.map(({ init }) => [new Headers(init.headers).get('content-type'), init.body])).toEqual([
+      [null, undefined],
+      [null, undefined],
+      ['application/json', '{}'],
+    ]);
+  });
+
+  it('give the answer the shape of its contract, or fail', async () => {
+    answer = () => Response.json({ id: '1', more: true });
+    expect(await api(z.object({ id: z.string() }), '/cases/1')).toEqual({ id: '1' });
+    answer = () => Response.json({ id: 1 });
+    await expect(api(z.object({ id: z.string() }), '/cases/1')).rejects.toBeInstanceOf(z.ZodError);
+    answer = () => new Response('<html>');
+    await expect(api(z.object({ id: z.string() }), '/cases/1')).rejects.toBeInstanceOf(z.ZodError);
+  });
+
+  it('give the status and the code of a refusal, and never its address in the message', async () => {
+    answer = () => Response.json({ code: 'SELECTION_CHANGED', count: 3 }, { status: 409 });
+    const refused = await api(z.undefined(), '/cases/demo?name=x', { method: 'POST' }).catch((error: unknown) => error);
+    expect(refused).toBeInstanceOf(ApiError);
+    expect(refused).toMatchObject({ status: 409, body: { code: 'SELECTION_CHANGED', count: 3 }, message: 'API error 409' });
+    answer = () => new Response('<html>', { status: 502 });
+    expect(await api(z.undefined(), '/cases').catch((error: unknown) => error)).toMatchObject({ status: 502, body: undefined });
+  });
+
+  it('send a file as it is: its name goes nowhere', async () => {
+    answer = () => Response.json({ id: 'f1' });
+    const file = new File(['contenu'], 'facture Jean Martin.pdf', { type: 'application/pdf' });
+    expect(await upload(z.object({ id: z.string() }), '/portal/attachments', file)).toEqual({ id: 'f1' });
+    const [{ url, init, method }] = sent as [(typeof sent)[0]];
+    expect([method, url, init.credentials]).toEqual(['POST', '/api/portal/attachments', 'include']);
+    expect(JSON.stringify([url, [...new Headers(init.headers)]])).not.toMatch(/Jean|Martin|facture/u);
+    expect(new TextDecoder().decode(init.body as ArrayBuffer)).toBe('contenu');
+    await upload(z.object({ id: z.string() }), '/portal/attachments', new File(['x'], 'sans-type'));
+    expect(new Headers(sent[1]!.init.headers).get('content-type')).toBe('application/octet-stream');
   });
 });
