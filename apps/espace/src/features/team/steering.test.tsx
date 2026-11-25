@@ -49,7 +49,7 @@ describe('members', () => {
     expect(screen.queryByText('Appels passés')).toBeNull();
     expect((await call('dev', '/team')).status).toBe(403);
     expect((await call('hb', '/members')).status).toBe(403);
-    expect((await call('cl', '/members/hb/extension', { extension: '1' }, 'PUT')).status).toBe(403);
+    expect((await call('cl', '/members/hb/extension', { extension: '101' }, 'PUT')).status).toBe(403);
   });
   it('refuses the team screen to a Claims officer', async () => {
     openAs('hb', '/equipe');

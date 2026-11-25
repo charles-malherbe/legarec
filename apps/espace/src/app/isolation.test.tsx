@@ -43,7 +43,7 @@ describe('the Director only acts on their own cases', () => {
   it.each([
     ['/gdpr/requests', { caseId: 'demo', kind: 'ACCESS', origin: 'Courrier' }, 'POST'],
     ['/payment-plans', { caseId: 'demo', months: 4, method: 'TRANSFER' }, 'POST'],
-    ['/cases/demo/reminders', {}, 'POST'],
+    ['/cases/demo/reminders', { channel: 'E-mail', template: 'Relance n°1', recipient: 'compta@batiplus.example', message: 'Bonjour' }, 'POST'],
     ['/emails/messages', { to: 'compta@batiplus.example', subject: 'a', paragraphs: ['b'], caseId: null }, 'POST'],
   ])('refuses %s on the case of someone else', async (path, body, method) => {
     expect((await call('ad', path, body, method)).status).toBe(403);

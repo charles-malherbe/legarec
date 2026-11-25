@@ -1,4 +1,13 @@
-import { debtorAccess, debtorIdentifier, debtorRequest, sirenOf, type DebtorCase, type DebtorIdentifier, type PaymentInfo } from '@legarec/contracts';
+import {
+  acceptsBody,
+  debtorAccess,
+  debtorIdentifier,
+  debtorRequest,
+  sirenOf,
+  type DebtorCase,
+  type DebtorIdentifier,
+  type PaymentInfo,
+} from '@legarec/contracts';
 import { http, HttpResponse } from 'msw';
 
 type Info = { request: Request; params: Record<string, string | readonly string[] | undefined> };
@@ -195,7 +204,15 @@ const REQUEST_TEXT = {
   CALLBACK: 'Demande de rappel',
 };
 
+/** What the API would refuse is refused here too: every body matches its contract. */
+const checkBody = http.all('/api/*', async ({ request }) => {
+  if (!request.headers.get('content-type')?.startsWith('application/json')) return undefined;
+  const path = new URL(request.url).pathname.replace('/api', '');
+  return acceptsBody('debtor', request.method, path, await request.clone().text()) ? undefined : HttpResponse.json({ code: 'INVALID' }, { status: 422 });
+});
+
 export const handlers = [
+  checkBody,
   http.get('/api/debtor/session', () => {
     const debtor = current();
     return debtor ? HttpResponse.json(sessionOf(debtor)) : unauthorized();

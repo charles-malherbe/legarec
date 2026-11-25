@@ -22,8 +22,13 @@ describe('case access', () => {
   });
   it('refuses every change outside the role', async () => {
     expect((await call('ad', '/cases/demo')).status).toBe(200);
-    for (const path of ['/cases/demo/reminders', '/cases/demo/payments', '/cases/demo/access-code/regenerate', '/cases/demo/portal-messages'])
-      expect((await call('ad', path, {})).status).toBe(403);
+    for (const [path, body] of [
+      ['/cases/demo/reminders', { channel: 'E-mail', template: 'Relance n°1', recipient: 'compta@batiplus.example', message: 'Bonjour' }],
+      ['/cases/demo/payments', { method: 'TRANSFER', amount: 10000, receivedOn: '2026-11-24', label: 'Virement', reconciled: true }],
+      ['/cases/demo/access-code/regenerate', {}],
+      ['/cases/demo/portal-messages', { text: 'Bonjour' }],
+    ] as const)
+      expect((await call('ad', path, body)).status).toBe(403);
     expect((await call('ad', '/cases/reminders', { ids: ['demo'] })).status).toBe(403);
     expect((await call('ad', '/cases/reminders', { ids: ['lagarde'] })).status).toBe(204);
     expect((await call('hb', '/cases/demo')).status).toBe(403);

@@ -53,7 +53,7 @@ describe('accounts', () => {
     expect(await status('dev', '/members/hb/reset-link', {})).toBe(204);
     await call('ad', '/delegations/technical', { active: false }, 'PUT');
     expect(await status('dev', '/members/hb/reset-link', {})).toBe(403);
-    expect(await status('dev', '/members/hb/extension', { extension: '1' }, 'PUT')).toBe(403);
+    expect(await status('dev', '/members/hb/extension', { extension: '101' }, 'PUT')).toBe(403);
   });
   it('assigns cases to active accounts that may hold them', async () => {
     for (const officerId of ['dev', 'lp', 'cb', 'zz', '']) expect(await status('cl', '/cases/assign', { ids: ['demo'], officerId })).toBe(422);
@@ -143,11 +143,12 @@ describe('documents and letters', () => {
     expect(await (await send('ad', 'application/pdf')).text()).toContain('TO_FILE');
   });
   it('checks the number of a batch and the rights on a draft', async () => {
-    const batch = { caseIds: null, filters: { creditor: 'md', age: '31-60' }, template: 'FRIENDLY', channel: 'x' };
+    const options = { table: true, pay: true, indemnity: false };
+    const batch = { caseIds: null, filters: { creditor: 'md', age: '31-60' }, template: 'FRIENDLY', channel: 'x', delay: 8, months: 4, options };
     expect(await status('cl', '/documents/compose', { ...batch, expected: 38 })).toBe(409);
     expect(await status('cl', '/documents/compose', { ...batch, expected: 13 })).toBe(204);
     expect(await status('cl', '/documents/compose', { ...batch, filters: null, expected: 38 })).toBe(409);
-    expect(await status('ad', '/documents/compose/draft', { caseId: 'demo' })).toBe(403);
+    expect(await status('ad', '/documents/compose/draft', { template: 'FRIENDLY', caseId: 'demo' })).toBe(403);
   });
   it('recalls the filters before any batch', async () => {
     openAs('cl', '/documents/rediger');
