@@ -17,7 +17,7 @@ import { useState } from 'react';
 import type { ZodType } from 'zod';
 import { useApi, useChange } from '../../app/data';
 import { SESSION_KEY, useCurrentUser, useUpdatePreferences } from '../../app/session';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 import css from './Account.module.css';
 
 const TABS = [

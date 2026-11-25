@@ -4,7 +4,7 @@ import { Alerte, Badge, Bouton, Carte, EtatListe, Onglets, Statut, SuggestionIA,
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { useApi, useChange } from '../../app/data';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 import { STATUS_TONE } from '../dashboard/DashboardPage';
 import { ApiError } from '../../app/api';
 import { AccessDenied } from '../error/ErrorPage';

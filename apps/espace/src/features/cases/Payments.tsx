@@ -3,7 +3,7 @@ import { Badge, Bouton, Carte, Case, Champ, Onglets, Tableau, useConfirm, useToa
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { useChange } from '../../app/data';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 
 const TONE: Record<Payment['status'], Tone> = {
   RECEIVED: 'info',

@@ -30,3 +30,4 @@ export function openExternal(url: string): void {
   if (protocol !== 'https:') throw new Error('Only https links can be opened');
   window.open(url, '_blank', 'noopener,noreferrer');
 }
+export * from './http';

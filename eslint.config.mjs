@@ -3,7 +3,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['**/node_modules/**', '**/dist/**', 'maquette/**', 'kits/**', '.comparaisons/**', '**/mockServiceWorker.js', '**/templates/**'] },
+  { ignores: ['**/node_modules/**', '**/dist/**', 'maquette/**', 'kits/**', '.comparaisons/**', '**/mockServiceWorker.js', 'apps/api/templates/**'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

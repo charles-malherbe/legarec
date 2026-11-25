@@ -5,7 +5,7 @@ import { useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { ApiError } from '../../app/api';
 import { useApi, useChange } from '../../app/data';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 import css from './Templates.module.css';
 
 const STATUS = {

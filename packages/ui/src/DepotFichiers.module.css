@@ -1,0 +1,55 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+.drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-6) var(--sp-4);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--text-2);
+  text-align: center;
+}
+.drop[data-over] {
+  background: var(--bleu-pale);
+  border-color: var(--marine);
+}
+.label {
+  font-size: var(--fs-base);
+  font-weight: 600;
+  color: var(--text);
+}
+.hint {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+.error {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--danger-fg);
+}
+.files {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+.files li {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-sm);
+}
+.name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

@@ -1,0 +1,52 @@
+.root {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.root li {
+  max-width: 80%;
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+.root li[data-mine] {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+.meta {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+.bubble {
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-base);
+  line-height: 1.5;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+li[data-mine] .bubble {
+  background: var(--bleu-200);
+  border-color: var(--bleu-200);
+}
+.file {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+@media (max-width: 560px) {
+  .root li {
+    max-width: 94%;
+  }
+}

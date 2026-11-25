@@ -8,7 +8,7 @@ import { api } from '../../app/api';
 import { useCreditorScope } from '../../app/creditorScope';
 import { useChange } from '../../app/data';
 import { useCurrentUser } from '../../app/session';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 import { listState } from '../../shared/listState';
 import { STATUS_TONE } from '../dashboard/DashboardPage';
 

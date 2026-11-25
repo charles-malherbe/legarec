@@ -1,6 +1,6 @@
 import { hasDelegation, ROLE_LABELS, searchHit, shellData, type Notification } from '@legarec/contracts';
 import { applyDisplay } from '@legarec/tokens';
-import { SessionExpiry, Sidebar, Topbar, type SidebarGroup, type Tone } from '@legarec/ui';
+import { useIdle, SessionExpiry, Sidebar, Topbar, type SidebarGroup, type Tone } from '@legarec/ui';
 import { useDebouncedValue } from '@mantine/hooks';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { canOpen, delegationFor } from './access';
 import { api } from './api';
 import { useCreditorScope } from './creditorScope';
-import { useIdle } from './idle';
+
 import { SESSION_KEY, useCurrentUser, useUpdatePreferences } from './session';
 import { AccessDenied } from '../features/error/ErrorPage';
 import { IncomingCall } from '../features/calls/IncomingCall';

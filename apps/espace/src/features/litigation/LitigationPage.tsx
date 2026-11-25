@@ -3,7 +3,7 @@ import { Badge, Bouton, Carte, EtatListe, PageHeader, Pagination, Tableau, Toolb
 import { useState } from 'react';
 import { useCreditorScope } from '../../app/creditorScope';
 import { useApi, useChange } from '../../app/data';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 import { listState, matches } from '../../shared/listState';
 import css from './Litigation.module.css';
 

@@ -7,7 +7,8 @@ export const loginRequest = z.object({
   portal: z.enum(['espace', 'partenaires']),
 });
 export const loginResponse = z.discriminatedUnion('status', [
-  z.object({ status: z.literal('OK'), session }),
+  // `session` is only sent to the staff portal; the creditors' portal reads /auth/session.
+  z.object({ status: z.literal('OK'), session: session.nullable() }),
   z.object({ status: z.literal('TWO_FACTOR'), methods: z.array(z.enum(['TOTP', 'WEBAUTHN'])) }),
   z.object({ status: z.literal('WRONG_PORTAL'), portal: z.enum(['espace', 'partenaires']), url: z.string() }),
 ]);

@@ -1,12 +1,14 @@
 import { newPassword, ROLE_LABELS, role } from '@legarec/contracts';
-import { Alerte, Bouton, Champ } from '@legarec/ui';
+import { api, ApiError } from '@legarec/platform';
 import { useQuery } from '@tanstack/react-query';
 import { useState, type FormEvent } from 'react';
 import { useParams } from 'react-router';
 import { z } from 'zod';
-import { api, ApiError } from '../../app/api';
-import css from './Login.module.css';
-import { LoginLayout } from './LoginLayout';
+import { Alerte } from './Alerte';
+import { Bouton } from './Bouton';
+import { Champ } from './Champ';
+import { PageConnexion } from './PageConnexion';
+import css from './PageConnexion.module.css';
 
 const back = <Bouton variant="ghost" size="sm" label="← Retour à la connexion" href="/connexion" layout={{ alignSelf: 'flex-start' }} />;
 
@@ -19,7 +21,7 @@ export function ForgotPasswordPage() {
     setSent(true);
   };
   return (
-    <LoginLayout>
+    <PageConnexion>
       <form className={css.step} onSubmit={(event) => void submit(event)}>
         {back}
         <div className={css.heading}>
@@ -30,7 +32,7 @@ export function ForgotPasswordPage() {
         {sent && <Alerte tone="success" text={`Si un compte existe pour ${email}, un lien vient d'être envoyé.`} />}
         <Bouton type="submit" size="lg" label="Envoyer le lien" onPress={() => {}} />
       </form>
-    </LoginLayout>
+    </PageConnexion>
   );
 }
 
@@ -94,7 +96,7 @@ export function ResetPasswordPage() {
     setDone(true);
   };
   return (
-    <LoginLayout>
+    <PageConnexion>
       <form className={css.step} onSubmit={(event) => void submit(event)}>
         {back}
         <div className={css.heading}>
@@ -117,7 +119,7 @@ export function ResetPasswordPage() {
           <Bouton type="submit" size="lg" label="Enregistrer le mot de passe" disabled={!isAllowed(data.email, first, second)} onPress={() => {}} />
         )}
       </form>
-    </LoginLayout>
+    </PageConnexion>
   );
 }
 
@@ -155,7 +157,7 @@ export function ActivationPage() {
     'Ils vous permettent de vous connecter si vous perdez votre téléphone.',
   ];
   return (
-    <LoginLayout>
+    <PageConnexion>
       <div className={css.step}>
         {back}
         {expired && <Alerte tone="danger" text="Cette invitation a expiré (validité 72 heures). Demandez-en une nouvelle à la personne qui vous a invité." />}
@@ -214,6 +216,6 @@ export function ActivationPage() {
           </>
         )}
       </div>
-    </LoginLayout>
+    </PageConnexion>
   );
 }

@@ -27,5 +27,41 @@
   "Gdpr": {
     "app": "espace",
     "route": "/parametres/rgpd"
+  },
+  "PartnerLogin": {
+    "app": "partenaires",
+    "route": "/connexion"
+  },
+  "PartnerCases": {
+    "app": "partenaires",
+    "route": "/dossiers"
+  },
+  "PartnerDeposit": {
+    "app": "partenaires",
+    "route": "/depot"
+  },
+  "PartnerPayouts": {
+    "app": "partenaires",
+    "route": "/reversements"
+  },
+  "PartnerMessages": {
+    "app": "partenaires",
+    "route": "/messages"
+  },
+  "PartnerDocuments": {
+    "app": "partenaires",
+    "route": "/releves"
+  },
+  "DebtorAccess": {
+    "app": "paiement",
+    "route": "/"
+  },
+  "DebtorLimited": {
+    "app": "paiement",
+    "route": "/acces-limite"
+  },
+  "DebtorPrivacy": {
+    "app": "paiement",
+    "route": "/confidentialite"
   }
 }

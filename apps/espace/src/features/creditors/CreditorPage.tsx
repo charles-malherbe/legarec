@@ -4,7 +4,7 @@ import { Badge, Bouton, Carte, EtatListe, Icone, Onglets, Tableau, type Tone } f
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { useApi } from '../../app/data';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 import { STATUS_TONE } from '../dashboard/DashboardPage';
 import css from './Creditors.module.css';
 

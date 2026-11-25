@@ -2,7 +2,7 @@ import { checkCoordinate, coordinateSource, formatPhone, SOURCE_LABELS, type Cal
 import { Badge, Bouton, Case, Champ, useConfirm, useToast, type Tone } from '@legarec/ui';
 import { useEffect, useState } from 'react';
 import { useChange } from '../../app/data';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 import css from './Calls.module.css';
 
 const STATUS: Record<Coordinate['status'], [string, Tone]> = {

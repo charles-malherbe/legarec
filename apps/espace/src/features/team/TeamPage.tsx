@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { useApi } from '../../app/data';
 import { useCurrentUser } from '../../app/session';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 import { listState, matches } from '../../shared/listState';
 import { MembersCard } from './MembersCard';
 import css from './Team.module.css';

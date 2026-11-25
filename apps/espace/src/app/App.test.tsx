@@ -7,7 +7,7 @@ import { afterAll, beforeAll, beforeEach, expect, it, describe } from 'vitest';
 import { handlers } from '../mocks/handlers';
 import { setAccount, state } from '../mocks/state';
 import { canOpen } from './access';
-import { passwordRules } from '../features/login/PasswordPages';
+import { passwordRules } from '@legarec/ui';
 import { App } from './App';
 
 const server = setupServer(...handlers);

@@ -2,7 +2,7 @@ import { accessCodeResponse } from '@legarec/contracts';
 import { Bouton, Carte, useConfirm, useToast } from '@legarec/ui';
 import { useState } from 'react';
 import { useChange } from '../../app/data';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 
 /** The code stays masked; each reveal is written to the case history by the API. */
 export function AccessCodeCard({ caseId }: { caseId: string }) {

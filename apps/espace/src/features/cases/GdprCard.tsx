@@ -2,7 +2,7 @@ import { GDPR_LABELS, gdprRequestKind, type CaseDetail } from '@legarec/contract
 import { Bouton, Carte, Champ, useConfirm, useToast } from '@legarec/ui';
 import { useState } from 'react';
 import { useChange } from '../../app/data';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 
 export function GdprCard({ data }: { data: CaseDetail }) {
   const change = useChange();

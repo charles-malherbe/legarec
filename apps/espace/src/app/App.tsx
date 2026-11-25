@@ -1,5 +1,5 @@
 import { cssVariablesResolver, espaceTheme } from '@legarec/tokens';
-import { ConfirmProvider, ToastProvider } from '@legarec/ui';
+import { ActivationPage, ConfirmProvider, ForgotPasswordPage, PageLegale, ResetPasswordPage, ToastProvider } from '@legarec/ui';
 import { MantineProvider } from '@mantine/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { lazy, Suspense, useState } from 'react';
@@ -26,7 +26,6 @@ import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { ErrorPage } from '../features/error/ErrorPage';
 import { LitigationPage } from '../features/litigation/LitigationPage';
 import { LoginPage } from '../features/login/LoginPage';
-import { ActivationPage, ForgotPasswordPage, ResetPasswordPage } from '../features/login/PasswordPages';
 import { PlansPage } from '../features/plans/PlansPage';
 import { CreditorScopeProvider } from './creditorScope';
 import { useSession } from './session';
@@ -57,6 +56,9 @@ export function App() {
                 <Route path="/mot-de-passe-oublie" element={<ForgotPasswordPage />} />
                 <Route path="/reinitialisation/:token" element={<ResetPasswordPage />} />
                 <Route path="/activation/:token" element={<ActivationPage />} />
+                <Route path="/mentions-legales" element={<PageLegale page="mentions" />} />
+                <Route path="/confidentialite" element={<PageLegale page="confidentialite" />} />
+                <Route path="/cookies" element={<PageLegale page="cookies" />} />
                 <Route path="/erreur-demo" element={<ErrorPage code={404} />} />
                 <Route element={<RequireSession />}>
                   <Route element={<Shell />}>

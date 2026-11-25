@@ -3,7 +3,7 @@ import { Alerte, Badge, Bouton, Carte, Champ, EtatListe, Progression, Tableau, u
 import { useState } from 'react';
 import { ApiError } from '../../app/api';
 import { useApi, useChange } from '../../app/data';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 import css from './Settings.module.css';
 
 const SHARED = 'recouvrement@legarec.fr';

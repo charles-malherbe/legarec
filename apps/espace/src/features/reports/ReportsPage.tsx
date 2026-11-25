@@ -5,7 +5,7 @@ import '@mantine/charts/styles.css';
 import { useState } from 'react';
 import { useCreditorScope } from '../../app/creditorScope';
 import { useApi, useChange } from '../../app/data';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 
 const PERIODS = [
   ['month', 'Mois'],

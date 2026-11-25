@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { z } from 'zod';
 import { api } from '../../app/api';
 import { useChange } from '../../app/data';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 
 /** An answer from an unknown number is linked to a case by hand. */
 export function CaseLink({ thread, onLinked }: { thread: SmsThread; onLinked: () => void }) {

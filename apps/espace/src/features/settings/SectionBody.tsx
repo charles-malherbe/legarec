@@ -4,7 +4,7 @@ import { Badge, Bouton, Carte, Champ, EtatListe, Reglage, Statut, Tableau, useTo
 import { useState } from 'react';
 import { useApi, useChange } from '../../app/data';
 import { toCsv } from '../../shared/csv';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 import { MembersCard } from '../team/MembersCard';
 import { TemplatesCard } from '../templates/TemplatesCard';
 import { GdprRegistryCard } from './GdprRegistryCard';

@@ -3,7 +3,7 @@ import { Badge, Bouton, Carte, Case, EtatListe, PageHeader, useToast, type Tone 
 import { useState } from 'react';
 import { z } from 'zod';
 import { useApi, useChange } from '../../app/data';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 
 const KIND: Record<NotificationItem['kind'], { label: string; plural: string; tone: Tone }> = {
   PAYMENT: { label: 'Paiement', plural: 'Paiements', tone: 'success' },

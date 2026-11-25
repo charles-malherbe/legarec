@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { z } from 'zod';
 import { useApi } from '../../app/data';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 import { listState, matches } from '../../shared/listState';
 import css from './Creditors.module.css';
 

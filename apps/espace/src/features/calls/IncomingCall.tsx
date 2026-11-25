@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router';
 import { z } from 'zod';
 import { useApi, useChange } from '../../app/data';
 import css from './Calls.module.css';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 
 const incoming = z
   .object({ caseId: z.string(), name: z.string(), company: z.string(), phone: z.string(), reference: z.string(), creditor: z.string(), last: z.string() })

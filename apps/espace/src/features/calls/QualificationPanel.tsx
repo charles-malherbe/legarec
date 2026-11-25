@@ -2,7 +2,7 @@ import { CALL_OUTCOMES, formatCents, formatDate, parseCents, TCX_CODES, type Cal
 import { Alerte, Badge, Bouton, Case, Champ, SuggestionIA } from '@legarec/ui';
 import { useImperativeHandle, useState, type Dispatch, type Ref } from 'react';
 import { useChange } from '../../app/data';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 import { clock, qualificationErrors, type CallEvent, type CallState } from './callMachine';
 import css from './Calls.module.css';
 import { Coordinates } from './Coordinates';

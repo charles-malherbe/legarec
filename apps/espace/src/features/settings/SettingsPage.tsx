@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { useApi } from '../../app/data';
 import { useCurrentUser } from '../../app/session';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 import { matches } from '../../shared/listState';
 import css from './Settings.module.css';
 import { SectionBody } from './SectionBody';

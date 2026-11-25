@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { useChange } from '../../app/data';
 import { useCurrentUser } from '../../app/session';
-import layout from '../../shared/layout.module.css';
+import layout from '@legarec/ui/layout.module.css';
 import { matches } from '../../shared/listState';
 import { ARTICLES, CATEGORIES, categoryLabel } from './articles';
 import css from './Help.module.css';
