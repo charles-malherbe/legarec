@@ -5,6 +5,8 @@ import { Authenticator } from '../../../test/authenticator';
 import { Browser, codeOf, emailOf, freezeClock, givePassword, newAccount, PASSWORD, setUpTotp } from '../../../test/browser';
 import { routesOf } from '../../platform/access/routes';
 import { requireProof } from '../../platform/access/proof';
+import { ApiError } from '../../platform/errors/api-error';
+import { Accounts } from './accounts';
 
 /** What matters most asks for a proof again (questions 122 and 134). */
 let test: TestApp;
@@ -345,5 +347,61 @@ describe('the proof', () => {
     await browser.post('/auth/proof', { method: 'PASSWORD', password: PASSWORD });
     const everywhere = JSON.stringify([await rows('SELECT * FROM audit_log'), await rows('SELECT * FROM lockouts')]) + test.logs.join('');
     expect(everywhere).not.toContain(PASSWORD);
+  });
+});
+
+describe('what surrounds a proof', () => {
+  it('limits it by network, whatever comes of it', async () => {
+    const { browser } = await colleague();
+    const give = () => browser.post('/auth/proof', { method: 'TOTP', code: '123456' });
+    for (let turn = 0; turn < 30; turn += 1) expect((await give()).status).toBe(422);
+    expect(await give()).toMatchObject({ status: 429, body: { code: 'TOO_MANY' } });
+    for (let turn = 0; turn < 60; turn += 1) expect((await browser.post('/auth/proof/webauthn')).status).toBe(200);
+    expect((await browser.post('/auth/proof/webauthn')).status).toBe(429);
+  });
+
+  it('counts no failure for the wrong kind of proof, nor for a password that will not be checked', async () => {
+    const { browser } = await colleague();
+    const password = { method: 'PASSWORD', password: PASSWORD };
+    expect(await browser.post('/auth/proof', { method: 'BACKUP_CODE', code: 'x' })).toMatchObject({
+      status: 422,
+      body: { code: 'INVALID', fields: ['method'] },
+    });
+    vi.spyOn(CHEAP, 'refuseIfFull').mockImplementationOnce(() => {
+      throw new ApiError(503, 'UNAVAILABLE');
+    });
+    expect((await browser.post('/auth/proof', password)).status).toBe(503);
+    await setUpTotp(browser);
+    expect(await browser.post('/auth/proof', password)).toMatchObject({ status: 422, body: { code: 'INVALID', fields: ['method'] } });
+    expect(await rows('SELECT 1 FROM lockouts')).toEqual([]);
+  });
+
+  it('counts a password with the failures of its change, and notes the one that is given', async () => {
+    const { id, browser } = await colleague();
+    for (let turn = 0; turn < 3; turn += 1) await browser.change('/account/password', { current: 'faux', next: 'Un-nouveau-mot-de-passe-9!' });
+    expect(await browser.post('/auth/proof', { method: 'PASSWORD', password: 'faux' })).toMatchObject({ body: { attemptsLeft: 1 } });
+    expect(await rows('SELECT DISTINCT scope FROM lockouts')).toEqual([{ scope: 'PASSWORD' }]);
+    expect((await browser.post('/auth/proof', { method: 'PASSWORD', password: PASSWORD })).status).toBe(204);
+    expect(await rows("SELECT action FROM audit_log WHERE actor_id = $1 AND action LIKE 'PROOF%' ORDER BY occurred_at", [id])).toEqual([
+      { action: 'PROOF_REFUSED' },
+      { action: 'PROOF_GIVEN' },
+    ]);
+  });
+
+  it('asks for it again when another second factor was set up while the code was typed', async () => {
+    const { id, browser } = await colleague();
+    const { key } = (await browser.post('/account/two-factor/totp')).body as { key: string };
+    await age(id, 3600);
+    const accounts = test.app.get(Accounts);
+    const take = accounts.takeAttempt.bind(accounts);
+    vi.spyOn(accounts, 'takeAttempt').mockImplementationOnce(async (...of) => {
+      await rows(
+        "INSERT INTO second_factors (user_id, kind, credential_id, public_key, sign_count, confirmed_at) VALUES ($1, 'WEBAUTHN', 'x', '\\x01', 0, now())",
+        [id],
+      );
+      return take(...of);
+    });
+    expect(await browser.post('/account/two-factor/totp/verify', { code: codeOf(key) })).toMatchObject(REQUIRED);
+    expect(await rows("SELECT 1 FROM second_factors WHERE user_id = $1 AND kind = 'TOTP' AND confirmed_at IS NOT NULL", [id])).toEqual([]);
   });
 });

@@ -1,7 +1,9 @@
-import { secretsData } from '@legarec/contracts';
-import { randomUUID } from 'node:crypto';
+import { secretsData, type Delegation } from '@legarec/contracts';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { startApp, type TestApp } from '../../../test/app';
+import { databaseCode } from '../../platform/database/codes';
+import type { Transaction } from '../../platform/database/database';
 import { Vault } from './vault';
 
 const VALUE = 'valeur-fictive-zz-KXPM';
@@ -50,6 +52,7 @@ describe('a secret', () => {
     for (const body of [
       { name: 'INCONNU', value: VALUE, rotation: '90' },
       { name: 'RESEND_API_KEY', value: VALUE, rotation: 'jamais' },
+      { name: 'RESEND_API_KEY', value: '', rotation: '90' },
       { name: 'MAILBOX_SECRETS_KEY', value: VALUE, rotation: 'MANUAL' },
     ]) {
       const answer = await call('director', 'POST', '', body);
@@ -84,8 +87,20 @@ describe('a secret', () => {
     expect((await list())[0]!.status).toBe('VALID');
     await rows("UPDATE vault_secrets SET rotated_at = now() - interval '75 days' WHERE id = $1", [id]);
     expect((await list())[0]!.status).toBe('EXPIRING');
+    // Nothing hides that its revocation was asked.
+    await call('developer', 'POST', `/${id}/revoke`);
+    expect((await list())[0]!.status).toBe('REVOKE_PENDING');
+    await call('director', 'POST', `/${id}/keep`);
     await rows("UPDATE vault_secrets SET rotation = 'MANUAL' WHERE id = $1", [id]);
     expect((await list())[0]!.status).toBe('VALID');
+  });
+
+  it('still opens after the renewal of the master key, for as long as the previous one is there', async () => {
+    const id = await saved();
+    const sealed = (await cipher(id))!;
+    const VAULT_MASTER_KEY = randomBytes(32).toString('base64');
+    expect(new Vault({ VAULT_MASTER_KEY, VAULT_MASTER_KEY_PREVIOUS: test.config.VAULT_MASTER_KEY }).open(id, sealed)).toBe(VALUE);
+    expect(() => new Vault({ VAULT_MASTER_KEY }).open(id, sealed)).toThrow();
   });
 });
 
@@ -136,5 +151,96 @@ describe('the technical delegation', () => {
     } finally {
       await rows("INSERT INTO delegations (kind, granted_by) VALUES ('TECHNICAL', $1)", [test.s.director]);
     }
+  });
+});
+
+describe('PostgreSQL itself', () => {
+  type Work = (tx: Transaction) => Promise<unknown>;
+  const ROLES = { director: 'DIRECTOR', manager: 'COLLECTION_MANAGER', officerA: 'CLAIMS_OFFICER', developer: 'DEVELOPER' } as const;
+  /** What PostgreSQL answers: `done`, or the code of its refusal. */
+  const answer = (as: keyof typeof ROLES, work: Work, actingFor?: Delegation) =>
+    test.pool
+      .run({ kind: 'staff', userId: test.s[as], role: ROLES[as], delegations: [], ...(actingFor ? { actingFor } : {}) }, work)
+      .then(() => 'done', databaseCode);
+  const other = Buffer.from('other');
+  const save =
+    (name: string): Work =>
+    (tx) =>
+      tx.$executeRaw`SELECT app.save_secret(${randomUUID()}::uuid, ${name}::secret_name, ${other}, 'MANUAL')`;
+  const renew =
+    (id: string): Work =>
+    (tx) =>
+      tx.$executeRaw`SELECT app.renew_secret(${id}::uuid, ${other})`;
+  const revoke =
+    (id: string): Work =>
+    (tx) =>
+      tx.$queryRaw`SELECT app.revoke_secret(${id}::uuid)::text`;
+  const keep =
+    (id: string): Work =>
+    (tx) =>
+      tx.$executeRaw`SELECT app.keep_secret(${id}::uuid)`;
+  const renewInternal =
+    (id: string, seen: Uint8Array): Work =>
+    (tx) =>
+      tx.$executeRaw`SELECT app.renew_internal_key(${id}::uuid, ${other}, ${Buffer.from(seen)})`;
+  const internal = async (name = 'ACCESS_CODE_KEY') =>
+    (await rows<{ id: string }>("INSERT INTO vault_secrets (name, value_cipher) VALUES ($1::secret_name, '\\x00') RETURNING id", [name]))[0]!.id;
+
+  it.each([
+    ['manager', 'ADMINISTRATIVE'],
+    ['manager', undefined],
+    ['officerA', undefined],
+    // Without saying on whose behalf.
+    ['developer', undefined],
+  ] as const)('refuses all of it to %s (%s)', async (as, actingFor) => {
+    const [id, key] = [await saved(), await internal()];
+    const before = await rows('SELECT * FROM vault_secrets ORDER BY id');
+    for (const work of [save('AI_API_KEY'), renew(id), revoke(id), keep(id), renewInternal(key, Buffer.from([0]))])
+      expect(await answer(as, work, actingFor)).toBe('42501');
+    expect(await rows('SELECT * FROM vault_secrets ORDER BY id')).toEqual(before);
+  });
+
+  it('shows the list to the Director and to the Developer alone', async () => {
+    await saved();
+    const seen = async (as: keyof typeof ROLES) => {
+      let found = 0;
+      await answer(as, async (tx) => (found = await tx.vaultSecret.count()));
+      return found;
+    };
+    expect([await seen('director'), await seen('developer'), await seen('manager'), await seen('officerA')]).toEqual([1, 1, 0, 0]);
+  });
+
+  it('keeps the decision for the Director, on a revocation that was asked', async () => {
+    const id = await saved();
+    expect(await answer('director', keep(id))).toBe('LG409');
+    const decided = async () => (await rows('SELECT status, requested_by, decided_by FROM vault_secrets WHERE id = $1', [id]))[0];
+    expect(await answer('developer', revoke(id), 'TECHNICAL')).toBe('done');
+    expect(await decided()).toEqual({ status: 'REVOKE_PENDING', requested_by: test.s.developer, decided_by: null });
+    expect(await answer('developer', keep(id), 'TECHNICAL')).toBe('42501');
+    expect(await answer('director', keep(id))).toBe('done');
+    expect(await decided()).toMatchObject({ status: 'VALID', decided_by: test.s.director });
+    await rows('UPDATE vault_secrets SET decided_by = NULL WHERE id = $1', [id]);
+    expect(await answer('director', revoke(id))).toBe('done');
+    expect(await decided()).toMatchObject({ status: 'REVOKED', decided_by: test.s.director });
+  });
+
+  it('never takes an internal key for that of a service, nor the other way round', async () => {
+    const [id, key] = [await saved(), await internal()];
+    expect(await answer('director', save('LOOKUP_KEY'))).toBe('42501');
+    for (const as of ['director', 'developer'] as const)
+      for (const work of [renew(key), revoke(key), renewInternal(id, (await cipher(id))!)])
+        expect(await answer(as, work, as === 'developer' ? 'TECHNICAL' : undefined)).toBe('LG409');
+    // Seen otherwise than it is now.
+    expect(await answer('director', renewInternal(key, other))).toBe('LG409');
+    expect(await answer('director', renewInternal(key, Buffer.from([0])))).toBe('done');
+  });
+
+  it.each([
+    ["INSERT INTO vault_secrets (name, value_cipher, status) VALUES ('LOOKUP_KEY', '\\x00', 'REVOKE_PENDING')", 'vault_secrets_internal'],
+    ["INSERT INTO vault_secrets (name, value_cipher, status) VALUES ('AI_API_KEY', '\\x00', 'REVOKED')", 'vault_secrets_revoked'],
+    ["INSERT INTO vault_secrets (name) VALUES ('AI_API_KEY')", 'vault_secrets_revoked'],
+    ["INSERT INTO vault_secrets (name, value_cipher) VALUES ('AI_API_KEY', '\\x00'), ('AI_API_KEY', '\\x01')", 'vault_secrets_live'],
+  ])('holds no such line: %s', async (statement, constraint) => {
+    await expect(rows(statement)).rejects.toThrow(constraint);
   });
 });

@@ -1,14 +1,24 @@
 import { randomUUID } from 'node:crypto';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { startApp, type TestApp } from '../../../test/app';
 import { startMailWorker, type MailWorker } from '../../../test/worker';
 import { digest, Keyring } from '../../platform/crypto/keyring';
-import { Database } from '../../platform/database/database';
+import type { Actor } from '../../platform/database/actor';
+import { databaseCode } from '../../platform/database/codes';
+import { Database, type Transaction } from '../../platform/database/database';
+import type { JobContext } from '../../platform/queue/jobs';
 import { keysIn } from '../vault/internal-keys';
 import { Vault } from '../vault/vault';
 import { bindingOf } from './access-codes';
-import { reseal } from './access-codes.jobs';
+import { accessCodeJobs, reseal } from './access-codes.jobs';
+import type * as codes from './codes';
 import { CODE_ALPHABET, drawCode, isAccessCode, isGuessable } from './codes';
+
+// The real draw, unless a test says what comes out of it.
+vi.mock('./codes', async (original) => {
+  const real = await original<typeof codes>();
+  return { ...real, drawCode: vi.fn(real.drawCode) };
+});
 
 let test: TestApp;
 let worker: MailWorker;
@@ -369,5 +379,157 @@ describe('an internal key', () => {
     }
     const { id } = await keyOf('MAILBOX_SECRETS_KEY');
     expect(await call('director', 'POST', `/secrets/${id}/rotate`, {})).toMatchObject({ status: 409 });
+  });
+});
+
+describe('PostgreSQL itself', () => {
+  type Work = (tx: Transaction) => Promise<unknown>;
+  const answer = (userId: string, work: Work) =>
+    test.pool.run({ kind: 'staff', userId, role: 'CLAIMS_OFFICER', delegations: [] }, work).catch((error: unknown) => databaseCode(error) ?? String(error));
+
+  it('replaces the code that was seen, and no other', async () => {
+    const of = await newDebtor();
+    const id = await newCase(of, test.s.officerA);
+    await code('officerA', id);
+    const before = await cipher(of);
+    const renewed =
+      (seen: number): Work =>
+      (tx) =>
+        tx.$queryRaw`SELECT app.renew_access_code(${id}::uuid, ${seen}::int, ${Buffer.from('old')}, ${Buffer.from('new')}, ARRAY[]::bytea[]) AS done`;
+    expect(await answer(test.s.officerA, renewed(2))).toBe('LG409');
+    expect(await cipher(of)).toEqual(before);
+    expect(await rows('SELECT 1 FROM debtor_retired_codes WHERE debtor_id = $1', [of])).toEqual([]);
+    expect(await answer(test.s.officerA, renewed(1))).toEqual([{ done: true }]);
+    await rows('DELETE FROM debtor_access_codes WHERE debtor_id = $1', [of]);
+  });
+
+  it('keeps the first code and the first key that are drawn', async () => {
+    const of = await newDebtor();
+    const id = await newCase(of, test.s.officerA);
+    await code('officerA', id);
+    const before = await cipher(of);
+    expect(await answer(test.s.officerA, (tx) => tx.$executeRaw`SELECT app.first_access_code(${id}::uuid, ${Buffer.from('x')})`)).toBe(1);
+    expect(await cipher(of)).toEqual(before);
+    const key = await keyOf('ACCESS_CODE_KEY');
+    const draw: Work = (tx) => tx.$executeRaw`SELECT app.first_internal_key(${randomUUID()}::uuid, 'ACCESS_CODE_KEY', ${Buffer.from('x')})`;
+    expect(await answer(test.s.officerA, draw)).toBe(1);
+    expect(await keyOf('ACCESS_CODE_KEY')).toEqual(key);
+  });
+});
+
+describe('who drew the code', () => {
+  it('is kept with it, and replaced with it', async () => {
+    const of = await newDebtor();
+    const [left, right] = [await newCase(of, test.s.officerA), await newCase(of, test.s.officerB)];
+    const by = async () => (await rows<{ generated_by: string }>('SELECT generated_by FROM debtor_access_codes WHERE debtor_id = $1', [of]))[0]!.generated_by;
+    await code('officerA', left);
+    expect(await by()).toBe(test.s.officerA);
+    await renew('officerB', right);
+    expect(await by()).toBe(test.s.officerB);
+  });
+});
+
+describe('a draw', () => {
+  it('is made again when it falls on the code of now, or on a former one, whatever the key of its digest', async () => {
+    const of = await newDebtor();
+    const id = await newCase(of, test.s.officerA);
+    vi.mocked(drawCode).mockReturnValueOnce('KXPM').mockReturnValueOnce('KXPM').mockReturnValueOnce('BRTV');
+    expect(await code('officerA', id)).toBe('KXPM');
+    expect((await renew('officerA', id)).status).toBe(204);
+    expect(await code('officerA', id)).toBe('BRTV');
+    const { id: lookup } = await keyOf('LOOKUP_KEY');
+    expect((await call('director', 'POST', `/secrets/${lookup}/rotate`, {})).status).toBe(204);
+    vi.mocked(drawCode).mockReturnValueOnce('KXPM').mockReturnValueOnce('QZWK');
+    expect((await renew('officerA', id)).status).toBe(204);
+    expect(await code('officerA', id)).toBe('QZWK');
+    expect(await rows('SELECT 1 FROM debtor_retired_codes WHERE debtor_id = $1', [of])).toHaveLength(2);
+  });
+
+  it('is not made for ever', async () => {
+    const id = await newCase(await newDebtor(), test.s.officerA);
+    const now = await code('officerA', id);
+    for (let draw = 0; draw < 20; draw += 1) vi.mocked(drawCode).mockReturnValueOnce(now);
+    expect((await renew('officerA', id)).status).toBe(409);
+    expect(await code('officerA', id)).toBe(now);
+  });
+
+  it('is digested for its debtor: the same code of two debtors leaves two digests', async () => {
+    const digests = [];
+    for (let index = 0; index < 2; index += 1) {
+      const of = await newDebtor();
+      const id = await newCase(of, test.s.officerA);
+      vi.mocked(drawCode).mockReturnValueOnce('KXPM');
+      await code('officerA', id);
+      await renew('officerA', id);
+      digests.push((await rows<{ code_hmac: Buffer }>('SELECT code_hmac FROM debtor_retired_codes WHERE debtor_id = $1', [of]))[0]!.code_hmac.toString('hex'));
+    }
+    expect(new Set(digests).size).toBe(2);
+  });
+});
+
+describe('the task that encrypts the codes again', () => {
+  const rotate = async () => expect((await call('director', 'POST', `/secrets/${(await keyOf('ACCESS_CODE_KEY')).id}/rotate`, {})).status).toBe(204);
+  const outdated = async () => {
+    const [current] = await keys('ACCESS_CODE_KEY');
+    const ring = new Keyring(current!);
+    return (await rows<{ code_cipher: Buffer }>('SELECT code_cipher FROM debtor_access_codes')).filter((row) => ring.isOutdated(row.code_cipher)).length;
+  };
+
+  it('goes through all of them, however many there are', async () => {
+    const [current] = await keys('ACCESS_CODE_KEY');
+    const ring = new Keyring(current!);
+    await rows("INSERT INTO debtors (kind, name) SELECT 'INDIVIDUAL', 'Débiteur fictif' FROM generate_series(1, 405)");
+    const without = await rows<{ id: string }>('SELECT id FROM debtors d WHERE NOT EXISTS (SELECT 1 FROM debtor_access_codes a WHERE a.debtor_id = d.id)');
+    for (const { id } of without)
+      await rows('INSERT INTO debtor_access_codes (debtor_id, code_cipher) VALUES ($1, $2)', [id, ring.encrypt('KXPM', bindingOf(id))]);
+    await rotate();
+    expect(await outdated()).toBeGreaterThan(400);
+    await worker.run();
+    expect(await outdated()).toBe(0);
+  });
+
+  it('is refused to whoever may not renew the key', async () => {
+    const ask = async (actor: Actor, code: string) => {
+      await test.pool.run(actor, (tx) => tx.$queryRaw`SELECT app.enqueue('maintenance', 'reseal-access-codes', '{}'::jsonb, NULL, NULL)`);
+      await worker.run();
+      expect((await rows("SELECT failure FROM outbox WHERE name = 'reseal-access-codes' ORDER BY created_at DESC, id DESC LIMIT 1"))[0]).toEqual({
+        failure: code,
+      });
+    };
+    await rotate();
+    await rows("UPDATE outbox SET done_at = now() WHERE name = 'reseal-access-codes' AND done_at IS NULL");
+    const before = await outdated();
+    await ask({ kind: 'staff', userId: test.s.officerA, role: 'CLAIMS_OFFICER', delegations: [] }, 'NOT_ALLOWED');
+    await ask({ kind: 'partner', userId: test.s.partnerA, creditorId: test.s.creditorA }, 'AUTHOR_REFUSED');
+    await ask({ kind: 'debtor', debtorId: test.s.debtorA }, 'AUTHOR_REFUSED');
+    expect(await outdated()).toBe(before);
+  });
+
+  it('leaves the code that was renewed while it was read', async () => {
+    const database = new Database(test.database.url('jobs'));
+    const of = await newDebtor();
+    await code('officerA', await newCase(of, test.s.officerA));
+    const fresh = Buffer.from('renewed meanwhile');
+    try {
+      await rotate();
+      const { 'reseal-access-codes': task } = accessCodeJobs(new Vault(test.config));
+      const authorize: JobContext['authorize'] = async () => (work) =>
+        database.run({ kind: 'worker', job: 'test' }, (tx) => {
+          const debtorAccessCode = {
+            findMany: async (query: never) => {
+              const found = await tx.debtorAccessCode.findMany(query);
+              if (found.some(({ debtorId }) => debtorId === of))
+                await rows('UPDATE debtor_access_codes SET code_cipher = $2 WHERE debtor_id = $1', [of, fresh]);
+              return found;
+            },
+            updateMany: (query: never) => tx.debtorAccessCode.updateMany(query),
+          };
+          return work(new Proxy(tx, { get: (target, name) => (name === 'debtorAccessCode' ? debtorAccessCode : Reflect.get(target, name)) }));
+        });
+      await task!.run({ authorize } as JobContext);
+      expect(await cipher(of)).toEqual(fresh);
+    } finally {
+      await database.close();
+    }
   });
 });

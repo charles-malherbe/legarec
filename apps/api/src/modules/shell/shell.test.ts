@@ -67,6 +67,9 @@ describe('the search', () => {
   });
 
   it('finds a number with or without spaces', async () => {
+    // Too short to be one.
+    expect((await search('manager', '55')).map((hit) => hit.id)).not.toContain(`d:${mine}`);
+    expect((await search('manager', '73')).map((hit) => hit.id)).not.toContain(`c:${creditor}`);
     for (const query of ['552 100 554', '552100', '55210055400012'])
       expect(
         (await search('manager', query)).map((hit) => hit.id),
@@ -144,7 +147,7 @@ describe('an assignment', () => {
     // Given back: whoever no longer reads it no longer learns its name.
     await assign('director', [theirs], test.s.officerB);
     const [after] = await list('officerA');
-    expect(after).toMatchObject({ href: '/debiteurs' });
+    expect(after).toMatchObject({ href: '/debiteurs', text: expect.stringMatching(/vous a attribué un dossier$/u) as string });
     expect(JSON.stringify(after)).not.toContain('cachée');
   });
 
@@ -207,5 +210,91 @@ describe('an assignment', () => {
       }
       expect(await rows("SELECT 1 FROM notifications WHERE kind = 'SUBSTITUTE_NOTICE'")).toEqual([]);
     });
+    it('never to a substitute who has left', async () => {
+      const [left] = await rows<{ id: string }>(
+        "INSERT INTO users (role, status, first_name, last_name, email, disabled_at) VALUES ('CLAIMS_OFFICER', 'DISABLED', 'Nora', 'Test', 'nora.partie@exemple.test', now()) RETURNING id",
+      );
+      await away('0', '0', left!.id);
+      await assign('director', [theirs], test.s.officerA);
+      expect(await rows("SELECT 1 FROM notifications WHERE kind = 'SUBSTITUTE_NOTICE'")).toEqual([]);
+      await assign('director', [theirs], test.s.officerB);
+    });
+  });
+});
+
+describe('what is stored of a notification', () => {
+  const FACTS = 'INSERT INTO notifications (user_id, kind, actor_id, target_id, case_id, creditor_id, case_count) VALUES ($1, ';
+  it.each([
+    ['a count of nothing', `${FACTS} 'CASE_ASSIGNED', $1, NULL, NULL, NULL, 0)`, 'notifications_facts'],
+    ['one case that is not said', `${FACTS} 'CASE_ASSIGNED', $1, NULL, NULL, NULL, 1)`, 'notifications_facts'],
+    ['one case out of several', `${FACTS} 'CASE_ASSIGNED', $1, NULL, $2, $3, 2)`, 'notifications_facts'],
+    ['an absence of nobody', `${FACTS} 'SUBSTITUTE_NOTICE', $1, NULL, NULL, NULL, 1)`, 'notifications_facts'],
+    ['an absence about a case', `${FACTS} 'SUBSTITUTE_NOTICE', $1, $1, $2, $3, 1)`, 'notifications_case'],
+    ['a case without its creditor', `${FACTS} 'CASE_ASSIGNED', $1, NULL, $2, NULL, 1)`, 'notifications_case'],
+  ])('is never %s', async (_what, statement, constraint) => {
+    await expect(rows(statement.replaceAll('$2', `'${mine}'`).replaceAll('$3', `'${creditor}'`), [test.s.officerB])).rejects.toThrow(constraint);
+  });
+});
+
+describe('the bell', () => {
+  const notify = (minutes: number, read: boolean) =>
+    rows(
+      "INSERT INTO notifications (user_id, kind, actor_id, case_count, created_at, read_at) VALUES ($1, 'CASE_ASSIGNED', $2, 2, now() - make_interval(mins => $3), CASE WHEN $4 THEN now() END)",
+      [test.s.officerB, test.s.director, minutes, read],
+    );
+  it('shows seven, what is not read before what is, the latest first', async () => {
+    for (let minutes = 1; minutes <= 7; minutes += 1) await notify(minutes, true);
+    for (const minutes of [50, 60]) await notify(minutes, false);
+    const { notifications } = await shell('officerB');
+    expect(notifications.map((item) => item.unread)).toEqual([false, false, false, false, false, true, true]);
+    for (let minutes = 1; minutes <= 8; minutes += 1) await notify(minutes, false);
+    expect((await shell('officerB')).notifications.map((item) => item.unread)).toEqual(Array.from({ length: 7 }, () => true));
+  });
+
+  it('marks what is named, for its reader alone, and keeps when it was read first', async () => {
+    await notify(1, false);
+    await notify(2, false);
+    const [first, second] = await list('officerB');
+    await call('officerA', 'POST', '/notifications/read', { ids: [first!.id] });
+    expect((await list('officerB')).map((item) => item.unread)).toEqual([true, true]);
+    await call('officerB', 'PUT', '/notifications', { ids: [first!.id], unread: false });
+    expect((await list('officerB')).map((item) => item.unread)).toEqual([false, true]);
+    await rows("UPDATE notifications SET read_at = '2026-01-01' WHERE id = $1", [first!.id]);
+    await call('officerB', 'POST', '/notifications/read', { ids: [first!.id] });
+    expect(await rows("SELECT read_at = '2026-01-01' AS kept FROM notifications WHERE id = $1", [first!.id])).toEqual([{ kept: true }]);
+    await call('officerB', 'PUT', '/notifications', { ids: [first!.id, second!.id], unread: true });
+    expect((await list('officerB')).map((item) => item.unread)).toEqual([true, true]);
+  });
+});
+
+describe('an assignment that changes nothing', () => {
+  it('writes and tells nothing, and each change moves the version of the case', async () => {
+    const id = await newCase('Lot trois', '900100102', null, 'L3');
+    const state = async () =>
+      (
+        await rows(
+          "SELECT version, (SELECT count(*)::int FROM case_events e WHERE e.case_id = c.id AND e.kind = 'CASE_ASSIGNED') AS told FROM cases c WHERE id = $1",
+          [id],
+        )
+      )[0];
+    for (let turn = 0; turn < 2; turn += 1) {
+      expect((await assign('director', [id], test.s.officerB)).status).toBe(204);
+      expect(await state()).toEqual({ version: 2, told: 1 });
+    }
+    expect(await list('officerB')).toHaveLength(1);
+  });
+});
+
+describe('who has left', () => {
+  it('is neither found nor counted', async () => {
+    const [gone] = await rows<{ id: string }>("INSERT INTO creditors (name, siren, status) VALUES ('Zéphyr parti', '732829353', 'ENDED') RETURNING id");
+    expect((await search('manager', 'zephyr')).map((hit) => hit.id)).not.toContain(`c:${gone!.id}`);
+    expect((await search('manager', '732829353')).map((hit) => hit.id)).toEqual([]);
+    expect((await shell('manager')).creditors.map((item) => item.id)).not.toContain(gone!.id);
+    await rows('UPDATE users SET last_seen_at = CASE WHEN id = $1 THEN now() END', [test.s.officerB]);
+    expect((await shell('manager')).counts.teamOnline).toBe(1);
+    await rows("UPDATE users SET status = 'DISABLED', disabled_at = now() WHERE id = $1", [test.s.officerB]);
+    expect((await shell('manager')).counts.teamOnline).toBe(0);
+    await rows("UPDATE users SET status = 'ACTIVE', disabled_at = NULL WHERE id = $1", [test.s.officerB]);
   });
 });

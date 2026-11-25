@@ -2,7 +2,9 @@ import { caseCheckResult, caseChoices, caseDetail, caseList, isValidSiren, type 
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { startApp, type TestApp } from '../../../test/app';
-import { Database } from '../../platform/database/database';
+import { databaseCode } from '../../platform/database/codes';
+import { Database, type Transaction } from '../../platform/database/database';
+import { dayOf } from '../../platform/format';
 
 let test: TestApp;
 let creditor: { id: string; mandate: string };
@@ -25,6 +27,8 @@ const siren = (): string => {
   drawn += 1;
   return Array.from({ length: 10 }, (_, digit) => `${drawn}${digit}`).find((number) => isValidSiren(number))!;
 };
+/** Counted in days of the calendar: a day of 23 or 25 hours is one. */
+const daysAgo = (days: number) => new Date(Date.parse(`${dayOf(new Date())}T00:00:00Z`) - days * 86_400_000).toISOString().slice(0, 10);
 let invoiceNumber = 0;
 const invoice = (some: Partial<CaseInvoice> = {}): CaseInvoice => ({
   number: `F-${(invoiceNumber += 1)}`,
@@ -158,6 +162,17 @@ describe('opening a case', () => {
     ['a name that nobody confirmed', () => ({ nameConfirmed: false as never })],
     ['no invoice', () => ({ invoices: [], expected: { principal: 0, invoices: 0 } })],
     ['the same invoice twice', () => ({ invoices: [invoice({ number: 'F-X' }), invoice({ number: 'f-x' })] })],
+    ['an invoice of nothing', () => ({ invoices: [invoice({ amount: 0, left: 0 })] })],
+    ['nothing left to pay', () => ({ invoices: [invoice({ left: 0 })] })],
+    ['too many invoices', () => ({ invoices: Array.from({ length: 51 }, () => invoice()) })],
+    ['another number of invoices than the one that was confirmed', () => ({ expected: { principal: 486_000, invoices: 2 } })],
+    ['an individual with a legal form', () => ({ kind: 'INDIVIDUAL', number: '' })],
+    [
+      'too many coordinates',
+      () => ({
+        contacts: Array.from({ length: 21 }, (_, index) => ({ kind: 'PHONE' as const, label: 'x', value: `06 00 00 00 ${10 + index}`, primary: false })),
+      }),
+    ],
     ['a due date before its issue', () => ({ invoices: [invoice({ dueOn: '2026-08-01' })] })],
     ['more left than claimed', () => ({ invoices: [invoice({ left: 486_001 })] })],
     ['another total than the one that was confirmed', () => ({ expected: { principal: 1, invoices: 1 } })],
@@ -243,7 +258,7 @@ describe('the same debtor', () => {
 
 describe('what is owed', () => {
   it('counts what is late from the oldest invoice, and no 40 € before the due date', async () => {
-    const late = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+    const late = daysAgo;
     const { id } = await open('manager', {
       invoices: [
         invoice({ issuedOn: late(90), dueOn: late(40), amount: 1000, left: 400 }),
@@ -267,6 +282,12 @@ describe('what is owed', () => {
     expect((await call('manager', 'POST', `/${id}/invoices`, more(1))).status).toBe(204);
     expect(await call('manager', 'POST', `/${id}/invoices`, more(1))).toMatchObject({ status: 409, body: { code: 'CHANGED' } });
     expect((await detail('manager', id)).principal).toBe(972_000);
+    // Not what the confirmation showed.
+    for (const expected of [
+      { principal: 1, invoices: 1 },
+      { principal: 486_000, invoices: 2 },
+    ])
+      expect((await call('manager', 'POST', `/${id}/invoices`, { ...more(2), expected })).status).toBe(422);
     const [known] = (await detail('manager', id)).invoices;
     expect(await call('manager', 'POST', `/${id}/invoices`, more(2, invoice({ number: known!.number.toLowerCase() })))).toMatchObject({
       status: 409,
@@ -332,7 +353,7 @@ describe('who reads what', () => {
   it('narrows by creditor, status, officer and age', async () => {
     const own = await newCreditor('Filtre');
     const mandate = await withMandate(own);
-    const day = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+    const day = daysAgo;
     const of = (days: number, some: Partial<NewCase> = {}) =>
       open('manager', { creditorId: own, mandateId: mandate, invoices: [invoice({ issuedOn: day(200), dueOn: day(days) })], ...some });
     const [recent, old, unassigned] = [await of(10), await of(120), await of(40, { toMe: false })];
@@ -601,5 +622,374 @@ describe('the journal of an assignment', () => {
     await call('director', 'POST', '/assign', { ids: [left.id, right.id], officerId: test.s.officerA });
     await call('director', 'POST', '/assign', { ids: [left.id, right.id], officerId: test.s.officerA });
     expect((await counts()).slice(before)).toEqual([1, 1]);
+  });
+});
+
+describe('what is left out', () => {
+  const day = daysAgo;
+  const alone = async () => {
+    const id = await newCreditor('Seul');
+    return { creditorId: id, mandateId: await withMandate(id), filter: (more = '') => `?creditor=${id}${more}` };
+  };
+
+  it('is a case of another tab', async () => {
+    const { creditorId, mandateId, filter } = await alone();
+    const opened: Record<string, string> = {};
+    for (const status of ['NEW', 'OVERDUE', 'FORMAL_NOTICE', 'REMINDER', 'PROMISE', 'PLAN', 'DISPUTE', 'LITIGATION', 'SETTLED', 'LOST']) {
+      opened[status] = (await open('manager', { creditorId, mandateId })).id;
+      await rows("UPDATE cases SET status = $2::case_status, closed_on = CASE WHEN $2 IN ('SETTLED', 'LOST') THEN current_date END WHERE id = $1", [
+        opened[status],
+        status,
+      ]);
+    }
+    const of = async (tab: string) => {
+      const { items, total, counts } = await search('manager', '', filter(`&status=${tab}`));
+      expect([total, counts[tab as 'all']]).toEqual([items.length, items.length]);
+      return items.map((item) => Object.keys(opened).find((status) => opened[status] === item.id)).sort();
+    };
+    expect(await of('overdue')).toEqual(['FORMAL_NOTICE', 'OVERDUE']);
+    expect(await of('reminder')).toEqual(['REMINDER']);
+    expect(await of('promise')).toEqual(['PLAN', 'PROMISE']);
+    expect(await of('dispute')).toEqual(['DISPUTE']);
+    expect(await of('settled')).toEqual(['LOST', 'SETTLED']);
+    expect(await of('all')).toHaveLength(10);
+  });
+
+  it('is a case of another age, to the day', async () => {
+    const { creditorId, mandateId, filter } = await alone();
+    const opened = new Map<number, string>();
+    for (const days of [0, 1, 30, 31, 60, 61, 90, 91])
+      opened.set(days, (await open('manager', { creditorId, mandateId, invoices: [invoice({ issuedOn: day(200), dueOn: day(days) })] })).id);
+    const of = async (age: string) => {
+      const found = await ids('manager', '', filter(`&age=${encodeURIComponent(age)}`));
+      return [...opened].filter(([, id]) => found.includes(id)).map(([days]) => days);
+    };
+    expect(await of('0-30')).toEqual([1, 30]);
+    expect(await of('31-60')).toEqual([31, 60]);
+    expect(await of('61-90')).toEqual([61, 90]);
+    expect(await of('90+')).toEqual([91]);
+    expect((await search('manager', '', filter())).stats).toMatchObject({ overdue: 7, overdueAmount: 3 * 486_000 });
+  });
+
+  it('is what goes beyond five hundred, and it is counted', async () => {
+    const { creditorId, filter } = await alone();
+    await rows(
+      `WITH d AS (INSERT INTO debtors (kind, name) SELECT 'INDIVIDUAL', 'Série' FROM generate_series(1, 501) RETURNING id)
+       INSERT INTO cases (reference, creditor_id, debtor_id) SELECT 'LGR-2026-' || (30000 + row_number() OVER ()), $1, id FROM d`,
+      [creditorId],
+    );
+    const { items, total } = await search('manager', '', filter());
+    expect([items.length, total]).toEqual([500, 501]);
+    await rows('DELETE FROM cases WHERE creditor_id = $1', [creditorId]);
+  });
+
+  it('is what was paid, and what is due today, of the 40 € and of the delay', async () => {
+    const { id } = await open('manager', {
+      invoices: [
+        invoice({ number: 'PAID', issuedOn: day(90), dueOn: day(60) }),
+        invoice({ number: 'LATE', issuedOn: day(90), dueOn: day(20) }),
+        invoice({ number: 'TODAY', issuedOn: day(90), dueOn: day(0) }),
+      ],
+    });
+    await rows("UPDATE case_invoices SET principal_paid_cents = principal_cents, state = 'PAID' WHERE case_id = $1 AND number = 'PAID'", [id]);
+    expect(await detail('manager', id)).toMatchObject({ fees: 4000, daysLate: 20, invoicesLabel: '2 factures', principal: 972_000 });
+  });
+
+  it('is a closed case of the same debtor, and what another creditor claims under its own name', async () => {
+    const number = siren();
+    const closed = await open('manager', { number });
+    await rows("UPDATE cases SET status = 'SETTLED', closed_on = current_date WHERE id = $1", [closed.id]);
+    const check = async () => caseCheckResult.parse((await call('manager', 'POST', '/check', { creditorId: creditor.id, number })).body);
+    expect(await check()).toMatchObject({ open: null, others: [] });
+    const elsewhere = await open('manager', { number, creditorId: other.id, mandateId: other.mandate });
+    expect(await check()).toMatchObject({ open: null, others: [{ creditor: 'Énergies Rhône', invoices: 1 }] });
+    expect((await detail('manager', elsewhere.id)).otherClaims).toEqual([]);
+    const again = await open('manager', { number });
+    expect((await detail('manager', again.id)).otherClaims).toEqual([{ creditor: 'Énergies Rhône', invoices: 1, amount: 486_000 }]);
+    expect((await check()).others).toHaveLength(1);
+  });
+
+  it('is a creditor or a colleague who has left', async () => {
+    const { creditorId, mandateId } = await alone();
+    const { id } = await open('manager');
+    await rows("UPDATE creditors SET status = 'ENDED' WHERE id = $1", [creditorId]);
+    await rows("UPDATE users SET status = 'DISABLED', disabled_at = now() WHERE id = $1", [test.s.officerB]);
+    try {
+      const { creditors, officers } = caseChoices.parse((await call('manager', 'GET', '/choices')).body);
+      expect(creditors.map((one) => one.id)).not.toContain(creditorId);
+      expect(officers.map((officer) => officer.id)).toContain(test.s.officerA);
+      for (const left of [test.s.officerB, test.s.manager]) expect(officers.map((officer) => officer.id)).not.toContain(left);
+      expect((await call('manager', 'POST', '', opening({ creditorId, mandateId }))).status).toBe(404);
+      expect(await call('director', 'POST', '/assign', { ids: [id], officerId: test.s.officerB })).toMatchObject({
+        status: 422,
+        body: { code: 'INVALID_OFFICER' },
+      });
+    } finally {
+      await rows("UPDATE users SET status = 'ACTIVE', disabled_at = NULL WHERE id = $1", [test.s.officerB]);
+    }
+  });
+
+  it('is a coordinate that nobody has verified', async () => {
+    const { id } = await open('manager');
+    await call('manager', 'POST', `/${id}/coordinates`, { kind: 'PHONE', label: 'x', value: '06 00 00 00 01', primary: false, replaces: null, source: 'CALL' });
+    const { contacts } = await detail('manager', id);
+    expect(contacts).toHaveLength(3);
+    expect(contacts.some((contact) => contact.verified)).toBe(false);
+  });
+});
+
+describe('what is written of a case', () => {
+  const trace = async (id: string) => ({
+    audit: (await rows<{ action: string }>('SELECT action FROM audit_log WHERE entity_id = $1 ORDER BY occurred_at', [id])).map((row) => row.action),
+    history: (await rows<{ kind: string }>('SELECT kind FROM case_events WHERE case_id = $1 ORDER BY occurred_at', [id])).map((row) => row.kind),
+  });
+  const phone = (value: string, some: object = {}) => ({ kind: 'PHONE', label: 'Mobile', value, primary: false, replaces: null, source: 'CALL', ...some });
+  const add = (id: string, body: object) => call('manager', 'POST', `/${id}/coordinates`, body);
+  const contacts = (id: string) =>
+    rows<{ id: string; kind: string; status: string; is_primary: boolean; invalidated_at: Date | null; value_normalized: string }>(
+      'SELECT id, kind, status, is_primary, invalidated_at, value_normalized FROM case_contacts WHERE case_id = $1 ORDER BY created_at, kind',
+      [id],
+    );
+  const last = async (id: string) =>
+    (await rows<{ what: string }>('SELECT what FROM case_contact_events WHERE contact_id = $1 ORDER BY occurred_at DESC LIMIT 1', [id]))[0]!.what;
+
+  it('opens it with its code, its legal form, its year and coordinates that are only said', async () => {
+    const { id, reference } = await open('manager', { legalForm: '5710', externalReference: 'REF-ZZ-9' });
+    expect(reference.slice(4, 8)).toBe(dayOf(new Date()).slice(0, 4));
+    expect(
+      await rows(
+        'SELECT d.legal_form_code, d.legal_form_source, a.generated_by FROM cases c JOIN debtors d ON d.id = c.debtor_id JOIN debtor_access_codes a ON a.debtor_id = d.id WHERE c.id = $1',
+        [id],
+      ),
+    ).toEqual([{ legal_form_code: '5710', legal_form_source: 'STAFF', generated_by: test.s.manager }]);
+    expect((await contacts(id)).map(({ status, value_normalized }) => [status, value_normalized]).sort()).toEqual([
+      ['UNVERIFIED', '0476000021'],
+      ['UNVERIFIED', 'compta@exemple.test'],
+    ]);
+    expect(await ids('manager', 'ref-zz-9')).toEqual([id]);
+    // Announced already: the first letter is no longer to be sent.
+    expect((await detail('officerA', test.s.cases.ofA)).nextAction).toBe('—');
+  });
+
+  it('refuses a reference that is taken, without speaking of another case', async () => {
+    const [drawn] = await rows<{ reference: string }>(
+      "SELECT 'LGR-' || year || '-' || lpad((last_value + 1)::text, 5, '0') AS reference FROM number_sequences WHERE kind = 'CASE'",
+    );
+    const [debtor] = await rows<{ id: string }>("INSERT INTO debtors (kind, name) VALUES ('INDIVIDUAL', 'X') RETURNING id");
+    await rows('INSERT INTO cases (reference, creditor_id, debtor_id) VALUES ($1, $2, $3)', [drawn!.reference, creditor.id, debtor!.id]);
+    expect(await call('manager', 'POST', '', opening())).toMatchObject({ status: 409, body: { code: 'CONFLICT' } });
+    await rows('DELETE FROM cases WHERE reference = $1', [drawn!.reference]);
+  });
+
+  it('adds invoices to it, never to one that is lost', async () => {
+    const { id } = await open('manager', { invoices: [invoice({ number: 'ABC-1' })] });
+    const more = (number: string, version: number) => ({ version, invoices: [invoice({ number })], expected: { principal: 486_000, invoices: 1 } });
+    expect(await call('manager', 'POST', `/${id}/invoices`, more('ABC-1', 1))).toMatchObject({ status: 409, body: { code: 'INVOICE_EXISTS' } });
+    expect((await call('manager', 'POST', `/${id}/invoices`, more('ABC-2', 1))).status).toBe(204);
+    expect(await trace(id)).toEqual({ audit: ['CASE_OPENED', 'CASE_INVOICES_ADDED'], history: ['CASE_OPENED', 'INVOICES_ADDED'] });
+    await rows("UPDATE cases SET status = 'LOST', closed_on = current_date WHERE id = $1", [id]);
+    expect(await call('manager', 'POST', `/${id}/invoices`, more('ABC-3', 2))).toMatchObject({ status: 409, body: { code: 'CASE_CLOSED' } });
+  });
+
+  it('gives it once, however many times it is named', async () => {
+    const { id } = await open('manager');
+    expect((await call('director', 'POST', '/assign', { ids: [id, id], officerId: test.s.officerA })).status).toBe(204);
+    expect(await rows("SELECT params FROM audit_log WHERE action = 'CASES_ASSIGNED' ORDER BY occurred_at DESC LIMIT 1")).toEqual([
+      { params: { count: 1, officer: test.s.officerA } },
+    ]);
+  });
+
+  it('says what was done to a coordinate', async () => {
+    const { id } = await open('manager', { contacts: [{ kind: 'PHONE', label: 'x', value: '04 76 00 00 21', primary: true }] });
+    expect((await add(id, phone('04 76 00 00 22'))).status).toBe(204);
+    const [first, second] = await contacts(id);
+    const change = (body: object, of = second!.id) => call('manager', 'PUT', `/${id}/coordinates/${of}`, body);
+    for (const [body, what] of [
+      [{ status: 'VERIFIED' }, 'VERIFIED'],
+      [{ status: 'INVALID' }, 'INVALIDATED'],
+      // It was right after all.
+      [{ status: 'VERIFIED' }, 'VERIFIED'],
+      [{ status: 'VERIFIED' }, 'CHANGED'],
+      [{ primary: true }, 'MADE_PRIMARY'],
+      [{ primary: false }, 'CHANGED'],
+    ] as const) {
+      expect((await change(body)).status).toBe(204);
+      expect(await last(second!.id), JSON.stringify(body)).toBe(what);
+    }
+    expect((await change({ primary: true }, first!.id)).status).toBe(204);
+    expect((await change({ primary: true })).status).toBe(204);
+    expect(await contacts(id)).toMatchObject([
+      { is_primary: false, invalidated_at: null },
+      { status: 'VERIFIED', is_primary: true, invalidated_at: null },
+    ]);
+    const { audit, history } = await trace(id);
+    expect(history).toEqual(['CASE_OPENED', 'CONTACT_ADDED']);
+    expect(audit).toEqual(['CASE_OPENED', 'CONTACT_ADDED', ...Array.from({ length: 8 }, () => 'CONTACT_CHANGED')]);
+  });
+
+  it('keeps the main address when the main number changes', async () => {
+    const { id } = await open('manager');
+    const main = async (kind: string) =>
+      (await contacts(id)).filter((contact) => contact.kind === kind && contact.is_primary).map((contact) => contact.value_normalized);
+    expect((await add(id, phone('06 00 00 00 01', { primary: true }))).status).toBe(204);
+    expect([await main('EMAIL'), await main('PHONE')]).toEqual([['compta@exemple.test'], ['0600000001']]);
+    const former = (await contacts(id)).find((contact) => contact.value_normalized === '0476000021')!;
+    expect((await call('manager', 'PUT', `/${id}/coordinates/${former.id}`, { primary: true })).status).toBe(204);
+    expect([await main('EMAIL'), await main('PHONE')]).toEqual([['compta@exemple.test'], ['0476000021']]);
+  });
+
+  it('replaces a coordinate by one of its kind, and takes back one that was set aside', async () => {
+    const { id } = await open('manager');
+    const email = (value: string) => ({ ...phone(value), kind: 'EMAIL' });
+    expect(await add(id, email('COMPTA@exemple.test'))).toMatchObject({ status: 409, body: { code: 'COORDINATE_EXISTS' } });
+    const [address, number] = (await contacts(id)).sort((left, right) => left.kind.localeCompare(right.kind));
+    expect(address!.kind).toBe('EMAIL');
+    expect(await add(id, phone('06 00 00 00 01', { replaces: address!.id }))).toMatchObject({ status: 409, body: { code: 'CHANGED' } });
+    // The same number, under another label.
+    expect((await add(id, phone('04 76 00 00 21', { replaces: number!.id, label: 'Atelier' }))).status).toBe(204);
+    const current = (await contacts(id)).find((contact) => contact.value_normalized === '0476000021' && contact.status === 'NEW')!;
+    expect((await call('manager', 'PUT', `/${id}/coordinates/${current.id}`, { status: 'INVALID' })).status).toBe(204);
+    expect((await add(id, phone('04 76 00 00 21'))).status).toBe(204);
+    // Two of the same value are never valid together.
+    expect((await call('manager', 'PUT', `/${id}/coordinates/${current.id}`, { status: 'VERIFIED' })).status).toBe(409);
+  });
+});
+
+describe('PostgreSQL itself', () => {
+  type Work = (tx: Transaction) => Promise<unknown>;
+  const ROLES = {
+    director: 'DIRECTOR',
+    manager: 'COLLECTION_MANAGER',
+    officerA: 'CLAIMS_OFFICER',
+    officerB: 'CLAIMS_OFFICER',
+    developer: 'DEVELOPER',
+  } as const;
+  type As = keyof typeof ROLES;
+  /** What it answers, or the code of its refusal. */
+  const answer = (as: As, work: Work) =>
+    test.pool
+      .run({ kind: 'staff', userId: test.s[as], role: ROLES[as], delegations: [] }, work)
+      .catch((error: unknown) => databaseCode(error) ?? String(error));
+  let reference = 70_000;
+  const insert = async (as: As, some: { officerId?: string | null; status?: string; createdBy?: string } = {}) => {
+    const [debtor] = await rows<{ id: string }>("INSERT INTO debtors (kind, name) VALUES ('INDIVIDUAL', 'X') RETURNING id");
+    const { officerId = test.s[as], status = 'NEW', createdBy = test.s[as] } = some;
+    return answer(
+      as,
+      (tx) => tx.$executeRaw`INSERT INTO cases (reference, creditor_id, debtor_id, officer_id, status, created_by)
+        VALUES (${`LGR-2026-${(reference += 1)}`}, ${creditor.id}::uuid, ${debtor!.id}::uuid, ${officerId}::uuid, ${status}::case_status, ${createdBy}::uuid)`,
+    );
+  };
+
+  it('lets the Director and the manager open a new case, for themselves or for nobody', async () => {
+    const { director, officerA } = test.s;
+    for (const as of ['director', 'manager'] as const) {
+      expect(await insert(as), as).toBe(1);
+      expect(await insert(as, { officerId: officerA }), as).toBe('42501');
+      expect(await insert(as, { status: 'REMINDER' }), as).toBe('42501');
+      expect(await insert(as, { createdBy: officerA }), as).toBe('42501');
+    }
+    expect(await insert('director', { officerId: null })).toBe('42501');
+    expect(await insert('manager', { officerId: null })).toBe(1);
+    expect(await insert('manager', { officerId: director })).toBe('42501');
+    for (const as of ['officerA', 'developer'] as const) expect(await insert(as), as).toBe('42501');
+  });
+
+  it('names no debtor for anyone else, and never an individual with a number', async () => {
+    const debtor =
+      (kind: string, number: string | null): Work =>
+      (tx) =>
+        tx.$queryRaw`SELECT app.open_debtor(${kind}::debtor_kind, 'X', ${number}, NULL)`;
+    for (const as of ['officerA', 'developer'] as const) expect(await answer(as, debtor('COMPANY', siren())), as).toBe('42501');
+    for (const [kind, number] of [
+      ['INDIVIDUAL', siren()],
+      ['COMPANY', null],
+    ] as const)
+      expect(await answer('manager', debtor(kind, number)), kind).toBe('42501');
+    expect(await answer('manager', debtor('INDIVIDUAL', null))).toHaveLength(1);
+  });
+
+  it('writes and shows the history of a coordinate to whoever acts on its case, or reads it', async () => {
+    const { id } = await open('manager');
+    const [contact] = await rows<{ id: string }>('SELECT id FROM case_contacts WHERE case_id = $1', [id]);
+    const note: Work = (tx) => tx.$executeRaw`SELECT app.note_contact(${contact!.id}::uuid, 'VERIFIED')`;
+    for (const as of ['director', 'officerA', 'developer'] as const) expect(await answer(as, note), as).toBe('42501');
+    const seen: Work = (tx) => tx.caseContactEvent.count({ where: { caseId: id } });
+    expect([await answer('director', seen), await answer('manager', seen), await answer('officerA', seen), await answer('developer', seen)]).toEqual([
+      2, 2, 0, 0,
+    ]);
+    for (const statement of ["UPDATE case_contact_events SET what = 'CHANGED'", 'DELETE FROM case_contact_events'])
+      await expect(rows(statement)).rejects.toThrow();
+  });
+
+  it('adds nothing to the case of someone else', async () => {
+    const { id } = await open('manager');
+    for (const as of ['director', 'officerA', 'developer'] as const) {
+      expect(
+        await answer(as, (tx) =>
+          tx.caseInvoice.create({
+            data: { caseId: id, creditorId: creditor.id, number: 'X', issuedOn: new Date(), dueOn: new Date(), claimedCents: 1, principalCents: 1 },
+            select: { id: true },
+          }),
+        ),
+        as,
+      ).toBe('42501');
+      expect(
+        await answer(as, (tx) =>
+          tx.caseContact.create({
+            data: { caseId: id, creditorId: creditor.id, kind: 'PHONE', label: 'x', value: '06 00 00 00 01', valueNormalized: '0600000001', source: 'CALL' },
+            select: { id: true },
+          }),
+        ),
+        as,
+      ).toBe('42501');
+    }
+  });
+
+  const INVOICE =
+    'INSERT INTO case_invoices (case_id, creditor_id, number, issued_on, due_on, claimed_cents, principal_cents, principal_paid_cents) VALUES ($1, $2,';
+  const CONTACT =
+    'INSERT INTO case_contacts (case_id, creditor_id, kind, label, source, value, value_normalized, status, is_primary, invalidated_at) VALUES ($1, $2,';
+  it.each([
+    ['an invoice due before its issue', `${INVOICE} 'X', '2026-02-01', '2026-01-31', 100, 100, 0)`, 'case_invoices_dates'],
+    ['more left than claimed', `${INVOICE} 'X', '2026-01-01', '2026-02-01', 100, 101, 0)`, 'case_invoices_principal'],
+    ['an invoice of nothing', `${INVOICE} 'X', '2026-01-01', '2026-02-01', 100, 0, 0)`, 'case_invoices_principal'],
+    ['more paid than left', `${INVOICE} 'X', '2026-01-01', '2026-02-01', 100, 100, 101)`, 'case_invoices_paid'],
+    [
+      'the same invoice twice',
+      `${INVOICE} 'X', '2026-01-01', '2026-02-01', 1, 1, 0), ($1, $2, 'X', '2026-01-01', '2026-02-01', 1, 1, 0)`,
+      'case_invoices_case_id_number_key',
+    ],
+    ['a wrong coordinate without its day', `${CONTACT} 'PHONE', 'x', 'CALL', '0600000001', '0600000001', 'INVALID', false, NULL)`, 'case_contacts_invalid'],
+    [
+      'a wrong coordinate that is the main one',
+      `${CONTACT} 'PHONE', 'x', 'CALL', '0600000001', '0600000001', 'INVALID', true, now())`,
+      'case_contacts_invalid',
+    ],
+    [
+      'two main numbers',
+      `${CONTACT} 'PHONE', 'x', 'CALL', '0600000001', '0600000001', 'NEW', true, NULL), ($1, $2, 'PHONE', 'x', 'CALL', '0600000002', '0600000002', 'NEW', true, NULL)`,
+      'case_contacts_primary',
+    ],
+    [
+      'the same number twice',
+      `${CONTACT} 'PHONE', 'x', 'CALL', '06 00 00 00 01', '0600000001', 'NEW', false, NULL), ($1, $2, 'PHONE', 'x', 'CALL', '0600000001', '0600000001', 'NEW', false, NULL)`,
+      'case_contacts_value',
+    ],
+    [
+      'the mandate of another creditor',
+      'UPDATE cases SET mandate_id = (SELECT id FROM mandates WHERE creditor_id <> $2 LIMIT 1) WHERE id = $1',
+      'cases_mandate_id_creditor_id_fkey',
+    ],
+    [
+      'a coordinate replaced by that of another case',
+      'UPDATE case_contacts SET replaced_by_id = (SELECT id FROM case_contacts WHERE case_id <> $1 LIMIT 1) WHERE case_id = $1 AND creditor_id = $2',
+      'case_contacts_replaced_by_id_case_id_fkey',
+    ],
+  ])('holds no such line: %s', async (what, statement, constraint) => {
+    const elsewhere = await open('manager');
+    expect(elsewhere.id).toBeTruthy();
+    const { id } = await open('manager', { contacts: what.includes('replaced') ? opening().contacts : [] });
+    await expect(rows(statement, [id, creditor.id])).rejects.toThrow(constraint);
   });
 });

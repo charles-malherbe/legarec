@@ -1,7 +1,8 @@
-import { firmGroups, settingsHub, settingsSection, technicalGroups } from '@legarec/contracts';
+import { FIRM_IDENTITY_FIELDS, firmGroups, settingsHub, settingsSection, technicalGroups } from '@legarec/contracts';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { startApp, type TestApp } from '../../../test/app';
+import { databaseCode } from '../../platform/database/codes';
 import { Database } from '../../platform/database/database';
 import { Vault } from '../vault/vault';
 import { SettingValues } from './values';
@@ -86,6 +87,10 @@ describe('settings', () => {
     ['a wrong number', 'firm/cabinet', { phone: 'bientôt' }],
     ['a wrong IBAN', 'firm/cabinet', { iban: 'GB82 WEST 1234 5698 7654 33' }],
     ['another placeholder', 'firm/cabinet', { holder: '[AUTRE]' }],
+    ['a holder of one letter', 'firm/cabinet', { holder: 'X' }],
+    ['a wrong SIREN', 'firm/cabinet', { siren: '123 456 789' }],
+    ['a wrong VAT number', 'firm/cabinet', { vat: 'FR12' }],
+    ['a wrong BIC', 'firm/cabinet', { bic: 'PSST' }],
     ['a goal in words', 'firm/regles', { 'call-goal': 'dix' }],
   ])('refuse %s, and nothing of the rest is kept', async (_what, path, body) => {
     const answer = await put('director', path, { ...(path.endsWith('cabinet') ? { address: '1 rue de l’Essai' } : {}), ...body });
@@ -99,6 +104,7 @@ describe('settings', () => {
     expect((await put('director', 'firm/regles', { r1: false, indemnity: '0 €', inconnu: 'x', duration: '6 mois' })).status).toBe(204);
     expect(await rows('SELECT 1 FROM settings')).toEqual([]);
     expect((await rows("SELECT 1 FROM audit_log WHERE action = 'SETTING_CHANGED'")).length).toBe(before);
+    expect((await put('director', 'firm/cabinet', { address: 'x'.repeat(501) })).status).toBe(422);
     expect((await put('director', 'firm/inconnu', {})).status).toBe(404);
     expect((await put('director', 'autre/cabinet', {})).status).toBe(404);
     expect((await get('director', '__proto__')).status).toBe(404);
@@ -137,7 +143,8 @@ describe('who changes what', () => {
 
   it('shows the identity locked to all but the Director', async () => {
     expect((await field('director', 'firm/cabinet', 'iban')).locked).toBe(false);
-    expect((await field('manager', 'firm/cabinet', 'iban')).locked).toBe(true);
+    for (const id of ['siren', 'vat', 'iban', 'bic', 'holder', 'bankName', 'chequePayee', 'chequeAddress'])
+      expect((await field('manager', 'firm/cabinet', id)).locked, id).toBe(true);
     expect((await field('manager', 'firm/cabinet', 'name')).locked).toBe(false);
   });
 
@@ -210,4 +217,151 @@ it('is refused when someone else has changed the section meanwhile', async () =>
   expect((await field('director', 'firm/relances', 'calls')).value).toBe('1');
   expect((await section('director', 'firm/relances')).version).toBeGreaterThan(version);
   for (const query of ['?version=x', '?version=', '?']) expect((await put('director', `firm/relances${query}`, { calls: '3' })).status, query).toBe(422);
+});
+
+describe('PostgreSQL itself', () => {
+  const ROLES = { director: 'DIRECTOR', manager: 'COLLECTION_MANAGER', developer: 'DEVELOPER' } as const;
+  const DELEGATIONS = { director: undefined, manager: 'ADMINISTRATIVE', developer: 'TECHNICAL' } as const;
+  const answer = (as: keyof typeof ROLES, key: string) => {
+    const actingFor = DELEGATIONS[as];
+    return db
+      .run(
+        { kind: 'staff', userId: test.s[as], role: ROLES[as], delegations: [], ...(actingFor ? { actingFor } : {}) },
+        (tx) => tx.$executeRaw`SELECT app.save_setting(${key}, '"x"'::jsonb, ${randomUUID()}::uuid, NULL)`,
+      )
+      .then(() => 'done', databaseCode);
+  };
+
+  it.each(FIRM_IDENTITY_FIELDS)('keeps the identity of the firm for the Director: %s', async (name) => {
+    for (const as of ['manager', 'developer'] as const) expect(await answer(as, `firm.cabinet.${name}`), as).toBe('42501');
+    expect(await answer('director', `firm.cabinet.${name}`)).toBe('done');
+  });
+
+  it('gives nobody a key that is of no list', async () => {
+    for (const as of ['director', 'manager', 'developer'] as const) expect(await answer(as, 'autre.cabinet.x'), as).toBe('42501');
+  });
+
+  it.each([
+    ['autre.cabinet.x', '"x"', 'settings_key_check'],
+    ['firm.cabinet.x.y', '"x"', 'settings_key_check'],
+    ['firm.cabinet.x', '1', 'settings_value_check'],
+    ['firm.cabinet.x', '{"a":"b"}', 'settings_value_check'],
+    ['firm.cabinet.x', JSON.stringify('x'.repeat(501)), 'settings_value_check'],
+  ])('holds no such line: %s, %s', async (key, value, constraint) => {
+    await expect(rows('INSERT INTO settings (key, value, updated_by) VALUES ($1, $2::jsonb, $3)', [key, value, test.s.director])).rejects.toThrow(constraint);
+  });
+
+  it('shows nothing to an account that is nobody', async () => {
+    await put('director', 'firm/relances', { calls: '3' });
+    const seen = (userId: string) => db.run({ kind: 'staff', userId, role: 'DIRECTOR', delegations: [] }, (tx) => tx.setting.count());
+    expect(await seen(test.s.director)).toBe(1);
+    expect(await seen(randomUUID())).toBe(0);
+  });
+});
+
+describe('what is shown of the settings', () => {
+  it('is never a value of another kind than its field', async () => {
+    await rows(
+      `INSERT INTO settings (key, value, updated_by) VALUES ('firm.cabinet.name', 'true', $1), ('firm.regles.r3', '"non"', $1), ('firm.regles.indemnity', '"0 €"', $1)`,
+      [test.s.director],
+    );
+    const catalogue = (section: string, id: string) =>
+      firmGroups()
+        .flatMap((group) => group.items)
+        .find((item) => item.id === section)!
+        .blocks.flatMap((block) => block.fields)
+        .find((item) => item.id === id)!;
+    for (const [section, id] of [
+      ['cabinet', 'name'],
+      ['regles', 'r3'],
+      ['regles', 'indemnity'],
+    ] as const)
+      expect(await field('director', `firm/${section}`, id), id).toEqual(catalogue(section, id));
+  });
+
+  it('is nothing of a section that does not exist', async () => {
+    expect((await get('director', 'firm/inconnu')).status).toBe(404);
+  });
+
+  it('tells what the firm has still to type', async () => {
+    const status = async () =>
+      settingsHub
+        .parse((await get('director', 'firm')).body)
+        .groups.flatMap((group) => group.tiles)
+        .find((tile) => tile.id === 'cabinet')!.status;
+    const before = Number.parseInt((await status())!, 10);
+    await put('director', 'firm/cabinet', { iban: IBAN });
+    expect(Number.parseInt((await status())!, 10)).toBe(before - 1);
+  });
+
+  it('is the extension of those who are there', async () => {
+    const name = async () => JSON.stringify(await section('director', 'techniques/telephonie'));
+    await rows("UPDATE users SET extension = '4817' WHERE id = $1", [test.s.officerB]);
+    expect(await name()).toContain('4817');
+    await rows("UPDATE users SET status = 'DISABLED', disabled_at = now() WHERE id = $1", [test.s.officerB]);
+    expect(await name()).not.toContain('4817');
+    await rows("UPDATE users SET status = 'ACTIVE', disabled_at = NULL, extension = NULL WHERE id = $1", [test.s.officerB]);
+  });
+
+  it('is the last actions of the journal, without the whole address of anyone', async () => {
+    const add = (ip: string | null, count: number, age = '0 s') =>
+      rows(
+        "INSERT INTO audit_log (occurred_at, actor_kind, actor_label, action, params, ip) SELECT now() - $3::interval, 'STAFF', 'X', 'SETTING_CHANGED', '{}', $1::inet FROM generate_series(1, $2)",
+        [ip, count, age],
+      );
+    await add('203.0.113.77', 501, '1 hour');
+    await add('203.0.113.78', 1);
+    await add('2001:db8:1234:5678::9', 1);
+    const shown = (await section('developer', 'techniques/audit')).tables[0]!.rows;
+    expect(shown).toHaveLength(500);
+    const addresses = new Set(shown.map((row) => row[4]));
+    for (const address of ['203.0.•••.77', '203.0.•••.78', '2001:db8:•••']) expect([...addresses], address).toContain(address);
+    expect(
+      shown
+        .slice(0, 2)
+        .map((row) => row[4])
+        .sort(),
+    ).toEqual(['2001:db8:•••', '203.0.•••.78']);
+    expect(JSON.stringify(shown)).not.toContain('113.7');
+  });
+});
+
+describe('two changes', () => {
+  it('at the same time, of the same screen, are one: the other is refused', async () => {
+    const kept = async () => (await rows("SELECT 1 FROM setting_versions WHERE key = 'firm.relances.calls'")).length;
+    await put('director', 'firm/relances', { calls: '3' });
+    const before = await kept();
+    const { version } = await section('director', 'firm/relances');
+    const answers = await Promise.all(
+      (['director', 'manager'] as const).map((as, index) => put(as, `firm/relances?version=${version}`, { calls: String(index + 1) })),
+    );
+    expect(answers.map((answer) => answer.status).sort()).toEqual([204, 409]);
+    expect(await kept()).toBe(before + 1);
+  });
+
+  it('each keep the value that they replaced, and say who made the last one', async () => {
+    const versions = async () =>
+      (
+        await rows<{ id: string; previous_cipher: Buffer; changed_by: string; on_behalf_of_id: string | null }>(
+          "SELECT id, previous_cipher, changed_by, on_behalf_of_id FROM setting_versions WHERE key = 'firm.relances.calls' ORDER BY changed_at",
+        )
+      ).slice(-2);
+    const noted = async () => (await rows("SELECT 1 FROM audit_log WHERE action = 'SETTING_CHANGED' AND params = '{\"count\": 1}'")).length;
+    await put('director', 'firm/relances', { calls: '3' });
+    const before = await noted();
+    const answers = [await put('director', 'firm/relances', { calls: '1' }), await put('manager', 'firm/relances', { calls: '2' })];
+    expect(answers.map((answer) => answer.status)).toEqual([204, 204]);
+    expect(await noted()).toBe(before + 2);
+    const kept = await versions();
+    const value = (version: (typeof kept)[number]) =>
+      new Vault(test.config).openFor({ table: 'setting_versions', id: version.id, column: 'previous_cipher' }, version.previous_cipher);
+    expect(value(kept[0]!)).toBe('"3"');
+    expect(value(kept[1]!)).toBe(kept[0]!.changed_by === test.s.director ? '"1"' : '"2"');
+    const behalf = (who: string) => (who === test.s.manager ? test.s.director : null);
+    for (const version of kept) expect(version.on_behalf_of_id).toBe(behalf(version.changed_by));
+    const who = kept[1]!.changed_by;
+    expect(await rows("SELECT updated_by, on_behalf_of_id, version FROM settings WHERE key = 'firm.relances.calls'")).toEqual([
+      { updated_by: who, on_behalf_of_id: behalf(who), version: 3 },
+    ]);
+  });
 });
