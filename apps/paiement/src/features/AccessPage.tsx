@@ -82,17 +82,13 @@ function AccessForm({ initial, unknownLink }: { initial?: { kind: DebtorIdentifi
     setErrors({});
     confirm({
       title: 'Recevoir votre code par SMS ?',
-      body: 'Le code est envoyé au numéro enregistré dans votre dossier.',
+      body: 'Si un numéro est enregistré dans votre dossier, le code y est envoyé.',
       details: [{ k: kind === 'SIRET' ? 'SIRET' : 'Référence', v: value }],
       confirmLabel: 'Envoyer le SMS',
       onConfirm: async () => {
         try {
-          const result = await api(codeBySms, '/debtor/code-by-sms', { method: 'POST', body: parsed.data });
-          setSms(
-            result.maskedPhone
-              ? `SMS au ${result.maskedPhone} : votre code est en route.`
-              : 'Si un numéro est enregistré dans votre dossier, le code vient d’être envoyé.',
-          );
+          await api(codeBySms, '/debtor/code-by-sms', { method: 'POST', body: parsed.data });
+          setSms('Si un numéro est enregistré dans votre dossier, le code vient d’être envoyé.');
         } catch (error) {
           report(error);
         }

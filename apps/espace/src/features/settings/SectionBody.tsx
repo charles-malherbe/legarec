@@ -1,6 +1,6 @@
-import { settingsSection, type SettingTable } from '@legarec/contracts';
+import { FIRM_IDENTITY_FIELDS, firmIdentity, settingsSection, type SettingTable } from '@legarec/contracts';
 import { saveFile } from '@legarec/platform';
-import { Badge, Bouton, Carte, Champ, EtatListe, Reglage, Statut, Tableau, useToast } from '@legarec/ui';
+import { Alerte, Badge, Bouton, Carte, Champ, EtatListe, Reglage, Statut, Tableau, useConfirm, useToast } from '@legarec/ui';
 import { useState } from 'react';
 import { useApi, useChange } from '../../app/data';
 import { toCsv } from '../../shared/csv';
@@ -20,6 +20,8 @@ export function SectionBody({ scope, id, label }: { scope: string; id: string; l
   const toast = useToast();
   const [draft, setDraft] = useState<Record<string, string | boolean>>({});
   const [saving, setSaving] = useState(false);
+  const [problem, setProblem] = useState('');
+  const confirm = useConfirm();
   if (!data)
     return (
       <div className={layout.card}>
@@ -30,12 +32,31 @@ export function SectionBody({ scope, id, label }: { scope: string; id: string; l
   const before = Object.fromEntries(fields.filter((item) => item.id in draft).map((item) => [item.id, item.kind === 'switch' ? item.checked : item.value]));
   const dirty = Object.keys(draft).some((key) => draft[key] !== before[key]);
   const set = (key: string, value: string | boolean) => setDraft((current) => ({ ...current, [key]: value }));
+  const identity = FIRM_IDENTITY_FIELDS.filter((key) => id === 'cabinet' && key in draft && draft[key] !== before[key]);
+  const askSave = () => {
+    const parsed = firmIdentity.partial().safeParse(Object.fromEntries(identity.map((key) => [key, draft[key]])));
+    if (!parsed.success) return setProblem(parsed.error.issues.map((issue) => issue.message).join(' '));
+    setProblem('');
+    if (identity.length === 0) return void save();
+    confirm({
+      tone: 'danger',
+      title: 'Modifier les identifiants du cabinet ?',
+      body: 'Ces valeurs sont affichées aux débiteurs et sur les factures. Vérifiez chaque caractère : un IBAN erroné détourne les paiements.',
+      details: identity.map((key) => ({ k: fields.find((item) => item.id === key)?.label ?? key, v: String(draft[key]) })),
+      confirmLabel: 'Enregistrer ces identifiants',
+      onConfirm: save,
+    });
+  };
   const save = async () => {
     setSaving(true);
     try {
       await change(path, { method: 'PUT', body: draft });
       setDraft({});
-      toast({ message: `« ${label} » enregistré.`, undo: () => void change(path, { method: 'PUT', body: before }) });
+      toast({
+        message: `« ${label} » enregistré.`,
+        // Bank details are only changed through their own confirmation.
+        undo: identity.length > 0 ? undefined : () => void change(path, { method: 'PUT', body: before }),
+      });
     } catch {
       toast({ message: 'L’enregistrement n’a pas abouti. Vos modifications sont conservées à l’écran : réessayez.' });
     } finally {
@@ -63,7 +84,7 @@ export function SectionBody({ scope, id, label }: { scope: string; id: string; l
               checked={Boolean(draft[field.id] ?? field.checked)}
               options={field.options}
               locked={field.locked}
-              disabled={!data.canEdit}
+              disabled={!data.canEdit || (field.locked && field.kind === 'text')}
               status={field.status ?? undefined}
               statusTone={field.statusTone}
               onChange={(value) => set(field.id, value)}
@@ -79,12 +100,13 @@ export function SectionBody({ scope, id, label }: { scope: string; id: string; l
           {note}
         </p>
       ))}
+      {problem && <Alerte tone="danger" text={problem} />}
       {dirty && (
         <div role="status" className={css.bar}>
           <span>Modifications non enregistrées dans « {label} »</span>
           <span className={layout.inline}>
             <Bouton label="Annuler" variant="dark" size="sm" onPress={() => setDraft({})} />
-            <Bouton label="Enregistrer" size="sm" loading={saving} onPress={() => void save()} />
+            <Bouton label="Enregistrer" size="sm" loading={saving} onPress={askSave} />
           </span>
         </div>
       )}

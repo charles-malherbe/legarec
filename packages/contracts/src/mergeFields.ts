@@ -115,6 +115,6 @@ export const MANDATORY_BLOCKS = [
     content:
       'Numéro, SIREN et TVA, échéance, absence d’escompte, pénalités de retard, indemnité forfaitaire de 40 € (art. L. 441-9 et L. 441-10 du Code de commerce).',
   },
-  { code: 'mention_sms', usedIn: 'SMS', content: 'Mention « STOP au [NUMÉRO STOP] ». Compte dans la longueur du SMS.' },
+  { code: 'mention_sms', usedIn: 'SMS', content: 'Mention « STOP : répondez STOP ». Compte dans la longueur du SMS.' },
   { code: 'en_tete', usedIn: 'Courriers, factures, contrats', content: 'En-tête Legarec (nom, coordonnées). Le logo n’est pas utilisé dans les documents.' },
 ] as const;

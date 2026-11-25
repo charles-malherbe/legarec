@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { resetAccounts } from '../../mocks/routes/account';
 import { resetSettings } from '../../mocks/routes/settings';
+import { resetSteering } from '../../mocks/routes/steering';
 import { resetTemplates } from '../../mocks/routes/templates';
 import { call, mockApi, openAs } from '../../testing';
 
@@ -11,6 +12,7 @@ mockApi();
 afterEach(() => {
   resetSettings();
   resetTemplates();
+  resetSteering();
   resetAccounts();
 });
 const inDialog = async () => within(await screen.findByRole('alertdialog'));
@@ -65,6 +67,34 @@ describe('settings', () => {
   });
 });
 
+describe('firm identity', () => {
+  it('belongs to the Director alone, with valid values, a confirmation and no value in the journal', async () => {
+    // Example IBAN of the international standard, not a real account.
+    const iban = 'GB82 WEST 1234 5698 7654 32';
+    expect((await call('cl', '/settings/firm/cabinet', { iban }, 'PUT')).status).toBe(403);
+    expect((await call('ad', '/settings/firm/cabinet', { iban: 'GB82 WEST 1234 5698 7654 33' }, 'PUT')).status).toBe(422);
+    openAs('ad', '/parametres/cabinet');
+    const field = await screen.findByLabelText('IBAN du compte dédié');
+    await userEvent.clear(field);
+    await userEvent.type(field, 'GB00');
+    await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(await screen.findByText('Cet IBAN n’est pas valide.')).toBeVisible();
+    await userEvent.clear(field);
+    await userEvent.type(field, iban);
+    await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    await userEvent.click((await inDialog()).getByRole('button', { name: 'Enregistrer ces identifiants' }));
+    expect(await screen.findByText('« Cabinet » enregistré.')).toBeVisible();
+    const journal = await (await call('ad', '/settings/techniques/audit')).text();
+    expect(journal).toContain('Identifiants du cabinet modifiés : iban');
+    expect(journal).not.toContain('WEST');
+  });
+  it('is locked for the delegate', async () => {
+    openAs('cl', '/parametres/cabinet');
+    expect(await screen.findByLabelText('IBAN du compte dédié')).toBeDisabled();
+    expect(screen.getByLabelText('Téléphone du service')).toBeEnabled();
+  });
+});
+
 describe('mailboxes', () => {
   it('shows a new password only once', async () => {
     openAs('dev', '/parametres/techniques/boites');
@@ -84,17 +114,26 @@ describe('mailboxes', () => {
     expect(await screen.findByText(/Boîte protégée/)).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Supprimer la boîte' })).toBeNull();
     expect((await call('dev', '/mailboxes/b1/password', {})).status).toBe(403);
-    expect((await call('dev', '/mailboxes/b1/delete', { address: 'recouvrement@legarec.fr' })).status).toBe(403);
   });
-  it('asks for the full address before deleting', async () => {
+  it('never deletes a mailbox from the application', async () => {
     openAs('dev', '/parametres/techniques/boites');
     await userEvent.click(await screen.findByRole('button', { name: 'Gérer : tg@legarec.fr' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Supprimer la boîte' }));
+    expect(screen.getByText(/espace client OVH/)).toBeVisible();
+    expect(screen.queryByRole('button', { name: /Supprimer la boîte/ })).toBeNull();
+    expect(await (await call('dev', '/mailboxes')).text()).toContain('tg@legarec.fr');
+  });
+  it('asks the Developer for a mailbox when a collaborator is invited', async () => {
+    const person = { firstName: 'Ana', lastName: 'Costa' };
+    expect((await call('cl', '/members', { ...person, role: 'CLAIMS_OFFICER', email: 'ac@legarec.fr' })).status).toBe(204);
+    expect((await call('cl', '/members', { ...person, role: 'CREDITOR', email: 'a@exemple.fr', creditorId: 'md' })).status).toBe(204);
+    openAs('dev', '/parametres/techniques/boites');
+    await userEvent.click(await screen.findByRole('button', { name: 'Créer la boîte ac@legarec.fr' }));
     const dialog = await inDialog();
-    expect(dialog.getByRole('button', { name: 'Supprimer définitivement' })).toBeDisabled();
-    await userEvent.type(dialog.getByLabelText('Saisissez l’adresse complète pour confirmer'), 'tg@legarec.fr');
-    await userEvent.click(dialog.getByRole('button', { name: 'Supprimer définitivement' }));
-    expect(await screen.findByText('Boîte supprimée.')).toBeVisible();
+    expect(dialog.getByText('5 Go')).toBeVisible();
+    expect(dialog.getByText('Camille Laurent')).toBeVisible();
+    await userEvent.click(dialog.getByRole('button', { name: 'Créer la boîte' }));
+    expect((await screen.findByTestId('issued-password')).textContent).toHaveLength(16);
+    expect(screen.queryByText('Demandes de boîte')).toBeNull();
   });
   it('runs the departure steps in order, each one confirmed', async () => {
     openAs('ad', '/parametres/techniques/boites');

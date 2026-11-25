@@ -1,5 +1,7 @@
 import {
   canAccessTechnicalSettings,
+  FIRM_IDENTITY_FIELDS,
+  firmIdentity,
   hasDelegation,
   type GdprRequest,
   type Mailbox,
@@ -13,6 +15,7 @@ import {
 import { http, HttpResponse } from 'msw';
 import { audit, auditEntries, resetAudit } from '../audit';
 import { done, forbidden, guarded, notFound } from '../http';
+import { closeMailboxRequest, mailboxRequests, resetMailboxRequests } from '../mailboxRequests';
 import { administers } from './steering';
 
 type Info = { request: Request; params: Record<string, unknown> };
@@ -92,10 +95,15 @@ const firmGroups = (): Group[] => [
         block('identity', 'Identité du cabinet', 'Apparaît sur les courriers, e-mails, SMS et dans les espaces débiteur et créancier.', [
           text('name', 'Raison sociale', 'Nom légal de la société', 'LEGAREC'),
           text('display', 'Nom affiché', 'Utilisé dans les e-mails et l’espace de paiement', 'Legarec – Cabinet de recouvrement'),
-          text('siren', 'SIREN', '9 chiffres', '[SIREN]'),
           text('address', 'Adresse du siège', '', '[ADRESSE DU CABINET]'),
           text('phone', 'Téléphone du service', 'Affiché aux débiteurs', '01 87 88 02 98'),
           text('hours', 'Horaires d’ouverture', 'Utilisés pour les appels et la réponse automatique', 'Lundi au vendredi, 9 h – 19 h'),
+        ]),
+        block('bank', 'Identifiants et compte dédié', 'Saisis par le Directeur seulement, après confirmation. Affichés aux débiteurs et sur les factures.', [
+          text('siren', 'SIREN', '9 chiffres', '[SIREN]'),
+          text('vat', 'N° de TVA intracommunautaire', '', '[N° TVA]'),
+          text('iban', 'IBAN du compte dédié', 'Compte dédié aux fonds encaissés', '[IBAN DU COMPTE DÉDIÉ]'),
+          text('bic', 'BIC', '', '[BIC]'),
         ]),
         block('duties', 'Obligations de l’activité', 'Pièces exigées pour exercer le recouvrement amiable pour le compte d’autrui.', [
           value('insurance', 'Assurance RC professionnelle', 'Attestation 2026 · expire le 31/12/2026', '', 'À renouveler dans 40 jours', 'warning'),
@@ -184,10 +192,10 @@ const firmGroups = (): Group[] => [
       ]),
       section('relances', 'Relances', 'Plafonds de contacts et plages horaires', 'bell', 'Plafonds par débiteur et par canal', 'neutral', [
         block('limits', 'Plafonds de contacts par débiteur', 'Au-delà, l’agenda des relances prévient et l’envoi automatique attend.', [
-          select('calls', 'Appels', 'Par débiteur et par semaine', ['[PLAFOND À VALIDER]', '1', '2', '3']),
-          select('emails', 'E-mails', 'Par débiteur et par semaine', ['[PLAFOND À VALIDER]', '1', '2', '3']),
-          select('sms', 'SMS', 'Par débiteur et par semaine', ['[PLAFOND À VALIDER]', '1', '2', '3']),
-          select('letters', 'Courriers', 'Par débiteur et par mois', ['[PLAFOND À VALIDER]', '1', '2', '3']),
+          select('calls', 'Appels', 'Par débiteur et par semaine', ['2', '1', '3']),
+          select('emails', 'E-mails', 'Par débiteur et par semaine', ['2', '1', '3']),
+          select('sms', 'SMS', 'Par débiteur et par semaine', ['1', '2', '3']),
+          select('letters', 'Courriers', 'Par débiteur et par mois', ['2', '1', '3']),
         ]),
         block('hours', 'Plages horaires', 'Aucun contact hors de ces plages, ni les dimanches et jours fériés.', [
           text('call-hours', 'Appels', '', 'Lundi au vendredi 9:00–19:00 · samedi 9:00–12:00'),
@@ -204,7 +212,7 @@ const firmGroups = (): Group[] => [
         block('sending', 'Envoi des SMS · OVHcloud', 'Les SMS de relance partent par l’API SMS d’OVHcloud. Paramètres communs à tous les envois.', [
           value('provider', 'Fournisseur', 'Compte SMS OVHcloud, clé d’API dans Secrets et clés', 'OVHcloud SMS', 'Connecté', 'success'),
           value('sender', 'Expéditeur', 'Numéro qui reçoit les réponses des débiteurs', '[NUMÉRO SMS]'),
-          text('stop', 'Numéro de désinscription', 'Mention « STOP » ajoutée à chaque SMS', '[NUMÉRO STOP]'),
+          value('stop', 'Désinscription', 'Mention « STOP : répondez STOP » ajoutée à chaque SMS', 'Réponse STOP'),
           text('sms-hours', 'Plages d’envoi', 'Aucun envoi les dimanches et jours fériés', 'Lundi au samedi, 9 h – 19 h'),
           value('credits', 'Crédits disponibles', 'Rechargement automatique sous 2 000 crédits', '18 420 SMS'),
           sw('m1', 'Mention « STOP » obligatoire', 'Ajoutée automatiquement à la fin de chaque SMS', true, true),
@@ -236,7 +244,7 @@ const firmGroups = (): Group[] => [
         'Assistant IA',
         'Fonctions activées, garde-fous, budget et journal',
         'sparkle',
-        '4 fonctions actives · 38,40 € sur 150 € ce mois',
+        '4 fonctions actives · 6,40 € sur 25 € ce mois',
         'info',
         [
           block(
@@ -286,8 +294,8 @@ const firmGroups = (): Group[] => [
             text(
               'budget',
               'Budget mensuel',
-              'Au-delà, les fonctions passent en pause jusqu’au mois suivant ; alerte à 80 %. 38,40 € consommés ce mois.',
-              '150 €',
+              'Au-delà, les fonctions passent en pause jusqu’au mois suivant ; alerte à 80 %. 6,40 € consommés ce mois.',
+              '25 €',
             ),
           ]),
         ],
@@ -568,7 +576,6 @@ const seedSecrets = (): SecretItem[] =>
   ).map(([id, name, service, used, rotated, status]) => ({ id, name, service, environment: 'Production', used, rotated, status }));
 let secrets = seedSecrets();
 
-const SHARED = 'recouvrement@legarec.fr';
 const box = (id: string, local: string, holder: string | null, kind: Mailbox['kind'], usedMb: number, connection: Mailbox['connection'] = 'OK'): Mailbox => ({
   id,
   address: `${local}@legarec.fr`,
@@ -636,7 +643,16 @@ let registry = seedRegistry();
 export const addGdprRequest = (item: Pick<GdprRequest, 'kind' | 'debtor' | 'caseId' | 'origin'>) => {
   registry = [...registry, { ...item, id: `g${registry.length + 1}`, receivedOn: '2026-11-24', dueOn: '2026-12-24', daysLeft: 30, status: 'OPEN' }];
 };
+/** Contact cap of a channel, as set in Paramètres du cabinet > Relances. */
+export const contactCap = (field: 'calls' | 'emails' | 'sms' | 'letters') =>
+  Number(
+    groups.firm
+      .flatMap((group) => group.items)
+      .find((item) => item.id === 'relances')
+      ?.blocks[0]?.fields.find((item) => item.id === field)?.value ?? 0,
+  );
 export const resetSettings = () => {
+  resetMailboxRequests();
   resetAudit();
   groups = { firm: firmGroups(), technical: technicalGroups() };
   secrets = seedSecrets();
@@ -677,12 +693,17 @@ export const settingsHandlers = [
       if (!canRead(scope, session)) return forbidden();
       const item = groups[scope].flatMap((group) => group.items).find((entry) => entry.id === params.id);
       if (!item) return notFound();
+      // Bank details: the Director only, not even under a delegation.
+      const blocks =
+        session.role === 'DIRECTOR'
+          ? item.blocks
+          : item.blocks.map((entry) => (entry.id === 'bank' ? { ...entry, fields: entry.fields.map((field) => ({ ...field, locked: true })) } : entry));
       const tables = (item.tables ?? []).map((entry) =>
         entry.id === 'audit'
           ? { ...entry, rows: [...auditEntries().map((line) => [line.date, line.who, line.onBehalfOf, line.what, '—']), ...entry.rows] }
           : entry,
       );
-      return HttpResponse.json({ id: item.id, canEdit: canEdit(scope, session), blocks: item.blocks, tables, notes: item.notes ?? [] });
+      return HttpResponse.json({ id: item.id, canEdit: canEdit(scope, session), blocks, tables, notes: item.notes ?? [] });
     }),
   ),
   http.put(
@@ -693,6 +714,13 @@ export const settingsHandlers = [
       const item = groups[scope].flatMap((group) => group.items).find((entry) => entry.id === params.id);
       if (!item) return notFound();
       const changes = (await request.json()) as Record<string, string | boolean>;
+      const bank = Object.fromEntries(Object.entries(changes).filter(([key]) => item.id === 'cabinet' && (FIRM_IDENTITY_FIELDS as string[]).includes(key)));
+      if (Object.keys(bank).length > 0) {
+        if (session.role !== 'DIRECTOR') return forbidden();
+        if (!firmIdentity.partial().safeParse(bank).success) return HttpResponse.json({ code: 'INVALID' }, { status: 422 });
+        // The journal names the fields, never their values.
+        audit(session, `Identifiants du cabinet modifiés : ${Object.keys(bank).join(', ')}`);
+      }
       audit(session, `Paramètres modifiés : ${item.title}`, scope === 'technical' ? 'TECHNICAL' : 'ADMINISTRATIVE');
       item.blocks = item.blocks.map((entry) => ({
         ...entry,
@@ -759,19 +787,32 @@ export const settingsHandlers = [
           { id: 'nf', name: 'Nadia Faure' },
         ],
         history: boxHistory,
+        requests: mailboxRequests(),
       }),
     ),
   ),
   http.post(
     '/api/mailboxes',
     guarded<Info>(edits, async ({ request }, session) => {
-      const body = (await request.json()) as { local: string; holderId: string | null; sizeMb: number };
+      const body = (await request.json()) as { local: string; holderId: string | null; sizeMb: number; requestId?: string };
+      const asked = mailboxRequests().find((item) => item.id === body.requestId);
       if (boxes.some((item) => item.address === `${body.local}@legarec.fr`)) return HttpResponse.json({ code: 'ADDRESS_TAKEN' }, { status: 409 });
-      const holder = { lp: 'Lucas Perrin', nf: 'Nadia Faure' }[body.holderId ?? ''] ?? null;
+      const holder = asked?.holder ?? { lp: 'Lucas Perrin', nf: 'Nadia Faure' }[body.holderId ?? ''] ?? null;
+      if (asked) closeMailboxRequest(asked.id);
       const item = { ...box(`b${boxes.length + 1}`, body.local, holder, holder ? 'MEMBER' : 'FUNCTION', 0), sizeMb: body.sizeMb };
       boxes = [...boxes, item];
       logBox(session, `Boîte ${item.address} créée`);
       return HttpResponse.json({ password: drawPassword() });
+    }),
+  ),
+  http.delete(
+    '/api/mailboxes/requests/:id',
+    guarded<Info>(edits, ({ params }, session) => {
+      const asked = mailboxRequests().find((item) => item.id === params.id);
+      if (!asked) return notFound();
+      closeMailboxRequest(asked.id);
+      logBox(session, `Demande de boîte refusée : ${asked.local}@legarec.fr`);
+      return done();
     }),
   ),
   http.post(
@@ -832,17 +873,7 @@ export const settingsHandlers = [
       return done();
     }),
   ),
-  http.post(
-    '/api/mailboxes/:id/delete',
-    onBox(async (item, session, { request }) => {
-      const { address } = (await request.json()) as { address: string };
-      if (item.protected || item.address === SHARED) return forbidden();
-      if (address !== item.address) return HttpResponse.json({ code: 'ADDRESS_MISMATCH' }, { status: 422 });
-      boxes = boxes.filter((entry) => entry.id !== item.id);
-      logBox(session, `Boîte ${item.address} supprimée`);
-      return done();
-    }),
-  ),
+  // No deletion from the application: it is only done in the OVH customer area.
   http.get(
     '/api/gdpr/requests',
     guarded(keepsRegistry, () => HttpResponse.json({ items: registry })),

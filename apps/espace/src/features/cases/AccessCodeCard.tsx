@@ -1,16 +1,21 @@
 import { accessCodeResponse } from '@legarec/contracts';
-import { Bouton, Carte, useConfirm, useToast } from '@legarec/ui';
-import { useState } from 'react';
+import { Bouton, Carte, EtatListe, useConfirm, useToast } from '@legarec/ui';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { api } from '../../app/api';
 import { useChange } from '../../app/data';
 import layout from '@legarec/ui/layout.module.css';
 
-/** The code stays masked; each reveal is written to the case history by the API. */
+/**
+ * The code is shown in clear to those who may act on the case (decision of 24/11/2026).
+ * It is read on its own and leaves the cache with the card: no other answer ever holds it.
+ */
 export function AccessCodeCard({ caseId }: { caseId: string }) {
+  const client = useQueryClient();
   const change = useChange();
   const confirm = useConfirm();
   const toast = useToast();
-  const [code, setCode] = useState<string | null>(null);
-  const reveal = async () => setCode((await change(`/cases/${caseId}/access-code/reveal`, { schema: accessCodeResponse })).code);
+  const key = [`/cases/${caseId}/access-code`];
+  const { data, error, refetch } = useQuery({ queryKey: key, queryFn: () => api(accessCodeResponse, `/cases/${caseId}/access-code`), gcTime: 0 });
   const regenerate = () =>
     confirm({
       tone: 'danger',
@@ -20,29 +25,27 @@ export function AccessCodeCard({ caseId }: { caseId: string }) {
       details: [{ k: 'Effet', v: 'Ancien code inutilisable, accès débloqué' }],
       onConfirm: async () => {
         await change(`/cases/${caseId}/access-code/regenerate`);
-        setCode(null);
+        await client.invalidateQueries({ queryKey: key });
         toast({ message: 'Code d’accès régénéré.' });
       },
     });
   return (
     <Carte title="Espace débiteur">
-      <div className={layout.stack}>
-        <div className={layout.between}>
-          <span className={layout.muted}>Code d’accès</span>
-          <strong className={layout.num} aria-live="polite" aria-label={code ? `Code ${code.split('').join(' ')}` : 'Code masqué'} role="status">
-            {code ?? '••••'}
-          </strong>
+      {!data ? (
+        <EtatListe kind={error ? 'error' : 'loading'} compact onAction={() => void refetch()} />
+      ) : (
+        <div className={layout.stack}>
+          <div className={layout.between}>
+            <span className={layout.muted}>Code d’accès</span>
+            <strong className={layout.num} aria-live="polite" aria-label={`Code ${data.code.split('').join(' ')}`} role="status">
+              {data.code}
+            </strong>
+          </div>
+          <div>
+            <Bouton variant="danger-outline" size="sm" label="Régénérer" ariaLabel="Régénérer le code d’accès" onPress={regenerate} />
+          </div>
         </div>
-        <div className={layout.inline}>
-          {code ? (
-            <Bouton variant="secondary" size="sm" label="Masquer" onPress={() => setCode(null)} />
-          ) : (
-            <Bouton variant="secondary" size="sm" icon="eye" label="Afficher" ariaLabel="Afficher le code d’accès" onPress={() => void reveal()} />
-          )}
-          <Bouton variant="danger-outline" size="sm" label="Régénérer" ariaLabel="Régénérer le code d’accès" onPress={regenerate} />
-        </div>
-        <span className={layout.hint}>Chaque affichage est noté dans l’historique.</span>
-      </div>
+      )}
     </Carte>
   );
 }

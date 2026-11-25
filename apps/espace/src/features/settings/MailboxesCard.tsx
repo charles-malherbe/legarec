@@ -1,12 +1,15 @@
 import { issuedPassword, mailboxesData, newMailbox, redirectionTarget, type Mailbox } from '@legarec/contracts';
 import { Alerte, Badge, Bouton, Carte, Champ, EtatListe, Progression, Tableau, useConfirm, useToast } from '@legarec/ui';
 import { useState } from 'react';
+import type { z } from 'zod';
 import { ApiError } from '../../app/api';
 import { useApi, useChange } from '../../app/data';
 import layout from '@legarec/ui/layout.module.css';
 import css from './Settings.module.css';
 
 const SHARED = 'recouvrement@legarec.fr';
+const DEFAULT_SIZE = 5000;
+type Data = z.infer<typeof mailboxesData>;
 const CONNECTION = {
   OK: ['Connectée', 'success'],
   PASSWORD_NEEDED: ['Mot de passe à mettre à jour', 'warning'],
@@ -30,22 +33,39 @@ export function MailboxesCard({ canEdit }: { canEdit: boolean }) {
       </div>
     );
   const current = data.items.find((item) => item.id === openId);
-  const remove = (item: Mailbox) =>
+  const create = (request: Data['requests'][number]) =>
+    confirm({
+      title: `Créer la boîte ${request.local}@legarec.fr ?`,
+      body: 'La boîte est créée chez OVH avec un mot de passe généré par l’API, affiché une seule fois.',
+      details: [
+        { k: 'Collaborateur', v: request.holder },
+        { k: 'Demandée par', v: request.requestedBy },
+        { k: 'Taille', v: size(DEFAULT_SIZE) },
+      ],
+      confirmLabel: 'Créer la boîte',
+      onConfirm: async () => {
+        setIssued({
+          address: `${request.local}@legarec.fr`,
+          ...(await change('/mailboxes', {
+            body: { local: request.local, holderId: null, sizeMb: DEFAULT_SIZE, requestId: request.id },
+            schema: issuedPassword,
+          })),
+        });
+      },
+    });
+  const refuse = (request: Data['requests'][number]) =>
     confirm({
       tone: 'danger',
-      title: `Supprimer la boîte ${item.address} ?`,
-      body: 'La boîte et tous ses messages sont supprimés chez OVH. Cette action est irréversible.',
+      title: 'Refuser cette demande de boîte ?',
+      body: 'Le compte du collaborateur n’est pas touché.',
       details: [
-        { k: 'Boîte', v: item.address },
-        { k: 'Rattachée à', v: item.holder ?? 'Adresse de fonction' },
-        { k: 'Messages', v: size(item.usedMb) },
+        { k: 'Collaborateur', v: request.holder },
+        { k: 'Adresse', v: `${request.local}@legarec.fr` },
       ],
-      typeToConfirm: { label: 'Saisissez l’adresse complète pour confirmer', expected: item.address },
-      confirmLabel: 'Supprimer définitivement',
+      confirmLabel: 'Refuser la demande',
       onConfirm: async () => {
-        await change(`/mailboxes/${item.id}/delete`, { body: { address: item.address } });
-        setOpenId(null);
-        toast({ message: 'Boîte supprimée.' });
+        await change(`/mailboxes/requests/${request.id}`, { method: 'DELETE' });
+        toast({ message: 'Demande refusée.' });
       },
     });
   return (
@@ -72,6 +92,28 @@ export function MailboxesCard({ canEdit }: { canEdit: boolean }) {
             </div>
           </div>
         </Alerte>
+      )}
+      {data.requests.length > 0 && (
+        <Carte title="Demandes de boîte" description="Créées à l’invitation d’un collaborateur." padding="none">
+          <ul className={layout.list}>
+            {data.requests.map((request) => (
+              <li key={request.id}>
+                <span className={`${layout.text} ${layout.grow}`}>
+                  <span className={layout.strong}>{request.local}@legarec.fr</span>
+                  <span className={layout.hint}>
+                    {request.holder} · demandée par {request.requestedBy}
+                  </span>
+                </span>
+                {canEdit && (
+                  <>
+                    <Bouton size="sm" label="Créer la boîte" ariaLabel={`Créer la boîte ${request.local}@legarec.fr`} onPress={() => create(request)} />
+                    <Bouton variant="ghost" size="sm" label="Refuser" ariaLabel={`Refuser : ${request.local}@legarec.fr`} onPress={() => refuse(request)} />
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        </Carte>
       )}
       <Carte
         title="Boîtes e-mail"
@@ -123,7 +165,7 @@ export function MailboxesCard({ canEdit }: { canEdit: boolean }) {
           ]}
         />
       </Carte>
-      {current && <Manage key={current.id} item={current} canEdit={canEdit} onIssued={setIssued} onDelete={() => remove(current)} />}
+      {current && <Manage key={current.id} item={current} canEdit={canEdit} onIssued={setIssued} />}
       {data.history.length > 0 && (
         <Carte title="Historique des boîtes">
           <ul className={layout.list}>
@@ -160,7 +202,7 @@ function CreateForm({
   const confirm = useConfirm();
   const [local, setLocal] = useState('');
   const [holderId, setHolderId] = useState('');
-  const [sizeMb, setSizeMb] = useState(String(data.sizes[0] ?? 1000));
+  const [sizeMb, setSizeMb] = useState(String(data.sizes.includes(DEFAULT_SIZE) ? DEFAULT_SIZE : (data.sizes[0] ?? DEFAULT_SIZE)));
   const [error, setError] = useState('');
   const submit = () => {
     const parsed = newMailbox.safeParse({ local: local.trim(), holderId: holderId || null, sizeMb: Number(sizeMb) });
@@ -218,7 +260,7 @@ function CreateForm({
   );
 }
 
-function Manage({ item, canEdit, onIssued, onDelete }: { item: Mailbox; canEdit: boolean; onIssued: OnIssued; onDelete: () => void }) {
+function Manage({ item, canEdit, onIssued }: { item: Mailbox; canEdit: boolean; onIssued: OnIssued }) {
   const change = useChange();
   const confirm = useConfirm();
   const toast = useToast();
@@ -313,7 +355,7 @@ function Manage({ item, canEdit, onIssued, onDelete }: { item: Mailbox; canEdit:
           <Alerte
             tone="info"
             icon="lock"
-            text="Boîte protégée, en réception seule : ni suppression, ni changement de mot de passe, ni réponse automatique depuis l’application."
+            text="Boîte protégée, en réception seule : ni changement de mot de passe, ni réponse automatique depuis l’application."
           />
         )}
         {!canEdit && <Alerte tone="neutral" icon="lock" text="Lecture seule." />}
@@ -407,9 +449,7 @@ function Manage({ item, canEdit, onIssued, onDelete }: { item: Mailbox; canEdit:
                 </li>
               ))}
             </ol>
-            <div>
-              <Bouton variant="danger-outline" size="sm" icon="trash" label="Supprimer la boîte" onPress={onDelete} />
-            </div>
+            <p className={layout.hint}>La suppression d’une boîte se fait dans l’espace client OVH.</p>
           </>
         )}
       </div>

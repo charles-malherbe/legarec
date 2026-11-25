@@ -32,7 +32,7 @@ const LEGAL = {
     'Legarec · SIREN [SIREN] · RCS Paris · représentée par la direction',
     'Données personnelles : Legarec agit en sous-traitant de {client.nom} (art. 28 du RGPD).',
   ],
-  sms: ['STOP au [NUMÉRO STOP]'],
+  sms: ['STOP : répondez STOP'],
 };
 const MANDATORY = {
   collection: [
@@ -57,7 +57,7 @@ const MANDATORY = {
   ],
   sms: [
     'Nom du cabinet et du créancier',
-    'Mention « STOP au [NUMÉRO STOP] » pour ne plus recevoir de SMS',
+    'Mention « STOP : répondez STOP » pour ne plus recevoir de SMS',
     'Pas d’envoi le dimanche, les jours fériés ni hors des plages prévues',
   ],
 };

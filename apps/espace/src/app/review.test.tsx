@@ -108,6 +108,11 @@ describe('reminders', () => {
     expect(await status('cl', '/reminders', { ...body, time: '25:99' })).toBe(422);
     expect(await (await call('cl', '/reminders', { ...body, time: '22:30' })).text()).toMatch(/hors des plages/);
   });
+  it('warns above the contact caps', async () => {
+    const later = { ...body, date: '2027-03-02' };
+    expect(await (await call('cl', '/reminders', later)).text()).toContain('"limit":null');
+    expect(await (await call('cl', '/reminders', later)).text()).toContain('Plafond atteint : 1 SMS par semaine');
+  });
   it('only deletes what was planned by hand, with identifiers never reused', async () => {
     const first = ((await (await call('cl', '/reminders', body)).json()) as { id: string }).id;
     expect(await status('cl', `/reminders/${first}`, undefined, 'DELETE')).toBe(204);

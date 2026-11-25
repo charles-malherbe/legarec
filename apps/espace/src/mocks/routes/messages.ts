@@ -34,7 +34,7 @@ const seedMails = (): EmailThread[] => [
     debtor: 'Bâtiplus SAS',
     creditor: 'Matériaux Delta',
     creditorId: 'md',
-    reference: 'DOS-2026-0142',
+    reference: 'LGR-2026-00142',
     due: 4820000,
     time: '09:42',
     date: 'sam. 21 nov. 2026, 09:42',
@@ -44,7 +44,7 @@ const seedMails = (): EmailThread[] => [
       summary:
         'Julien Ferrand confirme le virement de 18 600 € (F-2026-0712) au plus tard le 28/11 et demande d’étaler le solde de 29 600 € sur quatre mensualités dès décembre.',
       facts: [
-        { k: 'Dossier rattaché', v: 'Bâtiplus SAS · DOS-2026-0142' },
+        { k: 'Dossier rattaché', v: 'Bâtiplus SAS · LGR-2026-00142' },
         { k: 'Promesse', v: '18 600 € le 28/11/2026' },
         { k: 'Demande', v: 'Échéancier 4 × 7 400 € pour 29 600 €' },
       ],
@@ -63,7 +63,7 @@ const seedMails = (): EmailThread[] => [
     debtor: 'Atelier Mistral',
     creditor: 'Matériaux Delta',
     creditorId: 'md',
-    reference: 'DOS-2026-0170',
+    reference: 'LGR-2026-00170',
     due: 1832000,
     time: '08:15',
     date: 'sam. 21 nov. 2026, 08:15',
@@ -74,7 +74,7 @@ const seedMails = (): EmailThread[] => [
       summary:
         'Atelier Mistral conteste la facture F-2026-0874 : livraison incomplète (2 palettes sur 6), bon de livraison joint. Paiement de la partie livrée après avoir.',
       facts: [
-        { k: 'Dossier rattaché', v: 'Atelier Mistral · DOS-2026-0170' },
+        { k: 'Dossier rattaché', v: 'Atelier Mistral · LGR-2026-00170' },
         { k: 'Facture contestée', v: 'F-2026-0874 · 18 320 €' },
         { k: 'Pièce', v: 'Bon de livraison (PDF)' },
         { k: 'Point à vérifier', v: 'Quantités livrées auprès de Matériaux Delta' },
@@ -95,7 +95,7 @@ const seedMails = (): EmailThread[] => [
     debtor: 'Bâtiplus SAS',
     creditor: 'Matériaux Delta',
     creditorId: 'md',
-    reference: 'DOS-2026-0142',
+    reference: 'LGR-2026-00142',
     due: 4820000,
     time: 'Hier',
     date: 'ven. 20 nov. 2026, 17:20',
@@ -112,17 +112,17 @@ const seedMails = (): EmailThread[] => [
     debtor: 'Nordis Logistique',
     creditor: 'Énergies Rhône',
     creditorId: 'er',
-    reference: 'DOS-2026-0163',
+    reference: 'LGR-2026-00163',
     due: 2140000,
     time: 'Hier',
     date: 'ven. 20 nov. 2026, 17:03',
     subject: 'Avis de virement – 12 500 €',
-    body: 'Bonjour,\n\nVeuillez trouver ci-joint l’avis de virement de 12 500 € émis ce jour, en règlement partiel du dossier DOS-2026-0163.\n\nLe solde de 8 900 € sera réglé le 15 décembre comme convenu.\n\nService comptabilité fournisseurs',
+    body: 'Bonjour,\n\nVeuillez trouver ci-joint l’avis de virement de 12 500 € émis ce jour, en règlement partiel du dossier LGR-2026-00163.\n\nLe solde de 8 900 € sera réglé le 15 décembre comme convenu.\n\nService comptabilité fournisseurs',
     attachment: 'Avis-virement-20112026.pdf',
     ai: {
       summary: 'Nordis Logistique annonce un virement de 12 500 € (paiement partiel) et le solde de 8 900 € le 15/12.',
       facts: [
-        { k: 'Dossier rattaché', v: 'Nordis Logistique · DOS-2026-0163' },
+        { k: 'Dossier rattaché', v: 'Nordis Logistique · LGR-2026-00163' },
         { k: 'Paiement annoncé', v: '12 500 € le 20/11/2026' },
         { k: 'Promesse', v: '8 900 € le 15/12/2026' },
       ],
@@ -141,7 +141,7 @@ const seedMails = (): EmailThread[] => [
     debtor: 'Groupe Hélio',
     creditor: 'Médiatel',
     creditorId: 'mt',
-    reference: 'DOS-2026-0151',
+    reference: 'LGR-2026-00151',
     due: 3675000,
     time: 'Hier',
     date: 'ven. 20 nov. 2026, 11:20',
@@ -150,7 +150,7 @@ const seedMails = (): EmailThread[] => [
     ai: {
       summary: 'Groupe Hélio indique que le règlement est en validation et devrait partir le 30/11.',
       facts: [
-        { k: 'Dossier rattaché', v: 'Groupe Hélio · DOS-2026-0151' },
+        { k: 'Dossier rattaché', v: 'Groupe Hélio · LGR-2026-00151' },
         { k: 'Promesse', v: '36 750 € autour du 30/11/2026' },
         { k: 'Prochaine action', v: 'Rappel le 01/12 si rien n’est reçu' },
       ],
@@ -168,16 +168,16 @@ const seedMails = (): EmailThread[] => [
     debtor: 'Garage Valmont',
     creditor: 'TransAlp Leasing',
     creditorId: 'tl',
-    reference: 'DOS-2026-0098',
+    reference: 'LGR-2026-00098',
     due: 2390000,
     time: '19 nov.',
     date: 'jeu. 19 nov. 2026, 14:51',
     subject: 'Échec de remise : compta@garagevalmont.example',
-    body: 'Votre message « Relance n°3 – DOS-2026-0098 » n’a pas pu être remis à compta@garagevalmont.example.\n\nMotif : boîte aux lettres inexistante (550 5.1.1).',
+    body: 'Votre message « Relance n°3 – LGR-2026-00098 » n’a pas pu être remis à compta@garagevalmont.example.\n\nMotif : boîte aux lettres inexistante (550 5.1.1).',
     ai: {
       summary: 'L’adresse compta@garagevalmont.example n’existe plus : la relance n°3 n’a pas été remise.',
       facts: [
-        { k: 'Dossier rattaché', v: 'Garage Valmont · DOS-2026-0098' },
+        { k: 'Dossier rattaché', v: 'Garage Valmont · LGR-2026-00098' },
         { k: 'Adresse en échec', v: 'compta@garagevalmont.example' },
         { k: 'Proposition', v: 'Chercher une autre adresse ou passer au courrier' },
       ],
@@ -194,7 +194,7 @@ const seedMails = (): EmailThread[] => [
     debtor: 'Fromagerie Durand',
     creditor: 'Énergies Rhône',
     creditorId: 'er',
-    reference: 'DOS-2026-0181',
+    reference: 'LGR-2026-00181',
     due: 624000,
     time: '18 nov.',
     date: 'mer. 18 nov. 2026, 10:07',
@@ -203,13 +203,13 @@ const seedMails = (): EmailThread[] => [
     ai: {
       summary: 'Marc Durand demande le RIB pour régler la facture F-2026-0902 cette semaine.',
       facts: [
-        { k: 'Dossier rattaché', v: 'Fromagerie Durand · DOS-2026-0181' },
+        { k: 'Dossier rattaché', v: 'Fromagerie Durand · LGR-2026-00181' },
         { k: 'Intention', v: 'Paiement de F-2026-0902 cette semaine' },
         { k: 'Réponse attendue', v: 'Lien vers l’espace débiteur (RIB, consignes chèque)' },
       ],
       actions: ['Envoyer le RIB'],
       draft:
-        'Bonjour Monsieur Durand,\n\nVous trouverez le RIB et les consignes pour les chèques dans votre espace sur paiement.legarec.fr. Indiquez la référence DOS-2026-0181 dans le libellé de votre virement.\n\nMerci et bonne journée,\nCamille Laurent',
+        'Bonjour Monsieur Durand,\n\nVous trouverez le RIB et les consignes pour les chèques dans votre espace sur paiement.legarec.fr. Indiquez la référence LGR-2026-00181 dans le libellé de votre virement.\n\nMerci et bonne journée,\nCamille Laurent',
     },
   }),
 ];
@@ -242,7 +242,7 @@ const seedSms = (): SmsThread[] => [
     messages: [
       out(
         '1',
-        'LEGAREC pour Energies Rhone : 2 factures restent impayees (6 240 EUR). Votre espace : [LIEN ESPACE DEBITEUR]. STOP au [NUMÉRO STOP]',
+        'LEGAREC pour Energies Rhone : 2 factures restent impayees (6 240 EUR). Votre espace : [LIEN ESPACE DEBITEUR]. STOP : répondez STOP',
         'Envoyé le 21/11 à 10:00 · distribué',
         'Relance SMS automatique J+21',
       ),
@@ -269,7 +269,7 @@ const seedSms = (): SmsThread[] => [
     messages: [
       out(
         '1',
-        'LEGAREC pour Credit Horizon : votre échéance de 240 EUR est attendue le 01/12. STOP au [NUMÉRO STOP]',
+        'LEGAREC pour Credit Horizon : votre échéance de 240 EUR est attendue le 01/12. STOP : répondez STOP',
         'Envoyé le 20/11 · distribué',
         'Rappel avant échéance',
       ),
@@ -295,7 +295,7 @@ const seedSms = (): SmsThread[] => [
     messages: [
       out(
         '1',
-        'LEGAREC pour Mediatel : sauf erreur, 36 750 EUR restent dus. Merci de nous contacter au 01 87 88 02 98. STOP au [NUMÉRO STOP]',
+        'LEGAREC pour Mediatel : sauf erreur, 36 750 EUR restent dus. Merci de nous contacter au 01 87 88 02 98. STOP : répondez STOP',
         'Envoyé le 12/11 · distribué',
         'Relance SMS automatique J+30',
       ),
@@ -347,7 +347,7 @@ const seedSms = (): SmsThread[] => [
     messages: [
       out(
         '1',
-        'LEGAREC pour TransAlp Leasing : 23 900 EUR restent dus malgre nos rappels. Contact : 01 87 88 02 98. STOP au [NUMÉRO STOP]',
+        'LEGAREC pour TransAlp Leasing : 23 900 EUR restent dus malgre nos rappels. Contact : 01 87 88 02 98. STOP : répondez STOP',
         '19/11 · non distribué : numéro injoignable',
         'Relance SMS automatique J+90',
         true,
@@ -578,7 +578,7 @@ export const messageHandlers = [
       return HttpResponse.json({
         threads: visible.map((item) => ({ ...item, canAct: item.linked ? mayAnswer(session, item.caseId) : session.role === 'COLLECTION_MANAGER' })),
         total: session.role === 'CLAIMS_OFFICER' ? visible.length : 64,
-        stopNotice: 'STOP au [NUMERO STOP]',
+        stopNotice: 'STOP : répondez STOP',
         stats: { sent: 1284, delivered: 97.2, answers: 18, stops: 8 },
       });
     }),

@@ -48,7 +48,7 @@ it('plans a reminder on an own case, with undo', async () => {
   await userEvent.selectOptions(screen.getByLabelText('Débiteur'), 'demo');
   await userEvent.type(screen.getByLabelText('Objet'), 'Point sur la promesse');
   await userEvent.click(form);
-  expect(await screen.findByText('Relance planifiée.')).toBeVisible();
+  expect(await screen.findByText(/^Relance planifiée\./)).toBeVisible();
   const body = { caseId: 'demo', type: 'CALL', date: '2026-11-24', time: '', title: 'x' };
   expect((await call('ad', '/reminders', body)).status).toBe(403);
   expect((await call('hb', '/reminders', body)).status).toBe(403);
