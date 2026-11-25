@@ -13,6 +13,8 @@ const MIGRATIONS = join(API, 'prisma', 'migrations');
 declare module 'vitest' {
   interface ProvidedContext {
     adminUrl: string;
+    /** Start of the name of every database of this run. */
+    testPrefix: string;
     template: string;
     valkeyUrl: string;
     /** Passwords of the login roles, for this machine only. */
@@ -48,6 +50,13 @@ async function settings() {
   };
 }
 
+const PREFIX = /^legarec_test_([0-9a-z]+)_/u;
+/** Databases left by a run that was interrupted: an hour old, or of a time when the name did not say it. */
+const isStale = (name: string) => {
+  const started = PREFIX.exec(name)?.[1];
+  return started ? Number.parseInt(started, 36) < Date.now() - 3_600_000 : /^legarec_test_[0-9a-f]{12}$/u.test(name);
+};
+
 /** Migrations run once, in a template database named after their content; each test file clones it. */
 export default async function setup(project: TestProject) {
   const { adminUrl, valkeyUrl, passwords, managed } = await settings();
@@ -62,6 +71,7 @@ export default async function setup(project: TestProject) {
     hash.update(name).update(readFileSync(join(MIGRATIONS, name, 'migration.sql')));
   }
   const template = `legarec_template_${hash.digest('hex').slice(0, 12)}`;
+  const testPrefix = `legarec_test_${Date.now().toString(36)}_`;
   const admin = new pg.Client({ connectionString: adminUrl });
   await admin.connect();
   try {
@@ -70,9 +80,9 @@ export default async function setup(project: TestProject) {
       await admin.query(bootstrap);
       for (const [role, password] of Object.entries(passwords)) await admin.query(`ALTER ROLE legarec_${role} PASSWORD ${admin.escapeLiteral(password)}`);
     }
-    const { rows } = await admin.query<{ datname: string }>("SELECT datname FROM pg_database WHERE datname LIKE 'legarec\\_template\\_%'");
-    for (const { datname } of rows.filter((row) => row.datname !== template))
-      await admin.query(`DROP DATABASE IF EXISTS ${admin.escapeIdentifier(datname)} WITH (FORCE)`);
+    const { rows } = await admin.query<{ datname: string }>("SELECT datname FROM pg_database WHERE datname ~ '^legarec_(template|test)_'");
+    const old = rows.map((row) => row.datname).filter((name) => (name.startsWith('legarec_template_') ? name !== template : isStale(name)));
+    for (const name of old) await admin.query(`DROP DATABASE IF EXISTS ${admin.escapeIdentifier(name)} WITH (FORCE)`);
     if (!rows.some((row) => row.datname === template)) {
       const building = `${template}_building`;
       await admin.query(`DROP DATABASE IF EXISTS ${building} WITH (FORCE)`);
@@ -88,7 +98,19 @@ export default async function setup(project: TestProject) {
     await admin.end();
   }
   project.provide('adminUrl', adminUrl);
+  project.provide('testPrefix', testPrefix);
   project.provide('template', template);
   project.provide('valkeyUrl', valkeyUrl);
   project.provide('passwords', passwords);
+  // Whatever a test file left behind, even when it failed before its end.
+  return async () => {
+    const last = new pg.Client({ connectionString: adminUrl });
+    await last.connect();
+    try {
+      const { rows } = await last.query<{ datname: string }>('SELECT datname FROM pg_database WHERE starts_with(datname, $1)', [testPrefix]);
+      for (const { datname } of rows) await last.query(`DROP DATABASE IF EXISTS ${last.escapeIdentifier(datname)} WITH (FORCE)`);
+    } finally {
+      await last.end();
+    }
+  };
 }

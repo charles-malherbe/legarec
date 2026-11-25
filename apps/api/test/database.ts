@@ -14,7 +14,7 @@ export interface TestDatabase {
 /** A private copy of the migrated database, dropped at the end of the test file. */
 export async function createTestDatabase(): Promise<TestDatabase> {
   const adminUrl = inject('adminUrl');
-  const name = `legarec_test_${randomBytes(6).toString('hex')}`;
+  const name = `${inject('testPrefix')}${randomBytes(6).toString('hex')}`;
   const server = new pg.Client({ connectionString: adminUrl });
   await server.connect();
   await server.query(`CREATE DATABASE ${name} OWNER legarec_owner TEMPLATE ${inject('template')}`);
