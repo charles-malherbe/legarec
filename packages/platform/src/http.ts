@@ -17,14 +17,60 @@ async function read<T extends z.ZodType>(schema: T, response: Response): Promise
   return schema.parse(body);
 }
 
+/**
+ * Keys of the changes whose outcome is unknown. Clicked twice, or cut by the network then tried again, a change
+ * keeps its key: the API acts once and gives the same answer. Memory only, for an hour or until the session is closed,
+ * and under a print of the change: what was typed is not kept.
+ */
+const unknownOutcome = new Map<string, { key: string; until: number }>();
+const MAX_UNKNOWN = 50;
+const KEPT_MS = 60 * 60 * 1000;
+
+const [SEED = 0] = crypto.getRandomValues(new Uint32Array(1));
+/**
+ * 64 bits, drawn differently by each page: enough to recognise a change among fifty (the API compares the whole body).
+ * Computed at once, unlike a digest of the browser: the changes leave in the order they were made, whatever their size.
+ */
+function printOf(change: string): string {
+  let a = 0xdeadbeef ^ SEED;
+  let b = 0x41c6ce57 ^ SEED;
+  for (let i = 0; i < change.length; i += 1) {
+    const code = change.charCodeAt(i);
+    a = Math.imul(a ^ code, 2654435761);
+    b = Math.imul(b ^ code, 1597334677);
+  }
+  a = Math.imul(a ^ (a >>> 16), 2246822507) ^ Math.imul(b ^ (b >>> 13), 3266489909);
+  b = Math.imul(b ^ (b >>> 16), 2246822507) ^ Math.imul(a ^ (a >>> 13), 3266489909);
+  return `${a >>> 0}-${b >>> 0}`;
+}
+
+function keyOf(print: string): string {
+  const known = unknownOutcome.get(print);
+  const kept = known && known.until > Date.now() ? known : { key: crypto.randomUUID(), until: Date.now() + KEPT_MS };
+  unknownOutcome.delete(print);
+  unknownOutcome.set(print, kept);
+  const oldest = unknownOutcome.keys().next().value;
+  if (unknownOutcome.size > MAX_UNKNOWN && oldest !== undefined) unknownOutcome.delete(oldest);
+  return kept.key;
+}
+
 /** Session travels in an httpOnly cookie: no token is ever readable here. */
 export async function api<T extends z.ZodType>(schema: T, path: string, init: { method?: string; body?: unknown } = {}): Promise<z.infer<T>> {
+  const method = init.method ?? 'GET';
+  const body = init.body === undefined ? undefined : JSON.stringify(init.body);
+  if (path.endsWith('/logout')) unknownOutcome.clear();
+  const print = method === 'GET' ? null : printOf(`${method} ${path} ${body ?? ''}`);
   const response = await fetch(BASE + path, {
-    method: init.method ?? 'GET',
+    method,
     credentials: 'include',
-    headers: init.body === undefined ? undefined : { 'content-type': 'application/json' },
-    body: init.body === undefined ? undefined : JSON.stringify(init.body),
+    headers: {
+      ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+      ...(print === null ? {} : { 'idempotency-key': keyOf(print) }),
+    },
+    body,
   });
+  // After a failure of the API or of the proxy, nobody knows whether the change was made: the key is kept.
+  if (print !== null && response.status < 500) unknownOutcome.delete(print);
   return read(schema, response);
 }
 

@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { accessCode } from './debtorAccess';
 import { isValidSiren } from './firm';
-import { cents } from './money';
+import { atMost, EMAIL_MAX, ID_MAX } from './limits';
+import { AMOUNT_MAX, cents } from './money';
 
 /** Debtors' portal (no account): an identifier and a four-letter access code. */
 export const debtorIdentifier = z.discriminatedUnion('kind', [
@@ -93,7 +94,7 @@ export const ATTACHMENT_KINDS = {
   CERTIFICATE: 'Attestation',
   OTHER: 'Autre pièce',
 } as const;
-const attachments = z.array(z.object({ id: z.string(), name: z.string() }));
+const attachments = z.array(z.object({ id: z.string().max(ID_MAX), name: z.string().max(200) })).max(20, { error: 'Vingt pièces au plus.' });
 export const debtorMessage = z.object({
   text: z.string().trim().min(1, { error: 'Écrivez votre message.' }).max(5000),
   attachmentKind: z.enum(['TRANSFER_PROOF', 'CHEQUE_COPY', 'DISPUTE', 'CERTIFICATE', 'OTHER']),
@@ -118,7 +119,10 @@ export const debtorRequest = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('ALREADY_PAID'),
     paidOn: z.iso.date({ error: 'Saisissez la date du paiement.' }),
-    amount: z.int({ error: 'Saisissez un montant, par exemple 1 250,00.' }).positive({ error: 'Saisissez un montant supérieur à zéro.' }),
+    amount: z
+      .int({ error: 'Saisissez un montant, par exemple 1 250,00.' })
+      .positive({ error: 'Saisissez un montant supérieur à zéro.' })
+      .max(AMOUNT_MAX, { error: 'Ce montant dépasse 20 000 000 €.' }),
     method: z.enum(['TRANSFER', 'CHEQUE']),
     attachments,
   }),
@@ -131,8 +135,8 @@ export const debtorRequest = z.discriminatedUnion('kind', [
 export type DebtorRequest = z.infer<typeof debtorRequest>;
 /** Limited access: instructions and messages, nothing about the debt. */
 export const limitedMessage = z.object({
-  name: z.string().trim().min(1, { error: 'Saisissez votre nom.' }),
-  email: z.union([z.literal(''), z.email({ error: 'Saisissez une adresse e-mail valide.' })]),
+  name: z.string().trim().min(1, { error: 'Saisissez votre nom.' }).max(120, atMost(120)),
+  email: z.union([z.literal(''), z.email({ error: 'Saisissez une adresse e-mail valide.' }).max(EMAIL_MAX, atMost(EMAIL_MAX))]),
   reference: z.string().trim().max(40),
   text: z.string().trim().min(1, { error: 'Écrivez votre message.' }).max(5000),
   attachments,

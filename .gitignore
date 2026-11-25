@@ -17,3 +17,6 @@ test-results/
 
 # Copies de travail des autres sessions de Claude Code
 .claude/worktrees/
+
+# Client Prisma, généré par pnpm verifier
+apps/api/src/generated/

@@ -106,7 +106,9 @@ describe('calls', () => {
     expect(await screen.findByRole('heading', { name: 'Bâtiplus SAS' })).toBeVisible();
   });
   it('refuses the Director and the Developer', async () => {
-    expect((await call('ad', '/calls/demo/qualification', {})).status).toBe(403);
+    const sheet = { outcome: 'NO_ANSWER', tcxCode: 'NON_REPONSE', interlocutor: '', notes: '', months: null, recall: null, announced: false, sendRecap: false };
+    const body = { ...sheet, promise: null, alreadyPaid: null, dispute: null, absent: null };
+    expect((await call('ad', '/calls/demo/qualification', body)).status).toBe(403);
     expect((await call('dev', '/calls')).status).toBe(403);
   });
 });

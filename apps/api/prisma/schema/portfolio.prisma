@@ -1,0 +1,134 @@
+enum CreditorStatus {
+  ACTIVE
+  ENDED
+
+  @@map("creditor_status")
+}
+
+enum DebtorKind {
+  COMPANY
+  SOLE_TRADER
+  INDIVIDUAL
+
+  @@map("debtor_kind")
+}
+
+enum CaseStatus {
+  NEW
+  OVERDUE
+  REMINDER
+  FORMAL_NOTICE
+  PROMISE
+  PLAN
+  DISPUTE
+  LITIGATION
+  SETTLED
+  LOST
+
+  @@map("case_status")
+}
+
+enum EventTone {
+  danger
+  info
+  warning
+  success
+  neutral
+
+  @@map("event_tone")
+}
+
+enum ActorKind {
+  STAFF
+  CREDITOR
+  DEBTOR
+  SERVICE
+  HOOK
+  SYSTEM
+  ANONYMOUS
+
+  @@map("actor_kind")
+}
+
+model Creditor {
+  id            String         @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  name          String
+  siren         String?        @unique
+  status        CreditorStatus @default(ACTIVE)
+  portalEnabled Boolean        @default(true) @map("portal_enabled")
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  users User[]
+  cases Case[]
+
+  @@map("creditors")
+}
+
+/// SIREN unique when present (partial unique index in SQL); never for an individual.
+model Debtor {
+  id                 String     @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  kind               DebtorKind
+  name               String
+  siren              String?
+  legalFormCode      String?    @map("legal_form_code")
+  legalFormSource    String?    @map("legal_form_source")
+  legalFormCheckedAt DateTime?  @map("legal_form_checked_at") @db.Timestamptz(3)
+  anonymizedAt       DateTime?  @map("anonymized_at") @db.Timestamptz(3)
+  createdAt          DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  cases Case[]
+
+  @@map("debtors")
+}
+
+/// One open case at most per creditor and debtor (partial unique index in SQL).
+model Case {
+  id                   String     @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  reference            String     @unique
+  creditorId           String     @map("creditor_id") @db.Uuid
+  debtorId             String     @map("debtor_id") @db.Uuid
+  officerId            String?    @map("officer_id") @db.Uuid
+  status               CaseStatus @default(NEW)
+  externalReference    String?    @map("external_reference")
+  /// Postal letter only (LR-AAAA-NNNN): no reminder before it, and nothing shown to the debtor.
+  firstLetterReference String?    @map("first_letter_reference")
+  firstLetterOn        DateTime?  @map("first_letter_on") @db.Date
+  openedOn             DateTime   @default(dbgenerated("((now() AT TIME ZONE 'Europe/Paris'::text))::date")) @map("opened_on") @db.Date
+  closedOn             DateTime?  @map("closed_on") @db.Date
+  version              Int        @default(1)
+  createdAt            DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  creditor Creditor    @relation(fields: [creditorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  debtor   Debtor      @relation(fields: [debtorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  officer  User?       @relation(fields: [officerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  events   CaseEvent[]
+
+  @@unique([id, creditorId], map: "cases_id_creditor")
+  @@index([officerId, status], map: "cases_officer")
+  @@index([creditorId, status], map: "cases_creditor")
+  @@index([debtorId], map: "cases_debtor")
+  @@map("cases")
+}
+
+/// Append-only; written by app.add_case_event() only.
+model CaseEvent {
+  id                String    @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  caseId            String    @map("case_id") @db.Uuid
+  creditorId        String    @map("creditor_id") @db.Uuid
+  kind              String
+  title             String
+  detail            String?
+  tone              EventTone @default(neutral)
+  actorKind         ActorKind @map("actor_kind")
+  actorId           String?   @map("actor_id") @db.Uuid
+  actorLabel        String    @map("actor_label")
+  onBehalfOfId      String?   @map("on_behalf_of_id") @db.Uuid
+  visibleToCreditor Boolean   @default(false) @map("visible_to_creditor")
+  occurredAt        DateTime  @default(dbgenerated("clock_timestamp()")) @map("occurred_at") @db.Timestamptz(3)
+
+  case       Case  @relation(fields: [caseId, creditorId], references: [id, creditorId], onDelete: NoAction, onUpdate: NoAction)
+  onBehalfOf User? @relation(fields: [onBehalfOfId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([caseId, occurredAt(sort: Desc)], map: "case_events_case")
+  @@map("case_events")
+}

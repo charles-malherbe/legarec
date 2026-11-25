@@ -1,0 +1,67 @@
+enum UserRole {
+  DEVELOPER
+  DIRECTOR
+  COLLECTION_MANAGER
+  CLAIMS_OFFICER
+  CREDITOR
+
+  @@map("user_role")
+}
+
+enum UserStatus {
+  INVITED
+  ACTIVE
+  DISABLED
+
+  @@map("user_status")
+}
+
+enum DelegationKind {
+  TECHNICAL
+  ADMINISTRATIVE
+
+  @@map("delegation_kind")
+}
+
+/// One holder at most for DIRECTOR, COLLECTION_MANAGER and DEVELOPER (partial unique index in SQL).
+model User {
+  id             String     @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  role           UserRole
+  status         UserStatus @default(INVITED)
+  firstName      String     @map("first_name")
+  lastName       String     @map("last_name")
+  email          String     @unique @db.Citext
+  creditorId     String?    @map("creditor_id") @db.Uuid
+  extension      String?
+  lastSeenAt     DateTime?  @map("last_seen_at") @db.Timestamptz(3)
+  disabledAt     DateTime?  @map("disabled_at") @db.Timestamptz(3)
+  disabledById   String?    @map("disabled_by") @db.Uuid
+  disabledReason String?    @map("disabled_reason")
+  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  creditor             Creditor?    @relation(fields: [creditorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  disabledBy           User?        @relation("disabledBy", fields: [disabledById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  disabledUsers        User[]       @relation("disabledBy")
+  cases                Case[]
+  grantedDelegations   Delegation[] @relation("grantedBy")
+  withdrawnDelegations Delegation[] @relation("withdrawnBy")
+  eventsOnBehalf       CaseEvent[]
+  auditOnBehalf        AuditEntry[]
+
+  @@map("users")
+}
+
+/// One open delegation at most per kind (partial unique index in SQL).
+model Delegation {
+  id            String         @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  kind          DelegationKind
+  grantedById   String         @map("granted_by") @db.Uuid
+  grantedAt     DateTime       @default(now()) @map("granted_at") @db.Timestamptz(3)
+  withdrawnById String?        @map("withdrawn_by") @db.Uuid
+  withdrawnAt   DateTime?      @map("withdrawn_at") @db.Timestamptz(3)
+
+  grantedBy   User  @relation("grantedBy", fields: [grantedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  withdrawnBy User? @relation("withdrawnBy", fields: [withdrawnById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("delegations")
+}

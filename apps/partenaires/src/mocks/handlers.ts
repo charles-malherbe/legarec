@@ -1,5 +1,5 @@
 import type { ImportReport, PartnerSession, PlanApproval, PortalCase, PortalStatus } from '@legarec/contracts';
-import { loginRequest, newClaim } from '@legarec/contracts';
+import { acceptsBody, loginRequest, newClaim } from '@legarec/contracts';
 import { http, HttpResponse } from 'msw';
 
 type Info = { request: Request; params: Record<string, string | readonly string[] | undefined> };
@@ -210,7 +210,15 @@ const COUNTS: Record<string, Record<PortalStatus, number>> = {
   er: { NEW: 0, REMINDING: 1, PLAN: 0, LITIGATION: 0, SETTLED: 0, LOST: 0 },
 };
 
+/** What the API would refuse is refused here too: every body matches its contract. */
+const checkBody = http.all('/api/*', async ({ request }) => {
+  if (!request.headers.get('content-type')?.startsWith('application/json')) return undefined;
+  const path = new URL(request.url).pathname.replace('/api', '');
+  return acceptsBody('partner', request.method, path, await request.clone().text()) ? undefined : HttpResponse.json({ code: 'INVALID' }, { status: 422 });
+});
+
 export const handlers = [
+  checkBody,
   http.get('/api/auth/session', () => {
     const user = current();
     return user ? HttpResponse.json({ ...user, unread: mine(threads, user.creditor.id).filter((item) => item.unread).length }) : unauthorized();

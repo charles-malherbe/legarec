@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { atMost, EMAIL_MAX, ID_MAX, NAME_MAX } from './limits';
 import { cents } from './money';
 import { role } from './roles';
 import { isReservedAddress } from './settings';
@@ -145,7 +146,7 @@ export const vatNumber = (siren: string) => {
   return `FR${String((12 + 3 * (Number(digits) % 97)) % 97).padStart(2, '0')} ${siren}`;
 };
 
-const person = { firstName: z.string().trim().min(1), lastName: z.string().trim().min(1) };
+const person = { firstName: z.string().trim().min(1).max(NAME_MAX, atMost(NAME_MAX)), lastName: z.string().trim().min(1).max(NAME_MAX, atMost(NAME_MAX)) };
 /** Staff accounts live on the firm's domain; a partner account belongs to one creditor. */
 export const newMember = z.discriminatedUnion('role', [
   z.object({
@@ -153,10 +154,11 @@ export const newMember = z.discriminatedUnion('role', [
     role: z.enum(['CLAIMS_OFFICER', 'COLLECTION_MANAGER', 'DIRECTOR', 'DEVELOPER']),
     email: z
       .email()
+      .max(EMAIL_MAX, atMost(EMAIL_MAX))
       .toLowerCase()
       .regex(/@legarec\.fr$/u)
       .refine((value) => !isReservedAddress(value.split('@')[0] ?? '')),
   }),
-  z.object({ ...person, role: z.literal('CREDITOR'), email: z.email(), creditorId: z.string().min(1) }),
+  z.object({ ...person, role: z.literal('CREDITOR'), email: z.email().max(EMAIL_MAX, atMost(EMAIL_MAX)), creditorId: z.string().min(1).max(ID_MAX) }),
 ]);
 export const staffRole = z.enum(['CLAIMS_OFFICER', 'COLLECTION_MANAGER', 'DIRECTOR', 'DEVELOPER']);

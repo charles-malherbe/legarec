@@ -1,4 +1,4 @@
-import { loginRequest, type Dashboard, type ShellData } from '@legarec/contracts';
+import { acceptsBody, loginRequest, type Dashboard, type ShellData } from '@legarec/contracts';
 import { http, HttpResponse, type HttpHandler } from 'msw';
 import { ACCOUNTS, DEMO_PASSWORD } from './accounts';
 import dashboardData from './dashboard.json';
@@ -90,7 +90,15 @@ const searchIndex = (session: NonNullable<ReturnType<typeof currentSession>>) =>
 ];
 const normalize = (text: string) => text.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
 
+/** What the API would refuse is refused here too: every body matches its contract. */
+const checkBody = http.all('/api/*', async ({ request }) => {
+  if (!request.headers.get('content-type')?.startsWith('application/json')) return undefined;
+  const path = new URL(request.url).pathname.replace('/api', '');
+  return acceptsBody('staff', request.method, path, await request.clone().text()) ? undefined : HttpResponse.json({ code: 'INVALID' }, { status: 422 });
+});
+
 export const handlers: HttpHandler[] = [
+  checkBody,
   ...documentHandlers,
   ...settingsHandlers,
   ...templateHandlers,

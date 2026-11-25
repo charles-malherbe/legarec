@@ -1,0 +1,154 @@
+enum WebhookStatus {
+  RECEIVED
+  PROCESSED
+  IGNORED
+  FAILED
+
+  @@map("webhook_status")
+}
+
+/// Codes a task may carry: a closed list, extended by the migrations.
+enum TaskCode {
+  FRIENDLY
+  FIRM
+  FORMAL_NOTICE
+  PAYMENT_PLAN
+  CLEARANCE
+  EMAIL
+  SMS
+  LETTER
+  REGISTERED_LETTER
+
+  @@map("task_code")
+}
+
+/// Names of the keys of the services and of the internal keys: the only technical names the journal may hold.
+enum SecretName {
+  RESEND_API_KEY
+  RESEND_ACCOUNT_API_KEY
+  RESEND_WEBHOOK_SECRET
+  MYSENDINGBOX_API_KEY
+  MYSENDINGBOX_TEST_API_KEY
+  SCW_ACCESS_KEY
+  SCW_SECRET_KEY
+  OVH_API_APP_KEY
+  OVH_API_APP_SECRET
+  OVH_API_CONSUMER_KEY
+  OVH_SMS_APP_KEY
+  OVH_SMS_APP_SECRET
+  OVH_SMS_CONSUMER_KEY
+  OVH_SMS_SERVICE_NAME
+  COLLECTION_MAILBOX_PASSWORD
+  TCX_API_CLIENT_ID
+  TCX_API_CLIENT_SECRET
+  AI_API_KEY
+  MAILBOX_SECRETS_KEY
+  ACCESS_CODE_KEY
+  LOOKUP_KEY
+
+  @@map("secret_name")
+}
+
+/// Yearly counters without gap; used by app.next_number() only.
+model NumberSequence {
+  kind      String
+  year      Int
+  lastValue Int    @map("last_value")
+
+  @@id([kind, year])
+  @@map("number_sequences")
+}
+
+/// Append-only; written by app.log() only. The sentence shown comes from a catalogue, never from this table.
+model AuditEntry {
+  id           String    @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  occurredAt   DateTime  @default(dbgenerated("clock_timestamp()")) @map("occurred_at") @db.Timestamptz(3)
+  actorKind    ActorKind @map("actor_kind")
+  actorId      String?   @map("actor_id") @db.Uuid
+  actorLabel   String    @map("actor_label")
+  onBehalfOfId String?   @map("on_behalf_of_id") @db.Uuid
+  action       String
+  entityType   String?   @map("entity_type")
+  entityId     String?   @map("entity_id") @db.Uuid
+  params       Json      @default("{}")
+  ip           String?   @db.Inet
+  requestId    String?   @map("request_id") @db.Uuid
+
+  onBehalfOf User? @relation(fields: [onBehalfOfId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([occurredAt(sort: Desc)], map: "audit_log_occurred")
+  @@index([actorId, occurredAt(sort: Desc)], map: "audit_log_actor")
+  @@map("audit_log")
+}
+
+/// Written by app.enqueue() only; identifiers, never personal data.
+model OutboxTask {
+  id          String          @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  queue       String
+  name        String
+  payload     Json
+  /// Who started it: the worker runs it with their rights, checked again.
+  actorKind   ActorKind       @map("actor_kind")
+  actorId     String?         @map("actor_id") @db.Uuid
+  actingFor   DelegationKind? @map("acting_for")
+  runAt       DateTime?       @map("run_at") @db.Timestamptz(3)
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  claimedAt   DateTime?       @map("claimed_at") @db.Timestamptz(3)
+  publishedAt DateTime?       @map("published_at") @db.Timestamptz(3)
+  startedAt   DateTime?       @map("started_at") @db.Timestamptz(3)
+  doneAt      DateTime?       @map("done_at") @db.Timestamptz(3)
+  failedAt    DateTime?       @map("failed_at") @db.Timestamptz(3)
+  /// Code of the failure: never what a provider answered.
+  failure     String?
+
+  @@map("outbox")
+}
+
+/// A key is used once, even after its task is purged.
+model TaskKey {
+  owner     String
+  name      String
+  key       String
+  taskId    String   @map("task_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@id([owner, name, key])
+  @@map("task_keys")
+}
+
+model WebhookEvent {
+  id              String        @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  provider        String
+  providerEventId String        @map("provider_event_id")
+  status          WebhookStatus @default(RECEIVED)
+  receivedAt      DateTime      @default(now()) @map("received_at") @db.Timestamptz(3)
+  processedAt     DateTime?     @map("processed_at") @db.Timestamptz(3)
+
+  @@unique([provider, providerEventId])
+  @@map("webhook_events")
+}
+
+model IdempotencyKey {
+  actor       String
+  key         String   @db.Uuid
+  route       String
+  requestHash Bytes    @map("request_hash")
+  status      Int?
+  /// Encrypted; never a value shown only once.
+  result      Bytes?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@id([actor, key])
+  @@index([createdAt], map: "idempotency_keys_created")
+  @@map("idempotency_keys")
+}
+
+/// Counts of each purge: what was removed, never what it was.
+model RetentionRun {
+  id      String   @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  kind    String
+  removed Int
+  ranAt   DateTime @default(dbgenerated("clock_timestamp()")) @map("ran_at") @db.Timestamptz(3)
+
+  @@map("retention_runs")
+}

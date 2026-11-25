@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { callOutcome, type CallOutcome } from './calls';
+import { atMost, EMAIL_MAX, ID_MAX } from './limits';
 import { cents } from './money';
 
 export const coordinateKind = z.enum(['PHONE', 'EMAIL']);
@@ -232,9 +233,12 @@ export const smsData = z.object({
 
 /** Message of an employee: one valid address, and a real case or none. */
 export const outgoingMessage = z.object({
-  to: z.email({ error: 'Saisissez une adresse e-mail valide.' }),
-  subject: z.string().trim().min(1).max(150),
-  paragraphs: z.array(z.string().min(1)).min(1),
-  caseId: z.string().min(1).nullable(),
+  to: z.email({ error: 'Saisissez une adresse e-mail valide.' }).max(EMAIL_MAX, atMost(EMAIL_MAX)),
+  subject: z.string().trim().min(1).max(150, atMost(150)),
+  paragraphs: z
+    .array(z.string().min(1).max(5000, atMost(5000)))
+    .min(1)
+    .max(100),
+  caseId: z.string().min(1).max(ID_MAX).nullable(),
   statement: z.boolean().default(false),
 });

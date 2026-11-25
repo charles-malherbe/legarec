@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { atMost, ID_MAX } from './limits';
 import { cents } from './money';
 
 export const reminderType = z.enum(['EMAIL', 'SMS', 'CALL', 'LETTER', 'INSTALLMENT', 'COURT_DEADLINE']);
@@ -36,11 +37,11 @@ export const agenda = z.object({
 });
 
 export const newReminder = z.object({
-  caseId: z.string().min(1, { error: 'Choisissez un débiteur.' }),
+  caseId: z.string().min(1, { error: 'Choisissez un débiteur.' }).max(ID_MAX),
   type: z.enum(['EMAIL', 'SMS', 'CALL', 'LETTER']),
   date: z.iso.date({ error: 'Choisissez une date.' }),
   time: z.union([z.literal(''), z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/u)], { error: 'Saisissez une heure, par exemple 10:00.' }),
-  title: z.string().trim().min(1, { error: 'Indiquez l’objet de la relance.' }),
+  title: z.string().trim().min(1, { error: 'Indiquez l’objet de la relance.' }).max(200, atMost(200)),
 });
 /** Cases the user may act on, and the reminders that would exceed the limits. */
 export const reminderTargets = z.object({ items: z.array(z.object({ id: z.string(), name: z.string(), creditor: z.string() })) });

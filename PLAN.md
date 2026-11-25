@@ -128,7 +128,7 @@ Les 161 routes simulées se répartissent ainsi :
 | Lot | Contenu | Routes reprises |
 |---|---|---|
 | [x] J0 | Documentation : décisions 65 à 111, points à confirmer, `PLAN.md`, `docs/`, `.claude/rules/api.md` | — |
-| [ ] J | Socle : services de développement, NestJS, Prisma, rôles et RLS, audit, erreurs, journaux masqués, OpenAPI, outbox, banc de tests, GitHub Actions (services PostgreSQL et Valkey, Node 26), corps de requêtes Zod manquants, en-tête `Idempotency-Key` dans `packages/platform/src/http.ts` | 0 |
+| [x] J | Socle : services de développement, NestJS, Prisma, rôles et RLS, audit, erreurs, journaux masqués, OpenAPI, outbox, banc de tests, GitHub Actions (services PostgreSQL et Valkey, Node 26), corps de requêtes Zod manquants, en-tête `Idempotency-Key` dans `packages/platform/src/http.ts` | 0 |
 | [ ] K | Comptes : connexion, 2FA, sessions, invitations, délégations, support, premier Directeur par commande | 40 (`auth`, `account`, `members`, `delegations`, `support-tickets`) |
 | [ ] L | Portefeuille : paramètres et coffre, créanciers et mandats, débiteurs, dossiers, coordonnées, code d'accès, recherche, notifications. **Écrans** créancier et débiteur | 21 |
 | [ ] M | Argent : intérêts, paiements, promesses, litiges, échéanciers | 7 |
@@ -142,11 +142,31 @@ Les 161 routes simulées se répartissent ainsi :
 | [ ] U | Contentieux, rapports, équipe, tableaux de bord, score de risque | 8 |
 | [ ] V | RGPD : registre, exports, anonymisation, purges | 3 |
 | [ ] W | IA : couche compatible OpenAI, essai mesuré, quatre fonctions | 3 |
-| [ ] X | Exploitation : Dockerfiles, compose, `infra/caddy/Caddyfile`, pgBackRest, Gatus, Loki ; bascule finale | — |
+| [ ] X | Exploitation : Dockerfiles, compose, `infra/caddy/Caddyfile`, pgBackRest, Gatus, Loki, `bootstrap.sql` exécuté dans la base de l'application, sonde de santé du worker et délai d'arrêt d'au moins une minute ; bascule finale | — |
 
 **Bascule** : chaque lot ajoute ses préfixes à une liste `VITE_API` (développement) : MSW laisse passer ces routes vers l'API. La valeur par défaut bascule portail par portail : paiement après O, partenaires après P, espace après U. Chaque lot rejoue les mêmes requêtes contre MSW et contre l'API et valide les deux par le même schéma Zod. En mode mixte, un lien vers un écran non branché peut ne pas trouver le dossier (développement seulement). MSW reste pour les tests de composants.
 
 **À fournir par le cabinet, jamais par Claude Code** : clés de test Resend et MySendingBox dans le `.env` (Q), Scaleway en option (N), voir `docs/api.md`, « Clés et secrets » ; compte SMS avec numéro virtuel (R) ; licence et identifiants 3CX (T) ; second domaine Resend (Q) ; valeurs entre crochets (N) ; déploiement (X). Sans elles, les adaptateurs tournent en mode simulé.
+
+## Lot J — Socle (état au 25/11/2026)
+- [x] Services de développement sans root ni service système (`infra/dev/services.mjs`), lancement de l'API et du worker (`pnpm --filter @legarec/api dev`)
+- [x] NestJS 12, Prisma 7, trois connexions PostgreSQL, 10 rôles sans connexion, RLS forcée ; 13 tables du socle (comptes, délégations, créanciers, débiteurs, dossiers, historique, numérotation, journal, boîte d'envoi et ses clés, webhooks, idempotence, décomptes des purges). Les autres tables arrivent avec leur lot
+- [x] Règle d'accès obligatoire par route, matrice d'accès, origine exacte par portail, idempotence, erreurs uniformes, journaux sans donnée personnelle, journal et historique en ajout seul
+- [x] Chiffrement AES-256-GCM avec version de clé, clés dérivées par usage ; boîte d'envoi, worker aux droits de l'auteur, tâches réservées en base (une seule exécution pour ce qui part vers quelqu'un), reprise des tâches perdues, purge quotidienne
+- [x] OpenAPI et types des routes générés et vérifiés ; corps de toutes les requêtes des portails en Zod (`packages/contracts/src/requests.ts`), contrôlés aussi par les simulations ; clé d'idempotence envoyée par les portails
+- [x] GitHub Actions : PostgreSQL 17, Valkey 8.1, Node 26, actions et images désignées par leur empreinte
+- [x] Relectures `relecteur-securite` (deux fois) et `testeur` : points bloquants, importants et mineurs corrigés ; les protections retirées une à une (41 essais) font échouer un test, sauf une, doublée par une autre
+- Aucune route des portails n'est encore branchée : les écrans restent sur les simulations.
+
+## Lot K — à prévoir (contre-relecture du lot J)
+- `legarec_auth` n'a encore aucun droit : sessions, empreintes, seconds facteurs et verrouillages par fonctions ; rôle, statut, portail et délégations relus à chaque requête, jamais crus sur parole.
+- Session sans second facteur : règle « second facteur attendu », Développeur bloqué sans second facteur, réauthentification récente pour les actions sensibles.
+- Journal des connexions : aujourd'hui « Inconnu », sans identifiant ; catalogue `AUDIT_ACTIONS` à compléter.
+- Débiteur et compte de service : liés à une session vivante ou à un compte non révoqué (aujourd'hui tout identifiant est reconnu) ; portées relues.
+- `Database.run()` hors du module de connexion : à interdire par ESLint.
+- Délégations et comptes : fonctions pour donner, retirer, désactiver et fermer les sessions ; un nouveau Directeur ne doit pas être bloqué par l'ancienne ligne de délégation.
+- Limites par IP, bloc /64 et compte (Valkey absent = refus) ; cookies `__Host-` ; ancienne clé de signature acceptée pendant son renouvellement ; inactivité non prolongée par une requête de fond.
+- Matrice d'accès : compte de service, comptes invités et désactivés, portail fermé, session sans second facteur.
 
 ## Points à reprendre du front
 
