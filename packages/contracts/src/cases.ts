@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { caseStatus } from './dashboard';
+import { atMost } from './limits';
 import { cents } from './money';
 
 export const caseListItem = z.object({
@@ -70,7 +71,7 @@ export const newPayment = z.discriminatedUnion('method', [
     method: z.literal('CHEQUE'),
     amount: cents.positive({ error: 'Indiquez un montant.' }),
     chequeNumber: z.string().regex(/^\d{7}$/, { error: 'Le numéro de chèque comporte 7 chiffres.' }),
-    bank: z.string().min(2, { error: 'Indiquez la banque.' }),
+    bank: z.string().min(2, { error: 'Indiquez la banque.' }).max(80, atMost(80)),
     receivedOn: day,
     depositedOn: day.nullable(),
   }),
@@ -78,7 +79,7 @@ export const newPayment = z.discriminatedUnion('method', [
     method: z.literal('TRANSFER'),
     amount: cents.positive({ error: 'Indiquez un montant.' }),
     receivedOn: day,
-    label: z.string().min(1, { error: 'Indiquez le libellé reçu.' }),
+    label: z.string().min(1, { error: 'Indiquez le libellé reçu.' }).max(140, atMost(140)),
     reconciled: z.boolean(),
   }),
 ]);

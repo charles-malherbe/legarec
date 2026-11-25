@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { absenceForm, accountData, passwordForm, profileForm, supportTicket } from './account';
+import { absenceForm, passwordForm, profileForm, supportTicket } from './account';
 import { loginRequest, newPassword } from './auth';
 import { callQualification } from './calls';
 import { gdprRequestKind, newPayment, paymentStatus } from './cases';
@@ -7,6 +7,7 @@ import { newReminder } from './collection';
 import { coordinate, coordinateKind, coordinateSource, emailCategory, outgoingMessage } from './communication';
 import { debtorAccess, debtorIdentifier, debtorMessage, debtorRequest, limitedMessage } from './debtor';
 import { letterTemplate } from './documents';
+import { EMAIL_MAX, ID_MAX } from './limits';
 import { cents } from './money';
 import { newClaim } from './portal';
 import { session } from './roles';
@@ -15,7 +16,7 @@ import { billingType, newMember, staffRole } from './steering';
 
 /** Body of every request of the portals: the only definition, read by the API, the forms and the simulations. */
 
-const id = z.string().min(1).max(64);
+const id = z.string().min(1).max(ID_MAX);
 const ids = z.array(id).min(1).max(500);
 const line = (max: number) => z.string().trim().min(1).max(max);
 const reason = z.string().trim().max(500).optional();
@@ -30,7 +31,7 @@ export const twoFactorBody = z.discriminatedUnion('method', [
   z.object({ method: z.literal('BACKUP_CODE'), code: oneTimeCode }),
   z.object({ method: z.literal('WEBAUTHN'), response: webauthnAnswer }),
 ]);
-export const forgotPasswordBody = z.object({ email: z.email() });
+export const forgotPasswordBody = z.object({ email: z.email().max(EMAIL_MAX) });
 export const passwordBody = z.object({ password: newPassword });
 export const oneTimeCodeBody = z.object({ code: oneTimeCode });
 
@@ -39,7 +40,13 @@ export const readBody = z.object({ ids: z.array(id).max(500) });
 export const notificationsBody = z.object({ ids, unread: z.boolean() });
 export const doneBody = z.object({ done: z.boolean() });
 export const activeBody = z.object({ active: z.boolean() });
-export const accountPreferencesBody = accountData.pick({ notifications: true, dailySummary: true, quietHours: true }).partial();
+export const accountPreferencesBody = z
+  .object({
+    notifications: z.array(z.object({ id, label: z.string().max(200), detail: z.string().max(400), inApp: z.boolean(), email: z.boolean() })).max(50),
+    dailySummary: z.boolean(),
+    quietHours: z.boolean(),
+  })
+  .partial();
 
 export const incomingCallBody = z.object({ answered: z.boolean() });
 export const aiDecisionBody = z.object({ decision: z.enum(['ACCEPTED', 'IGNORED']) });
@@ -97,7 +104,7 @@ export const billingBody = z.object({
   templateId: id,
   clientId: id,
   lines: z.array(z.object({ label: line(200), quantity: z.number().min(0), unitPrice: cents })).max(100),
-  terms: z.array(z.looseObject({ id, value: z.string().max(2000) })).max(50),
+  terms: z.array(z.object({ id, label: z.string().max(200), value: z.string().max(2000) })).max(50),
   draft: z.boolean(),
 });
 
@@ -115,7 +122,8 @@ export const mailboxBody = newMailbox.and(z.object({ requestId: id.optional() })
 export const redirectionBody = z.object({ to: redirectionTarget });
 export const autoReplyBody = z.object({ text: line(2000), until: z.iso.date().nullable() });
 
-export const templateImportBody = z.object({ source: z.string(), fileName: z.string().max(200) });
+/** Beyond the size of a template the API answers 413; beyond this, nothing is read. */
+export const templateImportBody = z.object({ source: z.string().max(1_000_000), fileName: z.string().max(200) });
 export const templateRestoreBody = z.object({ version: z.number().int().positive().optional() });
 export const templateSubmitBody = z.object({ acknowledged: z.boolean() });
 export const templateReviewBody = z.object({ approved: z.boolean(), reason });
@@ -225,8 +233,11 @@ export function requestBody(portal: keyof typeof REQUEST_BODIES, method: string,
 
 /** Whether the API would accept this JSON body: the simulations refuse what it would refuse. */
 export function acceptsBody(portal: keyof typeof REQUEST_BODIES, method: string, path: string, json: string): boolean {
-  if (json === '') return true;
   const schema = requestBody(portal, method, path);
-  if (!schema) return json === '{}';
-  return schema.safeParse(JSON.parse(json)).success;
+  if (!schema) return json === '' || json === '{}';
+  try {
+    return schema.safeParse(json === '' ? undefined : JSON.parse(json)).success;
+  } catch {
+    return false;
+  }
 }

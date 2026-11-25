@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { acceptsBody, REQUEST_BODIES, requestBody } from './requests';
+import { TEMPLATE_MAX_BYTES } from './templates';
 
 describe('bodies of the requests', () => {
   it('find the schema of a real path, the most precise one first', () => {
@@ -312,15 +313,13 @@ describe('every body of the portals', () => {
     }
   });
 
-  // Defect: no body at all is taken for a body that suits, so a screen that forgets its own is not seen by the simulations.
-  it.fails('refuses the absence of a mandatory body', () => {
+  it('refuses the absence of a mandatory body', () => {
     for (const { portal, route } of ROUTES.filter((item) => !MAY_BE_EMPTY.includes(item.route))) {
       const [method, path] = real(route);
       expect(acceptsBody(portal, method, concrete(path), ''), route).toBe(false);
     }
   });
-  // Defect: the API answers 400; the function that says what it would accept throws.
-  it.fails('refuses a body that is not JSON', () => {
+  it('refuses a body that is not JSON', () => {
     expect(acceptsBody('staff', 'POST', '/cases/demo/portal-messages', '{')).toBe(false);
   });
 });
@@ -365,39 +364,17 @@ describe('ceilings', () => {
     expect(open(sample, [{ a: 'x', b: 'x', c: ['x'], d: ['x'], e: 'X', f: 'a@exemple.fr' }])).toEqual(['a', 'c', 'd[]', 'f']);
   });
 
-  /**
-   * Known gaps, to be closed one by one: an e-mail, a support message, the notes of a call or the name typed by a stranger
-   * have no ceiling although every free text should (`DECISIONS.md`, 25/11/2026). Nothing may be added to this list.
-   */
-  const KNOWN: Record<string, string[]> = {
-    'POST /auth/login': ['email', 'password'],
-    'POST /auth/forgot-password': ['email'],
-    'POST /auth/reset/:token': ['password'],
-    'POST /auth/invitation/:token/password': ['password'],
-    'PUT /account/profile': ['firstName', 'lastName'],
-    'PUT /account/absence': ['from', 'substituteId', 'to'],
-    'PUT /account/password': ['current', 'next'],
-    'PUT /account/notifications': ['notifications', 'notifications[].detail', 'notifications[].id', 'notifications[].label'],
-    'POST /support-tickets': ['message', 'subject'],
-    'POST /calls/:id/qualification': ['alreadyPaid.reference', 'dispute.reason', 'interlocutor', 'notes', 'promise.invoices', 'promise.invoices[]', 'tcxCode'],
-    'POST /cases/:id/payments': ['bank', 'label'],
-    'POST /reminders': ['caseId', 'title'],
-    'POST /emails/messages': ['caseId', 'paragraphs', 'paragraphs[]', 'to'],
-    'POST /billing': ['terms[].label'],
-    'POST /members': ['creditorId', 'email', 'firstName', 'lastName'],
-    'POST /secrets': ['service', 'value'],
-    'POST /mailboxes': ['holderId'],
-    'POST /mailboxes/:id/redirections': ['to'],
-    'PUT /mailboxes/:id/redirections/:redirectionId': ['to'],
-    'POST /templates/:id/import': ['source'],
-    'POST /portal/claims': ['address', 'debtor', 'email', 'invoices[].number', 'phone'],
-    'POST /debtor/limited/messages': ['attachments', 'attachments[].id', 'attachments[].name', 'email', 'name'],
-    'POST /debtor/cases/:id/messages': ['attachments', 'attachments[].id', 'attachments[].name'],
-    'POST /debtor/cases/:id/requests': ['attachments', 'attachments[].id', 'attachments[].name'],
-  };
-  it.each(ROUTES)('$portal $route: every text and every list has one, or is a known gap', ({ route, schema, bodies }) => {
+  /** The file of a template is longer than any text: its own ceiling is proven below. */
+  const FILES: Record<string, string[]> = { 'POST /templates/:id/import': ['source'] };
+  it.each(ROUTES)('$portal $route: every text and every list has one', ({ route, schema, bodies }) => {
     // The answer of a security key is opaque: checked by the API itself.
     if (OPEN.includes(route)) return;
-    expect(open(schema, bodies).filter((place) => !place.startsWith('response'))).toEqual(KNOWN[route] ?? []);
+    expect(open(schema, bodies).filter((place) => !place.startsWith('response'))).toEqual(FILES[route] ?? []);
+  });
+
+  it('leave to the file of a template the size announced on its screen, and stop at the megabyte that the API reads', () => {
+    const accepts = (size: number) =>
+      acceptsBody('staff', 'POST', '/templates/t1/import', JSON.stringify({ fileName: 'modele.html', source: 'x'.repeat(size) }));
+    expect([accepts(TEMPLATE_MAX_BYTES), accepts(1_000_000), accepts(1_000_001)]).toEqual([true, true, false]);
   });
 });

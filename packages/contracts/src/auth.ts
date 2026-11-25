@@ -1,9 +1,12 @@
 import { z } from 'zod';
+import { atMost, EMAIL_MAX } from './limits';
 import { session } from './roles';
 
+/** Beyond, the hash would cost more than the password protects. */
+export const PASSWORD_MAX = 200;
 export const loginRequest = z.object({
-  email: z.email({ error: 'Saisissez une adresse e-mail valide.' }),
-  password: z.string().min(1, { error: 'Saisissez votre mot de passe.' }),
+  email: z.email({ error: 'Saisissez une adresse e-mail valide.' }).max(EMAIL_MAX, atMost(EMAIL_MAX)),
+  password: z.string().min(1, { error: 'Saisissez votre mot de passe.' }).max(PASSWORD_MAX, atMost(PASSWORD_MAX)),
   portal: z.enum(['espace', 'partenaires']),
 });
 export const loginResponse = z.discriminatedUnion('status', [
@@ -15,4 +18,4 @@ export const loginResponse = z.discriminatedUnion('status', [
 export const loginError = z.object({ code: z.enum(['INVALID_CREDENTIALS', 'LOCKED', 'INVALID_CODE']), attemptsLeft: z.number().int().optional() });
 export type LoginResponse = z.infer<typeof loginResponse>;
 
-export const newPassword = z.string().min(12, { error: 'Le mot de passe doit comporter au moins 12 caractères.' });
+export const newPassword = z.string().min(12, { error: 'Le mot de passe doit comporter au moins 12 caractères.' }).max(PASSWORD_MAX, atMost(PASSWORD_MAX));

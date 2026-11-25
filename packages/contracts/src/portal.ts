@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { isValidSiret } from './debtorAccess';
+import { atMost, EMAIL_MAX } from './limits';
 import { cents } from './money';
 
 /** Creditors' portal. Every answer of the API is already limited to the creditor of the session. */
@@ -59,10 +60,10 @@ export const portalCase = z.object({
 export type PortalCase = z.infer<typeof portalCase>;
 export const portalCases = z.object({ items: z.array(portalCase), counts: z.record(z.string(), z.number().int()) });
 
-const french = (message: string) => z.string().trim().min(1, { error: message });
+const french = (message: string, max: number) => z.string().trim().min(1, { error: message }).max(max, atMost(max));
 const claimInvoice = z
   .object({
-    number: french('Saisissez le numéro de facture.'),
+    number: french('Saisissez le numéro de facture.', 60),
     issuedOn: z.iso.date({ error: 'Saisissez une date.' }),
     dueOn: z.iso.date({ error: 'Saisissez une date.' }),
     amount: z.int({ error: 'Saisissez un montant, par exemple 1 250,00.' }).positive({ error: 'Saisissez un montant supérieur à zéro.' }),
@@ -70,11 +71,11 @@ const claimInvoice = z
   .refine((value) => value.issuedOn <= value.dueOn, { path: ['dueOn'], error: 'L’échéance doit suivre l’émission.' });
 export const newClaim = z
   .object({
-    debtor: french('Saisissez le nom ou la raison sociale.'),
-    siret: z.string().trim(),
-    email: z.union([z.literal(''), z.email({ error: 'Saisissez une adresse e-mail valide.' })]),
-    phone: z.string().trim(),
-    address: french('Saisissez l’adresse du débiteur.'),
+    debtor: french('Saisissez le nom ou la raison sociale.', 150),
+    siret: z.string().trim().max(20),
+    email: z.union([z.literal(''), z.email({ error: 'Saisissez une adresse e-mail valide.' }).max(EMAIL_MAX, atMost(EMAIL_MAX))]),
+    phone: z.string().trim().max(30, atMost(30)),
+    address: french('Saisissez l’adresse du débiteur.', 300),
     invoices: z.array(claimInvoice).min(1).max(50),
   })
   .refine((value) => value.siret === '' || isValidSiret(value.siret), { path: ['siret'], error: 'Ce SIRET n’est pas valide (14 chiffres).' })

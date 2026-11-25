@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { atMost, EMAIL_MAX, ID_MAX } from './limits';
 
 const tone = z.enum(['neutral', 'info', 'success', 'warning', 'danger', 'teal', 'violet', 'marine', 'or']);
 export const settingField = z.object({
@@ -55,8 +56,8 @@ export type SecretItem = z.infer<typeof secretItem>;
 export const secretsData = z.object({ items: z.array(secretItem) });
 export const newSecret = z.object({
   name: z.string().regex(/^[A-Z][A-Z0-9_]{2,60}$/u, { error: 'Lettres majuscules, chiffres et tirets bas, par exemple EX_NOM_DU_SECRET.' }),
-  service: z.string().trim().min(1, { error: 'Indiquez le service concerné.' }),
-  value: z.string().min(1, { error: 'Saisissez la valeur.' }),
+  service: z.string().trim().min(1, { error: 'Indiquez le service concerné.' }).max(80, atMost(80)),
+  value: z.string().min(1, { error: 'Saisissez la valeur.' }).max(4096, atMost(4096)),
   rotation: z.enum(['90', '30', 'MANUAL']),
 });
 
@@ -89,14 +90,14 @@ export const isReservedAddress = (local: string) => RESERVED.includes(local.trim
 export const newMailbox = z
   .object({
     local: z.string().regex(/^[a-z0-9](?:[a-z0-9.-]{0,30}[a-z0-9])?$/u, { error: 'Lettres minuscules, chiffres, point ou tiret, par exemple cl.' }),
-    holderId: z.string().nullable(),
+    holderId: z.string().max(ID_MAX).nullable(),
     sizeMb: z.number().int(),
   })
   .refine((value) => value.local !== 'recouvrement' && (value.holderId === null || !isReservedAddress(value.local)), {
     path: ['local'],
     error: 'Cette adresse est réservée au cabinet.',
   });
-export const redirectionTarget = z.email({ error: 'Saisissez une adresse e-mail valide.' });
+export const redirectionTarget = z.email({ error: 'Saisissez une adresse e-mail valide.' }).max(EMAIL_MAX, atMost(EMAIL_MAX));
 
 export const gdprRegistry = z.object({
   items: z.array(
