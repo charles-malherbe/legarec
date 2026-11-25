@@ -5,7 +5,7 @@ Principe : **l'IA suggère, un collaborateur valide.** Aucune suggestion n'est a
 ## Fonctions (maquette v2.0)
 | Écran | Fonction | Déclencheur | Modèle |
 |---|---|---|---|
-| Appels (`Telephonie`) | Transcription en direct, puis résumé et qualification proposée (résultat, montant, date, factures, prochaine action) | Appel en cours **et** annonce de l'enregistrement cochée | Rapide (extraction) + avancé (résumé) |
+| Appels (`Telephonie`) | Transcription après l'appel (question 72), puis résumé et qualification proposée (résultat, montant, date, factures, prochaine action) | Fin de l'appel **et** annonce de l'enregistrement cochée | Rapide (extraction) + avancé (résumé) |
 | E-mails (`Messagerie`) | Catégorie, dossier rattaché, extraction (montants, dates, factures), actions proposées ; brouillon de réponse | Arrivée d'un e-mail (BullMQ) ; brouillon à la demande | Rapide (tri) ; avancé (brouillon) |
 | Fiche débiteur (`Dossier`) | Synthèse en 5 lignes : situation, promesses, dernier contact, blocage, suggestion | Nouvel événement sur le dossier (avec cache) ; « Régénérer » | Avancé |
 | Paramètres (`Reglages`, section `ia`) | Activation par fonction, garde-fous, fournisseur, hébergement, budget, journal | — | — |
@@ -22,5 +22,5 @@ Principe : **l'IA suggère, un collaborateur valide.** Aucune suggestion n'est a
 - Deux niveaux de modèle configurables par variable d'environnement (`IA_MODELE_RAPIDE`, `IA_MODELE_AVANCE`, par défaut Claude Haiku 5.5 et Claude Sonnet 5.5) ; ne jamais coder un nom de modèle en dur. Coût de chaque appel noté au journal.
 - Traitements longs en tâches BullMQ ; budget mensuel contrôlé avant chaque appel (pause au-delà, alerte à 80 %).
 - Prompts versionnés dans `apps/api/src/ai/prompts/` avec un jeu de cas de test (point de départ : `ia/cas-de-test.json`) exécuté par `pnpm verifier` en mode simulé, et à la demande contre l'API réelle.
-- Transcription : service à choisir (voir `QUESTIONS.md`).
-- Hébergement des traitements : à choisir (API Anthropic, AWS Bedrock ou Google Vertex en région Europe, Scaleway ou OVH compatibles OpenAI). IA désactivée en production tant que le contrat de sous-traitance n'est pas signé.
+- Transcription : auto-hébergée (Whisper), après l'appel seulement, si l'essai mesuré du lot W convient (questions 72 et 106).
+- Hébergement des traitements : sur le serveur du cabinet si l'essai mesuré du lot W convient (mémoire, délais, qualité), puis activation après avis du juriste ; sinon nouveau choix (API Anthropic, AWS Bedrock ou Google Vertex en région Europe, Scaleway ou OVH compatibles OpenAI), avec un contrat de sous-traitance signé. IA désactivée en production jusque-là.

@@ -32,11 +32,15 @@ Seul service exposé sur Internet (ports 80 et 443) : HTTPS automatique, en-têt
 - Chaque collaborateur a sa boîte professionnelle (`initiales@legarec.fr` ou adresse de fonction comme `administratif@`, `support@`) et répond depuis elle.
 - OVH MX Plan : SMTP `smtp.mail.ovh.net` 465 SSL/TLS ; IMAP `ssl0.ovh.net` 993 ; quota d'environ 200 e-mails par heure et par boîte. Un mot de passe par boîte, chiffré côté API.
 - Gestion des boîtes (création, mot de passe, redirections, réponse automatique, suppression) depuis Paramètres techniques, par l'API OVHcloud limitée à `/email/domain/legarec.fr/*`.
+- Suivi des ouvertures et des clics (question 84) : e-mails aux débiteurs sur mail.legarec.fr ; e-mails de compte (invitation, mot de passe, codes) sur un second domaine Resend sans suivi, à créer. Suivi coupé d'ici là.
 - Signature des messages des collaborateurs : nom, rôle, e-mail, numéro 3CX (standard par défaut) suivi du poste s'il existe, adresse, site. Jamais de numéro de portable.
 
 ## Autres services
-- **SMS** : OVHcloud, à double sens ; expéditeur sous forme de numéro pour recevoir les réponses ; mention STOP (`{{> mention_sms}}`).
-- **Téléphonie** : 3CX (`legarec.on3cx.fr`) : appels, files, qualification (codes PROMESSE, ECHEANCIER, RAPPEL, LITIGE, DEJA_PAYE, ABSENT, NON_REPONSE, FAUX_NUMERO). Poste du collaborateur dans son profil ; renvoi vers le mobile réglé dans 3CX.
+- **SMS** : OVHcloud, à double sens ; compte dédié avec un numéro mobile virtuel (question 70) pour recevoir les réponses ; mention STOP (`{{> mention_sms}}`).
+- **Téléphonie** : 3CX (`legarec.on3cx.fr`), par l'API Call Control (question 71) : appels, files, qualification (codes PROMESSE, ECHEANCIER, RAPPEL, LITIGE, DEJA_PAYE, ABSENT, NON_REPONSE, FAUX_NUMERO). Poste du collaborateur dans son profil ; renvoi vers le mobile réglé dans 3CX.
 - **Lettres recommandées et courriers** : MySendingBox. Deux comptes : test et production, choisis par variable d'environnement. Jamais de bascule implicite vers la production.
 - **Paiement** : chèque et virement sur le compte dédié uniquement (RIB, référence du dossier). Aucun paiement en ligne.
 - **Fichiers** : Scaleway Object Storage : `legarec-media` (public), `legarec-documents` (privé, URL présignées), `legarec-sauvegardes` (versioning). Une clé d'accès par bucket.
+- **Antivirus** : ClamAV, sur le serveur ; tout fichier reçu reste en quarantaine jusqu'au résultat (question 87).
+- **Données d'entreprise** : API publique Recherche d'entreprises (forme juridique d'un débiteur), en tâche de fond, sans clé ; corrigeable à la main (question 80).
+- **Clés de ces services** : où les créer, avec quels droits, où les saisir : `docs/api.md`, « Clés et secrets ».

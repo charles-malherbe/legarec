@@ -1,12 +1,14 @@
 # Architecture
 
-Décisions du 24/11/2026, reprises de l'annexe « Architecture » de `PROMPT-FRONT.md` (v2.5). À consigner seulement : rien à développer dans la mission front-end. `PROMPT-FRONT.md` et `DECISIONS.md` priment en cas d'écart.
+Décisions du 24/11/2026, reprises de l'annexe « Architecture » de `PROMPT-FRONT.md` (v2.5). Complétées le 25/11/2026 pour la mission API (questions 65 à 111 de `DECISIONS.md`) ; détail technique : `docs/api.md`. `PROMPT-FRONT.md` et `DECISIONS.md` priment en cas d'écart, la décision la plus récente d'abord.
 
 - Files d'attente : Valkey + BullMQ (VALKEY_URL) ; workers dans un conteneur séparé de l'API ; Valkey avec persistance
   AOF et maxmemory-policy noeviction. Option notée : le backend PostgreSQL de BullMQ 6, plus récent, non retenu pour l'instant.
 - Relances programmées : planning dans PostgreSQL (date prévue, statut) ; un job scheduler BullMQ met en file
   les relances échues toutes les 5 minutes environ, avec un identifiant de job fixe (reminder-<id>) ;
   avant l'envoi, le worker vérifie que la relance est toujours due et qu'elle respecte les plages et les plafonds.
+- Plafonds de contact : comptés par débiteur, tous créanciers confondus, sur tous les canaux ; au-delà, blocage, avec
+  dérogation motivée du Responsable, ou du Directeur sur ses dossiers (question 74).
 - Envois : une file par canal (e-mail Resend, e-mail OVH des collaborateurs, SMS OVH, courrier MySendingBox),
   limiteur de débit par fournisseur (et par boîte OVH : quota MX Plan),
   nouvelles tentatives espacées, flows pour les envois groupés ; clé d'idempotence Resend ;
@@ -17,23 +19,34 @@ Décisions du 24/11/2026, reprises de l'annexe « Architecture » de `PROMPT-FRO
   (ImapFlow) ; état de synchronisation (UIDVALIDITY, dernier UID) en base ; pièces jointes dans S3 ;
   réponses des collaborateurs par SMTP OVH de leur propre boîte (MX Plan, un mot de passe par boîte, chiffré) ;
   recouvrement@legarec.fr synchronisée en réception seule.
-- Boîtes OVH : gestion par l'API OVHcloud (client ovh pour Node ou appels signés), clé d'application dédiée
+- Boîtes OVH : gestion par l'API OVHcloud (appels signés, sans le paquet ovh, qui date de 2019), clé d'application dédiée
   limitée à /email/domain/legarec.fr/* ; aucune action OVH
   lancée par un worker sans demande d'un utilisateur.
 - SMS : OVHcloud ; expéditeur sous forme de numéro (et non le nom « LEGAREC ») pour recevoir les réponses,
-  rattachées au dossier par numéro de téléphone.
-- Contrats : schémas Zod de packages/contracts → OpenAPI produit par nestjs-zod → types des routes générés
+  rattachées au dossier par numéro de téléphone ; numéro mobile virtuel d'un compte dédié (question 70).
+- Téléphonie : API Call Control de 3CX (question 71) ; enregistrements repris dans S3 et supprimés à 6 mois.
+- Contrats : schémas Zod de packages/contracts → OpenAPI produit par NestJS 12 (@nestjs/swagger ; nestjs-zod abandonné, question 66) → types des routes générés
   par openapi-typescript, régénérés et vérifiés par pnpm verifier (en local et dans GitHub Actions).
 - Montants : centimes entiers ; taux d'intérêt légal dans une table mise à jour chaque semestre.
 - Double authentification : otplib (TOTP) et @simplewebauthn/server.
-- IA : couche fournisseur (interface unique ; adaptateurs Anthropic et compatible OpenAI pour Scaleway et OVH).
+- Sessions : jeton opaque, haché en base, en cookie __Host- propre à chaque portail ; fermeture après 30 minutes
+  d'inactivité ; en-tête Origin contrôlé ; Cache-Control: no-store partout.
+- Cloisonnement : filtre dans chaque requête et sécurité par ligne PostgreSQL, activée et forcée sur toutes les tables ;
+  clé étrangère composite (dossier, créancier) sur toute table liée à un dossier.
+- Actions qui engagent : clé d'idempotence et valeur attendue ; refus (409) si l'état a changé depuis la confirmation.
+- Appels externes : jamais dans une transaction ; table outbox, puis BullMQ ; les tâches ne portent que des identifiants.
+- Secrets : clés des services dans un coffre chiffré en base (Paramètres techniques > Secrets) ; valeurs de démarrage dans
+  un fichier du serveur ; .env temporaire en développement (docs/api.md, « Clés et secrets »).
+- Antivirus : ClamAV ; tout fichier reçu reste en quarantaine jusqu'au résultat (question 87).
+- IA : auto-hébergée si l'essai mesuré du lot W convient, sinon nouveau choix (questions 72 et 106) ; transcription
+  après l'appel seulement ; couche fournisseur (interface unique ; adaptateurs Anthropic et compatible OpenAI pour Scaleway et OVH).
   Les deux niveaux de docs/ia.md (IA_MODELE_RAPIDE, IA_MODELE_AVANCE) pointent par défaut vers Claude Haiku 5.5
   et Claude Sonnet 5.5, jamais en dur ; budget et journal de docs/ia.md conservés, avec le coût de chaque appel ;
   seules les données nécessaires sont envoyées ; IA désactivée en production tant que le contrat de sous-traitance
   n'est pas signé.
 - Fichiers des dossiers (Scaleway S3, bucket legarec-documents) : répertoires en français, sans accents ni espaces :
   dossiers/{id}/pieces/, dossiers/{id}/courriers/, dossiers/{id}/accuses-reception/, dossiers/{id}/quittances/,
-  dossiers/{id}/emails/, imports/. Noms de fichiers : identifiants générés, nom d'origine conservé en base.
+  dossiers/{id}/emails/, dossiers/{id}/enregistrements/ (question 104), imports/. Noms de fichiers : identifiants générés, nom d'origine conservé en base.
 - Sauvegardes : pgBackRest 2.59.3 minimum (projet maintenu, relancé en mai 2026 après l'annonce d'avril),
   chiffrement activé, dépôt dans un bucket séparé (legarec-sauvegardes) avec ses propres clés et le versioning activé ;
   restauration testée automatiquement et régulièrement dans un conteneur temporaire.
