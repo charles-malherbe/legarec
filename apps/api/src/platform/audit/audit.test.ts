@@ -53,6 +53,9 @@ describe('details of a line of the audit log', () => {
     ['an IBAN', { iban: 'FR7630006000011234567890189' }],
     ['an access code', { code: 'KXPM' }],
     ['a name in capitals', { who: 'DUPONT' }],
+    ['a name disguised as a technical one', { who: 'JEAN_DUPONT' }],
+    ['an access code in disguise', { code: 'CODE_KXPM' }],
+    ['a key that nobody expects', { secret: 'STRIPE_API_KEY' }],
     ['a name', { who: 'Jean Martin' }],
     ['an amount', { cents: 125000 }],
     ['a six-digit code', { code: 123456 }],
@@ -62,6 +65,7 @@ describe('details of a line of the audit log', () => {
     ['a list', { list: ['x'] }],
     ['nothing at all', { empty: null }],
     ['an address as the name of a field', { 'jean@exemple.test': true }],
+    ['a name as the name of a field, beside a good value', { 'Jean Martin': 'RESEND_API_KEY' }],
   ])('never holds %s', async (_what, params) => {
     await expect(log(params as AuditEntry['params'])).rejects.toThrow(/audit_log_params_check/u);
   });

@@ -22,6 +22,33 @@ enum TaskCode {
   @@map("task_code")
 }
 
+/// Names of the keys of the services and of the internal keys: the only technical names the journal may hold.
+enum SecretName {
+  RESEND_API_KEY
+  RESEND_ACCOUNT_API_KEY
+  RESEND_WEBHOOK_SECRET
+  MYSENDINGBOX_API_KEY
+  MYSENDINGBOX_TEST_API_KEY
+  SCW_ACCESS_KEY
+  SCW_SECRET_KEY
+  OVH_API_APP_KEY
+  OVH_API_APP_SECRET
+  OVH_API_CONSUMER_KEY
+  OVH_SMS_APP_KEY
+  OVH_SMS_APP_SECRET
+  OVH_SMS_CONSUMER_KEY
+  OVH_SMS_SERVICE_NAME
+  COLLECTION_MAILBOX_PASSWORD
+  TCX_API_CLIENT_ID
+  TCX_API_CLIENT_SECRET
+  AI_API_KEY
+  MAILBOX_SECRETS_KEY
+  ACCESS_CODE_KEY
+  LOOKUP_KEY
+
+  @@map("secret_name")
+}
+
 /// Yearly counters without gap; used by app.next_number() only.
 model NumberSequence {
   kind      String
@@ -68,18 +95,24 @@ model OutboxTask {
   createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
   claimedAt   DateTime?       @map("claimed_at") @db.Timestamptz(3)
   publishedAt DateTime?       @map("published_at") @db.Timestamptz(3)
+  startedAt   DateTime?       @map("started_at") @db.Timestamptz(3)
   doneAt      DateTime?       @map("done_at") @db.Timestamptz(3)
   failedAt    DateTime?       @map("failed_at") @db.Timestamptz(3)
+  /// Code of the failure: never what a provider answered.
+  failure     String?
 
   @@map("outbox")
 }
 
-/// A key is used once and for all, even after its task is purged.
+/// A key is used once, even after its task is purged.
 model TaskKey {
-  key       String   @id
+  owner     String
+  name      String
+  key       String
   taskId    String   @map("task_id") @db.Uuid
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
+  @@id([owner, name, key])
   @@map("task_keys")
 }
 

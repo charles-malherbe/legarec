@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
@@ -190,8 +191,8 @@ describe('rights of the roles inside', () => {
       'cases UPDATE (closed_on, external_reference, first_letter_on, first_letter_reference, status, version)',
       CREDITORS,
       DEBTORS,
-      'outbox SELECT (acting_for, actor_id, actor_kind, claimed_at, created_at, done_at, failed_at, id, name, payload, published_at, queue, run_at)',
-      'outbox UPDATE (claimed_at, done_at, failed_at, published_at)',
+      'outbox SELECT (acting_for, actor_id, actor_kind, claimed_at, created_at, done_at, failed_at, failure, id, name, payload, published_at, queue, run_at, started_at)',
+      'outbox UPDATE (claimed_at, done_at, failed_at, failure, published_at, started_at)',
       'users SELECT (creditor_id, email, first_name, id, last_name, role, status)',
       'webhook_events SELECT (id, processed_at, provider, provider_event_id, received_at, status)',
       'webhook_events UPDATE (processed_at, status)',
@@ -202,6 +203,8 @@ describe('rights of the roles inside', () => {
       'outbox DELETE (*)',
       'outbox SELECT (done_at, failed_at, id)',
       'retention_runs INSERT (kind, removed)',
+      'task_keys DELETE (*)',
+      'task_keys SELECT (created_at, task_id)',
       'webhook_events DELETE (*)',
       'webhook_events SELECT (id, received_at, status)',
     ],
@@ -220,7 +223,7 @@ describe('rights of the roles inside', () => {
       'number_sequences UPDATE (*)',
       'outbox INSERT (*)',
       'task_keys INSERT (*)',
-      'task_keys SELECT (key)',
+      'task_keys SELECT (key, name, owner)',
       'users SELECT (creditor_id, first_name, id, last_name, role, status)',
     ],
   };
@@ -253,6 +256,7 @@ describe('rights of the roles inside', () => {
       'legarec_jobs > legarec_debtor',
       'legarec_jobs > legarec_partner',
       'legarec_jobs > legarec_retention',
+      'legarec_jobs > legarec_service',
       'legarec_jobs > legarec_staff',
       'legarec_jobs > legarec_worker',
       'legarec_owner > legarec_definer',
@@ -358,6 +362,24 @@ describe('schema', () => {
 
 describe('migrations', () => {
   const directory = fileURLToPath(new URL('../prisma/migrations', import.meta.url));
+
+  it('refuse a database whose rights they cannot close, rather than leave it open', async () => {
+    const name = `${inject('testPrefix')}foreign`;
+    // As the official image creates it, for its superuser, with just enough rights for the migrations to run.
+    await test.admin.query(`CREATE DATABASE ${name}`);
+    await test.admin.query(`GRANT CREATE ON DATABASE ${name} TO legarec_owner`);
+    const own = new pg.Client({ connectionString: Object.assign(new URL(test.adminUrl), { pathname: `/${name}` }).href });
+    await own.connect();
+    await own.query('GRANT ALL ON SCHEMA public TO legarec_owner');
+    const url = Object.assign(new URL(test.url('owner')), { pathname: `/${name}` });
+    await expect(migrate(url.href, directory)).rejects.toThrow(`database ${name} must belong to legarec_owner`);
+    // The bootstrap, run in that database, gives it to its owner.
+    await own.query(readFileSync(fileURLToPath(new URL('../prisma/bootstrap.sql', import.meta.url)), 'utf8'));
+    await own.end();
+    expect(await migrate(url.href, directory)).toHaveLength(1);
+    const [row] = await rows<{ datacl: string }>('SELECT datacl::text FROM pg_database WHERE datname = $1', [name]);
+    expect(row!.datacl).not.toMatch(/[{,]=/u);
+  });
 
   it('run once, and refuse one that changed after it was applied or that is missing', async () => {
     expect(await migrate(test.url('owner'), directory)).toEqual([]);

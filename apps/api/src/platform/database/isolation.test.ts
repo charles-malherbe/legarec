@@ -2,7 +2,7 @@ import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDatabase, seed, type Seed, type TestDatabase } from '../../../test/database';
 import type { Actor } from './actor';
-import { Database } from './database';
+import { Database, type Transaction } from './database';
 
 let test: TestDatabase;
 let api: Database;
@@ -112,25 +112,31 @@ describe('acting on cases', () => {
 });
 
 describe('assigning cases', () => {
-  const assign = (name: Name, ids: string[], officer: string | null) =>
-    as<number>(name, async (tx) => (await tx.$queryRaw<{ n: number }[]>`SELECT app.assign_cases(${ids}::uuid[], ${officer}::uuid) AS n`)[0]!.n);
-  it('is kept for the Director and the manager with the administrative delegation', async () => {
+  const assign = (who: Name | Actor, ids: string[], officer: string | null) => {
+    const work = async (tx: Transaction) => (await tx.$queryRaw<{ n: number }[]>`SELECT app.assign_cases(${ids}::uuid[], ${officer}::uuid) AS n`)[0]!.n;
+    return typeof who === 'string' ? as<number>(who, work) : api.run(who, work);
+  };
+  const delegate = (): Actor => ({ ...actors().manager, actingFor: 'ADMINISTRATIVE' }) as Actor;
+  it('is kept for the Director and the manager on their behalf', async () => {
     expect(await assign('director', [s.cases.unassigned], s.officerA)).toBe(1);
-    expect(await assign('manager', [s.cases.unassigned], null)).toBe(1);
+    expect(await assign(delegate(), [s.cases.unassigned], null)).toBe(1);
+    // Without saying on whose behalf, the history would hold a single name.
+    await expect(assign('manager', [s.cases.unassigned], s.officerA)).rejects.toThrow(/assignment refused/u);
+    await expect(assign({ ...delegate(), actingFor: 'TECHNICAL' } as Actor, [s.cases.unassigned], s.officerA)).rejects.toThrow(/delegation withdrawn/u);
     await expect(assign('officerA', [s.cases.ofA], s.officerB)).rejects.toThrow(/assignment refused/u);
     await expect(assign('developer', [s.cases.ofA], s.officerB)).rejects.toThrow(/assignment refused/u);
   });
   it('stops as soon as the delegation is withdrawn', async () => {
     await test.admin.query("UPDATE delegations SET withdrawn_at = now(), withdrawn_by = $1 WHERE kind = 'ADMINISTRATIVE'", [s.director]);
-    await expect(assign('manager', [s.cases.unassigned], s.officerA)).rejects.toThrow(/assignment refused/u);
+    await expect(assign(delegate(), [s.cases.unassigned], s.officerA)).rejects.toThrow(/delegation withdrawn/u);
     await test.admin.query("INSERT INTO delegations (kind, granted_by) VALUES ('ADMINISTRATIVE', $1)", [s.director]);
-    expect(await assign('manager', [s.cases.unassigned], s.officerA)).toBe(1);
-    expect(await assign('manager', [s.cases.unassigned], null)).toBe(1);
+    expect(await assign(delegate(), [s.cases.unassigned], s.officerA)).toBe(1);
+    expect(await assign(delegate(), [s.cases.unassigned], null)).toBe(1);
   });
   it('refuses a Developer or a creditor account as officer, and never reaches a case out of sight', async () => {
     await expect(assign('director', [s.cases.unassigned], s.developer)).rejects.toThrow(/invalid officer/u);
     await expect(assign('director', [s.cases.unassigned], s.partnerA)).rejects.toThrow(/invalid officer/u);
-    expect(await assign('manager', [s.cases.ofDirector], s.officerA)).toBe(0);
+    expect(await assign(delegate(), [s.cases.ofDirector], s.officerA)).toBe(0);
   });
 });
 

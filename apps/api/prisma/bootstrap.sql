@@ -27,8 +27,18 @@ $$;
 
 -- No inherited right: without SET LOCAL ROLE, every statement ends in "permission denied".
 GRANT legarec_auth, legarec_staff, legarec_partner, legarec_debtor, legarec_hook, legarec_public, legarec_service TO legarec_app WITH INHERIT FALSE, SET TRUE;
--- A task runs with the rights of its author (collaborator, creditor, debtor); the scheduled ones as the worker.
-GRANT legarec_worker, legarec_retention, legarec_staff, legarec_partner, legarec_debtor TO legarec_jobs WITH INHERIT FALSE, SET TRUE;
+-- A task runs with the rights of its author (collaborator, creditor, debtor, service account); the others as the worker.
+GRANT legarec_worker, legarec_retention, legarec_staff, legarec_partner, legarec_debtor, legarec_service TO legarec_jobs WITH INHERIT FALSE, SET TRUE;
+
+-- The migrations take back the rights of PUBLIC on the database, which only its owner can do. Run in that database: the
+-- official image creates it for its superuser.
+DO $$
+BEGIN
+  IF current_database() <> 'postgres' THEN
+    EXECUTE format('ALTER DATABASE %I OWNER TO legarec_owner', current_database());
+  END IF;
+END
+$$;
 
 -- Nothing runs, waits or stays open for ever.
 ALTER ROLE legarec_app SET statement_timeout = '15s';

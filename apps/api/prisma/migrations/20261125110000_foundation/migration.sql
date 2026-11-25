@@ -11,6 +11,13 @@ DO $$
 BEGIN
   EXECUTE format('REVOKE ALL ON DATABASE %I FROM PUBLIC', current_database());
   EXECUTE format('GRANT CONNECT ON DATABASE %I TO legarec_app, legarec_jobs', current_database());
+  -- PostgreSQL only warns when someone who does not own the database takes a right back: checked here.
+  IF EXISTS (
+    SELECT 1 FROM pg_database d, aclexplode(coalesce(d.datacl, acldefault('d', d.datdba))) AS granted
+    WHERE d.datname = current_database() AND granted.grantee = 0
+  ) THEN
+    RAISE EXCEPTION 'database % must belong to legarec_owner (see bootstrap.sql)', current_database();
+  END IF;
 END
 $$;
 
@@ -49,6 +56,12 @@ $$;
 
 -- Codes a task may carry. Closed list, extended by the migrations: a name in capitals is not a code.
 CREATE TYPE task_code AS ENUM ('FRIENDLY', 'FIRM', 'FORMAL_NOTICE', 'PAYMENT_PLAN', 'CLEARANCE', 'EMAIL', 'SMS', 'LETTER', 'REGISTERED_LETTER');
+-- Names of the keys of the services and of the internal keys (docs/api.md): the only technical names the journal may hold.
+CREATE TYPE secret_name AS ENUM (
+  'RESEND_API_KEY', 'RESEND_ACCOUNT_API_KEY', 'RESEND_WEBHOOK_SECRET', 'MYSENDINGBOX_API_KEY', 'MYSENDINGBOX_TEST_API_KEY', 'SCW_ACCESS_KEY', 'SCW_SECRET_KEY',
+  'OVH_API_APP_KEY', 'OVH_API_APP_SECRET', 'OVH_API_CONSUMER_KEY', 'OVH_SMS_APP_KEY', 'OVH_SMS_APP_SECRET', 'OVH_SMS_CONSUMER_KEY', 'OVH_SMS_SERVICE_NAME',
+  'COLLECTION_MAILBOX_PASSWORD', 'TCX_API_CLIENT_ID', 'TCX_API_CLIENT_SECRET', 'AI_API_KEY', 'MAILBOX_SECRETS_KEY', 'ACCESS_CODE_KEY', 'LOOKUP_KEY'
+);
 CREATE TYPE user_role AS ENUM ('DEVELOPER', 'DIRECTOR', 'COLLECTION_MANAGER', 'CLAIMS_OFFICER', 'CREDITOR');
 
 -- Payload of a task: identifiers, dates, listed codes, yes or no, and numbers too short to be a code.
@@ -65,15 +78,15 @@ CREATE FUNCTION app.only_identifiers(payload jsonb) RETURNS boolean LANGUAGE sql
     END
   )
 $$;
--- Details of an audit entry: the same, with roles and technical names in capitals (RESEND_API_KEY). The sentence shown
--- comes from a catalogue, so that no text typed by anyone ever enters the journal.
+-- Details of an audit entry: the same, with roles and names of keys. The sentence shown comes from a catalogue, so that
+-- no text typed by anyone ever enters the journal.
 CREATE FUNCTION app.audit_params(params jsonb) RETURNS boolean LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
   SELECT jsonb_typeof(params) = 'object' AND NOT EXISTS (
     SELECT 1 FROM jsonb_each(params) AS entry(name, value)
     WHERE NOT (
       app.only_identifiers(jsonb_build_object(name, value))
       OR (name ~ '^[a-z][A-Za-z]{0,39}$' AND jsonb_typeof(value) = 'string' AND (
-        (value #>> '{}') = ANY (enum_range(NULL::public.user_role)::text[]) OR value #>> '{}' ~ '^[A-Z]{2,20}(_[A-Z]{2,20}){1,5}$'))
+        (value #>> '{}') = ANY (enum_range(NULL::public.user_role)::text[]) OR (value #>> '{}') = ANY (enum_range(NULL::public.secret_name)::text[])))
     )
   )
 $$;
@@ -258,16 +271,23 @@ CREATE TABLE outbox (
   created_at timestamptz(3) NOT NULL DEFAULT now(),
   claimed_at timestamptz(3),
   published_at timestamptz(3),
+  started_at timestamptz(3),
   done_at timestamptz(3),
   failed_at timestamptz(3),
+  failure text CHECK (failure ~ '^[A-Z][A-Z0-9_]{2,63}$'),
+  CONSTRAINT outbox_failure CHECK ((failure IS NULL) = (failed_at IS NULL)),
   CONSTRAINT outbox_author CHECK ((actor_kind IN ('STAFF', 'CREDITOR', 'DEBTOR', 'SERVICE')) = (actor_id IS NOT NULL))
 );
 CREATE INDEX outbox_pending ON outbox (created_at) WHERE published_at IS NULL;
--- A key is used once and for all, even after its task is purged.
+-- A key is used once, even after its task is purged; it is forgotten a year later.
 CREATE TABLE task_keys (
-  key text PRIMARY KEY CHECK (key ~ '^[a-z][a-z-]{1,30}:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(:[0-9]{1,3})?$'),
+  -- The team and the application share theirs; anyone else has their own, and takes nobody else's.
+  owner text NOT NULL,
+  name text NOT NULL,
+  key text NOT NULL CHECK (key ~ '^[a-z][a-z-]{1,30}:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(:[0-9]{1,3})?$'),
   task_id uuid NOT NULL,
-  created_at timestamptz(3) NOT NULL DEFAULT now()
+  created_at timestamptz(3) NOT NULL DEFAULT now(),
+  PRIMARY KEY (owner, name, key)
 );
 
 CREATE TABLE webhook_events (
@@ -311,7 +331,7 @@ GRANT SELECT (id, creditor_id, debtor_id, officer_id, first_letter_on, version) 
 GRANT UPDATE (officer_id, version) ON cases TO legarec_definer;
 GRANT INSERT ON case_events, audit_log, outbox, task_keys TO legarec_definer;
 GRANT SELECT (case_id, kind, actor_id, occurred_at) ON case_events TO legarec_definer;
-GRANT SELECT (key) ON task_keys TO legarec_definer;
+GRANT SELECT (owner, name, key) ON task_keys TO legarec_definer;
 GRANT SELECT (id, occurred_at), DELETE ON audit_log TO legarec_definer;
 GRANT SELECT, INSERT, UPDATE ON number_sequences TO legarec_definer;
 
@@ -446,7 +466,15 @@ BEGIN
     RAISE EXCEPTION 'unknown author' USING ERRCODE = 'insufficient_privilege';
   END IF;
   IF dedupe_key IS NOT NULL THEN
-    INSERT INTO public.task_keys (key, task_id) VALUES (dedupe_key, task) ON CONFLICT DO NOTHING;
+    INSERT INTO public.task_keys (owner, name, key, task_id)
+    VALUES (
+      CASE
+        WHEN author IN ('STAFF', 'SYSTEM') THEN 'team'
+        WHEN author = 'CREDITOR' THEN 'creditor:' || app.creditor_id()
+        ELSE coalesce(app.actor_key(), lower(author::text))
+      END,
+      name, dedupe_key, task)
+    ON CONFLICT DO NOTHING;
     IF NOT FOUND THEN
       RETURN false;
     END IF;
@@ -469,13 +497,13 @@ BEGIN
   RETURNING last_value INTO number;
 END
 $$;
--- Assigns cases: the Director, or the manager with the administrative delegation. Returns the number of cases changed.
+-- Assigns cases: the Director, or the manager on their behalf. Returns the number of cases changed.
 CREATE FUNCTION app.assign_cases(targets uuid[], officer uuid) RETURNS integer
 LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE
   changed integer;
 BEGIN
-  IF app.staff_role() IS DISTINCT FROM 'DIRECTOR' AND NOT app.has_delegation('ADMINISTRATIVE') THEN
+  IF app.staff_role() IS DISTINCT FROM 'DIRECTOR' AND (app.setting('acting_for') IS DISTINCT FROM 'ADMINISTRATIVE' OR app.on_behalf_of() IS NULL) THEN
     RAISE EXCEPTION 'assignment refused' USING ERRCODE = 'insufficient_privilege';
   END IF;
   IF officer IS NOT NULL AND NOT EXISTS (
@@ -640,9 +668,13 @@ GRANT SELECT (id, occurred_at, actor_kind, actor_id, actor_label, on_behalf_of_i
 
 -- Queues: written by app.enqueue() only, read by the worker.
 CREATE POLICY worker_all ON outbox TO legarec_worker USING (true) WITH CHECK (true);
-GRANT SELECT (id, queue, name, payload, actor_kind, actor_id, acting_for, run_at, created_at, claimed_at, published_at, done_at, failed_at), UPDATE (claimed_at, published_at, done_at, failed_at) ON outbox TO legarec_worker;
+GRANT SELECT (id, queue, name, payload, actor_kind, actor_id, acting_for, run_at, created_at, claimed_at, published_at, started_at, done_at, failed_at, failure), UPDATE (claimed_at, published_at, started_at, done_at, failed_at, failure) ON outbox TO legarec_worker;
 CREATE POLICY retention_purge ON outbox TO legarec_retention USING (done_at IS NOT NULL OR failed_at IS NOT NULL);
 GRANT SELECT (id, done_at, failed_at), DELETE ON outbox TO legarec_retention;
+-- A key outlives its task, but not for ever; that of a task still to come is kept.
+CREATE POLICY retention_wait ON outbox FOR SELECT TO legarec_retention USING (true);
+CREATE POLICY retention_purge ON task_keys TO legarec_retention USING (true);
+GRANT SELECT (task_id, created_at), DELETE ON task_keys TO legarec_retention;
 CREATE POLICY retention_write ON retention_runs FOR INSERT TO legarec_retention WITH CHECK (true);
 CREATE POLICY staff_read ON retention_runs FOR SELECT TO legarec_staff USING ((SELECT app.staff_role()) IN ('DIRECTOR', 'DEVELOPER'));
 GRANT INSERT (kind, removed) ON retention_runs TO legarec_retention;
