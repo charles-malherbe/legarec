@@ -237,6 +237,7 @@ model Case {
   debtor   Debtor      @relation(fields: [debtorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   officer  User?       @relation(fields: [officerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   events   CaseEvent[]
+  notifications Notification[]
 
   @@unique([id, creditorId], map: "cases_id_creditor")
   @@index([officerId, status], map: "cases_officer")

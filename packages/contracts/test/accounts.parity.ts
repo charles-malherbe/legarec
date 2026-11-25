@@ -18,7 +18,9 @@ import {
   notificationItem,
   partnerSession,
   proofNeeded,
+  searchHit,
   secretsData,
+  shellData,
   settingsHub,
   settingsSection,
   session,
@@ -42,6 +44,7 @@ const code = (value: string) => z.strictObject({ code: z.literal(value) });
 const refused = (value: string) => z.looseObject({ code: z.literal(value) });
 /** What was asked no longer holds. */
 const CHANGED = { status: 409, answer: code('CHANGED') };
+const searchHits = z.array(searchHit);
 const UNKNOWN = '00000000-0000-7000-8000-000000000000';
 const person = { firstName: 'Iris', lastName: 'Test' };
 const CREDITOR = {
@@ -360,6 +363,11 @@ export const ACCOUNT_PARITY: Parity[] = [
   { as: 'manager', request: 'POST /cases/{caseOfManager}/access-code/regenerate', status: 204 },
   { as: 'director', request: 'POST /cases/{caseOfManager}/access-code/regenerate', status: 403, answer: code('FORBIDDEN') },
   { as: 'manager', request: 'POST /cases/{caseOfDirector}/access-code/regenerate', status: 404, answer: code('NOT_FOUND') },
+  ...each(['director', 'manager', 'officer', 'developer'], () => ({ request: 'GET /shell', status: 200, answer: shellData })),
+  ...each(['director', 'manager', 'officer', 'developer'], () => ({ request: 'POST /search', body: { query: 'a' }, status: 200, answer: searchHits })),
+  { as: 'nobody', request: 'GET /shell', status: 401, answer: code('UNAUTHORIZED') },
+  { as: 'nobody', request: 'POST /search', body: { query: 'a' }, status: 401, answer: code('UNAUTHORIZED') },
+  { as: 'officer', request: 'POST /search', body: { query: 'x'.repeat(201) }, status: 422, answer: refused('INVALID') },
   { as: 'director', request: 'POST /cases/assign', body: { ids: [UNKNOWN], officerId: '{officer}' }, status: 403, answer: code('FORBIDDEN') },
   {
     as: 'director',

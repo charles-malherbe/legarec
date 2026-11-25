@@ -19,7 +19,7 @@ import { Audit } from '../../platform/audit/audit';
 import type { Actor } from '../../platform/database/actor';
 import { Database, type Transaction } from '../../platform/database/database';
 import { takenIndex } from '../../platform/database/codes';
-import { nothing, sql, type Sql } from '../../platform/database/sql';
+import { containing, nothing, sql, type Sql } from '../../platform/database/sql';
 import { ApiError, conflict, forbidden, notFound } from '../../platform/errors/api-error';
 import { dayOf, longDay } from '../../platform/format';
 import { AccessCodes } from '../debtor-access/access-codes';
@@ -406,10 +406,28 @@ export class CasesService {
   }
 
   /** Name, reference, number of the company or of an invoice, creditor. Null without any query. */
+  /** Under the search box. */
+  async named(query: string, limit: number): Promise<CaseListItem[]> {
+    const all = await this.rows(nothing);
+    const matching = await this.matching(query, all);
+    const now = dayOf(new Date());
+    return all
+      .filter((row) => matching?.has(row.id))
+      .slice(0, limit)
+      .map((row) => itemOf(row, now));
+  }
+
+  async invoicesNamed(query: string, limit: number) {
+    return this.database.tx.$queryRaw<{ id: string; number: string; case_id: string; debtor: string; creditor: string; left: bigint }[]>`
+      SELECT i.id, i.number, i.case_id, d.name AS debtor, k.name AS creditor, i.principal_cents - i.principal_paid_cents AS left
+      FROM case_invoices i JOIN cases c ON c.id = i.case_id JOIN debtors d ON d.id = c.debtor_id JOIN creditors k ON k.id = c.creditor_id
+      WHERE i.number ILIKE ${containing(query)} OR i.external_ref ILIKE ${containing(query)} ORDER BY i.number, i.id LIMIT ${limit}`;
+  }
+
   private async matching(query: string, all: Row[]): Promise<Set<string> | null> {
     const text = query.trim();
     if (!text) return null;
-    const like = `%${text.replace(/[\\%_]/gu, (char) => `\\${char}`)}%`;
+    const like = containing(text);
     const number = text.replace(/\s/gu, '');
     const found = await this.database.tx.$queryRaw<{ id: string }[]>`
       SELECT c.id FROM cases c JOIN debtors d ON d.id = c.debtor_id JOIN creditors k ON k.id = c.creditor_id

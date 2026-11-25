@@ -6,6 +6,7 @@ import type { bankAccountChange, creditorChanges, creditorChoices, creditorDetai
 import { Audit } from '../../platform/audit/audit';
 import type { Actor } from '../../platform/database/actor';
 import { Database, type Transaction } from '../../platform/database/database';
+import { containing } from '../../platform/database/sql';
 import { conflict, invalid, notFound } from '../../platform/errors/api-error';
 import { capitalized, ago, dayOf } from '../../platform/format';
 import { STATUS_LABELS } from '../cases/labels';
@@ -62,6 +63,19 @@ export class CreditorsService {
     });
     const totals = await this.totals(found.map((item) => item.id));
     return found.map((item) => this.summary(item, totals.get(item.id) ?? NONE));
+  }
+
+  /** Under the search box. */
+  async named(query: string, limit: number) {
+    const like = containing(query);
+    const number = query.replace(/\s/gu, '');
+    const found = await this.database.tx.$queryRaw<{ id: string; name: string; siren: string | null }[]>`
+      SELECT id, name, siren FROM creditors
+      WHERE status = 'ACTIVE' AND (unaccent(name) ILIKE unaccent(${like}) OR unaccent(coalesce(legal_name, '')) ILIKE unaccent(${like})
+        OR (${/^\d{3,14}$/u.test(number)} AND siren LIKE ${`${number.slice(0, 9)}%`}))
+      ORDER BY name, id LIMIT ${limit}`;
+    const totals = await this.totals(found.map((item) => item.id));
+    return found.map((item) => ({ ...item, debtors: (totals.get(item.id) ?? NONE).debtors }));
   }
 
   async detail(actor: StaffActor, id: string): Promise<z.infer<typeof creditorDetail>> {

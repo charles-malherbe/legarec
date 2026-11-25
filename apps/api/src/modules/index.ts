@@ -20,7 +20,9 @@ import { DelegationsController } from './delegations/delegations.controller';
 import { MembersController } from './members/members.controller';
 import { MembersService } from './members/members.service';
 import { NotificationsController } from './notifications/notifications.controller';
+import { NotificationsService } from './notifications/notifications.service';
 import { SettingsController } from './settings/settings.controller';
+import { ShellController } from './shell/shell.controller';
 import { SupportController } from './support/support.controller';
 import { SecretsController } from './vault/secrets.controller';
 import { InternalKeys } from './vault/internal-keys';
@@ -41,6 +43,7 @@ export const controllers: Type[] = [
   SettingsController,
   CreditorsController,
   CasesController,
+  ShellController,
 ];
 export const providers: Provider[] = [
   AuthKeys,
@@ -60,4 +63,5 @@ export const providers: Provider[] = [
   CreditorsService,
   CasesService,
   ContactsService,
+  NotificationsService,
 ];

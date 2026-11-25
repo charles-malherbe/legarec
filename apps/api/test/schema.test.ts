@@ -203,7 +203,6 @@ describe('rights of the roles inside', () => {
       'notification_preferences INSERT (email, in_app, kind, user_id)',
       'notification_preferences SELECT (email, in_app, kind, user_id)',
       'notification_preferences UPDATE (email, in_app)',
-      'notifications SELECT (action, actor_id, created_at, id, kind, read_at, target_id, ticket_id, user_id)',
       'notifications UPDATE (read_at)',
       'retention_runs SELECT (id, kind, ran_at, removed)',
       'support_tickets SELECT (created_at, id, message, number, status, subject, user_id)',
@@ -233,6 +232,7 @@ describe('rights of the roles inside', () => {
       'case_invoices SELECT (case_id, claimed_cents, created_at, created_by, creditor_id, due_on, external_ref, id, issued_on, number, principal_cents, principal_paid_cents, state)',
       'cases INSERT (contact_name, contact_title, created_at, created_by, creditor_id, debtor_address, debtor_city, debtor_id, debtor_postal_code, debtor_siret, external_reference, id, mandate_id, officer_id, opened_on, reference, scenario, status, version)',
       'cases SELECT (closed_on, contact_name, contact_title, created_at, created_by, creditor_id, debtor_address, debtor_city, debtor_id, debtor_postal_code, debtor_siret, external_reference, first_letter_on, first_letter_reference, id, mandate_id, officer_id, opened_on, reference, scenario, status, version)',
+      'notifications SELECT (action, actor_id, case_count, case_id, created_at, creditor_id, id, kind, read_at, target_id, ticket_id, user_id)',
     ],
     legarec_worker: [
       // The links leave with the e-mails that it sends, and are kept nowhere.
@@ -303,7 +303,6 @@ describe('rights of the roles inside', () => {
       'notification_preferences DELETE (*)',
       'notification_preferences SELECT (user_id)',
       'notifications DELETE (*)',
-      'notifications INSERT (action, actor_id, kind, target_id, ticket_id, user_id)',
       'notifications SELECT (user_id)',
       'number_sequences INSERT (*)',
       'number_sequences SELECT (*)',
@@ -327,7 +326,6 @@ describe('rights of the roles inside', () => {
       'user_sessions UPDATE (last_seen_at, revoked_at)',
       'users DELETE (*)',
       'users INSERT (creditor_id, email, first_name, invited_at, invited_by, last_name, role)',
-      'users SELECT (anonymized_at, creditor_id, disabled_at, email, first_name, id, invited_at, invited_by, last_name, password_hash, role, status, substitute_id, two_factor_required)',
       'users UPDATE (anonymized_at, disabled_at, disabled_by, disabled_reason, email, extension, first_name, invited_at, last_name, last_seen_at, password_hash, role, status, substitute_id, two_factor_required)',
       // Written, never read.
       'vault_secrets INSERT (id, name, rotation, value_cipher)',
@@ -344,6 +342,8 @@ describe('rights of the roles inside', () => {
       'debtor_retired_codes INSERT (code_hmac, debtor_id)',
       'debtor_retired_codes SELECT (code_hmac, debtor_id)',
       'vault_secrets SELECT (id, kind, name, rotated_at, status, value_cipher)',
+      'notifications INSERT (action, actor_id, case_count, case_id, creditor_id, kind, target_id, ticket_id, user_id)',
+      'users SELECT (absent_from, absent_until, anonymized_at, creditor_id, disabled_at, email, first_name, id, invited_at, invited_by, last_name, password_hash, role, status, substitute_id, two_factor_required)',
     ],
   };
   it.each(Object.entries(expected))('%s', async (role, rights) => {

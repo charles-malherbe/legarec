@@ -227,6 +227,8 @@ export const MATRIX: Record<string, MatrixEntry> = {
     expect: supports,
   },
 
+  'GET /staff/shell': { expect: staffOf(200) },
+  'POST /staff/search': { body: () => ({ query: 'ALPHA' }), expect: staffOf(200) },
   'GET /staff/auth/proof': { expect: staffOf(200) },
   'POST /staff/auth/proof/webauthn': { expect: staffOf(200) },
   // No account of the test set has a password nor a second factor: refused, and counted.
