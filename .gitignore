@@ -14,3 +14,6 @@ apps/espace/dist-bureau/
 *.tsbuildinfo
 playwright-report/
 test-results/
+
+# Copies de travail des autres sessions de Claude Code
+.claude/worktrees/

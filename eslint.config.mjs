@@ -3,7 +3,9 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['**/node_modules/**', '**/dist/**', 'maquette/**', 'kits/**', '.comparaisons/**', '**/mockServiceWorker.js', 'apps/api/templates/**'] },
+  { ignores: ['**/node_modules/**', '**/dist/**', 'maquette/**', 'kits/**', '.comparaisons/**', '.claude/worktrees/**', '**/mockServiceWorker.js', 'apps/api/templates/**'] },
+  // Another checkout of the repository may live under .claude/worktrees: each one is its own root.
+  { languageOptions: { parserOptions: { tsconfigRootDir: import.meta.dirname } } },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
