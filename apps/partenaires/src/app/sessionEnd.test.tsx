@@ -104,9 +104,11 @@ it('keeps nothing typed by a creditor for the next one', async () => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
   const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
   try {
-    openAs('cb', '/messages');
-    await user.type((await screen.findAllByRole('textbox')).at(-1)!, 'Confidentiel');
-    expect((screen.getAllByRole('textbox').at(-1) as HTMLTextAreaElement).value).toBe('Confidentiel');
+    // A form that asks the API for nothing.
+    openAs('cb', '/depot');
+    const [field] = await screen.findAllByRole('textbox');
+    await user.type(field!, 'Confidentiel');
+    expect(field).toHaveValue('Confidentiel');
     setPartner('pr');
     await vi.advanceTimersByTimeAsync(61_000);
     act(() => void document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Shift' })));

@@ -195,7 +195,27 @@ describe('another tab', () => {
 });
 
 describe('a sign-out that the API does not receive', () => {
-  it('is asked again before anyone is shown, and forgotten by the next sign-in', async () => {
+  it('is not asked of the next person', async () => {
+    openAs('ad', '/');
+    let asked = 0;
+    server.use(
+      http.post('/api/auth/logout', () => {
+        asked += 1;
+        return HttpResponse.json({ code: 'UNAVAILABLE' }, { status: 503 });
+      }),
+    );
+    await userEvent.click(await screen.findByRole('button', { name: /^Compte de/ }));
+    await userEvent.click(await screen.findByText('Se déconnecter'));
+    await signInForm();
+    await signIn('hb@legarec.fr');
+    expect(await screen.findByRole('heading', { name: 'Bonjour Hugo' })).toBeVisible();
+    cleanup();
+    openAs('hb', '/');
+    expect(await screen.findByRole('heading', { name: 'Bonjour Hugo' })).toBeVisible();
+    expect(asked).toBe(1);
+  });
+
+  it('is asked again before anyone is shown', async () => {
     openAs('ad', '/');
     let asked = 0;
     server.use(
