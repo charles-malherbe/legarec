@@ -178,7 +178,7 @@ describe('rights of the roles that face the outside', () => {
     ],
   };
   it.each(Object.entries(expected))('%s', async (role, rights) => {
-    expect(await rightsOf(role)).toEqual(rights);
+    expect((await rightsOf(role)).sort()).toEqual([...rights].sort());
   });
 
   it('never let the team read a password, a token or an encrypted value', async () => {
@@ -214,6 +214,8 @@ describe('rights of the roles inside', () => {
       // One's own line: never the role, the address, the status nor the credentials.
       'users UPDATE (absent_from, absent_until, auto_reply, daily_summary, density, first_name, last_name, low_vision, quiet_hours, substitute_id, theme)',
       'vault_secrets SELECT (created_at, decided_by, id, kind, last_used_at, name, requested_by, rotated_at, rotation, status)',
+      'setting_versions SELECT (changed_at, changed_by, id, key, on_behalf_of_id)',
+      'settings SELECT (key, on_behalf_of_id, updated_at, updated_by, value, version)',
     ],
     legarec_worker: [
       // The links leave with the e-mails that it sends, and are kept nowhere.
@@ -235,6 +237,7 @@ describe('rights of the roles inside', () => {
       'users SELECT (creditor_id, email, first_name, id, invited_by, last_name, role, status, two_factor_required)',
       'webhook_events SELECT (id, processed_at, provider, provider_event_id, received_at, status)',
       'webhook_events UPDATE (processed_at, status)',
+      'settings SELECT (key, value)',
     ],
     legarec_retention: [
       'idempotency_keys DELETE (*)',
@@ -287,6 +290,10 @@ describe('rights of the roles inside', () => {
       // Closes, never gives: no secret, no key of a security key, no code is read by a function.
       'second_factors DELETE (*)',
       'second_factors SELECT (confirmed_at, user_id)',
+      'setting_versions INSERT (changed_by, id, key, on_behalf_of_id, previous_cipher)',
+      'settings INSERT (key, on_behalf_of_id, updated_by, value)',
+      'settings SELECT (key, on_behalf_of_id, updated_by, value, version)',
+      'settings UPDATE (on_behalf_of_id, updated_at, updated_by, value, version)',
       'support_tickets INSERT (id, message, number, subject, user_id)',
       'support_tickets SELECT (id, user_id)',
       'task_keys INSERT (*)',
@@ -307,7 +314,7 @@ describe('rights of the roles inside', () => {
     ],
   };
   it.each(Object.entries(expected))('%s', async (role, rights) => {
-    expect(await rightsOf(role)).toEqual(rights);
+    expect((await rightsOf(role)).sort()).toEqual([...rights].sort());
   });
 
   it('let nobody create anything, not even for the time of a session', async () => {
@@ -371,7 +378,7 @@ describe('rights on the functions', () => {
       ...['invite_member', 'cancel_invitation', 'disable_member', 'enable_member', 'set_member_role', 'set_extension', 'support'],
       ...['account_states', 'locked', 'set_delegation', 'open_ticket', 'acts_as_director'],
     ].map((name) => [name, ['staff']] as [string, string[]]),
-    ...['save_secret', 'renew_secret', 'revoke_secret', 'keep_secret'].map((name) => [name, ['staff']] as [string, string[]]),
+    ...['save_secret', 'renew_secret', 'revoke_secret', 'keep_secret', 'save_setting'].map((name) => [name, ['staff']] as [string, string[]]),
     ['portal_officer', ['partner']],
     ['create_director', ['worker']],
     ['ticket_reader', ['worker']],
@@ -405,7 +412,7 @@ describe('rights on the functions', () => {
       'log enqueue staff_role has_delegation partner_creditor on_behalf_of actor_kind actor_label actor_id actor_key',
       'purge_sign_ins anonymize_accounts account_of account_of_link inviter_name resume_session take_attempt clear_attempts subject proved_subject tell_reset',
       'invite_member cancel_invitation disable_member enable_member set_member_role set_extension support account_states locked set_delegation open_ticket acts_as_director',
-      'save_secret renew_secret revoke_secret keep_secret',
+      'save_secret renew_secret revoke_secret keep_secret save_setting',
       'portal_officer create_director ticket_reader close_account release_cases digests refuse tell_director end_technical_delegation take_with_substituted open_delegations require_for_developer',
       'uuid_v7 setting user_id creditor_id debtor_id only_identifiers audit_params',
     ].flatMap((names) => names.split(' '));

@@ -27,7 +27,8 @@ const staff = (session: Session) => session.role !== 'CREDITOR';
 
 const seedGroups = () => ({ firm: asInMockup(firmGroups()), technical: asInMockup(technicalGroups()) });
 let groups = seedGroups();
-const scopeOf = (value: unknown) => (value === 'techniques' ? 'technical' : 'firm');
+const SCOPES: Record<string, 'firm' | 'technical'> = { firm: 'firm', techniques: 'technical' };
+const scopeOf = (value: unknown) => SCOPES[String(value)] ?? null;
 const canRead = (scope: 'firm' | 'technical', session: Session) => (scope === 'technical' ? canAccessTechnicalSettings(session) : staff(session));
 const canEdit = (scope: 'firm' | 'technical', session: Session) =>
   scope === 'technical' ? session.role === 'DIRECTOR' || hasDelegation(session, 'TECHNICAL') : administers(session);
@@ -160,6 +161,7 @@ export const settingsHandlers = [
     '/api/settings/:scope',
     guarded<Info>(staff, ({ params }, session) => {
       const scope = scopeOf(params.scope);
+      if (!scope) return notFound();
       if (!canRead(scope, session)) return forbidden();
       const hub: SettingsHub = {
         canEdit: canEdit(scope, session),
@@ -177,6 +179,7 @@ export const settingsHandlers = [
     '/api/settings/:scope/:id',
     guarded<Info>(staff, ({ params }, session) => {
       const scope = scopeOf(params.scope);
+      if (!scope) return notFound();
       if (!canRead(scope, session)) return forbidden();
       const item = groups[scope].flatMap((group) => group.items).find((entry) => entry.id === params.id);
       if (!item) return notFound();
@@ -197,6 +200,7 @@ export const settingsHandlers = [
     '/api/settings/:scope/:id',
     guarded<Info>(staff, async ({ params, request }, session) => {
       const scope = scopeOf(params.scope);
+      if (!scope) return notFound();
       if (!canEdit(scope, session)) return forbidden();
       const item = groups[scope].flatMap((group) => group.items).find((entry) => entry.id === params.id);
       if (!item) return notFound();

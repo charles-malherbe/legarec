@@ -65,6 +65,7 @@ const secret =
     );
     return `/staff/secrets/${rows[0]!.id}/${then}`;
   };
+let settingTurn = 0;
 const technical = only({ director: 204, developer: 204 });
 const hidden = { ...technical, liar: 404 };
 
@@ -152,6 +153,14 @@ export const MATRIX: Record<string, MatrixEntry> = {
   'PUT /staff/delegations/:kind': { path: () => '/staff/delegations/technical', body: () => ({ active: true }), expect: only({ director: 204 }) },
   'POST /staff/support-tickets': { body: () => ({ subject: 'Question', message: 'Une question du banc de test.' }), expect: staffOf(200) },
   // The liar sees nothing of it.
+  'GET /staff/settings/:scope': { path: () => '/staff/settings/firm', expect: staffOf(200) },
+  'GET /staff/settings/:scope/:id': { path: () => '/staff/settings/techniques/audit', expect: only({ director: 200, developer: 200, liar: 200 }) },
+  'PUT /staff/settings/:scope/:id': {
+    path: () => '/staff/settings/firm/relances',
+    // Each caller changes something.
+    body: () => ({ calls: String(1 + (settingTurn++ % 2) * 2) }),
+    expect: only({ director: 204, manager: 204 }),
+  },
   'GET /staff/secrets': { expect: only({ director: 200, developer: 200, liar: 200 }) },
   'POST /staff/secrets': {
     path: async (test) => {

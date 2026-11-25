@@ -40,7 +40,8 @@ export const AUDIT_ACTIONS = {
   DIRECTOR_CREATED: 'Compte du Directeur créé depuis le serveur',
   // Platform
   CASE_NOTE_ADDED: 'Note ajoutée à un dossier',
-  SETTING_CHANGED: 'Paramètres modifiés',
+  SETTING_CHANGED: 'Paramètres modifiés : {count}',
+  FIRM_IDENTITY_CHANGED: 'Identifiants du cabinet modifiés : {count}',
   SECRET_SAVED: 'Secret enregistré : {secret}',
   SECRET_RENEWED: 'Secret renouvelé : {secret}',
   SECRET_REVOKE_ASKED: 'Révocation demandée : {secret}',

@@ -3,8 +3,9 @@ import { AUTOMATIC_EMAILS, emailConfig, emailSchemas, REPLY_ACCEPTED, type Autom
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
-import { readEmailConfig } from './config';
+import { emailConfigOf } from './config';
 import { EmailsService, AUTOMATIC_SENDER, type AutomaticMessage } from './emails.service';
+import type { SettingValues } from '../modules/settings/values';
 import { EmailRenderer, TEMPLATES_DIR } from './renderer';
 import {
   HOURLY_QUOTA,
@@ -48,7 +49,8 @@ const config = emailConfig.parse({
   website_url: 'https://www.legarec.fr',
   website_label: 'www.legarec.fr',
 });
-const renderer = new EmailRenderer(config, TEMPLATES_DIR);
+const kit = new EmailRenderer(TEMPLATES_DIR);
+const renderer = { renderAutomatic: (name: AutomaticEmail, data: unknown) => kit.renderAutomatic(name, data, config) };
 const count = (html: string, part: string) => html.split(part).length - 1;
 
 describe('kit', () => {
@@ -110,7 +112,7 @@ describe('automatic e-mails', () => {
       messages.push(message);
       return Promise.resolve();
     };
-    return { messages, service: new EmailsService(renderer, { send }, config) };
+    return { messages, service: new EmailsService(kit, { send }, () => Promise.resolve(config)) };
   };
   it('accepts replies on the three reminders only', async () => {
     const { messages, service } = collect();
@@ -145,7 +147,7 @@ describe('staff message', () => {
   };
   const make = (transport = { send: vi.fn(() => Promise.resolve()), appendToSent: vi.fn(() => Promise.resolve()) }, now?: () => number) => ({
     transport,
-    service: new StaffMessagesService(renderer, transport, now),
+    service: new StaffMessagesService(kit, config, transport, now),
   });
   it.each([
     ['debtor', true],
@@ -215,29 +217,19 @@ describe('staff message', () => {
   });
 });
 
-it('reads the configuration from the environment and refuses a missing value', () => {
-  const env = {
-    FIRM_NAME: 'LEGAREC',
-    FIRM_SIREN: '[SIREN]',
-    FIRM_ADDRESS: '[ADRESSE DU CABINET]',
-    FIRM_PHONE: '01 87 88 02 98',
-    COLLECTION_EMAIL: 'recouvrement@legarec.fr',
-    SUPPORT_EMAIL: 'administratif@legarec.fr',
-    DEBTOR_PORTAL_URL: 'https://paiement.legarec.fr/',
-    WEBSITE_URL: 'https://www.legarec.fr',
-    MEDIA_BASE_URL: 'https://media.legarec.fr/',
-    ACCOUNT_HOLDER: 'LEGAREC',
-    BANK_IBAN: '[IBAN DU COMPTE DÉDIÉ]',
-    BANK_BIC: '[BIC]',
-    CHEQUE_PAYEE: '[ORDRE DES CHÈQUES]',
-    CHEQUE_ADDRESS: '[ADRESSE D’ENVOI DES CHÈQUES]',
-    PLAN_APPROVAL_THRESHOLD: '6 mois',
-  };
-  expect(readEmailConfig(env)).toMatchObject({
+it('reads the configuration from the settings of the firm, what it has not typed staying between brackets', () => {
+  const values = (changed: Record<string, string>) =>
+    ({ text: (_scope: string, section: string, field: string) => changed[`${section}.${field}`] ?? '[À COMPLÉTER]' }) as unknown as SettingValues;
+  const portals = { DEBTOR_PORTAL_URL: 'https://paiement.legarec.fr' };
+  const known = { 'cabinet.phone': '01 87 88 02 98', 'cabinet.iban': 'GB82 WEST 1234 5698 7654 32', 'regles.duration': '6 mois' };
+  expect(emailConfigOf(values(known), portals)).toMatchObject({
     phone: '01 87 88 02 98',
     phone_href: '+33187880298',
+    iban: 'GB82 WEST 1234 5698 7654 32',
+    firm_siren: '[À COMPLÉTER]',
+    plan_approval_threshold: '6 mois',
     portal_label: 'paiement.legarec.fr',
     logo_url: 'https://media.legarec.fr/e-mails/v1/legarec-logo-en-tete.png',
   });
-  expect(() => readEmailConfig({ ...env, BANK_IBAN: undefined })).toThrow();
+  expect(() => emailConfigOf(values({ ...known, 'cabinet.phone': 'bientôt' }), portals)).toThrow();
 });

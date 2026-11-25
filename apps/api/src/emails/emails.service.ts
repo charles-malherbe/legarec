@@ -20,19 +20,21 @@ export class EmailsService {
   constructor(
     private readonly renderer: EmailRenderer,
     private readonly transport: AutomaticTransport,
-    private readonly config: EmailConfig,
+    /** Read again for each message: what the firm changes holds at once. */
+    private readonly settings: () => Promise<EmailConfig>,
   ) {}
 
   async send(name: AutomaticEmail, to: string, data: unknown): Promise<void> {
     // One valid address only: no list nor header injection.
     z.email().parse(to);
-    const { subject, html } = this.renderer.renderAutomatic(name, data);
+    const config = await this.settings();
+    const { subject, html } = this.renderer.renderAutomatic(name, data, config);
     await this.transport.send({
       from: AUTOMATIC_SENDER,
       to,
       subject,
       html,
-      ...(REPLY_ACCEPTED.includes(name) ? { replyTo: this.config.collection_email } : {}),
+      ...(REPLY_ACCEPTED.includes(name) ? { replyTo: config.collection_email } : {}),
     });
   }
 

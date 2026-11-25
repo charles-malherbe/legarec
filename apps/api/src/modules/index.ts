@@ -13,6 +13,7 @@ import { DelegationsController } from './delegations/delegations.controller';
 import { MembersController } from './members/members.controller';
 import { MembersService } from './members/members.service';
 import { NotificationsController } from './notifications/notifications.controller';
+import { SettingsController } from './settings/settings.controller';
 import { SupportController } from './support/support.controller';
 import { SecretsController } from './vault/secrets.controller';
 import { Vault } from './vault/vault';
@@ -28,6 +29,7 @@ export const controllers: Type[] = [
   SupportController,
   NotificationsController,
   SecretsController,
+  SettingsController,
 ];
 export const providers: Provider[] = [
   AuthKeys,

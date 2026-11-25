@@ -7,6 +7,8 @@ import {
   notificationItem,
   partnerSession,
   secretsData,
+  settingsHub,
+  settingsSection,
   session,
   ticketSent,
   totpSetup,
@@ -190,6 +192,23 @@ export const ACCOUNT_PARITY: Parity[] = [
   { as: 'director', request: `POST /secrets/${UNKNOWN}/rotate`, body: { value: 'valeur-fictive' }, status: 404, answer: code('NOT_FOUND') },
   { as: 'developer', request: `POST /secrets/${UNKNOWN}/revoke`, status: 404, answer: code('NOT_FOUND') },
   { as: 'developer', request: `POST /secrets/${UNKNOWN}/keep`, status: 403, answer: code('FORBIDDEN') },
+
+  ...each(STAFF, () => ({ request: 'GET /settings/firm', status: 200, answer: settingsHub })),
+  ...each(STAFF, () => ({ request: 'GET /settings/firm/cabinet', status: 200, answer: settingsSection })),
+  ...each(['director', 'developer'], () => ({ request: 'GET /settings/techniques', status: 200, answer: settingsHub })),
+  ...each(['director', 'developer'], () => ({ request: 'GET /settings/techniques/audit', status: 200, answer: settingsSection })),
+  ...each(['manager', 'officer'], () => ({ request: 'GET /settings/techniques', status: 403, answer: code('FORBIDDEN') })),
+  ...each(['manager', 'officer'], () => ({ request: 'GET /settings/techniques/audit', status: 403, answer: code('FORBIDDEN') })),
+  { as: 'director', request: 'GET /settings/autre', status: 404, answer: code('NOT_FOUND') },
+  { as: 'director', request: 'GET /settings/firm/autre', status: 404, answer: code('NOT_FOUND') },
+  ...each(['director', 'manager'], () => ({ request: 'PUT /settings/firm/relances', body: { calls: '3' }, status: 204 })),
+  ...each(['developer', 'officer'], () => ({ request: 'PUT /settings/firm/relances', body: { calls: '3' }, status: 403, answer: code('FORBIDDEN') })),
+  { as: 'developer', request: 'PUT /settings/techniques/securite', body: { x5: false }, status: 204 },
+  { as: 'manager', request: 'PUT /settings/firm/cabinet', body: { chequePayee: 'LEGAREC' }, status: 403, answer: code('FORBIDDEN') },
+  { as: 'director', request: 'PUT /settings/firm/cabinet', body: { chequePayee: 'LEGAREC' }, status: 204 },
+  { as: 'director', request: 'PUT /settings/firm/cabinet', body: { iban: 'FR00' }, status: 422, answer: refused('INVALID') },
+  { as: 'director', request: 'PUT /settings/firm/relances', body: { calls: '99' }, status: 422, answer: refused('INVALID') },
+  { as: 'director', request: 'PUT /settings/firm/autre', body: {}, status: 404, answer: code('NOT_FOUND') },
 ];
 
 /** Sign-in of the creditors. */

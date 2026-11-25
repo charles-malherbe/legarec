@@ -20,29 +20,26 @@ export class EmailRenderer {
   private readonly subjects: Record<string, string>;
   private readonly bodies = new Map<string, Handlebars.TemplateDelegate>();
 
-  constructor(
-    private readonly config: EmailConfig,
-    private readonly dir: string,
-  ) {
+  constructor(private readonly dir: string) {
     const read = (file: string) => readFileSync(join(dir, file), 'utf8');
     this.engine.registerPartial('layout', read('layout.hbs'));
     for (const file of readdirSync(join(dir, 'partials'))) this.engine.registerPartial(basename(file, '.hbs'), read(join('partials', file)));
     this.subjects = JSON.parse(read('subjects.json')) as Record<string, string>;
   }
 
-  renderAutomatic(name: AutomaticEmail, data: unknown): RenderedEmail {
+  renderAutomatic(name: AutomaticEmail, data: unknown, config: EmailConfig): RenderedEmail {
     // The schema drops every unknown key: only the reminders declare `case.access_code`.
-    const context = { ...emailSchemas[name].parse(data), config: this.config };
+    const context = { ...emailSchemas[name].parse(data), config };
     const source = this.subjects[name];
     if (!source) throw new Error(`No subject for ${name}`);
     const subject = oneLine(this.engine.compile(source, { noEscape: true })(context));
     return { subject, html: this.body(name)({ ...context, subject }) };
   }
 
-  renderStaffMessage(data: StaffMessageData): RenderedEmail {
+  renderStaffMessage(data: StaffMessageData, config: EmailConfig): RenderedEmail {
     const parsed = staffMessage.parse(data);
     const subject = oneLine(parsed.message.subject);
-    return { subject, html: this.body('staff-message')({ ...parsed, config: this.config, subject }) };
+    return { subject, html: this.body('staff-message')({ ...parsed, config, subject }) };
   }
 
   private body(name: string): Handlebars.TemplateDelegate {

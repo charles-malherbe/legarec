@@ -1,11 +1,12 @@
 import 'reflect-metadata';
 import { fileURLToPath } from 'node:url';
-import { provisionalEmailConfig } from './emails/config';
+import { emailConfigOf } from './emails/config';
 import { EmailsService } from './emails/emails.service';
 import { EmailRenderer } from './emails/renderer';
 import { SimulatedTransport } from './emails/transport';
 import { accountJobs } from './modules/auth/auth.jobs';
 import { AuthKeys } from './modules/auth/keys';
+import { SettingValues } from './modules/settings/values';
 import { readWorkerConfig } from './platform/config/config';
 import { Database } from './platform/database/database';
 import { createLogger } from './platform/logging/logger';
@@ -23,10 +24,10 @@ const publishing = connectValkey(config.VALKEY_URL, 'api');
 for (const link of [connection, publishing]) link.on('error', () => logger.warn('valkey unreachable'));
 
 const publisher = new OutboxPublisher(database, logger, publishing);
-const emailSettings = provisionalEmailConfig();
+const emailSettings = () => database.run({ kind: 'worker', job: 'email-settings' }, async (tx) => emailConfigOf(await SettingValues.read(tx), config));
 // Next to the folder of the sources, as to that of the programs once built.
 const templates = fileURLToPath(new URL('../templates/emails/', import.meta.url));
-const emails = new EmailsService(new EmailRenderer(emailSettings, templates), new SimulatedTransport(logger, config.DEV_MAIL_DIR), emailSettings);
+const emails = new EmailsService(new EmailRenderer(templates), new SimulatedTransport(logger, config.DEV_MAIL_DIR), emailSettings);
 const handlers: JobHandlers = { email: accountJobs({ keys: new AuthKeys(config), portals: config, send: (name, to, data) => emails.send(name, to, data) }) };
 let workers: Workers | undefined;
 let hourly: NodeJS.Timeout | undefined;

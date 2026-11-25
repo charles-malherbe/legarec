@@ -1,4 +1,4 @@
-import { ROLE_LABELS, type Role } from '@legarec/contracts';
+import { ROLE_LABELS, type Role, type EmailConfig } from '@legarec/contracts';
 import { z } from 'zod';
 import { formatPhone } from './phone';
 import type { EmailRenderer } from './renderer';
@@ -59,6 +59,7 @@ export class StaffMessagesService {
 
   constructor(
     private readonly renderer: EmailRenderer,
+    private readonly config: EmailConfig,
     private readonly transport: MailboxTransport,
     private readonly now: () => number = Date.now,
   ) {}
@@ -88,20 +89,23 @@ export class StaffMessagesService {
     const paragraphs = toParagraphs(input.text);
     const phone = sender.phone ? formatPhone(sender.phone) : null;
     const fullName = `${sender.firstName} ${sender.lastName.toLocaleUpperCase('fr-FR')}`;
-    const { subject, html } = this.renderer.renderStaffMessage({
-      message: { subject: input.subject, preview: paragraphs[0]?.slice(0, 120), paragraphs },
-      case: input.caseReference ? { reference: input.caseReference } : undefined,
-      creditor: input.creditorName ? { name: input.creditorName } : undefined,
-      debtor_recipient: input.recipientIsDebtor,
-      sender: {
-        full_name: fullName,
-        job_title: sender.role ? ROLE_LABELS[sender.role] : undefined,
-        email: sender.email,
-        phone: phone?.national,
-        phone_href: phone?.international,
-        extension: sender.extension ?? undefined,
+    const { subject, html } = this.renderer.renderStaffMessage(
+      {
+        message: { subject: input.subject, preview: paragraphs[0]?.slice(0, 120), paragraphs },
+        case: input.caseReference ? { reference: input.caseReference } : undefined,
+        creditor: input.creditorName ? { name: input.creditorName } : undefined,
+        debtor_recipient: input.recipientIsDebtor,
+        sender: {
+          full_name: fullName,
+          job_title: sender.role ? ROLE_LABELS[sender.role] : undefined,
+          email: sender.email,
+          phone: phone?.national,
+          phone_href: phone?.international,
+          extension: sender.extension ?? undefined,
+        },
       },
-    });
+      this.config,
+    );
     return { from: `"${fullName.replace(/["\\\r\n]/gu, '')}" <${sender.email}>`, to: input.to, subject, html };
   }
 
