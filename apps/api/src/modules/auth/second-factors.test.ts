@@ -504,6 +504,9 @@ describe('required, and not set up yet', () => {
   });
 
   it('opens the session for half a day, with the cookie that was asked for', async () => {
+    // Frozen again now: a minute behind PostgreSQL, the session would be seen once more.
+    vi.useRealTimers();
+    freezeClock();
     const { id, email } = await newAccount(test);
     await rows('UPDATE users SET two_factor_required = true, last_seen_at = NULL WHERE id = $1', [id]);
     const browser = staff();
