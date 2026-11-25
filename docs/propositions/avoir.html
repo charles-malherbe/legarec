@@ -59,7 +59,7 @@
       <symbol id="i-x-circle" viewBox="0 0 24 24"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM15 9l-6 6M9 9l6 6"></path></symbol>
     </svg>
     <section class="note" aria-label="Proposition">
-      <p><strong>Proposition 4 sur 4 · Avoir</strong> · à valider par le cabinet (question 69). Données fictives.</p>
+      <p><strong>Proposition 4 sur 4 · Avoir</strong> · validée par le cabinet le 25/11/2026 (question 69). Données fictives.</p>
       <nav aria-label="Propositions">
         <a href="#ecran">Écran</a><a href="#etats">États</a><a href="creancier-et-mandat.html">1. Créancier et mandat</a
         ><a href="debiteur-et-factures.html">2. Débiteur et factures</a><a href="validation-des-reversements.html">3. Validation des reversements</a
@@ -574,9 +574,9 @@ Chèque revenu impayé après reversement (dossier LGR‑2026‑00188).</textare
               <div class="body">
                 <ul class="checks">
                   <li><span class="statut" data-tone="marine">Facturation › + Créer depuis un modèle › Avoir (type ajouté en dernier)</span></li>
-                  <li><span class="statut" data-tone="warning">Ligne d’une facture émise › Avoir (bouton à ajouter)</span></li>
+                  <li><span class="statut" data-tone="marine">Ligne d’une facture émise › Avoir (nouveau bouton)</span></li>
                   <li><span class="statut" data-tone="marine">Reversements › Préparer l’avoir</span></li>
-                  <li><span class="statut" data-tone="warning">Onglet « Avoirs » ajouté après « Contrats »</span></li>
+                  <li><span class="statut" data-tone="marine">Onglet « Avoirs » après « Contrats » (nouveau)</span></li>
                 </ul>
               </div>
             </section>
@@ -766,7 +766,12 @@ Chèque revenu impayé après reversement (dossier LGR‑2026‑00188).</textare
                       <td data-align="right" data-nowrap><span class="strong">250,56 €</span></td>
                       <td><span class="badge" data-tone="marine">Au reversement du 15/12</span></td>
                       <td>
-                        <button type="button" class="bouton" data-variant="secondary" data-size="sm" aria-label="PDF AV-2026-0002"><span>PDF</span></button>
+                        <span class="inline" data-nowrap
+                          ><button type="button" class="bouton" data-variant="secondary" data-size="sm" aria-label="PDF AV-2026-0002"><span>PDF</span></button
+                          ><button type="button" class="bouton" data-variant="secondary" data-size="sm" aria-label="Envoyer AV-2026-0002 au créancier">
+                            <span>Envoyer</span>
+                          </button></span
+                        >
                       </td>
                     </tr>
                     <tr>
@@ -781,11 +786,54 @@ Chèque revenu impayé après reversement (dossier LGR‑2026‑00188).</textare
                       <td data-align="right" data-nowrap><span class="strong">720,00 €</span></td>
                       <td><span class="badge" data-tone="success">Remboursé</span></td>
                       <td>
-                        <button type="button" class="bouton" data-variant="secondary" data-size="sm" aria-label="PDF AV-2026-0001"><span>PDF</span></button>
+                        <span class="inline" data-nowrap
+                          ><button type="button" class="bouton" data-variant="secondary" data-size="sm" aria-label="PDF AV-2026-0001"><span>PDF</span></button
+                          ><button type="button" class="bouton" data-variant="secondary" data-size="sm" aria-label="Envoyer AV-2026-0001 au créancier">
+                            <span>Envoyer</span>
+                          </button></span
+                        >
                       </td>
                     </tr>
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Confirmer l’envoi</strong><span>depuis la boîte du collaborateur</span></figcaption>
+            <div class="veil">
+              <div class="dialog" role="group" aria-label="Envoyer l'avoir AV-2026-0002 au créancier ?">
+                <div class="head">
+                  <span class="mark" data-tone="primary"
+                    ><svg class="icone" aria-hidden="true" data-size="xl"><use href="#i-info"></use></svg
+                  ></span>
+                  <div>
+                    <h3>Envoyer l’avoir AV‑2026‑0002 au créancier ?</h3>
+                    <p>L’avoir est déjà dans l’espace créancier. Le message part de votre boîte, avec le PDF et votre signature.</p>
+                  </div>
+                </div>
+                <dl>
+                  <div>
+                    <dt>De</dt>
+                    <dd>cl@legarec.fr</dd>
+                  </div>
+                  <div>
+                    <dt>À</dt>
+                    <dd>Claire Besson, c.besson@materiauxdelta.example</dd>
+                  </div>
+                  <div>
+                    <dt>Objet</dt>
+                    <dd>Avoir AV‑2026‑0002</dd>
+                  </div>
+                  <div>
+                    <dt>Pièce jointe</dt>
+                    <dd>AV‑2026‑0002.pdf</dd>
+                  </div>
+                </dl>
+                <div class="foot">
+                  <span class="hint">Échap pour annuler</span><button type="button" class="bouton" data-variant="secondary"><span>Annuler</span></button
+                  ><button type="button" class="bouton"><span>Envoyer le message</span></button>
+                </div>
               </div>
             </div>
           </figure>

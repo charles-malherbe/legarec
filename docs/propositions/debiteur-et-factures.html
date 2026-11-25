@@ -64,7 +64,7 @@
       <symbol id="i-x-circle" viewBox="0 0 24 24"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM15 9l-6 6M9 9l6 6"></path></symbol>
     </svg>
     <section class="note" aria-label="Proposition">
-      <p><strong>Proposition 2 sur 4 · Débiteur et factures</strong> · à valider par le cabinet (question 69). Données fictives.</p>
+      <p><strong>Proposition 2 sur 4 · Débiteur et factures</strong> · validée par le cabinet le 25/11/2026 (question 69). Données fictives.</p>
       <nav aria-label="Propositions">
         <a href="#ecran">Écran</a><a href="#etats">États</a><a href="creancier-et-mandat.html">1. Créancier et mandat</a
         ><a href="debiteur-et-factures.html" aria-current="page">2. Débiteur et factures</a
@@ -707,9 +707,9 @@
         </header>
         <div class="states">
           <figure class="state">
-            <figcaption><strong>Qui ouvre un dossier</strong><span>à trancher</span></figcaption>
+            <figcaption><strong>Qui ouvre un dossier</strong></figcaption>
             <div class="carte">
-              <div class="tableau" role="group" tabindex="0" aria-label="Accès à Débiteur et factures" data-min="sm">
+              <div class="tableau" role="group" tabindex="0" aria-label="Accès à Débiteur et factures">
                 <table>
                   <caption class="hidden">
                     Accès à Débiteur et factures
@@ -734,8 +734,8 @@
                     </tr>
                     <tr>
                       <td>Gestionnaire</td>
-                      <td>Ceux de ses dossiers</td>
-                      <td>À lui-même</td>
+                      <td>Non</td>
+                      <td>Reçoit les dossiers attribués</td>
                     </tr>
                     <tr>
                       <td>Développeur</td>
@@ -748,7 +748,7 @@
             </div>
           </figure>
           <figure class="state">
-            <figcaption><strong>Points d’entrée</strong><span>boutons existants</span></figcaption>
+            <figcaption><strong>Points d’entrée</strong><span>masqués pour le Gestionnaire</span></figcaption>
             <section class="carte">
               <div class="body">
                 <ul class="checks">
@@ -943,20 +943,13 @@
                 <strong>Lecture seule</strong
                 ><span
                   >Ce dossier est suivi par Hugo Benali. Vous pouvez le consulter ; votre consultation est notée dans l’historique. L’ajout de factures revient
-                  à son gestionnaire ou au Responsable.</span
+                  au Responsable du recouvrement.</span
                 ><button type="button" class="bouton" data-variant="secondary" data-size="sm"><span>Voir le dossier</span></button>
               </div>
             </div>
           </figure>
           <figure class="state">
-            <figcaption><strong>Dossier existant hors de portée</strong><span>Gestionnaire : message neutre</span></figcaption>
-            <div class="alerte" data-tone="warning" role="note">
-              <svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-alert"></use></svg>
-              <div><strong>Dossier impossible à ouvrir ici</strong><span>Voyez avec le Responsable du recouvrement. Votre saisie reste à l’écran.</span></div>
-            </div>
-          </figure>
-          <figure class="state">
-            <figcaption><strong>Même débiteur, autre créancier</strong><span>Directeur et Responsable seulement</span></figcaption>
+            <figcaption><strong>Même débiteur, autre créancier</strong></figcaption>
             <div class="alerte" data-tone="info" role="note">
               <svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-info"></use></svg>
               <div>
@@ -973,8 +966,17 @@
             <div class="alerte" data-tone="danger" role="note">
               <svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-x-circle"></use></svg>
               <div>
-                <strong>Aucun mandat actif</strong
-                ><span>Le mandat de Boulangeries Rivaud est « À signer ». Déposez la convention signée avant d’ouvrir un dossier.</span
+                <strong>Aucun mandat actif</strong><span>Le mandat de Boulangeries Rivaud prend effet le 01/01/2027. Aucun dossier ne s’ouvre avant.</span
+                ><button type="button" class="bouton" data-variant="secondary" data-size="sm"><span>Voir le créancier</span></button>
+              </div>
+            </div>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Convention à déposer</strong><span>simple alerte, le dossier s’ouvre</span></figcaption>
+            <div class="alerte" data-tone="warning" role="note">
+              <svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-alert"></use></svg>
+              <div>
+                <strong>Convention signée à déposer</strong><span>Le mandat est actif, mais sa convention signée manque sur la fiche du créancier.</span
                 ><button type="button" class="bouton" data-variant="secondary" data-size="sm"><span>Voir le créancier</span></button>
               </div>
             </div>
@@ -1034,7 +1036,7 @@
             </div>
           </figure>
           <figure class="state">
-            <figcaption><strong>Facture non échue</strong><span>à trancher</span></figcaption>
+            <figcaption><strong>Facture non échue</strong></figcaption>
             <div class="alerte" data-tone="info" role="note">
               <svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-info"></use></svg>
               <div><span>F‑2026‑1190 est due le 10/12/2026 : acceptée et signalée, sans intérêts ni indemnité avant cette date.</span></div>
@@ -1052,13 +1054,14 @@
             </div>
           </figure>
           <figure class="state">
-            <figcaption><strong>Vide</strong><span>gestionnaire sans dossier</span></figcaption>
+            <figcaption><strong>Vide</strong><span>aucun créancier</span></figcaption>
             <div class="carte">
               <div class="etat">
                 <span class="mark" data-kind="empty"
                   ><svg class="icone" aria-hidden="true" data-size="xl"><use href="#i-box"></use></svg></span
-                ><strong>Aucun créancier accessible</strong>
-                <p>Vos créanciers apparaissent dès qu’un dossier vous est attribué.</p>
+                ><strong>Aucun créancier</strong>
+                <p>Ajoutez un créancier pour lui confier des dossiers.</p>
+                <button type="button" class="bouton" data-variant="secondary"><span>+ Nouveau créancier</span></button>
               </div>
             </div>
           </figure>
@@ -1073,7 +1076,7 @@
             </div>
           </figure>
           <figure class="state">
-            <figcaption><strong>Accès refusé</strong><span>Développeur</span></figcaption>
+            <figcaption><strong>Accès refusé</strong><span>Gestionnaire, Développeur</span></figcaption>
             <div class="carte">
               <div class="etat">
                 <span class="mark" data-kind="error"

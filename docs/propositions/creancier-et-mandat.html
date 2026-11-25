@@ -64,7 +64,7 @@
       </symbol>
     </svg>
     <section class="note" aria-label="Proposition">
-      <p><strong>Proposition 1 sur 4 · Créancier et mandat</strong> · à valider par le cabinet (question 69). Données fictives.</p>
+      <p><strong>Proposition 1 sur 4 · Créancier et mandat</strong> · validée par le cabinet le 25/11/2026 (question 69). Données fictives.</p>
       <nav aria-label="Propositions">
         <a href="#ecran">Écran</a><a href="#etats">États</a><a href="creancier-et-mandat.html" aria-current="page">1. Créancier et mandat</a
         ><a href="debiteur-et-factures.html">2. Débiteur et factures</a><a href="validation-des-reversements.html">3. Validation des reversements</a
@@ -339,7 +339,7 @@
                   <div>
                     <div class="heading">
                       <h2>3. Mandat</h2>
-                      <span class="badge" data-tone="warning">À signer</span>
+                      <span class="badge" data-tone="warning">Convention à déposer</span>
                     </div>
                     <p>Conditions appliquées aux dossiers confiés</p>
                   </div>
@@ -440,13 +440,17 @@
                         </div>
                         <span class="help" id="f25-h">Toujours soumise à validation</span>
                       </div>
-                      <div data-span="2">
-                        <label class="case"
-                          ><input type="checkbox" checked /><span
-                            ><span>Contentieux sur accord écrit</span><span>Le créancier valide avant tout engagement de frais.</span></span
-                          ></label
-                        >
-                      </div>
+                    </div>
+                    <div class="form">
+                      <label class="case"
+                        ><input type="checkbox" checked /><span
+                          ><span>Contentieux sur accord écrit</span><span>Le créancier valide avant tout engagement de frais.</span></span
+                        ></label
+                      ><label class="case"
+                        ><input type="checkbox" /><span
+                          ><span>Report des reversements sous 100 €</span><span>Seulement si la convention le prévoit ; sinon, reversé chaque mois.</span></span
+                        ></label
+                      >
                     </div>
                   </fieldset>
                   <fieldset class="group">
@@ -583,7 +587,7 @@
                       <li><span class="statut" data-tone="warning">Convention signée à déposer</span></li>
                       <li><span class="statut" data-tone="warning">IBAN à confirmer par téléphone</span></li>
                     </ul>
-                    <p class="hint">Sans convention signée, le mandat reste « À signer » : aucun dossier ne peut être ouvert.</p>
+                    <p class="hint">Sans convention signée, la fiche et les nouveaux dossiers affichent une alerte.</p>
                   </div>
                 </div>
               </section>
@@ -653,7 +657,7 @@
           <figure class="state">
             <figcaption><strong>Qui y accède</strong></figcaption>
             <div class="carte">
-              <div class="tableau" role="group" tabindex="0" aria-label="Accès à Créancier et mandat" data-min="sm">
+              <div class="tableau" role="group" tabindex="0" aria-label="Accès à Créancier et mandat">
                 <table>
                   <caption class="hidden">
                     Accès à Créancier et mandat
@@ -692,14 +696,14 @@
             </div>
           </figure>
           <figure class="state">
-            <figcaption><strong>Points d’entrée</strong><span>boutons existants</span></figcaption>
+            <figcaption><strong>Points d’entrée</strong></figcaption>
             <section class="carte">
               <div class="body">
                 <ul class="checks">
                   <li><span class="statut" data-tone="marine">Créanciers › + Nouveau créancier (N)</span></li>
                   <li><span class="statut" data-tone="marine">Barre du haut › Créer › Créancier</span></li>
                   <li><span class="statut" data-tone="marine">Créancier actif › Ajouter ou gérer les créanciers</span></li>
-                  <li><span class="statut" data-tone="warning">Fiche créancier › Convention de mandat › Modifier (dans la maquette, à remettre)</span></li>
+                  <li><span class="statut" data-tone="marine">Fiche créancier › Convention de mandat › Modifier (bouton de la maquette, remis)</span></li>
                 </ul>
               </div>
             </section>
@@ -714,7 +718,7 @@
                   ></span>
                   <div>
                     <h3>Créer ce créancier ?</h3>
-                    <p>La fiche est créée avec un mandat « À signer ». Aucun dossier ne peut être ouvert avant le dépôt de la convention signée.</p>
+                    <p>Le mandat prend effet à sa date. La convention signée reste à déposer : une alerte le rappelle sur la fiche et les nouveaux dossiers.</p>
                   </div>
                 </div>
                 <dl>
@@ -737,6 +741,10 @@
                   <div>
                     <dt>Échéancier</dt>
                     <dd>Sans accord jusqu’à 6 mois</dd>
+                  </div>
+                  <div>
+                    <dt>Convention</dt>
+                    <dd>À déposer</dd>
                   </div>
                   <div>
                     <dt>Compte</dt>
@@ -1153,6 +1161,16 @@
                 </dl>
               </div>
             </section>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Convention à déposer</strong><span>simple alerte, sur la fiche et les nouveaux dossiers</span></figcaption>
+            <div class="alerte" data-tone="warning" role="note">
+              <svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-alert"></use></svg>
+              <div>
+                <strong>Convention signée à déposer</strong><span>Le mandat de Boulangeries Rivaud est actif depuis le 01/01/2027 sans convention signée.</span
+                ><button type="button" class="bouton" data-variant="secondary" data-size="sm"><span>Déposer la convention</span></button>
+              </div>
+            </div>
           </figure>
           <figure class="state">
             <figcaption><strong>Modification réversible</strong><span>coordonnées, secteur, gestionnaire du compte</span></figcaption>
