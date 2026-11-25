@@ -4,7 +4,9 @@ import {
   formatCents,
   formatDate,
   formatLongDate,
+  L111_8,
   LETTER_TEMPLATES,
+  letterAmount,
   letterSchedule,
   letterTemplate,
   letterTotals,
@@ -13,7 +15,7 @@ import {
   type LetterTemplate,
 } from '@legarec/contracts';
 import { Alerte, Bouton, Carte, Case, Champ, EtatListe, Interrupteur, Onglets, PageHeader, useConfirm, useToast } from '@legarec/ui';
-import { useState } from 'react';
+import { useState, type KeyboardEvent } from 'react';
 import { Link } from 'react-router';
 import type { z } from 'zod';
 import { useApi, useChange } from '../../app/data';
@@ -109,10 +111,15 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
   const [marked, setMarked] = useState(true);
   const [done, setDone] = useState<string | null>(null);
   const batch = mode === 'batch' && data.batch;
-  const recipient = data.recipients[index] ?? data.recipients[0]!;
+  const creditorName = batch ? batch.creditors.find((item) => item.id === filters.creditor)?.name : undefined;
+  // In a batch, the examples belong to the selection; the API counts all of it.
+  const examples = creditorName ? data.recipients.filter((item) => item.creditor === creditorName) : data.recipients;
+  const position = examples.length > 0 ? index % examples.length : 0;
+  const recipient = examples[position] ?? data.recipients[0]!;
   const definition = LETTER_TEMPLATES[template];
   const reminder = template === 'FRIENDLY' || template === 'FIRM' || template === 'FORMAL_NOTICE';
-  const allowsIndemnity = (template === 'FIRM' || template === 'FORMAL_NOTICE') && fixedIndemnity(recipient) > 0;
+  const allowsIndemnity = (template === 'FIRM' || template === 'FORMAL_NOTICE') && (!!batch || fixedIndemnity(recipient) > 0);
+  const notSettled = template === 'CLEARANCE' && (!!batch || !recipient.settled);
   const recallsFirstLetter = reminder && template !== 'FRIENDLY';
   const missingFirstLetter = !batch && recallsFirstLetter && !recipient.firstLetter;
   const excluded = batch && recallsFirstLetter ? batch.withoutFirstLetter : 0;
@@ -121,9 +128,18 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
     setChannel(LETTER_TEMPLATES[next].channel);
     setDone(null);
   };
+  const move = (event: KeyboardEvent<HTMLDivElement>) => {
+    const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+    if (!step) return;
+    event.preventDefault();
+    const ids = letterTemplate.options;
+    const next = (ids.indexOf(template) + step + ids.length) % ids.length;
+    pick(ids[next]!);
+    event.currentTarget.querySelectorAll<HTMLElement>('[role=radio]')[next]?.focus();
+  };
   const count = batch ? batch.debtors - excluded : 1;
   const downloadOnly = channel === 'Télécharger seulement';
-  const blocked = missingFirstLetter || (!!batch && (!filters.fresh || count <= 0));
+  const blocked = missingFirstLetter || notSettled || (!!batch && (!filters.fresh || count <= 0));
   const AGES: Record<string, string> = { '31-60': '31 – 60 jours', '0-30': '0 – 30 jours', '60+': '+ 60 jours' };
   const selection = batch
     ? [
@@ -131,6 +147,10 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
         { k: 'Ancienneté', v: AGES[filters.age] ?? filters.age },
       ]
     : [];
+  const options = [
+    ...(reminder ? [{ k: 'Délai', v: `${delay} jours` }] : []),
+    ...(allowsIndemnity ? [{ k: 'Indemnité de 40 €', v: indemnity ? (batch ? 'Oui, professionnels seulement' : 'Oui') : 'Non' }] : []),
+  ];
   const compose = (target: string) => ({
     template,
     caseIds: batch ? null : [recipient.caseId],
@@ -158,7 +178,8 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
         ...selection,
         { k: 'Envoi', v: channel },
         ...(excluded > 0 ? [{ k: 'Exclus', v: `${excluded} débiteurs sans premier courrier` }] : []),
-        ...(batch ? [] : [{ k: 'Montant', v: formatCents(letterTotals(recipient, indemnity && allowsIndemnity).total) }]),
+        ...options,
+        ...(batch ? [] : [{ k: 'Montant', v: formatCents(letterAmount(template, recipient, indemnity && allowsIndemnity)) }]),
       ],
       onConfirm: async () => {
         await change('/documents/compose', { body: compose(channel) });
@@ -212,9 +233,17 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
           <Carte>
             <StepTitle number={1} label="Modèle" />
             <div className={layout.stack}>
-              <div role="radiogroup" aria-label="Modèle" className={css.choices}>
+              <div role="radiogroup" aria-label="Modèle" className={css.choices} onKeyDown={move}>
                 {letterTemplate.options.map((id) => (
-                  <button key={id} type="button" role="radio" aria-checked={template === id} className={css.choice} onClick={() => pick(id)}>
+                  <button
+                    key={id}
+                    type="button"
+                    role="radio"
+                    tabIndex={template === id ? 0 : -1}
+                    aria-checked={template === id}
+                    className={css.choice}
+                    onClick={() => pick(id)}
+                  >
                     <strong>{LETTER_TEMPLATES[id].label}</strong>
                     <span className={layout.hint}>{LETTER_TEMPLATES[id].hint}</span>
                   </button>
@@ -226,8 +255,8 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
             </div>
           </Carte>
           <Carte>
-            <StepTitle number={2} label="Destinataire" />
-            <div className={layout.stack}>
+            <div className={css.stepHead}>
+              <StepTitle number={2} label="Destinataire" />
               {data.batch && (
                 <Onglets
                   label="Mode d'envoi"
@@ -249,9 +278,10 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
                       },
                     },
                   ]}
-                  layout={{ alignSelf: 'flex-start' }}
                 />
               )}
+            </div>
+            <div className={layout.stack}>
               {batch ? (
                 <>
                   <div className={layout.form}>
@@ -280,24 +310,26 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
                   </p>
                 </>
               ) : (
-                <div className={layout.tightStack}>
+                <div className={css.rows}>
                   {data.recipients.map((item, position) => (
                     <button
                       key={item.caseId}
                       type="button"
                       aria-pressed={position === index}
-                      className={css.choice}
+                      className={`${css.choice} ${css.row}`}
                       onClick={() => {
                         setIndex(position);
                         setDone(null);
                       }}
                     >
-                      <span className={layout.between}>
-                        <strong>{item.name}</strong>
+                      <span className={css.recipient}>
+                        <span className={layout.text}>
+                          <strong>{item.name}</strong>
+                          <span className={layout.hint}>
+                            {item.creditor} · {item.invoices.length} facture(s)
+                          </span>
+                        </span>
                         <strong className={layout.num}>{formatCents(letterTotals(item, false).principal)}</strong>
-                      </span>
-                      <span className={layout.hint}>
-                        {item.creditor} · {item.invoices.length} facture(s)
                       </span>
                     </button>
                   ))}
@@ -310,17 +342,15 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
             <div className={layout.stack}>
               <Champ label="Envoi" type="select" value={channel} options={CHANNELS} onChange={setChannel} />
               {reminder && (
-                <div className={layout.tightStack}>
-                  <span className={layout.muted} id="delai">
-                    Délai de paiement accordé
-                  </span>
-                  <div role="group" aria-labelledby="delai" className={layout.chips}>
+                <div className={layout.between}>
+                  <span className={layout.muted}>Délai de paiement accordé</span>
+                  <span role="group" aria-label="Délai de paiement accordé" className={css.segment}>
                     {[8, 15, 30].map((value) => (
-                      <button key={value} type="button" className={layout.chip} aria-pressed={delay === value} onClick={() => setDelay(value)}>
+                      <button key={value} type="button" aria-pressed={delay === value} onClick={() => setDelay(value)}>
                         {value} j
                       </button>
                     ))}
-                  </div>
+                  </span>
                 </div>
               )}
               {template === 'PAYMENT_PLAN' && (
@@ -348,17 +378,21 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
                 </div>
               )}
               <div className={layout.between}>
-                <span>{template === 'PAYMENT_PLAN' ? 'Joindre le calendrier' : 'Joindre le détail des factures'}</span>
-                <Interrupteur label="Joindre le détail" checked={table} onToggle={setTable} />
+                <span className={layout.muted}>{template === 'PAYMENT_PLAN' ? 'Joindre le calendrier' : 'Joindre le détail des factures'}</span>
+                <Interrupteur
+                  label={template === 'PAYMENT_PLAN' ? 'Joindre le calendrier' : 'Joindre le détail des factures'}
+                  checked={table}
+                  onToggle={setTable}
+                />
               </div>
               <div className={layout.between}>
-                <span>Ajouter les moyens de paiement</span>
+                <span className={layout.muted}>Ajouter les moyens de paiement</span>
                 <Interrupteur label="Ajouter les moyens de paiement" checked={pay} onToggle={setPay} />
               </div>
               {allowsIndemnity && (
                 <div className={layout.between}>
-                  <span>Ajouter l’indemnité forfaitaire (40 € / facture)</span>
-                  <Interrupteur label="Ajouter l’indemnité forfaitaire" checked={indemnity} onToggle={setIndemnity} />
+                  <span className={layout.muted}>Ajouter l’indemnité forfaitaire (40 € / facture)</span>
+                  <Interrupteur label="Ajouter l’indemnité forfaitaire (40 € / facture)" checked={indemnity} onToggle={setIndemnity} />
                 </div>
               )}
               {recipient.isIndividual && reminder && <span className={layout.hint}>Particulier : pas d’indemnité forfaitaire de 40 €.</span>}
@@ -380,7 +414,26 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
           )}
           {batch && filters.fresh && count <= 0 && <Alerte tone="info" compact text="Aucun débiteur ne correspond à cette sélection." />}
           {excluded > 0 && (
-            <Alerte tone="warning" compact text={`${excluded} débiteurs n’ont aucun premier courrier enregistré : ils sont exclus de cet envoi.`} />
+            <Alerte
+              tone="warning"
+              compact
+              text={
+                excluded > 1
+                  ? `${excluded} débiteurs n’ont aucun premier courrier enregistré : ils sont exclus de cet envoi.`
+                  : 'Un débiteur n’a aucun premier courrier enregistré : il est exclu de cet envoi.'
+              }
+            />
+          )}
+          {notSettled && (
+            <Alerte
+              tone="danger"
+              compact
+              text={
+                batch
+                  ? 'L’attestation de solde ne s’envoie pas en groupe : choisissez un dossier soldé.'
+                  : 'Ce dossier n’est pas soldé : l’attestation ne peut pas être envoyée.'
+              }
+            />
           )}
           {missingFirstLetter && (
             <Alerte
@@ -389,21 +442,22 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
               text="Aucun premier courrier n’est enregistré pour ce dossier : une relance doit rappeler sa référence et sa date. Envoyez d’abord la relance amiable."
             />
           )}
-          <div className={layout.end}>
-            <Bouton variant="secondary" label="Enregistrer le brouillon" onPress={() => void draft()} />
+          <div className={css.actions}>
+            {!batch && <Bouton variant="secondary" label="Enregistrer le brouillon" onPress={() => void draft()} />}
             {!downloadOnly && <Bouton variant="secondary" label="Générer le PDF" disabled={blocked} onPress={generate} />}
             <Bouton
+              full
               label={downloadOnly ? 'Générer le PDF' : batch ? `Générer et envoyer (${count})` : 'Générer et envoyer'}
               disabled={blocked}
               onPress={send}
             />
           </div>
         </div>
-        <section aria-label="Aperçu du document" className={layout.card}>
-          <div className={layout.between} style={{ padding: 'var(--sp-3) var(--sp-5)', borderBottom: '1px solid var(--border)' }}>
+        <section aria-label="Aperçu du document">
+          <div className={css.previewHead}>
             <span className={layout.inline}>
               <strong>Aperçu</strong>
-              {batch && (
+              {batch && examples.length > 0 && (
                 <>
                   <Bouton
                     variant="secondary"
@@ -411,10 +465,10 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
                     icon="chevron-left"
                     iconOnly
                     label="Destinataire précédent"
-                    onPress={() => setIndex((index + data.recipients.length - 1) % data.recipients.length)}
+                    onPress={() => setIndex((position + examples.length - 1) % examples.length)}
                   />
                   <span className={layout.hint}>
-                    {index + 1} / {count}
+                    Exemple {position + 1} sur {examples.length}
                   </span>
                   <Bouton
                     variant="secondary"
@@ -422,7 +476,7 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
                     icon="chevron-right"
                     iconOnly
                     label="Destinataire suivant"
-                    onPress={() => setIndex((index + 1) % data.recipients.length)}
+                    onPress={() => setIndex((position + 1) % examples.length)}
                   />
                 </>
               )}
@@ -430,18 +484,22 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
             <Case label="Surligner les champs remplis automatiquement" checked={marked} onToggle={setMarked} />
           </div>
           <div className={css.paper}>
-            <Letter
-              firm={data.firm}
-              recipient={recipient}
-              template={template}
-              delay={delay}
-              months={months}
-              table={table}
-              pay={pay && template !== 'CLEARANCE'}
-              indemnity={indemnity && allowsIndemnity}
-              marked={marked}
-              registered={channel.startsWith('Lettre recommandée')}
-            />
+            {examples.length === 0 ? (
+              <Alerte tone="info" compact text="Aucun exemple à afficher pour cette sélection." />
+            ) : (
+              <Letter
+                firm={data.firm}
+                recipient={recipient}
+                template={template}
+                delay={delay}
+                months={months}
+                table={table}
+                pay={pay && template !== 'CLEARANCE'}
+                indemnity={indemnity && allowsIndemnity && fixedIndemnity(recipient) > 0}
+                marked={marked}
+                registered={channel.startsWith('Lettre recommandée')}
+              />
+            )}
           </div>
         </section>
       </div>
@@ -543,14 +601,14 @@ function Letter({ firm, recipient, template, delay, months, table, pay, indemnit
   const signer = { name: `${user.firstName} ${user.lastName}`, role: ROLE_LABELS[user.role] };
   return (
     <article className={css.sheet} data-marked={marked || undefined}>
-      <div className={layout.between}>
+      <div className={css.letterHead}>
         <span className={layout.text}>
           <strong className={css.firm}>{firm.name}</strong>
           <span>Cabinet de recouvrement</span>
           <span>{firm.address}</span>
           <span>{firm.phone}</span>
         </span>
-        <span className={layout.text}>
+        <span className={`${layout.text} ${css.right}`}>
           <span>
             Réf. : <mark>{recipient.reference}</mark>
           </span>
@@ -558,16 +616,14 @@ function Letter({ firm, recipient, template, delay, months, table, pay, indemnit
         </span>
       </div>
       <div className={css.address}>
-        <mark>{recipient.name}</mark>
-        <span>
-          À l&apos;attention de <mark>{recipient.contact}</mark>
-        </span>
+        <mark className={css.strong}>{recipient.name}</mark>
+        <mark>À l&apos;attention de {recipient.contact}</mark>
         {recipient.address.map((line) => (
           <mark key={line}>{line}</mark>
         ))}
       </div>
-      <span>Paris, le {formatLongDate(new Date())}</span>
-      {registered && <strong>Lettre recommandée avec accusé de réception</strong>}
+      <span className={css.right}>Paris, le {formatLongDate(new Date())}</span>
+      {registered && <strong className={css.registered}>Lettre recommandée avec accusé de réception</strong>}
       <strong>Objet : {LETTER_TEMPLATES[template].subject}</strong>
       <p>Madame, Monsieur,</p>
       {body}
@@ -588,7 +644,7 @@ function Letter({ firm, recipient, template, delay, months, table, pay, indemnit
           <tbody>
             {schedule.length > 0
               ? schedule.map((item, position) => (
-                  <tr key={item.date}>
+                  <tr key={item.date} className={css.filled}>
                     <td>
                       Mensualité {position + 1}/{months}
                     </td>
@@ -597,7 +653,7 @@ function Letter({ firm, recipient, template, delay, months, table, pay, indemnit
                   </tr>
                 ))
               : recipient.invoices.map((item) => (
-                  <tr key={item.number}>
+                  <tr key={item.number} className={css.filled}>
                     <td>{item.number}</td>
                     <td>{formatDate(item.due)}</td>
                     <td>{formatCents(item.amount)}</td>
@@ -607,15 +663,15 @@ function Letter({ firm, recipient, template, delay, months, table, pay, indemnit
               <td colSpan={2}>
                 <strong>{template === 'CLEARANCE' ? 'Total réglé' : `Total dû${parts.length > 0 ? ` (dont ${parts.join(', ')})` : ''}`}</strong>
               </td>
-              <td>
-                <strong>{formatCents(template === 'FORMAL_NOTICE' ? totals.total : totals.principal + totals.indemnity)}</strong>
+              <td className={css.filled}>
+                <strong>{formatCents(letterAmount(template, recipient, indemnity))}</strong>
               </td>
             </tr>
           </tbody>
         </table>
       )}
       {pay && (
-        <p>
+        <p className={css.payment}>
           Virement : IBAN du compte dédié [IBAN DU COMPTE DÉDIÉ], référence <mark>{recipient.reference}</mark> en libellé. Chèque : à l’ordre de [ORDRE DES
           CHÈQUES], envoyé à [ADRESSE D&apos;ENVOI DES CHÈQUES], référence au dos. Votre espace : paiement.legarec.fr, code d’accès <mark>••••</mark>.
         </p>
@@ -628,8 +684,15 @@ function Letter({ firm, recipient, template, delay, months, table, pay, indemnit
         </span>
       </span>
       <div className={css.legal}>
-        {'{{> mentions_recouvrement}}'} : {firm.name}, {firm.address}, SIREN {firm.siren}, exerce une activité de recouvrement amiable pour le compte d’autrui.
-        Créancier : {recipient.creditor} [ADRESSE DU CRÉANCIER]. [MENTIONS R124-4 ET L111-8 À VALIDER PAR LE JURISTE] [INFORMATION RGPD À VALIDER]
+        {firm.name}, {firm.address}, SIREN {firm.siren}, exerce une activité de recouvrement amiable pour le compte d’autrui. Créancier : {recipient.creditor},
+        [ADRESSE DU CRÉANCIER].{' '}
+        {template !== 'CLEARANCE' && (
+          <>
+            Fondement : factures {recipient.invoices.map((item) => item.number).join(', ')}. Somme à payer :{' '}
+            {formatCents(letterAmount(template, recipient, indemnity))}, selon les modalités indiquées dans ce courrier. Article L111-8 du Code des procédures
+            civiles d’exécution : {L111_8}
+          </>
+        )}
       </div>
     </article>
   );

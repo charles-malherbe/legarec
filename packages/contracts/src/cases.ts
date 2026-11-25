@@ -121,6 +121,7 @@ export const caseDetail = caseListItem.extend({
   fees: cents,
   remindersSent: z.number().int(),
   remindersTotal: z.number().int(),
+  /** Companies only, computed from plain rules; never for an individual. */
   risk: z.object({ label: z.string(), reason: z.string() }).nullable(),
   contacts: z.array(z.object({ id: z.string(), kind: z.enum(['PHONE', 'EMAIL']), value: z.string(), verified: z.boolean() })),
   mainContact: z.object({ name: z.string(), title: z.string(), phone: z.string(), email: z.string(), address: z.string() }),

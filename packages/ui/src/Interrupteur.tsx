@@ -14,7 +14,7 @@ export interface InterrupteurProps extends LayoutProps {
 }
 
 export function Interrupteur({ checked, label, labelPosition = 'none', disabled, locked, size = 'md', onToggle, layout }: InterrupteurProps) {
-  const on = locked || checked;
+  const on = checked;
   const text = <span className={css.label}>{label}</span>;
   return (
     <span className={css.root} style={layout}>
@@ -25,7 +25,7 @@ export function Interrupteur({ checked, label, labelPosition = 'none', disabled,
         aria-label={label}
         aria-disabled={locked || undefined}
         disabled={disabled}
-        title={locked ? 'Toujours actif : obligation légale ou de sécurité' : undefined}
+        title={locked ? (on ? 'Toujours actif : obligation légale ou de sécurité' : 'Désactivé par décision du cabinet') : undefined}
         className={css.track}
         data-on={on || undefined}
         data-size={size}

@@ -91,26 +91,28 @@ function PlanArticle({ title, time }: { title: string; time: string }) {
         </header>
         <section id="roles" aria-labelledby="h-roles">
           <h2 id="h-roles">Qui peut faire quoi</h2>
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">Action</th>
-                <th scope="col">Rôles</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                ['Proposer un échéancier', 'Gestionnaire de créances, Responsable du recouvrement'],
-                ['Valider un échéancier', 'Responsable du recouvrement, Directeur'],
-                ['Demander un échéancier', 'Le débiteur, depuis son espace de paiement'],
-              ].map(([action, roles]) => (
-                <tr key={action}>
-                  <td>{action}</td>
-                  <td>{roles}</td>
+          <div className={css.box}>
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Action</th>
+                  <th scope="col">Rôles</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {[
+                  ['Proposer un échéancier', 'Gestionnaire de créances, Responsable du recouvrement'],
+                  ['Valider un échéancier', 'Responsable du recouvrement, Directeur'],
+                  ['Demander un échéancier', 'Le débiteur, depuis son espace de paiement'],
+                ].map(([action, roles]) => (
+                  <tr key={action}>
+                    <td>{action}</td>
+                    <td>{roles}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
         <section id="etapes" aria-labelledby="h-etapes">
           <h2 id="h-etapes">Proposer un échéancier, étape par étape</h2>
@@ -133,9 +135,12 @@ function PlanArticle({ title, time }: { title: string; time: string }) {
             ))}
           </ol>
         </section>
-        <div role="note" className={layout.notice}>
-          <strong>Au-delà de la durée prévue au mandat</strong> (6 mois par défaut), l’échéancier doit aussi être accepté par le créancier. Legarec lui envoie
-          la demande dans son espace et vous prévient de sa réponse.
+        <div role="note" className={css.note}>
+          <Icone icon="alert" size={18} />
+          <span>
+            <strong>Au-delà de la durée prévue au mandat</strong> (6 mois par défaut), l’échéancier doit aussi être accepté par le créancier. Legarec lui envoie
+            la demande dans son espace et vous prévient de sa réponse.
+          </span>
         </div>
         <section id="debiteur" aria-labelledby="h-deb">
           <h2 id="h-deb">Quand c’est le débiteur qui demande</h2>
@@ -154,17 +159,19 @@ function PlanArticle({ title, time }: { title: string; time: string }) {
         </section>
         <section id="faq" aria-labelledby="h-faq">
           <h2 id="h-faq">Questions fréquentes</h2>
-          {FAQ.map(([question, answer], index) => (
-            <div key={question} className={css.question}>
-              <button type="button" aria-expanded={open === index} onClick={() => setOpen(open === index ? null : index)}>
-                {question}
-                <Icone icon={open === index ? 'minus' : 'chevron-down'} size={16} />
-              </button>
-              {open === index && <p>{answer}</p>}
-            </div>
-          ))}
+          <div className={css.box}>
+            {FAQ.map(([question, answer], index) => (
+              <div key={question} className={css.question}>
+                <button type="button" aria-expanded={open === index} onClick={() => setOpen(open === index ? null : index)}>
+                  {question}
+                  <Icone icon={open === index ? 'minus' : 'chevron-down'} size={16} />
+                </button>
+                {open === index && <p>{answer}</p>}
+              </div>
+            ))}
+          </div>
         </section>
-        <section aria-label="Avis sur l’article" className={layout.between}>
+        <section aria-label="Avis sur l’article" className={`${layout.between} ${css.vote}`}>
           {vote ? (
             <span role="status">
               {vote === 'yes' ? 'Merci pour votre retour !' : 'Merci. Dites-nous ce qui manque via le support, nous améliorerons l’article.'}

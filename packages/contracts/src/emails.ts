@@ -1,11 +1,14 @@
 import { z } from 'zod';
+import { accessCode } from './debtorAccess';
 
 /**
  * One schema per e-mail template, deduced from samples.json and from the header of each template.
- * Unknown keys are dropped: `case.access_code` is declared nowhere, so it never reaches a template.
+ * Unknown keys are dropped: `case.access_code` is declared for the three reminders only, so no other template can carry it.
  */
 const text = z.string().min(1);
 const optional = z.string().optional();
+/** The kit's reminders ask for a SIREN: they are for companies only, never for an individual. */
+const siren = z.string().regex(/^\d{3} ?\d{3} ?\d{3}$/u);
 const count = z.number().int().nonnegative();
 const url = z.url({ protocol: /^https$/u });
 const flag = z.boolean();
@@ -160,25 +163,25 @@ export const emailSchemas = {
     receipt_url: url.optional(),
   }),
   'reminder-1': z.object({
-    case: z.object({ deadline: optional, reference: text, total_due: text }),
+    case: z.object({ access_code: accessCode.optional(), deadline: optional, reference: text, total_due: text }),
     creditor: z.object({ establishment: optional, name: text }),
-    debtor: z.object({ company_name: text, contact_name: optional, siren: text }),
+    debtor: z.object({ company_name: text, contact_name: optional, siren }),
     invoices: z
       .array(z.object({ due_date: text, interest: optional, issue_date: text, late_fees: optional, number: text, principal: text, total: text }))
       .min(1),
   }),
   'reminder-2': z.object({
-    case: z.object({ deadline: optional, reference: text, total_due: text }),
+    case: z.object({ access_code: accessCode.optional(), deadline: optional, reference: text, total_due: text }),
     creditor: z.object({ establishment: optional, name: text }),
-    debtor: z.object({ company_name: text, contact_name: optional, siren: text }),
+    debtor: z.object({ company_name: text, contact_name: optional, siren }),
     invoices: z
       .array(z.object({ due_date: text, interest: optional, issue_date: text, late_fees: optional, number: text, principal: text, total: text }))
       .min(1),
   }),
   'reminder-3': z.object({
-    case: z.object({ deadline: optional, reference: text, total_due: text }),
+    case: z.object({ access_code: accessCode.optional(), deadline: optional, reference: text, total_due: text }),
     creditor: z.object({ establishment: optional, name: text }),
-    debtor: z.object({ company_name: text, contact_name: optional, siren: text }),
+    debtor: z.object({ company_name: text, contact_name: optional, siren }),
     invoices: z
       .array(z.object({ due_date: text, interest: optional, issue_date: text, late_fees: optional, number: text, principal: text, total: text }))
       .min(1),

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { cents } from './money';
 import { role } from './roles';
+import { isReservedAddress } from './settings';
 
 export const notificationItem = z.object({
   id: z.string(),
@@ -147,7 +148,15 @@ export const vatNumber = (siren: string) => {
 const person = { firstName: z.string().trim().min(1), lastName: z.string().trim().min(1) };
 /** Staff accounts live on the firm's domain; a partner account belongs to one creditor. */
 export const newMember = z.discriminatedUnion('role', [
-  z.object({ ...person, role: z.enum(['CLAIMS_OFFICER', 'COLLECTION_MANAGER', 'DIRECTOR', 'DEVELOPER']), email: z.email().regex(/@legarec\.fr$/iu) }),
+  z.object({
+    ...person,
+    role: z.enum(['CLAIMS_OFFICER', 'COLLECTION_MANAGER', 'DIRECTOR', 'DEVELOPER']),
+    email: z
+      .email()
+      .toLowerCase()
+      .regex(/@legarec\.fr$/u)
+      .refine((value) => !isReservedAddress(value.split('@')[0] ?? '')),
+  }),
   z.object({ ...person, role: z.literal('CREDITOR'), email: z.email(), creditorId: z.string().min(1) }),
 ]);
 export const staffRole = z.enum(['CLAIMS_OFFICER', 'COLLECTION_MANAGER', 'DIRECTOR', 'DEVELOPER']);

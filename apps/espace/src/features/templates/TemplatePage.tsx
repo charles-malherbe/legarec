@@ -1,4 +1,4 @@
-import { templateDetail, templatesData, type TemplateDetail } from '@legarec/contracts';
+import { L111_8, templateDetail, templatesData, type TemplateDetail } from '@legarec/contracts';
 import { saveFile } from '@legarec/platform';
 import { Alerte, Badge, Bouton, Carte, Case, Champ, EtatListe, Icone, Interrupteur, PageHeader, useConfirm, useToast } from '@legarec/ui';
 import { useRef, useState } from 'react';
@@ -20,17 +20,16 @@ const LEGAL = {
   collection: [
     'Legarec, cabinet de recouvrement amiable, Paris · SIREN [SIREN] · agissant pour le compte de {creancier.nom}, {creancier.adresse}.',
     'Somme réclamée : principal {creance.principal}, intérêts {creance.interets}, indemnités forfaitaires {creance.indemnites} (art. L. 441-10 du Code de commerce). Fondement : factures {creance.factures} restées impayées.',
-    '[Reproduction des alinéas 3 et 4 de l’article L. 111-8 du Code des procédures civiles d’exécution : frais de recouvrement amiable.]',
-    'Vos données sont traitées pour le recouvrement de cette créance. Vos droits : dpo@legarec.fr.',
+    `Article L111-8 du Code des procédures civiles d’exécution : ${L111_8}`,
   ],
   billing: [
-    'Paiement à 30 jours à réception. Pas d’escompte pour paiement anticipé.',
-    'En cas de retard : pénalités au taux de trois fois le taux d’intérêt légal et indemnité forfaitaire de 40 € pour frais de recouvrement (art. L. 441-10 du Code de commerce).',
-    'Legarec · SIREN [SIREN] · TVA intracommunautaire [N° TVA] · RCS Paris',
+    'Paiement à 30 jours à réception. Escompte pour paiement anticipé : néant. Catégorie de l’opération : prestation de services.',
+    'En cas de retard : pénalités au taux de [TAUX DES PÉNALITÉS] et indemnité forfaitaire de 40 € pour frais de recouvrement (art. L. 441-10 du Code de commerce).',
+    'Legarec · SIREN [SIREN] · TVA intracommunautaire [N° TVA] · [CAPITAL ET RCS]',
   ],
   contract: [
-    'Legarec · SIREN [SIREN] · RCS Paris · représentée par la direction',
-    'Données personnelles : Legarec agit en sous-traitant de {client.nom} (art. 28 du RGPD).',
+    'Legarec · SIREN [SIREN] · [CAPITAL ET RCS] · représentée par la direction',
+    'Données personnelles : Legarec agit en sous-traitant de {client.nom} pour les données des dossiers (art. 28 du RGPD), et en responsable du traitement pour sa comptabilité, sa sécurité, son personnel et sa téléphonie.',
   ],
   sms: ['STOP : répondez STOP'],
 };
@@ -40,8 +39,7 @@ const MANDATORY = {
     'Nom ou dénomination sociale du créancier et son adresse',
     'Fondement et montant de la somme due, en distinguant principal, intérêts et accessoires',
     'Indication d’avoir à payer et modalités de paiement',
-    'Reproduction des alinéas 3 et 4 de l’article L. 111-8 du CPCE',
-    'Information sur le traitement des données personnelles (RGPD) et contact du DPO',
+    'Reproduction de l’article L. 111-8 du CPCE, dans la rédaction validée par le cabinet',
   ],
   billing: [
     'Numéro unique et date d’émission',
@@ -343,7 +341,7 @@ function Template({ item }: { item: TemplateDetail }) {
           <Carte
             title="Mentions imposées"
             description={`${kind === 'sms' ? 'Ajoutées à chaque SMS ; elles comptent dans la longueur du message.' : kind === 'collection' ? 'Ajoutées automatiquement en bas de chaque courrier envoyé pour le compte d’un créancier. Modifiables uniquement par le Directeur.' : 'Ajoutées automatiquement à chaque facture et devis. Modifiables uniquement par le Directeur.'} Bloc à placer dans le fichier : {{> ${item.block}}}`}
-            footer="Textes à faire valider par votre juriste avant mise en production."
+            footer="Textes validés par le cabinet."
           >
             <ul className={layout.body}>
               {MANDATORY[kind].map((text) => (
@@ -382,9 +380,12 @@ function Template({ item }: { item: TemplateDetail }) {
             </ol>
           </Carte>
         </div>
-        <Carte title="Aperçu">
-          <div className={layout.stack}>
-            <div className={layout.between}>
+        <section aria-labelledby="apercu-titre" className={layout.stack}>
+          <div className={layout.between}>
+            <h2 id="apercu-titre" className={css.previewTitle}>
+              Aperçu
+            </h2>
+            <span className={layout.inline}>
               <Champ
                 label="Dossier utilisé pour l’aperçu"
                 hideLabel
@@ -394,21 +395,23 @@ function Template({ item }: { item: TemplateDetail }) {
                 onChange={setSampleId}
               />
               <Interrupteur checked={highlight} label="Repérer les champs" labelPosition="end" size="sm" onToggle={setHighlight} />
-            </div>
+            </span>
+          </div>
+          <div className={css.paper}>
             {item.pending?.accepted ? (
               // Sandboxed without any permission: no script, form or navigation from an imported file.
               <iframe title="Aperçu du fichier importé" sandbox="" className={css.frame} srcDoc={`${PREVIEW_POLICY}${item.pending.previewHtml}`} />
             ) : (
               <Preview item={item} values={values} highlight={highlight} kind={kind} />
             )}
-            <div className={layout.inline}>
-              <Bouton variant="secondary" size="sm" label="Télécharger l’aperçu (PDF)" disabled title="Disponible avec l’API de génération" />
-              {(item.kind === 'SMS' || item.kind === 'EMAIL') && item.canImport && (
-                <Bouton variant="secondary" size="sm" label="M’envoyer un test" onPress={test} />
-              )}
-            </div>
           </div>
-        </Carte>
+          <div className={layout.inline}>
+            <Bouton variant="secondary" size="sm" label="Télécharger l’aperçu (PDF)" disabled title="Disponible avec l’API de génération" />
+            {(item.kind === 'SMS' || item.kind === 'EMAIL') && item.canImport && (
+              <Bouton variant="secondary" size="sm" label="M’envoyer un test" onPress={test} />
+            )}
+          </div>
+        </section>
       </div>
     </>
   );
@@ -464,12 +467,12 @@ function Preview({ item, values, highlight, kind }: { item: TemplateDetail; valu
     <article aria-label="Aperçu du document" className={css.doc}>
       <div className={css.row}>
         <div className={layout.text}>
-          <b>Legarec</b>
+          <b className={css.brand}>Legarec</b>
           <span>Cabinet de recouvrement amiable</span>
           <span>{billing ? 'Paris · SIREN [SIREN] · TVA [N° TVA]' : 'Paris · 01 87 88 02 98'}</span>
           {!billing && <span>administratif@legarec.fr</span>}
         </div>
-        {item.registered && <span>Lettre recommandée avec AR</span>}
+        {item.registered && <span className={css.registered}>Lettre recommandée avec AR</span>}
         {billing && (
           <div className={layout.text}>
             <b>{item.quote ? 'Devis' : 'Facture'}</b>
@@ -486,7 +489,7 @@ function Preview({ item, values, highlight, kind }: { item: TemplateDetail; valu
             : '{client.nom}\n{client.contact}\n{client.adresse}',
         )}
       </div>
-      {!billing && <span>Paris, le {values['date.jour']}</span>}
+      {!billing && <span className={css.right}>Paris, le {values['date.jour']}</span>}
       {item.subject && (
         <p>
           <b>{billing ? '' : 'Objet : '}</b>

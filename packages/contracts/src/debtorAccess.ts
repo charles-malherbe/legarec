@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const luhn = (digits: string) =>
+export const luhn = (digits: string) =>
   [...digits].reverse().reduce((sum, char, index) => {
     const value = Number(char) * (index % 2 === 1 ? 2 : 1);
     return sum + (value > 9 ? value - 9 : value);

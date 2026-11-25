@@ -22,6 +22,7 @@ export interface ReglageProps extends LayoutProps {
   disabled?: boolean;
   first?: boolean;
   fieldId?: string;
+  error?: string;
   onToggle?: (next: boolean) => void;
   onChange?: (value: string) => void;
   children?: ReactNode;
@@ -63,6 +64,7 @@ export function Reglage(props: ReglageProps) {
             mono={props.mono}
             hideLabel
             label={label}
+            error={props.error}
             disabled={props.disabled}
             onChange={props.onChange}
             layout={{ flex: 1 }}

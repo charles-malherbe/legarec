@@ -221,6 +221,7 @@ const r = (
   creditor,
   reference,
   isIndividual,
+  settled: false,
   lastReminder,
   firstLetter,
   interest,
@@ -333,6 +334,8 @@ export const documentHandlers = [
         expected?: number;
         template?: string;
       };
+      // Every case of these lists still has a balance.
+      if (template === 'CLEARANCE') return HttpResponse.json({ code: 'NOT_SETTLED' }, { status: 422 });
       if (!caseIds) {
         if (session.role !== 'COLLECTION_MANAGER') return forbidden();
         const batch = batchOf(filters?.creditor ?? '', filters?.age ?? '');

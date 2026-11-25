@@ -33,7 +33,14 @@ for (const [name, screen] of Object.entries(screens)) {
             if (value === 'malvoyant') root.dataset.a11y = value;
           }, mode);
           expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), `${mode}: horizontal scroll`).toBeLessThanOrEqual(0);
-          const { violations } = await new AxeBuilder({ page }).analyze();
+          const { violations, incomplete } = await new AxeBuilder({ page }).analyze();
+          // axe only asks for a review when a text has the very colour of its background.
+          const invisible = incomplete
+            .filter((item) => item.id === 'color-contrast')
+            .flatMap((item) => item.nodes)
+            .filter((node) => node.any.some((check) => (check.data as { messageKey?: string } | null)?.messageKey === 'equalRatio'))
+            .map((node) => node.target.join(' '));
+          expect(invisible, `invisible text (${mode})`).toEqual([]);
           expect(
             violations.map(
               (item) =>

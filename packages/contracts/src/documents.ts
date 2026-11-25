@@ -80,6 +80,8 @@ export const letterRecipient = z.object({
   creditor: z.string(),
   reference: z.string(),
   isIndividual: z.boolean(),
+  /** A clearance certificate only leaves for a settled case. */
+  settled: z.boolean(),
   lastReminder: z.iso.date(),
   firstLetter: z.object({ reference: z.string(), date: z.iso.date() }).nullable(),
   interest: cents,
@@ -110,6 +112,11 @@ export function letterTotals(recipient: LetterRecipient, withIndemnity: boolean)
   const principal = recipient.invoices.reduce((sum, item) => sum + item.amount, 0);
   const indemnity = withIndemnity ? fixedIndemnity(recipient) : 0;
   return { principal, interest: recipient.interest, indemnity, total: principal + recipient.interest + indemnity };
+}
+/** The amount claimed by a letter: interest only appears in a formal notice. */
+export function letterAmount(template: LetterTemplate, recipient: LetterRecipient, withIndemnity: boolean) {
+  const { principal, indemnity, total } = letterTotals(recipient, withIndemnity && (template === 'FIRM' || template === 'FORMAL_NOTICE'));
+  return template === 'FORMAL_NOTICE' ? total : principal + indemnity;
 }
 export const letterSchedule = (total: number, months: number) =>
   splitPlan(total, months).map((amount, index) => ({ date: new Date(Date.UTC(2026, 11 + index, 15)).toISOString().slice(0, 10), amount }));

@@ -43,7 +43,7 @@ function AccessForm({ initial, unknownLink }: { initial?: { kind: DebtorIdentifi
   const client = useQueryClient();
   const navigate = useNavigate();
   const confirm = useConfirm();
-  const [kind, setKind] = useState<DebtorIdentifier['kind']>(initial?.kind ?? 'SIRET');
+  const [kind, setKind] = useState<DebtorIdentifier['kind']>(initial?.kind ?? 'SIREN');
   const [value, setValue] = useState(initial?.value ?? '');
   const [code, setCode] = useState('');
   const [remember, setRemember] = useState(false);
@@ -83,7 +83,7 @@ function AccessForm({ initial, unknownLink }: { initial?: { kind: DebtorIdentifi
     confirm({
       title: 'Recevoir votre code par SMS ?',
       body: 'Si un numéro est enregistré dans votre dossier, le code y est envoyé.',
-      details: [{ k: kind === 'SIRET' ? 'SIRET' : 'Référence', v: value }],
+      details: [{ k: kind === 'SIREN' ? 'SIREN' : 'Référence', v: value }],
       confirmLabel: 'Envoyer le SMS',
       onConfirm: async () => {
         try {
@@ -110,16 +110,16 @@ function AccessForm({ initial, unknownLink }: { initial?: { kind: DebtorIdentifi
           <div className={css.text}>
             <h1 id="acces-titre">Accéder à mon dossier</h1>
           </div>
-          <p>Munissez-vous du courrier reçu : il porte votre code d’accès à 4 lettres.</p>
+          <p>Munissez-vous du courrier ou de l’e-mail reçu : il porte votre code d’accès à 4 lettres.</p>
           {unknownLink && <Alerte tone="warning" text="Ce lien n’est plus valable. Saisissez votre identifiant." />}
           <Onglets
             label="Votre identifiant"
             items={[
               {
                 label: 'Entreprise',
-                selected: kind === 'SIRET',
+                selected: kind === 'SIREN',
                 pick: () => {
-                  setKind('SIRET');
+                  setKind('SIREN');
                   setErrors({});
                 },
               },
@@ -135,11 +135,11 @@ function AccessForm({ initial, unknownLink }: { initial?: { kind: DebtorIdentifi
           />
           <Champ
             size="lg"
-            label={kind === 'SIRET' ? 'SIRET' : 'Référence du dossier'}
-            help={kind === 'SIRET' ? '14 chiffres, avec ou sans espaces' : 'Indiquée en haut du courrier, de l’e-mail ou du SMS reçu'}
+            label={kind === 'SIREN' ? 'SIREN' : 'Référence du dossier'}
+            help={kind === 'SIREN' ? '9 chiffres, avec ou sans espaces' : 'Indiquée en haut du courrier, de l’e-mail ou du SMS reçu'}
             value={value}
             error={errors.value}
-            inputMode={kind === 'SIRET' ? 'numeric' : 'text'}
+            inputMode={kind === 'SIREN' ? 'numeric' : 'text'}
             autocomplete="off"
             spellCheck={false}
             onChange={setValue}
@@ -163,7 +163,7 @@ function AccessForm({ initial, unknownLink }: { initial?: { kind: DebtorIdentifi
           {sms && <Alerte tone="success" text={sms} />}
           <Bouton type="submit" size="lg" full label="Accéder à mon dossier" loading={busy} disabled={blocked} />
           <Bouton variant="secondary" full icon="sms" label="Recevoir mon code par SMS" disabled={failure?.code === 'BLOCKED'} onPress={askSms} />
-          <p className={css.hint}>Aucun compte à créer. Le code n’est jamais envoyé par e-mail.</p>
+          <p className={css.hint}>Aucun compte à créer. Sans code, demandez-le par téléphone au 01 87 88 02 98.</p>
           <Bouton variant="link" size="sm" label="Je n’ai pas mon code : payer ou écrire au cabinet" href="/acces-limite" />
         </form>
       </section>

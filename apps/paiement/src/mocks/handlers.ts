@@ -134,6 +134,7 @@ let debtors = seed();
 let messages = seedMessages();
 let failures = new Map<string, number>();
 let smsSent = new Map<string, number>();
+let addressFailures = 0;
 let sessionId: string | null = read();
 /** Unverified messages of the limited access, as the staff portal would receive them. */
 export let unverified: unknown[] = [];
@@ -142,6 +143,7 @@ export const resetDebtors = () => {
   messages = seedMessages();
   failures = new Map();
   smsSent = new Map();
+  addressFailures = 0;
   unverified = [];
   openSession(null);
 };
@@ -161,9 +163,12 @@ const unauthorized = () => HttpResponse.json({ code: 'UNAUTHORIZED' }, { status:
 const current = () => debtors.find((entry) => entry.id === sessionId);
 const find = (identifier: DebtorIdentifier) =>
   debtors.find((entry) =>
-    identifier.kind === 'SIRET' ? entry.siren === sirenOf(identifier.value) : entry.siren === null && entry.references.includes(identifier.value),
+    identifier.kind === 'SIREN' ? entry.siren === sirenOf(identifier.value) : entry.siren === null && entry.references.includes(identifier.value),
   );
-const keyOf = (identifier: DebtorIdentifier) => (identifier.kind === 'SIRET' ? sirenOf(identifier.value) : identifier.value);
+/** One counter per debtor, whatever the reference typed. */
+const keyOf = (identifier: DebtorIdentifier) => find(identifier)?.id ?? (identifier.kind === 'SIREN' ? sirenOf(identifier.value) : identifier.value);
+/** Failures allowed from one address, all identifiers together. */
+const ADDRESS_LIMIT = 20;
 const sessionOf = (debtor: Stored) => ({
   greeting: debtor.greeting,
   debtor: debtor.cases[0]?.debtor ?? '',
@@ -201,12 +206,13 @@ export const handlers = [
   }),
   http.get('/api/debtor/links/:token', ({ params }) =>
     params.token === 'demo'
-      ? HttpResponse.json({ identifier: { kind: 'SIRET', value: '732 829 320 00074' } })
+      ? HttpResponse.json({ identifier: { kind: 'SIREN', value: '732 829 320' } })
       : HttpResponse.json({ code: 'UNKNOWN_LINK' }, { status: 404 }),
   ),
   http.post('/api/debtor/access', async ({ request }) => {
     const parsed = debtorAccess.safeParse(await request.json());
     if (!parsed.success) return HttpResponse.json({ code: 'INVALID', attemptsLeft: 5 }, { status: 401 });
+    if (addressFailures >= ADDRESS_LIMIT) return HttpResponse.json({ code: 'TOO_MANY' }, { status: 429 });
     const key = keyOf(parsed.data.identifier);
     const count = failures.get(key) ?? 0;
     if (count >= 10) return HttpResponse.json({ code: 'BLOCKED' }, { status: 423 });
@@ -217,6 +223,7 @@ export const handlers = [
     }
     const debtor = find(parsed.data.identifier);
     if (!debtor || debtor.code !== parsed.data.code) {
+      addressFailures += 1;
       const next = Math.floor(count) + 1;
       failures.set(key, next);
       if (next >= 10) return HttpResponse.json({ code: 'BLOCKED' }, { status: 423 });

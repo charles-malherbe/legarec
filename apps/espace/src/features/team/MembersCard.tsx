@@ -267,7 +267,9 @@ function InviteForm({ creditors, onDone }: { creditors: { id: string; name: stri
         { k: 'Nom', v: `${firstName} ${lastName}` },
         { k: 'Adresse', v: email },
         { k: 'Rôle', v: ROLE_LABELS[role] },
-        ...(partner ? [{ k: 'Créancier', v: creditors.find((item) => item.id === creditorId)?.name ?? '' }] : []),
+        ...(partner
+          ? [{ k: 'Créancier', v: creditors.find((item) => item.id === creditorId)?.name ?? '' }]
+          : [{ k: 'Boîte e-mail', v: 'Demandée au Développeur' }]),
       ],
       onConfirm: async () => {
         setTaken(null);

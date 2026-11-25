@@ -22,6 +22,13 @@ afterEach(() => {
 const inDialog = async () => within(await screen.findByRole('alertdialog'));
 const status = async (account: string, path: string, body?: unknown, method?: string) => (await call(account, path, body, method)).status;
 
+describe('risk score', () => {
+  it('exists for a company and never for an individual', async () => {
+    expect((await (await call('cl', '/cases/demo')).json()) as object).toMatchObject({ risk: { label: 'Élevé' } });
+    expect((await (await call('cl', '/cases/meunier')).json()) as object).toMatchObject({ risk: null });
+  });
+});
+
 describe('accounts', () => {
   it('never reactivates a second holder of a unique role, nor an invitation', async () => {
     expect(await status('cl', '/members/dev/disable', { reason: 'x' })).toBe(204);

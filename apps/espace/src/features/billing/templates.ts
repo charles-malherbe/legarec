@@ -14,7 +14,7 @@ export const TYPES: Record<BillingType, { label: string; hint: string; issue: st
     hint: 'Commission, frais refacturés',
     issue: 'Émettre la facture',
     legal:
-      'Paiement à 30 jours, ou par déduction du reversement. Pénalités de retard : trois fois le taux d’intérêt légal. Indemnité forfaitaire pour frais de recouvrement : 40 € (article L441-10 du Code de commerce). Pas d’escompte pour paiement anticipé.',
+      'Paiement à 30 jours, ou par déduction du reversement. Pénalités de retard : [TAUX DES PÉNALITÉS]. Indemnité forfaitaire pour frais de recouvrement : 40 € (article L441-10 du Code de commerce). Escompte pour paiement anticipé : néant. Catégorie de l’opération : prestation de services. [CAPITAL ET RCS]',
     templates: [
       {
         id: 'commission',

@@ -21,3 +21,4 @@ export * from './portal';
 export * from './debtor';
 export * from './emails';
 export * from './firm';
+export * from './legal';

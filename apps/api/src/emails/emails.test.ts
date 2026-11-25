@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { AUTOMATIC_EMAILS, emailConfig, emailSchemas, type AutomaticEmail } from '@legarec/contracts';
+import { AUTOMATIC_EMAILS, emailConfig, emailSchemas, REPLY_ACCEPTED, type AutomaticEmail } from '@legarec/contracts';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
@@ -19,6 +19,11 @@ import {
 const KIT = join(process.cwd(), 'kits/emails-handlebars');
 const ADDON = join(process.cwd(), 'kits/emails-ajout-staff-message');
 const SAMPLES = JSON.parse(readFileSync(join(KIT, 'samples.json'), 'utf8')) as Record<AutomaticEmail, Record<string, unknown>>;
+// The kit shows a placeholder of another length: the portal only accepts four letters.
+for (const sample of Object.values(SAMPLES)) {
+  const entry = sample.case as Record<string, unknown> | undefined;
+  if (entry) delete entry.access_code;
+}
 // Fictitious configuration: the firm's values stay out of the repository's code.
 const config = emailConfig.parse({
   firm_name: 'LEGAREC',
@@ -68,10 +73,20 @@ describe('kit', () => {
     expect(html).not.toMatch(/\{\{|undefined|\[object/u);
     await expect(`${subject}\n\n${html}`).toMatchFileSnapshot(`__snapshots__/${name}.html`);
   });
-  it.each(AUTOMATIC_EMAILS)('never passes the access code to %s', (name) => {
+  it.each(AUTOMATIC_EMAILS.filter((name) => !REPLY_ACCEPTED.includes(name)))('never passes the access code to %s', (name) => {
     const sample = { ...SAMPLES[name], case: { ...(SAMPLES[name].case as object), access_code: 'KXPM' } };
     expect(JSON.stringify(emailSchemas[name].parse(sample))).not.toContain('access_code');
     expect(renderer.renderAutomatic(name, sample).html).not.toMatch(/KXPM|EXEMPLE/u);
+  });
+  it.each(REPLY_ACCEPTED)('carries the access code in %s, in the body only', (name) => {
+    const { subject, html } = renderer.renderAutomatic(name, { ...SAMPLES[name], case: { ...(SAMPLES[name].case as object), access_code: 'KXPM' } });
+    expect(html).toContain('KXPM');
+    expect(subject).not.toContain('KXPM');
+    expect(html).not.toMatch(/href="[^"]*KXPM/u);
+  });
+  it.each(REPLY_ACCEPTED)('refuses %s for an individual, who has no SIREN', (name) => {
+    const sample = SAMPLES[name] as { debtor: object };
+    for (const siren of ['', 'LGR-2026-00181']) expect(() => renderer.renderAutomatic(name, { ...sample, debtor: { ...sample.debtor, siren } })).toThrow();
   });
   it('refuses incomplete data and links that are not https', () => {
     expect(() => renderer.renderAutomatic('receipt', {})).toThrow();
