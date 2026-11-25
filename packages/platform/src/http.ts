@@ -18,6 +18,18 @@ export function onSessionLost(listener: () => void): () => void {
   return () => void lost.delete(listener);
 }
 
+/** Asks whoever is there for a proof of identity; false when they give none. */
+type ProofAsker = (method: string, path: string) => Promise<boolean>;
+let prover: ProofAsker | null = null;
+/** What the API asks before what matters most. One screen at a time. */
+export function onProofRequired(asker: ProofAsker): () => void {
+  prover = asker;
+  return () => {
+    if (prover === asker) prover = null;
+  };
+}
+const needsProof = ({ status, body }: ApiError) => status === 403 && (body as { code?: unknown } | undefined)?.code === 'PROOF_REQUIRED';
+
 async function read<T extends z.ZodType>(schema: T, response: Response, path: string): Promise<z.infer<T>> {
   const body: unknown = response.status === 204 ? undefined : await response.json().catch(() => undefined);
   if (response.ok) return schema.parse(body);
@@ -74,21 +86,30 @@ export interface ApiInit {
 export async function api<T extends z.ZodType>(schema: T, path: string, init: ApiInit = {}): Promise<z.infer<T>> {
   const method = init.method ?? 'GET';
   const body = init.body === undefined ? undefined : JSON.stringify(init.body);
-  if (path.endsWith('/logout')) unknownOutcome.clear();
-  const print = method === 'GET' ? null : printOf(`${method} ${path} ${body ?? ''}`);
-  const response = await fetch(BASE + path, {
-    method,
-    credentials: 'include',
-    headers: {
-      ...(body === undefined ? {} : { 'content-type': 'application/json' }),
-      ...(print === null ? {} : { 'idempotency-key': keyOf(print) }),
-      ...(init.background ? { 'x-background': '1' } : {}),
-    },
-    body,
-  });
-  // After a failure of the API or of the proxy, nobody knows whether the change was made: the key is kept.
-  if (print !== null && response.status < 500) unknownOutcome.delete(print);
-  return read(schema, response, path);
+  const send = async (): Promise<z.infer<T>> => {
+    if (path.endsWith('/logout')) unknownOutcome.clear();
+    const print = method === 'GET' ? null : printOf(`${method} ${path} ${body ?? ''}`);
+    const response = await fetch(BASE + path, {
+      method,
+      credentials: 'include',
+      headers: {
+        ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+        ...(print === null ? {} : { 'idempotency-key': keyOf(print) }),
+        ...(init.background ? { 'x-background': '1' } : {}),
+      },
+      body,
+    });
+    // After a failure of the API or of the proxy, nobody knows whether the change was made: the key is kept.
+    if (print !== null && response.status < 500) unknownOutcome.delete(print);
+    return read(schema, response, path);
+  };
+  try {
+    return await send();
+  } catch (error) {
+    // Refused before anything was done: asked once, then sent again as it was.
+    if (!(error instanceof ApiError) || !needsProof(error) || !prover || !(await prover(method, path))) throw error;
+    return send();
+  }
 }
 
 /** Sends a file as is: the API checks and analyses it. Its name never goes into the URL nor a header. */

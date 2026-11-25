@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { absenceForm, passwordForm, profileForm, supportTicket } from './account';
-import { loginRequest, newPassword } from './auth';
+import { loginRequest, newPassword, PASSWORD_MAX } from './auth';
 import { callQualification } from './calls';
 import { gdprRequestKind, newPayment, paymentStatus } from './cases';
 import { newReminder } from './collection';
@@ -28,6 +28,12 @@ const webauthnAnswer = z.looseObject({}).refine((answer) => JSON.stringify(answe
 
 export const loginBody = loginRequest.extend({ remember: z.boolean().default(false) });
 export const twoFactorBody = z.discriminatedUnion('method', [
+  z.object({ method: z.literal('TOTP'), code: oneTimeCode }),
+  z.object({ method: z.literal('BACKUP_CODE'), code: oneTimeCode }),
+  z.object({ method: z.literal('WEBAUTHN'), response: webauthnAnswer }),
+]);
+export const proofBody = z.discriminatedUnion('method', [
+  z.object({ method: z.literal('PASSWORD'), password: z.string().min(1).max(PASSWORD_MAX) }),
   z.object({ method: z.literal('TOTP'), code: oneTimeCode }),
   z.object({ method: z.literal('BACKUP_CODE'), code: oneTimeCode }),
   z.object({ method: z.literal('WEBAUTHN'), response: webauthnAnswer }),
@@ -145,6 +151,7 @@ export const REQUEST_BODIES = {
     'POST /auth/invitation/:token/password': passwordBody,
     'POST /auth/invitation/:token/totp': oneTimeCodeBody,
     'POST /auth/setup/totp/verify': oneTimeCodeBody,
+    'POST /auth/proof': proofBody,
     'PUT /auth/preferences': preferences,
     'POST /notifications/read': readBody,
     'PUT /notifications': notificationsBody,

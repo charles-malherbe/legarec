@@ -4,6 +4,7 @@ import { ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { randomUUID } from 'node:crypto';
 import type { z } from 'zod';
 import { Staff, StaffOrDelegate } from '../../platform/access/access';
+import { RequiresProof } from '../../platform/access/proof';
 import { Audit } from '../../platform/audit/audit';
 import { CONFIG, type Config } from '../../platform/config/config';
 import { Database } from '../../platform/database/database';
@@ -59,6 +60,7 @@ export class SecretsController {
     };
   }
 
+  @RequiresProof()
   @Post()
   @StaffOrDelegate('TECHNICAL', 'DIRECTOR')
   @Commits()
@@ -72,6 +74,7 @@ export class SecretsController {
     await this.audit.log({ action: 'SECRET_SAVED', entity: { type: 'secret', id }, params: { secret: name } });
   }
 
+  @RequiresProof()
   @Post(':id/rotate')
   @StaffOrDelegate('TECHNICAL', 'DIRECTOR')
   @Commits()
@@ -84,6 +87,7 @@ export class SecretsController {
     await this.audit.log({ action: 'SECRET_RENEWED', entity: { type: 'secret', id }, params: { secret: name } });
   }
 
+  @RequiresProof()
   @Post(':id/revoke')
   @StaffOrDelegate('TECHNICAL', 'DIRECTOR')
   @Commits()

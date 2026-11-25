@@ -1934,6 +1934,96 @@
         }
       }
     },
+    "/staff/auth/proof": {
+      "get": {
+        "operationId": "ProofController_needed",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "methods": {
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "PASSWORD",
+                          "TOTP",
+                          "WEBAUTHN"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "methods"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      },
+      "post": {
+        "operationId": "ProofController_give",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      }
+    },
+    "/staff/auth/proof/webauthn": {
+      "post": {
+        "operationId": "ProofController_keyOptions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "challenge": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "challenge"
+                  ],
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      }
+    },
     "/staff/account": {
       "get": {
         "operationId": "AccountController_data",

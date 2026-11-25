@@ -2,9 +2,10 @@ import type { Provider, Type } from '@nestjs/common';
 import { AccountController } from './account/account.controller';
 import { AccountService } from './account/account.service';
 import { Accounts } from './auth/accounts';
-import { authController, PreferencesController } from './auth/auth.controller';
+import { authController, PreferencesController, ProofController } from './auth/auth.controller';
 import { AuthKeys } from './auth/keys';
 import { Links } from './auth/links';
+import { Proofs } from './auth/proofs';
 import { SecondFactors } from './auth/second-factors';
 import { SessionResolver, Sessions } from './auth/sessions';
 import { SignIn } from './auth/sign-in';
@@ -25,6 +26,7 @@ export const controllers: Type[] = [
   authController('staff'),
   authController('partner'),
   PreferencesController,
+  ProofController,
   AccountController,
   MembersController,
   DelegationsController,
@@ -43,6 +45,7 @@ export const providers: Provider[] = [
   SessionViews,
   SignIn,
   Links,
+  Proofs,
   AccountService,
   MembersService,
   Vault,

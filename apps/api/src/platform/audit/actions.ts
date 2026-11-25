@@ -17,6 +17,8 @@ export const AUDIT_ACTIONS = {
   PASSWORD_RESET: 'Mot de passe réinitialisé',
   ACCOUNT_ACTIVATED: 'Compte activé',
   // One's own account
+  PROOF_GIVEN: 'Identité confirmée avant une action sensible',
+  PROOF_REFUSED: 'Confirmation d’identité refusée',
   NAME_CHANGED: 'Nom modifié dans Mon compte',
   PASSWORD_CHANGED: 'Mot de passe modifié',
   PASSWORD_REFUSED: 'Mot de passe actuel refusé dans Mon compte',

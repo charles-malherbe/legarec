@@ -185,6 +185,10 @@ export const MATRIX: Record<string, MatrixEntry> = {
     expect: supports,
   },
 
+  'GET /staff/auth/proof': { expect: staffOf(200) },
+  'POST /staff/auth/proof/webauthn': { expect: staffOf(200) },
+  // No account of the test set has a password nor a second factor: refused, and counted.
+  'POST /staff/auth/proof': { body: () => ({ method: 'TOTP', code: '123456' }), expect: staffOf(422) },
   'GET /staff/delegations': { expect: only({ director: 200, liar: 200 }) },
   'PUT /staff/delegations/:kind': { path: () => '/staff/delegations/technical', body: () => ({ active: true }), expect: only({ director: 204 }) },
   'POST /staff/support-tickets': { body: () => ({ subject: 'Question', message: 'Une question du banc de test.' }), expect: staffOf(200) },

@@ -1,5 +1,6 @@
 import { NOTIFICATION_KINDS, ROLE_LABELS, type AccountData } from '@legarec/contracts';
 import { Inject, Injectable } from '@nestjs/common';
+import { requireProof } from '../../platform/access/proof';
 import { Audit } from '../../platform/audit/audit';
 import { PASSWORDS, type Passwords } from '../../platform/crypto/passwords';
 import type { Actor } from '../../platform/database/actor';
@@ -188,7 +189,10 @@ export class AccountService {
   }
 
   startTotp(actor: StaffActor) {
-    return this.accounts.own(actor, async (tx) => this.factors.startTotp(tx, await this.holder(tx, actor)));
+    return this.accounts.own(actor, async (tx) => {
+      await this.provedToAdd(tx, actor);
+      return this.factors.startTotp(tx, await this.holder(tx, actor));
+    });
   }
 
   verifyTotp(actor: StaffActor, code: string): Promise<{ backupCodes: string[] }> {
@@ -196,7 +200,10 @@ export class AccountService {
   }
 
   keyOptions(actor: StaffActor) {
-    return this.accounts.own(actor, async (tx) => this.factors.registrationOptions(tx, 'staff', await this.holder(tx, actor), actor.session?.id));
+    return this.accounts.own(actor, async (tx) => {
+      await this.provedToAdd(tx, actor);
+      return this.factors.registrationOptions(tx, 'staff', await this.holder(tx, actor), actor.session?.id);
+    });
   }
 
   verifyKey(actor: StaffActor, response: unknown): Promise<{ backupCodes: string[] }> {
@@ -212,11 +219,19 @@ export class AccountService {
     });
   }
 
+  /** A second factor is added to another one by whoever has just shown it. */
+  private async provedToAdd(tx: Transaction, actor: StaffActor): Promise<void> {
+    if ((await this.factors.methods(tx, actor.userId)).length) requireProof(actor);
+  }
+
   private async enable(actor: StaffActor, confirm: (tx: Transaction) => Promise<string | null>): Promise<{ backupCodes: string[] }> {
+    // Before anything is counted, then again once the account is taken.
+    await this.accounts.own(actor, (tx) => this.provedToAdd(tx, actor));
     const key = this.keys.attempt('second-factor', actor.userId);
     const attempt = await this.accounts.takeAttempt(key, 'SECOND_FACTOR');
     if (!attempt.allowed) throw new ApiError(423, 'LOCKED');
     const codes = await this.accounts.own(actor, async (tx) => {
+      await this.provedToAdd(tx, actor);
       const factor = await confirm(tx);
       if (!factor) return null;
       await this.accounts.clearAttempts(tx, key);

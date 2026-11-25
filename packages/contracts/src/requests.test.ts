@@ -100,6 +100,12 @@ const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly
   staff: {
     'POST /auth/login': [{ email: 'cl@legarec.fr', password: 'motdepasse12', portal: 'espace', remember: false }],
     ...auth,
+    'POST /auth/proof': [
+      { method: 'PASSWORD', password: 'x' },
+      { method: 'TOTP', code: '123456' },
+      { method: 'BACKUP_CODE', code: '4821-7730' },
+      { method: 'WEBAUTHN', response: { id: 'x' } },
+    ],
     'PUT /auth/preferences': [{ theme: 'light', density: 'comfortable', lowVision: true }],
     'POST /notifications/read': [{ ids: ['n1', 'n2'] }, { ids: [] }],
     'PUT /notifications': [{ ids: ['n1', 'n2', 'n3', 'n4'], unread: false }],

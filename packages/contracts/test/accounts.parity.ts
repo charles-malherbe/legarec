@@ -11,6 +11,7 @@ import {
   membersData,
   notificationItem,
   partnerSession,
+  proofNeeded,
   secretsData,
   settingsHub,
   settingsSection,
@@ -288,6 +289,11 @@ export const ACCOUNT_PARITY: Parity[] = [
   { as: 'manager', request: `POST /creditors/{creditorId}/bank-accounts/${UNKNOWN}/confirm`, body: { confirmedWith: 'X' }, ...CHANGED },
   { as: 'director', request: `POST /creditors/{creditorId}/bank-accounts/${UNKNOWN}/reveal`, status: 404, answer: code('NOT_FOUND') },
   { as: 'developer', request: `POST /creditors/{creditorId}/bank-accounts/${UNKNOWN}/reveal`, status: 403, answer: code('FORBIDDEN') },
+
+  ...each(STAFF, () => ({ request: 'GET /auth/proof', status: 200, answer: proofNeeded })),
+  { as: 'nobody', request: 'GET /auth/proof', status: 401, answer: code('UNAUTHORIZED') },
+  { as: 'manager', request: 'POST /auth/proof', body: { method: 'TOTP', code: '000000' }, status: 422, answer: refused('INVALID') },
+  { as: 'nobody', request: 'POST /auth/proof', body: { method: 'PASSWORD', password: 'x' }, status: 401, answer: code('UNAUTHORIZED') },
 ];
 
 /** Sign-in of the creditors. */

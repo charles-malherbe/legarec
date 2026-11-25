@@ -204,7 +204,12 @@ function Delegations() {
   const toast = useToast();
   if (!data) return null;
   const set = async (kind: 'technical' | 'administrative', active: boolean, silent = false) => {
-    await change(`/delegations/${kind}`, { method: 'PUT', body: { active } });
+    try {
+      await change(`/delegations/${kind}`, { method: 'PUT', body: { active } });
+    } catch {
+      toast({ message: 'La délégation n’a pas été modifiée.', tone: 'danger' });
+      return;
+    }
     await client.invalidateQueries({ queryKey: SESSION_KEY });
     if (!silent) toast({ message: active ? 'Délégation redonnée.' : 'Délégation retirée.', undo: () => void set(kind, !active, true) });
   };

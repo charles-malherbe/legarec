@@ -17,6 +17,9 @@ export const state = {
   /** The account signing in already has a second factor. */
   setUp: true,
   wrongCodes: 0,
+  /** Last proof of identity, and the wrong ones since. */
+  provedAt: Date.now(),
+  wrongProofs: 0,
   failures: new Map<string, number>(),
   readNotifications: new Set<string>(),
   priorities: new Map<string, boolean>(),
@@ -27,6 +30,8 @@ export const state = {
 
 export function setAccount(id: string | null) {
   state.accountId = id === 'none' ? null : id;
+  state.provedAt = Date.now();
+  state.wrongProofs = 0;
   try {
     sessionStorage.setItem(STORAGE, id ?? 'none');
   } catch {

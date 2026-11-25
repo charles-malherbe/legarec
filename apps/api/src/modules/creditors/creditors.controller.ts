@@ -3,6 +3,7 @@ import { Body, Controller, Get, HttpCode, Inject, Param, Post, Put } from '@nest
 import { ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 import { Staff, StaffOrDelegate } from '../../platform/access/access';
+import { RequiresProof } from '../../platform/access/proof';
 import { currentActor } from '../../platform/http/context';
 import { Commits, OneTimeAnswer } from '../../platform/http/transaction.interceptor';
 import { CreditorsService, type StaffActor } from './creditors.service';
@@ -70,6 +71,7 @@ export class CreditorsController {
     return this.creditors.amend(me(), id, body);
   }
 
+  @RequiresProof()
   @Post(':id/bank-accounts')
   @StaffOrDelegate('ADMINISTRATIVE', 'DIRECTOR')
   @Commits()

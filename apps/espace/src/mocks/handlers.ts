@@ -1,4 +1,4 @@
-import { acceptsBody, loginRequest, type Dashboard, type ShellData } from '@legarec/contracts';
+import { acceptsBody, hasDelegation, isFirmIdentity, loginRequest, PROOF_MINUTES, sensitiveAction, type Dashboard, type ShellData } from '@legarec/contracts';
 import { http, HttpResponse, type HttpHandler } from 'msw';
 import { ACCOUNTS, DEMO_PASSWORD } from './accounts';
 import dashboardData from './dashboard.json';
@@ -106,8 +106,58 @@ const checkBody = http.all('/api/*', async ({ request }) => {
   return acceptsBody('staff', request.method, path, await request.clone().text()) ? undefined : HttpResponse.json({ code: 'INVALID' }, { status: 422 });
 });
 
+/** Before what matters most, as the API: a role that may not do it is refused first. */
+const checkProof = http.all('/api/*', async ({ request }) => {
+  const session = currentSession();
+  const path = new URL(request.url).pathname.replace('/api', '');
+  const action = sensitiveAction(request.method, path);
+  if (!session || !action || Date.now() - state.provedAt <= PROOF_MINUTES * 60_000) return undefined;
+  if (action.includes('/account/two-factor') && request.method === 'POST' && !session.twoFactorEnabled) return undefined;
+  if (action === 'PUT /settings/:scope/:id') {
+    const sent = (await request.clone().json()) as Record<string, unknown>;
+    if (!Object.keys(sent).some((field) => isFirmIdentity(path.split('/').at(-1) ?? '', field))) return undefined;
+  }
+  const mayDo =
+    session.role === 'DIRECTOR' ||
+    action.includes('/account/') ||
+    (action.includes('/secrets')
+      ? hasDelegation(session, 'TECHNICAL')
+      : action.includes('/delegations') || action.includes('/settings')
+        ? false
+        : session.role !== 'CLAIMS_OFFICER');
+  return mayDo ? HttpResponse.json({ code: 'PROOF_REQUIRED' }, { status: 403 }) : undefined;
+});
+
 export const handlers: HttpHandler[] = [
   checkBody,
+  checkProof,
+  http.get('/api/auth/proof', () => {
+    const session = currentSession();
+    return session ? HttpResponse.json({ methods: session.twoFactorEnabled ? ['TOTP', 'WEBAUTHN'] : ['PASSWORD'] }) : unauthorized();
+  }),
+  http.post('/api/auth/proof/webauthn', () =>
+    currentSession() ? HttpResponse.json({ challenge: 'ZGVtby1jaGFsbGVuZ2U', rpId: 'localhost', allowCredentials: [], timeout: 60000 }) : unauthorized(),
+  ),
+  http.post('/api/auth/proof', async ({ request }) => {
+    const session = currentSession();
+    if (!session) return unauthorized();
+    const given = (await request.json()) as { method: string; code?: string; password?: string };
+    if ((given.method === 'PASSWORD') === session.twoFactorEnabled) return HttpResponse.json({ code: 'INVALID', fields: ['method'] }, { status: 422 });
+    if (state.wrongProofs >= MAX_FAILURES) return HttpResponse.json({ code: 'LOCKED', closed: false }, { status: 423 });
+    const accepted =
+      given.method === 'PASSWORD'
+        ? given.password === DEMO_PASSWORD
+        : given.method === 'WEBAUTHN' || (given.method === 'BACKUP_CODE' ? given.code?.replace(/\D/gu, '') === '48217730' : given.code === '123456');
+    if (accepted) {
+      state.provedAt = Date.now();
+      state.wrongProofs = 0;
+      return done();
+    }
+    state.wrongProofs += 1;
+    if (state.wrongProofs < MAX_FAILURES) return HttpResponse.json({ code: 'INVALID_PROOF', attemptsLeft: MAX_FAILURES - state.wrongProofs }, { status: 422 });
+    setAccount('none');
+    return HttpResponse.json({ code: 'LOCKED', closed: true }, { status: 423 });
+  }),
   ...documentHandlers,
   ...settingsHandlers,
   ...templateHandlers,

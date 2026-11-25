@@ -7,6 +7,7 @@ import { forbidden, unauthorized } from '../errors/api-error';
 import { setCurrentActor } from '../http/context';
 import { acceptsOrigin } from '../http/origin';
 import { ACCESS, ACTOR_RESOLVER, allow, isOpen, type AccessRule, type ActorResolver } from './access';
+import { PROOF, requireProof } from './proof';
 
 export interface AppRequest extends Request {
   requestId: string;
@@ -31,6 +32,7 @@ export class AccessGuard implements CanActivate {
     const actor = allow(access, isOpen(access) ? null : await this.resolver.resolve(access.portal, request as never));
     if (actor === null) throw unauthorized();
     if (actor === false) throw forbidden();
+    if (this.reflector.getAllAndOverride<boolean | undefined>(PROOF, [context.getHandler(), context.getClass()])) requireProof(actor);
     request.actor = actor;
     setCurrentActor(actor);
     return true;

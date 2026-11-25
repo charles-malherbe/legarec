@@ -13,6 +13,7 @@ import { ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { randomUUID } from 'node:crypto';
 import type { z } from 'zod';
 import { AnyStaff, StaffOrDelegate } from '../../platform/access/access';
+import { requireProof } from '../../platform/access/proof';
 import { auditSentence } from '../../platform/audit/actions';
 import { Audit } from '../../platform/audit/audit';
 import type { Actor } from '../../platform/database/actor';
@@ -106,6 +107,7 @@ export class SettingsController {
     if (!changes.length) return;
     const identity = changes.filter(({ field }) => scope === 'firm' && isFirmIdentity(id, field));
     if (identity.length && actor.role !== 'DIRECTOR') throw forbidden();
+    if (identity.length) requireProof(actor);
     const known = new Set((await tx.setting.findMany({ where: { key: { startsWith: `${scope}.${id}.` } }, select: { key: true } })).map((row) => row.key));
     for (const { field, next, former } of changes) {
       const key = keyOf(scope, id, field);
