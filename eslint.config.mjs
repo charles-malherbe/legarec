@@ -16,6 +16,22 @@ const CONSTANT_LOGS = [
   },
 ];
 
+/** What the platform alone decides. */
+const ACTORS = [
+  { selector: 'ImportExpression[source.value=/^(@prisma\\u002f|pg$|bullmq$|ioredis$)|generated\\u002fprisma/]', message: 'Use Database or Outbox.' },
+  {
+    selector: 'TemplateElement[value.raw=/set_config|\\b(re)?set\\s+(local\\s+|session\\s+)?(role|session)\\b/i]',
+    message: 'Only Database.run() decides who is acting.',
+  },
+];
+
+/** Who is acting was decided with the request: a transaction in the name of someone else is for the sign-in only. */
+const OWN_TRANSACTIONS = [
+  'CallExpression[callee.property.name="run"][callee.object.property.name=/database$/i]',
+  'CallExpression[callee.property.name="run"][callee.object.name=/database$/i]',
+  'NewExpression[callee.name="Database"]',
+].map((selector) => ({ selector, message: 'Use Database.tx: the transaction of the request.' }));
+
 export default tseslint.config(
   {
     ignores: [
@@ -80,15 +96,12 @@ export default tseslint.config(
         },
       ],
       'no-restricted-properties': ['error', { property: '$queryRawUnsafe' }, { property: '$executeRawUnsafe' }],
-      'no-restricted-syntax': [
-        'error',
-        ...CONSTANT_LOGS,
-        { selector: 'ImportExpression[source.value=/^(@prisma\\u002f|pg$|bullmq$|ioredis$)|generated\\u002fprisma/]', message: 'Use Database or Outbox.' },
-        {
-          selector: 'TemplateElement[value.raw=/set_config|\\b(re)?set\\s+(local\\s+|session\\s+)?(role|session)\\b/i]',
-          message: 'Only Database.run() decides who is acting.',
-        },
-      ],
+      'no-restricted-syntax': ['error', ...CONSTANT_LOGS, ...ACTORS],
     },
+  },
+  {
+    files: ['apps/api/src/modules/**/*.ts'],
+    ignores: ['apps/api/src/modules/auth/**', '**/*.test.ts'],
+    rules: { 'no-restricted-syntax': ['error', ...CONSTANT_LOGS, ...ACTORS, ...OWN_TRANSACTIONS] },
   },
 );

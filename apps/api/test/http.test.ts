@@ -336,7 +336,7 @@ describe('headers of the answers', () => {
       'access-control-request-headers': 'x-anything',
     });
     expect(answer.headers['access-control-allow-methods']).toBe('GET, POST, PUT, DELETE');
-    expect(answer.headers['access-control-allow-headers']).toBe('Content-Type, Idempotency-Key');
+    expect(answer.headers['access-control-allow-headers']).toBe('Content-Type, Idempotency-Key, X-Background');
   });
 });
 

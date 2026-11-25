@@ -36,7 +36,7 @@ export function portalsOnly(config: Config): RequestHandler {
       }
       if (request.method === 'OPTIONS') {
         response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
-        response.setHeader('Access-Control-Allow-Headers', 'Content-Type, Idempotency-Key');
+        response.setHeader('Access-Control-Allow-Headers', 'Content-Type, Idempotency-Key, X-Background');
         response.setHeader('Access-Control-Max-Age', '600');
         response.status(204).end();
         return;

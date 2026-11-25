@@ -6,22 +6,7 @@ import { z } from 'zod';
 import type { Config } from '../config/config';
 import type { Actor } from '../database/actor';
 import { Commits, NoTransaction } from '../http/transaction.interceptor';
-import {
-  ACCESS,
-  allow,
-  Anonymous,
-  AnyStaff,
-  Debtor,
-  Health,
-  Hook,
-  NobodyResolver,
-  Partner,
-  Public,
-  ServiceAccount,
-  Staff,
-  StaffOrDelegate,
-  type AccessRule,
-} from './access';
+import { ACCESS, allow, Anonymous, AnyStaff, Debtor, Health, Hook, Partner, Public, ServiceAccount, Staff, StaffOrDelegate, type AccessRule } from './access';
 import { AccessGuard } from './access.guard';
 import { checkRoutes, routesOf } from './routes';
 
@@ -53,11 +38,11 @@ describe('rules', () => {
     ['any collaborator', { portal: 'staff' }, ['director', 'manager', 'managerAlone', 'developer', 'officer']],
     ['the Director', { portal: 'staff', roles: ['DIRECTOR'] }, ['director']],
     ['the team of the cases', { portal: 'staff', roles: ['COLLECTION_MANAGER', 'CLAIMS_OFFICER'] }, ['manager', 'managerAlone', 'officer']],
-    ['the Director or the administrative delegate', { portal: 'staff', roles: ['DIRECTOR'], delegation: 'ADMINISTRATIVE' }, ['director', 'manager']],
-    ['the Director or the technical delegate', { portal: 'staff', roles: ['DIRECTOR'], delegation: 'TECHNICAL' }, ['director', 'developer']],
+    ['the Director or the administrative delegate', { portal: 'staff', roles: ['DIRECTOR'], delegations: ['ADMINISTRATIVE'] }, ['director', 'manager']],
+    ['the Director or the technical delegate', { portal: 'staff', roles: ['DIRECTOR'], delegations: ['TECHNICAL'] }, ['director', 'developer']],
     // A list of roles left empty opens to nobody, not to everybody.
     ['no role at all', { portal: 'staff', roles: [] }, []],
-    ['a delegate alone', { portal: 'staff', roles: [], delegation: 'TECHNICAL' }, ['developer']],
+    ['a delegate alone', { portal: 'staff', roles: [], delegations: ['TECHNICAL'] }, ['developer']],
     ['a creditor', { portal: 'partner' }, ['partner']],
     ['a debtor', { portal: 'debtor' }, ['debtor']],
     ['a service account', { portal: 'service', scope: 'calls' }, ['service']],
@@ -78,11 +63,11 @@ describe('rules', () => {
   });
 
   it('mark an action done for the Director, and only that one', () => {
-    const rule: AccessRule = { portal: 'staff', roles: ['DIRECTOR'], delegation: 'ADMINISTRATIVE' };
+    const rule: AccessRule = { portal: 'staff', roles: ['DIRECTOR'], delegations: ['ADMINISTRATIVE'] };
     expect(allow(rule, ACTORS.manager!)).toEqual({ ...ACTORS.manager, actingFor: 'ADMINISTRATIVE' });
     expect(allow(rule, ACTORS.director!)).toEqual(ACTORS.director);
     // The right comes from the role here: nothing is done for someone else.
-    expect(allow({ portal: 'staff', roles: ['COLLECTION_MANAGER'], delegation: 'ADMINISTRATIVE' }, ACTORS.manager!)).toEqual(ACTORS.manager);
+    expect(allow({ portal: 'staff', roles: ['COLLECTION_MANAGER'], delegations: ['ADMINISTRATIVE'] }, ACTORS.manager!)).toEqual(ACTORS.manager);
     expect(allow({ portal: 'staff' }, ACTORS.manager!)).toEqual(ACTORS.manager);
     // The actor of the session itself is left as it was for the next request.
     expect(ACTORS.manager).not.toHaveProperty('actingFor');
@@ -107,7 +92,7 @@ describe('rules', () => {
       .map((name) => [name, reflector.get<AccessRule>(ACCESS, (Named.prototype as unknown as Record<string, () => void>)[name]!)]);
     expect(Object.fromEntries(written)).toEqual({
       director: { portal: 'staff', roles: ['DIRECTOR'] },
-      delegate: { portal: 'staff', roles: ['DIRECTOR'], delegation: 'TECHNICAL' },
+      delegate: { portal: 'staff', roles: ['DIRECTOR'], delegations: ['TECHNICAL'] },
       any: { portal: 'staff' },
       partner: { portal: 'partner' },
       debtor: { portal: 'debtor' },
@@ -200,7 +185,7 @@ describe('guard', () => {
   });
 
   it('lets nobody in until the sessions exist', async () => {
-    const target = new AccessGuard(new Reflector(), new NobodyResolver(), CONFIG);
+    const target = new AccessGuard(new Reflector(), { resolve: () => Promise.resolve(null) }, CONFIG);
     await expect(target.canActivate(request(prototype.staff).context)).rejects.toMatchObject({ status: 401 });
   });
 });

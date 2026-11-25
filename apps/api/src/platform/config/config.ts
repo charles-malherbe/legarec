@@ -30,7 +30,13 @@ const apiSchema = z.object({
   /** Number of proxies in front of the API: Caddy, and nothing else. */
   TRUSTED_PROXIES: z.coerce.number().int().min(0).max(2).default(1),
 });
-const workerSchema = z.object({ ...common, ...accounts, JOBS_DATABASE_URL: database });
+const workerSchema = z.object({
+  ...common,
+  ...accounts,
+  JOBS_DATABASE_URL: database,
+  /** Development only: folder where the simulated messages are written. */
+  DEV_MAIL_DIR: z.string().startsWith('/').optional(),
+});
 
 export type Config = Readonly<z.infer<typeof apiSchema>>;
 export type WorkerConfig = Readonly<z.infer<typeof workerSchema>>;
@@ -69,7 +75,11 @@ function read<T extends z.ZodType<Partial<Config> & Pick<Config, 'NODE_ENV' | 'M
 }
 
 export const readConfig = (env: Env): Config => read(apiSchema, env);
-export const readWorkerConfig = (env: Env): WorkerConfig => read(workerSchema, env);
+export function readWorkerConfig(env: Env): WorkerConfig {
+  const config = read(workerSchema, env);
+  if (config.NODE_ENV === 'production' && config.DEV_MAIL_DIR) throw new ConfigError('Refused in production: DEV_MAIL_DIR');
+  return config;
+}
 
 /** Address given to the migrations, and to nothing else. */
 export function readMigrationUrl(env: Env): string {

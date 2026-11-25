@@ -4,6 +4,7 @@ import type { Request } from 'express';
 import { CONFIG, type Config } from '../config/config';
 import type { Actor } from '../database/actor';
 import { forbidden, unauthorized } from '../errors/api-error';
+import { setCurrentActor } from '../http/context';
 import { acceptsOrigin } from '../http/origin';
 import { ACCESS, ACTOR_RESOLVER, allow, isOpen, type AccessRule, type ActorResolver } from './access';
 
@@ -31,6 +32,7 @@ export class AccessGuard implements CanActivate {
     if (actor === null) throw unauthorized();
     if (actor === false) throw forbidden();
     request.actor = actor;
+    setCurrentActor(actor);
     return true;
   }
 }

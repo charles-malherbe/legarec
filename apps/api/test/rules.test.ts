@@ -114,6 +114,15 @@ describe('doors to PostgreSQL and to Valkey', () => {
   };
 
   it.each([
+    "import type { Database } from '../../platform/database/database';\nexport const x = (database: Database) => database.run({ kind: 'retention' }, () => Promise.resolve());",
+    "import type { Database } from '../../platform/database/database';\nexport class X { constructor(private readonly database: Database) {} y = () => this.database.run({ kind: 'anonymous' }, () => Promise.resolve()); }",
+    "import { Database } from '../../platform/database/database';\nexport const x = new Database('postgres://x');",
+  ])('keep the choice of who is acting to the sign-in: %s', async (code) => {
+    expect(await problems('modules/cases/cases.service.ts', code)).toContain('no-restricted-syntax');
+    expect(await problems('modules/auth/accounts.ts', code)).not.toContain('no-restricted-syntax');
+  });
+
+  it.each([
     "import { PrismaClient } from '../../generated/prisma/client';\nexport const x = PrismaClient;",
     "import { PrismaPg } from '@prisma/adapter-pg';\nexport const x = PrismaPg;",
     "import pg from 'pg';\nexport const x = pg;",
