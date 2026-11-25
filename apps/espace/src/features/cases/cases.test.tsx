@@ -130,3 +130,19 @@ it('opens the creditor file and folds invoices', async () => {
   await userEvent.click(screen.getByRole('tab', { name: 'Reversements' }));
   expect(screen.getByText('12 encaissements')).toBeVisible();
 });
+
+it('writes to the debtor from the case file, only with the right to act on it', async () => {
+  openAs('cl', '/debiteurs/demo');
+  await userEvent.click(await screen.findByRole('tab', { name: /Échanges/ }));
+  await userEvent.click(screen.getByRole('button', { name: 'Écrire un e-mail' }));
+  await userEvent.type(await screen.findByLabelText(/^Objet/), 'Votre dossier');
+  await userEvent.type(screen.getByLabelText(/^Message/), 'Bonjour');
+  await userEvent.click(screen.getByRole('button', { name: 'Envoyer' }));
+  const dialog = within(await screen.findByRole('alertdialog'));
+  expect(dialog.getByText(/Camille LAURENT <cl@legarec.fr>/)).toBeVisible();
+  await userEvent.click(dialog.getByRole('button', { name: 'Envoyer' }));
+  expect(await screen.findByText('Message envoyé.')).toBeVisible();
+  const body = { to: 'x@exemple.fr', subject: 'a', paragraphs: ['b'], caseId: 'demo' };
+  expect((await call('ad', '/emails/messages', body)).status).toBe(403);
+  expect((await call('dev', '/emails/messages', body)).status).toBe(403);
+});

@@ -9,6 +9,7 @@ import { STATUS_TONE } from '../dashboard/DashboardPage';
 import { ApiError } from '../../app/api';
 import { AccessDenied } from '../error/ErrorPage';
 import { AccessCodeCard } from './AccessCodeCard';
+import { CaseMessage } from './CaseMessage';
 import { ExchangesCard } from './ExchangesCard';
 import { GdprCard } from './GdprCard';
 import { PaymentForm, PaymentsCard } from './Payments';
@@ -39,7 +40,7 @@ function CaseView({ data }: { data: CaseDetail }) {
   const change = useChange();
   const toast = useToast();
   const [tab, setTab] = useState<Tab>('overview');
-  const [panel, setPanel] = useState<'reminder' | 'payment' | null>(null);
+  const [panel, setPanel] = useState<'reminder' | 'payment' | 'message' | null>(null);
   const [reported, setReported] = useState(false);
   const initials = data.name
     .split(' ')
@@ -233,6 +234,12 @@ function CaseView({ data }: { data: CaseDetail }) {
               </ol>
             </Carte>
           )}
+          {tab === 'exchanges' && data.canAct && panel !== 'message' && (
+            <div>
+              <Bouton variant="secondary" icon="mail" label="Écrire un e-mail" onPress={() => setPanel('message')} />
+            </div>
+          )}
+          {tab === 'exchanges' && panel === 'message' && <CaseMessage data={data} onClose={() => setPanel(null)} />}
           {tab === 'exchanges' && <ExchangesCard data={data} />}
           {tab === 'documents' && (
             <Carte title="Documents du dossier" padding="none" actionLabel={data.canAct ? '+ Nouveau courrier' : undefined} actionHref="/documents/rediger">

@@ -63,5 +63,9 @@
   "DebtorPrivacy": {
     "app": "paiement",
     "route": "/confidentialite"
+  },
+  "Library": {
+    "app": "espace",
+    "route": "/bibliotheque"
   }
 }

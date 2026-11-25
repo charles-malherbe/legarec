@@ -12,5 +12,8 @@
   },
   "dependencies": {
     "@mantine/core": "9.8.2"
-  }
+  },
+  "sideEffects": [
+    "**/*.css"
+  ]
 }
