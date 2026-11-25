@@ -54,6 +54,7 @@ export const AUDIT_ACTIONS = {
   CONTACT_ADDED: 'Coordonnée d’un débiteur ajoutée',
   CONTACT_CHANGED: 'Coordonnée d’un débiteur modifiée',
   // Platform
+  ACCESS_CODE_RENEWED: 'Code d’accès régénéré',
   CASE_NOTE_ADDED: 'Note ajoutée à un dossier',
   SETTING_CHANGED: 'Paramètres modifiés : {count}',
   FIRM_IDENTITY_CHANGED: 'Identifiants du cabinet modifiés : {count}',

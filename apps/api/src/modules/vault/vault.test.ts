@@ -116,10 +116,10 @@ describe('a revocation', () => {
     expect((await list()).map((item) => item.status)).toEqual(['REVOKED', 'VALID']);
   });
 
-  it('is never that of an internal key, which nobody renews by hand either', async () => {
+  it('is never that of an internal key, whose value nobody types either', async () => {
     const [row] = await rows<{ id: string }>("INSERT INTO vault_secrets (name, value_cipher) VALUES ('ACCESS_CODE_KEY', '\\x00') RETURNING id");
-    for (const then of ['rotate', 'revoke', 'keep'])
-      expect((await call('director', 'POST', `/${row!.id}/${then}`, then === 'rotate' ? { value: 'x' } : undefined)).status).toBe(404);
+    for (const then of ['revoke', 'keep']) expect((await call('director', 'POST', `/${row!.id}/${then}`)).status).toBe(404);
+    expect((await call('director', 'POST', `/${row!.id}/rotate`, { value: 'x' })).status).toBe(422);
     expect((await list())[0]).toMatchObject({ name: 'ACCESS_CODE_KEY', internal: true, status: 'VALID' });
   });
 });

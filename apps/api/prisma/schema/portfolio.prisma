@@ -175,9 +175,32 @@ model Debtor {
   anonymizedAt       DateTime?  @map("anonymized_at") @db.Timestamptz(3)
   createdAt          DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  cases Case[]
+  cases      Case[]
+  accessCode DebtorAccessCode?
 
   @@map("debtors")
+}
+
+/// One code per debtor, for all their cases; read through app.access_code().
+model DebtorAccessCode {
+  debtorId    String   @id @map("debtor_id") @db.Uuid
+  codeCipher  Bytes    @map("code_cipher")
+  generatedBy String?  @map("generated_by") @db.Uuid
+  generatedAt DateTime @default(now()) @map("generated_at") @db.Timestamptz(3)
+
+  debtor Debtor @relation(fields: [debtorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("debtor_access_codes")
+}
+
+/// Keyed digests; written by app.renew_access_code().
+model DebtorRetiredCode {
+  debtorId  String   @map("debtor_id") @db.Uuid
+  codeHmac  Bytes    @map("code_hmac")
+  retiredAt DateTime @default(now()) @map("retired_at") @db.Timestamptz(3)
+
+  @@id([debtorId, codeHmac])
+  @@map("debtor_retired_codes")
 }
 
 /// One open case at most per creditor and debtor (partial unique index in SQL).

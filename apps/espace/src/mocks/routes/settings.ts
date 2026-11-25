@@ -265,10 +265,10 @@ export const settingsHandlers = [
     '/api/secrets/:id/:action',
     guarded<Info>(edits, async ({ params, request }, session) => {
       const item = secrets.find((entry) => entry.id === params.id);
-      // Internal keys are drawn and renewed by the API alone.
       if (params.action === 'keep' && session.role !== 'DIRECTOR') return forbidden();
-      if (!item || item.internal) return notFound();
-      if (params.action === 'rotate' && !((await request.json()) as { value?: string }).value)
+      // Internal keys are drawn here: renewed without a value, never revoked.
+      if (!item || (item.internal && params.action !== 'rotate')) return notFound();
+      if (params.action === 'rotate' && Boolean(((await request.json()) as { value?: string }).value) === item.internal)
         return HttpResponse.json({ code: 'INVALID', fields: ['value'] }, { status: 422 });
       const director = session.role === 'DIRECTOR';
       // Revoking in production needs the Director: the Developer only asks for it.

@@ -75,6 +75,21 @@ export function SecretsCard({ canEdit }: { canEdit: boolean }) {
       },
     });
   };
+  /** Drawn by the application: nothing is typed, and nothing is lost. */
+  const renewInternal = (item: SecretItem) =>
+    confirm({
+      title: `Renouveler ${item.name} ?`,
+      body: 'L’application tire une nouvelle clé et chiffre de nouveau les données avec elle. Rien ne change pour les utilisateurs.',
+      details: [
+        { k: 'Clé interne', v: item.name },
+        { k: 'Usage', v: item.service },
+      ],
+      confirmLabel: 'Renouveler la clé',
+      onConfirm: async () => {
+        await change(`/secrets/${item.id}/rotate`, { body: {} });
+        toast({ message: `${item.name} renouvelé.` });
+      },
+    });
   const submit = () => {
     if (!form) return;
     const parsed = newSecret.safeParse(form);
@@ -201,7 +216,9 @@ export function SecretsCard({ canEdit }: { canEdit: boolean }) {
               key: 'actions',
               label: 'Actions',
               render: (row) =>
-                canEdit && !row.internal && row.status !== 'REVOKED' ? (
+                canEdit && row.internal ? (
+                  <Bouton variant="secondary" size="xs" label="Renouveler" ariaLabel={`Renouveler : ${row.name}`} onPress={() => renewInternal(row)} />
+                ) : canEdit && row.status !== 'REVOKED' ? (
                   <span className={layout.inline}>
                     <Bouton
                       variant="secondary"

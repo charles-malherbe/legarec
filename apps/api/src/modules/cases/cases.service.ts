@@ -22,6 +22,7 @@ import { takenIndex } from '../../platform/database/codes';
 import { nothing, sql, type Sql } from '../../platform/database/sql';
 import { ApiError, conflict, forbidden, notFound } from '../../platform/errors/api-error';
 import { dayOf, longDay } from '../../platform/format';
+import { AccessCodes } from '../debtor-access/access-codes';
 import { currentOf, dayText, termsOf } from '../creditors/mandates';
 import { lateDays } from '../creditors/late';
 import { STATUS_LABELS } from './labels';
@@ -76,6 +77,7 @@ export class CasesService {
   constructor(
     @Inject(Database) private readonly database: Database,
     @Inject(Audit) private readonly audit: Audit,
+    @Inject(AccessCodes) private readonly codes: AccessCodes,
   ) {}
 
   async search(query: string, { creditor, status, officer, age }: Query): Promise<z.infer<typeof caseList>> {
@@ -305,6 +307,7 @@ export class CasesService {
       'Dossier ouvert',
       `${plural(body.invoices.length)} · ${individual ? 'particulier' : (LEGAL_FORMS[body.legalForm] ?? 'entreprise')}`,
     );
+    await this.codes.ensure(id);
     if (actor.role === 'DIRECTOR' && !body.toMe) await tx.$executeRaw`SELECT app.assign_cases(ARRAY[${id}]::uuid[], NULL)`;
     await this.audit.log({ action: 'CASE_OPENED', entity: { type: 'case', id } });
     return { id, reference };

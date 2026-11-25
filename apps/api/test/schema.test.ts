@@ -259,6 +259,8 @@ describe('rights of the roles inside', () => {
       'case_contacts SELECT (case_id, creditor_id, id, is_primary, kind, label, status, value, value_normalized)',
       'case_invoices SELECT (case_id, claimed_cents, created_at, creditor_id, due_on, external_ref, id, issued_on, number, principal_cents, principal_paid_cents, state)',
       'cases SELECT (closed_on, contact_name, contact_title, created_at, created_by, creditor_id, debtor_address, debtor_city, debtor_id, debtor_postal_code, debtor_siret, external_reference, first_letter_on, first_letter_reference, id, mandate_id, officer_id, opened_on, reference, scenario, status, version)',
+      'debtor_access_codes SELECT (code_cipher, debtor_id)',
+      'debtor_access_codes UPDATE (code_cipher)',
     ],
     legarec_retention: [
       'idempotency_keys DELETE (*)',
@@ -286,7 +288,6 @@ describe('rights of the roles inside', () => {
       'backup_codes SELECT (user_id)',
       'case_events INSERT (*)',
       'case_events SELECT (actor_id, case_id, kind, occurred_at)',
-      'cases SELECT (creditor_id, debtor_id, first_letter_on, id, officer_id, version)',
       'cases UPDATE (officer_id, version)',
       'creditors SELECT (id, portal_enabled)',
       'delegations INSERT (granted_by, kind)',
@@ -330,13 +331,19 @@ describe('rights of the roles inside', () => {
       'users UPDATE (anonymized_at, disabled_at, disabled_by, disabled_reason, email, extension, first_name, invited_at, last_name, last_seen_at, password_hash, role, status, substitute_id, two_factor_required)',
       // Written, never read.
       'vault_secrets INSERT (id, name, rotation, value_cipher)',
-      'vault_secrets SELECT (id, kind, name, status)',
       'vault_secrets UPDATE (decided_by, requested_by, rotated_at, status, value_cipher)',
       'creditor_bank_accounts SELECT (creditor_id, iban_cipher, id)',
       'case_contact_events INSERT (actor_id, actor_label, case_id, contact_id, creditor_id, what)',
       'case_contacts SELECT (case_id, creditor_id, id)',
       'debtors INSERT (id, kind, legal_form_checked_at, legal_form_code, legal_form_source, name, siren)',
       'debtors SELECT (id, siren)',
+      'cases SELECT (closed_on, creditor_id, debtor_id, first_letter_on, id, officer_id, version)',
+      'debtor_access_codes INSERT (code_cipher, debtor_id, generated_by)',
+      'debtor_access_codes SELECT (code_cipher, debtor_id)',
+      'debtor_access_codes UPDATE (code_cipher, generated_at, generated_by)',
+      'debtor_retired_codes INSERT (code_hmac, debtor_id)',
+      'debtor_retired_codes SELECT (code_hmac, debtor_id)',
+      'vault_secrets SELECT (id, kind, name, rotated_at, status, value_cipher)',
     ],
   };
   it.each(Object.entries(expected))('%s', async (role, rights) => {
@@ -407,6 +414,9 @@ describe('rights on the functions', () => {
     ...['save_secret', 'renew_secret', 'revoke_secret', 'keep_secret', 'save_setting', 'creditor_iban', 'open_debtor', 'note_contact'].map(
       (name) => [name, ['staff']] as [string, string[]],
     ),
+    ...['renew_internal_key', 'access_code', 'first_access_code', 'renew_access_code'].map((name) => [name, ['staff']] as [string, string[]]),
+    // What they read is encrypted with a key that is not in the database.
+    ...['internal_key', 'first_internal_key'].map((name) => [name, ['staff', 'worker']] as [string, string[]]),
     ['portal_officer', ['partner']],
     ['create_director', ['worker']],
     ['ticket_reader', ['worker']],
@@ -441,6 +451,7 @@ describe('rights on the functions', () => {
       'purge_sign_ins anonymize_accounts account_of account_of_link inviter_name resume_session take_attempt clear_attempts subject proved_subject tell_reset',
       'invite_member cancel_invitation disable_member enable_member set_member_role set_extension support account_states locked set_delegation open_ticket acts_as_director',
       'save_secret renew_secret revoke_secret keep_secret save_setting creditor_iban open_debtor note_contact',
+      'internal_key first_internal_key renew_internal_key access_code first_access_code renew_access_code',
       'portal_officer create_director ticket_reader close_account release_cases digests refuse tell_director end_technical_delegation take_with_substituted open_delegations require_for_developer',
       'uuid_v7 setting user_id creditor_id debtor_id only_identifiers audit_params',
     ].flatMap((names) => names.split(' '));

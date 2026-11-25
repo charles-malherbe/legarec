@@ -104,7 +104,12 @@ describe('case file', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Régénérer le code d’accès' }));
     await confirmWith('Régénérer le code');
     expect(await screen.findByText('BRTV')).toBeVisible();
-    for (const account of ['ad', 'hb', 'dev']) expect((await call(account, '/cases/demo/access-code')).status).toBe(403);
+    for (const [account, status] of [
+      ['ad', 403],
+      ['hb', 404],
+      ['dev', 403],
+    ] as const)
+      expect((await call(account, '/cases/demo/access-code')).status).toBe(status);
   });
   it('replies to the debtor portal and shows proofs of delivery', async () => {
     openAs('cl', '/debiteurs/demo');

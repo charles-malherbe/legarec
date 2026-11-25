@@ -267,6 +267,14 @@ export const MATRIX: Record<string, MatrixEntry> = {
     body: () => ({ version: 1, invoices: [INVOICE], expected: { principal: 100, invoices: 1 } }),
     expect: only({ director: 403, manager: 204, managerAlone: 204, liar: 404 }),
   },
+  'GET /staff/cases/:id/access-code': {
+    path: async (test) => `/staff/cases/${(await newCase(test)).id}/access-code`,
+    expect: only({ director: 403, manager: 200, managerAlone: 200, officerA: 404, officerB: 404, liar: 404 }),
+  },
+  'POST /staff/cases/:id/access-code/regenerate': {
+    path: async (test) => `/staff/cases/${(await newCase(test)).id}/access-code/regenerate`,
+    expect: only({ director: 403, manager: 204, managerAlone: 204, officerA: 404, officerB: 404, liar: 404 }),
+  },
   'POST /staff/cases/:id/coordinates': {
     path: async (test) => `/staff/cases/${(await newCase(test)).id}/coordinates`,
     body: () => ({ kind: 'PHONE', label: 'x', value: '06 00 00 00 01', primary: false, replaces: null, source: 'CALL' }),

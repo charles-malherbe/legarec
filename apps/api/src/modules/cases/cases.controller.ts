@@ -1,10 +1,11 @@
-import { caseCheckResult, caseChoices, caseDetail, caseList, caseOpened, caseSearchQuery, REQUEST_BODIES } from '@legarec/contracts';
+import { accessCodeResponse, caseCheckResult, caseChoices, caseDetail, caseList, caseOpened, caseSearchQuery, REQUEST_BODIES } from '@legarec/contracts';
 import { Body, Controller, Get, HttpCode, Inject, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import type { z } from 'zod';
 import { Staff, StaffOrDelegate } from '../../platform/access/access';
 import { currentActor } from '../../platform/http/context';
 import { Commits } from '../../platform/http/transaction.interceptor';
+import { AccessCodes } from '../debtor-access/access-codes';
 import { CasesService, type StaffActor } from './cases.service';
 import { ContactsService } from './contacts.service';
 
@@ -21,6 +22,7 @@ export class CasesController {
   constructor(
     @Inject(CasesService) private readonly cases: CasesService,
     @Inject(ContactsService) private readonly contacts: ContactsService,
+    @Inject(AccessCodes) private readonly codes: AccessCodes,
   ) {}
 
   @Post('search')
@@ -82,6 +84,22 @@ export class CasesController {
   @ApiNoContentResponse()
   addInvoices(@Param('id') id: string, @Body({ schema: bodies['POST /cases/:id/invoices'] }) body: In<'POST /cases/:id/invoices'>) {
     return this.cases.addToCase(me(), id, body);
+  }
+
+  @Get(':id/access-code')
+  @WithCases()
+  @ApiOkResponse({ standardSchema: accessCodeResponse })
+  async accessCode(@Param('id') id: string) {
+    return { code: await this.codes.show(id) };
+  }
+
+  @Post(':id/access-code/regenerate')
+  @WithCases()
+  @Commits()
+  @HttpCode(204)
+  @ApiNoContentResponse()
+  renewAccessCode(@Param('id') id: string) {
+    return this.codes.renew(id);
   }
 
   @Post(':id/coordinates')

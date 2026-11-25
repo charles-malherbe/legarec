@@ -1,4 +1,4 @@
-import { INTERNAL_SECRETS, REQUEST_BODIES, secretsData, SERVICE_SECRETS, type SecretItem } from '@legarec/contracts';
+import { INTERNAL_SECRETS, REQUEST_BODIES, secretsData, SERVICE_SECRETS, type InternalSecret, type SecretItem } from '@legarec/contracts';
 import { Body, Controller, Get, HttpCode, Inject, Param, Post } from '@nestjs/common';
 import { ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { randomUUID } from 'node:crypto';
@@ -11,6 +11,8 @@ import { Database } from '../../platform/database/database';
 import { conflict, invalid, notFound } from '../../platform/errors/api-error';
 import { ago, capitalized } from '../../platform/format';
 import { Commits } from '../../platform/http/transaction.interceptor';
+import { Outbox } from '../../platform/queue/outbox';
+import { InternalKeys } from './internal-keys';
 import { Vault } from './vault';
 
 const bodies = REQUEST_BODIES.staff;
@@ -29,6 +31,8 @@ export class SecretsController {
     @Inject(Database) private readonly database: Database,
     @Inject(Vault) private readonly vault: Vault,
     @Inject(Audit) private readonly audit: Audit,
+    @Inject(InternalKeys) private readonly keys: InternalKeys,
+    @Inject(Outbox) private readonly outbox: Outbox,
     @Inject(CONFIG) private readonly config: Config,
   ) {}
 
@@ -81,9 +85,14 @@ export class SecretsController {
   @HttpCode(204)
   @ApiNoContentResponse()
   async renew(@Param('id') id: string, @Body({ schema: bodies['POST /secrets/:id/rotate'] }) { value }: z.infer<(typeof bodies)['POST /secrets/:id/rotate']>) {
-    const { name } = await this.service(id);
-    if (!value) throw invalid({ fields: ['value'] });
-    await this.database.tx.$executeRaw`SELECT app.renew_secret(${id}::uuid, ${this.vault.seal(id, value)})`;
+    const { name, kind } = await this.find(id);
+    // A key of a service is created there and pasted here; an internal one is drawn here, and never typed.
+    if ((kind === 'SERVICE') !== Boolean(value)) throw invalid({ fields: ['value'] });
+    if (value) await this.database.tx.$executeRaw`SELECT app.renew_secret(${id}::uuid, ${this.vault.seal(id, value)})`;
+    else {
+      await this.keys.renew(name as InternalSecret);
+      if (name === 'ACCESS_CODE_KEY') await this.outbox.add({ queue: 'maintenance', name: 'reseal-access-codes', payload: {} });
+    }
     await this.audit.log({ action: 'SECRET_RENEWED', entity: { type: 'secret', id }, params: { secret: name } });
   }
 
@@ -111,10 +120,16 @@ export class SecretsController {
     await this.audit.log({ action: 'SECRET_KEPT', entity: { type: 'secret', id }, params: { secret: name } });
   }
 
-  /** Internal keys are drawn and renewed by the API alone. */
+  /** Internal keys are never revoked. */
   private async service(id: string): Promise<{ name: string }> {
+    const found = await this.find(id);
+    if (found.kind !== 'SERVICE') throw notFound();
+    return found;
+  }
+
+  private async find(id: string): Promise<{ name: string; kind: string }> {
     const found = await this.database.tx.vaultSecret.findUnique({ where: { id }, select: { name: true, kind: true } });
-    if (!found || found.kind !== 'SERVICE') throw notFound();
+    if (!found) throw notFound();
     return found;
   }
 }

@@ -1,4 +1,5 @@
 import {
+  accessCodeResponse,
   accountData,
   caseCheckResult,
   caseChoices,
@@ -352,6 +353,13 @@ export const ACCOUNT_PARITY: Parity[] = [
     status: 403,
     answer: code('FORBIDDEN'),
   },
+  { as: 'manager', request: 'GET /cases/{caseOfManager}/access-code', status: 200, answer: accessCodeResponse },
+  { as: 'director', request: 'GET /cases/{caseOfManager}/access-code', status: 403, answer: code('FORBIDDEN') },
+  { as: 'manager', request: 'GET /cases/{caseOfDirector}/access-code', status: 404, answer: code('NOT_FOUND') },
+  { as: 'developer', request: 'GET /cases/{caseOfManager}/access-code', status: 403, answer: code('FORBIDDEN') },
+  { as: 'manager', request: 'POST /cases/{caseOfManager}/access-code/regenerate', status: 204 },
+  { as: 'director', request: 'POST /cases/{caseOfManager}/access-code/regenerate', status: 403, answer: code('FORBIDDEN') },
+  { as: 'manager', request: 'POST /cases/{caseOfDirector}/access-code/regenerate', status: 404, answer: code('NOT_FOUND') },
   { as: 'director', request: 'POST /cases/assign', body: { ids: [UNKNOWN], officerId: '{officer}' }, status: 403, answer: code('FORBIDDEN') },
   {
     as: 'director',

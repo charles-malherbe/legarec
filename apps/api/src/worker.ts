@@ -6,7 +6,9 @@ import { EmailRenderer } from './emails/renderer';
 import { SimulatedTransport } from './emails/transport';
 import { accountJobs } from './modules/auth/auth.jobs';
 import { AuthKeys } from './modules/auth/keys';
+import { accessCodeJobs } from './modules/debtor-access/access-codes.jobs';
 import { SettingValues } from './modules/settings/values';
+import { Vault } from './modules/vault/vault';
 import { readWorkerConfig } from './platform/config/config';
 import { Database } from './platform/database/database';
 import { createLogger } from './platform/logging/logger';
@@ -28,7 +30,10 @@ const emailSettings = () => database.run({ kind: 'worker', job: 'email-settings'
 // Next to the folder of the sources, as to that of the programs once built.
 const templates = fileURLToPath(new URL('../templates/emails/', import.meta.url));
 const emails = new EmailsService(new EmailRenderer(templates), new SimulatedTransport(logger, config.DEV_MAIL_DIR), emailSettings);
-const handlers: JobHandlers = { email: accountJobs({ keys: new AuthKeys(config), portals: config, send: (name, to, data) => emails.send(name, to, data) }) };
+const handlers: JobHandlers = {
+  email: accountJobs({ keys: new AuthKeys(config), portals: config, send: (name, to, data) => emails.send(name, to, data) }),
+  maintenance: accessCodeJobs(new Vault(config)),
+};
 let workers: Workers | undefined;
 let hourly: NodeJS.Timeout | undefined;
 let stopping = false;

@@ -542,7 +542,7 @@ type Info = { request: Request; params: Record<string, unknown> };
 const acting = (resolve: (item: Stored, session: Session, info: Info) => Response | Promise<Response>) =>
   guarded<Info>(staffWithCases, (info, session) => {
     const item = find(info.params.id);
-    if (!item || !canReadCase(session, ownership(item))) return item ? forbidden() : notFound();
+    if (!item || !canReadCase(session, ownership(item))) return notFound();
     return canActOnCase(session, ownership(item)) ? resolve(item, session, info) : forbidden();
   });
 const administers = (session: Session) => session.role === 'DIRECTOR' || hasDelegation(session, 'ADMINISTRATIVE');

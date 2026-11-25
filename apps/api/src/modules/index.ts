@@ -15,6 +15,7 @@ import { CasesService } from './cases/cases.service';
 import { ContactsService } from './cases/contacts.service';
 import { CreditorsController } from './creditors/creditors.controller';
 import { CreditorsService } from './creditors/creditors.service';
+import { AccessCodes } from './debtor-access/access-codes';
 import { DelegationsController } from './delegations/delegations.controller';
 import { MembersController } from './members/members.controller';
 import { MembersService } from './members/members.service';
@@ -22,6 +23,7 @@ import { NotificationsController } from './notifications/notifications.controlle
 import { SettingsController } from './settings/settings.controller';
 import { SupportController } from './support/support.controller';
 import { SecretsController } from './vault/secrets.controller';
+import { InternalKeys } from './vault/internal-keys';
 import { Vault } from './vault/vault';
 
 /** Routes of the portals, by domain. */
@@ -53,6 +55,8 @@ export const providers: Provider[] = [
   AccountService,
   MembersService,
   Vault,
+  InternalKeys,
+  AccessCodes,
   CreditorsService,
   CasesService,
   ContactsService,

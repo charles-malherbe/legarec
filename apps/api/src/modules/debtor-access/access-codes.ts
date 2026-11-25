@@ -1,0 +1,76 @@
+import { Inject, Injectable } from '@nestjs/common';
+import { Audit } from '../../platform/audit/audit';
+import { digest, type Binding } from '../../platform/crypto/keyring';
+import { Database } from '../../platform/database/database';
+import { conflict, forbidden, notFound } from '../../platform/errors/api-error';
+import { InternalKeys } from '../vault/internal-keys';
+import { drawCode } from './codes';
+
+export const bindingOf = (debtorId: string): Binding => ({ table: 'debtor_access_codes', id: debtorId, column: 'code_cipher' });
+/** More draws than any debtor will ever have codes: beyond, something else is wrong. */
+const DRAWS = 20;
+interface Found {
+  debtorId: string;
+  code: string;
+  cipher: Uint8Array;
+}
+
+/** The code of a debtor: in no log, no address, no queue and no stored text. */
+@Injectable()
+export class AccessCodes {
+  constructor(
+    @Inject(Database) private readonly database: Database,
+    @Inject(InternalKeys) private readonly keys: InternalKeys,
+    @Inject(Audit) private readonly audit: Audit,
+  ) {}
+
+  /** In clear for whoever acts on the case, without a trace of it (question 21). */
+  async show(caseId: string): Promise<string> {
+    await this.mayAct(caseId);
+    return (await this.ensure(caseId)).code;
+  }
+
+  /** At the opening of a case: that of the debtor, drawn if they have none. */
+  async ensure(caseId: string): Promise<Found> {
+    const { tx } = this.database;
+    const known = await this.find(caseId);
+    if (known) return known;
+    const owner = await tx.case.findUnique({ where: { id: caseId }, select: { debtorId: true } });
+    if (!owner) throw notFound();
+    const ring = await this.keys.ring('ACCESS_CODE_KEY');
+    await tx.$executeRaw`SELECT app.first_access_code(${caseId}::uuid, ${ring.encrypt(drawCode(), bindingOf(owner.debtorId))})`;
+    return (await this.find(caseId))!;
+  }
+
+  async renew(caseId: string): Promise<void> {
+    await this.mayAct(caseId);
+    const { debtorId, code: old, cipher } = await this.ensure(caseId);
+    const ring = await this.keys.ring('ACCESS_CODE_KEY');
+    const lookups = await this.keys.keys('LOOKUP_KEY');
+    const digests = (code: string) => lookups.map((key) => digest(key, `access-code:${debtorId}:${code}`));
+    for (let draw = 0; draw < DRAWS; draw += 1) {
+      const code = drawCode();
+      if (code === old) continue;
+      const [row] = await this.database.tx.$queryRaw<{ done: boolean }[]>`
+        SELECT app.renew_access_code(${caseId}::uuid, ${cipher}, ${digests(old)[0]!}, ${ring.encrypt(code, bindingOf(debtorId))}, ${digests(code)}) AS done`;
+      if (!row!.done) continue;
+      await this.audit.log({ action: 'ACCESS_CODE_RENEWED', entity: { type: 'case', id: caseId } });
+      return;
+    }
+    throw conflict('CHANGED');
+  }
+
+  private async find(caseId: string): Promise<Found | null> {
+    const [row] = await this.database.tx.$queryRaw<{ debtor_id: string; code_cipher: Uint8Array }[]>`
+      SELECT debtor_id, code_cipher FROM app.access_code(${caseId}::uuid)`;
+    if (!row) return null;
+    const ring = await this.keys.ring('ACCESS_CODE_KEY');
+    return { debtorId: row.debtor_id, cipher: row.code_cipher, code: ring.decrypt(row.code_cipher, bindingOf(row.debtor_id)).toString() };
+  }
+
+  private async mayAct(caseId: string): Promise<void> {
+    const [row] = await this.database.tx.$queryRaw<{ may: boolean }[]>`SELECT app.can_act_on_case(officer_id) AS may FROM cases WHERE id = ${caseId}::uuid`;
+    if (!row) throw notFound();
+    if (!row.may) throw forbidden();
+  }
+}
