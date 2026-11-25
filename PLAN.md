@@ -200,7 +200,7 @@ Les 161 routes simulées se répartissent ainsi :
 - Claude Code ne peut ni lancer Docker ni lire le `.env` : images validées par GitHub Actions seulement, services réels vérifiés par le cabinet avec une liste de recette fournie à chaque lot. OVH et 3CX n'ont pas de mode test trouvé : leur première vraie connexion se fait en production, par le cabinet.
 - Perte de `VAULT_MASTER_KEY` : mots de passe de boîtes, codes d'accès, double authentification et clés des services sont à refaire, les IBAN des créanciers à ressaisir, les transcriptions perdues.
 - Mémoire du VPS (11,7 Go, 7,5 libres) : ClamAV environ 1,2 Go, modèle local 3 à 4 Go, plus la production. L'essai du lot W le mesure avant tout choix.
-- À faire valider par le juriste : kit sans rappel du premier courrier (85), suivi des e-mails (84), intérêts des particuliers (98), coordonnées (79). Suivi dans `QUESTIONS.md`.
+- Points juridiques confirmés par le cabinet, juriste (79, 85, 98) ; suivi des e-mails tranché (84). Risque accepté : relances du kit sans rappel du premier courrier.
 - Numéro virtuel OVH : si les liens y sont refusés, la question 70 se rouvre.
 - Code d'accès court (331 776 combinaisons) : d'où limites, blocage, réponses identiques et exclusion des mots courants. Coordonnées fournies par les créanciers : le code ne part que vers une coordonnée confirmée (question 112).
 - Pouvoirs du Développeur sur le compte du Directeur : support complet choisi par le cabinet, Directeur prévenu dans l'application (lot K) et par SMS (lot R) (question 113).
