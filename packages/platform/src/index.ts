@@ -33,4 +33,5 @@ export function openExternal(url: string): void {
   window.open(url, '_blank', 'noopener,noreferrer');
 }
 export * from './http';
+export * from './session';
 export * from './simulation';

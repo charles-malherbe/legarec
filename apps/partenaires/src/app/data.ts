@@ -1,7 +1,7 @@
 import { partnerSession, type PartnerSession } from '@legarec/contracts';
-import { api, ApiError, onSessionLost } from '@legarec/platform';
+import { api, ApiError, finishSignOut, onSessionChanged, onSessionLost, tellSessionChanged } from '@legarec/platform';
 import { useQuery, useQueryClient, type Query } from '@tanstack/react-query';
-import { createContext, use, useEffect } from 'react';
+import { createContext, use, useEffect, useRef } from 'react';
 import { z } from 'zod';
 
 export const SESSION_KEY = ['session'];
@@ -28,6 +28,7 @@ export function useSession() {
     queryKey: SESSION_KEY,
     queryFn: async (): Promise<PartnerSession | null> => {
       const before = client.getQueryData<PartnerSession | null>(SESSION_KEY);
+      if (!(await finishSignOut())) return null;
       try {
         const now = await api(partnerSession, '/auth/session');
         // Someone else signed in from another tab: nothing of what the former one was shown stays.
@@ -45,11 +46,27 @@ export function useSession() {
 export function useSessionEnd() {
   const client = useQueryClient();
   const { data } = useSession();
+  const known = useRef(false);
   useEffect(() => onSessionLost(() => void client.invalidateQueries({ queryKey: SESSION_KEY })), [client]);
+  // Opened or closed from another tab: nothing stays on screen until the API has said who is there.
+  useEffect(
+    () =>
+      onSessionChanged(() => {
+        known.current = false;
+        void client.resetQueries({ queryKey: SESSION_KEY });
+        client.removeQueries(everythingElse);
+      }),
+    [client],
+  );
   useEffect(() => {
-    if (data === null) client.removeQueries(everythingElse);
+    if (data === null) {
+      client.removeQueries(everythingElse);
+      if (known.current) tellSessionChanged();
+    }
+    known.current = !!data;
   }, [client, data]);
 }
+
 /** Whoever the screen was opened for, until it is closed: never the gap between two sessions. */
 export const CurrentPartner = createContext<PartnerSession | null>(null);
 export function usePartner(): PartnerSession {

@@ -1,7 +1,7 @@
 import { session as sessionSchema, type Session } from '@legarec/contracts';
-import { onSessionLost } from '@legarec/platform';
+import { finishSignOut, onSessionChanged, onSessionLost, tellSessionChanged } from '@legarec/platform';
 import { useQuery, useQueryClient, type Query } from '@tanstack/react-query';
-import { createContext, use, useEffect } from 'react';
+import { createContext, use, useEffect, useRef } from 'react';
 import { z } from 'zod';
 import { api, ApiError } from './api';
 
@@ -14,6 +14,7 @@ export function useSession() {
     queryKey: SESSION_KEY,
     queryFn: async (): Promise<Session | null> => {
       const before = client.getQueryData<Session | null>(SESSION_KEY);
+      if (!(await finishSignOut())) return null;
       try {
         const now = await api(sessionSchema, '/auth/session');
         // Someone else signed in from another tab: nothing of what the former one was shown stays.
@@ -34,9 +35,24 @@ export function useSession() {
 export function useSessionEnd() {
   const client = useQueryClient();
   const { data } = useSession();
+  const known = useRef(false);
   useEffect(() => onSessionLost(() => void client.invalidateQueries({ queryKey: SESSION_KEY })), [client]);
+  // Opened or closed from another tab: nothing stays on screen until the API has said who is there.
+  useEffect(
+    () =>
+      onSessionChanged(() => {
+        known.current = false;
+        void client.resetQueries({ queryKey: SESSION_KEY });
+        client.removeQueries(everythingElse);
+      }),
+    [client],
+  );
   useEffect(() => {
-    if (data === null) client.removeQueries(everythingElse);
+    if (data === null) {
+      client.removeQueries(everythingElse);
+      if (known.current) tellSessionChanged();
+    }
+    known.current = !!data;
   }, [client, data]);
 }
 

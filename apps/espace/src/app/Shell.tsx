@@ -1,4 +1,5 @@
 import { caseDetail, creditorDetail, hasDelegation, ROLE_LABELS, searchHit, shellData, type Notification } from '@legarec/contracts';
+import { signOut } from '@legarec/platform';
 import { applyDisplay } from '@legarec/tokens';
 import { useIdle, SessionExpiry, Sidebar, Topbar, type SidebarGroup, type Tone } from '@legarec/ui';
 import { useDebouncedValue } from '@mantine/hooks';
@@ -176,7 +177,7 @@ export function Shell() {
 
   const logout = useCallback(async () => {
     // Whatever the API answers, nothing must stay on screen nor in the cache.
-    await api(z.undefined(), '/auth/logout', { method: 'POST' }).catch(() => undefined);
+    await signOut();
     client.clear();
     client.setQueryData(SESSION_KEY, null);
     await navigate('/connexion');

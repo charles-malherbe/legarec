@@ -1,11 +1,10 @@
-import { api } from '@legarec/platform';
+import { signOut } from '@legarec/platform';
 import { applyDisplay } from '@legarec/tokens';
 import { Avatar, Bouton, BoutonsAffichage, EntetePublique, PiedDePage, SessionExpiry, useIdle } from '@legarec/ui';
 import { useLocalStorage } from '@mantine/hooks';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router';
-import { z } from 'zod';
 import css from './Portal.module.css';
 import { SESSION_KEY, usePartner } from './data';
 
@@ -17,7 +16,7 @@ export function Shell() {
   const [lowVision, setLowVision] = useLocalStorage({ key: 'lg-login-a11y', defaultValue: false });
   useEffect(() => applyDisplay(dark ? 'dark' : 'light', lowVision), [dark, lowVision]);
   const logout = useCallback(async () => {
-    await api(z.undefined(), '/auth/logout', { method: 'POST' }).catch(() => undefined);
+    await signOut();
     client.clear();
     client.setQueryData(SESSION_KEY, null);
     // Nothing is drawn again by itself once the cache is empty.

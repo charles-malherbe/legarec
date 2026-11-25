@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
@@ -108,5 +108,119 @@ describe('a beat that fails', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('what the former person had begun', () => {
+  it('is never confirmed by the next one', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    try {
+      openAs('ad', '/compte');
+      await user.click(await screen.findByRole('tab', { name: /Sécurité/ }));
+      await user.click((await screen.findAllByRole('button', { name: /^Déconnecter : / }))[0]!);
+      expect(screen.getByRole('alertdialog')).toBeVisible();
+      await act(async () => void (await vi.advanceTimersByTimeAsync(31 * 60_000)));
+      await signInForm();
+      expect(screen.queryByRole('alertdialog')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not stay typed for whoever signed in from another tab', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    try {
+      openAs('ad', '/aide');
+      await user.type(await screen.findByRole('textbox', { name: 'Message' }), 'Confidentiel');
+      // Nothing was told: found by the beat.
+      setAccount('hb');
+      await vi.advanceTimersByTimeAsync(61_000);
+      act(() => void document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Shift' })));
+      await vi.advanceTimersByTimeAsync(80_000);
+      expect(await screen.findByRole('button', { name: /Compte de Hugo Benali/ })).toBeVisible();
+      expect(await screen.findByRole('textbox', { name: 'Message' })).toHaveValue('');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('another tab', () => {
+  it('empties the screen at once, before the API has answered', async () => {
+    openAs('ad', '/debiteurs');
+    expect(await screen.findByText(/LGR-2026-00142/)).toBeVisible();
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    server.use(http.get('/api/auth/session', async () => void (await gate)));
+    const other = new BroadcastChannel('legarec-session');
+    try {
+      other.postMessage(null);
+      await waitFor(() => expect(screen.queryByText(/LGR-2026-00142/)).toBeNull());
+      expect(screen.queryByRole('button', { name: /^Compte de/ })).toBeNull();
+      setAccount('none');
+      release();
+      await signInForm();
+    } finally {
+      other.close();
+    }
+  });
+
+  it('is told of a sign-out, of a sign-in and of a session found closed', async () => {
+    const told = vi.fn();
+    const other = new BroadcastChannel('legarec-session');
+    other.onmessage = told;
+    try {
+      openAs('ad', '/debiteurs');
+      expect(await screen.findByText(/LGR-2026-00142/)).toBeVisible();
+      expect(told).not.toHaveBeenCalled();
+      setAccount('none');
+      await userEvent.click(screen.getByRole('link', { name: 'Échéanciers' }));
+      await signInForm();
+      await waitFor(() => expect(told).toHaveBeenCalled());
+      told.mockClear();
+      await signIn('hb@legarec.fr');
+      await screen.findByRole('heading', { name: 'Bonjour Hugo' });
+      await waitFor(() => expect(told).toHaveBeenCalled());
+      told.mockClear();
+      await userEvent.click(screen.getByRole('button', { name: /Compte de Hugo Benali/ }));
+      await userEvent.click(await screen.findByText('Se déconnecter'));
+      await signInForm();
+      await waitFor(() => expect(told).toHaveBeenCalled());
+    } finally {
+      other.close();
+    }
+  });
+});
+
+describe('a sign-out that the API does not receive', () => {
+  it('is asked again before anyone is shown, and forgotten by the next sign-in', async () => {
+    openAs('ad', '/');
+    let asked = 0;
+    server.use(
+      http.post('/api/auth/logout', () => {
+        asked += 1;
+        return HttpResponse.json({ code: 'UNAVAILABLE' }, { status: 503 });
+      }),
+    );
+    await userEvent.click(await screen.findByRole('button', { name: /^Compte de/ }));
+    await userEvent.click(await screen.findByText('Se déconnecter'));
+    await signInForm();
+    expect(asked).toBe(1);
+    // Loaded again: the cookie still opens the account, and nobody is shown.
+    cleanup();
+    openAs('ad', '/');
+    await signInForm();
+    expect(asked).toBe(2);
+    cleanup();
+    server.resetHandlers();
+    openAs('ad', '/');
+    await signInForm();
+    await signIn('hb@legarec.fr');
+    expect(await screen.findByRole('heading', { name: 'Bonjour Hugo' })).toBeVisible();
+    cleanup();
+    openAs('hb', '/');
+    expect(await screen.findByRole('heading', { name: 'Bonjour Hugo' })).toBeVisible();
   });
 });

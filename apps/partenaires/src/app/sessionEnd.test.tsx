@@ -85,3 +85,35 @@ it('leaves the screen as it is when a beat fails', async () => {
     vi.useRealTimers();
   }
 });
+
+it('shows nothing more of a creditor once another tab has changed the session', async () => {
+  openAs('cb', '/dossiers');
+  expect((await screen.findAllByText('Bâtiplus SAS'))[0]).toBeVisible();
+  const other = new BroadcastChannel('legarec-session');
+  try {
+    setPartner('pr');
+    other.postMessage(null);
+    await waitFor(() => expect(document.body.textContent).not.toMatch(/Bâtiplus|Matériaux Delta/u));
+    expect((await screen.findAllByText('Fromagerie Durand'))[0]).toBeVisible();
+  } finally {
+    other.close();
+  }
+});
+
+it('keeps nothing typed by a creditor for the next one', async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+  try {
+    openAs('cb', '/messages');
+    await user.type((await screen.findAllByRole('textbox')).at(-1)!, 'Confidentiel');
+    expect((screen.getAllByRole('textbox').at(-1) as HTMLTextAreaElement).value).toBe('Confidentiel');
+    setPartner('pr');
+    await vi.advanceTimersByTimeAsync(61_000);
+    act(() => void document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Shift' })));
+    await vi.advanceTimersByTimeAsync(80_000);
+    expect((await screen.findAllByText('Énergies Rhône'))[0]).toBeVisible();
+    for (const field of screen.queryAllByRole('textbox')) expect(field).not.toHaveValue('Confidentiel');
+  } finally {
+    vi.useRealTimers();
+  }
+});
