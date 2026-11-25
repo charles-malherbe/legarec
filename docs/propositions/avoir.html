@@ -1,0 +1,867 @@
+<!doctype html>
+<html lang="fr" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Proposition 4 · Avoir</title>
+    <link rel="stylesheet" href="propositions.css" />
+  </head>
+  <body>
+    <svg class="sprite" aria-hidden="true">
+      <symbol id="i-agenda" viewBox="0 0 24 24">
+        <path
+          d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"
+        ></path>
+      </symbol>
+      <symbol id="i-alert" viewBox="0 0 24 24">
+        <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"></path>
+      </symbol>
+      <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"></path></symbol>
+      <symbol id="i-box" viewBox="0 0 24 24"><path d="M3 7l9-4 9 4-9 4-9-4zM3 7v10l9 4 9-4V7"></path></symbol>
+      <symbol id="i-building" viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1M14 9h1M9 13h1M14 13h1M9 17h1M14 17h1"></path></symbol>
+      <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v18h18M7 16v-4M12 16V8M17 16v-7"></path></symbol>
+      <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></symbol>
+      <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></symbol>
+      <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5"></path></symbol>
+      <symbol id="i-help" viewBox="0 0 24 24"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"></path></symbol>
+      <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z"></path></symbol>
+      <symbol id="i-info" viewBox="0 0 24 24"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16v-4M12 8h.01"></path></symbol>
+      <symbol id="i-invoice" viewBox="0 0 24 24">
+        <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1zM8 8h8M8 12h8M8 16h5"></path>
+      </symbol>
+      <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 2 10 5-10 5L2 7zM2 17l10 5 10-5M2 12l10 5 10-5"></path></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24">
+        <path d="M5 11h14a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1zM8 11V7a4 4 0 0 1 8 0v4"></path>
+      </symbol>
+      <symbol id="i-mail" viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM22 7l-10 6L2 7"></path></symbol>
+      <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"></path></symbol>
+      <symbol id="i-newdoc" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M12 12v6M9 15h6"></path></symbol>
+      <symbol id="i-phone" viewBox="0 0 24 24">
+        <path
+          d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"
+        ></path>
+      </symbol>
+      <symbol id="i-plan" viewBox="0 0 24 24">
+        <path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM9 16l2 2 4-4"></path>
+      </symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></symbol>
+      <symbol id="i-scale" viewBox="0 0 24 24"><path d="M12 3v18M7 21h10M3 7h18M6 7l-3 7a3 3 0 0 0 6 0L6 7M18 7l-3 7a3 3 0 0 0 6 0l-3-7"></path></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-3.5-3.5"></path></symbol>
+      <symbol id="i-selector" viewBox="0 0 24 24"><path d="m7 15 5 5 5-5M7 9l5-5 5 5"></path></symbol>
+      <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"></path></symbol>
+      <symbol id="i-sms" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2zM8 9h8M8 13h5"></path></symbol>
+      <symbol id="i-team" viewBox="0 0 24 24">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"></path>
+      </symbol>
+      <symbol id="i-users" viewBox="0 0 24 24">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
+      </symbol>
+      <symbol id="i-x-circle" viewBox="0 0 24 24"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM15 9l-6 6M9 9l6 6"></path></symbol>
+    </svg>
+    <section class="note" aria-label="Proposition">
+      <p><strong>Proposition 4 sur 4 · Avoir</strong> · à valider par le cabinet (question 69). Données fictives.</p>
+      <nav aria-label="Propositions">
+        <a href="#ecran">Écran</a><a href="#etats">États</a><a href="creancier-et-mandat.html">1. Créancier et mandat</a
+        ><a href="debiteur-et-factures.html">2. Débiteur et factures</a><a href="validation-des-reversements.html">3. Validation des reversements</a
+        ><a href="avoir.html" aria-current="page">4. Avoir</a>
+      </nav>
+    </section>
+    <div class="shell">
+      <div class="sidebar">
+        <nav aria-label="Navigation principale" tabindex="0">
+          <div class="brand">
+            <span class="logo" aria-hidden="true">L</span><span><strong>Legarec</strong>Recouvrement de créances</span>
+          </div>
+          <div class="switch">
+            <span class="badgeAll"
+              ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-layers"></use></svg></span
+            ><span class="switchText">Créancier actif<strong>Tous les créanciers</strong></span
+            ><svg class="icone" aria-hidden="true"><use href="#i-selector"></use></svg>
+          </div>
+          <div class="menu">
+            <div>
+              <span class="menuLabel"
+                >Pilotage<svg class="icone" aria-hidden="true" data-size="sm"><use href="#i-chevron-down"></use></svg></span
+              ><span class="menuItem"
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-home"></use></svg><span>Tableau de bord</span></span
+              ><span class="menuItem"
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-chart"></use></svg><span>Rapports</span></span
+              ><span class="menuItem"
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-team"></use></svg><span>Équipe</span
+                ><span class="menuCount" data-tone="muted">3</span></span
+              ><span class="menuItem" data-on
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-invoice"></use></svg><span>Facturation</span></span
+              >
+            </div>
+            <div>
+              <span class="menuLabel"
+                >Portefeuille<svg class="icone" aria-hidden="true" data-size="sm"><use href="#i-chevron-down"></use></svg></span
+              ><span class="menuItem"
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-building"></use></svg><span>Créanciers</span></span
+              ><span class="menuItem"
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-users"></use></svg><span>Débiteurs</span></span
+              >
+            </div>
+            <div>
+              <span class="menuLabel"
+                >Recouvrement<svg class="icone" aria-hidden="true" data-size="sm"><use href="#i-chevron-down"></use></svg></span
+              ><span class="menuItem"
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-agenda"></use></svg><span>Relances</span
+                ><span class="menuCount" data-tone="navy">7</span></span
+              ><span class="menuItem"
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-plan"></use></svg><span>Échéanciers</span></span
+              ><span class="menuItem"
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-scale"></use></svg><span>Contentieux</span
+                ><span class="menuCount" data-tone="rose">2</span></span
+              >
+            </div>
+            <div>
+              <span class="menuLabel"
+                >Communication<svg class="icone" aria-hidden="true" data-size="sm"><use href="#i-chevron-down"></use></svg></span
+              ><span class="menuItem"
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-phone"></use></svg><span>Appels</span
+                ><span class="menuCount" data-tone="muted">24</span></span
+              ><span class="menuItem"
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-mail"></use></svg><span>E-mails</span
+                ><span class="menuCount" data-tone="yellow">12</span></span
+              ><span class="menuItem"
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-sms"></use></svg><span>SMS</span
+                ><span class="menuCount" data-tone="yellow">3</span></span
+              >
+            </div>
+            <div>
+              <span class="menuLabel"
+                >Documents<svg class="icone" aria-hidden="true" data-size="sm"><use href="#i-chevron-down"></use></svg></span
+              ><span class="menuItem"
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-file"></use></svg><span>Tous les documents</span></span
+              ><span class="menuItem"
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-newdoc"></use></svg><span>Rédiger un courrier</span></span
+              >
+            </div>
+            <div>
+              <span class="menuItem"
+                ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-settings"></use></svg><span>Paramètres</span></span
+              >
+            </div>
+          </div>
+        </nav>
+      </div>
+      <div class="main">
+        <section class="mobile" aria-label="Menu et créancier actif">
+          <span class="burger" aria-hidden="true"
+            ><svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-menu"></use></svg></span
+          ><span class="logo" aria-hidden="true">L</span><strong>Legarec</strong><span class="scopeName">Tous les créanciers</span>
+        </section>
+        <header class="topbar">
+          <nav class="crumbs" aria-label="Fil d'Ariane">
+            <ol>
+              <li><span>Pilotage</span></li>
+              <li>
+                <svg class="icone" aria-hidden="true" data-size="sm"><use href="#i-chevron-right"></use></svg><span aria-current="page">Facturation</span>
+              </li>
+            </ol>
+          </nav>
+          <button type="button" class="tool" aria-label="Mode malvoyant">Aa</button>
+          <div class="searchBox" role="search">
+            <svg class="icone" aria-hidden="true"><use href="#i-search"></use></svg><span>Débiteur, SIRET, SIREN, facture…</span><kbd>/</kbd>
+          </div>
+          <div class="tools">
+            <button type="button" class="bouton" aria-label="Créer">
+              <svg class="icone" aria-hidden="true"><use href="#i-plus"></use></svg><span>Créer</span></button
+            ><button type="button" class="tool" data-desktop aria-label="Centre d'aide">
+              <svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-help"></use></svg></button
+            ><button type="button" class="tool" aria-label="Notifications, 4 non lues">
+              <svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-bell"></use></svg><span class="unread" aria-hidden="true">4</span></button
+            ><span class="account" role="img" aria-label="Compte de Camille Laurent">CL</span>
+          </div>
+        </header>
+        <div class="delegation" role="status">
+          <svg class="icone" aria-hidden="true"><use href="#i-users"></use></svg><strong>Pour le compte du Directeur</strong
+          ><span>Marie Dubreuil · délégation administrative. Vos deux noms sont notés dans l’historique.</span>
+        </div>
+        <main class="page" id="ecran">
+          <div class="pageHeader">
+            <header>
+              <div>
+                <h1>Facturation</h1>
+                <p>Factures, devis et contrats du cabinet envers ses créanciers et prospects · créés à partir de modèles</p>
+              </div>
+              <div class="actions">
+                <button type="button" class="bouton" data-variant="secondary"><span>Modèles</span></button
+                ><a href="validation-des-reversements.html" class="bouton" data-variant="secondary"><span>Reversements</span></a
+                ><button type="button" class="bouton" data-variant="secondary"><span>Fermer la création</span><kbd>N</kbd></button>
+              </div>
+            </header>
+            <section class="stats" aria-label="Facturation du cabinet">
+              <div class="stat"><span>Facturé en 2026</span><strong>131 860 € HT</strong><span>commissions et frais refacturés</span></div>
+              <div class="stat"><span>Facturé en novembre</span><strong>15 627 € HT</strong><span>5 factures de commission</span></div>
+              <div class="stat"><span>À encaisser</span><strong data-tone="danger">3 480 €</strong><span>2 factures en retard</span></div>
+              <div class="stat"><span>Devis en attente</span><strong data-tone="warning">2 · 12 876 €</strong><span>relance automatique à J+7</span></div>
+              <div class="stat"><span>Contrats</span><strong>5 actifs</strong><span>1 à renouveler, 1 à signer</span></div>
+            </section>
+          </div>
+          <section class="carte">
+            <header>
+              <div>
+                <div class="heading"><h2>Créer depuis un modèle</h2></div>
+                <p>Choisissez le type, le modèle et le client : l’aperçu se met à jour au fur et à mesure.</p>
+              </div>
+              <button type="button" class="bouton" data-variant="secondary" data-size="sm"><span>Fermer</span></button>
+            </header>
+            <div class="body">
+              <div class="creator">
+                <div class="stack" data-gap="lg">
+                  <fieldset class="group">
+                    <legend>1. Type de document</legend>
+                    <div class="choices">
+                      <label class="choice"
+                        ><span><input type="radio" name="r1" />Facture</span><span class="hint">Commission, frais refacturés</span></label
+                      ><label class="choice"
+                        ><span><input type="radio" name="r1" />Devis</span><span class="hint">Prospects et nouveaux mandats</span></label
+                      ><label class="choice"
+                        ><span><input type="radio" name="r1" />Contrat</span><span class="hint">Convention, avenant, mandat</span></label
+                      ><label class="choice" data-on
+                        ><span><input type="radio" name="r1" checked />Avoir</span><span class="hint">Corrige une facture émise</span></label
+                      >
+                    </div>
+                  </fieldset>
+                  <div class="champ">
+                    <label for="f2">2. Facture à corriger</label>
+                    <div class="row">
+                      <select id="f2" class="input" aria-describedby="f2-h">
+                        <option>FA‑2026‑0117 · Énergies Rhône · 9 845,28 € TTC</option>
+                        <option selected>FA‑2026‑0116 · Matériaux Delta · 5 312,64 € TTC</option>
+                        <option>FA‑2026‑0115 · Médiatel · 3 902,40 € TTC</option>
+                      </select>
+                    </div>
+                    <span class="help" id="f2-h">Émise le 02/11/2026 · déduite du reversement du 15/11/2026 · aucun avoir à ce jour</span>
+                  </div>
+                  <fieldset class="group">
+                    <legend>3. Étendue</legend>
+                    <div class="choices">
+                      <label class="choice" data-on
+                        ><span><input type="radio" name="r3" checked />Avoir partiel</span><span class="hint">Corrige une ou plusieurs lignes</span></label
+                      ><label class="choice"
+                        ><span><input type="radio" name="r3" />Avoir total</span><span class="hint">Annule la facture : 5 312,64 € TTC</span></label
+                      >
+                    </div>
+                  </fieldset>
+                  <fieldset class="group">
+                    <legend>4. Montants à créditer (HT)</legend>
+                    <table class="saisie" data-few>
+                      <caption class="hidden">
+                        Lignes de la facture
+                      </caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">Ligne de la facture</th>
+                          <th scope="col">Facturé</th>
+                          <th scope="col">À créditer (€)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td data-label="Ligne de la facture" data-span>Commission · 8 % de 54 590,00 € encaissés en octobre 2026</td>
+                          <td data-label="Facturé" class="num">4 367,20 €</td>
+                          <td data-label="À créditer (€)">
+                            <input class="input" type="text" aria-label="À créditer, commission" value="208,80" data-align="right" autocomplete="off" />
+                          </td>
+                        </tr>
+                        <tr>
+                          <td data-label="Ligne de la facture" data-span>Frais d’ouverture · 4 dossiers</td>
+                          <td data-label="Facturé" class="num">60,00 €</td>
+                          <td data-label="À créditer (€)">
+                            <input class="input" type="text" aria-label="À créditer, frais d'ouverture" value="0,00" data-align="right" autocomplete="off" />
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </fieldset>
+                  <div class="champ">
+                    <label for="f4">5. Motif<span class="required" aria-hidden="true"> *</span></label>
+                    <div class="row">
+                      <textarea id="f4" class="input" required aria-describedby="f4-h" rows="2">
+Chèque revenu impayé après reversement (dossier LGR‑2026‑00188).</textarea>
+                    </div>
+                    <span class="help" id="f4-h">Imprimé sur l’avoir et conservé dans le journal d’audit. Référence du dossier, sans nom de débiteur.</span>
+                  </div>
+                  <fieldset class="group">
+                    <legend>6. Suite</legend>
+                    <div class="choices">
+                      <label class="choice" data-on
+                        ><span><input type="radio" name="r5" checked />Prochain reversement</span><span class="hint">Ajouté au lot du 15/12/2026</span></label
+                      ><label class="choice"
+                        ><span><input type="radio" name="r5" />Virement</span><span class="hint">Remboursé à part, à la main</span></label
+                      >
+                    </div>
+                  </fieldset>
+                  <dl class="facts">
+                    <div>
+                      <dt>Total HT</dt>
+                      <dd>208,80 €</dd>
+                    </div>
+                    <div>
+                      <dt>TVA 20 %</dt>
+                      <dd>41,76 €</dd>
+                    </div>
+                    <div data-total>
+                      <dt>Total TTC de l’avoir</dt>
+                      <dd>250,56 €</dd>
+                    </div>
+                    <div>
+                      <dt>Reste facturé sur FA‑2026‑0116</dt>
+                      <dd>5 062,08 €</dd>
+                    </div>
+                  </dl>
+                  <div class="end">
+                    <button type="button" class="bouton" data-variant="secondary"><span>Enregistrer le brouillon</span></button
+                    ><a href="#confirmer-avoir" class="bouton"><span>Émettre l’avoir</span></a>
+                  </div>
+                </div>
+                <div class="paper">
+                  <article class="sheet" aria-label="Aperçu de l'avoir">
+                    <header>
+                      <span class="text"
+                        ><strong class="firm">LEGAREC</strong><span>Cabinet de recouvrement de créances</span><span>[ADRESSE DU CABINET] · 01 87 88 02 98</span
+                        ><span>SIREN [SIREN] · TVA [N° TVA]</span></span
+                      ><span class="text right"
+                        ><strong class="kind">Avoir</strong><span>AV‑2026‑0002 (provisoire)</span><span>Paris, le 14 décembre 2026</span></span
+                      >
+                    </header>
+                    <div class="client">
+                      <strong>Matériaux Delta SAS</strong><span>14 rue des Tanneurs, 69007 Lyon</span><span>SIREN 401 228 975 · TVA FR66 401 228 975</span>
+                    </div>
+                    <strong>Objet : Avoir partiel sur la facture FA‑2026‑0116 du 02/11/2026</strong>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th scope="col">Désignation</th>
+                          <th scope="col">Qté</th>
+                          <th scope="col">PU HT</th>
+                          <th scope="col">Total HT</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>Commission de recouvrement · 8 % de 2 610,00 €</td>
+                          <td>1</td>
+                          <td>208,80 €</td>
+                          <td>208,80 €</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <div class="totals">
+                      <dl class="facts">
+                        <div>
+                          <dt>Total HT</dt>
+                          <dd>208,80 €</dd>
+                        </div>
+                        <div>
+                          <dt>TVA 20 %</dt>
+                          <dd>41,76 €</dd>
+                        </div>
+                        <div data-total>
+                          <dt>Total TTC</dt>
+                          <dd>250,56 €</dd>
+                        </div>
+                      </dl>
+                    </div>
+                    <p>Motif : chèque revenu impayé après reversement (dossier LGR‑2026‑00188).</p>
+                    <p>Montant ajouté au reversement du 15/12/2026.</p>
+                    <p class="legal">
+                      Cet avoir corrige la facture FA‑2026‑0116 du 02/11/2026 ; la TVA correspondante vient en diminution de la TVA déductible du client.
+                      Catégorie de l’opération : prestation de services. [CAPITAL ET RCS]
+                    </p>
+                  </article>
+                </div>
+              </div>
+            </div>
+          </section>
+          <div class="toolbar">
+            <div class="onglets" role="tablist" aria-label="Type de document">
+              <button type="button" role="tab" class="onglet" aria-selected="true">Factures<span class="count">5</span></button
+              ><button type="button" role="tab" class="onglet" aria-selected="false" tabindex="-1">Devis<span class="count">4</span></button
+              ><button type="button" role="tab" class="onglet" aria-selected="false" tabindex="-1">Contrats<span class="count">5</span></button
+              ><button type="button" role="tab" class="onglet" aria-selected="false" tabindex="-1">Avoirs<span class="count">1</span></button>
+            </div>
+            <input class="input search" type="search" aria-label="Rechercher un document" placeholder="N°, client, SIREN…" /><span class="right"
+              ><select class="input" aria-label="Client">
+                <option>Tous les clients</option></select
+              ><select class="input" aria-label="Statut">
+                <option>Tous les statuts</option>
+              </select></span
+            >
+          </div>
+          <section class="carte">
+            <header>
+              <div>
+                <div class="heading"><h2>Factures</h2></div>
+                <p>5 documents</p>
+              </div>
+            </header>
+            <div class="body" data-padding="none">
+              <div class="tableau" role="group" tabindex="0" aria-label="Factures" data-min data-tight>
+                <table>
+                  <caption class="hidden">
+                    Factures
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Numéro</th>
+                      <th scope="col">Client</th>
+                      <th scope="col">Objet</th>
+                      <th scope="col">Date</th>
+                      <th scope="col" data-align="right">Montant TTC</th>
+                      <th scope="col">Statut</th>
+                      <th scope="col">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><span class="strong">FA‑2026‑0117</span></td>
+                      <td>
+                        <span class="text"><span class="strong">Énergies Rhône</span><span class="hint">SIREN 626 018 154</span></span>
+                      </td>
+                      <td>Commission octobre 2026</td>
+                      <td>02/11/2026</td>
+                      <td data-align="right" data-nowrap><span class="strong">9 845,28 €</span></td>
+                      <td><span class="badge" data-tone="success">Payée</span></td>
+                      <td>
+                        <span class="inline" data-nowrap
+                          ><button type="button" class="bouton" data-variant="secondary" data-size="sm" aria-label="PDF FA-2026-0117"><span>PDF</span></button
+                          ><button type="button" class="bouton" data-variant="secondary" data-size="sm" aria-label="Dupliquer FA-2026-0117">
+                            <span>Dupliquer</span></button
+                          ><button type="button" class="bouton" data-variant="secondary" data-size="sm" aria-label="Avoir sur FA-2026-0117">
+                            <span>Avoir</span>
+                          </button></span
+                        >
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><span class="strong">FA‑2026‑0116</span></td>
+                      <td>
+                        <span class="text"><span class="strong">Matériaux Delta</span><span class="hint">SIREN 401 228 975</span></span>
+                      </td>
+                      <td>Commission octobre 2026</td>
+                      <td>02/11/2026</td>
+                      <td data-align="right" data-nowrap><span class="strong">5 312,64 €</span></td>
+                      <td><span class="badge" data-tone="success">Déduite du reversement</span></td>
+                      <td>
+                        <span class="inline" data-nowrap
+                          ><button type="button" class="bouton" data-variant="secondary" data-size="sm" aria-label="PDF FA-2026-0116"><span>PDF</span></button
+                          ><button type="button" class="bouton" data-variant="secondary" data-size="sm" aria-label="Dupliquer FA-2026-0116">
+                            <span>Dupliquer</span></button
+                          ><button type="button" class="bouton" data-variant="secondary" data-size="sm" aria-label="Avoir sur FA-2026-0116">
+                            <span>Avoir</span>
+                          </button></span
+                        >
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><span class="strong">FA‑2026‑0115</span></td>
+                      <td>
+                        <span class="text"><span class="strong">Médiatel</span><span class="hint">SIREN 183 016 617</span></span>
+                      </td>
+                      <td>Commission octobre 2026</td>
+                      <td>02/11/2026</td>
+                      <td data-align="right" data-nowrap><span class="strong">3 902,40 €</span></td>
+                      <td><span class="badge" data-tone="marine">Envoyée</span></td>
+                      <td>
+                        <span class="inline" data-nowrap
+                          ><button type="button" class="bouton" data-variant="secondary" data-size="sm" aria-label="PDF FA-2026-0115"><span>PDF</span></button
+                          ><button type="button" class="bouton" data-variant="secondary" data-size="sm" aria-label="Dupliquer FA-2026-0115">
+                            <span>Dupliquer</span></button
+                          ><button type="button" class="bouton" data-variant="secondary" data-size="sm" aria-label="Avoir sur FA-2026-0115">
+                            <span>Avoir</span>
+                          </button></span
+                        >
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><span class="strong">FA‑2026‑0114</span></td>
+                      <td>
+                        <span class="text"><span class="strong">TransAlp Leasing</span><span class="hint">SIREN 418 609 137</span></span>
+                      </td>
+                      <td>Refacturation de frais de procédure</td>
+                      <td>28/10/2026</td>
+                      <td data-align="right" data-nowrap><span class="strong">1 284,00 €</span></td>
+                      <td><span class="badge" data-tone="danger">En retard</span></td>
+                      <td>
+                        <span class="inline" data-nowrap
+                          ><button type="button" class="bouton" data-variant="secondary" data-size="sm" aria-label="PDF FA-2026-0114"><span>PDF</span></button
+                          ><button type="button" class="bouton" data-variant="secondary" data-size="sm" aria-label="Dupliquer FA-2026-0114">
+                            <span>Dupliquer</span></button
+                          ><button type="button" class="bouton" data-variant="secondary" data-size="sm" aria-label="Avoir sur FA-2026-0114">
+                            <span>Avoir</span>
+                          </button></span
+                        >
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><span class="strong">FA‑2026‑0113</span></td>
+                      <td>
+                        <span class="text"><span class="strong">Crédit Horizon</span><span class="hint">SIREN 199 603 085</span></span>
+                      </td>
+                      <td>Commission septembre 2026</td>
+                      <td>02/10/2026</td>
+                      <td data-align="right" data-nowrap><span class="strong">2 196,00 €</span></td>
+                      <td><span class="badge" data-tone="danger">En retard</span></td>
+                      <td>
+                        <span class="inline" data-nowrap
+                          ><button type="button" class="bouton" data-variant="secondary" data-size="sm" aria-label="PDF FA-2026-0113"><span>PDF</span></button
+                          ><button type="button" class="bouton" data-variant="secondary" data-size="sm" aria-label="Dupliquer FA-2026-0113">
+                            <span>Dupliquer</span></button
+                          ><button type="button" class="bouton" data-variant="secondary" data-size="sm" aria-label="Avoir sur FA-2026-0113">
+                            <span>Avoir</span>
+                          </button></span
+                        >
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+    <section class="board" id="etats" aria-labelledby="etats-titre">
+      <div>
+        <header>
+          <h2 id="etats-titre">Accès, états et confirmations</h2>
+          <p>Vue du Responsable du recouvrement, pour le compte du Directeur.</p>
+        </header>
+        <div class="states">
+          <figure class="state">
+            <figcaption><strong>Qui y accède</strong><span>comme toute la Facturation</span></figcaption>
+            <div class="carte">
+              <div class="tableau" role="group" tabindex="0" aria-label="Accès à l'avoir">
+                <table>
+                  <caption class="hidden">
+                    Accès à l’avoir
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Rôle</th>
+                      <th scope="col">Droit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Directeur</td>
+                      <td>Prépare et émet</td>
+                    </tr>
+                    <tr>
+                      <td>Responsable</td>
+                      <td>Idem, par délégation administrative</td>
+                    </tr>
+                    <tr>
+                      <td>Gestionnaire</td>
+                      <td>Non</td>
+                    </tr>
+                    <tr>
+                      <td>Développeur</td>
+                      <td>Non</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Points d’entrée</strong></figcaption>
+            <section class="carte">
+              <div class="body">
+                <ul class="checks">
+                  <li><span class="statut" data-tone="marine">Facturation › + Créer depuis un modèle › Avoir (type ajouté en dernier)</span></li>
+                  <li><span class="statut" data-tone="warning">Ligne d’une facture émise › Avoir (bouton à ajouter)</span></li>
+                  <li><span class="statut" data-tone="marine">Reversements › Préparer l’avoir</span></li>
+                  <li><span class="statut" data-tone="warning">Onglet « Avoirs » ajouté après « Contrats »</span></li>
+                </ul>
+              </div>
+            </section>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Erreurs de saisie</strong><span>rien n’est émis</span></figcaption>
+            <section class="carte">
+              <div class="body">
+                <div class="stack">
+                  <div class="champ">
+                    <label for="f6">À créditer, commission</label>
+                    <div class="row">
+                      <input id="f6" class="input" aria-invalid="true" aria-describedby="f6-e" type="text" value="5 000,00" autocomplete="off" /><span
+                        >€ HT</span
+                      >
+                    </div>
+                    <span class="error" id="f6-e"
+                      ><svg class="icone" aria-hidden="true" data-size="sm"><use href="#i-alert"></use></svg
+                      ><span>Au plus 4 367,20 € HT : ce qui reste facturé sur cette ligne.</span></span
+                    >
+                  </div>
+                  <div class="champ">
+                    <label for="f7">Motif<span class="required" aria-hidden="true"> *</span></label>
+                    <div class="row"><textarea id="f7" class="input" required aria-invalid="true" aria-describedby="f7-e" rows="2"></textarea></div>
+                    <span class="error" id="f7-e"
+                      ><svg class="icone" aria-hidden="true" data-size="sm"><use href="#i-alert"></use></svg
+                      ><span>Indiquez le motif : il est imprimé sur l’avoir.</span></span
+                    >
+                  </div>
+                </div>
+              </div>
+            </section>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Confirmer l’émission</strong></figcaption>
+            <div class="veil" id="confirmer-avoir">
+              <div class="dialog" role="group" aria-label="Émettre l'avoir AV-2026-0002 ?">
+                <div class="head">
+                  <span class="mark" data-tone="primary"
+                    ><svg class="icone" aria-hidden="true" data-size="xl"><use href="#i-info"></use></svg
+                  ></span>
+                  <div>
+                    <h3>Émettre l’avoir AV‑2026‑0002 ?</h3>
+                    <p>Le numéro devient définitif et l’avoir ne peut plus être modifié. La facture d’origine reste inchangée.</p>
+                  </div>
+                </div>
+                <dl>
+                  <div>
+                    <dt>Facture corrigée</dt>
+                    <dd>FA‑2026‑0116 du 02/11/2026</dd>
+                  </div>
+                  <div>
+                    <dt>Client</dt>
+                    <dd>Matériaux Delta SAS · SIREN 401 228 975</dd>
+                  </div>
+                  <div>
+                    <dt>Motif</dt>
+                    <dd>Chèque revenu impayé après reversement (dossier LGR‑2026‑00188)</dd>
+                  </div>
+                  <div>
+                    <dt>Total HT</dt>
+                    <dd>208,80 €</dd>
+                  </div>
+                  <div>
+                    <dt>TVA 20 %</dt>
+                    <dd>41,76 €</dd>
+                  </div>
+                  <div>
+                    <dt>Total TTC</dt>
+                    <dd>250,56 €</dd>
+                  </div>
+                  <div>
+                    <dt>Suite</dt>
+                    <dd>Ajouté au reversement du 15/12/2026</dd>
+                  </div>
+                  <div>
+                    <dt>Pour le compte de</dt>
+                    <dd>Marie Dubreuil, Directeur</dd>
+                  </div>
+                </dl>
+                <div class="foot">
+                  <span class="hint">Échap pour annuler</span><button type="button" class="bouton" data-variant="secondary"><span>Annuler</span></button
+                  ><button type="button" class="bouton"><span>Émettre l’avoir</span></button>
+                </div>
+              </div>
+            </div>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Avoir total</strong><span>lignes reprises en entier, non modifiables</span></figcaption>
+            <section class="carte">
+              <header>
+                <div>
+                  <div class="heading"><h3>3. Étendue</h3></div>
+                </div>
+              </header>
+              <div class="body">
+                <div class="stack">
+                  <dl class="facts">
+                    <div>
+                      <dt>Facture</dt>
+                      <dd>FA‑2026‑0116</dd>
+                    </div>
+                    <div>
+                      <dt>Total HT</dt>
+                      <dd>4 427,20 €</dd>
+                    </div>
+                    <div>
+                      <dt>TVA 20 %</dt>
+                      <dd>885,44 €</dd>
+                    </div>
+                    <div data-total>
+                      <dt>Total TTC de l’avoir</dt>
+                      <dd>5 312,64 €</dd>
+                    </div>
+                  </dl>
+                  <div class="alerte" data-tone="warning" role="note">
+                    <svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-alert"></use></svg>
+                    <div><span>La facture passe en « Annulée par avoir ». Pour refacturer, « Dupliquer » ouvre une nouvelle facture.</span></div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Facture non réglée</strong><span>une seule suite possible</span></figcaption>
+            <section class="carte">
+              <header>
+                <div>
+                  <div class="heading"><h3>6. Suite</h3></div>
+                </div>
+              </header>
+              <div class="body">
+                <dl class="facts">
+                  <div>
+                    <dt>Facture</dt>
+                    <dd>FA‑2026‑0114, en retard</dd>
+                  </div>
+                  <div>
+                    <dt>Montant TTC</dt>
+                    <dd>1 284,00 €</dd>
+                  </div>
+                  <div>
+                    <dt>Avoir</dt>
+                    <dd>256,80 €</dd>
+                  </div>
+                  <div data-total>
+                    <dt>Reste à payer</dt>
+                    <dd>1 027,20 €</dd>
+                  </div>
+                  <div>
+                    <dt>Suite</dt>
+                    <dd>Déduit de la facture</dd>
+                  </div>
+                </dl>
+              </div>
+            </section>
+          </figure>
+          <figure class="state" data-wide>
+            <figcaption><strong>Onglet « Avoirs » et statuts</strong><span>après émission</span></figcaption>
+            <div class="carte">
+              <div class="tableau" role="group" tabindex="0" aria-label="Avoirs" data-min>
+                <table>
+                  <caption class="hidden">
+                    Avoirs
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Numéro</th>
+                      <th scope="col">Client</th>
+                      <th scope="col">Facture corrigée</th>
+                      <th scope="col">Date</th>
+                      <th scope="col" data-align="right">Montant TTC</th>
+                      <th scope="col">Statut</th>
+                      <th scope="col">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><span class="strong">AV‑2026‑0002</span></td>
+                      <td>
+                        <span class="text"><span class="strong">Matériaux Delta</span><span class="hint">SIREN 401 228 975</span></span>
+                      </td>
+                      <td>
+                        <span class="text"><span class="strong">FA‑2026‑0116</span><span class="hint">statut : Avoir partiel</span></span>
+                      </td>
+                      <td>14/12/2026</td>
+                      <td data-align="right" data-nowrap><span class="strong">250,56 €</span></td>
+                      <td><span class="badge" data-tone="marine">Au reversement du 15/12</span></td>
+                      <td>
+                        <button type="button" class="bouton" data-variant="secondary" data-size="sm" aria-label="PDF AV-2026-0002"><span>PDF</span></button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><span class="strong">AV‑2026‑0001</span></td>
+                      <td>
+                        <span class="text"><span class="strong">Crédit Horizon</span><span class="hint">SIREN 199 603 085</span></span>
+                      </td>
+                      <td>
+                        <span class="text"><span class="strong">FA‑2026‑0098</span><span class="hint">statut : Annulée par avoir</span></span>
+                      </td>
+                      <td>14/10/2026</td>
+                      <td data-align="right" data-nowrap><span class="strong">720,00 €</span></td>
+                      <td><span class="badge" data-tone="success">Remboursé</span></td>
+                      <td>
+                        <button type="button" class="bouton" data-variant="secondary" data-size="sm" aria-label="PDF AV-2026-0001"><span>PDF</span></button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Vide</strong><span>aucune facture à corriger</span></figcaption>
+            <div class="carte">
+              <div class="etat">
+                <span class="mark" data-kind="empty"
+                  ><svg class="icone" aria-hidden="true" data-size="xl"><use href="#i-box"></use></svg></span
+                ><strong>Aucune facture à corriger</strong>
+                <p>Seules les factures émises, pas encore annulées, peuvent recevoir un avoir.</p>
+              </div>
+            </div>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Facture déjà corrigée</strong><span>entre l’affichage et l’émission</span></figcaption>
+            <div class="alerte" data-tone="warning" role="note">
+              <svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-alert"></use></svg>
+              <div>
+                <strong>Un autre avoir vient d’être émis</strong
+                ><span>AV‑2026‑0002 a été émis sur cette facture à 10:42. Vérifiez le reste facturé avant de continuer.</span
+                ><button type="button" class="bouton" data-variant="secondary" data-size="sm"><span>Recharger</span></button>
+              </div>
+            </div>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Valeur entre crochets</strong><span>émission refusée</span></figcaption>
+            <div class="alerte" data-tone="danger" role="note">
+              <svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-x-circle"></use></svg>
+              <div>
+                <strong>Identité du cabinet incomplète</strong
+                ><span>[SIREN], [N° TVA], [ADRESSE DU CABINET] et [CAPITAL ET RCS] sont à saisir dans Paramètres › Cabinet.</span>
+              </div>
+            </div>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Brouillon</strong><span>réversible, sans numéro</span></figcaption>
+            <div class="alerte" data-tone="neutral" role="note">
+              <svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-info"></use></svg>
+              <div><strong>Brouillon enregistré</strong><span>Modifiable et supprimable. Le numéro n’est attribué qu’à l’émission.</span></div>
+            </div>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Chargement</strong></figcaption>
+            <div class="carte">
+              <div class="skeleton" role="status">
+                <span class="hidden">Chargement en cours…</span
+                ><span><span data-skeleton class="disc"></span><span data-skeleton class="bar"></span><span data-skeleton class="end"></span></span
+                ><span><span data-skeleton class="disc"></span><span data-skeleton class="bar"></span><span data-skeleton class="end"></span></span
+                ><span><span data-skeleton class="disc"></span><span data-skeleton class="bar"></span><span data-skeleton class="end"></span></span>
+              </div>
+            </div>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Erreur</strong><span>à l’émission</span></figcaption>
+            <div class="alerte" data-tone="danger" role="note">
+              <svg class="icone" aria-hidden="true" data-size="lg"><use href="#i-x-circle"></use></svg>
+              <div>
+                <strong>L’avoir n’a pas été émis.</strong><span>Aucun numéro n’a été attribué. Votre saisie est conservée : réessayez.</span
+                ><button type="button" class="bouton" data-variant="secondary" data-size="sm"><span>Réessayer</span></button>
+              </div>
+            </div>
+          </figure>
+          <figure class="state">
+            <figcaption><strong>Accès refusé</strong><span>Gestionnaire, Développeur, Responsable sans délégation</span></figcaption>
+            <div class="carte">
+              <div class="etat">
+                <span class="mark" data-kind="error"
+                  ><svg class="icone" aria-hidden="true" data-size="xl"><use href="#i-lock"></use></svg></span
+                ><strong>Accès réservé</strong>
+                <p>Cette page est réservée à d’autres rôles. Si vous pensez en avoir besoin, demandez l’accès à un responsable du recouvrement.</p>
+              </div>
+            </div>
+          </figure>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>
