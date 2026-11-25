@@ -47,6 +47,12 @@ export const AUDIT_ACTIONS = {
   CREDITOR_ACCOUNT_CHANGED: 'Compte de reversement enregistré',
   CREDITOR_ACCOUNT_CONFIRMED: 'Compte de reversement confirmé par téléphone',
   CREDITOR_IBAN_SHOWN: 'IBAN d’un créancier affiché',
+  // Cases
+  CASE_OPENED: 'Dossier ouvert',
+  CASES_ASSIGNED: 'Dossiers attribués : {count}',
+  CASE_INVOICES_ADDED: 'Factures ajoutées à un dossier : {count}',
+  CONTACT_ADDED: 'Coordonnée d’un débiteur ajoutée',
+  CONTACT_CHANGED: 'Coordonnée d’un débiteur modifiée',
   // Platform
   CASE_NOTE_ADDED: 'Note ajoutée à un dossier',
   SETTING_CHANGED: 'Paramètres modifiés : {count}',

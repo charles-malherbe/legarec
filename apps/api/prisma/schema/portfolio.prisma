@@ -135,6 +135,7 @@ model Mandate {
   creditor Creditor  @relation(fields: [creditorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   amends   Mandate?  @relation("Amendments", fields: [amendsId, creditorId], references: [id, creditorId], onDelete: NoAction, onUpdate: NoAction)
   amended  Mandate[] @relation("Amendments")
+  cases    Case[]
 
   @@unique([id, creditorId], map: "mandates_id_creditor")
   @@map("mandates")
@@ -195,7 +196,20 @@ model Case {
   closedOn             DateTime?  @map("closed_on") @db.Date
   version              Int        @default(1)
   createdAt            DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  /// The terms of the day it was opened.
+  mandateId            String?    @map("mandate_id") @db.Uuid
+  debtorSiret          String?    @map("debtor_siret")
+  debtorAddress        String?    @map("debtor_address")
+  debtorPostalCode     String?    @map("debtor_postal_code")
+  debtorCity           String?    @map("debtor_city")
+  contactName          String?    @map("contact_name")
+  contactTitle         String?    @map("contact_title")
+  scenario             ScenarioCode?
+  createdBy            String?    @map("created_by") @db.Uuid
 
+  mandate  Mandate?    @relation(fields: [mandateId, creditorId], references: [id, creditorId], onDelete: NoAction, onUpdate: NoAction)
+  invoices CaseInvoice[]
+  contacts CaseContact[]
   creditor Creditor    @relation(fields: [creditorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   debtor   Debtor      @relation(fields: [debtorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   officer  User?       @relation(fields: [officerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -206,6 +220,108 @@ model Case {
   @@index([creditorId, status], map: "cases_creditor")
   @@index([debtorId], map: "cases_debtor")
   @@map("cases")
+}
+
+enum InvoiceState {
+  UNPAID
+  PARTIAL
+  DISPUTED
+  REMINDED
+  PLAN
+  PAID
+
+  @@map("invoice_state")
+}
+
+model CaseInvoice {
+  id                 String       @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  caseId             String       @map("case_id") @db.Uuid
+  creditorId         String       @map("creditor_id") @db.Uuid
+  number             String
+  externalRef        String?      @map("external_ref")
+  issuedOn           DateTime     @map("issued_on") @db.Date
+  dueOn              DateTime     @map("due_on") @db.Date
+  claimedCents       Int          @map("claimed_cents")
+  principalCents     Int          @map("principal_cents")
+  principalPaidCents Int          @default(0) @map("principal_paid_cents")
+  state              InvoiceState @default(UNPAID)
+  createdBy          String?      @map("created_by") @db.Uuid
+  createdAt          DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  case Case @relation(fields: [caseId, creditorId], references: [id, creditorId], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([caseId, number])
+  @@map("case_invoices")
+}
+
+enum ContactKind {
+  PHONE
+  EMAIL
+
+  @@map("contact_kind")
+}
+
+enum ContactStatus {
+  VERIFIED
+  INVALID
+  UNVERIFIED
+  NEW
+  PENDING
+
+  @@map("contact_status")
+}
+
+enum ContactSource {
+  CALL
+  IMPORT
+  DOCUMENT
+  CREDITOR
+
+  @@map("contact_source")
+}
+
+/// Coordinates of the debtor for one creditor: never those of another (question 79).
+model CaseContact {
+  id              String        @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  caseId          String        @map("case_id") @db.Uuid
+  creditorId      String        @map("creditor_id") @db.Uuid
+  kind            ContactKind
+  label           String
+  value           String
+  valueNormalized String        @map("value_normalized")
+  status          ContactStatus @default(UNVERIFIED)
+  isPrimary       Boolean       @default(false) @map("is_primary")
+  source          ContactSource
+  replacedById    String?       @map("replaced_by_id") @db.Uuid
+  createdBy       String?       @map("created_by") @db.Uuid
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  invalidatedAt   DateTime?     @map("invalidated_at") @db.Timestamptz(3)
+
+  case       Case               @relation(fields: [caseId, creditorId], references: [id, creditorId], onDelete: NoAction, onUpdate: NoAction)
+  replacedBy CaseContact?       @relation("Replacement", fields: [replacedById, caseId], references: [id, caseId], onDelete: NoAction, onUpdate: NoAction)
+  replaces   CaseContact[]      @relation("Replacement")
+  events     CaseContactEvent[]
+
+  @@unique([id, caseId])
+  @@index([valueNormalized], map: "case_contacts_lookup")
+  @@map("case_contacts")
+}
+
+/// Append-only; written by app.note_contact() only.
+model CaseContactEvent {
+  id         String   @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  caseId     String   @map("case_id") @db.Uuid
+  creditorId String   @map("creditor_id") @db.Uuid
+  contactId  String   @map("contact_id") @db.Uuid
+  actorId    String?  @map("actor_id") @db.Uuid
+  actorLabel String   @map("actor_label")
+  what       String
+  occurredAt DateTime @default(dbgenerated("clock_timestamp()")) @map("occurred_at") @db.Timestamptz(3)
+
+  contact CaseContact @relation(fields: [contactId, caseId], references: [id, caseId], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([caseId, occurredAt(sort: Desc)], map: "case_contact_events_case")
+  @@map("case_contact_events")
 }
 
 /// Append-only; written by app.add_case_event() only.

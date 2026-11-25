@@ -65,6 +65,48 @@ const secret =
     );
     return `/staff/secrets/${rows[0]!.id}/${then}`;
   };
+const withCases = (status: number) => only({ director: status, manager: status, managerAlone: status, officerA: status, officerB: status, liar: status });
+/** The Director and the manager; the liar is let in by the guard, then shown nothing. */
+const opens = (status: number) => only({ director: status, manager: status, managerAlone: status, liar: status });
+let lastCreditor = '';
+const newCreditor = async (test: TestApp, path: string) => {
+  const { rows } = await test.database.admin.query<{ id: string }>("INSERT INTO creditors (name) VALUES ('Nouveau') RETURNING id");
+  lastCreditor = rows[0]!.id;
+  return path;
+};
+let caseNumber = 50_000;
+/** Held by nobody. */
+const newCase = async (test: TestApp) => {
+  const debtor = await test.database.admin.query<{ id: string }>("INSERT INTO debtors (kind, name) VALUES ('INDIVIDUAL', 'X') RETURNING id");
+  caseNumber += 1;
+  const { rows } = await test.database.admin.query<{ id: string }>('INSERT INTO cases (reference, creditor_id, debtor_id) VALUES ($1, $2, $3) RETURNING id', [
+    `LGR-2026-${caseNumber}`,
+    test.s.creditorA,
+    debtor.rows[0]!.id,
+  ]);
+  return { id: rows[0]!.id, creditorId: test.s.creditorA };
+};
+let assigned: unknown;
+const INVOICE = { number: 'F-1', externalRef: '', issuedOn: '2026-01-01', dueOn: '2026-02-01', amount: 100, left: 100 };
+const CASE = {
+  mandateId: 'x',
+  externalReference: '',
+  kind: 'INDIVIDUAL',
+  number: '',
+  name: 'X',
+  nameConfirmed: true,
+  legalForm: '',
+  address: 'x',
+  postalCode: '69000',
+  city: 'Lyon',
+  contactName: '',
+  contactTitle: '',
+  contacts: [],
+  invoices: [INVOICE],
+  scenario: 'CONSUMER',
+  toMe: true,
+  expected: { principal: 100, invoices: 1 },
+};
 let settingTurn = 0;
 const technical = only({ director: 204, developer: 204 });
 const hidden = { ...technical, liar: 404 };
@@ -193,6 +235,55 @@ export const MATRIX: Record<string, MatrixEntry> = {
   'PUT /staff/delegations/:kind': { path: () => '/staff/delegations/technical', body: () => ({ active: true }), expect: only({ director: 204 }) },
   'POST /staff/support-tickets': { body: () => ({ subject: 'Question', message: 'Une question du banc de test.' }), expect: staffOf(200) },
   // The liar sees nothing of it.
+  'POST /staff/cases/search': { body: () => ({ query: '' }), expect: withCases(200) },
+  'GET /staff/cases/choices': { expect: opens(200) },
+  // The liar sees no creditor but those of their cases: the one that is asked has none.
+  'POST /staff/cases/check': {
+    path: (test) => newCreditor(test, '/staff/cases/check'),
+    body: () => ({ creditorId: lastCreditor, number: '' }),
+    expect: { ...opens(200), liar: 404 },
+  },
+  'POST /staff/cases/assign': {
+    path: async (test) => {
+      assigned = { ids: [(await newCase(test)).id], officerId: test.s.director };
+      return '/staff/cases/assign';
+    },
+    body: () => assigned,
+    expect: only({ director: 204, manager: 204, liar: 403 }),
+  },
+  // Without a mandate: what the test of the cases proves otherwise.
+  'POST /staff/cases': {
+    path: (test) => newCreditor(test, '/staff/cases'),
+    body: () => ({ ...CASE, creditorId: lastCreditor }),
+    expect: { ...opens(409), liar: 404 },
+  },
+  'GET /staff/cases/:id': {
+    path: (test) => `/staff/cases/${test.s.cases.ofA}`,
+    expect: { ...withCases(200), officerB: 404 },
+  },
+  // Held by nobody: the manager acts on it.
+  'POST /staff/cases/:id/invoices': {
+    path: async (test) => `/staff/cases/${(await newCase(test)).id}/invoices`,
+    body: () => ({ version: 1, invoices: [INVOICE], expected: { principal: 100, invoices: 1 } }),
+    expect: only({ director: 403, manager: 204, managerAlone: 204, liar: 404 }),
+  },
+  'POST /staff/cases/:id/coordinates': {
+    path: async (test) => `/staff/cases/${(await newCase(test)).id}/coordinates`,
+    body: () => ({ kind: 'PHONE', label: 'x', value: '06 00 00 00 01', primary: false, replaces: null, source: 'CALL' }),
+    expect: only({ director: 403, manager: 204, managerAlone: 204, officerA: 404, officerB: 404, liar: 404 }),
+  },
+  'PUT /staff/cases/:id/coordinates/:coordinateId': {
+    path: async (test) => {
+      const { id, creditorId } = await newCase(test);
+      const { rows } = await test.database.admin.query<{ id: string }>(
+        "INSERT INTO case_contacts (case_id, creditor_id, kind, label, value, value_normalized, source) VALUES ($1, $2, 'PHONE', 'x', '06 00 00 00 01', '0600000001', 'CALL') RETURNING id",
+        [id, creditorId],
+      );
+      return `/staff/cases/${id}/coordinates/${rows[0]!.id}`;
+    },
+    body: () => ({ status: 'VERIFIED' }),
+    expect: only({ director: 403, manager: 204, managerAlone: 204, officerA: 404, officerB: 404, liar: 404 }),
+  },
   // An officer: the creditors of their cases. The liar is one.
   'GET /staff/creditors': { expect: only({ director: 200, manager: 200, managerAlone: 200, officerA: 200, officerB: 200, liar: 200 }) },
   'GET /staff/creditors/:id': {

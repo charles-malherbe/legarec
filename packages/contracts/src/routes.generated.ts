@@ -1104,6 +1104,150 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/staff/cases/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CasesController_search"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/cases/choices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CasesController_choices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/cases/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CasesController_check"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/cases/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CasesController_assign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CasesController_open"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/cases/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CasesController_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/cases/{id}/invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CasesController_addInvoices"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/cases/{id}/coordinates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CasesController_addContact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/cases/{id}/coordinates/{coordinateId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["CasesController_changeContact"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2911,7 +3055,7 @@ export interface operations {
                             amount: number;
                             daysLate: number;
                             /** @enum {string} */
-                            status: "OVERDUE" | "PROMISE" | "REMINDER" | "DISPUTE" | "SETTLED" | "PLAN" | "FORMAL_NOTICE" | "LITIGATION";
+                            status: "OVERDUE" | "PROMISE" | "REMINDER" | "DISPUTE" | "SETTLED" | "PLAN" | "FORMAL_NOTICE" | "LITIGATION" | "NEW" | "LOST";
                             statusLabel: string;
                             invoices: {
                                 number: string;
@@ -2946,7 +3090,7 @@ export interface operations {
                             what: string;
                             when: string;
                             /** @enum {string|null} */
-                            status: "OVERDUE" | "PROMISE" | "REMINDER" | "DISPUTE" | "SETTLED" | "PLAN" | "FORMAL_NOTICE" | "LITIGATION" | null;
+                            status: "OVERDUE" | "PROMISE" | "REMINDER" | "DISPUTE" | "SETTLED" | "PLAN" | "FORMAL_NOTICE" | "LITIGATION" | "NEW" | "LOST" | null;
                         }[];
                         mandateTerms: {
                             label: string;
@@ -3135,6 +3279,378 @@ export interface operations {
                         iban: string;
                     };
                 };
+            };
+        };
+    };
+    CasesController_search: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: {
+                            id: string;
+                            reference: string;
+                            name: string;
+                            identifier: string;
+                            creditorId: string;
+                            creditor: string;
+                            invoicesLabel: string;
+                            amount: number;
+                            daysLate: number | null;
+                            /** @enum {string} */
+                            status: "OVERDUE" | "PROMISE" | "REMINDER" | "DISPUTE" | "SETTLED" | "PLAN" | "FORMAL_NOTICE" | "LITIGATION" | "NEW" | "LOST";
+                            statusLabel: string;
+                            nextAction: string;
+                            nextDate: string;
+                            officerId: string | null;
+                            officer: string | null;
+                            canAct: boolean;
+                        }[];
+                        total: number;
+                        counts: {
+                            [key: string]: number;
+                        };
+                        stats: {
+                            outstanding: number;
+                            invoices: number;
+                            overdue: number;
+                            overdueAmount: number;
+                            promises: number;
+                            promisesToday: number;
+                            recovered: number;
+                            targetRatio: number | null;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    CasesController_choices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        creditors: {
+                            id: string;
+                            name: string;
+                        }[];
+                        officers: {
+                            id: string;
+                            name: string;
+                        }[];
+                        mayAssign: boolean;
+                    };
+                };
+            };
+        };
+    };
+    CasesController_check: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        mandate: {
+                            id: string;
+                            /** Format: date */
+                            since: string;
+                            /** @enum {string} */
+                            scenario: "BUSINESS" | "CONSUMER" | "KEY_ACCOUNTS";
+                            fixedIndemnity: boolean;
+                            terms: {
+                                label: string;
+                                value: string;
+                            }[];
+                            hasContract: boolean;
+                        } | null;
+                        /** Format: date */
+                        startsOn: string | null;
+                        open: {
+                            id: string;
+                            reference: string;
+                            name: string;
+                            version: number;
+                            officer: string | null;
+                            canAct: boolean;
+                        } | null;
+                        others: {
+                            creditor: string;
+                            invoices: number;
+                        }[];
+                    };
+                };
+            };
+        };
+    };
+    CasesController_assign: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CasesController_open: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        reference: string;
+                    };
+                };
+            };
+        };
+    };
+    CasesController_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        reference: string;
+                        name: string;
+                        identifier: string;
+                        creditorId: string;
+                        creditor: string;
+                        invoicesLabel: string;
+                        amount: number;
+                        daysLate: number | null;
+                        /** @enum {string} */
+                        status: "OVERDUE" | "PROMISE" | "REMINDER" | "DISPUTE" | "SETTLED" | "PLAN" | "FORMAL_NOTICE" | "LITIGATION" | "NEW" | "LOST";
+                        statusLabel: string;
+                        nextAction: string;
+                        nextDate: string;
+                        officerId: string | null;
+                        officer: string | null;
+                        canAct: boolean;
+                        creditorRef: string;
+                        isIndividual: boolean;
+                        principal: number;
+                        interest: number;
+                        fees: number;
+                        remindersSent: number;
+                        remindersTotal: number;
+                        risk: {
+                            label: string;
+                            reason: string;
+                        } | null;
+                        contacts: {
+                            id: string;
+                            /** @enum {string} */
+                            kind: "PHONE" | "EMAIL";
+                            value: string;
+                            verified: boolean;
+                        }[];
+                        mainContact: {
+                            name: string;
+                            title: string;
+                            phone: string;
+                            email: string;
+                            address: string;
+                        };
+                        aiSummary: {
+                            events: number;
+                            updated: string;
+                            lines: {
+                                k: string;
+                                v: string;
+                            }[];
+                        } | null;
+                        invoices: {
+                            number: string;
+                            /** Format: date */
+                            issued: string;
+                            /** Format: date */
+                            due: string;
+                            amount: number;
+                            daysLate: number;
+                        }[];
+                        history: {
+                            id: string;
+                            title: string;
+                            detail: string;
+                            date: string;
+                            actor: string;
+                            onBehalfOf: string | null;
+                            /** @enum {string} */
+                            tone: "danger" | "info" | "warning" | "success" | "neutral";
+                        }[];
+                        exchanges: {
+                            id: string;
+                            /** @enum {string} */
+                            channel: "EMAIL_IN" | "EMAIL_OUT" | "CALL" | "SMS_IN" | "SMS_OUT" | "LETTER" | "REGISTERED_LETTER" | "PORTAL_IN" | "PORTAL_OUT";
+                            title: string;
+                            text: string;
+                            when: string;
+                            /** @enum {string|null} */
+                            delivery: "SENT" | "DELIVERED" | "ACKNOWLEDGED" | "FAILED" | null;
+                            acknowledgmentId: string | null;
+                            verified: boolean;
+                        }[];
+                        payments: {
+                            id: string;
+                            /** @enum {string} */
+                            method: "CHEQUE" | "TRANSFER";
+                            amount: number;
+                            /** @enum {string} */
+                            status: "RECEIVED" | "DEPOSITED" | "CASHED" | "BOUNCED" | "RECONCILED" | "TO_RECONCILE";
+                            /** Format: date */
+                            receivedOn: string;
+                            /** Format: date */
+                            depositedOn: string | null;
+                            chequeNumber: string | null;
+                            bank: string | null;
+                            label: string | null;
+                            receiptId: string | null;
+                            allocation: {
+                                interest: number;
+                                principal: number;
+                                fees: number;
+                            };
+                        }[];
+                        documents: {
+                            id: string;
+                            name: string;
+                            meta: string;
+                            /** @enum {string} */
+                            kind: "PDF" | "DOCX";
+                        }[];
+                        mandate: {
+                            sector: string;
+                            terms: {
+                                label: string;
+                                value: string;
+                            }[];
+                        };
+                        otherClaims: {
+                            creditor: string;
+                            invoices: number;
+                            amount: number;
+                        }[];
+                        scenario: {
+                            label: string;
+                            when: string;
+                            /** @enum {string} */
+                            state: "DONE" | "NEXT" | "TODO";
+                        }[];
+                        firstLetter: {
+                            reference: string;
+                            /** Format: date */
+                            date: string;
+                        } | null;
+                        contactLimit: string | null;
+                    };
+                };
+            };
+        };
+    };
+    CasesController_addInvoices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CasesController_addContact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CasesController_changeContact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

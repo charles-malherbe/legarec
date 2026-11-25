@@ -157,6 +157,27 @@ describe('who sees what', () => {
     for (const path of [`/${test.s.creditorA}/file`, '/choices']) expect((await call('officerA', 'GET', path)).status).toBe(403);
   });
 
+  it('counts the cases and the invoices that the person sees, and no other', async () => {
+    const { s } = test;
+    const add = (caseId: string, creditorId: string, number: string, cents: number) =>
+      rows(
+        "INSERT INTO case_invoices (case_id, creditor_id, number, issued_on, due_on, claimed_cents, principal_cents) VALUES ($1, $2, $3, '2026-01-01', '2026-02-01', $4, $4)",
+        [caseId, creditorId, number, cents],
+      );
+    await add(s.cases.ofA, s.creditorA, 'A-1', 1000);
+    await add(s.cases.unassigned, s.creditorA, 'A-2', 500);
+    const of = async (as: string) =>
+      z
+        .array(creditorListItem)
+        .parse((await call(as, 'GET')).body)
+        .find((item) => item.id === s.creditorA)!;
+    expect(await of('director')).toMatchObject({ debtors: 2, invoices: 2, outstanding: 1500 });
+    expect(await of('officerA')).toMatchObject({ debtors: 1, invoices: 1, outstanding: 1000 });
+    const { portfolio } = creditorDetail.parse((await call('officerA', 'GET', `/${s.creditorA}`)).body);
+    expect(portfolio).toHaveLength(1);
+    expect(portfolio[0]).toMatchObject({ id: s.cases.ofA, amount: 1000, invoices: [{ number: 'A-1', left: 1000, state: 'UNPAID' }] });
+  });
+
   it('the Developer reads none', async () => {
     for (const path of ['', `/${test.s.creditorA}`, `/${test.s.creditorA}/file`, '/choices']) expect((await call('developer', 'GET', path)).status).toBe(403);
   });

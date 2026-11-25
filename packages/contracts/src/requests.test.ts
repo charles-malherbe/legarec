@@ -33,6 +33,7 @@ describe('bodies of the requests', () => {
 });
 
 type Portal = keyof typeof REQUEST_BODIES;
+const INVOICE = { number: 'F-2026-1132', externalRef: 'MA-2410', issuedOn: '2026-10-12', dueOn: '2026-11-11', amount: 264000, left: 164000 };
 const IDENTITY = {
   legalName: 'X SAS',
   name: 'X',
@@ -150,6 +151,30 @@ const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly
       { ...qualification, outcome: 'NO_ANSWER', tcxCode: 'NON_REPONSE', interlocutor: '', notes: '', announced: false },
     ],
     'POST /calls/:id/ai-decision': [{ decision: 'ACCEPTED' }, { decision: 'IGNORED' }],
+    'POST /cases': [
+      {
+        creditorId: 'md',
+        mandateId: 'md-m1',
+        externalReference: '',
+        kind: 'COMPANY',
+        number: '732 829 320 00074',
+        name: 'Menuiserie Arnal',
+        nameConfirmed: true,
+        legalForm: '5499',
+        address: '18 chemin des Scieurs',
+        postalCode: '38500',
+        city: 'Voiron',
+        contactName: '',
+        contactTitle: '',
+        contacts: [{ kind: 'PHONE', label: 'Standard', value: '04 76 00 00 21', primary: true }],
+        invoices: [INVOICE],
+        scenario: 'BUSINESS',
+        toMe: true,
+        expected: { principal: 164000, invoices: 1 },
+      },
+    ],
+    'POST /cases/check': [{ creditorId: 'md', number: '732 829 320 00074' }],
+    'POST /cases/:id/invoices': [{ version: 1, invoices: [INVOICE], expected: { principal: 164000, invoices: 1 } }],
     'POST /creditors': [{ siren: '732829320', identity: IDENTITY, contacts: CONTACTS, mandate: MANDATE }],
     'PUT /creditors/:id': [{ version: 1, identity: IDENTITY, contacts: CONTACTS }],
     'POST /creditors/:id/amendments': [{ amends: 'm1', mandate: MANDATE }],

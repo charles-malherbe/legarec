@@ -1,0 +1,107 @@
+import { caseCheckResult, caseChoices, caseDetail, caseList, caseOpened, caseSearchQuery, REQUEST_BODIES } from '@legarec/contracts';
+import { Body, Controller, Get, HttpCode, Inject, Param, Post, Put, Query } from '@nestjs/common';
+import { ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import type { z } from 'zod';
+import { Staff, StaffOrDelegate } from '../../platform/access/access';
+import { currentActor } from '../../platform/http/context';
+import { Commits } from '../../platform/http/transaction.interceptor';
+import { CasesService, type StaffActor } from './cases.service';
+import { ContactsService } from './contacts.service';
+
+const bodies = REQUEST_BODIES.staff;
+type In<K extends keyof typeof bodies> = z.infer<(typeof bodies)[K]>;
+const me = () => currentActor() as StaffActor;
+const WithCases = () => Staff('DIRECTOR', 'COLLECTION_MANAGER', 'CLAIMS_OFFICER');
+/** Whoever opens a case (D1). */
+const Opens = () => Staff('DIRECTOR', 'COLLECTION_MANAGER');
+
+@ApiTags('cases')
+@Controller('staff/cases')
+export class CasesController {
+  constructor(
+    @Inject(CasesService) private readonly cases: CasesService,
+    @Inject(ContactsService) private readonly contacts: ContactsService,
+  ) {}
+
+  @Post('search')
+  @WithCases()
+  @HttpCode(200)
+  @ApiOkResponse({ standardSchema: caseList })
+  search(
+    @Body({ schema: bodies['POST /cases/search'] }) { query }: In<'POST /cases/search'>,
+    @Query({ schema: caseSearchQuery }) filters: z.infer<typeof caseSearchQuery>,
+  ) {
+    return this.cases.search(query, filters);
+  }
+
+  @Get('choices')
+  @Opens()
+  @ApiOkResponse({ standardSchema: caseChoices })
+  choices() {
+    return this.cases.choices(me());
+  }
+
+  /** In a body: the number of a sole trader names a person. */
+  @Post('check')
+  @Opens()
+  @HttpCode(200)
+  @ApiOkResponse({ standardSchema: caseCheckResult })
+  check(@Body({ schema: bodies['POST /cases/check'] }) { creditorId, number }: In<'POST /cases/check'>) {
+    return this.cases.check(creditorId, number);
+  }
+
+  @Post('assign')
+  @StaffOrDelegate('ADMINISTRATIVE', 'DIRECTOR')
+  @Commits()
+  @HttpCode(204)
+  @ApiNoContentResponse()
+  assign(@Body({ schema: bodies['POST /cases/assign'] }) { ids, officerId }: In<'POST /cases/assign'>) {
+    return this.cases.assign(ids, officerId);
+  }
+
+  @Post()
+  @Opens()
+  @Commits()
+  @HttpCode(200)
+  @ApiOkResponse({ standardSchema: caseOpened })
+  open(@Body({ schema: bodies['POST /cases'] }) body: In<'POST /cases'>) {
+    return this.cases.open(me(), body);
+  }
+
+  @Get(':id')
+  @WithCases()
+  @ApiOkResponse({ standardSchema: caseDetail })
+  detail(@Param('id') id: string) {
+    return this.cases.detail(me(), id);
+  }
+
+  @Post(':id/invoices')
+  @Opens()
+  @Commits()
+  @HttpCode(204)
+  @ApiNoContentResponse()
+  addInvoices(@Param('id') id: string, @Body({ schema: bodies['POST /cases/:id/invoices'] }) body: In<'POST /cases/:id/invoices'>) {
+    return this.cases.addToCase(me(), id, body);
+  }
+
+  @Post(':id/coordinates')
+  @WithCases()
+  @Commits()
+  @HttpCode(204)
+  @ApiNoContentResponse()
+  addContact(@Param('id') id: string, @Body({ schema: bodies['POST /cases/:id/coordinates'] }) body: In<'POST /cases/:id/coordinates'>) {
+    return this.contacts.add(me(), id, body);
+  }
+
+  @Put(':id/coordinates/:coordinateId')
+  @WithCases()
+  @HttpCode(204)
+  @ApiNoContentResponse()
+  changeContact(
+    @Param('id') id: string,
+    @Param('coordinateId') contactId: string,
+    @Body({ schema: bodies['PUT /cases/:id/coordinates/:coordinateId'] }) body: In<'PUT /cases/:id/coordinates/:coordinateId'>,
+  ) {
+    return this.contacts.change(id, contactId, body);
+  }
+}

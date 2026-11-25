@@ -1,12 +1,4 @@
-import {
-  hasDelegation,
-  MANDATE_INTEREST_LABELS,
-  type CreditorFile,
-  type CreditorListItem,
-  type MandateForm,
-  type MandateVersion,
-  type NewCreditor,
-} from '@legarec/contracts';
+import { hasDelegation, type CreditorFile, type CreditorListItem, type MandateForm, type MandateVersion, type NewCreditor } from '@legarec/contracts';
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { z } from 'zod';
@@ -16,6 +8,9 @@ import type { Actor } from '../../platform/database/actor';
 import { Database, type Transaction } from '../../platform/database/database';
 import { conflict, invalid, notFound } from '../../platform/errors/api-error';
 import { capitalized, ago, dayOf } from '../../platform/format';
+import { STATUS_LABELS } from '../cases/labels';
+import { lateDays } from './late';
+import { currentOf, dayText, percent, stateOf, termsOf } from './mandates';
 import { SettingValues } from '../settings/values';
 import { Vault } from '../vault/vault';
 
@@ -24,7 +19,6 @@ type Identity = NewCreditor['identity'];
 type Account = z.infer<typeof bankAccountChange>['account'];
 
 const compact = (value: string) => value.replace(/\s/gu, '').toUpperCase();
-const day = (date: Date) => date.toISOString().slice(0, 10);
 const date = (value: string) => new Date(`${value}T00:00:00Z`);
 const dayBefore = (value: string) => new Date(date(value).getTime() - 86_400_000);
 export const initialsOf = (name: string) =>
@@ -34,7 +28,6 @@ export const initialsOf = (name: string) =>
     .slice(0, 2)
     .map((word) => word.charAt(0).toUpperCase())
     .join('');
-export const percent = (bp: number) => `${(bp / 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} %`;
 const masked = (iban: string) => `${iban.slice(0, 4)} •••• •••• ${iban.slice(-4)}`;
 const shortName = (person: { firstName: string; lastName: string }) => `${person.firstName.charAt(0)}. ${person.lastName}`;
 const fullName = (person: { firstName: string; lastName: string }) => `${person.firstName} ${person.lastName}`;
@@ -42,7 +35,14 @@ const person = { select: { firstName: true, lastName: true } } as const;
 
 type MandateRow = NonNullable<Awaited<ReturnType<CreditorsService['mandates']>>[number]>;
 
-/** A month before its end, a mandate is to be renewed. */
+interface Totals {
+  debtors: number;
+  invoices: number;
+  outstanding: number;
+}
+const NONE: Totals = { debtors: 0, invoices: 0, outstanding: 0 };
+
+/** Two months before its end, a mandate is to be renewed. */
 const RENEWAL_DAYS = 60;
 
 /** Creditors, mandates and accounts. The Director and the manager act in their own right; the account is the Director's, or their delegate's. */
@@ -60,8 +60,8 @@ export class CreditorsService {
       select: { id: true, name: true, siren: true, sector: true, manager: person, mandates: { orderBy: { startsOn: 'asc' } } },
       orderBy: { name: 'asc' },
     });
-    const debtors = await this.debtors(found.map((item) => item.id));
-    return found.map((item) => this.summary(item, debtors.get(item.id) ?? 0));
+    const totals = await this.totals(found.map((item) => item.id));
+    return found.map((item) => this.summary(item, totals.get(item.id) ?? NONE));
   }
 
   async detail(actor: StaffActor, id: string): Promise<z.infer<typeof creditorDetail>> {
@@ -80,16 +80,16 @@ export class CreditorsService {
       },
     });
     if (!item) throw notFound();
-    const count = (await this.debtors([id])).get(id) ?? 0;
+    const totals = (await this.totals([id])).get(id) ?? NONE;
     const current = currentOf(item.mandates);
     const [main] = item.contacts;
     return {
-      ...this.summary(item, count),
-      mandateSince: day(item.mandates[0]?.startsOn ?? item.createdAt),
+      ...this.summary(item, totals),
+      mandateSince: dayText(item.mandates[0]?.startsOn ?? item.createdAt),
       ownerName: item.manager ? fullName(item.manager) : '',
-      totalDebtors: count,
-      // Cases, payments and remittances: with their own modules.
-      portfolio: [],
+      totalDebtors: totals.debtors,
+      portfolio: await this.portfolio(id),
+      // Payments and remittances: with their own modules.
       payouts: [],
       nextPayout: { date: dayOf(new Date()), net: 0, gross: 0, fee: 0 },
       activity: [],
@@ -221,7 +221,7 @@ export class CreditorsService {
     await this.locked(tx, id);
     const [last] = await tx.mandate.findMany({ where: { creditorId: id }, orderBy: { startsOn: 'desc' }, take: 1 });
     if (!last || last.id !== amends) throw conflict('CHANGED');
-    if (mandate.startsOn <= day(last.startsOn)) throw invalid({ fields: ['mandate.startsOn'] });
+    if (mandate.startsOn <= dayText(last.startsOn)) throw invalid({ fields: ['mandate.startsOn'] });
     // A mandate that ended before is not extended by its amendment.
     const end = dayBefore(mandate.startsOn);
     if (last.endsOn === null || last.endsOn > end) await tx.mandate.update({ where: { id: last.id }, data: { endsOn: end }, select: { id: true } });
@@ -308,9 +308,46 @@ export class CreditorsService {
     return this.database.tx.mandate.findMany({ where: { creditorId }, orderBy: { startsOn: 'asc' } });
   }
 
-  private async debtors(ids: string[]): Promise<Map<string, number>> {
-    const rows = await this.database.tx.case.groupBy({ by: ['creditorId'], _count: { _all: true }, where: { creditorId: { in: ids } } });
-    return new Map(rows.map((row) => [row.creditorId, row._count._all]));
+  /** What the person sees of the cases of each creditor. */
+  private async totals(ids: string[]): Promise<Map<string, Totals>> {
+    const rows = await this.database.tx.$queryRaw<{ creditor_id: string; debtors: number; invoices: number; outstanding: bigint }[]>`
+      SELECT c.creditor_id, count(DISTINCT c.debtor_id)::int AS debtors, coalesce(sum(i.invoices), 0)::int AS invoices, coalesce(sum(i.amount), 0)::bigint AS outstanding
+      FROM cases c LEFT JOIN LATERAL (
+        SELECT count(*) AS invoices, sum(principal_cents - principal_paid_cents) AS amount FROM case_invoices WHERE case_id = c.id AND principal_paid_cents < principal_cents
+      ) i ON true
+      WHERE c.creditor_id = ANY (${ids}::uuid[]) GROUP BY 1`;
+    return new Map(rows.map((row) => [row.creditor_id, { debtors: row.debtors, invoices: row.invoices, outstanding: Number(row.outstanding) }]));
+  }
+
+  private async portfolio(creditorId: string): Promise<z.infer<typeof creditorDetail>['portfolio']> {
+    const now = dayOf(new Date());
+    const cases = await this.database.tx.case.findMany({
+      where: { creditorId, closedOn: null },
+      select: { id: true, reference: true, status: true, debtor: { select: { name: true } }, invoices: { orderBy: { dueOn: 'asc' } } },
+    });
+    return cases
+      .map(({ id, reference, status, debtor, invoices }) => {
+        const unpaid = invoices.filter((invoice) => invoice.principalPaidCents < invoice.principalCents);
+        return {
+          id,
+          name: debtor.name,
+          reference,
+          amount: unpaid.reduce((total, invoice) => total + invoice.principalCents - invoice.principalPaidCents, 0),
+          daysLate: lateDays(unpaid[0]?.dueOn ?? null, now) ?? 0,
+          status,
+          statusLabel: STATUS_LABELS[status],
+          invoices: unpaid.map((invoice) => ({
+            number: invoice.number,
+            externalRef: invoice.externalRef ?? '',
+            due: dayText(invoice.dueOn),
+            total: invoice.claimedCents,
+            left: invoice.principalCents - invoice.principalPaidCents,
+            state: invoice.state === 'PAID' ? ('PARTIAL' as const) : invoice.state,
+          })),
+        };
+      })
+      .sort((left, right) => right.amount - left.amount)
+      .slice(0, 100);
   }
 
   private summary(
@@ -322,13 +359,13 @@ export class CreditorsService {
       manager: { firstName: string; lastName: string } | null;
       mandates: MandateRow[];
     },
-    debtors: number,
+    { debtors, invoices, outstanding }: Totals,
   ): CreditorListItem {
     const current = currentOf(item.mandates);
     const last = item.mandates.at(-1);
     const ends = current?.endsOn && current.id === last?.id ? current.endsOn : null;
     const renewal = ends !== null && ends.getTime() - Date.now() < RENEWAL_DAYS * 86_400_000;
-    const status = current ? (renewal ? `Renouvellement ${day(ends).slice(5, 7)}/${day(ends).slice(0, 4)}` : 'Mandat actif') : 'Aucun mandat actif';
+    const status = current ? (renewal ? `Renouvellement ${dayText(ends).slice(5, 7)}/${dayText(ends).slice(0, 4)}` : 'Mandat actif') : 'Aucun mandat actif';
     return {
       id: item.id,
       initials: initialsOf(item.name),
@@ -336,8 +373,8 @@ export class CreditorsService {
       sector: item.sector ?? '',
       siren: (item.siren ?? '').replace(/(\d{3})(?=\d)/gu, '$1 '),
       debtors,
-      invoices: 0,
-      outstanding: 0,
+      invoices,
+      outstanding,
       recovered: 0,
       rate: 0,
       fee: current ? `${percent(current.amicableRateBp)} HT` : '—',
@@ -346,15 +383,6 @@ export class CreditorsService {
       statusLabel: status,
     };
   }
-}
-
-const today = () => dayOf(new Date());
-function stateOf(mandate: { startsOn: Date; endsOn: Date | null }): 'CURRENT' | 'TO_COME' | 'ENDED' {
-  if (day(mandate.startsOn) > today()) return 'TO_COME';
-  return mandate.endsOn !== null && day(mandate.endsOn) < today() ? 'ENDED' : 'CURRENT';
-}
-export function currentOf<T extends { startsOn: Date; endsOn: Date | null }>(mandates: T[]): T | undefined {
-  return mandates.find((mandate) => stateOf(mandate) === 'CURRENT');
 }
 
 function columns(identity: Identity) {
@@ -376,8 +404,8 @@ function mandateColumns({ startsOn, endsOn, ...terms }: MandateForm) {
 function versionOf(mandate: MandateRow): MandateVersion {
   return {
     id: mandate.id,
-    startsOn: day(mandate.startsOn),
-    endsOn: mandate.endsOn ? day(mandate.endsOn) : null,
+    startsOn: dayText(mandate.startsOn),
+    endsOn: mandate.endsOn ? dayText(mandate.endsOn) : null,
     amicableRateBp: mandate.amicableRateBp,
     litigationRateBp: mandate.litigationRateBp,
     openingFeeCents: mandate.openingFeeCents,
@@ -393,24 +421,4 @@ function versionOf(mandate: MandateRow): MandateVersion {
     state: stateOf(mandate),
     hasContract: false,
   };
-}
-/** Card « Convention de mandat »; an officer reads what they need to act. */
-function termsOf(mandate: MandateRow, short: boolean): { label: string; value: string }[] {
-  const terms: [string, string][] = [
-    ['Honoraires amiable', `${percent(mandate.amicableRateBp)} HT du recouvré`],
-    ['Honoraires judiciaire', `${percent(mandate.litigationRateBp)} HT`],
-    ...(mandate.openingFeeCents
-      ? ([['Frais d’ouverture', `${(mandate.openingFeeCents / 100).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} € HT par dossier`]] as [
-          string,
-          string,
-        ][])
-      : []),
-    ['Indemnité forfaitaire', mandate.fixedIndemnity ? '40 € / facture (professionnels)' : 'Non réclamée'],
-    ['Échéancier sans accord', `≤ ${mandate.planMonthsWithoutConsent} mois`],
-    ['Remise autorisée', `≤ ${percent(mandate.discountMaxBp)}`],
-    ['Passage en contentieux', mandate.litigationNeedsConsent ? 'Sur accord écrit' : 'Sans accord écrit'],
-    ['Reporting', `Mensuel, le ${mandate.reportingDay}`],
-    ['Intérêts de retard', MANDATE_INTEREST_LABELS[mandate.interestMode]],
-  ];
-  return terms.slice(0, short ? 8 : undefined).map(([label, value]) => ({ label, value }));
 }

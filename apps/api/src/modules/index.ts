@@ -10,6 +10,9 @@ import { SecondFactors } from './auth/second-factors';
 import { SessionResolver, Sessions } from './auth/sessions';
 import { SignIn } from './auth/sign-in';
 import { SessionViews } from './auth/views';
+import { CasesController } from './cases/cases.controller';
+import { CasesService } from './cases/cases.service';
+import { ContactsService } from './cases/contacts.service';
 import { CreditorsController } from './creditors/creditors.controller';
 import { CreditorsService } from './creditors/creditors.service';
 import { DelegationsController } from './delegations/delegations.controller';
@@ -35,6 +38,7 @@ export const controllers: Type[] = [
   SecretsController,
   SettingsController,
   CreditorsController,
+  CasesController,
 ];
 export const providers: Provider[] = [
   AuthKeys,
@@ -50,4 +54,6 @@ export const providers: Provider[] = [
   MembersService,
   Vault,
   CreditorsService,
+  CasesService,
+  ContactsService,
 ];
