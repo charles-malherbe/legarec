@@ -21,6 +21,9 @@ import { MembersController } from './members/members.controller';
 import { MembersService } from './members/members.service';
 import { NotificationsController } from './notifications/notifications.controller';
 import { NotificationsService } from './notifications/notifications.service';
+import { Ledgers } from './payments/ledger';
+import { InterestRatesController, PaymentsController, PlansController } from './payments/payments.controller';
+import { Plans } from './payments/plans';
 import { SettingsController } from './settings/settings.controller';
 import { ShellController } from './shell/shell.controller';
 import { SupportController } from './support/support.controller';
@@ -43,6 +46,9 @@ export const controllers: Type[] = [
   SettingsController,
   CreditorsController,
   CasesController,
+  PaymentsController,
+  PlansController,
+  InterestRatesController,
   ShellController,
 ];
 export const providers: Provider[] = [
@@ -64,4 +70,6 @@ export const providers: Provider[] = [
   CasesService,
   ContactsService,
   NotificationsService,
+  Ledgers,
+  Plans,
 ];

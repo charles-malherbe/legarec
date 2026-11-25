@@ -37,6 +37,15 @@ describe('settings', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Annuler' }));
     await waitFor(() => expect(screen.getByLabelText('Durée maximale sans validation')).toHaveValue('6 mois'));
   });
+  it('takes the interest rate of a semester, typed by the Director, after a confirmation', async () => {
+    openAs('ad', '/parametres/regles');
+    await userEvent.type(await screen.findByLabelText('Valeur'), '2,5');
+    await userEvent.click(screen.getByRole('button', { name: 'Enregistrer le taux' }));
+    expect(await screen.findByText('2,50 %')).toBeVisible();
+    await userEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Enregistrer le taux' }));
+    expect(await screen.findByText('Taux enregistré.')).toBeVisible();
+    expect(await screen.findByRole('cell', { name: '2,50 %' })).toBeVisible();
+  });
   it('is read-only for an officer and refused by the API', async () => {
     openAs('hb', '/parametres/regles');
     expect(await screen.findByText('Lecture seule')).toBeVisible();

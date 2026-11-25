@@ -91,6 +91,7 @@ enum NotificationKind {
   DEVELOPER_CHANGED
   CASE_ASSIGNED
   SUBSTITUTE_NOTICE
+  PLAN_DECIDED
 
   @@map("notification_kind")
 }
@@ -162,6 +163,7 @@ model User {
   mailboxRequests      MailboxRequest[]         @relation("holder")
   mailboxesAsked       MailboxRequest[]         @relation("requestedBy")
   mailboxesDecided     MailboxRequest[]         @relation("decidedBy")
+  plansRequested       PaymentPlan[]            @relation("planRequester")
 
   @@map("users")
 }
@@ -295,6 +297,7 @@ model Notification {
   caseId    String?          @map("case_id") @db.Uuid
   creditorId String?         @map("creditor_id") @db.Uuid
   caseCount Int?             @map("case_count")
+  planId    String?          @map("plan_id") @db.Uuid
   createdAt DateTime         @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
   readAt    DateTime?        @map("read_at") @db.Timestamptz(3)
 

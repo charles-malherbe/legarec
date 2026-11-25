@@ -51,6 +51,12 @@ export const AUDIT_ACTIONS = {
   CASE_OPENED: 'Dossier ouvert',
   CASES_ASSIGNED: 'Dossiers attribués : {count}',
   CASE_INVOICES_ADDED: 'Factures ajoutées à un dossier : {count}',
+  // Money
+  PAYMENT_BOUNCED: 'Chèque impayé enregistré',
+  PLAN_ASKED: 'Échéancier demandé : {count} mensualités',
+  PLAN_REFUSED: 'Échéancier de {months} mois refusé',
+  ECB_RATE_SAVED: 'Taux de la BCE saisi pour le semestre du {day}',
+  LEGAL_RATE_SAVED: 'Taux légal des particuliers saisi pour le semestre du {day}',
   CONTACT_ADDED: 'Coordonnée d’un débiteur ajoutée',
   CONTACT_CHANGED: 'Coordonnée d’un débiteur modifiée',
   // Platform

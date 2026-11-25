@@ -8,6 +8,7 @@ import layout from '@legarec/ui/layout.module.css';
 import { MembersCard } from '../team/MembersCard';
 import { TemplatesCard } from '../templates/TemplatesCard';
 import { GdprRegistryCard } from './GdprRegistryCard';
+import { InterestRatesCard } from './InterestRatesCard';
 import { MailboxesCard } from './MailboxesCard';
 import { MediaKit } from './MediaKit';
 import { SecretsCard } from './SecretsCard';
@@ -113,6 +114,7 @@ export function SectionBody({ scope, id, label }: { scope: string; id: string; l
           ))}
         </Carte>
       ))}
+      {id === 'regles' && <InterestRatesCard />}
       {id === 'rgpd' && <GdprRegistryCard />}
       {data.tables.map((item) => (id === 'audit' ? <AuditTable key={item.id} table={item} /> : <StaticTable key={item.id} table={item} />))}
       {data.notes.map((note) => (

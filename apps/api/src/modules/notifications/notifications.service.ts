@@ -42,6 +42,7 @@ export class NotificationsService {
           target: person,
           ticket: { select: { number: true, subject: true } },
           caseCount: true,
+          planId: true,
           // Null when this person no longer reads it.
           case: { select: { id: true, reference: true, debtor: { select: { name: true } } } },
         },
@@ -52,7 +53,15 @@ export class NotificationsService {
     const unread = await some(null, shown);
     const found = [...unread, ...(await some({ not: null }, shown - unread.length))].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     const now = new Date();
-    return found.map(({ id, userId, kind, action, createdAt, readAt, actor, target, ticket, caseCount, case: about }) => {
+    const plans = new Map(
+      (
+        await this.database.tx.paymentPlan.findMany({
+          where: { id: { in: found.flatMap((item) => (item.planId ? [item.planId] : [])) } },
+          select: { id: true, status: true },
+        })
+      ).map((plan) => [plan.id, plan.status]),
+    );
+    return found.map(({ id, userId, kind, action, createdAt, readAt, actor, target, ticket, caseCount, case: about, planId }) => {
       const day = daysAgo(createdAt, now);
       const self = target?.id === userId;
       const said = (): { text: string; meta: string; href: string; cta: string } => {
@@ -88,6 +97,15 @@ export class NotificationsService {
                   href: '/debiteurs',
                   cta: 'Voir les dossiers',
                 };
+          case 'PLAN_DECIDED': {
+            const refused = planId !== null && plans.get(planId) === 'REFUSED';
+            return {
+              text: `${signed(actor)} a ${refused ? 'refusé' : 'validé'} l’échéancier ${about ? `de ${about.debtor.name}` : 'que vous avez proposé'}`,
+              meta: about ? `Dossier ${about.reference}` : 'Échéanciers',
+              href: '/echeanciers',
+              cta: 'Voir les échéanciers',
+            };
+          }
           case 'SUBSTITUTE_NOTICE':
             return { text: `Absence de ${signed(target)} : ses dossiers ont reçu une nouveauté`, meta: 'Remplacement', ...HERE };
           default:

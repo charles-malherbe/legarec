@@ -47,12 +47,14 @@ export const newReminder = z.object({
 export const reminderTargets = z.object({ items: z.array(z.object({ id: z.string(), name: z.string(), creditor: z.string() })) });
 export const reminderPlanned = z.object({ id: z.string(), limit: z.string().nullable() });
 
-export const planState = z.enum(['ON_TRACK', 'LATE', 'DEFAULT', 'WAITING_CREDITOR']);
+export const planState = z.enum(['ON_TRACK', 'LATE', 'DEFAULT', 'WAITING_CREDITOR', 'WAITING_DEBTOR']);
 export const PLAN_STATE_LABELS: Record<z.infer<typeof planState>, string> = {
   ON_TRACK: 'À jour',
   LATE: 'En retard',
   DEFAULT: 'En défaut',
   WAITING_CREDITOR: 'Accord créancier',
+  /** Hors maquette : proposé, pas encore accepté dans l'espace du débiteur (question 145). */
+  WAITING_DEBTOR: 'Accord débiteur',
 };
 export const installment = z.object({ number: z.number().int(), date: z.iso.date(), amount: cents, state: z.enum(['PAID', 'MISSED', 'UPCOMING']) });
 export const paymentPlan = z.object({
@@ -78,9 +80,16 @@ export const planRequest = z.object({
   flag: z.string(),
   tone: z.enum(['warning', 'info', 'danger']),
   decision: z.enum(['APPROVED', 'REFUSED']).nullable(),
+  /** Sent back with the decision: a plan changed since is refused (409). */
+  version: z.number().int(),
 });
 export const planSimulation = z.object({ caseId: z.string(), debtor: z.string(), creditor: z.string(), balance: cents, ownedByDirector: z.boolean() });
 export type PlanSimulation = z.infer<typeof planSimulation>;
+/** Rates typed each semester (question 75), and the semesters that lack one while interest runs. */
+export const interestRates = z.object({
+  items: z.array(z.object({ kind: z.enum(['ECB', 'LEGAL_INDIVIDUAL']), validFrom: z.iso.date(), rateBp: z.number().int(), enteredBy: z.string(), updatedAt: z.string() })),
+  canEdit: z.boolean(),
+});
 export const plansData = z.object({
   plans: z.array(paymentPlan),
   requests: z.array(planRequest),
@@ -101,6 +110,12 @@ export const plansData = z.object({
 export function splitPlan(total: number, months: number): number[] {
   const unit = Math.ceil(total / months / 100) * 100;
   return Array.from({ length: months }, (_, index) => (index === months - 1 ? total - unit * (months - 1) : unit));
+}
+/** First installment on the 15th of the next month (Paris), then every month: the same for the simulator and the API. */
+export function planDates(months: number, today: string): string[] {
+  const year = Number(today.slice(0, 4));
+  const month = Number(today.slice(5, 7));
+  return Array.from({ length: months }, (_, index) => new Date(Date.UTC(year, month + index, 15)).toISOString().slice(0, 10));
 }
 /** Above the threshold: Collection manager first (except on the Director's own cases), then the creditor. */
 export function planApprovals(months: number, threshold: number, ownedByDirector: boolean): ('COLLECTION_MANAGER' | 'CREDITOR')[] {

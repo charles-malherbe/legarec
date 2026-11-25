@@ -7,3 +7,6 @@ export const formatSiret = (value: string) => value.replace(/\s/g, '').replace(/
 export const formatSiren = (value: string) => value.replace(/\s/g, '').replace(/^(\d{3})(\d{3})(\d{3})$/, '$1 $2 $3');
 /** `24 novembre 2026`, in the Paris time zone. */
 export const formatLongDate = (date: Date) => new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeZone: 'Europe/Paris' }).format(date);
+/** `2026-11-25`: the day in Paris, whatever the time zone of the machine. */
+export const todayInParis = (now: Date = new Date()) =>
+  new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: TIME_ZONE }).format(now);

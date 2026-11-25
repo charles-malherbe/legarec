@@ -77,8 +77,20 @@ export const gdprRequestBody = z.object({ caseId: id, kind: gdprRequestKind, ori
 export const gdprAnswerBody = z.object({ status: z.enum(['OPEN', 'ANSWERED', 'REFUSED']), reason });
 
 export const reminderBody = z.object({ date: z.iso.date(), time: newReminder.shape.time, done: z.boolean() }).partial();
-export const paymentPlanBody = z.object({ caseId: id, months: z.number().int().min(1).max(60), method: z.enum(['TRANSFER', 'CHEQUE']) });
-export const planDecisionBody = z.object({ decision: z.enum(['APPROVED', 'REFUSED']), reason });
+/** `expected`: the balance shown in the confirmation; the API refuses the plan if it changed since. */
+export const paymentPlanBody = z.object({
+  caseId: id,
+  months: z.number().int().min(1).max(60),
+  method: z.enum(['TRANSFER', 'CHEQUE']),
+  expected: z.number().int().min(0).max(AMOUNT_MAX),
+});
+export const planDecisionBody = z.object({ decision: z.enum(['APPROVED', 'REFUSED']), reason, version: z.number().int().min(1).max(1_000_000) });
+/** Rate of a semester, in basis points (2,15 % = 215). */
+export const interestRateBody = z.object({
+  kind: z.enum(['ECB', 'LEGAL_INDIVIDUAL']),
+  validFrom: z.iso.date().regex(/^\d{4}-(?:01|07)-01$/u, { error: 'Choisissez le début d’un semestre.' }),
+  rateBp: z.number().int().min(0).max(5000, { error: 'Ce taux dépasse 50 %.' }),
+});
 
 export const composeBody = z.object({
   template: letterTemplate,
@@ -193,6 +205,7 @@ export const REQUEST_BODIES = {
     'PUT /reminders/:id': reminderBody,
     'POST /payment-plans': paymentPlanBody,
     'PUT /payment-plans/requests/:id': planDecisionBody,
+    'PUT /interest-rates': interestRateBody,
     'POST /documents/compose': composeBody,
     'POST /documents/compose/draft': letterDraftBody,
     'POST /emails/messages': outgoingMessage,

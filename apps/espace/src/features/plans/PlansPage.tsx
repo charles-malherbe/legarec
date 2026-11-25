@@ -3,6 +3,8 @@ import {
   formatDate,
   PLAN_STATE_LABELS,
   planApprovals,
+  planDates,
+  todayInParis,
   plansData,
   planSimulation,
   splitPlan,
@@ -35,7 +37,7 @@ import { pageOf } from '../../shared/paging';
 import { listState, matches } from '../../shared/listState';
 
 type Data = z.infer<typeof plansData>;
-const TONE: Record<PaymentPlan['state'], Tone> = { ON_TRACK: 'success', LATE: 'warning', DEFAULT: 'danger', WAITING_CREDITOR: 'info' };
+const TONE: Record<PaymentPlan['state'], Tone> = { ON_TRACK: 'success', LATE: 'warning', DEFAULT: 'danger', WAITING_CREDITOR: 'info', WAITING_DEBTOR: 'info' };
 const METHOD = { CHEQUE: 'Chèque', TRANSFER: 'Virement' } as const;
 const FILTERS = [
   ['all', 'Tous', () => true],
@@ -98,7 +100,7 @@ export function PlansPage() {
         { k: 'Origine', v: request.origin },
       ],
       onConfirm: async (reason) => {
-        await change(`/payment-plans/requests/${request.id}`, { method: 'PUT', body: { decision, reason } });
+        await change(`/payment-plans/requests/${request.id}`, { method: 'PUT', body: { decision, reason, version: request.version } });
         toast({
           message: ok
             ? `Échéancier de ${request.debtor} validé et envoyé pour signature.`
@@ -371,7 +373,7 @@ function Simulator({ simulation, threshold, onDone }: { simulation: PlanSimulati
   const [method, setMethod] = useState<'TRANSFER' | 'CHEQUE'>('TRANSFER');
   const amounts = splitPlan(simulation.balance, months);
   const approvals = planApprovals(months, threshold, simulation.ownedByDirector);
-  const last = new Date(Date.UTC(2026, 11 + months - 1, 15)).toISOString();
+  const last = `${planDates(months, todayInParis()).at(-1) ?? ''}T00:00:00Z`;
   const needs = approvals.length > 0;
   const submit = () =>
     confirm({
@@ -388,7 +390,7 @@ function Simulator({ simulation, threshold, onDone }: { simulation: PlanSimulati
         { k: 'Mode de paiement', v: METHOD[method] },
       ],
       onConfirm: async () => {
-        await change('/payment-plans', { body: { caseId: simulation.caseId, months, method } });
+        await change('/payment-plans', { body: { caseId: simulation.caseId, months, method, expected: simulation.balance } });
         toast({
           message: needs ? `Demande d’accord envoyée à ${simulation.creditor}.` : `Échéancier proposé à ${simulation.debtor}, en attente de signature.`,
         });

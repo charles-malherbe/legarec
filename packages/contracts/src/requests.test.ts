@@ -215,8 +215,12 @@ const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly
       { caseId: 'demo', type: 'EMAIL', date: '2026-11-24', time: '10:00', title: 'Relance' },
     ],
     'PUT /reminders/:id': [{ date: '2026-11-22' }, { done: true }, { done: false }],
-    'POST /payment-plans': [{ caseId: 'demo', months: 4, method: 'TRANSFER' }],
-    'PUT /payment-plans/requests/:id': [{ decision: 'REFUSED', reason: 'Accord refusé' }, { decision: 'APPROVED' }],
+    'POST /payment-plans': [{ caseId: 'demo', months: 4, method: 'TRANSFER', expected: 2_960_000 }],
+    'PUT /payment-plans/requests/:id': [
+      { decision: 'REFUSED', reason: 'Accord refusé', version: 1 },
+      { decision: 'APPROVED', version: 2 },
+    ],
+    'PUT /interest-rates': [{ kind: 'ECB', validFrom: '2026-07-01', rateBp: 215 }],
     'POST /documents/compose': [
       { ...letter, template: 'FORMAL_NOTICE', caseIds: ['demo'], filters: null, expected: 1 },
       { ...letter, template: 'FRIENDLY', caseIds: null, filters: { creditor: 'md', age: '31-60' }, expected: 13 },

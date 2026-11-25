@@ -26,6 +26,7 @@ import { AccessCodes } from '../debtor-access/access-codes';
 import { currentOf, dayText, termsOf } from '../creditors/mandates';
 import { lateDays } from '../creditors/late';
 import { STATUS_LABELS } from './labels';
+import { Ledgers, owedOf } from '../payments/ledger';
 
 export type StaffActor = Extract<Actor, { kind: 'staff' }>;
 type Query = z.infer<typeof caseSearchQuery>;
@@ -36,8 +37,6 @@ const spaced = (value: string) =>
   value.replace(/(\d{3})(\d{3})(\d{3})(\d{5})?/u, (_whole, a: string, b: string, c: string, d?: string) => [a, b, c, d].filter(Boolean).join(' '));
 const fullName = (person: { firstName: string; lastName: string }) => `${person.firstName} ${person.lastName}`;
 const plural = (count: number) => `${count} facture${count > 1 ? 's' : ''}`;
-/** 40 € for each invoice past due between professionals, when the mandate claims it; never from an individual. */
-const INDEMNITY_CENTS = 4000;
 const SHOWN = 500;
 
 /** Statuses behind each tab. */
@@ -78,6 +77,7 @@ export class CasesService {
     @Inject(Database) private readonly database: Database,
     @Inject(Audit) private readonly audit: Audit,
     @Inject(AccessCodes) private readonly codes: AccessCodes,
+    @Inject(Ledgers) private readonly ledgers: Ledgers,
   ) {}
 
   async search(query: string, { creditor, status, officer, age }: Query): Promise<z.infer<typeof caseList>> {
@@ -143,15 +143,16 @@ export class CasesService {
     });
     const now = dayOf(new Date());
     const main = (kind: 'PHONE' | 'EMAIL') => found.contacts.find((contact) => contact.kind === kind)?.value ?? '';
-    const overdue = found.invoices.filter((invoice) => invoice.principalPaidCents < invoice.principalCents && dayText(invoice.dueOn) < now).length;
     const others = await this.others(found.debtorId, id);
+    const ledger = await this.ledgers.read(id, now, actor.role === 'DIRECTOR');
+    const owed = ledger ? owedOf(ledger) : { principal: Number(row.amount), interest: 0, fees: 0 };
     return {
       ...itemOf(row, now),
       creditorRef: found.externalReference ?? '—',
       isIndividual: row.kind === 'INDIVIDUAL',
-      principal: Number(row.amount),
-      interest: 0,
-      fees: row.kind !== 'INDIVIDUAL' && found.mandate?.fixedIndemnity ? overdue * INDEMNITY_CENTS : 0,
+      principal: owed.principal,
+      interest: owed.interest,
+      fees: owed.fees,
       remindersSent: 0,
       remindersTotal: 0,
       risk: null,
@@ -182,7 +183,7 @@ export class CasesService {
       })),
       // Messages, payments, documents and scenarios: with their own modules.
       exchanges: [],
-      payments: [],
+      payments: ledger?.payments ?? [],
       documents: [],
       mandate: { sector: found.creditor.sector ?? '', terms: found.mandate ? termsOf(found.mandate, 'case') : [] },
       otherClaims: others,

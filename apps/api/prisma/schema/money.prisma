@@ -1,0 +1,207 @@
+enum InterestRateKind {
+  ECB
+  LEGAL_INDIVIDUAL
+
+  @@map("interest_rate_kind")
+}
+
+enum PaymentMethod {
+  CHEQUE
+  TRANSFER
+
+  @@map("payment_method")
+}
+
+enum PaymentStatus {
+  RECEIVED
+  DEPOSITED
+  CASHED
+  BOUNCED
+  RECONCILED
+  TO_RECONCILE
+
+  @@map("payment_status")
+}
+
+enum AllocationComponent {
+  INTEREST
+  PRINCIPAL
+  FEES
+  OVERPAYMENT
+
+  @@map("allocation_component")
+}
+
+enum PlanStatus {
+  PENDING_MANAGER
+  WAITING_CREDITOR
+  WAITING_DEBTOR
+  ACTIVE
+  DONE
+  DEFAULT
+  REFUSED
+  CANCELLED
+
+  @@map("plan_status")
+}
+
+enum PlanStep {
+  COLLECTION_MANAGER
+  CREDITOR
+  DEBTOR
+
+  @@map("plan_step")
+}
+
+enum PlanDecision {
+  PENDING
+  APPROVED
+  REFUSED
+
+  @@map("plan_decision")
+}
+
+/// One rate per semester and kind (question 75); written by `app.save_interest_rate()`.
+model InterestRate {
+  id           String           @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  kind         InterestRateKind
+  validFrom    DateTime         @map("valid_from") @db.Date
+  rateBp       Int              @map("rate_bp")
+  enteredBy    String           @map("entered_by") @db.Uuid
+  onBehalfOfId String?          @map("on_behalf_of_id") @db.Uuid
+  updatedAt    DateTime         @default(dbgenerated("now()")) @map("updated_at") @db.Timestamptz(3)
+
+  @@unique([kind, validFrom])
+  @@map("interest_rates")
+}
+
+model Payment {
+  id           String        @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  caseId       String        @map("case_id") @db.Uuid
+  creditorId   String        @map("creditor_id") @db.Uuid
+  method       PaymentMethod
+  amountCents  Int           @map("amount_cents")
+  status       PaymentStatus
+  receivedOn   DateTime      @map("received_on") @db.Date
+  depositedOn  DateTime?     @map("deposited_on") @db.Date
+  settledAt    DateTime?     @map("settled_at") @db.Timestamptz(3)
+  bouncedAt    DateTime?     @map("bounced_at") @db.Timestamptz(3)
+  bounceReason String?       @map("bounce_reason")
+  chequeNumber String?       @map("cheque_number")
+  bank         String?
+  label        String?
+  recordedBy   String        @map("recorded_by") @db.Uuid
+  onBehalfOfId String?       @map("on_behalf_of_id") @db.Uuid
+  version      Int           @default(1)
+  createdAt    DateTime      @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
+
+  case        Case                @relation(fields: [caseId, creditorId], references: [id, creditorId], onDelete: NoAction, onUpdate: NoAction)
+  allocations PaymentAllocation[]
+  receipt     Receipt?
+
+  @@unique([id, caseId], map: "payments_id_case_id_key")
+  @@index([caseId, receivedOn], map: "payments_case")
+  @@map("payments")
+}
+
+/// Append-only: a bounced cheque adds opposite entries (`reversesId`).
+model PaymentAllocation {
+  id          String              @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  caseId      String              @map("case_id") @db.Uuid
+  creditorId  String              @map("creditor_id") @db.Uuid
+  paymentId   String              @map("payment_id") @db.Uuid
+  invoiceId   String?             @map("invoice_id") @db.Uuid
+  component   AllocationComponent
+  amountCents Int                 @map("amount_cents")
+  reversesId  String?             @map("reverses_id") @db.Uuid
+  createdAt   DateTime            @default(dbgenerated("clock_timestamp()")) @map("created_at") @db.Timestamptz(3)
+
+  case    Case         @relation(fields: [caseId, creditorId], references: [id, creditorId], onDelete: NoAction, onUpdate: NoAction)
+  payment Payment      @relation(fields: [paymentId, caseId], references: [id, caseId], onDelete: NoAction, onUpdate: NoAction)
+  invoice CaseInvoice? @relation(fields: [invoiceId, caseId], references: [id, caseId], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([id, paymentId], map: "payment_allocations_id_payment_id_key")
+  @@index([caseId], map: "payment_allocations_case")
+  @@map("payment_allocations")
+}
+
+model Receipt {
+  id         String    @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  caseId     String    @map("case_id") @db.Uuid
+  creditorId String    @map("creditor_id") @db.Uuid
+  paymentId  String    @unique @map("payment_id") @db.Uuid
+  number     String    @unique
+  documentId String?   @map("document_id") @db.Uuid
+  issuedAt   DateTime  @default(dbgenerated("now()")) @map("issued_at") @db.Timestamptz(3)
+
+  case    Case    @relation(fields: [caseId, creditorId], references: [id, creditorId], onDelete: NoAction, onUpdate: NoAction)
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("receipts")
+}
+
+model PaymentPlan {
+  id              String        @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  caseId          String        @map("case_id") @db.Uuid
+  creditorId      String        @map("creditor_id") @db.Uuid
+  totalCents      Int           @map("total_cents")
+  months          Int
+  method          PaymentMethod
+  firstDueOn      DateTime      @map("first_due_on") @db.Date
+  status          PlanStatus
+  thresholdMonths Int           @map("threshold_months")
+  ownedByDirector Boolean       @map("owned_by_director")
+  requestedBy     String        @map("requested_by") @db.Uuid
+  onBehalfOfId    String?       @map("on_behalf_of_id") @db.Uuid
+  acceptedAt      DateTime?     @map("accepted_at") @db.Timestamptz(3)
+  acceptedIp      String?       @map("accepted_ip") @db.Inet
+  documentId      String?       @map("document_id") @db.Uuid
+  documentSha256  String?       @map("document_sha256")
+  version         Int           @default(1)
+  createdAt       DateTime      @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
+
+  case         Case           @relation(fields: [caseId, creditorId], references: [id, creditorId], onDelete: NoAction, onUpdate: NoAction)
+  requester    User           @relation("planRequester", fields: [requestedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  approvals    PlanApproval[]
+  installments Installment[]
+
+  @@unique([id, caseId], map: "payment_plans_id_case_id_key")
+  @@index([status], map: "payment_plans_status")
+  @@map("payment_plans")
+}
+
+model PlanApproval {
+  id           String       @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  caseId       String       @map("case_id") @db.Uuid
+  creditorId   String       @map("creditor_id") @db.Uuid
+  planId       String       @map("plan_id") @db.Uuid
+  step         PlanStep
+  decision     PlanDecision @default(PENDING)
+  decidedBy    String?      @map("decided_by") @db.Uuid
+  reason       String?
+  onBehalfOfId String?      @map("on_behalf_of_id") @db.Uuid
+  decidedAt    DateTime?    @map("decided_at") @db.Timestamptz(3)
+
+  case Case        @relation(fields: [caseId, creditorId], references: [id, creditorId], onDelete: NoAction, onUpdate: NoAction)
+  plan PaymentPlan @relation(fields: [planId, caseId], references: [id, caseId], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([planId, step])
+  @@map("plan_approvals")
+}
+
+model Installment {
+  id          String   @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  caseId      String   @map("case_id") @db.Uuid
+  creditorId  String   @map("creditor_id") @db.Uuid
+  planId      String   @map("plan_id") @db.Uuid
+  number      Int
+  dueOn       DateTime @map("due_on") @db.Date
+  amountCents Int      @map("amount_cents")
+
+  case Case        @relation(fields: [caseId, creditorId], references: [id, creditorId], onDelete: NoAction, onUpdate: NoAction)
+  plan PaymentPlan @relation(fields: [planId, caseId], references: [id, caseId], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([planId, number])
+  @@index([dueOn], map: "installments_due")
+  @@map("installments")
+}
