@@ -16,6 +16,7 @@
     "comparer": "node scripts/comparer-ecran.mjs",
     "e2e": "playwright test",
     "services": "node infra/dev/services.mjs",
+    "deployer": "sudo /opt/legarec/infra/deployer.sh",
     "openapi": "UPDATE_OPENAPI=1 vitest run --project api apps/api/test/openapi.test.ts"
   },
   "devDependencies": {

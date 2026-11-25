@@ -184,6 +184,15 @@ for name in api worker postgres caddy; do loki label/container/values | grep -q 
 absent 'a path in the logs' "$mark" -- docker compose logs --no-color caddy espace paiement api
 ok logs
 
+# The first Director, by the command of docs/deploiement.md: once, and its link is in no log
+docker compose exec -T worker node --env-file=/run/secrets/worker dist/account.js director ci@example.com Ada Essai > /tmp/link
+link="$(grep -oE 'https://espace\.legarec\.fr/[^[:space:]]+' /tmp/link | head -n 1)"
+[ -n "$link" ] || fail 'no link for the first Director'
+if docker compose exec -T worker node --env-file=/run/secrets/worker dist/account.js director ci2@example.com Ada Essai > /tmp/said 2>&1; then fail 'a second Director'; fi
+get --output /dev/null "$link"
+absent 'the link of the Director in the logs' -F "${link##*/}" -- docker compose logs --no-color worker caddy api
+ok 'first Director'
+
 # The worker ends by itself
 docker compose stop worker
 [ "$(docker inspect --format '{{.State.ExitCode}}' "$(docker compose ps --all --quiet worker)")" = 0 ] || fail 'the worker did not end by itself'

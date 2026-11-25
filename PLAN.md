@@ -142,7 +142,8 @@ Les 161 routes simulées se répartissent ainsi :
 | [ ] U | Contentieux, rapports, équipe, tableaux de bord, score de risque | 8 |
 | [ ] V | RGPD : registre, exports, anonymisation, purges | 3 |
 | [ ] W | IA : couche compatible OpenAI, essai mesuré, quatre fonctions | 3 |
-| [ ] X | Exploitation : Dockerfiles, compose, `infra/caddy/Caddyfile`, pgBackRest, Gatus, Loki, `bootstrap.sql` exécuté dans la base de l'application, sonde de santé du worker et délai d'arrêt d'au moins une minute ; bascule finale | — |
+| [x] X1 | Exploitation, première partie : Dockerfiles, compose, `infra/caddy/Caddyfile`, pgBackRest, Gatus, Loki, `bootstrap.sql` exécuté dans la base de l'application, sonde de santé du worker et délai d'arrêt de 90 secondes ; rien n'est déployé (`docs/deploiement.md`) | — |
+| [ ] X | Exploitation, fin : bascule finale, ClamAV et Chromium (après N), n8n, purge à la demande après une restauration, tâches planifiées bloquées après une restauration ; liste complète dans `docs/deploiement.md` | — |
 
 **Bascule** : chaque lot ajoute ses préfixes à une liste `VITE_API` (développement) : MSW laisse passer ces routes vers l'API. La valeur par défaut bascule portail par portail : paiement après O, partenaires après P, espace après U. Chaque lot rejoue les mêmes requêtes contre MSW et contre l'API et valide les deux par le même schéma Zod. En mode mixte, un lien vers un écran non branché peut ne pas trouver le dossier (développement seulement). MSW reste pour les tests de composants.
 
@@ -192,7 +193,7 @@ Les 161 routes simulées se répartissent ainsi :
 | Appels : « Transcription en direct » devient une transcription proposée après l'appel (question 72) | W |
 | Tableau des permissions : « Valider un échéancier, une remise ou un abandon de créance », « Ses dossiers » pour le Directeur (question 86) ; « Validations » : accord du créancier après celui du Responsable | M |
 | Portail paiement : mêmes règles que les deux autres au changement de personne (`key`, autres onglets, déconnexion non reçue) | O |
-| Caddy masque les jetons des liens de réinitialisation et d'invitation dans ses journaux (`docs/api.md`) : à vérifier avant d'activer un journal d'accès | X |
+| Caddy masque les jetons des liens de réinitialisation et d'invitation dans ses journaux (`docs/api.md`) : fait, aucun chemin n'est journalisé, vérifié à chaque changement par GitHub Actions (`infra/ci/smoke.sh`) | X1 |
 | Remplaçant : notifications neutres à envoyer avec celles des dossiers (texte de Mon compte déjà ajusté) | L |
 | Cloche de la barre du haut : notifications encore simulées (`/shell`), page Notifications déjà réelle | L |
 | Tableau de bord : `queryFn` absente de la requête `shell` (erreur dans la console) ; Paramètres : « Annuler » actif pendant l'enregistrement | L, U |
