@@ -166,7 +166,7 @@ services:
     healthcheck:
       <<: *health
       # By the network: while the data folder is being created, the server only hears its local socket.
-      test: [CMD, pg_isready, -q, -h, 127.0.0.1, -U, postgres, -d, legarec]
+      test: [CMD, pg_isready, -q, -h, 127.0.0.1, -U, legarec_app, -d, legarec]
 
   # One run by the timers of infra/systemd: `sauvegarde incr`, `sauvegarde full`.
   sauvegarde: &backup

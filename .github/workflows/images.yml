@@ -59,6 +59,11 @@ jobs:
           sudo chown -R root:root /opt/legarec
           sudo git -C /opt/legarec update-ref refs/remotes/origin/main HEAD
           sudo chmod -R go-w /opt/legarec
+      - name: Room on the disk
+        # Loki writes nothing more when nine tenths of the disk are taken.
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          df --human-readable /
       - name: Deployment
         run: sudo --preserve-env=GITHUB_ACTIONS /opt/legarec/infra/deployer.sh
       - name: Configurations

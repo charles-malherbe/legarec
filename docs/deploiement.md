@@ -43,6 +43,7 @@ Conteneurs permanents : 4,6 Go au plus. Réserver 2,5 Go pour ClamAV et n8n, à 
 - [ ] `id debian` : ni groupe `docker`, ni accès à `/var/lib/docker`. Tant que le développement reste sur ce serveur, ce compte n'en est séparé que par `sudo` : d'où le conseil d'un VPS réservé (voir « Questions »).
 - [ ] Pare-feu : 80/tcp, 443/tcp, 443/udp ouverts ; rien d'autre pour Legarec. Refuser aux réseaux de Docker l'accès aux autres services du serveur.
 - [ ] Dépôt cloné dans `/opt/legarec`, propriété de root, hors de portée de Claude Code : `git clone`, branche `main`. Clé de déploiement GitHub en lecture seule.
+- [ ] Disque rempli à moins de 90 % : au-delà, Loki n'enregistre plus les journaux (alerte « Collecte »).
 - [ ] Horloge synchronisée (double authentification, certificats).
 
 ### DNS (enregistrements A, et AAAA si le serveur a une adresse IPv6)

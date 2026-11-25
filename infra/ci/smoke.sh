@@ -130,12 +130,21 @@ docker compose run --rm sauvegarde full
 docker compose run --rm essai-restauration | tee /tmp/restore
 grep -q 'restore test passed' /tmp/restore || fail 'restore test'
 if grep -q 'monitoring not told' /tmp/restore; then fail 'monitoring not told'; fi
-count=0
-while IFS= read -r -d '' file; do
+# A mark written in a table, then backed up without compression: only the encryption can hide it.
+mark="ZQXM$(openssl rand -hex 16)"
+sql() { docker compose exec -T postgres psql --no-psqlrc --quiet --tuples-only --no-align --set ON_ERROR_STOP=1 --username postgres --dbname legarec --command "$1"; }
+sql "CREATE TABLE ci_mark AS SELECT '$mark-' || n AS mark FROM generate_series(1, 5000) AS n"
+sql CHECKPOINT
+[ "$(sql 'SHOW archive_mode')" = on ] || fail 'the journal is not archived'
+data="$(docker volume inspect --format '{{.Mountpoint}}' legarec-app_postgres-data)"
+grep -rqa "$mark" "$data/base" || fail 'witness: the mark is not in the data folder'
+docker compose run --rm --entrypoint legarec-pgbackrest sauvegarde --type=full --compress-type=none backup
+if grep -rqa "$mark" /var/lib/legarec-ci/depot; then fail 'a backup is not encrypted'; fi
+# The index of the backups too.
+for file in /var/lib/legarec-ci/depot/backup/legarec/backup.info /var/lib/legarec-ci/depot/archive/legarec/archive.info; do
   [ "$(head -c 8 "$file")" = Salted__ ] || fail "not encrypted: $file"
-  count=$((count + 1))
-done < <(find /var/lib/legarec-ci/depot -type f -print0)
-[ "$count" -gt 5 ] || fail 'no backup to look into'
+done
+sql 'DROP TABLE ci_mark'
 heard="$(get https://status.legarec.fr/api/v1/endpoints/statuses)"
 for key in taches_worker sauvegardes_sauvegarde sauvegardes_essai-de-restauration; do
   for _ in $(seq 40); do
