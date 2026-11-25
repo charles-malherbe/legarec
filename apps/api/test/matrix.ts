@@ -96,7 +96,14 @@ const owingCase = async (test: TestApp) => {
   );
   return made;
 };
-const cheque = () => ({ method: 'CHEQUE', amount: 1000, chequeNumber: String(1_000_000 + Math.floor(Math.random() * 8_999_999)), bank: 'Banque', receivedOn: '2026-11-02', depositedOn: null });
+const cheque = () => ({
+  method: 'CHEQUE',
+  amount: 1000,
+  chequeNumber: String(1_000_000 + Math.floor(Math.random() * 8_999_999)),
+  bank: 'Banque',
+  receivedOn: '2026-11-02',
+  depositedOn: null,
+});
 /** A cheque received on a case held by nobody, allocated as an overpayment. */
 const paymentPath = async (test: TestApp) => {
   const { id, creditorId } = await newCase(test);

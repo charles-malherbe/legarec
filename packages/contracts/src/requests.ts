@@ -72,7 +72,11 @@ export const litigationBody = z.object({ ids, reason: line(500) });
 export const assignBody = z.object({ ids, officerId: id });
 export const portalMessageBody = z.object({ text: line(5000) });
 /** `version`: that of the payment shown; changed since, it is refused (409). */
-export const paymentStatusBody = z.object({ status: paymentStatus.extract(['CASHED', 'BOUNCED', 'RECONCILED']), reason, version: z.number().int().min(1).max(1_000_000) });
+export const paymentStatusBody = z.object({
+  status: paymentStatus.extract(['CASHED', 'BOUNCED', 'RECONCILED']),
+  reason,
+  version: z.number().int().min(1).max(1_000_000),
+});
 export const caseReminderBody = z.object({ channel: line(60), template: line(80), recipient: line(300), message: line(10_000) });
 export const gdprRequestBody = z.object({ caseId: id, kind: gdprRequestKind, origin: line(200) });
 export const gdprAnswerBody = z.object({ status: z.enum(['OPEN', 'ANSWERED', 'REFUSED']), reason });

@@ -181,7 +181,8 @@ export class Ledgers {
 
   /** Cashed, reconciled or bounced, from the state and the version the screen showed: PostgreSQL does all of it. */
   async change(caseId: string, paymentId: string, status: 'CASHED' | 'BOUNCED' | 'RECONCILED', reason: string, version: number): Promise<void> {
-    await this.database.tx.$executeRaw`SELECT app.change_payment(${caseId}::uuid, ${paymentId}::uuid, ${status}::payment_status, ${reason}, ${version}::integer)`;
+    await this.database.tx
+      .$executeRaw`SELECT app.change_payment(${caseId}::uuid, ${paymentId}::uuid, ${status}::payment_status, ${reason}, ${version}::integer)`;
   }
 
   /** Nothing left to pay: the case is settled. */
