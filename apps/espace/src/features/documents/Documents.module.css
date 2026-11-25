@@ -1,0 +1,202 @@
+.grid3 {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr) 320px;
+  gap: var(--sp-5);
+  align-items: start;
+}
+.category {
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  min-height: var(--control-sm);
+  padding: var(--sp-1h) var(--sp-3);
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--fs-sm);
+  text-align: left;
+  cursor: pointer;
+  align-items: center;
+}
+.category[aria-pressed='true'] {
+  background: var(--bleu-pale);
+  color: var(--marine-text);
+  font-weight: 600;
+}
+.pick {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2h);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+}
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1h);
+  padding: var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  text-align: left;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.tile[aria-pressed='true'] {
+  outline: 2px solid var(--marine);
+}
+.thumb {
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+}
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin: var(--sp-5);
+  padding: var(--sp-5);
+  min-height: 180px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-size: var(--fs-xs);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.h2 {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.compose {
+  display: grid;
+  grid-template-columns: minmax(320px, 440px) minmax(0, 1fr);
+  gap: var(--sp-6);
+  align-items: start;
+}
+.choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--sp-2);
+}
+.choice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-0h);
+  padding: var(--sp-2h) var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  text-align: left;
+  cursor: pointer;
+}
+.choice:is([aria-checked='true'], [aria-pressed='true']) {
+  border-color: var(--marine);
+  box-shadow: 0 0 0 1px var(--marine);
+  background: var(--bleu-pale);
+}
+.paper {
+  padding: var(--sp-6);
+  background: var(--surface-3);
+}
+.sheet {
+  box-sizing: border-box;
+  max-width: 620px;
+  margin: 0 auto;
+  padding: var(--sp-8);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+  font-size: var(--fs-xs);
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.sheet p {
+  margin: 0;
+}
+.sheet[data-marked] mark {
+  background: var(--or-clair);
+  color: inherit;
+}
+.sheet mark {
+  background: none;
+  color: inherit;
+  font-weight: 600;
+}
+.address {
+  align-self: flex-end;
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+}
+.firm {
+  font-family: var(--font-brand);
+  font-size: var(--fs-lg);
+  color: var(--marine-text);
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.table :is(th, td) {
+  padding: var(--sp-1h);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+.table :is(th, td):last-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.legal {
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--border);
+  color: var(--text-2);
+}
+@media (max-width: 1279px) {
+  .grid3 {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+  .grid3 > :last-child {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 1023px) {
+  .compose,
+  .grid3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 639px) {
+  .paper {
+    padding: var(--sp-2);
+  }
+  .sheet {
+    padding: var(--sp-4);
+  }
+}

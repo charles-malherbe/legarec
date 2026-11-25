@@ -8,6 +8,8 @@ import { BillingPage } from '../features/billing/BillingPage';
 import { NotificationsPage } from '../features/notifications/NotificationsPage';
 import { TeamPage } from '../features/team/TeamPage';
 import { CallsPage } from '../features/calls/CallsPage';
+import { ComposePage } from '../features/documents/ComposePage';
+import { DocumentsPage } from '../features/documents/DocumentsPage';
 import { EmailsPage } from '../features/emails/EmailsPage';
 import { SmsPage } from '../features/sms/SmsPage';
 import { CasePage } from '../features/cases/CasePage';
@@ -80,6 +82,8 @@ export function App() {
                     />
                     <Route path="equipe" element={<TeamPage />} />
                     <Route path="facturation" element={<BillingPage />} />
+                    <Route path="documents" element={<DocumentsPage />} />
+                    <Route path="documents/rediger" element={<ComposePage />} />
                     <Route path="contentieux" element={<LitigationPage />} />
                   </Route>
                 </Route>
