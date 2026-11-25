@@ -92,8 +92,8 @@ describe('addresses of the services', () => {
     expect(() => readConfig(url(value))).toThrow('DATABASE_URL');
   });
 
-  // Defect: `pg` reads `host` and `port` in the query of the URL, and they win over the address that is checked.
-  it.fails.each([
+  // `pg` reads `host` and `port` in the query of the URL, and they win over the address that is checked.
+  it.each([
     'postgresql://app:pw@127.0.0.1:55432/legarec?host=db.exemple.test',
     'postgresql://app:pw@127.0.0.1:55432/legarec?port=5432',
     'postgresql://app:pw@127.0.0.1:55432/legarec?sslmode=disable&host=/var/run/postgresql',
@@ -114,8 +114,8 @@ describe('addresses of the services', () => {
     expect(read).toThrow(`Missing or invalid startup values: ${name}`);
   });
 
-  // Defect: `new URL()` throws an error that carries the whole address, password included, and Node prints it when the API stops.
-  it.fails.each([
+  // The error of `new URL()` carries the whole address, password included, and Node would print it when the API stops.
+  it.each([
     ['DATABASE_URL', 'postgresql://app:zz-secret-zz@127.0.0.1:99999/legarec'],
     ['JOBS_DATABASE_URL', 'postgresql://jobs:zz-secret-zz@127.0.0.1:port/legarec'],
     ['VALKEY_URL', 'redis://:zz-secret-zz@[127.0.0.1]:56379/0'],

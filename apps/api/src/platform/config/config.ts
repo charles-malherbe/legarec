@@ -1,13 +1,17 @@
 import { z } from 'zod';
+import { isOwnService, parseUrl } from './urls';
 
 const key = z.string().refine((value) => Buffer.from(value, 'base64').length === 32, { error: '32 bytes in base64 expected' });
 const origin = z.url().transform((value) => new URL(value).origin);
+/** A malformed address is refused here, without being quoted anywhere. */
+const address = (scheme: RegExp) => z.string().refine((value) => scheme.test(value) && parseUrl(value) !== null, { error: 'address expected' });
 const schema = z.object({
   NODE_ENV: z.enum(['production', 'development', 'test']).default('development'),
   PORT: z.coerce.number().int().min(1).max(65_535).default(3000),
-  DATABASE_URL: z.string().startsWith('postgresql://'),
-  JOBS_DATABASE_URL: z.string().startsWith('postgresql://').optional(),
-  VALKEY_URL: z.string().regex(/^rediss?:\/\//u),
+  DATABASE_URL: address(/^postgresql:\/\//u),
+  JOBS_DATABASE_URL: address(/^postgresql:\/\//u).optional(),
+  MIGRATION_DATABASE_URL: address(/^postgresql:\/\//u).optional(),
+  VALKEY_URL: address(/^rediss?:\/\//u),
   VAULT_MASTER_KEY: key,
   VAULT_MASTER_KEY_PREVIOUS: key.optional(),
   SESSION_SIGNING_KEY: key,
@@ -26,14 +30,6 @@ const schema = z.object({
 export type Config = Readonly<z.infer<typeof schema>>;
 export const CONFIG = Symbol('CONFIG');
 
-const LOOPBACK = ['127.0.0.1', 'localhost', '[::1]'];
-/** Production runs on the development machine too, on the standard ports: they are never used outside of it. */
-const isForeign = (value: string | undefined) => {
-  if (value === undefined) return false;
-  const url = new URL(value);
-  return !LOOPBACK.includes(url.hostname) || ['', '5432', '6379'].includes(url.port);
-};
-
 export class ConfigError extends Error {
   override readonly name = 'ConfigError';
 }
@@ -51,7 +47,11 @@ export function readConfig(env: Record<string, string | undefined>): Config {
     if (plain.length) throw new ConfigError(`https:// expected in production: ${plain.join(', ')}`);
     return Object.freeze(config);
   }
-  const foreign = (['DATABASE_URL', 'JOBS_DATABASE_URL', 'VALKEY_URL'] as const).filter((name) => isForeign(config[name]));
+  // Production runs on the development machine too, on the standard ports: they are never used outside of it.
+  const foreign = (['DATABASE_URL', 'JOBS_DATABASE_URL', 'MIGRATION_DATABASE_URL', 'VALKEY_URL'] as const).filter((name) => {
+    const value = config[name];
+    return value !== undefined && !isOwnService(value);
+  });
   if (foreign.length) throw new ConfigError(`Outside production, only 127.0.0.1 and never port 5432 or 6379: ${foreign.join(', ')}`);
   // No live key and no real bucket outside production, even by mistake.
   const live = Object.keys(env).filter((name) => env[name]?.startsWith('live_'));
