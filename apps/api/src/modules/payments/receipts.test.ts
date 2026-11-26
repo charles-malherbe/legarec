@@ -21,15 +21,14 @@ afterAll(async () => {
 const caseWithTransfer = async () => {
   const [creditor] = await rows<{ id: string }>("INSERT INTO creditors (name) VALUES ('Crédit Horizon') RETURNING id");
   const [debtor] = await rows<{ id: string }>("INSERT INTO debtors (kind, name) VALUES ('INDIVIDUAL', 'Paul Meunier') RETURNING id");
-  const [made] = await rows<{ id: string }>("INSERT INTO cases (reference, creditor_id, debtor_id, officer_id) VALUES ('LGR-2026-90001', $1, $2, $3) RETURNING id", [
-    creditor!.id,
-    debtor!.id,
-    test.s.officerA,
-  ]);
-  await rows("INSERT INTO case_invoices (case_id, creditor_id, number, issued_on, due_on, claimed_cents, principal_cents) VALUES ($1, $2, 'CH-1', '2026-09-01', '2026-10-01', 21500, 21500)", [
-    made!.id,
-    creditor!.id,
-  ]);
+  const [made] = await rows<{ id: string }>(
+    "INSERT INTO cases (reference, creditor_id, debtor_id, officer_id) VALUES ('LGR-2026-90001', $1, $2, $3) RETURNING id",
+    [creditor!.id, debtor!.id, test.s.officerA],
+  );
+  await rows(
+    "INSERT INTO case_invoices (case_id, creditor_id, number, issued_on, due_on, claimed_cents, principal_cents) VALUES ($1, $2, 'CH-1', '2026-09-01', '2026-10-01', 21500, 21500)",
+    [made!.id, creditor!.id],
+  );
   const answer = await test.call('POST', `/staff/cases/${made!.id}/payments`, {
     as: 'officerA',
     body: { method: 'TRANSFER', amount: 21500, receivedOn: today, label: 'VIR MEUNIER', reconciled: true },
@@ -49,7 +48,9 @@ describe('the PDF of a receipt', () => {
       ['firm.cabinet.address', '10 rue de la Paix, 75002 Paris'],
     ])
       await rows('INSERT INTO settings (key, value, updated_by) VALUES ($1, to_jsonb($2::text), $3)', [key, value, test.s.director]);
-    await rows("UPDATE outbox SET failed_at = NULL, failure = NULL, done_at = NULL, published_at = NULL, started_at = NULL, claimed_at = NULL, run_at = NULL WHERE name = 'receipt-pdf'");
+    await rows(
+      "UPDATE outbox SET failed_at = NULL, failure = NULL, done_at = NULL, published_at = NULL, started_at = NULL, claimed_at = NULL, run_at = NULL WHERE name = 'receipt-pdf'",
+    );
     await worker.run();
     const [receipt] = await rows<{ document_id: string | null }>('SELECT document_id FROM receipts WHERE case_id = $1', [id]);
     expect(receipt!.document_id).not.toBeNull();
