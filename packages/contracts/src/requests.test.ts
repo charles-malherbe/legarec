@@ -304,7 +304,6 @@ const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly
         attachments: ['piece-1'],
       },
     ],
-    'POST /portal/messages/:id': [{ text: 'Bonjour, une facture a été réglée.' }],
   },
   debtor: {
     'POST /debtor/access': [

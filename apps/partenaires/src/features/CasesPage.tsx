@@ -114,7 +114,11 @@ export function CasesPage() {
                     </li>
                   ))}
                 </ol>
-                <Bouton variant="secondary" label="Écrire au gestionnaire à propos de ce dossier" href="/messages" />
+                <Bouton
+                  variant="secondary"
+                  label="Nous écrire à propos de ce dossier"
+                  href={`mailto:recouvrement@legarec.fr?subject=${encodeURIComponent(`Dossier ${current.reference}`)}`}
+                />
               </aside>
             </div>
           )}

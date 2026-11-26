@@ -20,7 +20,6 @@ import { DashboardPage } from '../features/DashboardPage';
 import { DepositPage } from '../features/DepositPage';
 import { DocumentsPage } from '../features/DocumentsPage';
 import { HelpPage } from '../features/HelpPage';
-import { MessagesPage } from '../features/MessagesPage';
 import { PayoutsPage } from '../features/PayoutsPage';
 import { CurrentPartner, SESSION_KEY, useSession, useSessionEnd } from './data';
 import { Shell } from './Shell';
@@ -78,7 +77,6 @@ export function App() {
                 <Route path="dossiers" element={<CasesPage />} />
                 <Route path="depot" element={<DepositPage />} />
                 <Route path="reversements" element={<PayoutsPage />} />
-                <Route path="messages" element={<MessagesPage />} />
                 <Route path="releves" element={<DocumentsPage />} />
                 <Route path="*" element={<EtatListe kind="empty" title="Page introuvable" text="Cette page n’existe pas ou a été déplacée." />} />
               </Route>

@@ -1044,11 +1044,6 @@
                     },
                     "officer": {
                       "type": "string"
-                    },
-                    "unread": {
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
                     }
                   },
                   "required": [
@@ -1057,8 +1052,7 @@
                     "lastName",
                     "email",
                     "creditor",
-                    "officer",
-                    "unread"
+                    "officer"
                   ],
                   "additionalProperties": false
                 }

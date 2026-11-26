@@ -26,7 +26,7 @@ const call = (account: string, path: string, body?: unknown) => {
 const inDialog = async () => within(await screen.findByRole('alertdialog'));
 
 it('isolates each creditor in the API', async () => {
-  for (const path of ['/portal/dashboard', '/portal/cases', '/portal/messages', '/portal/payouts', '/portal/documents']) {
+  for (const path of ['/portal/dashboard', '/portal/cases', '/portal/payouts', '/portal/documents']) {
     const other = await (await call('pr', path)).text();
     expect(other).not.toMatch(/Bâtiplus|Charpentes|Matériaux Delta|38 420/);
     expect(await (await call('cb', path)).text()).not.toMatch(/Fromagerie Durand|Énergies Rhône/);
@@ -34,7 +34,6 @@ it('isolates each creditor in the API', async () => {
   }
   expect((await call('pr', '/portal/cases/f1')).status).toBe(404);
   expect((await call('pr', '/portal/plans/p1/decision', { accepted: true, reason: '' })).status).toBe(404);
-  expect((await call('pr', '/portal/messages/c1', { text: 'x' })).status).toBe(404);
   await call('cb', '/portal/imports', {});
   expect((await call('pr', '/portal/imports/i1/confirm', {})).status).toBe(404);
 });

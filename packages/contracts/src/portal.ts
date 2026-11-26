@@ -11,7 +11,6 @@ export const partnerSession = z.object({
   email: z.email(),
   creditor: z.object({ id: z.string(), name: z.string(), initials: z.string(), siren: z.string() }),
   officer: z.string(),
-  unread: z.number().int(),
 });
 export type PartnerSession = z.infer<typeof partnerSession>;
 
@@ -103,12 +102,6 @@ export const portalPayouts = z.object({
   next: z.object({ date: z.string(), net: cents, collected: cents, fee: cents }),
   year: z.object({ paid: cents, recovered: cents, fees: cents }),
   items: z.array(z.object({ id: z.string(), date: z.string(), count: z.number().int(), collected: cents, fee: cents, net: cents })),
-});
-export const portalMessage = z.object({ id: z.string(), mine: z.boolean(), who: z.string(), when: z.string(), text: z.string() });
-export const portalThreads = z.object({
-  items: z.array(
-    z.object({ id: z.string(), subject: z.string(), reference: z.string(), time: z.string(), unread: z.boolean(), messages: z.array(portalMessage) }),
-  ),
 });
 export const portalDocuments = z.object({
   items: z.array(z.object({ id: z.string(), name: z.string(), meta: z.string(), extension: z.string(), available: z.boolean() })),

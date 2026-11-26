@@ -44,10 +44,6 @@
     "app": "partenaires",
     "route": "/reversements"
   },
-  "PartnerMessages": {
-    "app": "partenaires",
-    "route": "/messages"
-  },
   "PartnerDocuments": {
     "app": "partenaires",
     "route": "/releves"
