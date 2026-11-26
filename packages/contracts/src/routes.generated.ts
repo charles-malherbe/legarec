@@ -1216,6 +1216,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/staff/billing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BillingController_read"];
+        put?: never;
+        post: operations["BillingController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/staff/gdpr/requests": {
         parameters: {
             query?: never;
@@ -4640,6 +4656,86 @@ export interface operations {
         requestBody?: never;
         responses: {
             204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    BillingController_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        firm: {
+                            name: string;
+                            address: string;
+                            phone: string;
+                            siren: string;
+                            vat: string;
+                            signer: string;
+                        };
+                        clients: {
+                            id: string;
+                            name: string;
+                            legal: string;
+                            siren: string;
+                            address: string;
+                            signer: string;
+                        }[];
+                        documents: {
+                            id: string;
+                            /** @enum {string} */
+                            type: "INVOICE" | "QUOTE" | "CONTRACT";
+                            number: string;
+                            client: string;
+                            idLine: string;
+                            subject: string;
+                            /** Format: date */
+                            date: string;
+                            amount: number | null;
+                            duration: string | null;
+                            status: string;
+                            /** @enum {string} */
+                            tone: "success" | "marine" | "warning" | "danger" | "neutral";
+                        }[];
+                        nextNumbers: {
+                            [key: string]: string;
+                        };
+                        stats: {
+                            label: string;
+                            value: string;
+                            sub: string;
+                            /** @enum {string} */
+                            tone?: "default" | "danger" | "warning";
+                        }[];
+                    };
+                };
+            };
+        };
+    };
+    BillingController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description NOT_AVAILABLE */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

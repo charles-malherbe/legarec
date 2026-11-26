@@ -5109,6 +5109,244 @@
         }
       }
     },
+    "/staff/billing": {
+      "get": {
+        "operationId": "BillingController_read",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "firm": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "address": {
+                          "type": "string"
+                        },
+                        "phone": {
+                          "type": "string"
+                        },
+                        "siren": {
+                          "type": "string"
+                        },
+                        "vat": {
+                          "type": "string"
+                        },
+                        "signer": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "address",
+                        "phone",
+                        "siren",
+                        "vat",
+                        "signer"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "clients": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "legal": {
+                            "type": "string"
+                          },
+                          "siren": {
+                            "type": "string"
+                          },
+                          "address": {
+                            "type": "string"
+                          },
+                          "signer": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "legal",
+                          "siren",
+                          "address",
+                          "signer"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "documents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "INVOICE",
+                              "QUOTE",
+                              "CONTRACT"
+                            ]
+                          },
+                          "number": {
+                            "type": "string"
+                          },
+                          "client": {
+                            "type": "string"
+                          },
+                          "idLine": {
+                            "type": "string"
+                          },
+                          "subject": {
+                            "type": "string"
+                          },
+                          "date": {
+                            "type": "string",
+                            "format": "date",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                          },
+                          "amount": {
+                            "nullable": true,
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "duration": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "tone": {
+                            "type": "string",
+                            "enum": [
+                              "success",
+                              "marine",
+                              "warning",
+                              "danger",
+                              "neutral"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type",
+                          "number",
+                          "client",
+                          "idLine",
+                          "subject",
+                          "date",
+                          "amount",
+                          "duration",
+                          "status",
+                          "tone"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "nextNumbers": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "stats": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          },
+                          "sub": {
+                            "type": "string"
+                          },
+                          "tone": {
+                            "type": "string",
+                            "enum": [
+                              "default",
+                              "danger",
+                              "warning"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "label",
+                          "value",
+                          "sub"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "firm",
+                    "clients",
+                    "documents",
+                    "nextNumbers",
+                    "stats"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "remittances"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      },
+      "post": {
+        "operationId": "BillingController_create",
+        "parameters": [],
+        "responses": {
+          "409": {
+            "description": "NOT_AVAILABLE"
+          }
+        },
+        "tags": [
+          "remittances"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      }
+    },
     "/staff/gdpr/requests": {
       "post": {
         "operationId": "GdprController_add",

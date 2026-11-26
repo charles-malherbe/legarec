@@ -23,6 +23,7 @@ import {
   agenda,
   reminderTargets,
   gdprRegistry,
+  billingData,
   creditNotesData,
   partnerSession,
   proofNeeded,
@@ -302,6 +303,15 @@ export const ACCOUNT_PARITY: Parity[] = [
   ...each(['officer'], () => ({
     request: 'POST /credit-notes/drafts',
     body: { invoiceId: UNKNOWN, scope: 'PARTIAL', lines: [], reason: '', followUp: null },
+    status: 403,
+    answer: code('FORBIDDEN'),
+  })),
+  // The Facturation screen: same rights as the credit notes, on both sides.
+  ...each(['director', 'manager'], () => ({ request: 'GET /billing', status: 200, answer: billingData })),
+  ...each(['developer', 'officer'], () => ({ request: 'GET /billing', status: 403, answer: code('FORBIDDEN') })),
+  ...each(['developer', 'officer'], () => ({
+    request: 'POST /billing',
+    body: { type: 'INVOICE', templateId: 'forfait', clientId: UNKNOWN, lines: [], terms: [], draft: true },
     status: 403,
     answer: code('FORBIDDEN'),
   })),
