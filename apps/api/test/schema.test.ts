@@ -482,6 +482,14 @@ describe('rights of the roles inside', () => {
       'remittances INSERT (*)',
       'remittances SELECT (*)',
       'remittances UPDATE (state)',
+      // Credit notes: their drafts and what the next remittance gives back, by their functions.
+      'credit_note_drafts DELETE (*)',
+      'credit_note_drafts INSERT (*)',
+      'credit_note_drafts SELECT (*)',
+      'credit_note_drafts UPDATE (follow_up, lines, reason, scope, updated_at)',
+      'credit_note_refunds INSERT (*)',
+      'credit_note_refunds SELECT (*)',
+      'credit_note_refunds UPDATE (remittance_id)',
       // The registry of the RGPD: its functions only.
       'gdpr_requests INSERT (*)',
       'gdpr_requests SELECT (*)',
@@ -670,6 +678,8 @@ describe('rights on the functions', () => {
       (name) => [name, ['staff']] as [string, string[]],
     ),
     ['creditor_payouts', ['partner']],
+    ...['credit_notes', 'save_credit_note_draft', 'delete_credit_note_draft', 'issue_credit_note'].map((name) => [name, ['staff']] as [string, string[]]),
+    ...['invoice_lines_left', 'invoice_left', 'invoice_settled_on', 'check_credit_lines'].map((name) => [name, []] as [string, string[]]),
     ['planned_contacts', ['staff']],
     ['note_ai_decision', []],
     ...['ai_key', 'ai_spent', 'ai_budget_alert'].map((name) => [name, ['worker']] as [string, string[]]),
@@ -708,6 +718,7 @@ describe('rights on the functions', () => {
       'gdpr_request gdpr_keeper gdpr_registry gdpr_answer gdpr_export gdpr_erasure gdpr_erase',
       'anonymize_case forget_case forget_debtor erasure_blockers erasure_digest case_writable',
       'note_ai_decision ai_key ai_spent ai_budget_alert planned_contacts keep_done_reminder remittance_core creditor_payouts remittance_sources remittance_summary note_settlement remittance_draft validate_remittances mark_remittances_paid remittance_batches remittance_batch',
+      'credit_notes save_credit_note_draft delete_credit_note_draft issue_credit_note invoice_lines_left invoice_left invoice_settled_on check_credit_lines',
     ].flatMap((names) => names.split(' '));
     const found = await rows<{ proname: string }>(
       "SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'app' ORDER BY 1",

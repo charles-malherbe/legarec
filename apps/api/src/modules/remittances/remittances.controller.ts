@@ -23,6 +23,7 @@ interface Row {
   account: string | null;
   invoice?: string | null;
   reason?: string | null;
+  credit_cents: bigint;
 }
 const rowOf = (row: Row): RemittanceRow => ({
   creditorId: row.creditor_id,
@@ -33,6 +34,7 @@ const rowOf = (row: Row): RemittanceRow => ({
   feesNet: Number(row.fee_net_cents),
   feesVat: Number(row.fee_vat_cents),
   feesGross: Number(row.fee_net_cents + row.fee_vat_cents),
+  credits: Number(row.credit_cents),
   toPay: Number(row.to_pay_cents),
   accountId: row.bank_account_id,
   account: row.account,

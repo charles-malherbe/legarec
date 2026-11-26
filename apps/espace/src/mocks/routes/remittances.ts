@@ -24,6 +24,7 @@ const row = (
     feesNet,
     feesVat,
     feesGross: feesNet + feesVat,
+    credits: 0,
     toPay: Math.max(collected - feesNet - feesVat, 0),
     accountId: account ? `compte-${creditorId}` : null,
     account,

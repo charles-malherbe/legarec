@@ -33,6 +33,21 @@ enum BillingKind {
   @@map("billing_kind")
 }
 
+enum CreditNoteScope {
+  PARTIAL
+  TOTAL
+
+  @@map("credit_note_scope")
+}
+
+enum CreditNoteFollowUp {
+  NEXT_REMITTANCE
+  TRANSFER
+  DEDUCTED
+
+  @@map("credit_note_follow_up")
+}
+
 model RemittanceBatch {
   id           String                @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
   coversUntil  DateTime              @map("covers_until") @db.Date
@@ -92,6 +107,8 @@ model BillingDocument {
   grossCents   BigInt      @map("gross_cents")
   correctedId  String?     @map("corrected_id") @db.Uuid
   reason       String?
+  scope        CreditNoteScope?
+  followUp     CreditNoteFollowUp? @map("follow_up")
   createdBy    String      @map("created_by") @db.Uuid
   onBehalfOfId String?     @map("on_behalf_of_id") @db.Uuid
   createdAt    DateTime    @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
@@ -106,7 +123,34 @@ model BillingLine {
   netCents   BigInt @map("net_cents")
   vatCents   BigInt @map("vat_cents")
   grossCents BigInt @map("gross_cents")
+  correctedLineId String? @map("corrected_line_id") @db.Uuid
 
   @@index([documentId], map: "billing_lines_document")
   @@map("billing_lines")
+}
+
+// Credit notes given back with the next remittance (migration 20261126190000_credit_notes).
+model CreditNoteRefund {
+  creditNoteId String   @id @map("credit_note_id") @db.Uuid
+  creditorId   String   @map("creditor_id") @db.Uuid
+  amountCents  BigInt   @map("amount_cents")
+  remittanceId String?  @map("remittance_id") @db.Uuid
+  createdAt    DateTime @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
+
+  @@map("credit_note_refunds")
+}
+
+// Drafts of credit notes, without a number: written by the `app.*credit_note*` functions only.
+model CreditNoteDraft {
+  id           String              @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  invoiceId    String              @map("invoice_id") @db.Uuid
+  scope        CreditNoteScope
+  lines        Json
+  reason       String
+  followUp     CreditNoteFollowUp? @map("follow_up")
+  createdBy    String              @map("created_by") @db.Uuid
+  onBehalfOfId String?             @map("on_behalf_of_id") @db.Uuid
+  updatedAt    DateTime            @default(dbgenerated("now()")) @map("updated_at") @db.Timestamptz(3)
+
+  @@map("credit_note_drafts")
 }

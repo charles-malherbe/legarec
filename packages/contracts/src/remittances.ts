@@ -28,6 +28,8 @@ export const remittanceRow = z.object({
   feesNet: cents,
   feesVat: cents,
   feesGross: cents,
+  /** Credit notes given back with this remittance (question 69, V2), included in `toPay`. */
+  credits: cents,
   toPay: cents,
   /** The confirmed account the transfer goes to, sent back at the validation; masked, the whole IBAN shown on request (C3). */
   accountId: z.string().nullable(),
