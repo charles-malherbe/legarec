@@ -72,6 +72,8 @@ export const AUDIT_ACTIONS = {
   PAYMENT_BOUNCED: 'Chèque impayé enregistré',
   PLAN_ASKED: 'Échéancier demandé : {count} mensualités',
   PLAN_REFUSED: 'Échéancier de {months} mois refusé',
+  PLAN_CREDITOR_APPROVED: 'Échéancier de {months} mois accepté par le créancier',
+  PLAN_CREDITOR_REFUSED: 'Échéancier de {months} mois refusé par le créancier',
   ECB_RATE_SAVED: 'Taux de la BCE saisi pour le semestre du {day}',
   LEGAL_RATE_SAVED: 'Taux légal des particuliers saisi pour le semestre du {day}',
   CONTACT_ADDED: 'Coordonnée d’un débiteur ajoutée',

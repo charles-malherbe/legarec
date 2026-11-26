@@ -178,7 +178,9 @@ describe('rights of the roles that face the outside', () => {
       'users SELECT (creditor_id, email, first_name, id, last_name, role, status)',
       'case_invoices SELECT (case_id, claimed_cents, creditor_id, due_on, external_ref, id, issued_on, number, principal_cents, principal_paid_cents, state)',
       // The creditor step of a plan, and the payments of its cases: date, amount, means.
-      ...MONEY_OUTSIDE,
+      ...MONEY_OUTSIDE.filter((entry) => !entry.startsWith('payment_plans')),
+      // When a plan was asked, and beyond which length it needs the creditor.
+      'payment_plans SELECT (accepted_at, case_id, created_at, creditor_id, first_due_on, id, method, months, status, threshold_months, total_cents)',
       'plan_approvals SELECT (case_id, creditor_id, decided_at, decision, id, plan_id, step)',
     ],
     legarec_debtor: [
@@ -542,6 +544,7 @@ describe('rights on the functions', () => {
     ...['own_access_code', 'debtor_upload', 'debtor_message'].map((name) => [name, ['debtor']] as [string, string[]]),
     ['read_portal_messages', ['debtor', 'staff']],
     ['staff_message', ['staff']],
+    ['creditor_decide_plan', ['partner']],
     ...['money_case', 'issue_receipt', 'follow_allocation', 'check_allocations', 'keep_receipt'].map((name) => [name, []] as [string, string[]]),
     // Tools of the migrations.
     ['secure', []],
@@ -569,7 +572,7 @@ describe('rights on the functions', () => {
       'save_interest_rate decide_plan follow_allocation check_allocations record_payment change_payment ask_plan money_case issue_receipt keep_receipt share_document',
       'import_template cancel_template submit_template review_template template_editor',
       'debtor_sign_in resume_debtor_session close_debtor_session forget_debtor_access set_code_hmac',
-      'own_access_code debtor_upload debtor_message read_portal_messages staff_message',
+      'own_access_code debtor_upload debtor_message read_portal_messages staff_message creditor_decide_plan',
     ].flatMap((names) => names.split(' '));
     const found = await rows<{ proname: string }>(
       "SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'app' ORDER BY 1",

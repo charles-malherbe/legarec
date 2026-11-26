@@ -7974,6 +7974,444 @@
         }
       }
     },
+    "/partner/portal/dashboard": {
+      "get": {
+        "operationId": "PortalController_dashboard",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "kpis": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          },
+                          "hint": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "label",
+                          "value",
+                          "hint"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "statuses": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "NEW",
+                              "REMINDING",
+                              "PLAN",
+                              "LITIGATION",
+                              "SETTLED",
+                              "LOST"
+                            ]
+                          },
+                          "count": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "status",
+                          "count"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "months": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "amount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "label",
+                          "amount"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "activity": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "who": {
+                            "type": "string"
+                          },
+                          "what": {
+                            "type": "string"
+                          },
+                          "when": {
+                            "type": "string"
+                          },
+                          "tone": {
+                            "type": "string",
+                            "enum": [
+                              "success",
+                              "warning",
+                              "danger",
+                              "info"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "who",
+                          "what",
+                          "when",
+                          "tone"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "approvals": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "caseId": {
+                            "type": "string"
+                          },
+                          "debtor": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": "string"
+                          },
+                          "months": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "installment": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "total": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "firstOn": {
+                            "type": "string"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "ACCEPTED",
+                              "REFUSED"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "caseId",
+                          "debtor",
+                          "reference",
+                          "months",
+                          "installment",
+                          "total",
+                          "firstOn",
+                          "reason",
+                          "status"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "kpis",
+                    "statuses",
+                    "months",
+                    "activity",
+                    "approvals"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "partner"
+        ],
+        "x-access": {
+          "portal": "partner"
+        }
+      }
+    },
+    "/partner/portal/cases": {
+      "get": {
+        "operationId": "PortalController_cases",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "NEW",
+                              "REMINDING",
+                              "PLAN",
+                              "LITIGATION",
+                              "SETTLED",
+                              "LOST"
+                            ]
+                          },
+                          "debtor": {
+                            "type": "string"
+                          },
+                          "externalReference": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": "string"
+                          },
+                          "invoices": {
+                            "type": "string"
+                          },
+                          "entrusted": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "recovered": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "last": {
+                            "type": "string"
+                          },
+                          "steps": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "title": {
+                                  "type": "string"
+                                },
+                                "date": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "title",
+                                "date"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "status",
+                          "debtor",
+                          "externalReference",
+                          "reference",
+                          "invoices",
+                          "entrusted",
+                          "recovered",
+                          "last",
+                          "steps"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "counts": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "counts"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "partner"
+        ],
+        "x-access": {
+          "portal": "partner"
+        }
+      }
+    },
+    "/partner/portal/cases/{id}": {
+      "get": {
+        "operationId": "PortalController_detail",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "NEW",
+                        "REMINDING",
+                        "PLAN",
+                        "LITIGATION",
+                        "SETTLED",
+                        "LOST"
+                      ]
+                    },
+                    "debtor": {
+                      "type": "string"
+                    },
+                    "externalReference": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "invoices": {
+                      "type": "string"
+                    },
+                    "entrusted": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "recovered": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "last": {
+                      "type": "string"
+                    },
+                    "steps": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "title": {
+                            "type": "string"
+                          },
+                          "date": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "title",
+                          "date"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status",
+                    "debtor",
+                    "externalReference",
+                    "reference",
+                    "invoices",
+                    "entrusted",
+                    "recovered",
+                    "last",
+                    "steps"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "partner"
+        ],
+        "x-access": {
+          "portal": "partner"
+        }
+      }
+    },
+    "/partner/portal/plans/{id}/decision": {
+      "post": {
+        "operationId": "PortalController_decide",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "partner"
+        ],
+        "x-access": {
+          "portal": "partner"
+        }
+      }
+    },
     "/staff/shell": {
       "get": {
         "operationId": "ShellController_shell",

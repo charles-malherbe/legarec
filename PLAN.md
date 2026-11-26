@@ -199,6 +199,10 @@ Les 161 routes simulées se répartissent ainsi :
 - Reportés (relecture) : compteur aussi par débiteur pour un particulier aux nombreux dossiers, fenêtre glissante de la limite par réseau, alerte au-delà de 200 échecs par heure
 - [ ] Accès limité, liens des courriers, code par SMS (R), acceptation de l'échéancier (écran hors maquette à montrer), bascule du portail paiement
 
+## Lot P — Portail des créanciers (état au 26/11/2026)
+- [x] Tableau de bord, dossiers, accord sur un échéancier long (4 routes)
+- [ ] Dépôt de créances, imports, pièces, messages ; relevés (avec S)
+
 ## Points à reprendre du front
 
 | Point | Lot |

@@ -169,6 +169,18 @@ const unknownSiren = (): string => {
     if (sum % 10 === 0) return digits;
   }
 };
+
+/** A long plan of a case of creditor A, approved by the manager, waiting for the creditor. */
+const creditorPlan = async (test: TestApp) => {
+  const { id, creditorId } = await owingCase(test);
+  const { rows } = await test.database.admin.query<{ id: string }>(
+    `WITH p AS (INSERT INTO payment_plans (case_id, creditor_id, total_cents, months, method, first_due_on, status, threshold_months, owned_by_director, requested_by)
+       VALUES ($1, $2, 10000, 8, 'TRANSFER', '2026-12-15', 'WAITING_CREDITOR', 6, false, $3) RETURNING id)
+     INSERT INTO plan_approvals (case_id, creditor_id, plan_id, step) SELECT $1, $2, p.id, 'CREDITOR' FROM p RETURNING plan_id AS id`,
+    [id, creditorId, test.s.officerA],
+  );
+  return `/partner/portal/plans/${rows[0]!.id}/decision`;
+};
 let assigned: unknown;
 let planned: unknown;
 let rateTurn = 0;
@@ -560,4 +572,9 @@ export const MATRIX: Record<string, MatrixEntry> = {
     body: () => ({ text: 'Bonjour' }),
     expect: only({ director: 403, manager: 204, managerAlone: 204, officerA: 404, officerB: 404, liar: 404 }),
   },
+  // Creditors: their own cases only; the cases of A are not those of B.
+  'GET /partner/portal/dashboard': { expect: only({ partnerA: 200, partnerB: 200 }) },
+  'GET /partner/portal/cases': { expect: only({ partnerA: 200, partnerB: 200 }) },
+  'GET /partner/portal/cases/:id': { path: (test) => `/partner/portal/cases/${test.s.cases.ofA}`, expect: only({ partnerA: 200, partnerB: 404 }) },
+  'POST /partner/portal/plans/:id/decision': { path: creditorPlan, body: () => ({ accepted: true }), expect: only({ partnerA: 204, partnerB: 404 }) },
 };
