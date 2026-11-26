@@ -83,7 +83,7 @@ export function DepositsTab({
     confirm({
       tone: 'danger',
       title: 'Refuser cette créance ?',
-      body: 'Aucun dossier n’est ouvert. Le motif est gardé 30 jours avec le dépôt ; le créancier n’en est pas encore informé par e-mail (question 190).',
+      body: 'Aucun dossier n’est ouvert. Le motif est gardé 30 jours avec le dépôt. Le créancier n’en est pas informé automatiquement : prévenez-le vous-même.',
       details: details(row),
       reasonLabel: 'Motif du refus',
       reasonHelp: 'Obligatoire, 5 caractères au moins · gardé 30 jours avec le dépôt, jamais dans le journal d’audit',
