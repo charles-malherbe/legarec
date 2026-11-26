@@ -86,7 +86,49 @@ const newCase = async (test: TestApp) => {
   ]);
   return { id: rows[0]!.id, creditorId: test.s.creditorA };
 };
+
+/** Held by nobody, with one invoice of 100 € left to pay: an individual, so no interest nor indemnity. */
+const owingCase = async (test: TestApp) => {
+  const made = await newCase(test);
+  await test.database.admin.query(
+    "INSERT INTO case_invoices (case_id, creditor_id, number, issued_on, due_on, claimed_cents, principal_cents) VALUES ($1, $2, 'F-1', '2026-01-01', '2026-02-01', 10000, 10000)",
+    [made.id, made.creditorId],
+  );
+  return made;
+};
+const cheque = () => ({
+  method: 'CHEQUE',
+  amount: 1000,
+  chequeNumber: String(1_000_000 + Math.floor(Math.random() * 8_999_999)),
+  bank: 'Banque',
+  receivedOn: '2026-11-02',
+  depositedOn: null,
+});
+/** A cheque received on a case held by nobody, allocated as an overpayment. */
+const paymentPath = async (test: TestApp) => {
+  const { id, creditorId } = await newCase(test);
+  const { rows } = await test.database.admin.query<{ id: string }>(
+    `WITH p AS (INSERT INTO payments (case_id, creditor_id, method, amount_cents, status, received_on, cheque_number, bank, recorded_by)
+       VALUES ($1, $2, 'CHEQUE', 1000, 'RECEIVED', '2026-11-02', '1234567', 'Banque', $3) RETURNING id)
+     INSERT INTO payment_allocations (case_id, creditor_id, payment_id, component, amount_cents) SELECT $1, $2, p.id, 'OVERPAYMENT', 1000 FROM p RETURNING payment_id AS id`,
+    [id, creditorId, test.s.manager],
+  );
+  return `/staff/cases/${id}/payments/${rows[0]!.id}`;
+};
+/** A long plan asked on a case held by nobody, waiting for the manager. */
+const pendingPlan = async (test: TestApp) => {
+  const { id, creditorId } = await owingCase(test);
+  const { rows } = await test.database.admin.query<{ id: string }>(
+    `WITH p AS (INSERT INTO payment_plans (case_id, creditor_id, total_cents, months, method, first_due_on, status, threshold_months, owned_by_director, requested_by)
+       VALUES ($1, $2, 10000, 8, 'TRANSFER', '2026-12-15', 'PENDING_MANAGER', 6, false, $3) RETURNING id)
+     INSERT INTO plan_approvals (case_id, creditor_id, plan_id, step) SELECT $1, $2, p.id, 'COLLECTION_MANAGER' FROM p RETURNING plan_id AS id`,
+    [id, creditorId, test.s.officerA],
+  );
+  return `/staff/payment-plans/requests/${rows[0]!.id}`;
+};
 let assigned: unknown;
+let planned: unknown;
+let rateTurn = 0;
 const INVOICE = { number: 'F-1', externalRef: '', issuedOn: '2026-01-01', dueOn: '2026-02-01', amount: 100, left: 100 };
 const CASE = {
   mandateId: 'x',
@@ -367,4 +409,40 @@ export const MATRIX: Record<string, MatrixEntry> = {
   'GET /staff/notifications': { expect: staffOf(200) },
   'PUT /staff/notifications': { body: () => ({ ids: [randomUUID()], unread: false }), expect: staffOf(204) },
   'POST /staff/notifications/read': { body: () => ({ ids: [] }), expect: staffOf(204) },
+  // Money: whoever acts on the case; the Director reads it without acting.
+  'POST /staff/cases/:id/payments': {
+    path: async (test) => `/staff/cases/${(await newCase(test)).id}/payments`,
+    body: cheque,
+    expect: only({ director: 403, manager: 204, managerAlone: 204, officerA: 404, officerB: 404, liar: 404 }),
+  },
+  'PUT /staff/cases/:id/payments/:paymentId': {
+    path: paymentPath,
+    body: () => ({ status: 'CASHED', version: 1 }),
+    expect: only({ director: 403, manager: 204, managerAlone: 204, officerA: 404, officerB: 404, liar: 404 }),
+  },
+  'GET /staff/payment-plans': { expect: withCases(200) },
+  'GET /staff/payment-plans/simulation/:id': {
+    path: async (test) => `/staff/payment-plans/simulation/${(await owingCase(test)).id}`,
+    expect: only({ director: 403, manager: 200, managerAlone: 200, officerA: 404, officerB: 404, liar: 404 }),
+  },
+  'POST /staff/payment-plans': {
+    path: async (test) => {
+      planned = { caseId: (await owingCase(test)).id, months: 3, method: 'TRANSFER', expected: 10000 };
+      return '/staff/payment-plans';
+    },
+    body: () => planned,
+    expect: only({ director: 403, manager: 204, managerAlone: 204, officerA: 404, officerB: 404, liar: 404 }),
+  },
+  // The manager only: the liar is let in by the guard, then refused by PostgreSQL.
+  'PUT /staff/payment-plans/requests/:id': {
+    path: pendingPlan,
+    body: () => ({ decision: 'APPROVED', version: 1 }),
+    expect: only({ manager: 204, managerAlone: 204 }),
+  },
+  'GET /staff/interest-rates': { expect: staffOf(200) },
+  'PUT /staff/interest-rates': {
+    // Each caller writes a semester of its own: the value shown is that of nobody.
+    body: () => ({ kind: 'ECB', validFrom: `${2030 + (rateTurn++ % 40)}-01-01`, rateBp: 215, expected: null }),
+    expect: only({ director: 204, manager: 204, liar: 403 }),
+  },
 };

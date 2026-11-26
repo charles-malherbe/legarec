@@ -37,8 +37,8 @@ describe('payment plans', () => {
     expect((await inDialog()).getByText(/Responsable du recouvrement, puis/)).toBeVisible();
   });
   it('reserves validation to the Collection manager', async () => {
-    expect((await call('ad', '/payment-plans/requests/q1', { decision: 'APPROVED' }, 'PUT')).status).toBe(403);
-    expect((await call('hb', '/payment-plans/requests/q1', { decision: 'APPROVED' }, 'PUT')).status).toBe(403);
+    expect((await call('ad', '/payment-plans/requests/q1', { decision: 'APPROVED', version: 1 }, 'PUT')).status).toBe(403);
+    expect((await call('hb', '/payment-plans/requests/q1', { decision: 'APPROVED', version: 1 }, 'PUT')).status).toBe(403);
     openAs('ad', '/echeanciers');
     expect(await screen.findAllByText('En attente du Responsable')).toHaveLength(3);
     expect(screen.queryByRole('button', { name: /^Valider/ })).toBeNull();

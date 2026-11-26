@@ -5688,6 +5688,11 @@
                               "fees"
                             ],
                             "additionalProperties": false
+                          },
+                          "version": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
                           }
                         },
                         "required": [
@@ -5701,7 +5706,8 @@
                           "bank",
                           "label",
                           "receiptId",
-                          "allocation"
+                          "allocation",
+                          "version"
                         ],
                         "additionalProperties": false
                       }
@@ -6034,6 +6040,529 @@
             "DIRECTOR",
             "COLLECTION_MANAGER",
             "CLAIMS_OFFICER"
+          ]
+        }
+      }
+    },
+    "/staff/cases/{id}/payments": {
+      "post": {
+        "operationId": "PaymentsController_record",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "payments"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      }
+    },
+    "/staff/cases/{id}/payments/{paymentId}": {
+      "put": {
+        "operationId": "PaymentsController_change",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "payments"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      }
+    },
+    "/staff/payment-plans": {
+      "get": {
+        "operationId": "PlansController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "plans": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "caseId": {
+                            "type": "string"
+                          },
+                          "debtor": {
+                            "type": "string"
+                          },
+                          "identifier": {
+                            "type": "string"
+                          },
+                          "creditorId": {
+                            "type": "string"
+                          },
+                          "creditor": {
+                            "type": "string"
+                          },
+                          "total": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "ON_TRACK",
+                              "LATE",
+                              "DEFAULT",
+                              "WAITING_CREDITOR",
+                              "WAITING_DEBTOR"
+                            ]
+                          },
+                          "method": {
+                            "type": "string",
+                            "enum": [
+                              "CHEQUE",
+                              "TRANSFER"
+                            ]
+                          },
+                          "installments": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "number": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "date": {
+                                  "type": "string",
+                                  "format": "date",
+                                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                                },
+                                "amount": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "PAID",
+                                    "MISSED",
+                                    "UPCOMING"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "number",
+                                "date",
+                                "amount",
+                                "state"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "canAct": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "caseId",
+                          "debtor",
+                          "identifier",
+                          "creditorId",
+                          "creditor",
+                          "total",
+                          "state",
+                          "method",
+                          "installments",
+                          "canAct"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "requests": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "debtor": {
+                            "type": "string"
+                          },
+                          "creditor": {
+                            "type": "string"
+                          },
+                          "plan": {
+                            "type": "string"
+                          },
+                          "origin": {
+                            "type": "string"
+                          },
+                          "flag": {
+                            "type": "string"
+                          },
+                          "tone": {
+                            "type": "string",
+                            "enum": [
+                              "warning",
+                              "info",
+                              "danger"
+                            ]
+                          },
+                          "decision": {
+                            "nullable": true,
+                            "type": "string",
+                            "enum": [
+                              "APPROVED",
+                              "REFUSED"
+                            ]
+                          },
+                          "version": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "debtor",
+                          "creditor",
+                          "plan",
+                          "origin",
+                          "flag",
+                          "tone",
+                          "decision",
+                          "version"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "canValidate": {
+                      "type": "boolean"
+                    },
+                    "thresholdMonths": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "stats": {
+                      "type": "object",
+                      "properties": {
+                        "active": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "remaining": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "nextMonth": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "nextMonthCount": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "honored": {
+                          "type": "number"
+                        },
+                        "defaults": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "active",
+                        "remaining",
+                        "nextMonth",
+                        "nextMonthCount",
+                        "honored",
+                        "defaults"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "simulation": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "caseId": {
+                          "type": "string"
+                        },
+                        "debtor": {
+                          "type": "string"
+                        },
+                        "creditor": {
+                          "type": "string"
+                        },
+                        "balance": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "ownedByDirector": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "caseId",
+                        "debtor",
+                        "creditor",
+                        "balance",
+                        "ownedByDirector"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "plans",
+                    "requests",
+                    "canValidate",
+                    "thresholdMonths",
+                    "stats",
+                    "simulation"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "payment-plans"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      },
+      "post": {
+        "operationId": "PlansController_create",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "payment-plans"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      }
+    },
+    "/staff/payment-plans/simulation/{id}": {
+      "get": {
+        "operationId": "PlansController_simulation",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "caseId": {
+                      "type": "string"
+                    },
+                    "debtor": {
+                      "type": "string"
+                    },
+                    "creditor": {
+                      "type": "string"
+                    },
+                    "balance": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "ownedByDirector": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "caseId",
+                    "debtor",
+                    "creditor",
+                    "balance",
+                    "ownedByDirector"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "payment-plans"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      }
+    },
+    "/staff/payment-plans/requests/{id}": {
+      "put": {
+        "operationId": "PlansController_decide",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "payment-plans"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "COLLECTION_MANAGER"
+          ]
+        }
+      }
+    },
+    "/staff/interest-rates": {
+      "get": {
+        "operationId": "InterestRatesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "ECB",
+                              "LEGAL_INDIVIDUAL"
+                            ]
+                          },
+                          "validFrom": {
+                            "type": "string",
+                            "format": "date",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                          },
+                          "rateBp": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "enteredBy": {
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "validFrom",
+                          "rateBp",
+                          "enteredBy",
+                          "updatedAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "canEdit": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "canEdit"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "interest-rates"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER",
+            "DEVELOPER"
+          ]
+        }
+      },
+      "put": {
+        "operationId": "InterestRatesController_save",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "interest-rates"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
           ]
         }
       }

@@ -698,7 +698,8 @@ describe('what is left out', () => {
       ],
     });
     await rows("UPDATE case_invoices SET principal_paid_cents = principal_cents, state = 'PAID' WHERE case_id = $1 AND number = 'PAID'", [id]);
-    expect(await detail('manager', id)).toMatchObject({ fees: 4000, daysLate: 20, invoicesLabel: '2 factures', principal: 972_000 });
+    // The 40 € of an invoice paid late stay owed once its principal is paid (L441-10): they come last in the allocation.
+    expect(await detail('manager', id)).toMatchObject({ fees: 8000, daysLate: 20, invoicesLabel: '2 factures', principal: 972_000 });
   });
 
   it('is a closed case of the same debtor, and what another creditor claims under its own name', async () => {

@@ -130,7 +130,7 @@ export function PaymentsCard({ data }: { data: CaseDetail }) {
         ...(payment.chequeNumber ? [{ k: 'Chèque', v: payment.chequeNumber }] : []),
       ],
       onConfirm: async (reason) => {
-        await change(`/cases/${data.id}/payments/${payment.id}`, { method: 'PUT', body: { status, reason } });
+        await change(`/cases/${data.id}/payments/${payment.id}`, { method: 'PUT', body: { status, reason, version: payment.version } });
         toast({
           message: bounced ? 'Chèque impayé : paiement annulé, suivi repris.' : 'Paiement définitif, quittance générée.',
           tone: bounced ? 'danger' : 'success',

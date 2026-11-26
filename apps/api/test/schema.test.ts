@@ -132,6 +132,13 @@ const CASE_EVENTS =
   'case_events SELECT (actor_id, actor_kind, actor_label, case_id, creditor_id, detail, id, kind, occurred_at, on_behalf_of_id, title, tone, visible_to_creditor)';
 const DEBTORS = 'debtors SELECT (anonymized_at, created_at, id, kind, legal_form_checked_at, legal_form_code, legal_form_source, name, siren)';
 
+const MONEY_OUTSIDE = [
+  'installments SELECT (amount_cents, case_id, creditor_id, due_on, id, number, plan_id)',
+  'payment_allocations SELECT (amount_cents, case_id, component, creditor_id, id, invoice_id, payment_id, reverses_id)',
+  'payment_plans SELECT (accepted_at, case_id, creditor_id, first_due_on, id, method, months, status, total_cents)',
+  'payments SELECT (amount_cents, case_id, creditor_id, id, method, received_on, status)',
+];
+
 describe('rights of the roles that face the outside', () => {
   // Any addition shows here: it must be wanted.
   const expected: Record<string, string[]> = {
@@ -168,12 +175,17 @@ describe('rights of the roles that face the outside', () => {
       ...IDEMPOTENCY,
       'users SELECT (creditor_id, email, first_name, id, last_name, role, status)',
       'case_invoices SELECT (case_id, claimed_cents, creditor_id, due_on, external_ref, id, issued_on, number, principal_cents, principal_paid_cents, state)',
+      // The creditor step of a plan, and the payments of its cases: date, amount, means.
+      ...MONEY_OUTSIDE,
+      'plan_approvals SELECT (case_id, creditor_id, decided_at, decision, id, plan_id, step)',
     ],
     legarec_debtor: [
       'cases SELECT (closed_on, creditor_id, debtor_id, id, opened_on, reference, status)',
       'debtors SELECT (id, kind, name, siren)',
       ...IDEMPOTENCY,
       'case_invoices SELECT (case_id, claimed_cents, creditor_id, due_on, external_ref, id, issued_on, number, principal_cents, principal_paid_cents, state)',
+      ...MONEY_OUTSIDE,
+      'receipts SELECT (case_id, creditor_id, id, issued_at, number, payment_id)',
     ],
   };
   it.each(Object.entries(expected))('%s', async (role, rights) => {
@@ -231,8 +243,16 @@ describe('rights of the roles inside', () => {
       'case_invoices INSERT (case_id, claimed_cents, created_at, created_by, creditor_id, due_on, external_ref, id, issued_on, number, principal_cents, principal_paid_cents, state)',
       'case_invoices SELECT (case_id, claimed_cents, created_at, created_by, creditor_id, due_on, external_ref, id, issued_on, number, principal_cents, principal_paid_cents, state)',
       'cases INSERT (contact_name, contact_title, created_at, created_by, creditor_id, debtor_address, debtor_city, debtor_id, debtor_postal_code, debtor_siret, external_reference, id, mandate_id, officer_id, opened_on, reference, scenario, status, version)',
-      'cases SELECT (closed_on, contact_name, contact_title, created_at, created_by, creditor_id, debtor_address, debtor_city, debtor_id, debtor_postal_code, debtor_siret, external_reference, first_letter_on, first_letter_reference, id, mandate_id, officer_id, opened_on, reference, scenario, status, version)',
-      'notifications SELECT (action, actor_id, case_count, case_id, created_at, creditor_id, id, kind, read_at, target_id, ticket_id, user_id)',
+      'cases SELECT (closed_on, contact_name, contact_title, created_at, created_by, creditor_id, debtor_address, debtor_city, debtor_id, debtor_postal_code, debtor_siret, external_reference, first_letter_on, first_letter_reference, formal_notice_on, id, mandate_id, officer_id, opened_on, reference, scenario, status, version)',
+      'notifications SELECT (action, actor_id, case_count, case_id, created_at, creditor_id, id, kind, plan_decision, plan_id, read_at, target_id, ticket_id, user_id)',
+      // Money: read only; written by the functions of the money.
+      'installments SELECT (amount_cents, case_id, creditor_id, due_on, id, number, plan_id)',
+      'interest_rates SELECT (entered_by, id, kind, on_behalf_of_id, rate_bp, updated_at, valid_from)',
+      'payment_allocations SELECT (amount_cents, case_id, component, created_at, creditor_id, id, invoice_id, payment_id, reverses_id)',
+      'payment_plans SELECT (accepted_at, case_id, created_at, creditor_id, document_id, first_due_on, id, method, months, on_behalf_of_id, owned_by_director, requested_by, status, threshold_months, total_cents, version)',
+      'payments SELECT (amount_cents, bank, bounce_reason, bounced_at, case_id, cheque_number, created_at, creditor_id, deposited_on, id, label, method, on_behalf_of_id, received_on, recorded_by, settled_at, status, version)',
+      'plan_approvals SELECT (case_id, creditor_id, decided_at, decided_by, decision, id, on_behalf_of_id, plan_id, reason, step)',
+      'receipts SELECT (case_id, creditor_id, document_id, id, issued_at, number, payment_id)',
     ],
     legarec_worker: [
       // The links leave with the e-mails that it sends, and are kept nowhere.
@@ -241,7 +261,7 @@ describe('rights of the roles inside', () => {
       'auth_tokens UPDATE (used_at)',
       CASE_EVENTS,
       // The first letter opens the reminders and the portal of the debtor: only the worker that sent it records it.
-      'cases UPDATE (closed_on, external_reference, first_letter_on, first_letter_reference, status, version)',
+      'cases UPDATE (closed_on, external_reference, first_letter_on, first_letter_reference, formal_notice_on, status, version)',
       DEBTORS,
       'delegations SELECT (granted_at, granted_by, id, kind, withdrawn_at, withdrawn_by)',
       'outbox SELECT (acting_for, actor_id, actor_kind, claimed_at, created_at, done_at, failed_at, failure, id, name, payload, published_at, queue, run_at, started_at)',
@@ -258,9 +278,18 @@ describe('rights of the roles inside', () => {
       'mandates SELECT (amends_id, amicable_rate_bp, contract_rate_bp, created_at, created_by, creditor_id, defer_small_remittances, discount_max_bp, ends_on, fixed_indemnity, id, interest_mode, litigation_needs_consent, litigation_rate_bp, opening_fee_cents, plan_months_without_consent, reporting_day, scenario, starts_on)',
       'case_contacts SELECT (case_id, creditor_id, id, is_primary, kind, label, status, value, value_normalized)',
       'case_invoices SELECT (case_id, claimed_cents, created_at, creditor_id, due_on, external_ref, id, issued_on, number, principal_cents, principal_paid_cents, state)',
-      'cases SELECT (closed_on, contact_name, contact_title, created_at, created_by, creditor_id, debtor_address, debtor_city, debtor_id, debtor_postal_code, debtor_siret, external_reference, first_letter_on, first_letter_reference, id, mandate_id, officer_id, opened_on, reference, scenario, status, version)',
+      'cases SELECT (closed_on, contact_name, contact_title, created_at, created_by, creditor_id, debtor_address, debtor_city, debtor_id, debtor_postal_code, debtor_siret, external_reference, first_letter_on, first_letter_reference, formal_notice_on, id, mandate_id, officer_id, opened_on, reference, scenario, status, version)',
       'debtor_access_codes SELECT (code_cipher, debtor_id)',
       'debtor_access_codes UPDATE (code_cipher)',
+      'interest_rates SELECT (kind, rate_bp, valid_from)',
+      'installments SELECT (amount_cents, case_id, creditor_id, due_on, id, number, plan_id)',
+      'payment_allocations SELECT (amount_cents, case_id, component, creditor_id, id, invoice_id, payment_id, reverses_id)',
+      'payment_plans SELECT (accepted_at, case_id, creditor_id, first_due_on, id, method, months, status, total_cents, version)',
+      'payments SELECT (amount_cents, bounced_at, case_id, creditor_id, deposited_on, id, method, received_on, settled_at, status)',
+      'plan_approvals SELECT (case_id, creditor_id, decided_at, decision, id, plan_id, step)',
+      // The PDF of a receipt (lot N).
+      'receipts SELECT (case_id, creditor_id, document_id, id, issued_at, number, payment_id)',
+      'receipts UPDATE (document_id)',
     ],
     legarec_retention: [
       'idempotency_keys DELETE (*)',
@@ -288,7 +317,7 @@ describe('rights of the roles inside', () => {
       'backup_codes SELECT (user_id)',
       'case_events INSERT (*)',
       'case_events SELECT (actor_id, case_id, kind, occurred_at)',
-      'cases UPDATE (officer_id, version)',
+      'cases UPDATE (closed_on, officer_id, status, version)',
       'creditors SELECT (id, portal_enabled)',
       'delegations INSERT (granted_by, kind)',
       'delegations SELECT (*)',
@@ -334,16 +363,37 @@ describe('rights of the roles inside', () => {
       'case_contact_events INSERT (actor_id, actor_label, case_id, contact_id, creditor_id, what)',
       'case_contacts SELECT (case_id, creditor_id, id)',
       'debtors INSERT (id, kind, legal_form_checked_at, legal_form_code, legal_form_source, name, siren)',
-      'cases SELECT (closed_on, creditor_id, debtor_id, first_letter_on, id, officer_id, version)',
+      'cases SELECT (closed_on, creditor_id, debtor_id, first_letter_on, id, mandate_id, officer_id, status, version)',
       'debtor_access_codes INSERT (code_cipher, debtor_id, generated_by)',
       'debtor_retired_codes INSERT (code_hmac, debtor_id)',
       'debtor_retired_codes SELECT (code_hmac, debtor_id)',
       'vault_secrets SELECT (id, kind, name, rotated_at, status, value_cipher)',
-      'notifications INSERT (action, actor_id, case_count, case_id, creditor_id, kind, target_id, ticket_id, user_id)',
+      'notifications INSERT (action, actor_id, case_count, case_id, creditor_id, kind, plan_decision, plan_id, target_id, ticket_id, user_id)',
       'users SELECT (absent_from, absent_until, anonymized_at, creditor_id, disabled_at, email, first_name, id, invited_at, invited_by, last_name, password_hash, role, status, substitute_id, two_factor_required)',
       'debtor_access_codes SELECT (code_cipher, debtor_id, version)',
       'debtor_access_codes UPDATE (code_cipher, generated_at, generated_by, version)',
       'debtors SELECT (id, kind, name, siren)',
+      // Money: written by its functions, which check again who acts and what it adds up to.
+      'case_invoices SELECT (case_id, due_on, id, number, principal_cents, principal_paid_cents, state)',
+      'case_invoices UPDATE (principal_paid_cents, state)',
+      'installments INSERT (amount_cents, case_id, creditor_id, due_on, number, plan_id)',
+      'interest_rates INSERT (entered_by, kind, on_behalf_of_id, rate_bp, valid_from)',
+      'interest_rates SELECT (entered_by, kind, on_behalf_of_id, rate_bp, valid_from)',
+      'interest_rates UPDATE (entered_by, on_behalf_of_id, rate_bp, updated_at)',
+      'mandates SELECT (creditor_id, fixed_indemnity, id)',
+      'payment_allocations INSERT (amount_cents, case_id, component, creditor_id, invoice_id, payment_id, reverses_id)',
+      'payment_allocations SELECT (amount_cents, case_id, component, creditor_id, id, invoice_id, payment_id, reverses_id)',
+      'payment_plans INSERT (case_id, creditor_id, first_due_on, id, method, months, on_behalf_of_id, owned_by_director, requested_by, status, threshold_months, total_cents)',
+      'payment_plans SELECT (case_id, creditor_id, id, months, requested_by, status, version)',
+      'payment_plans UPDATE (status, version)',
+      'payments INSERT (amount_cents, bank, case_id, cheque_number, creditor_id, deposited_on, id, label, method, on_behalf_of_id, received_on, recorded_by, settled_at, status)',
+      'payments SELECT (amount_cents, case_id, creditor_id, id, method, received_on, status, version)',
+      'payments UPDATE (bounce_reason, bounced_at, settled_at, status, version)',
+      'plan_approvals INSERT (case_id, creditor_id, plan_id, step)',
+      'plan_approvals SELECT (decision, id, plan_id, step)',
+      'plan_approvals UPDATE (decided_at, decided_by, decision, on_behalf_of_id, reason)',
+      'receipts INSERT (case_id, creditor_id, number, payment_id)',
+      'receipts SELECT (document_id, id, payment_id)',
     ],
   };
   it.each(Object.entries(expected))('%s', async (role, rights) => {
@@ -432,6 +482,9 @@ describe('rights on the functions', () => {
     ['can_act_on_case', ['staff']],
     ['is_claims_officer', ['staff']],
     ['director_id', ['staff']],
+    ...['save_interest_rate', 'decide_plan', 'record_payment', 'change_payment', 'ask_plan'].map((name) => [name, ['staff']] as [string, string[]]),
+    // Called by the functions of the money, and its triggers.
+    ...['money_case', 'issue_receipt', 'follow_allocation', 'check_allocations', 'keep_receipt'].map((name) => [name, []] as [string, string[]]),
     // Tools of the migrations.
     ['secure', []],
     ['secure_case_table', []],
@@ -455,6 +508,7 @@ describe('rights on the functions', () => {
       'internal_key first_internal_key renew_internal_key access_code first_access_code renew_access_code',
       'portal_officer create_director ticket_reader close_account release_cases digests refuse tell_director end_technical_delegation take_with_substituted open_delegations require_for_developer plain_name keep_account_history',
       'uuid_v7 setting user_id creditor_id debtor_id only_identifiers audit_params',
+      'save_interest_rate decide_plan follow_allocation check_allocations record_payment change_payment ask_plan money_case issue_receipt keep_receipt',
     ].flatMap((names) => names.split(' '));
     const found = await rows<{ proname: string }>(
       "SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'app' ORDER BY 1",

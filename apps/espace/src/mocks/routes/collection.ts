@@ -203,6 +203,7 @@ const seedRequests = () => [
     flag: 'Au-delà de 6 mois',
     tone: 'warning',
     decision: null as string | null,
+    version: 1,
   },
   {
     id: 'q2',
@@ -213,6 +214,7 @@ const seedRequests = () => [
     flag: 'Demande débiteur',
     tone: 'info',
     decision: null as string | null,
+    version: 1,
   },
   {
     id: 'q3',
@@ -223,9 +225,12 @@ const seedRequests = () => [
     flag: 'Accord créancier manquant',
     tone: 'danger',
     decision: null as string | null,
+    version: 1,
   },
 ];
 let requests = seedRequests();
+/** Hors maquette: values of the demonstration, never real rates of the firm (typed by the Director). */
+let interestRates: { kind: 'ECB' | 'LEGAL_INDIVIDUAL'; validFrom: string; rateBp: number; enteredBy: string; updatedAt: string }[] = [];
 
 const act = (title: string, date: string, state: 'DONE' | 'NOW' | 'TODO') => ({ title, date, state });
 const litigation: (Omit<LitigationCase, 'canAct' | 'actionSent'> & { officerId: string })[] = [
@@ -389,6 +394,7 @@ export const resetCollection = () => {
   planned.clear();
   reminders = seedReminders();
   requests = seedRequests();
+  interestRates = [];
   sent = new Set();
 };
 const TOTALS = [
@@ -517,6 +523,8 @@ export const collectionHandlers = [
     '/api/payment-plans',
     guarded<Info>(staffWithCases, async ({ request }, session) => {
       const { caseId } = (await request.json()) as { caseId: string };
+      // A case that is not shown does not exist (API: 404, never 403).
+      if (!readable(session).some((entry) => entry.id === caseId)) return notFound();
       return actsOn(session, caseId) ? done() : forbidden();
     }),
   ),
@@ -528,6 +536,32 @@ export const collectionHandlers = [
         const item = requests.find((entry) => entry.id === params.id);
         if (!item) return notFound();
         item.decision = ((await request.json()) as { decision: string }).decision;
+        return done();
+      },
+    ),
+  ),
+  // Rates of each semester (question 75): read by the team, typed by the Director or the manager on their behalf.
+  http.get(
+    '/api/interest-rates',
+    guarded(
+      (session) => session.role !== 'CREDITOR',
+      (_info, session) =>
+        HttpResponse.json({
+          items: interestRates,
+          canEdit: session.role === 'DIRECTOR' || (session.role === 'COLLECTION_MANAGER' && session.activeDelegations.includes('ADMINISTRATIVE')),
+        }),
+    ),
+  ),
+  http.put(
+    '/api/interest-rates',
+    guarded(
+      (session) => session.role === 'DIRECTOR' || (session.role === 'COLLECTION_MANAGER' && session.activeDelegations.includes('ADMINISTRATIVE')),
+      async ({ request }) => {
+        const body = (await request.json()) as { kind: 'ECB' | 'LEGAL_INDIVIDUAL'; validFrom: string; rateBp: number };
+        interestRates = [
+          { ...body, enteredBy: 'Alice Durand', updatedAt: new Date().toISOString() },
+          ...interestRates.filter((rate) => rate.kind !== body.kind || rate.validFrom !== body.validFrom),
+        ];
         return done();
       },
     ),

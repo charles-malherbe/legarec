@@ -508,6 +508,7 @@ function detailOf(item: Stored, session: Session): CaseDetail {
               label: null,
               receiptId: null,
               allocation: { interest: 136600, principal: 113400, fees: 0 },
+              version: 1,
             },
           ])
         : []),
@@ -850,6 +851,7 @@ export const caseHandlers = [
           label: body.method === 'TRANSFER' ? body.label : null,
           receiptId: definitive ? `q-${item.id}` : null,
           allocation,
+          version: 1,
         },
       ];
       log(item.id, session, 'Paiement enregistré', body.method === 'CHEQUE' ? 'Chèque' : 'Virement', 'success');
@@ -861,7 +863,7 @@ export const caseHandlers = [
     acting(async (item, session, { request, params }) => {
       const { status } = (await request.json()) as { status: 'CASHED' | 'BOUNCED' | 'RECONCILED' };
       payments[item.id] = detailOf(item, session).payments.map((entry) =>
-        entry.id === params.paymentId ? { ...entry, status, receiptId: status === 'BOUNCED' ? null : `q-${entry.id}` } : entry,
+        entry.id === params.paymentId ? { ...entry, status, receiptId: status === 'BOUNCED' ? null : `q-${entry.id}`, version: entry.version + 1 } : entry,
       );
       log(item.id, session, status === 'BOUNCED' ? 'Chèque impayé' : 'Paiement définitif, quittance générée', '', status === 'BOUNCED' ? 'danger' : 'success');
       return done();

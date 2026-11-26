@@ -1280,6 +1280,102 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/staff/cases/{id}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PaymentsController_record"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/cases/{id}/payments/{paymentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["PaymentsController_change"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/payment-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PlansController_list"];
+        put?: never;
+        post: operations["PlansController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/payment-plans/simulation/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PlansController_simulation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/payment-plans/requests/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["PlansController_decide"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/interest-rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["InterestRatesController_list"];
+        put: operations["InterestRatesController_save"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/staff/shell": {
         parameters: {
             query?: never;
@@ -3636,6 +3732,7 @@ export interface operations {
                                 principal: number;
                                 fees: number;
                             };
+                            version: number;
                         }[];
                         documents: {
                             id: string;
@@ -3747,6 +3844,218 @@ export interface operations {
         };
     };
     CasesController_changeContact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PaymentsController_record: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PaymentsController_change: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PlansController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        plans: {
+                            id: string;
+                            caseId: string;
+                            debtor: string;
+                            identifier: string;
+                            creditorId: string;
+                            creditor: string;
+                            total: number;
+                            /** @enum {string} */
+                            state: "ON_TRACK" | "LATE" | "DEFAULT" | "WAITING_CREDITOR" | "WAITING_DEBTOR";
+                            /** @enum {string} */
+                            method: "CHEQUE" | "TRANSFER";
+                            installments: {
+                                number: number;
+                                /** Format: date */
+                                date: string;
+                                amount: number;
+                                /** @enum {string} */
+                                state: "PAID" | "MISSED" | "UPCOMING";
+                            }[];
+                            canAct: boolean;
+                        }[];
+                        requests: {
+                            id: string;
+                            debtor: string;
+                            creditor: string;
+                            plan: string;
+                            origin: string;
+                            flag: string;
+                            /** @enum {string} */
+                            tone: "warning" | "info" | "danger";
+                            /** @enum {string|null} */
+                            decision: "APPROVED" | "REFUSED" | null;
+                            version: number;
+                        }[];
+                        canValidate: boolean;
+                        thresholdMonths: number;
+                        stats: {
+                            active: number;
+                            remaining: number;
+                            nextMonth: number;
+                            nextMonthCount: number;
+                            honored: number;
+                            defaults: number;
+                        };
+                        simulation: {
+                            caseId: string;
+                            debtor: string;
+                            creditor: string;
+                            balance: number;
+                            ownedByDirector: boolean;
+                        } | null;
+                    };
+                };
+            };
+        };
+    };
+    PlansController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PlansController_simulation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        caseId: string;
+                        debtor: string;
+                        creditor: string;
+                        balance: number;
+                        ownedByDirector: boolean;
+                    };
+                };
+            };
+        };
+    };
+    PlansController_decide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    InterestRatesController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: {
+                            /** @enum {string} */
+                            kind: "ECB" | "LEGAL_INDIVIDUAL";
+                            /** Format: date */
+                            validFrom: string;
+                            rateBp: number;
+                            enteredBy: string;
+                            updatedAt: string;
+                        }[];
+                        canEdit: boolean;
+                    };
+                };
+            };
+        };
+    };
+    InterestRatesController_save: {
         parameters: {
             query?: never;
             header?: never;

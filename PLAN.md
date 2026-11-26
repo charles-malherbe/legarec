@@ -131,7 +131,7 @@ Les 161 routes simulées se répartissent ainsi :
 | [x] J | Socle : services de développement, NestJS, Prisma, rôles et RLS, audit, erreurs, journaux masqués, OpenAPI, outbox, banc de tests, GitHub Actions (services PostgreSQL et Valkey, Node 26), corps de requêtes Zod manquants, en-tête `Idempotency-Key` dans `packages/platform/src/http.ts` | 0 |
 | [x] K | Comptes : connexion, 2FA, sessions, invitations, délégations, support, premier Directeur par commande | 40 (`auth`, `account`, `members`, `delegations`, `support-tickets`) |
 | [x] L | Portefeuille : paramètres et coffre, créanciers et mandats, débiteurs, dossiers, coordonnées, code d'accès, recherche, notifications. **Écrans** créancier et débiteur | 21 |
-| [ ] M | Argent : intérêts, paiements, promesses, litiges, échéanciers | 7 |
+| [x] M | Argent : intérêts, paiements, échéanciers (promesses et litiges : avec les appels, T, et l'espace débiteur, O) | 6 |
 | [ ] N | Documents : S3 (disque local en développement), antivirus, modèles, PDF, téléchargements, valeurs entre crochets, logos | 16 |
 | [ ] O | Espace débiteur : accès, messages, demandes, acceptation de l'échéancier | 14 |
 | [ ] P | Portail partenaires : dépôts, imports, accords, messages, relevés | 13 |
@@ -177,6 +177,13 @@ Les 161 routes simulées se répartissent ainsi :
 - [x] Mêmes requêtes rejouées contre les simulations et contre l'API ; matrice d'accès de toutes les routes ; essai complet dans un navigateur contre l'API
 - [x] Deux relectures `relecteur-securite` : la première (lot L et corrections tardives du lot K), 2 points bloquants, 5 importants et 12 mineurs ; la seconde (corrections), aucun bloquant, 1 important et 9 mineurs ; tout ce qui relève du lot est corrigé, avec ses tests
 - Reporté, avec son lot : dépôt de la convention signée (N), forme juridique par l'API Recherche d'entreprises en tâche de fond (U, avec le score ; d'ici là, saisie à la main), rechiffrement des données sous `VAULT_MASTER_KEY` (X), recherche bornée quand le volume montera (U), envoi du code d'accès (N, O, Q, R)
+
+## Lot M — Argent (état au 26/11/2026)
+- [x] Tables `interest_rates`, `payments`, `payment_allocations` (ajout seul, somme vérifiée par PostgreSQL), `receipts`, `payment_plans`, `plan_approvals`, `installments` ; `cases.formal_notice_on`
+- [x] Intérêts et imputation en fonctions pures, essayées par `fast-check` ; paiement, encaissement, rapprochement, impayé, quittance numérotée
+- [x] Échéanciers : simulation, demande au solde confirmé, validation du Responsable, notification, états des échéances ; taux d'intérêt saisis dans Paramètres (hors maquette, question 146)
+- [x] Matrice d'accès, parité simulations et API, tests métier
+- Reporté : promesses (lot T, résultat d'appel), litiges (lots O et R), relance d'un échéancier (Q), accord du créancier (P), acceptation du débiteur (O), PDF de la quittance (N)
 
 ## Points à reprendre du front
 

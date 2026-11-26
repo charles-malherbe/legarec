@@ -25,6 +25,9 @@ import {
   settingsSection,
   session,
   ticketSent,
+  plansData,
+  planSimulation,
+  interestRates,
   totpSetup,
   webauthnOptions,
 } from '@legarec/contracts';
@@ -381,6 +384,58 @@ export const ACCOUNT_PARITY: Parity[] = [
     answer: refused('INVALID_OFFICER'),
   },
   { as: 'officer', request: 'POST /cases/assign', body: { ids: ['{caseOfManager}'], officerId: '{officer}' }, status: 403, answer: code('FORBIDDEN') },
+  // Money (lot M).
+  ...each(['director', 'manager', 'officer'], () => ({ request: 'GET /payment-plans', status: 200, answer: plansData })),
+  { as: 'developer', request: 'GET /payment-plans', status: 403, answer: code('FORBIDDEN') },
+  { as: 'manager', request: 'GET /payment-plans/simulation/{caseOfManager}', status: 200, answer: planSimulation },
+  { as: 'director', request: 'GET /payment-plans/simulation/{caseOfManager}', status: 403, answer: code('FORBIDDEN') },
+  { as: 'manager', request: 'GET /payment-plans/simulation/{caseOfDirector}', status: 404, answer: code('NOT_FOUND') },
+  {
+    as: 'manager',
+    request: 'POST /payment-plans',
+    body: { caseId: '{caseOfDirector}', months: 3, method: 'TRANSFER', expected: 100 },
+    status: 404,
+    answer: code('NOT_FOUND'),
+  },
+  {
+    as: 'director',
+    request: 'POST /payment-plans',
+    body: { caseId: '{caseOfManager}', months: 3, method: 'TRANSFER', expected: 100 },
+    status: 403,
+    answer: code('FORBIDDEN'),
+  },
+  { as: 'officer', request: `PUT /payment-plans/requests/${UNKNOWN}`, body: { decision: 'APPROVED', version: 1 }, status: 403, answer: code('FORBIDDEN') },
+  { as: 'manager', request: `PUT /payment-plans/requests/${UNKNOWN}`, body: { decision: 'APPROVED', version: 1 }, status: 404, answer: code('NOT_FOUND') },
+  {
+    as: 'manager',
+    request: `POST /cases/${UNKNOWN}/payments`,
+    body: { method: 'TRANSFER', amount: 100, receivedOn: '2026-11-02', label: 'VIR', reconciled: false },
+    status: 404,
+    answer: code('NOT_FOUND'),
+  },
+  {
+    as: 'director',
+    request: 'POST /cases/{caseOfManager}/payments',
+    body: { method: 'TRANSFER', amount: 100, receivedOn: '2026-11-02', label: 'VIR', reconciled: false },
+    status: 403,
+    answer: code('FORBIDDEN'),
+  },
+  {
+    as: 'manager',
+    request: 'POST /cases/{caseOfManager}/payments',
+    body: { method: 'CHEQUE', amount: 100, chequeNumber: '12', bank: 'B', receivedOn: '2026-11-02', depositedOn: null },
+    status: 422,
+    answer: refused('INVALID'),
+  },
+  ...each(['director', 'manager', 'officer', 'developer'], () => ({ request: 'GET /interest-rates', status: 200, answer: interestRates })),
+  {
+    as: 'officer',
+    request: 'PUT /interest-rates',
+    body: { kind: 'ECB', validFrom: '2026-07-01', rateBp: 215, expected: null },
+    status: 403,
+    answer: code('FORBIDDEN'),
+  },
+  { as: 'director', request: 'PUT /interest-rates', body: { kind: 'ECB', validFrom: '2026-07-01', rateBp: 215, expected: null }, status: 204 },
 ];
 
 /** Sign-in of the creditors. */

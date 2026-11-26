@@ -230,6 +230,8 @@ model Case {
   contactTitle         String?    @map("contact_title")
   scenario             ScenarioCode?
   createdBy            String?    @map("created_by") @db.Uuid
+  /// Delivery of the formal notice of an individual, failing that its sending: interest runs from it (question 98).
+  formalNoticeOn       DateTime?  @map("formal_notice_on") @db.Date
 
   mandate  Mandate?    @relation(fields: [mandateId, creditorId], references: [id, creditorId], onDelete: NoAction, onUpdate: NoAction)
   invoices CaseInvoice[]
@@ -239,6 +241,12 @@ model Case {
   officer  User?       @relation(fields: [officerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   events   CaseEvent[]
   notifications Notification[]
+  payments Payment[]
+  allocations PaymentAllocation[]
+  receipts Receipt[]
+  plans    PaymentPlan[]
+  approvals PlanApproval[]
+  installments Installment[]
 
   @@unique([id, creditorId], map: "cases_id_creditor")
   @@index([officerId, status], map: "cases_officer")
@@ -275,7 +283,10 @@ model CaseInvoice {
 
   case Case @relation(fields: [caseId, creditorId], references: [id, creditorId], onDelete: NoAction, onUpdate: NoAction)
 
+  allocations PaymentAllocation[]
+
   @@unique([caseId, number])
+  @@unique([id, caseId], map: "case_invoices_id_case")
   @@map("case_invoices")
 }
 
