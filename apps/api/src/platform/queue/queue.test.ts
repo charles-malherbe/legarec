@@ -1,12 +1,15 @@
 import { Queue } from 'bullmq';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { connect, createServer, type AddressInfo } from 'node:net';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { Writable } from 'node:stream';
 import { afterAll, afterEach, beforeAll, describe, expect, inject, it } from 'vitest';
 import { createTestDatabase, seed, type Seed, type TestDatabase } from '../../../test/database';
 import type { Actor } from '../database/actor';
 import { Database } from '../database/database';
 import { createLogger } from '../logging/logger';
+import { Storage } from '../storage/storage';
 import { GiveUp, TryLater } from './errors';
 import { mayActOn, startWorkers, type AuthorKind, type JobDefinition, type ScheduledHandlers } from './jobs';
 import { maintenance, purge, scheduleMaintenance } from './maintenance';
@@ -21,6 +24,7 @@ let jobs: Database;
 let valkey: Valkey;
 const prefix = `test-${randomBytes(5).toString('hex')}`;
 const logs: string[] = [];
+const storage = new Storage(join(tmpdir(), `legarec-purge-${process.pid}`));
 const logger = createLogger('debug', new Writable({ write: (chunk: Buffer, _encoding, done) => (logs.push(chunk.toString()), done()) }));
 const stops: (() => Promise<unknown>)[] = [];
 
@@ -144,7 +148,7 @@ describe('outbox', () => {
     expect(await publisher().publish()).toBe(1);
     expect(await add({ dedupeKey })).toBe(false);
     await test.admin.query("UPDATE outbox SET done_at = now() - interval '15 days'");
-    await purge(jobs, logger);
+    await purge(jobs, logger, storage);
     expect(await rows('SELECT 1 FROM outbox')).toEqual([]);
     expect(await add({ dedupeKey })).toBe(false);
     expect(await publisher().publish()).toBe(0);
@@ -476,7 +480,7 @@ describe('a task that must not run twice', () => {
 
   it('does not share its name with a schedule, that would run in its place', () => {
     const handlers = { maintenance: { purge: { from: EVERYONE, repeatable: true, run: () => Promise.resolve() } } };
-    const scheduled = maintenance(jobs, logger);
+    const scheduled = maintenance(jobs, logger, storage);
     expect(() => startWorkers({ database: jobs, logger, connection: valkey, handlers, scheduled, prefix })).toThrow(
       'Both a task and a schedule in the queue maintenance: purge',
     );
@@ -693,10 +697,12 @@ describe('purge', () => {
       'task-marks': 0,
       'ai-suggestions': 0,
       'gdpr-requests': 0,
+      cases: 0,
+      'document-files': 0,
     };
-    expect(await purge(jobs, logger)).toEqual(counts);
+    expect(await purge(jobs, logger, storage)).toEqual(counts);
     expect(await rows('SELECT action FROM audit_log')).toEqual([{ action: 'KEPT_ENTRY' }]);
-    const kept = await rows<{ kind: string; removed: number }>('SELECT kind, removed FROM retention_runs ORDER BY ran_at DESC LIMIT 14');
+    const kept = await rows<{ kind: string; removed: number }>('SELECT kind, removed FROM retention_runs ORDER BY ran_at DESC LIMIT 16');
     expect(Object.fromEntries(kept.map((row) => [row.kind, row.removed]))).toEqual(counts);
     // The key of a task still to come is kept, however old it is.
     expect(await rows('SELECT right(key, 1) AS key FROM task_keys ORDER BY key')).toEqual([{ key: '2' }, { key: '3' }]);
@@ -706,7 +712,7 @@ describe('purge', () => {
     await test.admin.query('REVOKE DELETE ON idempotency_keys FROM legarec_retention');
     await test.admin.query("INSERT INTO outbox (queue, name, payload, actor_kind, done_at) VALUES ('sms', 'x-x', '{}', 'SYSTEM', now() - interval '15 days')");
     try {
-      await expect(purge(jobs, logger)).rejects.toThrow('PURGE_FAILED');
+      await expect(purge(jobs, logger, storage)).rejects.toThrow('PURGE_FAILED');
       expect(await rows('SELECT 1 FROM outbox')).toEqual([]);
       expect(logs.join('')).toContain('purge failed');
     } finally {
@@ -715,21 +721,21 @@ describe('purge', () => {
   });
 
   it('is scheduled once, whatever the number of workers, and runs from the queue', async () => {
-    work(async () => undefined, { scheduled: maintenance(jobs, logger) });
+    work(async () => undefined, { scheduled: maintenance(jobs, logger, storage) });
     await Promise.all([scheduleMaintenance(valkey, prefix), scheduleMaintenance(valkey, prefix)]);
     expect(await valkey.zcard(`${prefix}:maintenance:repeat`)).toBe(1);
     await queue().add('purge', {});
-    await until(() => logged('purge done') === 14);
+    await until(() => logged('purge done') === 16);
   });
 
   it('is out of reach of the HTTP API', async () => {
-    await expect(purge(api, logger)).rejects.toThrow('PURGE_FAILED');
+    await expect(purge(api, logger, storage)).rejects.toThrow('PURGE_FAILED');
     await expect(api.run({ kind: 'retention' }, (tx) => tx.$queryRaw`SELECT 1`)).rejects.toThrow(/permission denied to set role/u);
   });
 
   it('looks after something else too, whatever becomes of the purge, and says which one has failed', async () => {
     const done: string[] = [];
-    const night = (database: Database, after: () => Promise<void>) => maintenance(database, logger, after).maintenance!.purge!();
+    const night = (database: Database, after: () => Promise<void>) => maintenance(database, logger, storage, after).maintenance!.purge!();
     await night(jobs, () => Promise.resolve(void done.push('after')));
     // The API has no right to purge.
     await expect(night(api, () => Promise.resolve(void done.push('after')))).rejects.toThrow('PURGE_FAILED');

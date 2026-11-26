@@ -260,11 +260,11 @@ describe('rights of the roles inside', () => {
       'case_invoices INSERT (case_id, claimed_cents, created_at, created_by, creditor_id, due_on, external_ref, id, issued_on, number, principal_cents, principal_paid_cents, state)',
       'case_invoices SELECT (case_id, claimed_cents, created_at, created_by, creditor_id, due_on, external_ref, id, issued_on, number, principal_cents, principal_paid_cents, state)',
       'cases INSERT (contact_name, contact_title, created_at, created_by, creditor_id, debtor_address, debtor_city, debtor_id, debtor_postal_code, debtor_siret, external_reference, id, mandate_id, officer_id, opened_on, reference, scenario, status, version)',
-      'cases SELECT (closed_on, contact_name, contact_title, created_at, created_by, creditor_id, debtor_address, debtor_city, debtor_id, debtor_postal_code, debtor_siret, deposited_name, external_reference, first_letter_on, first_letter_reference, formal_notice_on, id, mandate_id, officer_id, opened_on, reference, scenario, status, version)',
+      'cases SELECT (anonymized_at, closed_on, contact_name, contact_title, created_at, created_by, creditor_id, debtor_address, debtor_city, debtor_id, debtor_postal_code, debtor_siret, deposited_name, external_reference, first_letter_on, first_letter_reference, formal_notice_on, id, mandate_id, officer_id, opened_on, purge_after, reference, scenario, status, version)',
       'notifications SELECT (action, actor_id, case_count, case_id, created_at, creditor_id, id, kind, plan_decision, plan_id, read_at, target_id, ticket_id, user_id)',
       // Documents: received in one's own name, never scanned nor filed by hand.
       'documents INSERT (author_id, case_id, category, contains_access_code, creditor_id, id, kind, original_name, scan_status, sha256, size_bytes, source, storage_key, title, visible_to_debtor)',
-      'documents SELECT (author_id, case_id, category, contains_access_code, created_at, creditor_id, id, kind, original_name, scan_status, scanned_at, sha256, shared_by, shared_with_creditor_at, size_bytes, source, storage_key, title, uploaded_by_creditor, uploaded_by_debtor, visible_to_debtor)',
+      'documents SELECT (author_id, case_id, category, contains_access_code, created_at, creditor_id, id, kind, original_name, purged_at, retention_class, scan_status, scanned_at, sha256, shared_by, shared_with_creditor_at, size_bytes, source, storage_key, title, uploaded_by_creditor, uploaded_by_debtor, visible_to_debtor)',
       'documents UPDATE (category, title)',
       'claim_imports SELECT (confirmed_at, created_at, created_count, creditor_id, id, lines, status, total_cents, uploaded_by, valid)',
       // The journal of the assistant: read with the case; the decision said by whoever acts on it.
@@ -321,7 +321,7 @@ describe('rights of the roles inside', () => {
       'mandates SELECT (amends_id, amicable_rate_bp, contract_rate_bp, created_at, created_by, creditor_id, defer_small_remittances, discount_max_bp, ends_on, fixed_indemnity, id, interest_mode, litigation_needs_consent, litigation_rate_bp, opening_fee_cents, plan_months_without_consent, reporting_day, scenario, starts_on)',
       'case_contacts SELECT (case_id, creditor_id, id, is_primary, kind, label, status, value, value_normalized)',
       'case_invoices SELECT (case_id, claimed_cents, created_at, creditor_id, due_on, external_ref, id, issued_on, number, principal_cents, principal_paid_cents, state)',
-      'cases SELECT (closed_on, contact_name, contact_title, created_at, created_by, creditor_id, debtor_address, debtor_city, debtor_id, debtor_postal_code, debtor_siret, deposited_name, external_reference, first_letter_on, first_letter_reference, formal_notice_on, id, mandate_id, officer_id, opened_on, reference, scenario, status, version)',
+      'cases SELECT (anonymized_at, closed_on, contact_name, contact_title, created_at, created_by, creditor_id, debtor_address, debtor_city, debtor_id, debtor_postal_code, debtor_siret, deposited_name, external_reference, first_letter_on, first_letter_reference, formal_notice_on, id, mandate_id, officer_id, opened_on, purge_after, reference, scenario, status, version)',
       'debtor_access_codes SELECT (code_cipher, debtor_id)',
       'debtor_access_codes UPDATE (code_cipher)',
       'interest_rates SELECT (kind, rate_bp, valid_from)',
@@ -332,7 +332,7 @@ describe('rights of the roles inside', () => {
       'plan_approvals SELECT (case_id, creditor_id, decided_at, decision, id, plan_id, step)',
       // The verdict of ClamAV, and the documents it generates.
       'documents INSERT (case_id, category, contains_access_code, creditor_id, id, kind, original_name, scan_status, scanned_at, sha256, size_bytes, source, storage_key, title, visible_to_debtor)',
-      'documents SELECT (author_id, case_id, category, contains_access_code, created_at, creditor_id, id, kind, original_name, scan_status, scanned_at, sha256, shared_with_creditor_at, size_bytes, source, storage_key, title, uploaded_by_creditor, uploaded_by_debtor, visible_to_debtor)',
+      'documents SELECT (author_id, case_id, category, contains_access_code, created_at, creditor_id, id, kind, original_name, purged_at, retention_class, scan_status, scanned_at, sha256, shared_with_creditor_at, size_bytes, source, storage_key, title, uploaded_by_creditor, uploaded_by_debtor, visible_to_debtor)',
       'documents UPDATE (scan_status, scanned_at)',
       'portal_message_attachments SELECT (case_id, creditor_id, document_id, id, message_id)',
       'portal_messages SELECT (author_id, case_id, created_at, creditor_id, id, read_by_debtor_at, read_by_staff_at, request_data, request_kind, side, text)',
@@ -378,6 +378,8 @@ describe('rights of the roles inside', () => {
       'task_keys SELECT (created_at, task_id)',
       'webhook_events DELETE (*)',
       'webhook_events SELECT (id, received_at, status)',
+      // The files of the documents erased with their case, removed from the disk.
+      'documents SELECT (purged_at, storage_key)',
     ],
     legarec_definer: [
       'audit_log DELETE (*)',
@@ -390,7 +392,7 @@ describe('rights of the roles inside', () => {
       'backup_codes SELECT (user_id)',
       'case_events INSERT (*)',
       'case_events SELECT (actor_id, case_id, creditor_id, kind, occurred_at, title)',
-      'cases UPDATE (closed_on, officer_id, status, version)',
+      'cases UPDATE (anonymized_at, closed_on, contact_name, contact_title, debtor_address, debtor_city, debtor_postal_code, debtor_siret, deposited_name, external_reference, officer_id, status, version)',
       'creditors SELECT (id, name, portal_enabled)',
       'delegations INSERT (granted_by, kind)',
       'delegations SELECT (*)',
@@ -436,7 +438,7 @@ describe('rights of the roles inside', () => {
       'case_contact_events INSERT (actor_id, actor_label, case_id, contact_id, creditor_id, what)',
       'case_contacts SELECT (case_id, created_at, creditor_id, id, kind, label, status, value, value_normalized)',
       'debtors INSERT (id, kind, legal_form_checked_at, legal_form_code, legal_form_source, name, name_confirmed, siren)',
-      'cases SELECT (closed_on, contact_name, creditor_id, debtor_address, debtor_city, debtor_id, debtor_postal_code, first_letter_on, id, mandate_id, officer_id, opened_on, reference, status, version)',
+      'cases SELECT (anonymized_at, closed_on, contact_name, creditor_id, debtor_address, debtor_city, debtor_id, debtor_postal_code, first_letter_on, id, mandate_id, officer_id, opened_on, reference, status, version)',
       'debtor_access_codes INSERT (code_cipher, debtor_id, generated_by)',
       'debtor_retired_codes INSERT (code_hmac, debtor_id)',
       'debtor_retired_codes SELECT (code_hmac, debtor_id)',
@@ -446,7 +448,7 @@ describe('rights of the roles inside', () => {
       'debtor_access_codes SELECT (code_cipher, code_hmac, debtor_id, version)',
       'debtor_access_codes UPDATE (code_cipher, code_hmac, generated_at, generated_by, version)',
       'debtors SELECT (anonymized_at, id, kind, name, name_confirmed, siren)',
-      'debtors UPDATE (kind, name, name_confirmed)',
+      'debtors UPDATE (anonymized_at, kind, legal_form_checked_at, legal_form_code, legal_form_source, name, name_confirmed, siren)',
       // Access of the debtors: their sessions and the attempts counted on their identifiers.
       'debtor_sessions DELETE (*)',
       'debtor_sessions INSERT (*)',
@@ -462,10 +464,10 @@ describe('rights of the roles inside', () => {
       'template_versions UPDATE (number, on_behalf_of_id, published_at, review_reason, reviewed_by, state, submitted_by, updated_at)',
       // Documents: shared by its function.
       'documents INSERT (category, id, kind, original_name, sha256, size_bytes, source, storage_key, title, uploaded_by_creditor, uploaded_by_debtor)',
-      'documents SELECT (case_id, contains_access_code, created_at, creditor_id, id, scan_status, shared_with_creditor_at, source, uploaded_by_creditor, uploaded_by_debtor)',
-      'documents UPDATE (case_id, creditor_id, shared_by, shared_with_creditor_at)',
+      'documents SELECT (case_id, contains_access_code, created_at, creditor_id, id, purged_at, retention_class, scan_status, shared_with_creditor_at, source, uploaded_by_creditor, uploaded_by_debtor)',
+      'documents UPDATE (case_id, creditor_id, original_name, purged_at, shared_by, shared_with_creditor_at, title, visible_to_debtor)',
       'debtor_links SELECT (case_id, debtor_id, expires_at, id, revoked_at, token_hash, uses)',
-      'ai_suggestions SELECT (cost_micro, created_at)',
+      'ai_suggestions SELECT (case_id, cost_micro, created_at)',
       'planned_reminders SELECT (case_id, done_at, due_on, id, kind)',
       // Remittances and invoices of the firm: their functions only.
       'billing_documents INSERT (*)',
@@ -506,16 +508,28 @@ describe('rights of the roles inside', () => {
       'payment_allocations INSERT (amount_cents, case_id, component, creditor_id, invoice_id, payment_id, reverses_id)',
       'payment_allocations SELECT (amount_cents, case_id, component, creditor_id, id, invoice_id, payment_id, reverses_id)',
       'payment_plans INSERT (case_id, creditor_id, first_due_on, id, method, months, on_behalf_of_id, owned_by_director, requested_by, status, threshold_months, total_cents)',
-      'payment_plans SELECT (case_id, creditor_id, id, months, requested_by, status, version)',
-      'payment_plans UPDATE (status, version)',
+      'payment_plans SELECT (accepted_ip, case_id, creditor_id, id, months, requested_by, status, version)',
+      'payment_plans UPDATE (accepted_ip, status, version)',
       'payments INSERT (amount_cents, bank, case_id, cheque_number, creditor_id, deposited_on, id, label, method, on_behalf_of_id, received_on, recorded_by, settled_at, status)',
       'payments SELECT (amount_cents, case_id, creditor_id, id, method, received_on, settled_at, settled_in_litigation, status, version)',
       'payments UPDATE (bounce_reason, bounced_at, settled_at, status, version)',
       'plan_approvals INSERT (case_id, creditor_id, plan_id, step)',
-      'plan_approvals SELECT (decision, id, plan_id, step)',
+      'plan_approvals SELECT (case_id, decision, id, plan_id, reason, step)',
       'plan_approvals UPDATE (decided_at, decided_by, decision, on_behalf_of_id, reason)',
       'receipts INSERT (case_id, creditor_id, id, number, payment_id)',
       'receipts SELECT (document_id, id, payment_id)',
+      // Retention of the cases and erasure asked by a debtor (app.forget_case), only while they forget (policies).
+      'ai_suggestions DELETE (*)',
+      'case_contact_events DELETE (*)',
+      'case_contact_events SELECT (case_id)',
+      'case_contacts DELETE (*)',
+      'case_events DELETE (*)',
+      'debtor_access_codes DELETE (*)',
+      'debtor_links DELETE (*)',
+      'debtor_retired_codes DELETE (*)',
+      'planned_reminders DELETE (*)',
+      'portal_message_attachments DELETE (*)',
+      'portal_messages DELETE (*)',
     ],
   };
   it.each(Object.entries(expected))('%s', async (role, rights) => {
@@ -574,6 +588,8 @@ describe('rights on the functions', () => {
     ['purge_audit', ['retention']],
     ['purge_sign_ins', ['retention']],
     ['anonymize_accounts', ['retention']],
+    ['anonymize_case', ['retention']],
+    ...['forget_case', 'forget_debtor', 'erasure_blockers'].map((name) => [name, []] as [string, string[]]),
     // The sign-in.
     ...['account_of', 'account_of_link', 'inviter_name', 'resume_session', 'take_attempt', 'clear_attempts', 'subject', 'proved_subject', 'tell_reset'].map(
       (name) => [name, ['auth']] as [string, string[]],
@@ -615,7 +631,9 @@ describe('rights on the functions', () => {
     ['read_portal_messages', ['debtor', 'staff']],
     ['staff_message', ['staff']],
     ...['debtor_link', 'ask_code_by_sms', 'firm_payment_settings', 'limited_message'].map((name) => [name, ['auth']] as [string, string[]]),
-    ...['gdpr_request', 'gdpr_keeper', 'gdpr_registry', 'gdpr_answer', 'gdpr_export'].map((name) => [name, ['staff']] as [string, string[]]),
+    ...['gdpr_request', 'gdpr_keeper', 'gdpr_registry', 'gdpr_answer', 'gdpr_export', 'gdpr_erasure', 'gdpr_erase'].map(
+      (name) => [name, ['staff']] as [string, string[]],
+    ),
     ...['remittance_draft', 'validate_remittances', 'mark_remittances_paid', 'remittance_batches', 'remittance_batch'].map(
       (name) => [name, ['staff']] as [string, string[]],
     ),
@@ -655,7 +673,8 @@ describe('rights on the functions', () => {
       'debtor_sign_in resume_debtor_session close_debtor_session forget_debtor_access set_code_hmac',
       'own_access_code debtor_upload debtor_message read_portal_messages staff_message creditor_decide_plan creditor_upload creditor_deposit',
       'debtor_link ask_code_by_sms firm_payment_settings limited_message',
-      'gdpr_request gdpr_keeper gdpr_registry gdpr_answer gdpr_export',
+      'gdpr_request gdpr_keeper gdpr_registry gdpr_answer gdpr_export gdpr_erasure gdpr_erase',
+      'anonymize_case forget_case forget_debtor erasure_blockers',
       'note_ai_decision ai_key ai_spent ai_budget_alert planned_contacts keep_done_reminder remittance_core creditor_payouts remittance_sources remittance_summary note_settlement remittance_draft validate_remittances mark_remittances_paid remittance_batches remittance_batch',
     ].flatMap((names) => names.split(' '));
     const found = await rows<{ proname: string }>(
