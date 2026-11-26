@@ -98,6 +98,13 @@ export class NotificationsService {
               cta: 'Voir les échéanciers',
             };
           }
+          case 'AI_BUDGET':
+            return {
+              text: 'Assistant IA : 80 % du budget du mois est dépensé. Au-delà du budget, les fonctions passent en pause jusqu’au mois suivant.',
+              meta: 'Assistant IA',
+              href: '/parametres/ia',
+              cta: 'Voir le budget',
+            };
           case 'SUBSTITUTE_NOTICE':
             return { text: `Absence de ${signed(target)} : ses dossiers ont reçu une nouveauté`, meta: 'Remplacement', ...HERE };
           default:

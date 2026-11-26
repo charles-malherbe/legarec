@@ -276,4 +276,5 @@ Les 161 routes simulées se répartissent ainsi :
 
 ## Lot W — IA (état au 26/11/2026)
 - [x] Couche fournisseur, garde-fous, budget, journal ; synthèse du dossier (régénérer, signaler)
-- [ ] Génération à l'arrivée d'un événement, alerte à 80 %, appels, e-mails, journal dans Paramètres, essai mesuré (question 106)
+- [x] Alerte à 80 % du budget au Directeur
+- [ ] Génération à l'arrivée d'un événement, appels, e-mails, journal dans Paramètres, essai mesuré (question 106)

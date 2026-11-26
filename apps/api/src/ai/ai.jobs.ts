@@ -108,6 +108,7 @@ export const aiJobs = (setup: () => AiSetup | null, vault: Pick<Vault, 'open'>):
       const user = minimize(caseSummaryInput(read.facts), read.known);
       const summary = `${read.facts.invoices.length} factures, ${read.facts.events.length} événements, ${user.length} caractères`;
       const author = String(payload.by ?? '') || null;
+      let budgetMicro = 0;
       const record = (data: {
         outcome: 'SUGGESTED' | 'REFUSED_BY_GUARD' | 'FAILED' | 'OVER_BUDGET';
         output?: object;
@@ -115,8 +116,8 @@ export const aiJobs = (setup: () => AiSetup | null, vault: Pick<Vault, 'open'>):
         outputTokens?: number;
         costMicro?: number;
       }) =>
-        asApplication((tx) =>
-          tx.aiSuggestion.create({
+        asApplication(async (tx) => {
+          await tx.aiSuggestion.create({
             data: {
               feature: 'CASE_SUMMARY',
               caseId: id,
@@ -133,8 +134,10 @@ export const aiJobs = (setup: () => AiSetup | null, vault: Pick<Vault, 'open'>):
               costMicro: BigInt(data.costMicro ?? 0),
             },
             select: { id: true },
-          }),
-        );
+          });
+          // At 80 % of the budget, the Director is told, once a month.
+          await tx.$executeRaw`SELECT app.ai_budget_alert(${BigInt(budgetMicro)}::bigint)`;
+        });
       const state = await asApplication(async (tx) => {
         const values = await SettingValues.read(tx);
         const [spent] = await tx.$queryRaw<{ micro: bigint }[]>`SELECT app.ai_spent() AS micro`;
@@ -142,6 +145,7 @@ export const aiJobs = (setup: () => AiSetup | null, vault: Pick<Vault, 'open'>):
         return { settings: aiSettings(values, 'ia4'), spent: Number(spent?.micro ?? 0n), key };
       });
       if (!state.settings.on) throw new GiveUp('AI_FEATURE_OFF');
+      budgetMicro = state.settings.budgetMicro;
       // The budget is checked before the call (docs/ia.md): over it, nothing leaves until next month.
       if (state.spent >= state.settings.budgetMicro) {
         await record({ outcome: 'OVER_BUDGET' });

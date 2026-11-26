@@ -405,7 +405,7 @@ describe('rights of the roles inside', () => {
       'notification_preferences DELETE (*)',
       'notification_preferences SELECT (user_id)',
       'notifications DELETE (*)',
-      'notifications SELECT (user_id)',
+      'notifications SELECT (created_at, kind, user_id)',
       'number_sequences INSERT (*)',
       'number_sequences SELECT (*)',
       'number_sequences UPDATE (*)',
@@ -622,7 +622,7 @@ describe('rights on the functions', () => {
     ['creditor_payouts', ['partner']],
     ['planned_contacts', ['staff']],
     ['note_ai_decision', []],
-    ...['ai_key', 'ai_spent'].map((name) => [name, ['worker']] as [string, string[]]),
+    ...['ai_key', 'ai_spent', 'ai_budget_alert'].map((name) => [name, ['worker']] as [string, string[]]),
     ['keep_done_reminder', []],
     ...['remittance_core', 'remittance_sources', 'remittance_summary', 'note_settlement'].map((name) => [name, []] as [string, string[]]),
     ...['creditor_decide_plan', 'creditor_upload', 'creditor_deposit'].map((name) => [name, ['partner']] as [string, string[]]),
@@ -656,7 +656,7 @@ describe('rights on the functions', () => {
       'own_access_code debtor_upload debtor_message read_portal_messages staff_message creditor_decide_plan creditor_upload creditor_deposit',
       'debtor_link ask_code_by_sms firm_payment_settings limited_message',
       'gdpr_request gdpr_keeper gdpr_registry gdpr_answer gdpr_export',
-      'note_ai_decision ai_key ai_spent planned_contacts keep_done_reminder remittance_core creditor_payouts remittance_sources remittance_summary note_settlement remittance_draft validate_remittances mark_remittances_paid remittance_batches remittance_batch',
+      'note_ai_decision ai_key ai_spent ai_budget_alert planned_contacts keep_done_reminder remittance_core creditor_payouts remittance_sources remittance_summary note_settlement remittance_draft validate_remittances mark_remittances_paid remittance_batches remittance_batch',
     ].flatMap((names) => names.split(' '));
     const found = await rows<{ proname: string }>(
       "SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'app' ORDER BY 1",
