@@ -52,7 +52,7 @@ Conteneurs permanents : 4,9 Go au plus. Réserver 2,5 Go pour ClamAV et n8n, à 
 - `legarec.fr` et `www.legarec.fr` restent chez leur hébergeur.
 
 ### OVHcloud Object Storage (région Paris `eu-west-par`)
-Décision du 26/11/2026 : au lieu de Scaleway ; les variables `SCW_*` ci-dessous et la configuration de pgBackRest sont à adapter au lot X. Sauvegardes chez le même fournisseur que le serveur : question 167.
+Décision du 26/11/2026 : au lieu de Scaleway ; les variables `SCW_*` ci-dessous et la configuration de pgBackRest sont à adapter au lot X. Sauvegardes chez le même fournisseur que le serveur, sans seconde copie : risque accepté par le cabinet (question 167).
 - [ ] Bucket `legarec-sauvegardes`, privé, versions activées, **clé propre à ce bucket**. Politique du bucket : cette clé ne peut ni effacer une version, ni couper les versions, ni changer le cycle de vie ; seconde clé, en lecture seule, pour l'essai de restauration.
 - [ ] Règle de cycle de vie : versions remplacées ou supprimées effacées après 7 jours.
 - [ ] Bucket `legarec-media`, public en lecture, liste du contenu désactivée, logos déposés.

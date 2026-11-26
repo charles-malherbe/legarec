@@ -143,7 +143,7 @@ Les 161 routes simulées se répartissent ainsi :
 | [ ] V | RGPD : registre, exports, anonymisation, purges | 3 |
 | [ ] W | IA : couche compatible OpenAI, essai de qualité (OVHcloud), quatre fonctions | 3 |
 | [x] X1 | Exploitation, première partie : Dockerfiles, compose, `infra/caddy/Caddyfile`, pgBackRest, Gatus, Loki, `bootstrap.sql` exécuté dans la base de l'application, sonde de santé du worker et délai d'arrêt de 90 secondes ; rien n'est déployé (`docs/deploiement.md`) | — |
-| [ ] X | Exploitation, fin : bascule finale, ClamAV et Chromium (après N), n8n, purge à la demande après une restauration, tâches planifiées bloquées après une restauration, stockage chez OVHcloud au lieu de Scaleway (variables `SCW_*`, pgBackRest, Caddy, Gatus ; question 167) ; liste complète dans `docs/deploiement.md` | — |
+| [ ] X | Exploitation, fin : bascule finale, ClamAV et Chromium (après N), n8n, purge à la demande après une restauration, tâches planifiées bloquées après une restauration, stockage chez OVHcloud au lieu de Scaleway (variables `SCW_*`, pgBackRest, Caddy, Gatus) ; liste complète dans `docs/deploiement.md` | — |
 
 **Bascule** : chaque lot ajoute ses préfixes à une liste `VITE_API` (développement) : MSW laisse passer ces routes vers l'API. La valeur par défaut bascule portail par portail : paiement après O, partenaires après P, espace après U. Chaque lot rejoue les mêmes requêtes contre MSW et contre l'API et valide les deux par le même schéma Zod. En mode mixte, un lien vers un écran non branché peut ne pas trouver le dossier (développement seulement). MSW reste pour les tests de composants.
 
