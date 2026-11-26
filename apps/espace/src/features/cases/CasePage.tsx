@@ -26,7 +26,10 @@ export function CasePage() {
         <EtatListe kind="loading" />
       </div>
     );
-  if (error instanceof ApiError && (error.status === 403 || error.status === 404)) return <AccessDenied />;
+  // A case of someone else is refused, an unknown one is not found (question 141).
+  if (error instanceof ApiError && error.status === 403)
+    return <AccessDenied text="Ce dossier est suivi par un autre collaborateur. Si vous devez y accéder, demandez-le au responsable du recouvrement." />;
+  if (error instanceof ApiError && error.status === 404) return <AccessDenied code={404} />;
   if (error || !data)
     return (
       <div className={layout.card}>

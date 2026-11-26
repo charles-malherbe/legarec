@@ -317,9 +317,11 @@ describe('who reads what', () => {
     expect(await ids('officerA')).toEqual([s.cases.ofA]);
     expect(await ids('liar')).toEqual([s.cases.ofA]);
     expect((await call('developer', 'POST', '/search', { query: '' })).status).toBe(403);
+    // A case of someone else is refused, an unknown one is not found (question 141).
     for (const [as, id, status] of [
-      ['manager', s.cases.ofDirector, 404],
-      ['officerA', s.cases.ofB, 404],
+      ['manager', s.cases.ofDirector, 403],
+      ['officerA', s.cases.ofB, 403],
+      ['officerA', randomUUID(), 404],
       ['officerA', s.cases.ofA, 200],
       ['developer', s.cases.ofA, 403],
       ['director', s.cases.ofB, 200],

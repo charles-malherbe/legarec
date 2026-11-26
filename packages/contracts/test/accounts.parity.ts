@@ -391,7 +391,8 @@ export const ACCOUNT_PARITY: Parity[] = [
   ...each(['director', 'manager'], () => ({ request: 'GET /cases/choices', status: 200, answer: caseChoices })),
   ...each(['developer', 'officer'], () => ({ request: 'GET /cases/choices', status: 403, answer: code('FORBIDDEN') })),
   ...each(['director', 'manager', 'officer'], () => ({ request: `GET /cases/${UNKNOWN}`, status: 404, answer: code('NOT_FOUND') })),
-  { as: 'manager', request: 'GET /cases/{caseOfDirector}', status: 404, answer: code('NOT_FOUND') },
+  // A case of someone else is refused, an unknown one not found (question 141).
+  { as: 'manager', request: 'GET /cases/{caseOfDirector}', status: 403, answer: code('FORBIDDEN') },
   { as: 'director', request: 'GET /cases/{caseOfDirector}', status: 200, answer: caseDetail },
   { as: 'manager', request: 'POST /cases/check', body: { creditorId: '{creditorId}', number: '' }, status: 200, answer: caseCheckResult },
   { as: 'manager', request: 'POST /cases/check', body: { creditorId: UNKNOWN, number: '' }, status: 404, answer: code('NOT_FOUND') },

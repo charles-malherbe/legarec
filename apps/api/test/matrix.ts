@@ -393,7 +393,8 @@ export const MATRIX: Record<string, MatrixEntry> = {
   },
   'GET /staff/cases/:id': {
     path: (test) => `/staff/cases/${test.s.cases.ofA}`,
-    expect: { ...withCases(200), officerB: 404 },
+    // « Accès refusé » for a case of someone else (question 141).
+    expect: { ...withCases(200), officerB: 403 },
   },
   // Held by nobody: the manager acts on it.
   'POST /staff/cases/:id/invoices': {

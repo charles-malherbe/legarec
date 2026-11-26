@@ -134,7 +134,11 @@ export class CasesService {
   async detail(actor: StaffActor, id: string): Promise<CaseDetail> {
     const { tx } = this.database;
     const [row] = await this.rows(sql`AND c.id = ${id}::uuid`);
-    if (!row) throw notFound();
+    if (!row) {
+      // « Accès refusé » for a case of someone else, as the firm wants it (question 141): the team alone is told that it exists.
+      const [known] = await tx.$queryRaw<{ found: boolean }[]>`SELECT app.case_exists(${id}::uuid) AS found`;
+      throw known?.found ? forbidden() : notFound();
+    }
     // The Director reads a case of someone else: noted once an hour.
     await tx.$executeRaw`SELECT app.note_consultation(${id}::uuid)`;
     const found = await tx.case.findUniqueOrThrow({

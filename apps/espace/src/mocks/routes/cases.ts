@@ -770,8 +770,8 @@ export const caseHandlers = [
     guarded<Info>(staffWithCases, ({ params }, session) => {
       const item = find(params.id);
       if (!item) return notFound();
-      // As the API: what is not shown does not exist.
-      if (!canReadCase(session, ownership(item))) return notFound();
+      // As the API: a case of someone else is refused, and told to exist to the team alone (question 141).
+      if (!canReadCase(session, ownership(item))) return forbidden();
       if (session.role === 'DIRECTOR' && item.officerId !== session.userId && !extra[item.id]?.history.some((entry) => entry.title === 'Dossier consulté'))
         log(item.id, session, 'Dossier consulté', 'Consultation par le Directeur', 'neutral');
       return HttpResponse.json(detailOf(item, session));

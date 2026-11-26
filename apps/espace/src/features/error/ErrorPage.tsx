@@ -52,17 +52,18 @@ export function ErrorPage({ code = 404, reference }: { code?: keyof typeof CONTE
   );
 }
 
-/** Shown inside the shell when the current role cannot open a screen. */
-export function AccessDenied() {
+/** Shown inside the shell when the current role cannot open a screen, or what it asks for is not found. */
+export function AccessDenied({ code = 403, text }: { code?: 403 | 404; text?: string }) {
+  const content = CONTENT[code];
   return (
     <section className={css.denied} aria-labelledby="acces-refuse">
       <h1 id="acces-refuse" className={css.deniedTitle}>
-        {CONTENT[403].title}
+        {content.title}
       </h1>
-      <p className={css.text}>{CONTENT[403].text}</p>
+      <p className={css.text}>{text ?? content.text}</p>
       <div className={css.actions}>
         <Bouton label="Retour au tableau de bord" href="/" />
-        <Bouton variant="secondary" label={CONTENT[403].label} href="/compte" />
+        <Bouton variant="secondary" label={content.label} href={content.href} />
       </div>
     </section>
   );

@@ -37,3 +37,18 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public, pg_te
 $$;
 RESET ROLE;
 REVOKE CREATE ON SCHEMA app FROM legarec_definer;
+
+-- ---------------------------------------------------------------- Question 141: « Accès refusé » for a case of someone else
+
+-- Whether a case exists, nothing more, and to the team alone: a creditor or a debtor is never told (they are not granted it,
+-- and app.staff_role() is null for them).
+GRANT CREATE ON SCHEMA app TO legarec_definer;
+SET LOCAL ROLE legarec_definer;
+CREATE FUNCTION app.case_exists(target uuid) RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+  SELECT app.staff_role() IS NOT NULL AND EXISTS (SELECT 1 FROM public.cases c WHERE c.id = target)
+$$;
+REVOKE ALL ON FUNCTION app.case_exists(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION app.case_exists(uuid) TO legarec_staff;
+RESET ROLE;
+REVOKE CREATE ON SCHEMA app FROM legarec_definer;
