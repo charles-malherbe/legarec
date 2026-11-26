@@ -583,17 +583,17 @@ describe('pieces of accounting, ten years after the end of their year', () => {
     return made;
   };
   /** A batch paid on `day`, its remittance issuing an invoice of the same day, a line per payment. */
-  const batch = async (day: string, payments: { case: string; id: string }[]) => {
+  const batch = async (day: string, payments: { case: string; id: string }[], paid = true) => {
     const made = await one(
       `INSERT INTO remittance_batches (covers_until, status, total_cents, transfers, validated_by, validated_at, paid_on)
-       VALUES ($1::date, 'PAID', 1000, 1, $2, $1::date, $1::date) RETURNING id`,
-      [day, s.director],
+       VALUES ($1::date, $3, 1000, 1, $2, $1::date, ${paid ? '$1::date' : 'NULL'}) RETURNING id`,
+      [day, s.director, paid ? 'PAID' : 'VALIDATED'],
     );
     const issued = await invoice(day);
     const remittance = await one(
       `INSERT INTO remittances (batch_id, creditor_id, state, payments, collected_cents, fee_net_cents, fee_vat_cents, fee_gross_cents, to_pay_cents, invoice_id)
-       VALUES ($1, $2, 'PAID', $3, 1000, 100, 20, 120, 880, $4) RETURNING id`,
-      [made, creditor, payments.length, issued],
+       VALUES ($1, $2, $5, $3, 1000, 100, 20, 120, 880, $4) RETURNING id`,
+      [made, creditor, payments.length, issued, paid ? 'PAID' : 'READY'],
     );
     for (const paid of payments)
       await rows(
@@ -628,10 +628,10 @@ describe('pieces of accounting, ten years after the end of their year', () => {
     const gone = await caseOf();
     const goneCash = await payment(gone, old);
     const goneBatch = await batch(old, [{ case: gone, id: goneCash.id }]);
-    await rows("INSERT INTO credit_note_drafts (invoice_id, scope, lines, reason, created_by) VALUES ($1, 'TOTAL', '[]', '', $2)", [
-      goneBatch.invoice,
-      s.director,
-    ]);
+    await rows(
+      "INSERT INTO credit_note_drafts (invoice_id, scope, lines, reason, created_by, updated_at) VALUES ($1, 'TOTAL', '[]', '', $2, now() - interval '31 days')",
+      [goneBatch.invoice, s.director],
+    );
     // The same, but its payment came on the first day of the next year: ten years less a day after the close.
     const kept = await caseOf();
     const keptCash = await payment(kept, young);
@@ -665,6 +665,10 @@ describe('pieces of accounting, ten years after the end of their year', () => {
   it('keeps a batch while one of its cases is not anonymized, or still has a payment to remit', async () => {
     const open = await caseOf(false);
     const openBatch = await batch(old, [{ case: open, id: (await payment(open, old)).id }]);
+    // Validated eleven years ago and never marked as paid: the creditor has not been paid.
+    const unpaid = await caseOf();
+    const unpaidCash = await payment(unpaid, old);
+    const unpaidBatch = await batch(old, [{ case: unpaid, id: unpaidCash.id }], false);
     const owed = await caseOf();
     const owedBatch = await batch(old, [{ case: owed, id: (await payment(owed, old)).id }]);
     // Cashed, never remitted: the creditor is owed it, and the opening fee of the case would be taken again.
@@ -672,6 +676,9 @@ describe('pieces of accounting, ten years after the end of their year', () => {
     expect(await purge(jobs, logger, storage)).toMatchObject({ remittances: 0, payments: 0 });
     expect(await exists('remittance_batches', openBatch.id)).toBe(true);
     expect(await exists('remittance_batches', owedBatch.id)).toBe(true);
+    expect(await exists('remittance_batches', unpaidBatch.id)).toBe(true);
+    expect(await exists('payments', unpaidCash.id)).toBe(true);
+    expect(await purged(unpaidCash.receipt.id)).toBe(false);
     expect(await count('payments', owed)).toBe(2);
   });
 
@@ -698,6 +705,9 @@ describe('pieces of accounting, ten years after the end of their year', () => {
     expect(await purge(jobs, logger, storage)).toMatchObject({ invoices: 0 });
     expect(await exists('billing_documents', lone)).toBe(true);
     await backdate(lateNote);
+    // An invoice being corrected (a draft changed in the last 30 days): kept, the draft with it.
+    const drafted = await invoice(old);
+    await rows("INSERT INTO credit_note_drafts (invoice_id, scope, lines, reason, created_by) VALUES ($1, 'TOTAL', '[]', '', $2)", [drafted, s.director]);
     // A credit note waiting for the next remittance: money still owed, kept.
     const waiting = await invoice(old);
     await creditNote(waiting, old, null);
@@ -705,6 +715,7 @@ describe('pieces of accounting, ten years after the end of their year', () => {
     expect(await exists('billing_documents', lone)).toBe(false);
     expect(await exists('billing_documents', lateNote)).toBe(false);
     expect(await exists('billing_documents', waiting)).toBe(true);
+    expect(await exists('credit_note_drafts', drafted, 'invoice_id')).toBe(true);
   });
 
   it('removes a bounced payment never remitted, and the files an anonymized case kept for accounting', async () => {
@@ -716,12 +727,13 @@ describe('pieces of accounting, ten years after the end of their year', () => {
     const statement = await file(null, 'REMITTANCE', old);
     const living = await caseOf(false);
     const livingPlan = await file(living, 'PAYMENT_PLAN', old);
-    expect(await purge(jobs, logger, storage)).toMatchObject({ payments: 1, 'accounting-documents': 2, 'document-files': 3 });
+    expect(await purge(jobs, logger, storage)).toMatchObject({ payments: 1, 'accounting-documents': 1, 'document-files': 2 });
     expect(await exists('payments', bounced.id)).toBe(false);
     expect(await exists('payments', recent.id)).toBe(true);
     expect(await purged(bounced.receipt.id)).toBe(true);
     expect(await purged(recent.receipt.id)).toBe(false);
-    expect([await purged(plan.id), await purged(statement.id), await purged(youngPlan.id), await purged(livingPlan.id)]).toEqual([true, true, false, false]);
+    // A statement without a case says nothing of whether its batch stays: kept.
+    expect([await purged(plan.id), await purged(statement.id), await purged(youngPlan.id), await purged(livingPlan.id)]).toEqual([true, false, false, false]);
     await expect(storage.read(plan.key)).rejects.toThrow();
   });
 
