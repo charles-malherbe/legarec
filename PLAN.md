@@ -274,6 +274,7 @@ Les 161 routes simulées se répartissent ainsi :
 - [x] API des reversements : calcul unique en SQL, validation avec valeurs attendues, créancier retenu avec motif, factures de commission, « marquer comme versés »
 - [x] Écran « Reversements » (`/facturation/reversements`) : lot à valider, créancier retenu avec motif, validation, virements à faire, « Marquer comme versés »
 - [x] Avoirs `AV-AAAA-NNNN` (API et écran Facturation) : bouton « Avoir » sur chaque facture émise, onglet « Avoirs », type « Avoir » dans « + Créer depuis un modèle », brouillons, statuts dérivés « Avoir partiel » et « Annulée par avoir », avoir rendu au prochain reversement (questions 170 à 174)
+- [x] Question 172 : un brouillon d'avoir est à son auteur seul (politique `definer_own` de `credit_note_drafts`), qui seul le lit, le modifie, le supprime ou émet l'avoir
 - [ ] PDF de la facture et de l'avoir (aucun gabarit de facture encore), envoi de l'avoir au créancier (V3, lot R), « Préparer l'avoir » depuis Reversements (reprises), détail des encaissements par créancier, relevés PDF et envois, reprises (questions 156 à 159)
 
 ## Lot Q — Envois (état au 26/11/2026)

@@ -125,6 +125,18 @@ describe('credit notes', () => {
     expect(screen.queryByText(/Avoir AV-.* émis/u)).toBeNull();
   });
 
+  it('keeps a draft to its author alone (question 172)', async () => {
+    const draft = { invoiceId: 'FA-2026-0116', scope: 'TOTAL', lines: [], reason: 'À revoir', followUp: 'DEDUCTED' };
+    const made = await call('cl', '/credit-notes/drafts', draft);
+    const { id } = (await made.json()) as { id: string };
+    const drafts = async (account: string) => ((await (await call(account, '/credit-notes')).json()) as { drafts: { id: string }[] }).drafts;
+    expect((await drafts('cl')).map((item) => item.id)).toContain(id);
+    expect((await drafts('ad')).map((item) => item.id)).not.toContain(id);
+    expect((await call('ad', `/credit-notes/drafts/${id}`, undefined, 'DELETE')).status).toBe(404);
+    expect((await call('ad', `/credit-notes/drafts/${id}`, { ...draft, reason: 'Autre' }, 'PUT')).status).toBe(404);
+    expect((await call('cl', `/credit-notes/drafts/${id}`, undefined, 'DELETE')).status).toBe(204);
+  });
+
   it('never takes another invoice for a draft whose invoice is cancelled since', async () => {
     fillFirm();
     const draft = { invoiceId: 'FA-2026-0114', scope: 'TOTAL', lines: [], reason: 'À revoir', followUp: 'DEDUCTED' };

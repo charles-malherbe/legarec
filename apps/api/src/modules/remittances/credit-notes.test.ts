@@ -247,7 +247,7 @@ describe('a credit note', () => {
     ).toEqual([{ actor_id: test.s.manager, on_behalf_of_id: test.s.director }]);
   });
 
-  it('is first a draft without a number, changed or deleted, and leaves with its issuance', async () => {
+  it('is first a draft without a number, its author’s alone (question 172), changed or deleted, and leaves with its issuance', async () => {
     await fillFirm();
     const { invoice } = await settledInvoice('Brouillon Delta');
     const body = { invoiceId: invoice.id, scope: 'PARTIAL', lines: [{ lineId: invoice.lines[0]!.id, net: 500 }], reason: '', followUp: null };
@@ -255,13 +255,19 @@ describe('a credit note', () => {
     expect(made.status, JSON.stringify(made.body)).toBe(200);
     const { id } = made.body as { id: string };
     expect((await call('manager', 'PUT', `/credit-notes/drafts/${id}`, { ...body, reason: 'Erreur de taux', followUp: 'TRANSFER' })).status).toBe(204);
-    expect((await read()).drafts.find((item) => item.id === id)).toMatchObject({
+    expect((await read('manager')).drafts.find((item) => item.id === id)).toMatchObject({
       invoice: invoice.number,
       reason: 'Erreur de taux',
       followUp: 'TRANSFER',
       lines: [{ lineId: invoice.lines[0]!.id, net: 500 }],
     });
     expect(await rows('SELECT 1 FROM billing_documents WHERE corrected_id = $1', [invoice.id])).toEqual([]);
+    // Its author's alone: the Director neither reads, changes, deletes nor issues it; it is as if it did not exist.
+    expect((await read()).drafts.find((item) => item.id === id)).toBeUndefined();
+    expect((await call('director', 'PUT', `/credit-notes/drafts/${id}`, { ...body, reason: 'Autre' })).status).toBe(404);
+    expect((await call('director', 'DELETE', `/credit-notes/drafts/${id}`)).status).toBe(404);
+    expect((await issue(invoice, { followUp: 'TRANSFER', lines: body.lines, draftId: id })).status).toBe(409);
+    expect(await rows('SELECT reason FROM credit_note_drafts WHERE id = $1', [id])).toEqual([{ reason: 'Erreur de taux' }]);
     // Another invoice for the same draft, or a line of another invoice: refused.
     expect((await call('manager', 'PUT', `/credit-notes/drafts/${id}`, { ...body, invoiceId: randomUUID() })).status).toBe(404);
     expect((await call('manager', 'POST', '/credit-notes/drafts', { ...body, lines: [{ lineId: randomUUID(), net: 1 }] })).status).toBe(422);
@@ -271,17 +277,17 @@ describe('a credit note', () => {
     expect((await call('director', 'DELETE', `/credit-notes/drafts/${other}`)).status).toBe(404);
     // The draft of another invoice: what would be issued is not what was shown.
     const elsewhere = await settledInvoice('Ailleurs Delta');
-    expect((await issue(elsewhere.invoice, { followUp: 'TRANSFER', lines: [{ lineId: elsewhere.invoice.lines[0]!.id, net: 100 }], draftId: id })).status).toBe(
-      409,
-    );
-    expect((await read()).drafts.find((item) => item.id === id)).toBeDefined();
+    expect(
+      (await issue(elsewhere.invoice, { followUp: 'TRANSFER', lines: [{ lineId: elsewhere.invoice.lines[0]!.id, net: 100 }], draftId: id }, 'manager')).status,
+    ).toBe(409);
+    expect((await read('manager')).drafts.find((item) => item.id === id)).toBeDefined();
     // Created and deleted: in the audit, without what was typed.
     expect(await rows('SELECT action, params FROM audit_log WHERE entity_id = $1 ORDER BY occurred_at', [other])).toEqual([
       { action: 'CREDIT_NOTE_DRAFT_SAVED', params: {} },
       { action: 'CREDIT_NOTE_DRAFT_DELETED', params: {} },
     ]);
-    expect((await issue(invoice, { followUp: 'TRANSFER', lines: body.lines, draftId: id })).status).toBe(200);
-    expect((await read()).drafts.find((item) => item.id === id)).toBeUndefined();
+    expect((await issue(invoice, { followUp: 'TRANSFER', lines: body.lines, draftId: id }, 'manager')).status).toBe(200);
+    expect((await read('manager')).drafts.find((item) => item.id === id)).toBeUndefined();
   });
 
   it('takes the tax of a line in proportion, never more than is left of it', async () => {

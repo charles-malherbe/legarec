@@ -7,6 +7,7 @@ import {
   type CreditNoteDraft,
   type CreditNoteRow,
   type CreditNotesData,
+  type Session,
 } from '@legarec/contracts';
 import { http, HttpResponse } from 'msw';
 import { audit } from '../audit';
@@ -74,7 +75,9 @@ const seedItems = (): Credit[] => [
   },
 ];
 let items = seedItems();
-let drafts: CreditNoteDraft[] = [];
+/** As the API: a draft is its author's alone (question 172). */
+let drafts: (CreditNoteDraft & { author: string })[] = [];
+const mine = (session: Session) => drafts.filter((item) => item.author === session.userId);
 export const resetCreditNotes = () => {
   items = seedItems();
   drafts = [];
@@ -97,7 +100,7 @@ export const correctedStatus = (number: string): 'Avoir partiel' | 'Annulée par
   if (!source || !items.some((item) => item.invoiceId === source.id)) return null;
   return leftOf(source) > 0 ? 'Avoir partiel' : 'Annulée par avoir';
 };
-const data = (): CreditNotesData => ({
+const data = (session: Session): CreditNotesData => ({
   invoices: INVOICES.filter((item) => leftOf(item) > 0).map((item) => ({
     ...item,
     left: leftOf(item),
@@ -108,7 +111,7 @@ const data = (): CreditNotesData => ({
     ...item,
     invoiceStatus: INVOICES.some((source) => source.id === item.invoiceId && leftOf(source) > 0) ? 'PARTIAL' : 'CANCELLED',
   })),
-  drafts,
+  drafts: mine(session).map(({ author: _author, ...draft }) => draft),
   nextNumber: `AV-2026-${String(items.length + 1).padStart(4, '0')}`,
   nextRemittance: '2026-12-15',
   firm: {
@@ -126,7 +129,7 @@ const invalid = () => HttpResponse.json({ code: 'INVALID' }, { status: 422 });
 export const creditNoteHandlers = [
   http.get(
     '/api/credit-notes',
-    guarded(canAccessBilling, () => HttpResponse.json(data())),
+    guarded(canAccessBilling, (_info, session) => HttpResponse.json(data(session))),
   ),
   http.post(
     '/api/credit-notes',
@@ -134,7 +137,7 @@ export const creditNoteHandlers = [
       const parsed = creditNoteIssue.safeParse(await request.json());
       if (!parsed.success) return invalid();
       const body = parsed.data;
-      const firm = data().firm;
+      const firm = data(session).firm;
       // The value between brackets, or the name of the field left empty.
       const missing = Object.entries(firm).flatMap(([field, value]) => (!value.trim() ? [field] : (value.match(PLACEHOLDER) ?? []).slice(0, 1)));
       if (missing.length) return HttpResponse.json({ code: 'FIRM_INCOMPLETE', missing }, { status: 409 });
@@ -142,7 +145,7 @@ export const creditNoteHandlers = [
       if (!source) return notFound();
       const left = leftOf(source);
       if (left !== body.expectedLeft || left <= 0) return HttpResponse.json({ code: 'CHANGED' }, { status: 409 });
-      if (body.draftId && !drafts.some((item) => item.id === body.draftId && item.invoiceId === source.id))
+      if (body.draftId && !mine(session).some((item) => item.id === body.draftId && item.invoiceId === source.id))
         return HttpResponse.json({ code: 'CHANGED' }, { status: 409 });
       if ((source.settledOn !== null) !== (body.followUp !== 'DEDUCTED')) return invalid();
       const known = linesLeft(source);
@@ -161,7 +164,7 @@ export const creditNoteHandlers = [
       const net = lines.reduce((sum, item) => sum + item.net, 0);
       const vat = lines.reduce((sum, item) => sum + item.vat, 0);
       if (net + vat <= 0) return invalid();
-      const number = data().nextNumber;
+      const number = data(session).nextNumber;
       items = [
         {
           id: number,
@@ -190,23 +193,26 @@ export const creditNoteHandlers = [
   ),
   http.post(
     '/api/credit-notes/drafts',
-    guarded<Info>(canAccessBilling, async ({ request }) => {
+    guarded<Info>(canAccessBilling, async ({ request }, session) => {
       const parsed = creditNoteDraftBody.safeParse(await request.json());
       if (!parsed.success) return invalid();
       const source = INVOICES.find((item) => item.id === parsed.data.invoiceId);
       if (!source) return notFound();
       if (parsed.data.lines.some((item) => !source.lines.some((entry) => entry.id === item.lineId))) return invalid();
       const id = crypto.randomUUID();
-      drafts = [{ ...parsed.data, id, invoice: source.number, client: source.client.name, updatedAt: new Date().toISOString() }, ...drafts];
+      drafts = [
+        { ...parsed.data, id, invoice: source.number, client: source.client.name, updatedAt: new Date().toISOString(), author: session.userId },
+        ...drafts,
+      ];
       return HttpResponse.json({ id });
     }),
   ),
   http.put(
     '/api/credit-notes/drafts/:id',
-    guarded<Info>(canAccessBilling, async ({ request, params }) => {
+    guarded<Info>(canAccessBilling, async ({ request, params }, session) => {
       const parsed = creditNoteDraftBody.safeParse(await request.json());
       if (!parsed.success) return invalid();
-      const draft = drafts.find((item) => item.id === params.id && item.invoiceId === parsed.data.invoiceId);
+      const draft = mine(session).find((item) => item.id === params.id && item.invoiceId === parsed.data.invoiceId);
       if (!draft) return notFound();
       drafts = drafts.map((item) => (item === draft ? { ...item, ...parsed.data, updatedAt: new Date().toISOString() } : item));
       return done();
@@ -214,8 +220,8 @@ export const creditNoteHandlers = [
   ),
   http.delete(
     '/api/credit-notes/drafts/:id',
-    guarded<Info>(canAccessBilling, ({ params }) => {
-      if (!drafts.some((item) => item.id === params.id)) return notFound();
+    guarded<Info>(canAccessBilling, ({ params }, session) => {
+      if (!mine(session).some((item) => item.id === params.id)) return notFound();
       drafts = drafts.filter((item) => item.id !== params.id);
       return done();
     }),
