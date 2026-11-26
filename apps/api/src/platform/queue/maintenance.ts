@@ -32,6 +32,8 @@ const STEPS: readonly [kind: string, remove: (tx: Transaction) => Promise<number
   ['claim-deposits', (tx) => tx.$executeRaw`DELETE FROM claim_deposits WHERE status <> 'PENDING' AND decided_at < now() - interval '30 days'`],
   // A file of a creditor that no case took within 30 days (never deposited, or its deposit refused); one waiting stays.
   ['creditor-files', async (tx) => counted(await tx.$queryRaw`SELECT app.purge_waiting_files() AS removed`)],
+  // The history of an anonymized case, line by line, as the pieces of accounting: ten years after the end of its year (question 192).
+  ['case-history', async (tx) => counted(await tx.$queryRaw`SELECT app.purge_old_history() AS removed`)],
   // Drafts of credit notes left aside, 30 days after their last change.
   ['credit-note-drafts', (tx) => tx.$executeRaw`DELETE FROM credit_note_drafts WHERE updated_at < now() - interval '30 days'`],
   // Messages without a code, unverified: 6 months.

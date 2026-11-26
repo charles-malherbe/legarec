@@ -10,6 +10,13 @@ import { ApiError, conflict, notFound } from '../../platform/errors/api-error';
 import { dayOf } from '../../platform/format';
 import { dayText } from '../creditors/mandates';
 
+/**
+ * The name the creditor reads: the one it gave, else the one known; never on a case anonymized, though its debtor, who has
+ * another case still open, keeps their name (forgotten with their last case).
+ */
+const shownName = (row: { depositedName: string | null; anonymizedAt: Date | null; debtor: { name: string } }) =>
+  row.anonymizedAt ? 'Débiteur anonymisé' : (row.depositedName ?? row.debtor.name);
+
 const STATUS: Record<string, PortalStatus> = {
   NEW: 'NEW',
   OVERDUE: 'REMINDING',
@@ -46,6 +53,7 @@ export class PortalService {
         openedOn: true,
         closedOn: true,
         depositedName: true,
+        anonymizedAt: true,
         debtor: { select: { name: true } },
         invoices: { select: { principalCents: true } },
         payments: { select: { amountCents: true, status: true, receivedOn: true } },
@@ -61,7 +69,7 @@ export class PortalService {
       id: row.id,
       status: STATUS[row.status] ?? 'REMINDING',
       // The name it gave, when it deposited the claim: never the one the firm knows from elsewhere.
-      debtor: row.depositedName ?? row.debtor.name,
+      debtor: shownName(row),
       externalReference: row.externalReference ?? '—',
       reference: row.reference,
       invoices: plural(row.invoices.length, 'facture'),
@@ -101,7 +109,7 @@ export class PortalService {
         thresholdMonths: true,
         installments: { orderBy: { number: 'asc' }, take: 1, select: { amountCents: true } },
         approvals: { where: { step: 'CREDITOR' }, select: { decision: true, decidedAt: true } },
-        case: { select: { reference: true, depositedName: true, debtor: { select: { name: true } } } },
+        case: { select: { reference: true, depositedName: true, anonymizedAt: true, debtor: { select: { name: true } } } },
       },
     });
     const recent = Date.now() - 30 * 86_400_000;
@@ -110,7 +118,7 @@ export class PortalService {
       .map((plan) => ({
         id: plan.id,
         caseId: plan.caseId,
-        debtor: plan.case.depositedName ?? plan.case.debtor.name,
+        debtor: shownName(plan.case),
         reference: plan.case.reference,
         months: plan.months,
         installment: plan.installments[0]?.amountCents ?? 0,
@@ -151,7 +159,7 @@ export class PortalService {
       };
     });
     const activity = rows
-      .flatMap((row) => row.events.map((event) => ({ ...event, who: row.depositedName ?? row.debtor.name })))
+      .flatMap((row) => row.events.map((event) => ({ ...event, who: shownName(row) })))
       .sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime())
       .slice(0, 6)
       .map((event) => ({
