@@ -205,7 +205,7 @@ Les 161 routes simulées se répartissent ainsi :
 - [x] Dépôt d'une créance (dossier sans gestionnaire, fonction SQL), pièces du créancier analysées (2 routes)
 - [x] Imports CSV et Excel (rapport ligne par ligne, confirmation) (2 routes)
 - [x] Relecture sécurité : dépôt sans fuite de l'existence d'un SIREN, nom donné gardé sur le dossier et vérifié par l'équipe, nom d'un débiteur nommé par un créancier remplacé par celui de l'équipe, pièces rattachées sous verrou, politiques limitées au créancier, limite de 500 dépôts par jour. Reportés : doublons probables des particuliers, `note_contact` des coordonnées déposées, notification du Responsable, purge des pièces sans dossier (X), même règle de mandat en vigueur pour l'équipe
-- [ ] Messages du créancier ; relevés (avec S)
+- [ ] Relevés (avec S) ; portail sans messagerie : onglet « Messages », sa page, ses 3 routes simulées et le badge retirés, aide du portail réécrite (question 162)
 
 ## Points à reprendre du front
 
@@ -258,7 +258,7 @@ Les 161 routes simulées se répartissent ainsi :
 
 ## Lot U — Pilotage (état au 26/11/2026)
 - [x] Tableau de bord de l'espace sur l'API (encours, recouvré, balance âgée, créanciers, débiteurs, fil, priorités marquées par personne), objectifs facultatifs
-- [ ] Contentieux, rapports, équipe (présence et appels avec T), score de risque
+- [ ] Contentieux en suivi minimal (question 163 : étape, juridiction, intervenant), rapports, équipe (présence et appels avec T), score de risque
 
 ## Lot V — RGPD (état au 26/11/2026)
 - [x] Registre des demandes, réponse motivée, export des données d'un débiteur (journalisé)

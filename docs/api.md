@@ -206,7 +206,6 @@ Tâche née d'un utilisateur : `outbox.actor_kind`, `actor_id` et `acting_for`, 
 | `creditor_contacts` | creditor_id, name, title, email, phone, is_main | UQ partiel principal | CRED |
 | `creditor_bank_accounts` | creditor_id, holder, iban_cipher, iban_last4, bic, valid_from, valid_until? | — | ADMIN |
 | `mandates` | creditor_id, contract_document_id?, starts_on, ends_on?, status, amicable_rate_bp, litigation_rate_bp, opening_fee_cents, plan_months_without_consent, discount_max_bp, litigation_needs_consent, interest_mode, contract_rate_bp?, fixed_indemnity, reporting_day, scenario_id? | EXCLUDE chevauchement actif | CRED |
-| `creditor_threads`, `creditor_messages` | creditor_id, case_id?, subject, reference_label, last_message_at ; author_side, author_id, text, read_at? | index (creditor_id, last_message_at) | THREAD |
 
 **Débiteurs** (`debtors`, `debtor-access`)
 | Table | Colonnes utiles | Contraintes, index | RLS |
@@ -273,8 +272,7 @@ Tâche née d'un utilisateur : `outbox.actor_kind`, `actor_id` et `acting_for`, 
 **Contentieux, facturation, dépôts, pilotage**
 | Table | Colonnes utiles | Contraintes, index | RLS |
 |---|---|---|---|
-| `litigation_files`, `litigation_acts`, `procedure_costs` | [c+cr], stage, procedure, court, partner_id?, consent_status, consent_document_id?, next_deadline? ; title, occurred_on?, state, document_id? ; label, amount_cents, billed_document_id? | UQ case_id | CASE |
-| `litigation_partners` | name, kind, email, phone, active | — | CRED |
+| `litigation_files`, `procedure_costs` | [c+cr], stage, court, partner_name, consent_status, consent_document_id? ; label, amount_cents, billed_document_id? | UQ case_id | CASE |
 | `prospects`, `billing_documents`, `billing_lines` | type (INVOICE, QUOTE, CONTRACT, CREDIT_NOTE), number?, client_creditor_id?, prospect_id?, status, issued_on?, due_on?, net_cents, vat_rate_bp, vat_cents, gross_cents, operation_category, vat_on_debits, terms, document_id?, corrected_id?, issued_by?, on_behalf_of_id?, snapshot ; label, quantity, unit_price_cents | UQ number ; **immuable une fois émis** (déclencheur) | ADMIN |
 | `remittance_batches`, `remittances`, `remittance_lines` | period, status, validated_by?, on_behalf_of_id?, paid_on? ; creditor_id, collected_cents, fee_cents, vat_cents, net_cents, invoice_id?, statement_document_id? ; [c+cr], payment_id, kind (COLLECTION, REVERSAL, CARRY_OVER, COST) | UQ payment_id par type ; UQ (batch, creditor) | ADMIN ; créancier : les siens |
 | `claim_imports`, `claim_import_lines` | creditor_id, uploaded_by, document_id, status, lines, valid, total_cents, confirmed_at?, expires_at ; line, data, error_message?, case_id? | rien de créé avant confirmation | THREAD |
