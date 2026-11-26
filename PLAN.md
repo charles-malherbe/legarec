@@ -228,7 +228,7 @@ Les 161 routes simulées se répartissent ainsi :
 | Échec d'envoi et quota par boîte : compteur dans Valkey, plus en mémoire | R |
 | Écran Secrets : liste de noms attendus, « Renouveler » qui demande la nouvelle valeur, « Révoquer » masqué pour les clés internes, `SESSION_SIGNING_KEY` retirée, « Environnement » réel (108 à 110) | L |
 | Appels : « Transcription en direct » devient une transcription proposée après l'appel (question 72) | W |
-| Tableau des permissions : « Valider un échéancier, une remise ou un abandon de créance », « Ses dossiers » pour le Directeur (question 86) ; « Validations » : accord du créancier après celui du Responsable | M |
+| Tableau des permissions : « Valider un échéancier, une remise ou un abandon de créance », « Ses dossiers » pour le Directeur (question 86) ; « Validations » : accord du créancier après celui du Responsable : fait (lot F1) | M |
 | Portail paiement : mêmes règles que les deux autres au changement de personne (`key`, autres onglets, déconnexion non reçue) | O |
 | Caddy masque les jetons des liens de réinitialisation et d'invitation dans ses journaux (`docs/api.md`) : fait, aucun chemin n'est journalisé, vérifié à chaque changement par GitHub Actions (`infra/ci/smoke.sh`) | X1 |
 | Remplaçant : notifications neutres à envoyer avec celles des dossiers (texte de Mon compte déjà ajusté) | L |

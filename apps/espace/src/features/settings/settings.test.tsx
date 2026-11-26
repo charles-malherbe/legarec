@@ -60,6 +60,22 @@ describe('settings', () => {
     expect((await call('ad', '/settings/firm/cabinet?version=0', { iban: '[IBAN DU COMPTE DÉDIÉ]' }, 'PUT')).status).toBe(204);
     expect(await (await call('ad', '/settings/technical/audit')).text()).not.toContain('Identifiants du cabinet modifiés');
   });
+  it('lets the Director validate a plan on his own cases only, then the creditor agree (question 86)', async () => {
+    const roles = openAs('ad', '/parametres/roles');
+    const row = (await screen.findByRole('cell', { name: 'Valider un échéancier, une remise ou un abandon de créance' })).closest('tr')!;
+    expect(within(row).getAllByRole('cell').map((cell) => cell.textContent)).toEqual([
+      'Valider un échéancier, une remise ou un abandon de créance',
+      'Non',
+      'Ses dossiers',
+      'Oui',
+      'Non',
+    ]);
+    roles.unmount();
+    openAs('ad', '/parametres/regles');
+    expect(
+      await screen.findByText('Validation par le Responsable du recouvrement (par le Directeur sur ses dossiers), puis accord du créancier'),
+    ).toBeVisible();
+  });
   it('keeps technical settings for the Developer and the Director', async () => {
     openAs('cl', '/parametres/techniques');
     expect(await screen.findByText('Réservé au rôle Développeur')).toBeVisible();
