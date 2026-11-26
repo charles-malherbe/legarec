@@ -47,10 +47,10 @@ export const newReminder = z.object({
 export const reminderTargets = z.object({ items: z.array(z.object({ id: z.string(), name: z.string(), creditor: z.string() })) });
 export const reminderPlanned = z.object({ id: z.string(), limit: z.string().nullable() });
 
-export const planState = z.enum(['ON_TRACK', 'LATE', 'DEFAULT', 'WAITING_CREDITOR', 'WAITING_DEBTOR']);
+/** In default from the first installment missed (question 145): no « late » plan. */
+export const planState = z.enum(['ON_TRACK', 'DEFAULT', 'WAITING_CREDITOR', 'WAITING_DEBTOR']);
 export const PLAN_STATE_LABELS: Record<z.infer<typeof planState>, string> = {
   ON_TRACK: 'À jour',
-  LATE: 'En retard',
   DEFAULT: 'En défaut',
   WAITING_CREDITOR: 'Accord créancier',
   /** Hors maquette : proposé, pas encore accepté dans l'espace du débiteur (question 145). */

@@ -5839,7 +5839,7 @@ export interface operations {
                             creditor: string;
                             total: number;
                             /** @enum {string} */
-                            state: "ON_TRACK" | "LATE" | "DEFAULT" | "WAITING_CREDITOR" | "WAITING_DEBTOR";
+                            state: "ON_TRACK" | "DEFAULT" | "WAITING_CREDITOR" | "WAITING_DEBTOR";
                             /** @enum {string} */
                             method: "CHEQUE" | "TRANSFER";
                             installments: {

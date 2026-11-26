@@ -308,6 +308,19 @@ describe('payment plans', () => {
     expect((await plans('officerB')).plans.some((item) => item.caseId === id)).toBe(false);
   });
 
+  it('is in default from the first installment missed, never « late » (question 145)', async () => {
+    const id = await makeCase(test.s.officerA, [90_000], 'INDIVIDUAL');
+    expect((await call('officerA', 'POST', '/payment-plans', { caseId: id, months: 3, method: 'TRANSFER', expected: 90_000 })).status).toBe(204);
+    await rows("UPDATE payment_plans SET status = 'ACTIVE' WHERE case_id = $1", [id]);
+    expect((await plans('officerA')).plans.find((item) => item.caseId === id)?.state).toBe('ON_TRACK');
+    const before = (await plans('officerA')).stats.defaults;
+    await rows('UPDATE installments i SET due_on = current_date - 1 FROM payment_plans p WHERE p.id = i.plan_id AND p.case_id = $1 AND i.number = 1', [id]);
+    const plan = (await plans('officerA')).plans.find((item) => item.caseId === id)!;
+    expect(plan.installments.map((row) => row.state)).toEqual(['MISSED', 'UPCOMING', 'UPCOMING']);
+    expect(plan.state).toBe('DEFAULT');
+    expect((await plans('officerA')).stats.defaults).toBe(before + 1);
+  });
+
   it('a long plan waits for the manager, who is the only one to decide, then for the creditor', async () => {
     const id = await makeCase(test.s.officerA, [100_000], 'INDIVIDUAL');
     expect((await call('officerA', 'POST', '/payment-plans', { caseId: id, months: 8, method: 'CHEQUE', expected: 100_000 })).status).toBe(204);
@@ -349,7 +362,7 @@ describe('payment plans', () => {
 
 describe('installments', () => {
   const rowsOf = (count: number) => Array.from({ length: count }, (_, index) => ({ number: index + 1, dueOn: `2026-0${index + 1}-15`, amount: 1000 }));
-  it('are filled in order by what was paid; two missed make a default', () => {
+  it('are filled in order by what was paid; one missed makes a default (question 145)', () => {
     expect(installmentStates(rowsOf(4), 1500, '2026-03-20')).toMatchObject({
       installments: [{ state: 'PAID' }, { state: 'MISSED' }, { state: 'MISSED' }, { state: 'UPCOMING' }],
       missed: 2,
