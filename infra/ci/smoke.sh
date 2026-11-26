@@ -217,4 +217,6 @@ docker compose up --detach --wait
 expect 200 https://api.legarec.fr/health
 docker compose run --rm migration | grep -q 'nothing to apply' || fail 'migrations, after a restoration'
 docker compose run --rm sauvegarde incr
+# Every file of the backups and of the journal reads back.
+docker compose run --rm sauvegarde verify || fail 'the verification of the backups'
 ok restoration
