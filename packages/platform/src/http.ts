@@ -125,7 +125,7 @@ export async function upload<T extends z.ZodType>(schema: T, path: string, file:
   const response = await fetch(BASE + path, {
     method: 'POST',
     credentials: 'include',
-    // A key of its own: sent again after a cut, the same file is received once.
+    // A key for each sending: the screen never sends again a file already received (DocumentsPage).
     headers: { 'content-type': file.type || 'application/octet-stream', 'idempotency-key': crypto.randomUUID() },
     body: await file.arrayBuffer(),
   });

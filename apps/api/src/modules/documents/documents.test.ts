@@ -3,6 +3,8 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { startApp, type TestApp } from '../../../test/app';
 import { startMailWorker, type MailWorker } from '../../../test/worker';
+import { deflateRawSync, deflateSync } from 'node:zlib';
+import { Database } from '../../platform/database/database';
 import { checkFile } from './file-type';
 
 let test: TestApp;
@@ -125,5 +127,73 @@ describe('sharing with the creditor', () => {
     expect(await share('officerA', id)).toMatchObject({ status: 409, body: { code: 'CONTAINS_ACCESS_CODE' } });
     const unfiled = await imported('manager', PDF());
     expect(await share('manager', unfiled.id)).toMatchObject({ status: 409, body: { code: 'TO_FILE' } });
+  });
+});
+
+describe('what a file may not hide', () => {
+  const compressed = (inside: string) => {
+    const stream = deflateSync(Buffer.from(inside, 'latin1'));
+    return new Uint8Array([
+      ...text('%PDF-1.7\n2 0 obj << /Type /ObjStm /N 1 /First 4 /Filter /FlateDecode /Length ' + stream.length + ' >>\nstream\n'),
+      ...stream,
+      ...text('\nendstream\nendobj\n%%EOF\n'),
+    ]);
+  };
+  /** A zip of one Word document, with the entries asked for. */
+  const docx = (entries: Record<string, string>) => {
+    const parts: Buffer[] = [];
+    for (const [name, content] of Object.entries({ '[Content_Types].xml': '<Types/>', 'word/document.xml': '<w:document/>', ...entries })) {
+      const data = deflateRawSync(Buffer.from(content));
+      const head = Buffer.alloc(30);
+      head.writeUInt32LE(0x04034b50, 0);
+      head.writeUInt16LE(8, 8);
+      head.writeUInt32LE(data.length, 18);
+      head.writeUInt32LE(content.length, 22);
+      head.writeUInt16LE(Buffer.byteLength(name), 26);
+      parts.push(head, Buffer.from(name), data);
+    }
+    return new Uint8Array(Buffer.concat(parts));
+  };
+  const WORD = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+  it('opens the compressed objects of a PDF to look for code', () => {
+    expect(checkFile(compressed('1 0 << /Type /Page >>'), 'application/pdf')).toBe('PDF');
+    expect(checkFile(compressed('1 0 << /OpenAction << /S /JavaScript /JS (app.alert(1)) >> >>'), 'application/pdf')).toBeNull();
+    expect(checkFile(compressed('1 0 << /AA << /O 3 0 R >> >>'), 'application/pdf')).toBeNull();
+    // Objects that cannot be opened are not taken on trust.
+    expect(checkFile(text('%PDF-1.7\n2 0 obj << /Type /ObjStm /Filter /FlateDecode >>\nstream\nnot zlib\nendstream\n%%EOF'), 'application/pdf')).toBeNull();
+  });
+
+  it('refuses a Word document with an embedded object, a macro or a link to the outside', () => {
+    expect(checkFile(docx({}), WORD)).toBe('DOCX');
+    expect(checkFile(docx({ 'word/embeddings/oleObject1.bin': 'x' }), WORD)).toBeNull();
+    expect(checkFile(docx({ 'word/vbaProject.bin': 'x' }), WORD)).toBeNull();
+    expect(checkFile(docx({ 'word/_rels/settings.xml.rels': '<Relationship Target="https://exemple.test/t.dotm" TargetMode="External"/>' }), WORD)).toBeNull();
+  });
+
+  it('never attaches a document by a number too short to tell', async () => {
+    await makeCase(test.s.officerA, 'F-12');
+    expect((await imported('officerA', PDF('(F-12) '))).status).toBe('TO_FILE');
+  });
+
+  it('is shared by PostgreSQL only: the team cannot write the share by hand', async () => {
+    await makeCase(test.s.officerA, 'CH-2026-7777');
+    const { id } = await imported('officerA', PDF('(CH-2026-7777) '));
+    await worker.run();
+    const officer = { kind: 'staff', userId: test.s.officerA, role: 'CLAIMS_OFFICER', delegations: [] } as const;
+    await expect(
+      test.app.get(Database).run(officer, (tx) => tx.$executeRaw`UPDATE documents SET shared_with_creditor_at = now() WHERE id = ${id}::uuid`),
+    ).rejects.toThrow(/permission denied/u);
+    expect((await share('officerA', id)).status).toBe(204);
+    expect(await rows("SELECT action FROM audit_log WHERE action = 'DOCUMENT_SHARED' AND entity_id = $1", [id])).toHaveLength(1);
+  });
+
+  it('notes a download by the Director outside of their cases', async () => {
+    await makeCase(test.s.officerA, 'CH-2026-8888');
+    const { id } = await imported('officerA', PDF('(CH-2026-8888) '));
+    await worker.run();
+    expect((await test.call('GET', `/staff/documents/${id}/file`, { as: 'director' })).status).toBe(200);
+    expect((await test.call('GET', `/staff/documents/${id}/file`, { as: 'officerA' })).status).toBe(200);
+    expect(await rows("SELECT actor_id FROM audit_log WHERE action = 'DOCUMENT_DOWNLOADED' AND entity_id = $1", [id])).toEqual([{ actor_id: test.s.director }]);
   });
 });

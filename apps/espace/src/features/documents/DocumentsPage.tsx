@@ -7,7 +7,7 @@ import {
   type DocumentCategory,
   type DocumentItem,
 } from '@legarec/contracts';
-import { download, saveFile, upload } from '@legarec/platform';
+import { ApiError, download, saveFile, upload } from '@legarec/platform';
 import { Alerte, Badge, Bouton, DepotFichiers, EtatListe, PageHeader, Pagination, Tableau, Toolbar, useConfirm, useToast, type Tone } from '@legarec/ui';
 import { useState } from 'react';
 import { Link } from 'react-router';
@@ -98,14 +98,19 @@ export function DocumentsPage() {
     try {
       const { blob, name } = await download(`/documents/${encodeURIComponent(item.id)}/file`);
       saveFile(blob, name);
-    } catch {
-      toast({ message: 'Ce document n’est pas encore disponible : l’analyse antivirus est en cours.' });
+    } catch (error) {
+      toast({
+        message:
+          error instanceof ApiError && error.status === 409
+            ? 'Ce document n’est pas encore disponible : l’analyse antivirus est en cours.'
+            : 'Le document n’a pas pu être téléchargé. Réessayez dans un instant.',
+      });
     }
   };
   const share = (item: DocumentItem) =>
     confirm({
       title: 'Partager ce document au créancier ?',
-      body: 'Le document devient visible dans l’espace créancier.',
+      body: 'Le document devient visible dans l’espace créancier. Vérifiez qu’il ne contient pas le code d’accès du débiteur : ce code ouvre les dossiers de tous ses créanciers.',
       confirmLabel: 'Partager',
       details: [
         { k: 'Document', v: item.name },

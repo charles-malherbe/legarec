@@ -44,7 +44,35 @@ CREATE INDEX documents_to_file ON documents (created_at DESC) WHERE case_id IS N
 
 ALTER TABLE receipts ADD FOREIGN KEY (document_id) REFERENCES documents (id);
 
+-- Shared with the creditor, in one's own name, by whoever acts on the case, with its history and its audit.
+GRANT CREATE ON SCHEMA app TO legarec_definer;
+GRANT SELECT (id, case_id, scan_status, contains_access_code, shared_with_creditor_at), UPDATE (shared_with_creditor_at, shared_by) ON documents TO legarec_definer;
+SET LOCAL ROLE legarec_definer;
+CREATE FUNCTION app.share_document(target uuid) RETURNS void
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+DECLARE
+  shown record;
+BEGIN
+  IF app.actor_kind() IS DISTINCT FROM 'STAFF' THEN
+    PERFORM app.refuse('42501');
+  END IF;
+  SELECT d.id, d.case_id INTO shown FROM public.documents d JOIN public.cases c ON c.id = d.case_id
+  WHERE d.id = target AND app.can_act_on_case(c.officer_id) AND d.scan_status = 'CLEAN' AND NOT d.contains_access_code AND d.shared_with_creditor_at IS NULL
+  FOR UPDATE OF d;
+  IF NOT FOUND THEN
+    PERFORM app.refuse('LG409');
+  END IF;
+  UPDATE public.documents d SET shared_with_creditor_at = now(), shared_by = app.user_id() WHERE d.id = target;
+  PERFORM app.add_case_event(shown.case_id, 'DOCUMENT_SHARED', 'Document partagé au créancier', NULL, 'info', true);
+  PERFORM app.log('DOCUMENT_SHARED', 'document', target, '{}');
+END
+$$;
+GRANT EXECUTE ON FUNCTION app.share_document(uuid) TO legarec_staff;
+RESET ROLE;
+REVOKE CREATE ON SCHEMA app FROM legarec_definer;
+
 CALL app.secure_case_table('documents');
+CREATE POLICY definer_share ON documents TO legarec_definer USING (true) WITH CHECK (true);
 -- Not filed yet: the manager alone (docs/api.md, « Lignes sans dossier »), and whoever sent it.
 CREATE POLICY staff_to_file ON documents FOR SELECT TO legarec_staff
   USING (case_id IS NULL AND ((SELECT app.staff_role()) = 'COLLECTION_MANAGER' OR author_id = (SELECT app.user_id())));
@@ -60,9 +88,10 @@ CREATE POLICY debtor_read ON documents FOR SELECT TO legarec_debtor
 GRANT SELECT (id, case_id, creditor_id, category, kind, title, original_name, storage_key, size_bytes, sha256, source, author_id, shared_with_creditor_at, shared_by,
   visible_to_debtor, contains_access_code, scan_status, scanned_at, created_at),
   INSERT (id, case_id, creditor_id, category, kind, title, original_name, storage_key, size_bytes, sha256, source, author_id, visible_to_debtor, contains_access_code, scan_status),
-  UPDATE (category, title, shared_with_creditor_at, shared_by) ON documents TO legarec_staff;
+  UPDATE (category, title) ON documents TO legarec_staff;
 GRANT SELECT (id, case_id, creditor_id, category, kind, title, original_name, storage_key, size_bytes, sha256, source, author_id, shared_with_creditor_at,
   visible_to_debtor, contains_access_code, scan_status, scanned_at, created_at),
   INSERT (id, case_id, creditor_id, category, kind, title, original_name, storage_key, size_bytes, sha256, source, visible_to_debtor, contains_access_code, scan_status, scanned_at),
   UPDATE (scan_status, scanned_at) ON documents TO legarec_worker;
-GRANT SELECT (id, case_id, creditor_id, category, kind, title, original_name, storage_key, size_bytes, created_at) ON documents TO legarec_partner, legarec_debtor;
+-- The file itself is read through the API: never its key.
+GRANT SELECT (id, case_id, creditor_id, category, kind, title, original_name, size_bytes, created_at) ON documents TO legarec_partner, legarec_debtor;

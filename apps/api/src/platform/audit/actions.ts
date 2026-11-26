@@ -55,6 +55,7 @@ export const AUDIT_ACTIONS = {
   DOCUMENT_ATTACHED: 'Document importé et rattaché à un dossier',
   DOCUMENT_TO_FILE: 'Document importé, à classer',
   DOCUMENT_SHARED: 'Document partagé au créancier',
+  DOCUMENT_DOWNLOADED: 'Document téléchargé hors de ses dossiers',
   // Money
   PAYMENT_RECORDED: 'Paiement enregistré',
   PAYMENT_SETTLED: 'Paiement définitif, quittance émise',

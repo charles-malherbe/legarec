@@ -134,7 +134,7 @@ const DEBTORS = 'debtors SELECT (anonymized_at, created_at, id, kind, legal_form
 
 const MONEY_OUTSIDE = [
   // Documents shared with them, clean and without the access code (policies).
-  'documents SELECT (case_id, category, created_at, creditor_id, id, kind, original_name, size_bytes, storage_key, title)',
+  'documents SELECT (case_id, category, created_at, creditor_id, id, kind, original_name, size_bytes, title)',
   'installments SELECT (amount_cents, case_id, creditor_id, due_on, id, number, plan_id)',
   'payment_allocations SELECT (amount_cents, case_id, component, creditor_id, id, invoice_id, payment_id, reverses_id)',
   'payment_plans SELECT (accepted_at, case_id, creditor_id, first_due_on, id, method, months, status, total_cents)',
@@ -250,7 +250,7 @@ describe('rights of the roles inside', () => {
       // Documents: received in one's own name, never scanned nor filed by hand.
       'documents INSERT (author_id, case_id, category, contains_access_code, creditor_id, id, kind, original_name, scan_status, sha256, size_bytes, source, storage_key, title, visible_to_debtor)',
       'documents SELECT (author_id, case_id, category, contains_access_code, created_at, creditor_id, id, kind, original_name, scan_status, scanned_at, sha256, shared_by, shared_with_creditor_at, size_bytes, source, storage_key, title, visible_to_debtor)',
-      'documents UPDATE (category, shared_by, shared_with_creditor_at, title)',
+      'documents UPDATE (category, title)',
       // Money: read only; written by the functions of the money.
       'installments SELECT (amount_cents, case_id, creditor_id, due_on, id, number, plan_id)',
       'interest_rates SELECT (entered_by, id, kind, on_behalf_of_id, rate_bp, updated_at, valid_from)',
@@ -383,6 +383,9 @@ describe('rights of the roles inside', () => {
       'debtor_access_codes SELECT (code_cipher, debtor_id, version)',
       'debtor_access_codes UPDATE (code_cipher, generated_at, generated_by, version)',
       'debtors SELECT (id, kind, name, siren)',
+      // Documents: shared by its function.
+      'documents SELECT (case_id, contains_access_code, id, scan_status, shared_with_creditor_at)',
+      'documents UPDATE (shared_by, shared_with_creditor_at)',
       // Money: written by its functions, which check again who acts and what it adds up to.
       'case_invoices SELECT (case_id, due_on, id, number, principal_cents, principal_paid_cents, state)',
       'case_invoices UPDATE (principal_paid_cents, state)',
@@ -494,6 +497,7 @@ describe('rights on the functions', () => {
     ['director_id', ['staff']],
     ...['save_interest_rate', 'decide_plan', 'record_payment', 'change_payment', 'ask_plan'].map((name) => [name, ['staff']] as [string, string[]]),
     // Called by the functions of the money, and its triggers.
+    ['share_document', ['staff']],
     ...['money_case', 'issue_receipt', 'follow_allocation', 'check_allocations', 'keep_receipt'].map((name) => [name, []] as [string, string[]]),
     // Tools of the migrations.
     ['secure', []],
@@ -518,7 +522,7 @@ describe('rights on the functions', () => {
       'internal_key first_internal_key renew_internal_key access_code first_access_code renew_access_code',
       'portal_officer create_director ticket_reader close_account release_cases digests refuse tell_director end_technical_delegation take_with_substituted open_delegations require_for_developer plain_name keep_account_history',
       'uuid_v7 setting user_id creditor_id debtor_id only_identifiers audit_params',
-      'save_interest_rate decide_plan follow_allocation check_allocations record_payment change_payment ask_plan money_case issue_receipt keep_receipt',
+      'save_interest_rate decide_plan follow_allocation check_allocations record_payment change_payment ask_plan money_case issue_receipt keep_receipt share_document',
     ].flatMap((names) => names.split(' '));
     const found = await rows<{ proname: string }>(
       "SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'app' ORDER BY 1",

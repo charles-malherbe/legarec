@@ -188,7 +188,8 @@ Les 161 routes simulées se répartissent ainsi :
 ## Lot N — Documents (état au 26/11/2026)
 - [x] Stockage sur disque (volume en production), dépôt avec contrôle du type réel, antivirus en tâche de fond (simulé en développement), liste, téléchargement sous un nom neutre, partage au créancier
 - [ ] Modèles (import contrôlé, soumission, validation, restauration, essai), PDF par Playwright (quittances, courriers), valeurs entre crochets (`FIRM_INCOMPLETE`), logos
-- Reporté : bucket Scaleway (X), conteneur ClamAV (X), envoi d'un document (Q), composition des courriers (Q)
+- [x] Relecture `relecteur-securite` : aucun bloquant ; corrigés : empreinte d'idempotence d'un fichier, rattachement par numéro court, objets compressés des PDF, contenu des DOCX, partage par une fonction SQL, clé de stockage retirée aux rôles externes, téléchargement hors de ses dossiers journalisé, avertissement sur le code d'accès
+- Reporté : bucket Scaleway (X), conteneur ClamAV (X), envoi d'un document (Q), composition des courriers (Q), purge des fichiers sans ligne (X), corps lus avant la session sur l'import (limite Caddy, X), tests de cloisonnement des documents pour les rôles externes (O, P), boutons d'action masqués au Directeur dans Documents (contrat sans `canAct`)
 
 ## Points à reprendre du front
 

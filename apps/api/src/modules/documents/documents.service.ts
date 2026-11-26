@@ -7,7 +7,7 @@ import { ApiError, conflict, forbidden, notFound } from '../../platform/errors/a
 import { dayOf } from '../../platform/format';
 import { Outbox } from '../../platform/queue/outbox';
 import { Storage } from '../../platform/storage/storage';
-import { checkFile, CONTENT_TYPES, type FileKind } from './file-type';
+import { checkFile, CONTENT_TYPES, readableText, type FileKind } from './file-type';
 
 const SHOWN = 500;
 const EXTENSIONS: Record<FileKind, string> = { PDF: 'pdf', DOCX: 'docx', PNG: 'png', JPEG: 'jpg' };
@@ -17,9 +17,12 @@ const sizeText = (bytes: number) =>
     : bytes >= 1024 * 1024
       ? `${(bytes / 1024 ** 2).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} Mo`
       : `${Math.max(1, Math.round(bytes / 1024))} Ko`;
-/** A number of an invoice written in the file (text that is not compressed), as a word of it. */
+/** A number of an invoice written in the file, as a word of it; too short or without a digit, it proves nothing. */
 const plain = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/gu, ' ');
-const written = (content: string, number: string) => content.includes(` ${plain(number).trim()} `);
+const telling = (number: string) => /\d/u.test(number) && number.replace(/[^A-Za-z0-9]/gu, '').length >= 6;
+const written = (content: string, number: string) => telling(number) && content.includes(` ${plain(number).trim()} `);
+/** Read for the invoice numbers: the first 2 Mo of the text. */
+const READ_FOR_NUMBERS = 2 * 1024 * 1024;
 
 interface Shown {
   status: string;
@@ -108,7 +111,7 @@ export class DocumentsService {
     const kind = checkFile(bytes, declared);
     if (!kind) throw new ApiError(415, 'REFUSED');
     const name = `Document importé le ${dayOf(new Date()).split('-').reverse().join('/')}.${EXTENSIONS[kind]}`;
-    const content = ` ${plain(Buffer.from(bytes).toString('latin1'))} `;
+    const content = ` ${plain(readableText(bytes, kind).slice(0, READ_FOR_NUMBERS))} `;
     const invoices = await tx.$queryRaw<{ case_id: string; creditor_id: string; number: string }[]>`
       SELECT i.case_id, i.creditor_id, i.number FROM case_invoices i JOIN cases c ON c.id = i.case_id
       WHERE app.can_act_on_case(c.officer_id) AND c.closed_on IS NULL`;
@@ -158,17 +161,20 @@ export class DocumentsService {
     if (row.scan_status !== 'CLEAN') throw conflict('NOT_SCANNED');
     if (row.contains_access_code) throw conflict('CONTAINS_ACCESS_CODE');
     if (row.shared) return;
-    const [who] = await tx.$queryRaw<{ user_id: string }[]>`SELECT app.user_id() AS user_id`;
-    await tx.document.update({ where: { id }, data: { sharedWithCreditorAt: new Date(), sharedBy: who!.user_id } });
-    await tx.$executeRaw`SELECT app.add_case_event(${row.case_id}::uuid, 'DOCUMENT_SHARED', 'Document partagé au créancier', NULL, 'info'::event_tone, true)`;
-    await this.audit.log({ action: 'DOCUMENT_SHARED', entity: { type: 'document', id } });
+    // In one's own name, with its history and its audit: PostgreSQL does it, and checks everything again.
+    await tx.$executeRaw`SELECT app.share_document(${id}::uuid)`;
   }
 
   /** The file, once clean, under a neutral name: never the one it was sent with (CLAUDE.md). */
   async file(id: string): Promise<{ bytes: Buffer; type: string; name: string }> {
-    const found = await this.database.tx.document.findUnique({ where: { id }, select: { storageKey: true, kind: true, scanStatus: true, category: true } });
+    const { tx } = this.database;
+    const found = await tx.document.findUnique({ where: { id }, select: { storageKey: true, kind: true, scanStatus: true, caseId: true } });
     if (!found) throw notFound();
     if (found.scanStatus !== 'CLEAN') throw conflict('NOT_SCANNED');
+    // Read by someone who does not act on its case (the Director, the manager for one to file): noted.
+    const [acting] = await tx.$queryRaw<{ acts: boolean }[]>`
+      SELECT coalesce((SELECT app.can_act_on_case(c.officer_id) FROM cases c WHERE c.id = ${found.caseId}::uuid), false) AS acts`;
+    if (!acting?.acts) await this.audit.log({ action: 'DOCUMENT_DOWNLOADED', entity: { type: 'document', id } });
     return { bytes: await this.storage.read(found.storageKey), type: CONTENT_TYPES[found.kind], name: `document.${EXTENSIONS[found.kind]}` };
   }
 }
