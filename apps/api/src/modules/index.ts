@@ -40,6 +40,8 @@ import { RemindersService } from './reminders/reminders.service';
 import { AiController } from '../ai/ai.controller';
 import { NotificationsController } from './notifications/notifications.controller';
 import { NotificationsService } from './notifications/notifications.service';
+import { LitigationController } from './litigation/litigation.controller';
+import { LitigationService } from './litigation/litigation.service';
 import { Ledgers } from './payments/ledger';
 import { InterestRatesController, PaymentsController, PlansController } from './payments/payments.controller';
 import { Plans } from './payments/plans';
@@ -63,6 +65,7 @@ export const controllers: Type[] = [
   NotificationsController,
   AiController,
   RemindersController,
+  LitigationController,
   RemittancesController,
   GdprController,
   DashboardController,
@@ -100,6 +103,7 @@ export const providers: Provider[] = [
   ContactsService,
   NotificationsService,
   RemindersService,
+  LitigationService,
   DashboardService,
   Ledgers,
   Plans,

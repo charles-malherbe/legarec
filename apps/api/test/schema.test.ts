@@ -275,6 +275,10 @@ describe('rights of the roles inside', () => {
       'planned_reminders INSERT (case_id, creditor_id, due_on, due_time, kind, title, warning)',
       'planned_reminders SELECT (case_id, created_at, created_by, creditor_id, done_at, due_on, due_time, id, kind, title, warning)',
       'planned_reminders UPDATE (done_at, due_on, due_time)',
+      // Litigation: read with the cases; opened and followed on those one acts on, the dates and the author set by PostgreSQL.
+      'litigation_files INSERT (case_id, consent, creditor_id, stage, version)',
+      'litigation_files SELECT (case_id, consent, consent_noted_at, consent_noted_by, court, created_at, created_by, creditor_id, id, on_behalf_of_id, partner_name, stage, stage_since, title_on, version)',
+      'litigation_files UPDATE (consent, court, partner_name, stage, version)',
       // What each one marked done on their dashboard: their own lines only.
       'task_marks DELETE (*)',
       'task_marks INSERT (key, user_id)',
@@ -624,6 +628,7 @@ describe('rights on the functions', () => {
     ['note_ai_decision', []],
     ...['ai_key', 'ai_spent', 'ai_budget_alert'].map((name) => [name, ['worker']] as [string, string[]]),
     ['keep_done_reminder', []],
+    ['litigation_rules', []],
     ...['remittance_core', 'remittance_sources', 'remittance_summary', 'note_settlement'].map((name) => [name, []] as [string, string[]]),
     ...['creditor_decide_plan', 'creditor_upload', 'creditor_deposit'].map((name) => [name, ['partner']] as [string, string[]]),
     ...['money_case', 'issue_receipt', 'follow_allocation', 'check_allocations', 'keep_receipt'].map((name) => [name, []] as [string, string[]]),
@@ -656,7 +661,7 @@ describe('rights on the functions', () => {
       'own_access_code debtor_upload debtor_message read_portal_messages staff_message creditor_decide_plan creditor_upload creditor_deposit',
       'debtor_link ask_code_by_sms firm_payment_settings limited_message',
       'gdpr_request gdpr_keeper gdpr_registry gdpr_answer gdpr_export',
-      'note_ai_decision ai_key ai_spent ai_budget_alert planned_contacts keep_done_reminder remittance_core creditor_payouts remittance_sources remittance_summary note_settlement remittance_draft validate_remittances mark_remittances_paid remittance_batches remittance_batch',
+      'note_ai_decision ai_key ai_spent ai_budget_alert planned_contacts keep_done_reminder litigation_rules remittance_core creditor_payouts remittance_sources remittance_summary note_settlement remittance_draft validate_remittances mark_remittances_paid remittance_batches remittance_batch',
     ].flatMap((names) => names.split(' '));
     const found = await rows<{ proname: string }>(
       "SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'app' ORDER BY 1",
