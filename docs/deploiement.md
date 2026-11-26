@@ -257,21 +257,22 @@ Journaux : ni adresse IP, ni chemin, ni en-tête dans ceux de Caddy ; ni requêt
 ## Reste à faire (fin du lot X)
 
 ### Avant la mise en service : écrans encore sans API
-Une page construite pour la production n'a aucune simulation : elle appelle l'API. État au 26/11/2026, après `lot/v4` (comparaison des routes simulées et de `packages/contracts/openapi.json`) :
+Une page construite pour la production n'a aucune simulation : elle appelle l'API. État au 26/11/2026, après `lot/s5` (comparaison des routes simulées et de `packages/contracts/openapi.json`) :
 
 | Portail | Routes appelées | Sur l'API | Manquent |
 |---|---|---|---|
 | `paiement` | 13 | 13 | — |
-| `partenaires` | 19 | 18 | Documents (`GET /portal/documents`) |
-| `espace` | 167 | 126 | 41, ci-dessous |
+| `partenaires` | 19 | 19 | — |
+| `espace` | 167 | 128 | 39, ci-dessous |
 
 | Écran de l'espace | Ce qui manque | Attend |
 |---|---|---|
-| Facturation (liste des factures, « + Créer depuis un modèle ») | `GET` et `POST /billing` | Rien : lot S |
 | Rapports, Équipe | `GET /reports`, `PUT /reports/scheduled/:id`, `GET /team` | Rien pour les rapports ; présence et appels de l'équipe avec le lot T |
 | Relances envoyées depuis un dossier, un échéancier ou la liste ; envoi et composition d'un document ; essai d'un modèle | 8 routes | Clés de test Resend et MySendingBox (lot Q) |
 | Messagerie (e-mails, SMS), boîtes OVH dans Paramètres | 21 routes | Compte SMS et boîtes OVH (lot R) |
 | Appels | 7 routes | Licence et identifiants 3CX (lot T) |
+
+Sur l'API depuis `lot/s5`, mais incomplets faute de décision : Facturation liste les factures de commission, ses onglets « Devis » et « Contrats » sont vides et « + Créer depuis un modèle » répond que la création n'est pas encore disponible (questions 195 et 196) ; les Documents du créancier listent ce que l'équipe lui a partagé, sans relevé, rapport ni téléchargement (questions 197 à 199).
 
 Tant qu'une route manque, son écran affiche son état d'erreur (« Réessayer ») : rien ne se perd, mais l'écran ne sert pas. **À décider par le cabinet (question 194)** : attendre tous les lots, ou mettre en service avec les écrans prêts et masquer les autres.
 
