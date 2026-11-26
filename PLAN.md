@@ -264,7 +264,8 @@ Les 161 routes simulées se répartissent ainsi :
 - [x] Registre des demandes, réponse motivée, export des données d'un débiteur (journalisé)
 - [x] Purges planifiées des tables de la nuit (imports non confirmés, messages sans code, marques du tableau de bord, registre RGPD)
 - [x] Anonymisation à la demande d'un débiteur (API, questions 168 et 169), purge des dossiers 5 ans après clôture et de leurs fichiers
-- [ ] Écran de l'effacement à la demande (pas d'état dans la maquette) ; purge à 10 ans des pièces comptables (quittances, paiements, reversements) ; à la fusion avec `lot/u2`, `litigation_files` dans `app.forget_case()`
+- [x] Purge à 10 ans (fin de l'année de la pièce) des pièces comptables : lots de reversements, factures et avoirs, paiements et imputations, quittances et leurs PDF, documents comptables d'un dossier anonymisé ; registre RGPD à partir de la clôture (question V-10)
+- [ ] Écran de l'effacement à la demande (pas d'état dans la maquette) ; à la fusion avec `lot/u2`, `litigation_files` dans `app.forget_case()`
 
 ## Lot S — Facturation et reversements (état au 26/11/2026)
 - [x] API des reversements : calcul unique en SQL, validation avec valeurs attendues, créancier retenu avec motif, factures de commission, « marquer comme versés »
