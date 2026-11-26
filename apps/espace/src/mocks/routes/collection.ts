@@ -1,9 +1,11 @@
 import {
+  contactHours,
   LITIGATION_STAGES,
   litigationConsentBody,
   litigationFileBody,
   litigationStageBody,
   newReminder,
+  type ContactChannel,
   type LitigationCase,
   type PaymentPlan,
   type Reminder,
@@ -15,7 +17,7 @@ import type { z } from 'zod';
 import { audit } from '../audit';
 import { done, forbidden, guarded, notFound, staffWithCases } from '../http';
 import { actsOn, OFFICERS, readable } from './cases';
-import { contactCap } from './settings';
+import { contactCap, relancesText } from './settings';
 
 type Info = { request: Request; params: Record<string, unknown> };
 /** Same access rules as cases, applied to anything owned by an officer. */
@@ -88,12 +90,10 @@ const overCap = (type: ReminderType, debtor: string, date: string): string | nul
   const count = reminders.filter((item) => item.debtor === debtor && item.type === type && same(item.date)).length;
   return count >= cap ? `Plafond atteint : ${cap} ${rule[1]} pour ce débiteur` : null;
 };
-const outsideHours = (type: ReminderType, date: string, time: string): string | null => {
-  const day = new Date(`${date}T00:00:00Z`).getUTCDay();
-  if (day === 0) return 'Dimanche : hors des plages autorisées';
-  const end = day === 6 && type === 'CALL' ? '12:00' : '19:00';
-  return time && type !== 'LETTER' && (time < '09:00' || time > end) ? `${time} : hors des plages autorisées (09:00–${end})` : null;
-};
+// As the API: the hours set day by day in Paramètres › Relances (question 160).
+const CONTACTS: readonly ReminderType[] = ['EMAIL', 'SMS', 'CALL', 'LETTER'];
+const outsideHours = (type: ReminderType, date: string, time: string): string | null =>
+  CONTACTS.includes(type) ? contactHours(relancesText).outsideHours(type as ContactChannel, date, type === 'LETTER' ? null : time || null) : null;
 const seedReminders = () =>
   EVENTS.map(([date, time, type, debtor, caseId, creditor, title, isDone, automatic, officerId, limit], index) => ({
     id: `r${index}`,

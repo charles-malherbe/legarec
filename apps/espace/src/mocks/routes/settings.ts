@@ -155,6 +155,13 @@ export const contactCap = (field: 'calls' | 'emails' | 'sms' | 'letters') => {
   );
   return Number.isInteger(cap) && cap > 0 ? cap : STRICT_CAPS[field];
 };
+/** A value of Paramètres du cabinet › Relances, as set in the simulation: the hours day by day (question 160). */
+export const relancesText = (field: string) =>
+  groups.firm
+    .flatMap((group) => group.items)
+    .find((item) => item.id === 'relances')
+    ?.blocks.flatMap((block) => block.fields)
+    .find((item) => item.id === field)?.value ?? '';
 export const resetSettings = () => {
   versions = {};
   resetMailboxRequests();
@@ -462,9 +469,7 @@ export const settingsHandlers = [
       const count = (decision: AiJournalEntry['decision']) => AI_JOURNAL.filter((item) => item.decision === decision).length;
       return HttpResponse.json({
         // The Developer reads no case.
-        items: AI_JOURNAL.slice((page - 1) * size, page * size).map((item) =>
-          session.role === 'DIRECTOR' ? item : { ...item, caseReference: null },
-        ),
+        items: AI_JOURNAL.slice((page - 1) * size, page * size).map((item) => (session.role === 'DIRECTOR' ? item : { ...item, caseReference: null })),
         page,
         pageSize: size,
         total: AI_JOURNAL.length,

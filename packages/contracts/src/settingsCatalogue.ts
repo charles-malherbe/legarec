@@ -1,5 +1,6 @@
 import { FIRM_IDENTITY_FIELDS, firmIdentity } from './firm';
 import type { SettingField, SettingsSection, SettingTable } from './settings';
+import { CONTACT_DAYS, DEFAULT_CONTACT_HOURS, hoursProblem } from './contactHours';
 
 /** Every setting, with its label, its possible values and its value until the firm changes it. Nothing here comes from a service. */
 
@@ -202,10 +203,19 @@ export const firmGroups = (): SettingGroup[] => [
           select('sms', 'SMS', 'Par débiteur et par semaine', ['1', '2', '3']),
           select('letters', 'Courriers', 'Par débiteur et par mois', ['2', '1', '3']),
         ]),
-        block('hours', 'Plages horaires', 'Aucun contact hors de ces plages, ni les dimanches et jours fériés.', [
-          text('call-hours', 'Appels', '', 'Lundi au vendredi 9:00–19:00 · samedi 9:00–12:00'),
-          text('send-hours', 'E-mails et SMS', '', 'Lundi au samedi, 9 h – 19 h'),
-        ]),
+        // Set day by day (question 160): read by the API and the simulations through contactHours.
+        block(
+          'call-hours',
+          'Plages des appels',
+          'Heure de début et de fin, par exemple 09:00–19:00 ; vide : aucun appel ce jour-là. Jamais le dimanche ni un jour férié.',
+          CONTACT_DAYS.map(([key, label]) => text(`call-${key}`, label, '', DEFAULT_CONTACT_HOURS.call[key])),
+        ),
+        block(
+          'send-hours',
+          'Plages des e-mails et SMS',
+          'Heure de début et de fin, par exemple 09:00–19:00 ; vide : aucun envoi ce jour-là. Jamais le dimanche ni un jour férié.',
+          CONTACT_DAYS.map(([key, label]) => text(`send-${key}`, label, '', DEFAULT_CONTACT_HOURS.send[key])),
+        ),
       ]),
       section('modeles', 'Modèles de documents', 'Courriers, SMS, factures et contrats', 'file', '', 'neutral'),
     ],
@@ -218,7 +228,7 @@ export const firmGroups = (): SettingGroup[] => [
           value('provider', 'Fournisseur', 'Compte SMS OVHcloud, clé d’API dans Secrets et clés', 'OVHcloud SMS'),
           value('sender', 'Expéditeur', 'Numéro qui reçoit les réponses des débiteurs', '[NUMÉRO SMS]'),
           value('stop', 'Désinscription', 'Mention « STOP : répondez STOP » ajoutée à chaque SMS', 'Réponse STOP'),
-          text('sms-hours', 'Plages d’envoi', 'Aucun envoi les dimanches et jours fériés', 'Lundi au samedi, 9 h – 19 h'),
+          value('sms-hours', 'Plages d’envoi', 'Aucun envoi les dimanches et jours fériés', 'Celles des e-mails et SMS (Paramètres › Relances)'),
           value('credits', 'Crédits disponibles', 'Rechargement automatique sous 2 000 crédits', '—'),
           sw('m1', 'Mention « STOP » obligatoire', 'Ajoutée automatiquement à la fin de chaque SMS', true, true),
           sw('m2', 'Lien de paiement raccourci', 'Inséré dans les SMS de relance'),
@@ -531,6 +541,8 @@ export const isFirmIdentity = (section: string, field: string) => section === 'c
 const PHONE = /^(?:\+33|0)\s?[1-9](?:[\s.]?\d{2}){4}$/u;
 const GOAL = /^\d{0,9}$/u;
 const MAY_BE_EMPTY = ['monthly-goal', 'call-goal'];
+/** The hours of Paramètres › Relances, day by day: empty is no contact that day (question 160). */
+const HOURS_FIELDS = CONTACT_DAYS.flatMap(([key]) => [`call-${key}`, `send-${key}`]);
 
 /** What cannot be recorded, by field, with the sentence shown beside it. The same rules for the screen, the simulations and the API. */
 export function settingProblems(section: Pick<SettingDefinition, 'id' | 'blocks'>, changes: Record<string, string | boolean>): Record<string, string> {
@@ -545,6 +557,9 @@ export function settingProblems(section: Pick<SettingDefinition, 'id' | 'blocks'
     else if (isFirmIdentity(section.id, id)) {
       const parsed = firmIdentity.partial().safeParse({ [id]: next });
       if (!parsed.success) problems[id] = parsed.error.issues[0]?.message ?? 'Cette valeur ne convient pas.';
+    } else if (section.id === 'relances' && HOURS_FIELDS.includes(id)) {
+      const problem = hoursProblem(next);
+      if (problem) problems[id] = problem;
     } else if (field.kind === 'text' && !next.trim() && !MAY_BE_EMPTY.includes(id)) problems[id] = 'Ce champ ne peut pas être vide.';
     else if (section.id === 'cabinet' && id === 'phone' && !PHONE.test(next)) problems[id] = 'Ce numéro de téléphone n’est pas valide.';
     else if (MAY_BE_EMPTY.includes(id) && !GOAL.test(next)) problems[id] = 'Saisissez un nombre entier.';

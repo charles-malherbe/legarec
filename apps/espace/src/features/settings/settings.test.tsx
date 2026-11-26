@@ -63,13 +63,11 @@ describe('settings', () => {
   it('lets the Director validate a plan on his own cases only, then the creditor agree (question 86)', async () => {
     const roles = openAs('ad', '/parametres/roles');
     const row = (await screen.findByRole('cell', { name: 'Valider un échéancier, une remise ou un abandon de créance' })).closest('tr')!;
-    expect(within(row).getAllByRole('cell').map((cell) => cell.textContent)).toEqual([
-      'Valider un échéancier, une remise ou un abandon de créance',
-      'Non',
-      'Ses dossiers',
-      'Oui',
-      'Non',
-    ]);
+    expect(
+      within(row)
+        .getAllByRole('cell')
+        .map((cell) => cell.textContent),
+    ).toEqual(['Valider un échéancier, une remise ou un abandon de créance', 'Non', 'Ses dossiers', 'Oui', 'Non']);
     roles.unmount();
     openAs('ad', '/parametres/regles');
     expect(
@@ -124,6 +122,21 @@ describe('settings', () => {
     await userEvent.click(undo);
     expect(await screen.findByText(/rien n’a été annulé/)).toBeVisible();
     expect(await (await call('ad', '/settings/firm/relances')).text()).toContain('"value":"1"');
+  });
+  it('sets the hours day by day, refuses a range written wrong, and the agenda follows them (question 160)', async () => {
+    openAs('ad', '/parametres/relances');
+    const [callSaturday] = await screen.findAllByLabelText('Samedi');
+    expect(callSaturday).toHaveValue('09:00–12:00');
+    await userEvent.clear(callSaturday!);
+    await userEvent.type(callSaturday!, '9h-17h');
+    await userEvent.click(screen.getByRole('button', { name: /Enregistrer/ }));
+    expect(await screen.findByText('Format attendu : 09:00–19:00, ou vide pour aucun contact ce jour-là.')).toBeVisible();
+    expect(await axeViolations(document.body)).toEqual([]);
+    const { version } = (await (await call('ad', '/settings/firm/relances')).json()) as { version: number };
+    expect((await call('ad', `/settings/firm/relances?version=${version}`, { 'call-sat': '09:00–17:00' }, 'PUT')).status).toBe(204);
+    // Saturday 28/11/2026 at 15:00: inside the hours set.
+    const planned = await call('cl', '/reminders', { caseId: 'demo', type: 'CALL', date: '2026-11-28', time: '15:00', title: 'x' });
+    expect(((await planned.json()) as { limit: string | null }).limit).toBeNull();
   });
   it('does not overwrite what someone else has just saved in the section', async () => {
     openAs('ad', '/parametres/relances');
