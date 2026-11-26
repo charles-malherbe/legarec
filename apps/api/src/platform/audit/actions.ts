@@ -55,6 +55,7 @@ export const AUDIT_ACTIONS = {
   // Debtors
   DEBTOR_SIGNED_IN: 'Connexion d’un débiteur',
   DEBTOR_ACCESS_BLOCKED: 'Accès d’un débiteur bloqué après dix codes faux',
+  DEBTOR_ACCESS_ALERT: 'Accès débiteur : plus de 200 codes faux en une heure, adresses en cause suspendues 15 minutes',
   // Documents
   DOCUMENT_ATTACHED: 'Document importé et rattaché à un dossier',
   DOCUMENT_TO_FILE: 'Document importé, à classer',
