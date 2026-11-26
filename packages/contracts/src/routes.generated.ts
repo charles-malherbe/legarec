@@ -2602,7 +2602,6 @@ export interface operations {
                             siren: string;
                         };
                         officer: string;
-                        unread: number;
                     };
                 };
             };

@@ -68,7 +68,7 @@ Sans dépendance : Resend, MySendingBox, OVH (appels signés : le paquet `ovh` d
 - **Essai** : ajouter `payment-plans,interest-rates` à `VITE_API` (les paiements passent déjà avec `cases`).
 
 ### Documents (lot N, première partie)
-- **Stockage** (`src/platform/storage`) : fichiers sur le disque du serveur, sous une clé tirée au hasard (jamais le nom d'origine), dans `DOCUMENTS_DIR` (obligatoire en production : un volume ; en développement `~/.local/share/legarec-dev/documents`, en test un dossier temporaire). Le bucket Scaleway viendra au lot X, derrière la même classe.
+- **Stockage** (`src/platform/storage`) : fichiers sur le disque du serveur, sous une clé tirée au hasard (jamais le nom d'origine), dans `DOCUMENTS_DIR` (obligatoire en production : un volume ; en développement `~/.local/share/legarec-dev/documents`, en test un dossier temporaire). Le bucket OVHcloud viendra au lot X, derrière la même classe.
 - **Dépôt** : `POST /staff/documents/import`, corps = le fichier seul, 15 Mo au plus, type réel lu dans les premiers octets et égal au type annoncé (PDF, DOCX sans macro, PNG, JPEG ; 415 sinon) ; PDF refusé s'il porte du code (`/JavaScript`, `/JS`, `/Launch`, fichier joint, noms masqués `#xx`). Le nom du fichier ne quitte jamais le navigateur : le document s'appelle « Document importé le JJ/MM/AAAA ». Rattaché au dossier dont un numéro de facture figure dans le texte du fichier, parmi ceux sur lesquels on agit ; sinon « à classer », visible de son auteur et du Responsable.
 - **Antivirus** : tâche `scan-document` (file `documents`), clamd par `INSTREAM` (`CLAMAV_URL`, conteneur du lot X) ; en développement et en test, un antivirus simulé qui reconnaît le fichier EICAR ; en production sans `CLAMAV_URL`, les fichiers attendent sans être lus. Infecté : le fichier est effacé, la ligne reste. Rien ne se lit ni ne se partage avant « propre ».
 - **Lecture** : `GET /staff/documents`, `GET /staff/documents/:id/file` (nom neutre `document.pdf`), `POST /staff/documents/:id/share` (dossier sur lequel on agit, propre, sans code d'accès : contrainte en base). Le créancier et le débiteur ne lisent que ce qui leur est partagé ou montré.
@@ -126,7 +126,7 @@ Sans dépendance : Resend, MySendingBox, OVH (appels signés : le paquet `ovh` d
 - Éteinte sauf si tout est là : `AI_ENABLED=true`, `IA_MODELE_RAPIDE`, `IA_MODELE_AVANCE`, `AI_PROVIDER` (`anthropic`, `openai-compatible` avec `AI_BASE_URL` en https, `simulated` refusé en production), `AI_PRICE_INPUT` et `AI_PRICE_OUTPUT` (euros par million de jetons, pour tenir le budget) ; puis la fonction activée dans Paramètres › Assistant IA. Clé : secret `AI_API_KEY` du coffre, lue par le worker seul (`app.ai_key`).
 - Synthèse du dossier : `POST /staff/cases/:id/ai-summary` (qui agit sur le dossier ; 409 `AI_OFF`) met en file la tâche `case-summary` (file `ai`). Le worker lit le dossier avec les droits du collaborateur et l'envoie comme un bloc de données délimité, sans nom du créancier ; le détail d'un événement n'est envoyé que pour ceux que l'application rédige (paiements, échéanciers, relances, quittances) ; nom, adresse et coordonnées connus du débiteur, IBAN (toutes casses et séparateurs), RIB, numéros de carte, adresses e-mail et téléphones sont masqués (`guards.ts`). Rien de nouveau depuis la dernière synthèse : pas d'appel ; 20 demandes par heure et par collaborateur ; une seule tentative, coût estimé au plus haut en cas d'échec, vérifie le budget du mois avant l'appel (`app.ai_spent`), refuse une réponse mal formée ou contraire aux garde-fous (menace, score, IBAN, employeur, famille). Chaque essai est au journal `ai_suggestions` (résumé de l'entrée en nombres, modèle, version du prompt, jetons, coût, décision), 1 an. `POST /staff/cases/:id/ai-summary/report` la signale : elle n'est plus montrée, et aucune plus ancienne ne la remplace ; qui a décidé, quand et pour le compte de qui sont fixés par la base.
 - Alerte à 80 % du budget : notification au Directeur, une fois par mois (`app.ai_budget_alert`).
-- Reste au lot W : génération à l'arrivée d'un événement, résumé des appels, tri et brouillons des e-mails, journal dans Paramètres, essai mesuré sur le serveur (question 106).
+- Reste au lot W : génération à l'arrivée d'un événement, résumé des appels, tri et brouillons des e-mails, journal dans Paramètres, essai de qualité des modèles chez OVHcloud (option C).
 
 ### Règles de code
 Une requête = une transaction `Database.run(actor, fn)`, ouverte par la plateforme ; seul `modules/auth` en ouvre au nom d'un compte (ESLint) ; ESLint interdit Prisma ailleurs. Aucun appel externe dans une transaction : `outbox`, puis BullMQ. Une tâche de Valkey ne porte que son numéro : son nom, son auteur et ses identifiants sont relus dans `outbox`. SQL brut limité à : séquences, verrous consultatifs, recherche trigramme, agrégats ; `SET ROLE` et `set_config` dans `src/platform` seulement ; imports dynamiques de Prisma, `pg`, BullMQ ou ioredis interdits ailleurs (ESLint).
@@ -206,7 +206,6 @@ Tâche née d'un utilisateur : `outbox.actor_kind`, `actor_id` et `acting_for`, 
 | `creditor_contacts` | creditor_id, name, title, email, phone, is_main | UQ partiel principal | CRED |
 | `creditor_bank_accounts` | creditor_id, holder, iban_cipher, iban_last4, bic, valid_from, valid_until? | — | ADMIN |
 | `mandates` | creditor_id, contract_document_id?, starts_on, ends_on?, status, amicable_rate_bp, litigation_rate_bp, opening_fee_cents, plan_months_without_consent, discount_max_bp, litigation_needs_consent, interest_mode, contract_rate_bp?, fixed_indemnity, reporting_day, scenario_id? | EXCLUDE chevauchement actif | CRED |
-| `creditor_threads`, `creditor_messages` | creditor_id, case_id?, subject, reference_label, last_message_at ; author_side, author_id, text, read_at? | index (creditor_id, last_message_at) | THREAD |
 
 **Débiteurs** (`debtors`, `debtor-access`)
 | Table | Colonnes utiles | Contraintes, index | RLS |
@@ -267,14 +266,13 @@ Tâche née d'un utilisateur : `outbox.actor_kind`, `actor_id` et `acting_for`, 
 | `message_templates` | use, name, subject, text | — | FIRM |
 | `calls` | exchange_id, [c+cr], officer_id, direction, phone_e164, tcx_call_id?, started_at, answered_at?, ended_at?, queue?, recording_announced, outcome?, tcx_code?, interlocutor?, notes?, qualified_at? | UQ tcx_call_id | CASE |
 | `call_targets` | [c+cr], officer_id, kind, reason, slot_at?, priority, status, reminder_id? | index (officer_id, status) | CASE |
-| `call_recordings`, `call_transcripts` | call_id, [c+cr], document_id, expires_on ; segments_cipher, expires_on | index expires_on (6 mois) | CASE |
+| `call_recordings`, `call_transcripts` | call_id, [c+cr], storage_key (bucket `legarec-enregistrements`, fichier chiffré par l'API), expires_on ; segments_cipher, expires_on | index expires_on (6 mois) | CASE |
 | `presence_events` | user_id, state, since, until? | index (user_id, since) | Directeur, Responsable |
 
 **Contentieux, facturation, dépôts, pilotage**
 | Table | Colonnes utiles | Contraintes, index | RLS |
 |---|---|---|---|
-| `litigation_files`, `litigation_acts`, `procedure_costs` | [c+cr], stage, procedure, court, partner_id?, consent_status, consent_document_id?, next_deadline? ; title, occurred_on?, state, document_id? ; label, amount_cents, billed_document_id? | UQ case_id | CASE |
-| `litigation_partners` | name, kind, email, phone, active | — | CRED |
+| `litigation_files`, `procedure_costs` | [c+cr], stage, court, partner_name, consent_status, consent_document_id? ; label, amount_cents, billed_document_id? | UQ case_id | CASE |
 | `prospects`, `billing_documents`, `billing_lines` | type (INVOICE, QUOTE, CONTRACT, CREDIT_NOTE), number?, client_creditor_id?, prospect_id?, status, issued_on?, due_on?, net_cents, vat_rate_bp, vat_cents, gross_cents, operation_category, vat_on_debits, terms, document_id?, corrected_id?, issued_by?, on_behalf_of_id?, snapshot ; label, quantity, unit_price_cents | UQ number ; **immuable une fois émis** (déclencheur) | ADMIN |
 | `remittance_batches`, `remittances`, `remittance_lines` | period, status, validated_by?, on_behalf_of_id?, paid_on? ; creditor_id, collected_cents, fee_cents, vat_cents, net_cents, invoice_id?, statement_document_id? ; [c+cr], payment_id, kind (COLLECTION, REVERSAL, CARRY_OVER, COST) | UQ payment_id par type ; UQ (batch, creditor) | ADMIN ; créancier : les siens |
 | `claim_imports`, `claim_import_lines` | creditor_id, uploaded_by, document_id, status, lines, valid, total_cents, confirmed_at?, expires_at ; line, data, error_message?, case_id? | rien de créé avant confirmation | THREAD |
@@ -368,7 +366,7 @@ Exceptions : les quittances restent 10 ans même si le dossier est anonymisé à
 |---|---|---|---|
 | Resend (Q) | `RESEND_API_KEY`, `RESEND_ACCOUNT_API_KEY` (second domaine, 84), `RESEND_WEBHOOK_SECRET` | Resend > API Keys : accès « envoi » limité à un domaine ; Webhooks | Clé limitée à un domaine de test ; destinataires `@resend.dev` (comptés dans le quota) |
 | MySendingBox (Q) | `MYSENDINGBOX_API_KEY` (`live_`), `MYSENDINGBOX_TEST_API_KEY` (`test_`) | Compte MySendingBox | Clé `test_` seulement : aucun courrier ne part |
-| Scaleway (N) | `SCW_ACCESS_KEY`, `SCW_SECRET_KEY` | Clé limitée au bucket `legarec-documents` | Facultatif (bucket de test, `legarec-documents` refusé) ; sinon disque local |
+| Stockage S3 OVHcloud (N, X) | `SCW_ACCESS_KEY`, `SCW_SECRET_KEY` (à renommer au lot X) | Clé limitée au bucket `legarec-documents` | Facultatif (bucket de test, `legarec-documents` refusé) ; sinon disque local |
 | OVH, boîtes (R) | `OVH_API_APP_KEY`, `OVH_API_APP_SECRET`, `OVH_API_CONSUMER_KEY` | eu.api.ovh.com/createToken, règles `/email/domain/legarec.fr/*` seulement | **Aucune** : pas de mode test trouvé, elle agirait sur les vraies boîtes |
 | OVH, SMS (R) | `OVH_SMS_APP_KEY`, `OVH_SMS_APP_SECRET`, `OVH_SMS_CONSUMER_KEY`, `OVH_SMS_SERVICE_NAME` | idem, règles `/sms/<compte>/*` seulement | **Aucune** ; facultatif : compte SMS séparé et un numéro du cabinet |
 | recouvrement@ (R) | `COLLECTION_MAILBOX_PASSWORD` | Mot de passe de la boîte, posé chez OVH | **Aucune** : serveur IMAP simulé |

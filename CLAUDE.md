@@ -19,7 +19,7 @@ Cabinet de recouvrement amiable (Paris, 01 87 88 02 98). Ce dépôt transforme u
 En cas de doute : regarder `QUESTIONS.md`. Si la réponse n'y est pas, **ajouter la question** avec une option par défaut, ne pas inventer.
 
 ## Stack (détail : `docs/stack.md`)
-TypeScript strict · pnpm + Turborepo · React 19.2 + Vite + **Mantine 9.8** · TanStack Table 9 · FullCalendar · @mantine/charts · cmdk · TanStack Query · MSW · NestJS + PostgreSQL + Prisma · **Valkey** + BullMQ · Handlebars + Playwright (PDF, e-mails) · Scaleway S3 · MySendingBox · Resend · OVH (MX Plan, SMS, API) · 3CX · IA par couche fournisseur · Docker sur VPS derrière **Caddy** · GitHub avec **GitHub Actions** (vérifications seulement).
+TypeScript strict · pnpm + Turborepo · React 19.2 + Vite + **Mantine 9.8** · TanStack Table 9 · FullCalendar · @mantine/charts · cmdk · TanStack Query · MSW · NestJS + PostgreSQL + Prisma · **Valkey** + BullMQ · Handlebars + Playwright (PDF, e-mails) · OVHcloud Object Storage (S3) · MySendingBox · Resend · OVH (MX Plan, SMS, API) · 3CX · IA par couche fournisseur · Docker sur VPS derrière **Caddy** · GitHub avec **GitHub Actions** (vérifications seulement).
 
 Mantine 9 est récent : consulte le serveur MCP `mantine` (déclaré dans `.mcp.json`) avant d'utiliser un composant ou une API, plutôt que ta mémoire des versions 7 ou 8.
 

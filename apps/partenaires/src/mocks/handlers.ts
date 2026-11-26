@@ -13,7 +13,6 @@ const ACCOUNTS: PartnerSession[] = [
     email: 'c.besson@materiauxdelta.example',
     creditor: { id: 'md', name: 'Matériaux Delta', initials: 'MD', siren: '401 228 975' },
     officer: 'Thomas Giraud',
-    unread: 1,
   },
   {
     userId: 'pr',
@@ -22,7 +21,6 @@ const ACCOUNTS: PartnerSession[] = [
     email: 'p.roche@energiesrhone.example',
     creditor: { id: 'er', name: 'Énergies Rhône', initials: 'ER', siren: '626 018 154' },
     officer: 'Camille Laurent',
-    unread: 0,
   },
 ];
 const STORAGE = 'msw-demo-partner';
@@ -133,62 +131,12 @@ const seedPlans = (): Owned<PlanApproval>[] => [
     status: 'PENDING',
   },
 ];
-const seedThreads = () => [
-  {
-    creditorId: 'md',
-    id: 'c1',
-    subject: 'Échéancier Bâtiplus SAS',
-    reference: 'LGR-2026-00142',
-    time: '10:02',
-    unread: false,
-    messages: [
-      {
-        id: 'm1',
-        mine: false,
-        who: 'Thomas Giraud',
-        when: 'aujourd’hui 09:40',
-        text: 'Bonjour Claire, Bâtiplus propose de régler 18 600 € le 28/11 puis le solde en 8 mensualités. Cela dépasse les 6 mois prévus au mandat : validez-vous ?',
-      },
-    ],
-  },
-  {
-    creditorId: 'md',
-    id: 'c2',
-    subject: 'Contestation Atelier Mistral',
-    reference: 'LGR-2026-00170',
-    time: 'Hier',
-    unread: true,
-    messages: [
-      {
-        id: 'm2',
-        mine: false,
-        who: 'Thomas Giraud',
-        when: 'hier 15:10',
-        text: 'Le débiteur indique 2 palettes manquantes sur la livraison du 02/10. Pouvez-vous nous transmettre le bon de livraison signé ?',
-      },
-    ],
-  },
-  {
-    creditorId: 'md',
-    id: 'c3',
-    subject: 'Nouveau lot de créances',
-    reference: 'Import du 20/11',
-    time: '20 nov.',
-    unread: false,
-    messages: [
-      { id: 'm3', mine: true, who: 'Vous', when: '20/11 16:00', text: 'Je viens de déposer le lot de novembre (22 factures).' },
-      { id: 'm4', mine: false, who: 'Thomas Giraud', when: '20/11 16:45', text: 'Bien reçu, la prise en charge démarre lundi.' },
-    ],
-  },
-];
 let cases = seedCases();
 let plans = seedPlans();
-let threads = seedThreads();
 let imports: Owned<ImportReport>[] = [];
 export const resetPortal = () => {
   cases = seedCases();
   plans = seedPlans();
-  threads = seedThreads();
   imports = [];
   state.failures.clear();
 };
@@ -222,7 +170,7 @@ export const handlers = [
   checkBody,
   http.get('/api/auth/session', () => {
     const user = current();
-    return user ? HttpResponse.json({ ...user, unread: mine(threads, user.creditor.id).filter((item) => item.unread).length }) : unauthorized();
+    return user ? HttpResponse.json(user) : unauthorized();
   }),
   http.post('/api/auth/login', async ({ request }) => {
     const body = loginRequest.parse(await request.json());
@@ -401,29 +349,6 @@ export const handlers = [
             : [],
       }),
     ),
-  ),
-  http.get(
-    '/api/portal/messages',
-    owned((creditorId) => HttpResponse.json({ items: mine(threads, creditorId) })),
-  ),
-  http.post(
-    '/api/portal/messages/:id',
-    owned(async (creditorId, { params, request }) => {
-      const thread = threads.find((item) => item.id === params.id && item.creditorId === creditorId);
-      if (!thread) return notFound();
-      const { text } = (await request.json()) as { text: string };
-      thread.messages = [...thread.messages, { id: `m${Date.now()}`, mine: true, who: 'Vous', when: 'à l’instant', text }];
-      return done();
-    }),
-  ),
-  http.post(
-    '/api/portal/messages/:id/read',
-    owned((creditorId, { params }) => {
-      const thread = threads.find((item) => item.id === params.id && item.creditorId === creditorId);
-      if (!thread) return notFound();
-      thread.unread = false;
-      return done();
-    }),
   ),
   http.get(
     '/api/portal/documents',

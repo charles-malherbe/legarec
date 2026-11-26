@@ -51,7 +51,6 @@ export function Shell() {
             { href: '/dossiers', label: 'Mes dossiers' },
             { href: '/depot', label: 'Déposer des créances' },
             { href: '/reversements', label: 'Reversements' },
-            { href: '/messages', label: 'Messages', badge: user.unread },
             { href: '/releves', label: 'Relevés et rapports' },
           ],
         }}

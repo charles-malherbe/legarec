@@ -273,7 +273,6 @@ export const REQUEST_BODIES = {
     'POST /portal/claims': claimBody,
     'POST /portal/attachments': fileBody,
     'POST /portal/imports': fileBody,
-    'POST /portal/messages/:id': portalMessageBody,
   },
   debtor: {
     'POST /debtor/access': debtorAccess,

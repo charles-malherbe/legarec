@@ -80,7 +80,6 @@ describe('password', () => {
       email: email.partnerA,
       creditor: { id: test.s.creditorA, name: 'Créancier ALPHA-MARK', initials: 'CA', siren: expect.stringMatching(/^900\s000\s001$/u) as string },
       officer: 'Remi Test',
-      unread: 0,
     });
   });
 

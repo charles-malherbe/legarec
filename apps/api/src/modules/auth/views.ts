@@ -56,8 +56,6 @@ export class SessionViews {
         ...me,
         creditor: { id: creditor.id, name: creditor.name, initials: initialsOf(creditor.name), siren: formatSiren(creditor.siren ?? '') },
         officer: officer?.name ?? '',
-        // The messages of the creditors come with their portal.
-        unread: 0,
       };
     });
   }

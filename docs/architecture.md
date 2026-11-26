@@ -40,13 +40,13 @@ Décisions du 24/11/2026, reprises de l'annexe « Architecture » de `PROMPT-FRO
 - Secrets : clés des services dans un coffre chiffré en base (Paramètres techniques > Secrets) ; valeurs de démarrage dans
   un fichier du serveur ; .env temporaire en développement (docs/api.md, « Clés et secrets »).
 - Antivirus : ClamAV ; tout fichier reçu reste en quarantaine jusqu'au résultat (question 87).
-- IA : auto-hébergée si l'essai mesuré du lot W convient, sinon nouveau choix (questions 72 et 106) ; transcription
+- IA : services hébergés en France, OVHcloud AI Endpoints, même fournisseur que le stockage (option C, décisions du 26/11/2026) ; transcription
   après l'appel seulement ; couche fournisseur (interface unique ; adaptateurs Anthropic et compatible OpenAI pour Scaleway et OVH).
   Les deux niveaux de docs/ia.md (IA_MODELE_RAPIDE, IA_MODELE_AVANCE) n'ont pas de valeur par défaut : variable absente =
   IA éteinte ; budget et journal de docs/ia.md conservés, avec le coût de chaque appel ;
   seules les données nécessaires sont envoyées ; IA désactivée en production tant que le contrat de sous-traitance
   n'est pas signé.
-- Fichiers des dossiers (Scaleway S3, bucket legarec-documents) : répertoires en français, sans accents ni espaces :
+- Fichiers des dossiers (OVHcloud Object Storage, bucket legarec-documents) : répertoires en français, sans accents ni espaces :
   dossiers/{id}/pieces/, dossiers/{id}/courriers/, dossiers/{id}/accuses-reception/, dossiers/{id}/quittances/,
   dossiers/{id}/emails/, dossiers/{id}/enregistrements/ (question 104), imports/. Noms de fichiers : identifiants générés, nom d'origine conservé en base.
 - Sauvegardes : pgBackRest 2.59.3 minimum (projet maintenu, relancé en mai 2026 après l'annonce d'avril),

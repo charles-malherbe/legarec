@@ -12,7 +12,7 @@ export function HelpPage() {
         <h2>Donner votre accord sur un échéancier</h2>
         <p>Quand un échéancier dépasse la durée prévue à votre mandat, une demande d’accord apparaît sur votre tableau de bord.</p>
         <h2>Nous joindre</h2>
-        <p>Écrivez à votre gestionnaire depuis Messages, ou appelez le 01 87 88 02 98 du lundi au vendredi, 9 h – 19 h.</p>
+        <p>Écrivez à recouvrement@legarec.fr en indiquant la référence du dossier, ou appelez le 01 87 88 02 98 du lundi au vendredi, 9 h – 19 h.</p>
       </main>
       <PiedDePage helpHref="/aide" maxWidth="1320px" />
     </div>
