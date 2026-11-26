@@ -43,11 +43,14 @@ export class LimitedSpace {
     return { identifier: { kind: row.kind, value: row.kind === 'SIREN' ? spaced(row.value) : row.value } };
   }
 
-  /** Always the same answer; three an hour per identifier, twenty a day per network (question 114). */
+  /** Always the same answer; three an hour and five a day per identifier, twenty a day per network (question 114). */
   async codeBySms(identifier: DebtorIdentifier): Promise<{ requested: true }> {
     await this.limits.take({ name: 'debtor-sms-network', max: 20, seconds: 86_400 });
     const value = normalized(identifier);
-    await this.limits.take({ name: 'debtor-sms', max: 3, seconds: 3600 }, this.keys.attempt('debtor', `sms:${identifier.kind}:${value}`).toString('hex'));
+    const asked = this.keys.attempt('debtor', `sms:${identifier.kind}:${value}`).toString('hex');
+    await this.limits.take({ name: 'debtor-sms', max: 3, seconds: 3600 }, asked);
+    // Whatever the networks: at most 5 texts a day towards one debtor (security review).
+    await this.limits.take({ name: 'debtor-sms-day', max: 5, seconds: 86_400 }, asked);
     await this.database.tx.$executeRaw`SELECT app.ask_code_by_sms(${identifier.kind}, ${value})`;
     return { requested: true };
   }
