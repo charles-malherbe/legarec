@@ -226,14 +226,14 @@ Les 161 routes simulées se répartissent ainsi :
 | Fiche débiteur : la relance envoie un destinataire libre et des libellés ; devient un contact du dossier et des codes | Q |
 | Appel entrant lu une seule fois : interrogation toutes les 5 secondes | T |
 | Échec d'envoi et quota par boîte : compteur dans Valkey, plus en mémoire | R |
-| Écran Secrets : liste de noms attendus, « Renouveler » qui demande la nouvelle valeur, « Révoquer » masqué pour les clés internes, `SESSION_SIGNING_KEY` retirée, « Environnement » réel (108 à 110) | L |
+| Écran Secrets : liste de noms attendus, « Renouveler » qui demande la nouvelle valeur, « Révoquer » masqué pour les clés internes, `SESSION_SIGNING_KEY` retirée, « Environnement » réel (108 à 110) : fait (lot L) | L |
 | Appels : « Transcription en direct » devient une transcription proposée après l'appel (question 72) | W |
-| Tableau des permissions : « Valider un échéancier, une remise ou un abandon de créance », « Ses dossiers » pour le Directeur (question 86) ; « Validations » : accord du créancier après celui du Responsable | M |
+| Tableau des permissions : « Valider un échéancier, une remise ou un abandon de créance », « Ses dossiers » pour le Directeur (question 86) ; « Validations » : accord du créancier après celui du Responsable : fait (lot F1) | M |
 | Portail paiement : mêmes règles que les deux autres au changement de personne (`key`, autres onglets, déconnexion non reçue) | O |
 | Caddy masque les jetons des liens de réinitialisation et d'invitation dans ses journaux (`docs/api.md`) : fait, aucun chemin n'est journalisé, vérifié à chaque changement par GitHub Actions (`infra/ci/smoke.sh`) | X1 |
 | Remplaçant : notifications neutres à envoyer avec celles des dossiers (texte de Mon compte déjà ajusté) | L |
-| Cloche de la barre du haut : notifications encore simulées (`/shell`), page Notifications déjà réelle | L |
-| Tableau de bord : `queryFn` absente de la requête `shell` (erreur dans la console) ; Paramètres : « Annuler » actif pendant l'enregistrement | L, U |
+| Cloche de la barre du haut : notifications encore simulées (`/shell`), page Notifications déjà réelle : fait (lot L), la cloche lit les notifications par `/shell` | L |
+| Tableau de bord : `queryFn` absente de la requête `shell` (erreur dans la console) ; Paramètres : « Annuler » actif pendant l'enregistrement : faits (lot L) | L, U |
 | Données personnelles : durées modifiables et anonymisation désactivable à l'écran, alors qu'elles sont fixées ; page Confidentialité à compléter (durées, suivi des e-mails avant de l'activer) | Q, V |
 | Synchronisation d'un contact avec l'annuaire 3CX (`HANDOFF.md`) : annuaire commun à toute l'équipe, écart à signaler avant développement | T |
 

@@ -129,7 +129,7 @@ export const firmGroups = (): SettingGroup[] => [
               ['Voir les dossiers', 'Non', 'Tous', 'Équipe et sans gestionnaire', 'Ses dossiers'],
               ['Gérer les créanciers (clients)', 'Non', 'Oui', 'Oui', 'Lecture'],
               ['Affecter les dossiers aux gestionnaires', 'Non', 'Oui', 'Par délégation', 'Non'],
-              ['Valider un échéancier, une remise ou un abandon de créance', 'Non', 'Oui', 'Oui', 'Non'],
+              ['Valider un échéancier, une remise ou un abandon de créance', 'Non', 'Ses dossiers', 'Oui', 'Non'],
               ['Traiter un dossier (relances, notes, appels)', 'Non', 'Ses dossiers', 'Ses dossiers et ceux de l’équipe', 'Ses dossiers'],
               ['Proposer un échéancier', 'Non', 'Ses dossiers', 'Oui', 'Oui'],
               ['Valider les modèles de documents', 'Non', 'Oui', 'Par délégation', 'Non'],
@@ -178,7 +178,7 @@ export const firmGroups = (): SettingGroup[] => [
           ]),
         ]),
         block('approvals', 'Validations', 'Actions qui nécessitent l’accord d’un Responsable du recouvrement ou du Directeur.', [
-          sw('r1', 'Échéancier au-delà de la durée maximale', 'Validation par un Responsable du recouvrement ou le Directeur', true, true),
+          sw('r1', 'Échéancier au-delà de la durée maximale', 'Validation par le Responsable du recouvrement (par le Directeur sur ses dossiers), puis accord du créancier', true, true),
           sw('r2', 'Remise ou abandon de créance', 'Toujours soumis à validation, quel que soit le montant', true, true),
           sw('r3', 'Passage en contentieux', 'Nécessite aussi l’accord écrit du créancier'),
           select('duration', 'Durée maximale sans validation', 'Au-delà, l’échéancier part en validation', ['6 mois', '3 mois', '12 mois']),
