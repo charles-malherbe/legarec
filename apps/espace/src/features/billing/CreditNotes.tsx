@@ -30,7 +30,16 @@ const money = (value: number) => formatCents(value, { decimals: 'always' });
 const typed = (cents: number) => (cents / 100).toFixed(2).replace('.', ',');
 const sirenLine = (client: CorrectableInvoice['client']) =>
   client.siren ? `SIREN ${formatSiren(client.siren)}${client.vatNumber ? ` · TVA ${client.vatNumber}` : ''}` : 'SIREN à renseigner';
-type Failure = { kind: 'firm'; missing: string[] } | { kind: 'changed' } | { kind: 'error' };
+type Failure = { kind: 'firm'; missing: string[] } | { kind: 'changed' } | { kind: 'debtor' } | { kind: 'error' };
+/** A field of the firm left empty, as Paramètres › Cabinet names it. */
+const FIRM_LABELS: Record<string, string> = {
+  name: 'Nom du cabinet',
+  address: 'Adresse',
+  phone: 'Téléphone',
+  siren: 'SIREN',
+  vat: 'N° TVA',
+  rcs: 'Capital et RCS',
+};
 
 /** Badge of a credit note in the list « Avoirs »: what became of its amount. */
 export function creditNoteStatus(item: CreditNoteRow): { label: string; tone: Tone } {
@@ -56,6 +65,7 @@ export function CreditNoteCreator({
   onIssued: () => void;
 }) {
   const { data, isPending, error, refetch } = useApi(creditNotesData, '/credit-notes');
+  const [picked, setPicked] = useState<string | null>(null);
   const shell = (body: ReactNode) => (
     <Carte
       title="Créer depuis un modèle"
@@ -76,13 +86,40 @@ export function CreditNoteCreator({
     return shell(
       <EtatListe kind="empty" title="Aucune facture à corriger" text="Seules les factures émises, pas encore annulées, peuvent recevoir un avoir." />,
     );
+  // The invoice asked for (by its button, or by a draft): never another one in its place.
+  const asked = draft
+    ? data.invoices.find((item) => item.id === draft.invoiceId)
+    : invoiceNumber
+      ? data.invoices.find((item) => item.number === invoiceNumber)
+      : data.invoices[0];
+  const initial = picked ?? asked?.id;
+  if (!initial)
+    return shell(
+      <>
+        <Alerte
+          tone="warning"
+          title="Facture déjà annulée ou introuvable"
+          text={`${draft?.invoice ?? invoiceNumber ?? 'Cette facture'} ne peut plus recevoir d’avoir. Choisissez une autre facture, ou fermez la création.`}
+        />
+        <Champ
+          label="2. Facture à corriger"
+          type="select"
+          value=""
+          options={[
+            { value: '', label: 'Choisir une facture' },
+            ...data.invoices.map((item) => ({ value: item.id, label: `${item.number} · ${item.client.name} · ${money(item.left)} TTC` })),
+          ]}
+          onChange={(value) => setPicked(value || null)}
+        />
+      </>,
+    );
   return (
     <Form
       key={`${data.invoices.map((item) => `${item.id}:${item.left}`).join()}`}
       data={data}
       typePicker={typePicker}
-      invoiceNumber={invoiceNumber}
-      draft={draft}
+      initialId={initial}
+      draft={asked && !picked ? draft : undefined}
       onClose={onClose}
       onIssued={onIssued}
       onReload={() => void refetch()}
@@ -93,7 +130,7 @@ export function CreditNoteCreator({
 function Form({
   data,
   typePicker,
-  invoiceNumber,
+  initialId,
   draft,
   onClose,
   onIssued,
@@ -101,7 +138,7 @@ function Form({
 }: {
   data: CreditNotesData;
   typePicker: ReactNode;
-  invoiceNumber?: string;
+  initialId: string;
   draft?: CreditNoteDraft;
   onClose: () => void;
   onIssued: () => void;
@@ -111,7 +148,7 @@ function Form({
   const change = useChange();
   const confirm = useConfirm();
   const toast = useToast();
-  const first = data.invoices.find((item) => item.id === draft?.invoiceId) ?? data.invoices.find((item) => item.number === invoiceNumber) ?? data.invoices[0]!;
+  const first = data.invoices.find((item) => item.id === initialId)!;
   const [invoiceId, setInvoiceId] = useState(first.id);
   const invoice = data.invoices.find((item) => item.id === invoiceId) ?? first;
   const settled = invoice.settledOn !== null;
@@ -119,7 +156,9 @@ function Form({
   const [amounts, setAmounts] = useState<Record<string, string>>(() => Object.fromEntries((draft?.lines ?? []).map((item) => [item.lineId, typed(item.net)])));
   const [reason, setReason] = useState(draft?.reason ?? '');
   const [chosen, setChosen] = useState<CreditNoteFollowUp | null>(draft?.followUp ?? null);
-  const [draftId, setDraftId] = useState(draft?.id ?? null);
+  // A draft belongs to its invoice: another invoice chosen, and it is a new draft.
+  const [saved, setSaved] = useState(draft ? { id: draft.id, invoiceId: draft.invoiceId } : null);
+  const draftId = saved?.invoiceId === invoice.id ? saved.id : null;
   const [shown, setShown] = useState(false);
   const [failure, setFailure] = useState<Failure | null>(null);
   const followUp: CreditNoteFollowUp = settled ? (chosen === 'TRANSFER' ? 'TRANSFER' : 'NEXT_REMITTANCE') : 'DEDUCTED';
@@ -167,17 +206,18 @@ function Form({
   const saveDraft = async () => {
     const sent = { ...body(), followUp: settled ? followUp : 'DEDUCTED' };
     if (draftId) await change(`/credit-notes/drafts/${draftId}`, { method: 'PUT', body: sent });
-    else setDraftId((await change('/credit-notes/drafts', { body: sent, schema: z.object({ id: z.string() }) })).id);
+    else setSaved({ id: (await change('/credit-notes/drafts', { body: sent, schema: z.object({ id: z.string() }) })).id, invoiceId: invoice.id });
     toast({ message: 'Brouillon enregistré : modifiable et supprimable, le numéro n’est attribué qu’à l’émission.' });
   };
   const issue = () => {
     setShown(true);
     if (invalid) return;
     confirm({
-      title: `Émettre l’avoir ${data.nextNumber} ?`,
-      body: 'Le numéro devient définitif et l’avoir ne peut plus être modifié. La facture d’origine reste inchangée.',
+      title: `Émettre l’avoir sur ${invoice.number} ?`,
+      body: 'Le numéro est attribué à l’émission et l’avoir ne peut plus être modifié ensuite. La facture d’origine reste inchangée.',
       confirmLabel: 'Émettre l’avoir',
       details: [
+        { k: 'Numéro', v: `${data.nextNumber} (numéro provisoire)` },
         { k: 'Facture corrigée', v: `${invoice.number} du ${formatDate(invoice.issuedOn)}` },
         { k: 'Client', v: `${invoice.client.legalName}${invoice.client.siren ? ` · SIREN ${formatSiren(invoice.client.siren)}` : ''}` },
         { k: 'Motif', v: reason.trim() },
@@ -202,13 +242,16 @@ function Form({
               ? { kind: 'firm', missing: code.missing ?? [] }
               : code?.code === 'CHANGED'
                 ? { kind: 'changed' }
-                : { kind: 'error' },
+                : code?.code === 'DEBTOR_NAME'
+                  ? { kind: 'debtor' }
+                  : { kind: 'error' },
           );
         }
       },
     });
   };
-  const missingFirm = Object.values(data.firm).flatMap((value) => value.match(PLACEHOLDER) ?? []);
+  const missingFirm = Object.entries(data.firm).flatMap(([field, value]) => (value.trim() ? (value.match(PLACEHOLDER) ?? []) : [field]));
+  const firmGaps = (failure?.kind === 'firm' && failure.missing.length ? failure.missing : missingFirm).map((item) => FIRM_LABELS[item] ?? item);
   const sentence = {
     NEXT_REMITTANCE: data.nextRemittance ? `Montant ajouté au reversement du ${formatDate(data.nextRemittance)}.` : 'Montant ajouté au prochain reversement.',
     TRANSFER: 'Montant remboursé par virement.',
@@ -286,9 +329,18 @@ function Form({
             rows={2}
             value={reason}
             maxLength={1000}
-            help="Imprimé sur l’avoir et conservé dans le journal d’audit. Référence du dossier, sans nom de débiteur."
-            error={shown ? errors.reason : undefined}
-            onChange={setReason}
+            help="Imprimé sur l’avoir et conservé 10 ans avec lui ; référence du dossier, jamais le nom du débiteur."
+            error={
+              failure?.kind === 'debtor'
+                ? 'Le motif contient le nom d’un débiteur : indiquez plutôt la référence du dossier.'
+                : shown
+                  ? errors.reason
+                  : undefined
+            }
+            onChange={(value) => {
+              setReason(value);
+              if (failure?.kind === 'debtor') setFailure(null);
+            }}
           />
           <fieldset className={css.fieldset}>
             <legend>6. Suite</legend>
@@ -338,7 +390,11 @@ function Form({
             <Alerte
               tone="danger"
               title="Identité du cabinet incomplète"
-              text={`${(failure.missing.length ? failure.missing : missingFirm).join(', ')} : à saisir dans Paramètres › Cabinet.`}
+              text={
+                firmGaps.length
+                  ? `${firmGaps.join(', ')} : à saisir dans Paramètres › Cabinet.`
+                  : 'Une valeur de l’identité du cabinet manque : à compléter dans Paramètres › Cabinet.'
+              }
               actionLabel="Ouvrir Paramètres"
               actionHref="/parametres/cabinet"
             />

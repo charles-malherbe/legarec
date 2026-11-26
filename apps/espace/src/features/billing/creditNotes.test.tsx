@@ -50,7 +50,8 @@ describe('credit notes', () => {
     expect(preview.getByText('Montant ajouté au reversement du 15/12/2026.')).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: 'Émettre l’avoir' }));
     const dialog = await inDialog();
-    expect(dialog.getByText('Émettre l’avoir AV-2026-0002 ?')).toBeVisible();
+    expect(dialog.getByText('Émettre l’avoir sur FA-2026-0116 ?')).toBeVisible();
+    expect(dialog.getByText('AV-2026-0002 (numéro provisoire)')).toBeVisible();
     expect(dialog.getByText('Marie Dubreuil, Directeur')).toBeVisible();
     expect(dialog.getByText(/^250,56.€$/u)).toBeVisible();
     await userEvent.click(dialog.getByRole('button', { name: 'Émettre l’avoir' }));
@@ -96,6 +97,51 @@ describe('credit notes', () => {
     expect(await screen.findByText('Identité du cabinet incomplète')).toBeVisible();
     expect(screen.getByText(/\[ADRESSE DU CABINET\], \[SIREN\], \[N° TVA\], \[CAPITAL ET RCS\]/u)).toBeVisible();
     expect(screen.getByLabelText(/5\. Motif/u)).toHaveValue('Erreur de taux');
+  });
+
+  it('names the field of the firm left empty', async () => {
+    fillFirm();
+    setFirmText('phone', '');
+    openAs('ad', '/facturation');
+    await creditFrom('FA-2026-0114');
+    await userEvent.click(screen.getByRole('radio', { name: /Avoir total/u }));
+    await userEvent.type(screen.getByLabelText(/5\. Motif/u), 'Erreur de taux');
+    await userEvent.click(screen.getByRole('button', { name: 'Émettre l’avoir' }));
+    await userEvent.click((await inDialog()).getByRole('button', { name: 'Émettre l’avoir' }));
+    expect(await screen.findByText('Téléphone : à saisir dans Paramètres › Cabinet.')).toBeVisible();
+  });
+
+  it('asks for the reference of the case instead of the name of a debtor', async () => {
+    fillFirm();
+    server.use(http.post('/api/credit-notes', () => HttpResponse.json({ code: 'DEBTOR_NAME' }, { status: 422 })));
+    openAs('cl', '/facturation');
+    await creditFrom('FA-2026-0114');
+    expect(screen.getByText('Imprimé sur l’avoir et conservé 10 ans avec lui ; référence du dossier, jamais le nom du débiteur.')).toBeVisible();
+    await userEvent.click(screen.getByRole('radio', { name: /Avoir total/u }));
+    await userEvent.type(screen.getByLabelText(/5\. Motif/u), 'Erreur pour la société Martin');
+    await userEvent.click(screen.getByRole('button', { name: 'Émettre l’avoir' }));
+    await userEvent.click((await inDialog()).getByRole('button', { name: 'Émettre l’avoir' }));
+    expect(await screen.findByText('Le motif contient le nom d’un débiteur : indiquez plutôt la référence du dossier.')).toBeVisible();
+    expect(screen.queryByText(/Avoir AV-.* émis/u)).toBeNull();
+  });
+
+  it('never takes another invoice for a draft whose invoice is cancelled since', async () => {
+    fillFirm();
+    const draft = { invoiceId: 'FA-2026-0114', scope: 'TOTAL', lines: [], reason: 'À revoir', followUp: 'DEDUCTED' };
+    expect((await call('cl', '/credit-notes/drafts', draft)).status).toBe(200);
+    const issued = await call('ad', '/credit-notes', { ...draft, reason: 'Frais facturés deux fois', expectedLeft: 128_400, draftId: null });
+    expect(issued.status).toBe(200);
+    openAs('cl', '/facturation');
+    await userEvent.click(await screen.findByRole('tab', { name: /Avoirs/u }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Reprendre le brouillon sur FA-2026-0114' }));
+    expect(await screen.findByText('Facture déjà annulée ou introuvable')).toBeVisible();
+    const select = screen.getByRole('combobox', { name: '2. Facture à corriger' });
+    expect(select).toHaveValue('');
+    expect(screen.queryByRole('button', { name: 'Émettre l’avoir' })).toBeNull();
+    // Another invoice, chosen: a new draft, never the old one.
+    await userEvent.selectOptions(select, 'FA-2026-0116');
+    expect(await screen.findByRole('button', { name: 'Émettre l’avoir' })).toBeVisible();
+    expect(screen.getByLabelText(/5\. Motif/u)).toHaveValue('');
   });
 
   it('says that the invoice changed since it was shown, and reloads it', async () => {

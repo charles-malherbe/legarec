@@ -135,16 +135,15 @@ export const creditNoteHandlers = [
       if (!parsed.success) return invalid();
       const body = parsed.data;
       const firm = data().firm;
-      const missing = Object.values(firm).filter((value) => !value.trim() || PLACEHOLDER.test(value));
-      if (missing.length)
-        return HttpResponse.json(
-          { code: 'FIRM_INCOMPLETE', missing: missing.map((value) => value.match(PLACEHOLDER)?.[0] ?? '').filter(Boolean) },
-          { status: 409 },
-        );
+      // The value between brackets, or the name of the field left empty.
+      const missing = Object.entries(firm).flatMap(([field, value]) => (!value.trim() ? [field] : (value.match(PLACEHOLDER) ?? []).slice(0, 1)));
+      if (missing.length) return HttpResponse.json({ code: 'FIRM_INCOMPLETE', missing }, { status: 409 });
       const source = INVOICES.find((item) => item.id === body.invoiceId);
       if (!source) return notFound();
       const left = leftOf(source);
       if (left !== body.expectedLeft || left <= 0) return HttpResponse.json({ code: 'CHANGED' }, { status: 409 });
+      if (body.draftId && !drafts.some((item) => item.id === body.draftId && item.invoiceId === source.id))
+        return HttpResponse.json({ code: 'CHANGED' }, { status: 409 });
       if ((source.settledOn !== null) !== (body.followUp !== 'DEDUCTED')) return invalid();
       const known = linesLeft(source);
       if (
