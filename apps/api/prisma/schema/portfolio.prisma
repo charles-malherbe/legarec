@@ -177,6 +177,7 @@ model Debtor {
 
   cases      Case[]
   accessCode DebtorAccessCode?
+  sessions   DebtorSession[]
 
   @@map("debtors")
 }
@@ -382,4 +383,21 @@ model CaseEvent {
 
   @@index([caseId, occurredAt(sort: Desc)], map: "case_events_case")
   @@map("case_events")
+}
+
+/// Opened by the sign-in of a debtor (`app.open_debtor_session()`), read again at each request.
+model DebtorSession {
+  id         String    @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  debtorId   String    @map("debtor_id") @db.Uuid
+  tokenHash  Bytes     @unique @map("token_hash")
+  ip         String?   @db.Inet
+  persistent Boolean   @default(false)
+  lastSeenAt DateTime  @default(dbgenerated("now()")) @map("last_seen_at") @db.Timestamptz(3)
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(3)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(3)
+  createdAt  DateTime  @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
+
+  debtor Debtor @relation(fields: [debtorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("debtor_sessions")
 }

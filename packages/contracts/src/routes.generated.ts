@@ -1552,6 +1552,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/debtor/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DebtorController_session"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/debtor/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["DebtorController_access"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/debtor/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["DebtorController_logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/debtor/cases/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DebtorController_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/staff/shell": {
         parameters: {
             query?: never;
@@ -4556,6 +4620,161 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    DebtorController_session: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        greeting: string;
+                        debtor: string;
+                        cases: {
+                            id: string;
+                            reference: string;
+                            creditor: string;
+                            balance: number;
+                            statusLabel: string;
+                            /** @enum {string} */
+                            statusTone: "neutral" | "info" | "success" | "warning" | "danger" | "violet";
+                        }[];
+                    };
+                };
+            };
+        };
+    };
+    DebtorController_access: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        greeting: string;
+                        debtor: string;
+                        cases: {
+                            id: string;
+                            reference: string;
+                            creditor: string;
+                            balance: number;
+                            statusLabel: string;
+                            /** @enum {string} */
+                            statusTone: "neutral" | "info" | "success" | "warning" | "danger" | "violet";
+                        }[];
+                    };
+                };
+            };
+        };
+    };
+    DebtorController_logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DebtorController_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        reference: string;
+                        creditor: string;
+                        balance: number;
+                        statusLabel: string;
+                        /** @enum {string} */
+                        statusTone: "neutral" | "info" | "success" | "warning" | "danger" | "violet";
+                        debtor: string;
+                        officer: string;
+                        isIndividual: boolean;
+                        principal: number;
+                        interest: number;
+                        indemnity: number;
+                        paid: number;
+                        invoices: {
+                            id: string;
+                            number: string;
+                            dueOn: string;
+                            amount: number;
+                        }[];
+                        payments: {
+                            id: string;
+                            amount: number;
+                            date: string;
+                            /** @enum {string} */
+                            method: "TRANSFER" | "CHEQUE";
+                            receiptId: string | null;
+                        }[];
+                        next: {
+                            date: string;
+                            amount: number;
+                        } | null;
+                        lastMessage: {
+                            who: string;
+                            when: string;
+                            text: string;
+                        } | null;
+                        unread: number;
+                        plan: {
+                            acceptedOn: string;
+                            installments: {
+                                number: number;
+                                dueOn: string;
+                                amount: number;
+                                /** @enum {string} */
+                                status: "PAID" | "DUE" | "UPCOMING" | "LATE";
+                            }[];
+                        } | null;
+                        payment: {
+                            beneficiary: string;
+                            iban: string;
+                            bic: string;
+                            reference: string | null;
+                            chequeOrder: string;
+                            chequeAddress: string;
+                        };
+                    };
+                };
             };
         };
     };

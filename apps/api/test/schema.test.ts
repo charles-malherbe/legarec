@@ -182,11 +182,17 @@ describe('rights of the roles that face the outside', () => {
       'plan_approvals SELECT (case_id, creditor_id, decided_at, decision, id, plan_id, step)',
     ],
     legarec_debtor: [
-      'cases SELECT (closed_on, creditor_id, debtor_id, id, opened_on, reference, status)',
+      'cases SELECT (closed_on, creditor_id, debtor_id, formal_notice_on, id, mandate_id, opened_on, reference, status)',
+      // What they owe, with its interest, and how to pay it: never the fees of the mandate, nor any other setting.
+      'creditors SELECT (id, name)',
+      'interest_rates SELECT (id, kind, rate_bp, valid_from)',
+      'mandates SELECT (contract_rate_bp, creditor_id, fixed_indemnity, id, interest_mode)',
+      'settings SELECT (key, value)',
+      'payment_plans SELECT (accepted_at, case_id, created_at, creditor_id, first_due_on, id, method, months, status, total_cents)',
       'debtors SELECT (id, kind, name, siren)',
       ...IDEMPOTENCY,
       'case_invoices SELECT (case_id, claimed_cents, creditor_id, due_on, external_ref, id, issued_on, number, principal_cents, principal_paid_cents, state)',
-      ...MONEY_OUTSIDE,
+      ...MONEY_OUTSIDE.filter((entry) => !entry.startsWith('payment_plans')),
       'receipts SELECT (case_id, creditor_id, id, issued_at, number, payment_id)',
     ],
   };
@@ -377,7 +383,7 @@ describe('rights of the roles inside', () => {
       'case_contact_events INSERT (actor_id, actor_label, case_id, contact_id, creditor_id, what)',
       'case_contacts SELECT (case_id, creditor_id, id)',
       'debtors INSERT (id, kind, legal_form_checked_at, legal_form_code, legal_form_source, name, siren)',
-      'cases SELECT (closed_on, creditor_id, debtor_id, first_letter_on, id, mandate_id, officer_id, status, version)',
+      'cases SELECT (closed_on, creditor_id, debtor_id, first_letter_on, id, mandate_id, officer_id, reference, status, version)',
       'debtor_access_codes INSERT (code_cipher, debtor_id, generated_by)',
       'debtor_retired_codes INSERT (code_hmac, debtor_id)',
       'debtor_retired_codes SELECT (code_hmac, debtor_id)',
@@ -387,6 +393,13 @@ describe('rights of the roles inside', () => {
       'debtor_access_codes SELECT (code_cipher, debtor_id, version)',
       'debtor_access_codes UPDATE (code_cipher, generated_at, generated_by, version)',
       'debtors SELECT (id, kind, name, siren)',
+      // Access of the debtors: their sessions and the attempts counted on their identifiers.
+      'debtor_sessions INSERT (*)',
+      'debtor_sessions SELECT (*)',
+      'debtor_sessions UPDATE (last_seen_at, revoked_at)',
+      'lockouts INSERT (failures, key_hash, scope)',
+      'lockouts SELECT (blocked_at, debtor_id, failures, key_hash, last_failure_at, locked_until, scope)',
+      'lockouts UPDATE (blocked_at, debtor_id, failures, last_failure_at, locked_until)',
       // Templates: their steps, by their functions.
       'template_versions INSERT (accepted, checks, file_name, has_warnings, id, imported_by, on_behalf_of_id, source, state, template_code)',
       'template_versions SELECT (*)',
@@ -508,6 +521,10 @@ describe('rights on the functions', () => {
     ['share_document', ['staff']],
     ...['import_template', 'cancel_template', 'submit_template', 'review_template'].map((name) => [name, ['staff']] as [string, string[]]),
     ['template_editor', []],
+    ...['debtor_for_access', 'debtor_attempt', 'open_debtor_session', 'resume_debtor_session', 'close_debtor_session', 'note_debtor_blocked', 'mark_debtor_attempt'].map(
+      (name) => [name, ['auth']] as [string, string[]],
+    ),
+    ['forget_debtor_access', ['staff']],
     ...['money_case', 'issue_receipt', 'follow_allocation', 'check_allocations', 'keep_receipt'].map((name) => [name, []] as [string, string[]]),
     // Tools of the migrations.
     ['secure', []],
@@ -534,6 +551,7 @@ describe('rights on the functions', () => {
       'uuid_v7 setting user_id creditor_id debtor_id only_identifiers audit_params',
       'save_interest_rate decide_plan follow_allocation check_allocations record_payment change_payment ask_plan money_case issue_receipt keep_receipt share_document',
       'import_template cancel_template submit_template review_template template_editor',
+      'debtor_for_access debtor_attempt open_debtor_session resume_debtor_session close_debtor_session note_debtor_blocked forget_debtor_access mark_debtor_attempt',
     ].flatMap((names) => names.split(' '));
     const found = await rows<{ proname: string }>(
       "SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'app' ORDER BY 1",

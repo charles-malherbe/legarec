@@ -193,6 +193,10 @@ Les 161 routes simulées se répartissent ainsi :
 - [x] Relecture `relecteur-securite` : aucun bloquant ; corrigés : empreinte d'idempotence d'un fichier, rattachement par numéro court, objets compressés des PDF, contenu des DOCX, partage par une fonction SQL, clé de stockage retirée aux rôles externes, téléchargement hors de ses dossiers journalisé, avertissement sur le code d'accès
 - Reporté : bucket Scaleway (X), conteneur ClamAV (X), envoi d'un document (Q), composition des courriers (Q), purge des fichiers sans ligne (X), corps lus avant la session sur l'import (limite Caddy, X), tests de cloisonnement des documents pour les rôles externes (O, P), boutons d'action masqués au Directeur dans Documents (contrat sans `canAct`)
 
+## Lot O — Espace débiteur (état au 26/11/2026)
+- [x] Connexion par identifiant et code, compteurs et blocage, levée par la régénération, sessions, lecture des dossiers et du solde (4 routes)
+- [ ] Messages et pièces, demandes, accès limité, liens, code par SMS, acceptation de l'échéancier, alerte globale
+
 ## Points à reprendre du front
 
 | Point | Lot |

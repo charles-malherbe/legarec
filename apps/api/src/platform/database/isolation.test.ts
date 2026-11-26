@@ -149,7 +149,9 @@ describe('names, creditors and debtors', () => {
     expect(await names('officerA')).toEqual(['Créancier ALPHA-MARK']);
     expect(await names('developer')).toEqual([]);
     expect(await names('partnerB')).toEqual(['Créancier BETA-MARK']);
-    await expect(names('debtorA')).rejects.toThrow(/denied/u);
+    // A debtor reads the name of the creditors of their announced cases, and no other.
+    expect(await names('debtorA')).toEqual(['Créancier ALPHA-MARK', 'Créancier BETA-MARK']);
+    expect(await names('debtorB')).toEqual(['Créancier ALPHA-MARK']);
   });
   it('hides the debtors of other people', async () => {
     const count = (name: Name) => as<number>(name, (tx) => tx.debtor.count());

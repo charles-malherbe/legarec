@@ -60,6 +60,8 @@ export class AccessCodes {
       const [row] = await this.database.tx.$queryRaw<{ done: boolean }[]>`
         SELECT app.renew_access_code(${caseId}::uuid, ${seen}::int, ${old === null ? null : digests(old)[0]!}::bytea, ${ring.encrypt(code, bindingOf(debtorId))}, ${digests(code)}) AS done`;
       if (!row!.done) continue;
+      // The old code opens nothing more: its sessions close, and a block on any of its identifiers is lifted.
+      await this.database.tx.$executeRaw`SELECT app.forget_debtor_access(${debtorId}::uuid)`;
       await this.audit.log({ action: 'ACCESS_CODE_RENEWED', entity: { type: 'case', id: caseId } });
       return;
     }
