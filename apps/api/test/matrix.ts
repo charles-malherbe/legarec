@@ -55,6 +55,98 @@ const member =
     return `/staff/members/${id}${then}`;
   };
 
+const secret =
+  (then: string, status = 'VALID') =>
+  async (test: TestApp) => {
+    await test.database.admin.query("DELETE FROM vault_secrets WHERE name = 'AI_API_KEY'");
+    const { rows } = await test.database.admin.query<{ id: string }>(
+      "INSERT INTO vault_secrets (name, value_cipher, status) VALUES ('AI_API_KEY', '\\x00', $1::secret_status) RETURNING id",
+      [status],
+    );
+    return `/staff/secrets/${rows[0]!.id}/${then}`;
+  };
+const withCases = (status: number) => only({ director: status, manager: status, managerAlone: status, officerA: status, officerB: status, liar: status });
+/** The Director and the manager; the liar is let in by the guard, then shown nothing. */
+const opens = (status: number) => only({ director: status, manager: status, managerAlone: status, liar: status });
+let lastCreditor = '';
+const newCreditor = async (test: TestApp, path: string) => {
+  const { rows } = await test.database.admin.query<{ id: string }>("INSERT INTO creditors (name) VALUES ('Nouveau') RETURNING id");
+  lastCreditor = rows[0]!.id;
+  return path;
+};
+let caseNumber = 50_000;
+/** Held by nobody. */
+const newCase = async (test: TestApp) => {
+  const debtor = await test.database.admin.query<{ id: string }>("INSERT INTO debtors (kind, name) VALUES ('INDIVIDUAL', 'X') RETURNING id");
+  caseNumber += 1;
+  const { rows } = await test.database.admin.query<{ id: string }>('INSERT INTO cases (reference, creditor_id, debtor_id) VALUES ($1, $2, $3) RETURNING id', [
+    `LGR-2026-${caseNumber}`,
+    test.s.creditorA,
+    debtor.rows[0]!.id,
+  ]);
+  return { id: rows[0]!.id, creditorId: test.s.creditorA };
+};
+let assigned: unknown;
+const INVOICE = { number: 'F-1', externalRef: '', issuedOn: '2026-01-01', dueOn: '2026-02-01', amount: 100, left: 100 };
+const CASE = {
+  mandateId: 'x',
+  externalReference: '',
+  kind: 'INDIVIDUAL',
+  number: '',
+  name: 'X',
+  nameConfirmed: true,
+  legalForm: '',
+  address: 'x',
+  postalCode: '69000',
+  city: 'Lyon',
+  contactName: '',
+  contactTitle: '',
+  contacts: [],
+  invoices: [INVOICE],
+  scenario: 'CONSUMER',
+  toMe: true,
+  expected: { principal: 100, invoices: 1 },
+};
+let settingTurn = 0;
+const technical = only({ director: 204, developer: 204 });
+const hidden = { ...technical, liar: 404 };
+
+const creditor =
+  (then = '', prepare?: (test: TestApp, id: string) => Promise<string>) =>
+  async (test: TestApp) => {
+    const { rows } = await test.database.admin.query<{ id: string }>("INSERT INTO creditors (name) VALUES ('Nouveau') RETURNING id");
+    const { id } = rows[0]!;
+    return `/staff/creditors/${id}${then}${prepare ? await prepare(test, id) : ''}`;
+  };
+const bankAccount = (then: string) => async (test: TestApp, id: string) => {
+  const { rows } = await test.database.admin.query<{ id: string }>(
+    "INSERT INTO creditor_bank_accounts (creditor_id, holder, iban_cipher, iban_masked, bic, created_by) VALUES ($1, 'x', '\\x00', 'GB82 •••• •••• 5432', 'PSSTFRPPXXX', $2) RETURNING id",
+    [id, test.s.director],
+  );
+  return `/bank-accounts/${rows[0]!.id}/${then}`;
+};
+const creditorBody = () => ({
+  identity: { legalName: 'X', name: 'X', sector: '', vatNumber: '', address: 'x', postalCode: '69000', city: 'Lyon', managerId: null, portalEnabled: true },
+  contacts: [{ name: 'X', title: '', email: email(), phone: '', isMain: true }],
+});
+const MANDATE = {
+  startsOn: '2026-01-01',
+  endsOn: null,
+  amicableRateBp: 800,
+  litigationRateBp: 1200,
+  openingFeeCents: 0,
+  planMonthsWithoutConsent: 6,
+  discountMaxBp: 500,
+  litigationNeedsConsent: true,
+  deferSmallRemittances: false,
+  interestMode: 'NONE',
+  contractRateBp: null,
+  fixedIndemnity: true,
+  reportingDay: 5,
+  scenario: 'BUSINESS',
+};
+const ACCOUNT = { holder: 'X', iban: 'GB82 WEST 1234 5698 7654 32', bic: 'PSSTFRPPXXX', confirmedWith: '' };
+
 /** The same sign-in on both portals, open to whoever is there: the answer does not depend on it. */
 const signIn = (portal: 'staff' | 'partner'): Record<string, MatrixEntry> => {
   const code = () => ({ code: 'xxxxxx' });
@@ -135,9 +227,143 @@ export const MATRIX: Record<string, MatrixEntry> = {
     expect: supports,
   },
 
+  'GET /staff/shell': { expect: staffOf(200) },
+  'POST /staff/search': { body: () => ({ query: 'ALPHA' }), expect: staffOf(200) },
+  'GET /staff/auth/proof': { expect: staffOf(200) },
+  'POST /staff/auth/proof/webauthn': { expect: staffOf(200) },
+  // No account of the test set has a password nor a second factor: refused, and counted.
+  'POST /staff/auth/proof': { body: () => ({ method: 'TOTP', code: '123456' }), expect: staffOf(422) },
   'GET /staff/delegations': { expect: only({ director: 200, liar: 200 }) },
   'PUT /staff/delegations/:kind': { path: () => '/staff/delegations/technical', body: () => ({ active: true }), expect: only({ director: 204 }) },
   'POST /staff/support-tickets': { body: () => ({ subject: 'Question', message: 'Une question du banc de test.' }), expect: staffOf(200) },
+  // The liar sees nothing of it.
+  'POST /staff/cases/search': { body: () => ({ query: '' }), expect: withCases(200) },
+  'GET /staff/cases/choices': { expect: opens(200) },
+  // The liar sees no creditor but those of their cases: the one that is asked has none.
+  'POST /staff/cases/check': {
+    path: (test) => newCreditor(test, '/staff/cases/check'),
+    body: () => ({ creditorId: lastCreditor, number: '' }),
+    expect: { ...opens(200), liar: 404 },
+  },
+  'POST /staff/cases/assign': {
+    path: async (test) => {
+      assigned = { ids: [(await newCase(test)).id], officerId: test.s.director };
+      return '/staff/cases/assign';
+    },
+    body: () => assigned,
+    expect: only({ director: 204, manager: 204, liar: 403 }),
+  },
+  // Without a mandate: what the test of the cases proves otherwise.
+  'POST /staff/cases': {
+    path: (test) => newCreditor(test, '/staff/cases'),
+    body: () => ({ ...CASE, creditorId: lastCreditor }),
+    expect: { ...opens(409), liar: 404 },
+  },
+  'GET /staff/cases/:id': {
+    path: (test) => `/staff/cases/${test.s.cases.ofA}`,
+    expect: { ...withCases(200), officerB: 404 },
+  },
+  // Held by nobody: the manager acts on it.
+  'POST /staff/cases/:id/invoices': {
+    path: async (test) => `/staff/cases/${(await newCase(test)).id}/invoices`,
+    body: () => ({ version: 1, invoices: [INVOICE], expected: { principal: 100, invoices: 1 } }),
+    expect: only({ director: 403, manager: 204, managerAlone: 204, liar: 404 }),
+  },
+  'GET /staff/cases/:id/access-code': {
+    path: async (test) => `/staff/cases/${(await newCase(test)).id}/access-code`,
+    expect: only({ director: 403, manager: 200, managerAlone: 200, officerA: 404, officerB: 404, liar: 404 }),
+  },
+  'POST /staff/cases/:id/access-code/regenerate': {
+    path: async (test) => `/staff/cases/${(await newCase(test)).id}/access-code/regenerate`,
+    body: () => ({ version: 1 }),
+    expect: only({ director: 403, manager: 204, managerAlone: 204, officerA: 404, officerB: 404, liar: 404 }),
+  },
+  'POST /staff/cases/:id/coordinates': {
+    path: async (test) => `/staff/cases/${(await newCase(test)).id}/coordinates`,
+    body: () => ({ kind: 'PHONE', label: 'x', value: '06 00 00 00 01', primary: false, replaces: null, source: 'CALL' }),
+    expect: only({ director: 403, manager: 204, managerAlone: 204, officerA: 404, officerB: 404, liar: 404 }),
+  },
+  'PUT /staff/cases/:id/coordinates/:coordinateId': {
+    path: async (test) => {
+      const { id, creditorId } = await newCase(test);
+      const { rows } = await test.database.admin.query<{ id: string }>(
+        "INSERT INTO case_contacts (case_id, creditor_id, kind, label, value, value_normalized, source) VALUES ($1, $2, 'PHONE', 'x', '06 00 00 00 01', '0600000001', 'CALL') RETURNING id",
+        [id, creditorId],
+      );
+      return `/staff/cases/${id}/coordinates/${rows[0]!.id}`;
+    },
+    body: () => ({ status: 'VERIFIED' }),
+    expect: only({ director: 403, manager: 204, managerAlone: 204, officerA: 404, officerB: 404, liar: 404 }),
+  },
+  // An officer: the creditors of their cases. The liar is one.
+  'GET /staff/creditors': { expect: only({ director: 200, manager: 200, managerAlone: 200, officerA: 200, officerB: 200, liar: 200 }) },
+  'GET /staff/creditors/:id': {
+    path: (test) => `/staff/creditors/${test.s.creditorA}`,
+    expect: only({ director: 200, manager: 200, managerAlone: 200, officerA: 200, officerB: 404, liar: 200 }),
+  },
+  'GET /staff/creditors/choices': { expect: only({ director: 200, manager: 200, managerAlone: 200, liar: 200 }) },
+  'GET /staff/creditors/:id/file': { path: creditor('/file'), expect: only({ director: 200, manager: 200, managerAlone: 200, liar: 404 }) },
+  'POST /staff/creditors': {
+    path: async (test) => {
+      await test.database.admin.query("DELETE FROM mandates USING creditors c WHERE c.id = creditor_id AND c.siren = '732829320'");
+      await test.database.admin.query("DELETE FROM creditor_contacts USING creditors c WHERE c.id = creditor_id AND c.siren = '732829320'");
+      await test.database.admin.query("DELETE FROM creditors WHERE siren = '732829320'");
+      return '/staff/creditors';
+    },
+    body: () => ({ siren: '732829320', ...creditorBody(), mandate: MANDATE }),
+    expect: only({ director: 200, manager: 200, managerAlone: 200 }),
+  },
+  'PUT /staff/creditors/:id': {
+    path: creditor(),
+    body: () => ({ version: 1, ...creditorBody() }),
+    expect: only({ director: 204, manager: 204, managerAlone: 204, liar: 404 }),
+  },
+  // Nothing to amend: what the test of the creditors proves otherwise.
+  'POST /staff/creditors/:id/amendments': {
+    path: creditor('/amendments'),
+    body: () => ({ amends: randomUUID(), mandate: MANDATE }),
+    expect: only({ director: 409, manager: 409, managerAlone: 409, liar: 404 }),
+  },
+  'POST /staff/creditors/:id/bank-accounts': {
+    path: creditor('/bank-accounts'),
+    body: () => ({ replaces: null, account: ACCOUNT }),
+    expect: only({ director: 204, manager: 204, liar: 404 }),
+  },
+  'POST /staff/creditors/:id/bank-accounts/:accountId/confirm': {
+    path: creditor('', bankAccount('confirm')),
+    body: () => ({ confirmedWith: 'X' }),
+    expect: only({ director: 204, manager: 204, liar: 409 }),
+  },
+  // Not encrypted with the key of the tests: refused to all but those who may read it.
+  'POST /staff/creditors/:id/bank-accounts/:accountId/reveal': {
+    path: creditor('', bankAccount('reveal')),
+    expect: only({ director: 500, manager: 500, liar: 404 }),
+  },
+  'GET /staff/settings/:scope': { path: () => '/staff/settings/firm', expect: staffOf(200) },
+  'GET /staff/settings/:scope/:id': { path: () => '/staff/settings/techniques/audit', expect: only({ director: 200, developer: 200, liar: 200 }) },
+  'PUT /staff/settings/:scope/:id': {
+    path: async (test) => {
+      const { rows } = await test.database.admin.query<{ version: number }>(
+        "SELECT coalesce(sum(version), 0)::int AS version FROM settings WHERE key LIKE 'firm.relances.%'",
+      );
+      return `/staff/settings/firm/relances?version=${rows[0]!.version}`;
+    },
+    // Each caller changes something.
+    body: () => ({ calls: String(1 + (settingTurn++ % 2) * 2) }),
+    expect: only({ director: 204, manager: 204 }),
+  },
+  'GET /staff/secrets': { expect: only({ director: 200, developer: 200, liar: 200 }) },
+  'POST /staff/secrets': {
+    path: async (test) => {
+      await test.database.admin.query("DELETE FROM vault_secrets WHERE name = 'TCX_API_CLIENT_ID'");
+      return '/staff/secrets';
+    },
+    body: () => ({ name: 'TCX_API_CLIENT_ID', value: 'valeur-fictive', rotation: 'MANUAL' }),
+    expect: technical,
+  },
+  'POST /staff/secrets/:id/rotate': { path: secret('rotate'), body: () => ({ value: 'valeur-fictive' }), expect: hidden },
+  'POST /staff/secrets/:id/revoke': { path: secret('revoke'), expect: hidden },
+  'POST /staff/secrets/:id/keep': { path: secret('keep', 'REVOKE_PENDING'), expect: only({ director: 204, liar: 404 }) },
   'GET /staff/notifications': { expect: staffOf(200) },
   'PUT /staff/notifications': { body: () => ({ ids: [randomUUID()], unread: false }), expect: staffOf(204) },
   'POST /staff/notifications/read': { body: () => ({ ids: [] }), expect: staffOf(204) },

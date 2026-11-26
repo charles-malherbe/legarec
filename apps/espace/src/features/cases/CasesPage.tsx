@@ -138,12 +138,17 @@ export function CasesPage() {
           { label: 'Encours total', value: s ? formatCents(s.outstanding) : '', sub: s ? `${s.invoices.toLocaleString('fr-FR')} factures` : ' ' },
           { label: 'En retard', value: String(s?.overdue ?? ''), tone: 'danger', sub: s ? `${formatCents(s.overdueAmount)} à plus de 60 j` : ' ' },
           { label: 'Promesses à contrôler', value: String(s?.promises ?? ''), tone: 'warning', sub: s ? `dont ${s.promisesToday} aujourd’hui` : ' ' },
-          { label: 'Recouvré en novembre', value: s ? formatCents(s.recovered) : '', tone: 'success', sub: s ? `${s.targetRatio} % de l’objectif` : ' ' },
+          {
+            label: 'Recouvré en novembre',
+            value: s ? formatCents(s.recovered) : '',
+            tone: 'success',
+            sub: s && s.targetRatio !== null ? `${s.targetRatio} % de l’objectif` : ' ',
+          },
         ]}
         actions={[
           { label: 'Importer des factures', href: '/creanciers/md' },
           { label: 'Exporter', disabled: true },
-          { label: '+ Nouveau débiteur', primary: true, kbd: 'N', disabled: true },
+          ...(user.role === 'CLAIMS_OFFICER' ? [] : [{ label: '+ Nouveau débiteur', primary: true, kbd: 'N', href: '/debiteurs/nouveau' }]),
         ]}
       />
       <Toolbar

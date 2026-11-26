@@ -17,6 +17,8 @@ export const AUDIT_ACTIONS = {
   PASSWORD_RESET: 'Mot de passe réinitialisé',
   ACCOUNT_ACTIVATED: 'Compte activé',
   // One's own account
+  PROOF_GIVEN: 'Identité confirmée avant une action sensible',
+  PROOF_REFUSED: 'Confirmation d’identité refusée',
   NAME_CHANGED: 'Nom modifié dans Mon compte',
   PASSWORD_CHANGED: 'Mot de passe modifié',
   PASSWORD_REFUSED: 'Mot de passe actuel refusé dans Mon compte',
@@ -38,10 +40,29 @@ export const AUDIT_ACTIONS = {
   DELEGATION_WITHDRAWN: 'Délégation {delegation} retirée',
   LINK_DRAWN: 'Lien créé depuis le serveur',
   DIRECTOR_CREATED: 'Compte du Directeur créé depuis le serveur',
+  // Creditors
+  CREDITOR_CREATED: 'Créancier créé',
+  CREDITOR_CHANGED: 'Fiche d’un créancier modifiée',
+  MANDATE_AMENDED: 'Avenant enregistré',
+  CREDITOR_ACCOUNT_CHANGED: 'Compte de reversement enregistré',
+  CREDITOR_ACCOUNT_CONFIRMED: 'Compte de reversement confirmé par téléphone',
+  CREDITOR_IBAN_SHOWN: 'IBAN d’un créancier affiché',
+  // Cases
+  CASE_OPENED: 'Dossier ouvert',
+  CASES_ASSIGNED: 'Dossiers attribués : {count}',
+  CASE_INVOICES_ADDED: 'Factures ajoutées à un dossier : {count}',
+  CONTACT_ADDED: 'Coordonnée d’un débiteur ajoutée',
+  CONTACT_CHANGED: 'Coordonnée d’un débiteur modifiée',
   // Platform
+  ACCESS_CODE_RENEWED: 'Code d’accès régénéré',
   CASE_NOTE_ADDED: 'Note ajoutée à un dossier',
-  SETTING_CHANGED: 'Paramètres modifiés',
+  SETTING_CHANGED: 'Paramètres modifiés : {count}',
+  FIRM_IDENTITY_CHANGED: 'Identifiants du cabinet modifiés : {count}',
   SECRET_SAVED: 'Secret enregistré : {secret}',
+  SECRET_RENEWED: 'Secret renouvelé : {secret}',
+  SECRET_REVOKE_ASKED: 'Révocation demandée : {secret}',
+  SECRET_REVOKED: 'Secret révoqué : {secret}',
+  SECRET_KEPT: 'Révocation refusée : {secret}',
   PLAN_APPROVED: 'Échéancier de {months} mois validé',
 } as const;
 export type AuditAction = keyof typeof AUDIT_ACTIONS;

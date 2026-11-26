@@ -130,9 +130,6 @@ const IDEMPOTENCY = [
 ];
 const CASE_EVENTS =
   'case_events SELECT (actor_id, actor_kind, actor_label, case_id, creditor_id, detail, id, kind, occurred_at, on_behalf_of_id, title, tone, visible_to_creditor)';
-const CASES =
-  'cases SELECT (closed_on, created_at, creditor_id, debtor_id, external_reference, first_letter_on, first_letter_reference, id, officer_id, opened_on, reference, status, version)';
-const CREDITORS = 'creditors SELECT (created_at, id, name, portal_enabled, siren, status)';
 const DEBTORS = 'debtors SELECT (anonymized_at, created_at, id, kind, legal_form_checked_at, legal_form_code, legal_form_source, name, siren)';
 
 describe('rights of the roles that face the outside', () => {
@@ -170,15 +167,17 @@ describe('rights of the roles that face the outside', () => {
       'debtors SELECT (id, kind, name, siren)',
       ...IDEMPOTENCY,
       'users SELECT (creditor_id, email, first_name, id, last_name, role, status)',
+      'case_invoices SELECT (case_id, claimed_cents, creditor_id, due_on, external_ref, id, issued_on, number, principal_cents, principal_paid_cents, state)',
     ],
     legarec_debtor: [
       'cases SELECT (closed_on, creditor_id, debtor_id, id, opened_on, reference, status)',
       'debtors SELECT (id, kind, name, siren)',
       ...IDEMPOTENCY,
+      'case_invoices SELECT (case_id, claimed_cents, creditor_id, due_on, external_ref, id, issued_on, number, principal_cents, principal_paid_cents, state)',
     ],
   };
   it.each(Object.entries(expected))('%s', async (role, rights) => {
-    expect(await rightsOf(role)).toEqual(rights);
+    expect((await rightsOf(role)).sort()).toEqual([...rights].sort());
   });
 
   it('never let the team read a password, a token or an encrypted value', async () => {
@@ -196,9 +195,7 @@ describe('rights of the roles inside', () => {
     legarec_staff: [
       'audit_log SELECT (action, actor_id, actor_kind, actor_label, entity_id, entity_type, id, ip, occurred_at, on_behalf_of_id, params, request_id)',
       CASE_EVENTS,
-      CASES,
       'cases UPDATE (closed_on, external_reference, status, version)',
-      CREDITORS,
       DEBTORS,
       'delegations SELECT (granted_at, granted_by, id, kind, withdrawn_at, withdrawn_by)',
       ...IDEMPOTENCY,
@@ -206,13 +203,36 @@ describe('rights of the roles inside', () => {
       'notification_preferences INSERT (email, in_app, kind, user_id)',
       'notification_preferences SELECT (email, in_app, kind, user_id)',
       'notification_preferences UPDATE (email, in_app)',
-      'notifications SELECT (action, actor_id, created_at, id, kind, read_at, target_id, ticket_id, user_id)',
       'notifications UPDATE (read_at)',
       'retention_runs SELECT (id, kind, ran_at, removed)',
       'support_tickets SELECT (created_at, id, message, number, status, subject, user_id)',
       'users SELECT (absent_from, absent_until, anonymized_at, auto_reply, created_at, creditor_id, daily_summary, density, disabled_at, email, extension, first_name, id, invited_at, last_name, last_seen_at, low_vision, password_changed_at, quiet_hours, role, status, substitute_id, theme, two_factor_required)',
       // One's own line: never the role, the address, the status nor the credentials.
       'users UPDATE (absent_from, absent_until, auto_reply, daily_summary, density, first_name, last_name, low_vision, quiet_hours, substitute_id, theme)',
+      'vault_secrets SELECT (created_at, decided_by, id, kind, last_used_at, name, requested_by, rotated_at, rotation, status)',
+      'setting_versions SELECT (changed_at, changed_by, id, key, on_behalf_of_id)',
+      'settings SELECT (key, on_behalf_of_id, updated_at, updated_by, value, version)',
+      'creditor_bank_accounts INSERT (bic, confirmed_at, confirmed_by, confirmed_with, created_by, creditor_id, holder, iban_cipher, iban_masked, id, on_behalf_of_id)',
+      'creditor_bank_accounts SELECT (bic, confirmed_at, confirmed_by, confirmed_with, created_by, creditor_id, holder, iban_masked, id, on_behalf_of_id, valid_from, valid_until)',
+      'creditor_bank_accounts UPDATE (confirmed_at, confirmed_by, confirmed_with, valid_until)',
+      'creditor_contacts DELETE (*)',
+      'creditor_contacts INSERT (created_at, creditor_id, email, id, is_main, name, phone, title)',
+      'creditor_contacts SELECT (created_at, creditor_id, email, id, is_main, name, phone, title)',
+      'creditors INSERT (address, city, created_at, id, legal_name, manager_id, name, portal_enabled, postal_code, sector, siren, status, updated_at, updated_by, vat_number, version)',
+      'creditors SELECT (address, city, created_at, id, legal_name, manager_id, name, portal_enabled, postal_code, sector, siren, status, updated_at, updated_by, vat_number, version)',
+      'creditors UPDATE (address, city, legal_name, manager_id, name, portal_enabled, postal_code, sector, updated_at, updated_by, vat_number, version)',
+      'mandates INSERT (amends_id, amicable_rate_bp, contract_rate_bp, created_at, created_by, creditor_id, defer_small_remittances, discount_max_bp, ends_on, fixed_indemnity, id, interest_mode, litigation_needs_consent, litigation_rate_bp, opening_fee_cents, plan_months_without_consent, reporting_day, scenario, starts_on)',
+      'mandates SELECT (amends_id, amicable_rate_bp, contract_rate_bp, created_at, created_by, creditor_id, defer_small_remittances, discount_max_bp, ends_on, fixed_indemnity, id, interest_mode, litigation_needs_consent, litigation_rate_bp, opening_fee_cents, plan_months_without_consent, reporting_day, scenario, starts_on)',
+      'mandates UPDATE (ends_on)',
+      'case_contact_events SELECT (actor_id, actor_label, case_id, contact_id, creditor_id, id, occurred_at, what)',
+      'case_contacts INSERT (case_id, created_at, created_by, creditor_id, id, is_primary, kind, label, source, status, value, value_normalized)',
+      'case_contacts SELECT (case_id, created_at, created_by, creditor_id, id, invalidated_at, is_primary, kind, label, replaced_by_id, source, status, value, value_normalized)',
+      'case_contacts UPDATE (invalidated_at, is_primary, replaced_by_id, status)',
+      'case_invoices INSERT (case_id, claimed_cents, created_at, created_by, creditor_id, due_on, external_ref, id, issued_on, number, principal_cents, principal_paid_cents, state)',
+      'case_invoices SELECT (case_id, claimed_cents, created_at, created_by, creditor_id, due_on, external_ref, id, issued_on, number, principal_cents, principal_paid_cents, state)',
+      'cases INSERT (contact_name, contact_title, created_at, created_by, creditor_id, debtor_address, debtor_city, debtor_id, debtor_postal_code, debtor_siret, external_reference, id, mandate_id, officer_id, opened_on, reference, scenario, status, version)',
+      'cases SELECT (closed_on, contact_name, contact_title, created_at, created_by, creditor_id, debtor_address, debtor_city, debtor_id, debtor_postal_code, debtor_siret, external_reference, first_letter_on, first_letter_reference, id, mandate_id, officer_id, opened_on, reference, scenario, status, version)',
+      'notifications SELECT (action, actor_id, case_count, case_id, created_at, creditor_id, id, kind, read_at, target_id, ticket_id, user_id)',
     ],
     legarec_worker: [
       // The links leave with the e-mails that it sends, and are kept nowhere.
@@ -220,10 +240,8 @@ describe('rights of the roles inside', () => {
       'auth_tokens SELECT (id, purpose, used_at, user_id)',
       'auth_tokens UPDATE (used_at)',
       CASE_EVENTS,
-      CASES,
       // The first letter opens the reminders and the portal of the debtor: only the worker that sent it records it.
       'cases UPDATE (closed_on, external_reference, first_letter_on, first_letter_reference, status, version)',
-      CREDITORS,
       DEBTORS,
       'delegations SELECT (granted_at, granted_by, id, kind, withdrawn_at, withdrawn_by)',
       'outbox SELECT (acting_for, actor_id, actor_kind, claimed_at, created_at, done_at, failed_at, failure, id, name, payload, published_at, queue, run_at, started_at)',
@@ -234,6 +252,15 @@ describe('rights of the roles inside', () => {
       'users SELECT (creditor_id, email, first_name, id, invited_by, last_name, role, status, two_factor_required)',
       'webhook_events SELECT (id, processed_at, provider, provider_event_id, received_at, status)',
       'webhook_events UPDATE (processed_at, status)',
+      'settings SELECT (key, value)',
+      'creditor_contacts SELECT (creditor_id, email, id, is_main, name, phone, title)',
+      'creditors SELECT (address, city, created_at, id, legal_name, name, portal_enabled, postal_code, siren, status)',
+      'mandates SELECT (amends_id, amicable_rate_bp, contract_rate_bp, created_at, created_by, creditor_id, defer_small_remittances, discount_max_bp, ends_on, fixed_indemnity, id, interest_mode, litigation_needs_consent, litigation_rate_bp, opening_fee_cents, plan_months_without_consent, reporting_day, scenario, starts_on)',
+      'case_contacts SELECT (case_id, creditor_id, id, is_primary, kind, label, status, value, value_normalized)',
+      'case_invoices SELECT (case_id, claimed_cents, created_at, creditor_id, due_on, external_ref, id, issued_on, number, principal_cents, principal_paid_cents, state)',
+      'cases SELECT (closed_on, contact_name, contact_title, created_at, created_by, creditor_id, debtor_address, debtor_city, debtor_id, debtor_postal_code, debtor_siret, external_reference, first_letter_on, first_letter_reference, id, mandate_id, officer_id, opened_on, reference, scenario, status, version)',
+      'debtor_access_codes SELECT (code_cipher, debtor_id)',
+      'debtor_access_codes UPDATE (code_cipher)',
     ],
     legarec_retention: [
       'idempotency_keys DELETE (*)',
@@ -261,7 +288,6 @@ describe('rights of the roles inside', () => {
       'backup_codes SELECT (user_id)',
       'case_events INSERT (*)',
       'case_events SELECT (actor_id, case_id, kind, occurred_at)',
-      'cases SELECT (creditor_id, debtor_id, first_letter_on, id, officer_id, version)',
       'cases UPDATE (officer_id, version)',
       'creditors SELECT (id, portal_enabled)',
       'delegations INSERT (granted_by, kind)',
@@ -277,7 +303,6 @@ describe('rights of the roles inside', () => {
       'notification_preferences DELETE (*)',
       'notification_preferences SELECT (user_id)',
       'notifications DELETE (*)',
-      'notifications INSERT (action, actor_id, kind, target_id, ticket_id, user_id)',
       'notifications SELECT (user_id)',
       'number_sequences INSERT (*)',
       'number_sequences SELECT (*)',
@@ -286,6 +311,10 @@ describe('rights of the roles inside', () => {
       // Closes, never gives: no secret, no key of a security key, no code is read by a function.
       'second_factors DELETE (*)',
       'second_factors SELECT (confirmed_at, user_id)',
+      'setting_versions INSERT (changed_by, id, key, on_behalf_of_id, previous_cipher)',
+      'settings INSERT (key, on_behalf_of_id, updated_by, value)',
+      'settings SELECT (key, on_behalf_of_id, updated_by, value, version)',
+      'settings UPDATE (on_behalf_of_id, updated_at, updated_by, value, version)',
       'support_tickets INSERT (id, message, number, subject, user_id)',
       'support_tickets SELECT (id, user_id)',
       'task_keys INSERT (*)',
@@ -297,12 +326,28 @@ describe('rights of the roles inside', () => {
       'user_sessions UPDATE (last_seen_at, revoked_at)',
       'users DELETE (*)',
       'users INSERT (creditor_id, email, first_name, invited_at, invited_by, last_name, role)',
-      'users SELECT (anonymized_at, creditor_id, disabled_at, email, first_name, id, invited_at, invited_by, last_name, password_hash, role, status, substitute_id, two_factor_required)',
       'users UPDATE (anonymized_at, disabled_at, disabled_by, disabled_reason, email, extension, first_name, invited_at, last_name, last_seen_at, password_hash, role, status, substitute_id, two_factor_required)',
+      // Written, never read.
+      'vault_secrets INSERT (id, name, rotation, value_cipher)',
+      'vault_secrets UPDATE (decided_by, requested_by, rotated_at, status, value_cipher)',
+      'creditor_bank_accounts SELECT (creditor_id, iban_cipher, id)',
+      'case_contact_events INSERT (actor_id, actor_label, case_id, contact_id, creditor_id, what)',
+      'case_contacts SELECT (case_id, creditor_id, id)',
+      'debtors INSERT (id, kind, legal_form_checked_at, legal_form_code, legal_form_source, name, siren)',
+      'cases SELECT (closed_on, creditor_id, debtor_id, first_letter_on, id, officer_id, version)',
+      'debtor_access_codes INSERT (code_cipher, debtor_id, generated_by)',
+      'debtor_retired_codes INSERT (code_hmac, debtor_id)',
+      'debtor_retired_codes SELECT (code_hmac, debtor_id)',
+      'vault_secrets SELECT (id, kind, name, rotated_at, status, value_cipher)',
+      'notifications INSERT (action, actor_id, case_count, case_id, creditor_id, kind, target_id, ticket_id, user_id)',
+      'users SELECT (absent_from, absent_until, anonymized_at, creditor_id, disabled_at, email, first_name, id, invited_at, invited_by, last_name, password_hash, role, status, substitute_id, two_factor_required)',
+      'debtor_access_codes SELECT (code_cipher, debtor_id, version)',
+      'debtor_access_codes UPDATE (code_cipher, generated_at, generated_by, version)',
+      'debtors SELECT (id, kind, name, siren)',
     ],
   };
   it.each(Object.entries(expected))('%s', async (role, rights) => {
-    expect(await rightsOf(role)).toEqual(rights);
+    expect((await rightsOf(role)).sort()).toEqual([...rights].sort());
   });
 
   it('let nobody create anything, not even for the time of a session', async () => {
@@ -366,15 +411,22 @@ describe('rights on the functions', () => {
       ...['invite_member', 'cancel_invitation', 'disable_member', 'enable_member', 'set_member_role', 'set_extension', 'support'],
       ...['account_states', 'locked', 'set_delegation', 'open_ticket', 'acts_as_director'],
     ].map((name) => [name, ['staff']] as [string, string[]]),
+    ...['save_secret', 'renew_secret', 'revoke_secret', 'keep_secret', 'save_setting', 'creditor_iban', 'open_debtor', 'note_contact'].map(
+      (name) => [name, ['staff']] as [string, string[]],
+    ),
+    ...['renew_internal_key', 'access_code', 'first_access_code', 'renew_access_code'].map((name) => [name, ['staff']] as [string, string[]]),
+    // What they read is encrypted with a key that is not in the database.
+    ...['internal_key', 'first_internal_key'].map((name) => [name, ['staff', 'worker']] as [string, string[]]),
     ['portal_officer', ['partner']],
     ['create_director', ['worker']],
     ['ticket_reader', ['worker']],
     // Called by the functions above only.
-    ...['close_account', 'release_cases', 'digests', 'refuse', 'tell_director', 'end_technical_delegation', 'take_with_substituted'].map(
+    ...['close_account', 'release_cases', 'digests', 'refuse', 'tell_director', 'end_technical_delegation', 'take_with_substituted', 'plain_name'].map(
       (name) => [name, []] as [string, string[]],
     ),
     // Triggers.
     ['open_delegations', []],
+    ['keep_account_history', []],
     ['require_for_developer', []],
     ['can_read_case', ['staff']],
     ['can_act_on_case', ['staff']],
@@ -399,7 +451,9 @@ describe('rights on the functions', () => {
       'log enqueue staff_role has_delegation partner_creditor on_behalf_of actor_kind actor_label actor_id actor_key',
       'purge_sign_ins anonymize_accounts account_of account_of_link inviter_name resume_session take_attempt clear_attempts subject proved_subject tell_reset',
       'invite_member cancel_invitation disable_member enable_member set_member_role set_extension support account_states locked set_delegation open_ticket acts_as_director',
-      'portal_officer create_director ticket_reader close_account release_cases digests refuse tell_director end_technical_delegation take_with_substituted open_delegations require_for_developer',
+      'save_secret renew_secret revoke_secret keep_secret save_setting creditor_iban open_debtor note_contact',
+      'internal_key first_internal_key renew_internal_key access_code first_access_code renew_access_code',
+      'portal_officer create_director ticket_reader close_account release_cases digests refuse tell_director end_technical_delegation take_with_substituted open_delegations require_for_developer plain_name keep_account_history',
       'uuid_v7 setting user_id creditor_id debtor_id only_identifiers audit_params',
     ].flatMap((names) => names.split(' '));
     const found = await rows<{ proname: string }>(

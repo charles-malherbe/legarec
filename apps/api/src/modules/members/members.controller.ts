@@ -3,6 +3,7 @@ import { Body, Controller, Delete, Get, HttpCode, Inject, Param, Post, Put } fro
 import { ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import type { z } from 'zod';
 import { Staff, StaffOrDelegate } from '../../platform/access/access';
+import { RequiresProof } from '../../platform/access/proof';
 import { currentActor } from '../../platform/http/context';
 import { Commits } from '../../platform/http/transaction.interceptor';
 import type { StaffActor } from '../account/account.service';
@@ -64,6 +65,7 @@ export class MembersController {
     return this.members.enable(id);
   }
 
+  @RequiresProof()
   @Put(':id/role')
   @Administers()
   @Commits()
@@ -99,6 +101,7 @@ export class MembersController {
     return this.members.support(me(), id, 'SECOND_FACTOR_REQUIRED');
   }
 
+  @RequiresProof()
   @Post(':id/reset-2fa')
   @Supports()
   @Commits()

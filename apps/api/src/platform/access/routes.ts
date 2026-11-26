@@ -4,12 +4,15 @@ import { DiscoveryService, MetadataScanner, Reflector } from '@nestjs/core';
 import { PREFIX } from '../http/origin';
 import { COMMITS, KEYED_PORTALS, NO_TRANSACTION } from '../http/transaction.interceptor';
 import { ACCESS, type AccessRule } from './access';
+import { PROOF } from './proof';
 
 export interface RouteInfo {
   /** `GET /staff/cases/:id` */
   id: string;
   access: AccessRule | undefined;
   commits: boolean;
+  /** Needs a recent proof of identity. */
+  proof: boolean;
   ownTransactions: boolean;
   /** Parameters read from the body or the query without any schema, or from the request by hand. */
   unchecked: string[];
@@ -52,6 +55,7 @@ export function routesOf(app: INestApplicationContext): RouteInfo[] {
       const info = {
         access: flag<AccessRule>(ACCESS),
         commits: flag<boolean>(COMMITS) === true,
+        proof: flag<boolean>(PROOF) === true,
         ownTransactions: flag<boolean>(NO_TRANSACTION) === true,
         unchecked: uncheckedOf(metatype, name),
       };

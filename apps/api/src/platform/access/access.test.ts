@@ -348,7 +348,14 @@ describe('routes', () => {
     [{ portal: 'service', scope: 'x' }, '/service'],
     [{ portal: 'health' }, '/health'],
   ])('keep %j under %s', (access, prefix) => {
-    const route = (id: string, rule: AccessRule | undefined = access) => ({ id, access: rule, commits: false, ownTransactions: false, unchecked: [] });
+    const route = (id: string, rule: AccessRule | undefined = access) => ({
+      id,
+      access: rule,
+      commits: false,
+      ownTransactions: false,
+      proof: false,
+      unchecked: [],
+    });
     expect(() => checkRoutes([route(`GET ${prefix}`), route(`GET ${prefix}/x`)])).not.toThrow();
     for (const other of ['/staff', '/partner', '/debtor', '/public', '/hooks', '/service', '/health', '/'].filter((path) => path !== prefix))
       expect(() => checkRoutes([route(`GET ${other}/x`)]), other).toThrow(`GET ${other}/x`);

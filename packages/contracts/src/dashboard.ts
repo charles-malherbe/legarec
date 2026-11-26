@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { cents } from './money';
 
-export const caseStatus = z.enum(['OVERDUE', 'PROMISE', 'REMINDER', 'DISPUTE', 'SETTLED', 'PLAN', 'FORMAL_NOTICE', 'LITIGATION']);
+export const caseStatus = z.enum(['OVERDUE', 'PROMISE', 'REMINDER', 'DISPUTE', 'SETTLED', 'PLAN', 'FORMAL_NOTICE', 'LITIGATION', 'NEW', 'LOST']);
 export type CaseStatus = z.infer<typeof caseStatus>;
 
 const period = z.object({ note: z.string(), recovered: cents, recoveredSub: z.string(), targetRatio: z.number().min(0).max(100) });

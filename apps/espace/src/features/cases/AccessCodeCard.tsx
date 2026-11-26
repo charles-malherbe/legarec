@@ -1,7 +1,7 @@
 import { accessCodeResponse } from '@legarec/contracts';
 import { Bouton, Carte, EtatListe, useConfirm, useToast } from '@legarec/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '../../app/api';
+import { api, ApiError } from '../../app/api';
 import { useChange } from '../../app/data';
 import layout from '@legarec/ui/layout.module.css';
 
@@ -24,21 +24,29 @@ export function AccessCodeCard({ caseId }: { caseId: string }) {
       confirmLabel: 'Régénérer le code',
       details: [{ k: 'Effet', v: 'Ancien code inutilisable, accès débloqué' }],
       onConfirm: async () => {
-        await change(`/cases/${caseId}/access-code/regenerate`);
+        try {
+          await change(`/cases/${caseId}/access-code/regenerate`, { body: { version: data?.version } });
+        } catch (failure) {
+          if (!(failure instanceof ApiError) || failure.status !== 409) throw failure;
+          await client.invalidateQueries({ queryKey: key });
+          return toast({ message: 'Le code vient de changer : vérifiez celui qui s’affiche.', tone: 'danger' });
+        }
         await client.invalidateQueries({ queryKey: key });
         toast({ message: 'Code d’accès régénéré.' });
       },
     });
   return (
     <Carte title="Espace débiteur">
-      {!data ? (
+      {error instanceof ApiError && error.status === 409 ? (
+        <p className={layout.muted}>Ce dossier est clos : le code d’accès du débiteur ne s’affiche plus ici.</p>
+      ) : !data ? (
         <EtatListe kind={error ? 'error' : 'loading'} compact onAction={() => void refetch()} />
       ) : (
         <div className={layout.stack}>
           <div className={layout.between}>
             <span className={layout.muted}>Code d’accès</span>
-            <strong className={layout.num} aria-live="polite" aria-label={`Code ${data.code.split('').join(' ')}`} role="status">
-              {data.code}
+            <strong className={layout.num} aria-live="polite" aria-label={data.code ? `Code ${data.code.split('').join(' ')}` : 'Code illisible'} role="status">
+              {data.code ?? 'Illisible : régénérez-le'}
             </strong>
           </div>
           <div>

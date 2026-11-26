@@ -1,5 +1,6 @@
 import { NOTIFICATION_KINDS, ROLE_LABELS, type AccountData } from '@legarec/contracts';
 import { Inject, Injectable } from '@nestjs/common';
+import { requireProof } from '../../platform/access/proof';
 import { Audit } from '../../platform/audit/audit';
 import { PASSWORDS, type Passwords } from '../../platform/crypto/passwords';
 import type { Actor } from '../../platform/database/actor';
@@ -188,7 +189,10 @@ export class AccountService {
   }
 
   startTotp(actor: StaffActor) {
-    return this.accounts.own(actor, async (tx) => this.factors.startTotp(tx, await this.holder(tx, actor)));
+    requireProof(actor);
+    return this.accounts.own(actor, async (tx) => {
+      return this.factors.startTotp(tx, await this.holder(tx, actor));
+    });
   }
 
   verifyTotp(actor: StaffActor, code: string): Promise<{ backupCodes: string[] }> {
@@ -196,7 +200,10 @@ export class AccountService {
   }
 
   keyOptions(actor: StaffActor) {
-    return this.accounts.own(actor, async (tx) => this.factors.registrationOptions(tx, 'staff', await this.holder(tx, actor), actor.session?.id));
+    requireProof(actor);
+    return this.accounts.own(actor, async (tx) => {
+      return this.factors.registrationOptions(tx, 'staff', await this.holder(tx, actor), actor.session?.id);
+    });
   }
 
   verifyKey(actor: StaffActor, response: unknown): Promise<{ backupCodes: string[] }> {
@@ -213,6 +220,8 @@ export class AccountService {
   }
 
   private async enable(actor: StaffActor, confirm: (tx: Transaction) => Promise<string | null>): Promise<{ backupCodes: string[] }> {
+    // The first one too: it becomes the proof of everything else.
+    requireProof(actor);
     const key = this.keys.attempt('second-factor', actor.userId);
     const attempt = await this.accounts.takeAttempt(key, 'SECOND_FACTOR');
     if (!attempt.allowed) throw new ApiError(423, 'LOCKED');

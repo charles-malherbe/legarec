@@ -47,8 +47,19 @@ export async function purge(database: Database, logger: AppLogger): Promise<Reco
   return counts;
 }
 
-export function maintenance(database: Database, logger: AppLogger): ScheduledHandlers {
-  return { maintenance: { purge: () => purge(database, logger).then(() => undefined) } };
+/** `after`: what else a night takes care of, whatever the purge has done. */
+export function maintenance(database: Database, logger: AppLogger, after: () => Promise<void> = () => Promise.resolve()): ScheduledHandlers {
+  return {
+    maintenance: {
+      purge: async () => {
+        const outcomes = await Promise.allSettled([purge(database, logger), after()]);
+        // The purge has already said which of its steps failed.
+        if (outcomes[1].status === 'rejected') logger.error({ errorType: (outcomes[1].reason as Error).name }, 'night task failed');
+        const failed = outcomes.find((outcome) => outcome.status === 'rejected');
+        if (failed) throw failed.reason;
+      },
+    },
+  };
 }
 
 /** Every night, at a quiet hour in Paris; the same schedule whatever the number of workers. */

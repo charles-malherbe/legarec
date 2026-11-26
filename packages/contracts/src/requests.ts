@@ -1,17 +1,18 @@
 import { z } from 'zod';
 import { absenceForm, passwordForm, profileForm, supportTicket } from './account';
-import { loginRequest, newPassword } from './auth';
+import { loginRequest, newPassword, PASSWORD_MAX } from './auth';
 import { callQualification } from './calls';
-import { gdprRequestKind, newPayment, paymentStatus } from './cases';
+import { addedInvoices, caseCheck, gdprRequestKind, newCase, newPayment, paymentStatus, renewedCode } from './cases';
 import { newReminder } from './collection';
 import { coordinate, coordinateKind, coordinateSource, emailCategory, outgoingMessage } from './communication';
 import { debtorAccess, debtorIdentifier, debtorMessage, debtorRequest, limitedMessage } from './debtor';
 import { letterTemplate } from './documents';
+import { bankAccountChange, bankAccountConfirmation, creditorChanges, mandateAmendment, newCreditor } from './creditors';
 import { EMAIL_MAX, ID_MAX } from './limits';
 import { AMOUNT_MAX, enteredAmount } from './money';
 import { newClaim } from './portal';
 import { preferences } from './roles';
-import { newMailbox, newSecret, redirectionTarget } from './settings';
+import { newMailbox, newSecret, redirectionTarget, renewedSecret } from './settings';
 import { billingType, newMember, staffRole } from './steering';
 
 /** Body of every request of the portals: the only definition, read by the API, the forms and the simulations. */
@@ -27,6 +28,12 @@ const webauthnAnswer = z.looseObject({}).refine((answer) => JSON.stringify(answe
 
 export const loginBody = loginRequest.extend({ remember: z.boolean().default(false) });
 export const twoFactorBody = z.discriminatedUnion('method', [
+  z.object({ method: z.literal('TOTP'), code: oneTimeCode }),
+  z.object({ method: z.literal('BACKUP_CODE'), code: oneTimeCode }),
+  z.object({ method: z.literal('WEBAUTHN'), response: webauthnAnswer }),
+]);
+export const proofBody = z.discriminatedUnion('method', [
+  z.object({ method: z.literal('PASSWORD'), password: z.string().min(1).max(PASSWORD_MAX) }),
   z.object({ method: z.literal('TOTP'), code: oneTimeCode }),
   z.object({ method: z.literal('BACKUP_CODE'), code: oneTimeCode }),
   z.object({ method: z.literal('WEBAUTHN'), response: webauthnAnswer }),
@@ -144,6 +151,7 @@ export const REQUEST_BODIES = {
     'POST /auth/invitation/:token/password': passwordBody,
     'POST /auth/invitation/:token/totp': oneTimeCodeBody,
     'POST /auth/setup/totp/verify': oneTimeCodeBody,
+    'POST /auth/proof': proofBody,
     'PUT /auth/preferences': preferences,
     'POST /notifications/read': readBody,
     'PUT /notifications': notificationsBody,
@@ -160,6 +168,15 @@ export const REQUEST_BODIES = {
     'PUT /calls/incoming': incomingCallBody,
     'POST /calls/:id/qualification': callQualification,
     'POST /calls/:id/ai-decision': aiDecisionBody,
+    'POST /creditors': newCreditor,
+    'PUT /creditors/:id': creditorChanges,
+    'POST /creditors/:id/amendments': mandateAmendment,
+    'POST /creditors/:id/bank-accounts': bankAccountChange,
+    'POST /creditors/:id/bank-accounts/:accountId/confirm': bankAccountConfirmation,
+    'POST /cases': newCase,
+    'POST /cases/check': caseCheck,
+    'POST /cases/:id/invoices': addedInvoices,
+    'POST /cases/:id/access-code/regenerate': renewedCode,
     'POST /cases/:id/coordinates': newCoordinateBody,
     'PUT /cases/:id/coordinates/:coordinateId': coordinateBody,
     'POST /cases/search': searchBody,
@@ -193,6 +210,7 @@ export const REQUEST_BODIES = {
     'PUT /members/:id/extension': extensionBody,
     'PUT /settings/:scope/:id': settingsBody,
     'POST /secrets': newSecret,
+    'POST /secrets/:id/rotate': renewedSecret,
     'POST /mailboxes': mailboxBody,
     'POST /mailboxes/:id/redirections': redirectionBody,
     'PUT /mailboxes/:id/redirections/:redirectionId': redirectionBody,

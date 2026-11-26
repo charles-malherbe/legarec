@@ -1,0 +1,24 @@
+/// Only what differs from the catalogue of the contracts.
+model Setting {
+  key          String   @id
+  value        Json
+  version      Int      @default(1)
+  updatedBy    String   @map("updated_by") @db.Uuid
+  onBehalfOfId String?  @map("on_behalf_of_id") @db.Uuid
+  updatedAt    DateTime @default(now()) @map("updated_at") @db.Timestamptz(3)
+
+  @@map("settings")
+}
+
+/// Former values, encrypted by the API. Append only.
+model SettingVersion {
+  id             String   @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  key            String
+  previousCipher Bytes?   @map("previous_cipher")
+  changedBy      String   @map("changed_by") @db.Uuid
+  onBehalfOfId   String?  @map("on_behalf_of_id") @db.Uuid
+  changedAt      DateTime @default(dbgenerated("clock_timestamp()")) @map("changed_at") @db.Timestamptz(3)
+
+  @@index([key, changedAt], map: "setting_versions_key")
+  @@map("setting_versions")
+}

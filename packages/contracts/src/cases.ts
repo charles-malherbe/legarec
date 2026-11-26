@@ -1,6 +1,10 @@
 import { z } from 'zod';
+import { checkCoordinate, coordinateKind } from './communication';
+import { scenarioCode } from './creditors';
 import { caseStatus } from './dashboard';
-import { atMost } from './limits';
+import { isValidSiret, sirenOf } from './debtorAccess';
+import { isValidSiren } from './firm';
+import { atMost, ID_MAX } from './limits';
 import { cents, enteredAmount } from './money';
 
 export const caseListItem = z.object({
@@ -36,7 +40,8 @@ export const caseList = z.object({
     promises: z.number().int(),
     promisesToday: z.number().int(),
     recovered: cents,
-    targetRatio: z.number(),
+    /** Null without any goal in the settings: no ratio is shown (question 97). */
+    targetRatio: z.number().nullable(),
   }),
 });
 
@@ -139,7 +144,10 @@ export const caseDetail = caseListItem.extend({
   contactLimit: z.string().nullable(),
 });
 export type CaseDetail = z.infer<typeof caseDetail>;
-export const accessCodeResponse = z.object({ code: z.string() });
+/** No code when none of the keys opens it any more. */
+export const accessCodeResponse = z.object({ code: z.string().nullable(), version: z.number().int() });
+/** The code that was on the screen when it was confirmed. */
+export const renewedCode = z.object({ version: z.number().int().positive().max(1_000_000) });
 export const gdprRequestKind = z.enum(['ACCESS', 'RECTIFICATION', 'OBJECTION', 'ERASURE']);
 export const GDPR_LABELS: Record<z.infer<typeof gdprRequestKind>, string> = {
   ACCESS: 'Accès',
@@ -147,3 +155,153 @@ export const GDPR_LABELS: Record<z.infer<typeof gdprRequestKind>, string> = {
   OBJECTION: 'Opposition',
   ERASURE: 'Effacement',
 };
+
+// ---------------------------------------------------------------- Debtor and invoices (validated proposal 2)
+
+export const caseSearchQuery = z.object({
+  creditor: z.string().max(ID_MAX).default('all'),
+  status: caseFilter.default('all'),
+  officer: z.string().max(ID_MAX).default('all'),
+  age: z.enum(['', '0-30', '31-60', '61-90', '90+']).catch('').default(''),
+});
+export const debtorKind = z.enum(['COMPANY', 'SOLE_TRADER', 'INDIVIDUAL']);
+export const DEBTOR_KIND_LABELS: Record<z.infer<typeof debtorKind>, string> = {
+  COMPANY: 'Entreprise',
+  SOLE_TRADER: 'Entrepreneur individuel',
+  INDIVIDUAL: 'Particulier',
+};
+/** Legal categories of INSEE that the form proposes; another one comes from the directory of companies. */
+export const LEGAL_FORMS: Record<string, string> = {
+  '1000': 'Entrepreneur individuel',
+  '5202': 'SNC',
+  '5498': 'EURL',
+  '5499': 'SARL',
+  '5599': 'SA',
+  '5710': 'SAS',
+  '5720': 'SASU',
+  '5785': 'SELAS',
+  '6540': 'SCI',
+  '9220': 'Association déclarée',
+};
+/** One line: neither PostgreSQL nor a letter takes a control character. */
+const line = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max, atMost(max))
+    .regex(/^\P{Cc}*$/u, { error: 'Retirez les caractères invisibles.' });
+const typed = (max: number, error: string) => line(max).min(1, { error });
+const optionalText = line;
+const digitsOf = (value: string) => value.replace(/\s/gu, '');
+/** « 512 334 871 00088 » or « 512 334 871 ». */
+export const isCompanyNumber = (value: string) => isValidSiret(value) || isValidSiren(value);
+export const sirenOfNumber = (value: string) => (digitsOf(value).length === 14 ? sirenOf(value) : digitsOf(value));
+
+export const caseInvoice = z
+  .object({
+    number: typed(60, 'Indiquez le n° de facture.'),
+    externalRef: optionalText(60),
+    issuedOn: z.iso.date({ error: 'Indiquez la date d’émission.' }),
+    dueOn: z.iso.date({ error: 'Indiquez l’échéance.' }),
+    amount: enteredAmount.positive({ error: 'Indiquez un montant.' }),
+    left: enteredAmount.positive({ error: 'Indiquez le reste dû.' }),
+  })
+  .refine((invoice) => invoice.dueOn >= invoice.issuedOn, { path: ['dueOn'], error: 'L’échéance doit suivre l’émission.' })
+  .refine((invoice) => invoice.left <= invoice.amount, { path: ['left'], error: 'Au plus le montant de la facture.' });
+export type CaseInvoice = z.infer<typeof caseInvoice>;
+export const caseInvoices = z
+  .array(caseInvoice)
+  .min(1, { error: 'Ajoutez au moins une facture.' })
+  .max(50, { error: 'Cinquante factures au plus.' })
+  .refine((items) => new Set(items.map((item) => item.number.toLowerCase())).size === items.length, { error: 'Deux factures portent le même numéro.' });
+const newContact = z.object({
+  kind: coordinateKind,
+  label: typed(40, 'Indiquez le libellé.'),
+  value: typed(254, 'Saisissez une valeur.'),
+  primary: z.boolean(),
+});
+const newContacts = z
+  .array(newContact)
+  .max(20)
+  .superRefine((items, context) => {
+    items.forEach((item, index) => {
+      const before = items.slice(0, index).map((other, position) => ({ ...other, id: String(position), status: 'NEW' as const, note: '' }));
+      const message = checkCoordinate(
+        item.kind,
+        item.value,
+        before.filter((other) => other.kind === item.kind),
+        null,
+      );
+      if (message) context.addIssue({ code: 'custom', path: [index, 'value'], message });
+      if (item.primary && items.some((other, position) => position < index && other.primary && other.kind === item.kind))
+        context.addIssue({ code: 'custom', path: [index, 'primary'], message: 'Un seul contact principal par type.' });
+    });
+  });
+/** What the confirmation showed: refused when it is not what is recorded. */
+const expectedTotals = z.object({ principal: cents.min(0).max(100_000_000_000), invoices: z.number().int().min(0).max(50) });
+const totalsMatch = (value: { invoices: CaseInvoice[]; expected: { principal: number; invoices: number } }) =>
+  value.expected.invoices === value.invoices.length && value.expected.principal === value.invoices.reduce((sum, invoice) => sum + invoice.left, 0);
+
+export const newCase = z
+  .object({
+    creditorId: z.string().min(1, { error: 'Choisissez le créancier.' }).max(ID_MAX),
+    /** The mandate that was shown. */
+    mandateId: z.string().min(1).max(ID_MAX),
+    externalReference: optionalText(60),
+    kind: debtorKind,
+    /** SIRET or SIREN; empty for an individual. */
+    number: z.string().trim().max(20),
+    name: typed(150, 'Indiquez le nom.'),
+    nameConfirmed: z.literal(true, { error: 'Confirmez le nom du débiteur.' }),
+    legalForm: z.string().regex(/^(?:\d{4})?$/u, { error: 'Choisissez la forme juridique.' }),
+    address: typed(300, 'Indiquez l’adresse.'),
+    postalCode: z.string().regex(/^\d{5}$/u, { error: 'Le code postal comporte 5 chiffres.' }),
+    city: typed(120, 'Indiquez la ville.'),
+    contactName: optionalText(120),
+    contactTitle: optionalText(120),
+    contacts: newContacts,
+    invoices: caseInvoices,
+    scenario: scenarioCode,
+    /** For whoever opens it; given to someone else by another action. */
+    toMe: z.boolean(),
+    expected: expectedTotals,
+  })
+  .refine((value) => (value.kind === 'INDIVIDUAL' ? value.number === '' : isCompanyNumber(value.number)), {
+    path: ['number'],
+    error: 'Ce SIRET ou ce SIREN n’est pas valide.',
+  })
+  .refine((value) => value.kind !== 'INDIVIDUAL' || value.legalForm === '', { path: ['legalForm'], error: 'Un particulier n’a pas de forme juridique.' })
+  .refine(totalsMatch, { path: ['expected'], error: 'Le total a changé : vérifiez les factures.' });
+export type NewCase = z.infer<typeof newCase>;
+export const caseOpened = z.object({ id: z.string(), reference: z.string() });
+export const addedInvoices = z
+  .object({ version: z.number().int().positive().max(1_000_000), invoices: caseInvoices, expected: expectedTotals })
+  .refine(totalsMatch, { path: ['expected'], error: 'Le total a changé : vérifiez les factures.' });
+/** Before a case is opened: what the person may know of it, and nothing else. */
+export const caseCheck = z.object({ creditorId: z.string().min(1).max(ID_MAX), number: z.string().trim().max(20) });
+export const caseCheckResult = z.object({
+  mandate: z
+    .object({
+      id: z.string(),
+      since: z.iso.date(),
+      scenario: scenarioCode,
+      fixedIndemnity: z.boolean(),
+      terms: z.array(z.object({ label: z.string(), value: z.string() })),
+      hasContract: z.boolean(),
+    })
+    .nullable(),
+  /** The debtor of that number, when the person already reads one of its cases. */
+  known: z.object({ name: z.string(), kind: debtorKind }).nullable(),
+  /** The next one, when none is in force. */
+  startsOn: z.iso.date().nullable(),
+  open: z
+    .object({ id: z.string(), reference: z.string(), name: z.string(), version: z.number().int(), officer: z.string().nullable(), canAct: z.boolean() })
+    .nullable(),
+  others: z.array(z.object({ creditor: z.string(), invoices: z.number().int() })),
+});
+export type CaseCheckResult = z.infer<typeof caseCheckResult>;
+export const caseChoices = z.object({
+  creditors: z.array(z.object({ id: z.string(), name: z.string() })),
+  officers: z.array(z.object({ id: z.string(), name: z.string() })),
+  mayAssign: z.boolean(),
+});

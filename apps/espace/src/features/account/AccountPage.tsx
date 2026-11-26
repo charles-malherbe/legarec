@@ -204,7 +204,12 @@ function Delegations() {
   const toast = useToast();
   if (!data) return null;
   const set = async (kind: 'technical' | 'administrative', active: boolean, silent = false) => {
-    await change(`/delegations/${kind}`, { method: 'PUT', body: { active } });
+    try {
+      await change(`/delegations/${kind}`, { method: 'PUT', body: { active } });
+    } catch {
+      toast({ message: 'La délégation n’a pas été modifiée.', tone: 'danger' });
+      return;
+    }
     await client.invalidateQueries({ queryKey: SESSION_KEY });
     if (!silent) toast({ message: active ? 'Délégation redonnée.' : 'Délégation retirée.', undo: () => void set(kind, !active, true) });
   };
@@ -327,6 +332,9 @@ function Security({ data }: { data: AccountData }) {
   );
 }
 
+/** The window that asks for a proof was closed: nothing has failed. */
+const notProved = (caught: unknown) => caught instanceof ApiError && caught.status === 403;
+
 function TwoFactor({ data }: { data: AccountData }) {
   const change = useChange();
   const confirm = useConfirm();
@@ -342,8 +350,8 @@ function TwoFactor({ data }: { data: AccountData }) {
       const result = await change('/account/two-factor/totp', { schema: totpSetup });
       const { toDataURL } = await import('qrcode');
       setSetup({ key: result.key, image: await toDataURL(result.uri, { margin: 1, width: 180 }) });
-    } catch {
-      setError(OFFLINE);
+    } catch (caught) {
+      if (!notProved(caught)) setError(OFFLINE);
     }
   };
   const verify = async () => {
@@ -354,6 +362,7 @@ function TwoFactor({ data }: { data: AccountData }) {
       setCode('');
       toast({ message: 'Double authentification activée.' });
     } catch (caught) {
+      if (notProved(caught)) return;
       const status = caught instanceof ApiError ? caught.status : 0;
       setError(status === 422 ? 'Code incorrect. Vérifiez l’heure de votre appareil et réessayez.' : status === 423 ? LOCKED : OFFLINE);
     }
@@ -366,8 +375,8 @@ function TwoFactor({ data }: { data: AccountData }) {
       const response = await startRegistration({ optionsJSON: options as never });
       setCodes((await change('/account/two-factor/webauthn/verify', { body: response, schema: backupCodes })).backupCodes);
       toast({ message: 'Clé de sécurité enregistrée.' });
-    } catch {
-      setError('La clé de sécurité n’a pas été enregistrée. Réessayez ou choisissez l’application d’authentification.');
+    } catch (caught) {
+      if (!notProved(caught)) setError('La clé de sécurité n’a pas été enregistrée. Réessayez ou choisissez l’application d’authentification.');
     }
   };
   const disable = () =>

@@ -1,63 +1,37 @@
 import { emailConfig, type EmailConfig } from '@legarec/contracts';
+import type { Config } from '../platform/config/config';
+import type { SettingValues } from '../modules/settings/values';
 import { formatPhone } from './phone';
 
-/**
- * Values of the firm until they are read from its settings (lot L): those that only the firm knows stay between brackets,
- * which is enough for messages that go nowhere.
- */
-export const provisionalEmailConfig = (): EmailConfig => {
-  const phone = formatPhone('01 87 88 02 98');
+const MEDIA = 'https://media.legarec.fr';
+const label = (url: string) => url.replace(/^https?:\/\//u, '').replace(/\/$/u, '');
+
+/** The `config` object of the templates, from Paramètres du cabinet. What the firm has not typed yet stays between brackets. */
+export function emailConfigOf(values: SettingValues, { DEBTOR_PORTAL_URL }: Pick<Config, 'DEBTOR_PORTAL_URL'>): EmailConfig {
+  const firm = (field: string) => values.text('firm', 'cabinet', field);
+  const phone = formatPhone(firm('phone'));
   return emailConfig.parse({
-    firm_name: 'LEGAREC',
+    firm_name: firm('name'),
     firm_tagline: 'Cabinet de recouvrement amiable',
-    logo_url: 'https://media.legarec.fr/e-mails/v1/legarec-logo-en-tete.png',
+    logo_url: `${MEDIA}/e-mails/v1/legarec-logo-en-tete.png`,
     logo_width: 260,
-    logo_dark_url: 'https://media.legarec.fr/e-mails/v1/legarec-logo-en-tete-negatif.png',
-    firm_siren: '[SIREN]',
+    logo_dark_url: `${MEDIA}/e-mails/v1/legarec-logo-en-tete-negatif.png`,
+    firm_siren: firm('siren'),
     phone: phone.national,
     phone_href: phone.international,
     collection_email: 'recouvrement@legarec.fr',
     support_email: 'support@legarec.fr',
-    portal_url: 'https://paiement.legarec.fr',
-    portal_label: 'paiement.legarec.fr',
-    account_holder: '[TITULAIRE DU COMPTE]',
-    iban: '[IBAN DU COMPTE DÉDIÉ]',
-    bic: '[BIC]',
-    cheque_payee: '[ORDRE DES CHÈQUES]',
-    cheque_address: '[ADRESSE D’ENVOI DES CHÈQUES]',
-    plan_approval_threshold: '6 mois',
-    firm_address: '[ADRESSE DU CABINET]',
+    portal_url: DEBTOR_PORTAL_URL,
+    portal_label: label(DEBTOR_PORTAL_URL),
+    account_holder: firm('holder'),
+    bank_name: firm('bankName'),
+    iban: firm('iban'),
+    bic: firm('bic'),
+    cheque_payee: firm('chequePayee'),
+    cheque_address: firm('chequeAddress'),
+    plan_approval_threshold: values.text('firm', 'regles', 'duration'),
+    firm_address: firm('address'),
     website_url: 'https://www.legarec.fr',
     website_label: 'www.legarec.fr',
-  });
-};
-
-/** Builds the `config` object of the templates from the environment. Throws when a value is missing. */
-export function readEmailConfig(env: Record<string, string | undefined>): EmailConfig {
-  const media = env.MEDIA_BASE_URL?.replace(/\/$/u, '');
-  const phone = formatPhone(env.FIRM_PHONE ?? '');
-  return emailConfig.parse({
-    firm_name: env.FIRM_NAME,
-    firm_tagline: env.FIRM_TAGLINE || undefined,
-    logo_url: media && `${media}/e-mails/v1/legarec-logo-en-tete.png`,
-    logo_width: 260,
-    logo_dark_url: media && `${media}/e-mails/v1/legarec-logo-en-tete-negatif.png`,
-    firm_siren: env.FIRM_SIREN,
-    phone: phone.national,
-    phone_href: phone.international,
-    collection_email: env.COLLECTION_EMAIL,
-    support_email: env.SUPPORT_EMAIL,
-    portal_url: env.DEBTOR_PORTAL_URL,
-    portal_label: env.DEBTOR_PORTAL_URL?.replace(/^https:\/\//u, '').replace(/\/$/u, ''),
-    account_holder: env.ACCOUNT_HOLDER,
-    bank_name: env.BANK_NAME || undefined,
-    iban: env.BANK_IBAN,
-    bic: env.BANK_BIC,
-    cheque_payee: env.CHEQUE_PAYEE,
-    cheque_address: env.CHEQUE_ADDRESS,
-    plan_approval_threshold: env.PLAN_APPROVAL_THRESHOLD,
-    firm_address: env.FIRM_ADDRESS,
-    website_url: env.WEBSITE_URL,
-    website_label: env.WEBSITE_URL?.replace(/^https:\/\//u, '').replace(/\/$/u, ''),
   });
 }

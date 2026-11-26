@@ -1,7 +1,9 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { ACCOUNT_PARITY, filled, type ParityRole } from '../../../../packages/contracts/test/accounts.parity';
 import { mockApi } from '../testing';
 import { resetAccounts } from './routes/account';
+import { resetCases } from './routes/cases';
+import { resetCreditors } from './routes/creditors';
 import { resetSteering } from './routes/steering';
 import { setAccount } from './state';
 
@@ -10,8 +12,21 @@ afterEach(() => {
   resetAccounts();
   resetSteering();
 });
+beforeAll(() => {
+  resetCases();
+  resetCreditors();
+});
 const ACCOUNTS: Record<Exclude<ParityRole, 'partner'>, string> = { director: 'ad', manager: 'cl', developer: 'dev', officer: 'hb', nobody: 'none' };
-const IDS = { ...ACCOUNTS, creditor: 'cb', creditorId: 'md', reset: 'demo', invitation: 'demo' };
+const IDS = {
+  ...ACCOUNTS,
+  creditor: 'cb',
+  creditorId: 'md',
+  reset: 'demo',
+  invitation: 'demo',
+  mandate: 'md-m1',
+  caseOfDirector: 'lagarde',
+  caseOfManager: 'demo',
+};
 
 /** The API answers the same: `apps/api/test/parity.test.ts`. */
 describe('simulations of the accounts', () => {

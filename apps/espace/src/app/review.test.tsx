@@ -174,10 +174,10 @@ describe('documents and letters', () => {
 
 it('never brings a revoked secret back', async () => {
   await call('ad', '/secrets/k-sms/revoke', {});
-  expect(await status('dev', '/secrets/k-sms/rotate', {})).toBe(403);
-  expect(await status('dev', '/secrets/k-sms/revoke', {})).toBe(403);
+  expect(await status('dev', '/secrets/k-sms/rotate', { value: 'x' })).toBe(409);
+  expect(await status('dev', '/secrets/k-sms/revoke', {})).toBe(409);
   await call('dev', '/secrets/k-3cx/revoke', {});
-  expect(await status('dev', '/secrets/k-3cx/rotate', {})).toBe(403);
+  expect(await status('dev', '/secrets/k-3cx/rotate', { value: 'x' })).toBe(409);
   expect(await status('ad', '/secrets/k-3cx/keep', {})).toBe(204);
 });
 it('searches only the creditors of the officer', async () => {

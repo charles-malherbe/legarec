@@ -89,6 +89,8 @@ enum NotificationKind {
   PASSWORD_RESET
   DELEGATION_ENDED
   DEVELOPER_CHANGED
+  CASE_ASSIGNED
+  SUBSTITUTE_NOTICE
 
   @@map("notification_kind")
 }
@@ -134,7 +136,8 @@ model User {
   invitedAt         DateTime?   @map("invited_at") @db.Timestamptz(3)
   anonymizedAt      DateTime?   @map("anonymized_at") @db.Timestamptz(3)
 
-  creditor             Creditor?                @relation(fields: [creditorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  creditor             Creditor?                @relation("AccountsOfCreditor", fields: [creditorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  managedCreditors     Creditor[]               @relation("ManagedCreditors")
   disabledBy           User?                    @relation("disabledBy", fields: [disabledById], references: [id], onDelete: NoAction, onUpdate: NoAction)
   disabledUsers        User[]                   @relation("disabledBy")
   substitute           User?                    @relation("substitute", fields: [substituteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -288,7 +291,10 @@ model Notification {
   action    SupportAction?
   actorId   String?          @map("actor_id") @db.Uuid
   targetId  String?          @map("target_id") @db.Uuid
-  ticketId  String?          @map("ticket_id") @db.Uuid
+ ticketId  String?          @map("ticket_id") @db.Uuid
+  caseId    String?          @map("case_id") @db.Uuid
+  creditorId String?         @map("creditor_id") @db.Uuid
+  caseCount Int?             @map("case_count")
   createdAt DateTime         @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
   readAt    DateTime?        @map("read_at") @db.Timestamptz(3)
 
@@ -296,6 +302,7 @@ model Notification {
   actor  User?          @relation("actor", fields: [actorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   target User?          @relation("target", fields: [targetId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   ticket SupportTicket? @relation(fields: [ticketId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  case   Case?          @relation(fields: [caseId, creditorId], references: [id, creditorId], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([userId, createdAt(sort: Desc)], map: "notifications_user")
   @@map("notifications")

@@ -2,11 +2,14 @@ import type { AutomaticEmail } from '@legarec/contracts';
 import { randomBytes } from 'node:crypto';
 import { Writable } from 'node:stream';
 import { inject } from 'vitest';
-import { provisionalEmailConfig } from '../src/emails/config';
+import { emailConfigOf } from '../src/emails/config';
 import { EmailsService } from '../src/emails/emails.service';
 import { EmailRenderer, TEMPLATES_DIR } from '../src/emails/renderer';
 import { accountJobs } from '../src/modules/auth/auth.jobs';
 import { AuthKeys } from '../src/modules/auth/keys';
+import { accessCodeJobs } from '../src/modules/debtor-access/access-codes.jobs';
+import { SettingValues } from '../src/modules/settings/values';
+import { Vault } from '../src/modules/vault/vault';
 import { Database } from '../src/platform/database/database';
 import { createLogger } from '../src/platform/logging/logger';
 import { startWorkers } from '../src/platform/queue/jobs';
@@ -30,9 +33,9 @@ export function startMailWorker(test: TestApp) {
   const valkey = connectValkey(inject('valkeyUrl'), 'jobs');
   const mails: Mail[] = [];
   let sending: Pick<Mail, 'name' | 'data'> | undefined;
-  const settings = provisionalEmailConfig();
+  const settings = () => database.run({ kind: 'worker', job: 'email-settings' }, async (tx) => emailConfigOf(await SettingValues.read(tx), test.config));
   const emails = new EmailsService(
-    new EmailRenderer(settings, TEMPLATES_DIR),
+    new EmailRenderer(TEMPLATES_DIR),
     // The page itself is left out of what a failed test prints.
     { send: ({ to, subject, html }) => Promise.resolve(void mails.push(Object.defineProperty({ ...sending!, to, subject } as Mail, 'html', { value: html }))) },
     settings,
@@ -41,7 +44,10 @@ export function startMailWorker(test: TestApp) {
     sending = { name, data: data as Mail['data'] };
     return emails.send(name, to, data);
   };
-  const handlers = { email: accountJobs({ keys: new AuthKeys(test.config), portals: test.config, send }) };
+  const handlers = {
+    email: accountJobs({ keys: new AuthKeys(test.config), portals: test.config, send }),
+    maintenance: accessCodeJobs(new Vault(test.config)),
+  };
   const workers = startWorkers({ database, logger, connection: valkey, handlers, prefix });
   const publisher = new OutboxPublisher(database, logger, valkey, prefix);
   return {

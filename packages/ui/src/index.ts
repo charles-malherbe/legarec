@@ -22,6 +22,7 @@ export * from './PiedDePage';
 export * from './Tableau';
 export * from './Toast';
 export * from './Confirm';
+export * from './Reauthentification';
 export * from './PageHeader';
 export * from './Toolbar';
 export * from './SuggestionIA';

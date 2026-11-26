@@ -1,4 +1,4 @@
-import { dashboard as dashboardSchema, formatCents, type CaseStatus, type Dashboard } from '@legarec/contracts';
+import { dashboard as dashboardSchema, formatCents, shellData, type CaseStatus, type Dashboard } from '@legarec/contracts';
 import {
   Avatar,
   Badge,
@@ -33,6 +33,8 @@ export const STATUS_TONE: Record<CaseStatus, Tone> = {
   PLAN: 'warning',
   FORMAL_NOTICE: 'danger',
   LITIGATION: 'danger',
+  NEW: 'neutral',
+  LOST: 'neutral',
 };
 const FEED: Record<Dashboard['feed'][number]['kind'], { symbol: string; tone: Tone }> = {
   PAYMENT: { symbol: '€', tone: 'success' },
@@ -61,7 +63,7 @@ export function DashboardPage() {
     queryFn: () => api(dashboardSchema, `/dashboard?creditor=${scope.id}`),
     enabled: user.role !== 'DEVELOPER',
   });
-  const { data: shell } = useQuery<{ creditors: { id: string; name: string }[] }>({ queryKey: ['shell'], enabled: false });
+  const { data: shell } = useQuery({ queryKey: ['shell'], queryFn: () => api(shellData, '/shell'), enabled: false });
 
   if (user.role === 'DEVELOPER') return <TechnicalHome firstName={user.firstName} />;
   const setDone = async (id: string, done: boolean) => {
@@ -111,7 +113,7 @@ export function DashboardPage() {
         actions={[
           { label: 'Exporter', disabled: true },
           { label: 'Démarrer ma session d’appels', href: '/appels' },
-          { label: '+ Nouveau dossier', primary: true, kbd: 'N', href: '/debiteurs' },
+          ...(user.role === 'CLAIMS_OFFICER' ? [] : [{ label: '+ Nouveau dossier', primary: true, kbd: 'N', href: '/debiteurs/nouveau' }]),
         ]}
       />
       <Toolbar

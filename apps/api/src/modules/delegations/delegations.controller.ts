@@ -3,6 +3,7 @@ import { Body, Controller, Get, HttpCode, Inject, Param, Put } from '@nestjs/com
 import { ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import type { z } from 'zod';
 import { Staff } from '../../platform/access/access';
+import { RequiresProof } from '../../platform/access/proof';
 import { Audit } from '../../platform/audit/audit';
 import { Database } from '../../platform/database/database';
 import { notFound } from '../../platform/errors/api-error';
@@ -39,6 +40,7 @@ export class DelegationsController {
     return { technical: holds('TECHNICAL'), administrative: holds('ADMINISTRATIVE'), developer: holder('DEVELOPER'), manager: holder('COLLECTION_MANAGER') };
   }
 
+  @RequiresProof()
   @Put(':kind')
   @HttpCode(204)
   @ApiNoContentResponse()

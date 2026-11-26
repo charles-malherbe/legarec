@@ -9,8 +9,13 @@ export const dayOf = (date: Date) => isoDay.format(date);
 /** By the calendar: the days of a change of hour last 23 or 25 hours. */
 const dayBefore = (day: string) => new Date(Date.parse(`${day}T12:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
 export const timeOf = format({ hour: '2-digit', minute: '2-digit' });
+const numeric = format({ day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 const short = format({ day: 'numeric', month: 'short' });
 const withYear = format({ day: 'numeric', month: 'short', year: 'numeric' });
+/** « 19 nov. 2026 » */
+export const longDay = withYear;
+/** « 21/11/2026 11:58 » */
+export const moment = (date: Date) => numeric(date).replace(',', '');
 export const longMoment = format({ dateStyle: 'long', timeStyle: 'short' });
 
 export function daysAgo(date: Date, now = new Date()): 'TODAY' | 'YESTERDAY' | 'EARLIER' {

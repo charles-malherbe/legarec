@@ -35,17 +35,60 @@ export const settingsHub = z.object({
 export type SettingsHub = z.infer<typeof settingsHub>;
 export const settingsSection = z.object({
   id: z.string(),
+  /** Of what is shown: sent back with a change. */
+  version: z.number().int(),
   canEdit: z.boolean(),
   blocks: z.array(z.object({ id: z.string(), title: z.string(), description: z.string(), fields: z.array(settingField) })),
   tables: z.array(settingTable),
   notes: z.array(z.string()),
 });
+export const settingsVersionQuery = z.object({
+  version: z
+    .string()
+    .regex(/^\d{1,9}$/u)
+    .transform(Number),
+});
 export type SettingsSection = z.infer<typeof settingsSection>;
+
+/** Keys of the services, by the name the API looks for: nothing else is stored (question 110). */
+export const SERVICE_SECRETS = {
+  RESEND_API_KEY: 'Resend',
+  RESEND_ACCOUNT_API_KEY: 'Resend (e-mails de compte)',
+  RESEND_WEBHOOK_SECRET: 'Resend (webhooks)',
+  MYSENDINGBOX_API_KEY: 'MySendingBox (lettres recommandées)',
+  MYSENDINGBOX_TEST_API_KEY: 'MySendingBox (test)',
+  SCW_ACCESS_KEY: 'Scaleway Object Storage (fichiers)',
+  SCW_SECRET_KEY: 'Scaleway Object Storage (fichiers)',
+  OVH_API_APP_KEY: 'API OVHcloud (boîtes e-mail)',
+  OVH_API_APP_SECRET: 'API OVHcloud (boîtes e-mail)',
+  OVH_API_CONSUMER_KEY: 'API OVHcloud (boîtes e-mail)',
+  OVH_SMS_APP_KEY: 'OVHcloud SMS',
+  OVH_SMS_APP_SECRET: 'OVHcloud SMS',
+  OVH_SMS_CONSUMER_KEY: 'OVHcloud SMS',
+  OVH_SMS_SERVICE_NAME: 'OVHcloud SMS',
+  COLLECTION_MAILBOX_PASSWORD: 'Boîte recouvrement@ (lecture)',
+  TCX_API_CLIENT_ID: '3CX (API Call Control)',
+  TCX_API_CLIENT_SECRET: '3CX (API Call Control)',
+  AI_API_KEY: 'IA',
+} as const;
+export type ServiceSecret = keyof typeof SERVICE_SECRETS;
+/** Drawn by the API: renewed, never typed nor revoked (question 108). */
+export const INTERNAL_SECRETS = {
+  MAILBOX_SECRETS_KEY: 'Boîtes OVH (chiffrement des mots de passe)',
+  ACCESS_CODE_KEY: 'Codes d’accès (chiffrement)',
+  LOOKUP_KEY: 'Liens et identifiants (empreintes)',
+} as const;
+export type InternalSecret = keyof typeof INTERNAL_SECRETS;
+const names = <T extends object>(of: T) => Object.keys(of) as [keyof T & string, ...(keyof T & string)[]];
+export const serviceSecret = z.enum(names(SERVICE_SECRETS), { error: 'Choisissez le secret.' });
+const secretName = z.enum([...names(SERVICE_SECRETS), ...names(INTERNAL_SECRETS)]);
+const secretValue = z.string().min(1, { error: 'Saisissez la valeur.' }).max(4096, atMost(4096));
 
 /** Secrets are write-only: the API never returns any part of a value. */
 export const secretItem = z.object({
   id: z.string(),
-  name: z.string(),
+  name: secretName,
+  internal: z.boolean(),
   service: z.string(),
   environment: z.string(),
   used: z.string(),
@@ -55,11 +98,13 @@ export const secretItem = z.object({
 export type SecretItem = z.infer<typeof secretItem>;
 export const secretsData = z.object({ items: z.array(secretItem) });
 export const newSecret = z.object({
-  name: z.string().regex(/^[A-Z][A-Z0-9_]{2,60}$/u, { error: 'Lettres majuscules, chiffres et tirets bas, par exemple EX_NOM_DU_SECRET.' }),
-  service: z.string().trim().min(1, { error: 'Indiquez le service concerné.' }).max(80, atMost(80)),
-  value: z.string().min(1, { error: 'Saisissez la valeur.' }).max(4096, atMost(4096)),
+  name: serviceSecret,
+  value: secretValue,
   rotation: z.enum(['90', '30', 'MANUAL']),
 });
+
+/** The new value, created at the service and pasted here (question 109); none for an internal key, which the API draws. */
+export const renewedSecret = z.object({ value: secretValue.optional() });
 
 export const mailbox = z.object({
   id: z.string(),

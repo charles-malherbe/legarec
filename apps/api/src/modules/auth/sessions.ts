@@ -153,7 +153,7 @@ export function actorOf(session: CurrentSession): Actor | null {
   const { id, provedAt, secondFactor, userId, role, creditorId, delegations, complete } = session;
   if (!complete) return null;
   const facts = { id, provedAt, secondFactor };
-  if (role !== 'CREDITOR') return { kind: 'staff', userId, role, delegations, session: facts };
+  if (role !== 'CREDITOR') return { kind: 'staff', userId, role, delegations, session: facts, provedAt };
   return creditorId ? { kind: 'partner', userId, creditorId, session: facts } : null;
 }
 

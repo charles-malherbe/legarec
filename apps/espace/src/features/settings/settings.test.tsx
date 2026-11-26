@@ -41,14 +41,14 @@ describe('settings', () => {
     openAs('hb', '/parametres/regles');
     expect(await screen.findByText('Lecture seule')).toBeVisible();
     expect(await screen.findByLabelText('Durée maximale sans validation')).toBeDisabled();
-    expect((await call('hb', '/settings/firm/regles', { duration: '12 mois' }, 'PUT')).status).toBe(403);
-    expect((await call('dev', '/settings/firm/regles', {}, 'PUT')).status).toBe(403);
-    expect((await call('ad', '/settings/firm/regles', { duration: '3 mois' }, 'PUT')).status).toBe(204);
+    expect((await call('hb', '/settings/firm/regles?version=0', { duration: '12 mois' }, 'PUT')).status).toBe(403);
+    expect((await call('dev', '/settings/firm/regles?version=0', {}, 'PUT')).status).toBe(403);
+    expect((await call('ad', '/settings/firm/regles?version=0', { duration: '3 mois' }, 'PUT')).status).toBe(204);
   });
   it('refuses an option out of the list and never takes a text between brackets for bank details', async () => {
-    expect((await call('ad', '/settings/firm/regles', { duration: 'illimitée' }, 'PUT')).status).toBe(422);
-    for (const iban of ['[AUTRE]', 'FR7612345']) expect((await call('ad', '/settings/firm/cabinet', { iban }, 'PUT')).status).toBe(422);
-    expect((await call('ad', '/settings/firm/cabinet', { iban: '[IBAN DU COMPTE DÉDIÉ]' }, 'PUT')).status).toBe(204);
+    expect((await call('ad', '/settings/firm/regles?version=0', { duration: 'illimitée' }, 'PUT')).status).toBe(422);
+    for (const iban of ['[AUTRE]', 'FR7612345']) expect((await call('ad', '/settings/firm/cabinet?version=0', { iban }, 'PUT')).status).toBe(422);
+    expect((await call('ad', '/settings/firm/cabinet?version=0', { iban: '[IBAN DU COMPTE DÉDIÉ]' }, 'PUT')).status).toBe(204);
     expect(await (await call('ad', '/settings/technical/audit')).text()).not.toContain('Identifiants du cabinet modifiés');
   });
   it('keeps technical settings for the Developer and the Director', async () => {
@@ -61,17 +61,53 @@ describe('settings', () => {
   });
   it('never returns a secret value', async () => {
     const value = 'valeur-fictive-de-test';
-    expect((await call('dev', '/secrets', { name: 'EX_TEST', service: 'Test', value, rotation: '90' })).status).toBe(204);
+    expect((await call('dev', '/secrets', { name: 'AI_API_KEY', value, rotation: '90' })).status).toBe(204);
     const body = await (await call('dev', '/secrets')).text();
-    expect(body).toContain('EX_TEST');
+    expect(body).toContain('AI_API_KEY');
     expect(body).not.toContain(value);
     expect(body).not.toMatch(/value|••/);
   });
   it('rotates a secret after confirmation', async () => {
     openAs('dev', '/parametres/techniques/secrets');
     await userEvent.click(await screen.findByRole('button', { name: 'Renouveler : TCX_API_CLIENT_SECRET' }));
+    // The new value is created at the service, then pasted.
+    await userEvent.click(screen.getByRole('button', { name: 'Renouveler' }));
+    expect(await screen.findByText('Saisissez la valeur.')).toBeVisible();
+    await userEvent.type(screen.getByLabelText('Nouvelle valeur de TCX_API_CLIENT_SECRET'), 'valeur-fictive');
+    await userEvent.click(screen.getByRole('button', { name: 'Renouveler' }));
     await userEvent.click((await inDialog()).getByRole('button', { name: 'Renouveler la clé' }));
     expect(await screen.findByText('TCX_API_CLIENT_SECRET renouvelé.')).toBeVisible();
+  });
+  it('renews an internal key without any value', async () => {
+    openAs('dev', '/parametres/techniques/secrets');
+    const renew = async () => {
+      await userEvent.click(await screen.findByRole('button', { name: 'Renouveler : ACCESS_CODE_KEY' }));
+      expect((await inDialog()).getByText('Clé interne')).toBeVisible();
+      await userEvent.click((await inDialog()).getByRole('button', { name: 'Renouveler la clé' }));
+    };
+    expect(screen.queryByRole('button', { name: 'Révoquer : ACCESS_CODE_KEY' })).toBeNull();
+    await renew();
+    expect(await screen.findByText('ACCESS_CODE_KEY renouvelé.')).toBeVisible();
+  });
+  it('undoes its own change only, never that of someone else', async () => {
+    openAs('ad', '/parametres/relances');
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'Appels' }), '3');
+    await userEvent.click(screen.getByRole('button', { name: /Enregistrer/ }));
+    expect(await screen.findByText(/» enregistré\./)).toBeVisible();
+    const undo = await screen.findByRole('button', { name: 'Annuler' });
+    expect((await call('ad', '/settings/firm/relances?version=1', { calls: '1' }, 'PUT')).status).toBe(204);
+    await userEvent.click(undo);
+    expect(await screen.findByText(/rien n’a été annulé/)).toBeVisible();
+    expect(await (await call('ad', '/settings/firm/relances')).text()).toContain('"value":"1"');
+  });
+  it('does not overwrite what someone else has just saved in the section', async () => {
+    openAs('ad', '/parametres/relances');
+    const field = await screen.findByRole('combobox', { name: 'Appels' });
+    const { version } = (await (await call('ad', '/settings/firm/relances')).json()) as { version: number };
+    expect((await call('ad', `/settings/firm/relances?version=${version}`, { calls: '1' }, 'PUT')).status).toBe(204);
+    await userEvent.selectOptions(field, '3');
+    await userEvent.click(screen.getByRole('button', { name: /Enregistrer/ }));
+    expect(await screen.findByText(/vient d’être modifiée par quelqu’un d’autre/)).toBeVisible();
   });
 });
 
@@ -79,8 +115,8 @@ describe('firm identity', () => {
   it('belongs to the Director alone, with valid values, a confirmation and no value in the journal', async () => {
     // Example IBAN of the international standard, not a real account.
     const iban = 'GB82 WEST 1234 5698 7654 32';
-    expect((await call('cl', '/settings/firm/cabinet', { iban }, 'PUT')).status).toBe(403);
-    expect((await call('ad', '/settings/firm/cabinet', { iban: 'GB82 WEST 1234 5698 7654 33' }, 'PUT')).status).toBe(422);
+    expect((await call('cl', '/settings/firm/cabinet?version=0', { iban }, 'PUT')).status).toBe(403);
+    expect((await call('ad', '/settings/firm/cabinet?version=0', { iban: 'GB82 WEST 1234 5698 7654 33' }, 'PUT')).status).toBe(422);
     openAs('ad', '/parametres/cabinet');
     const field = await screen.findByLabelText('IBAN du compte dédié');
     await userEvent.clear(field);
@@ -325,7 +361,7 @@ describe('account and help', () => {
     await userEvent.click(await screen.findByRole('tab', { name: 'Profil' }));
     await userEvent.click(await screen.findByRole('switch', { name: 'Technique' }));
     expect(await screen.findByText('Délégation retirée.')).toBeVisible();
-    expect((await call('dev', '/settings/techniques/securite', {}, 'PUT')).status).toBe(403);
+    expect((await call('dev', '/settings/techniques/securite?version=0', {}, 'PUT')).status).toBe(403);
     expect((await call('dev', '/delegations/technical', { active: true }, 'PUT')).status).toBe(403);
     expect((await call('cl', '/delegations/administrative', { active: true }, 'PUT')).status).toBe(403);
   });

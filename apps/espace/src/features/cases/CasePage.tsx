@@ -26,7 +26,7 @@ export function CasePage() {
         <EtatListe kind="loading" />
       </div>
     );
-  if (error instanceof ApiError && error.status === 403) return <AccessDenied />;
+  if (error instanceof ApiError && (error.status === 403 || error.status === 404)) return <AccessDenied />;
   if (error || !data)
     return (
       <div className={layout.card}>
@@ -115,7 +115,8 @@ function CaseView({ data }: { data: CaseDetail }) {
           style={{ paddingBlock: 'var(--sp-3)', borderTop: '1px solid var(--surface-3)', background: 'var(--surface-2)' }}
         >
           <span>
-            <strong>{data.mainContact.name}</strong> <span className={layout.muted}>· {data.mainContact.title}, contact principal</span>
+            <strong>{data.mainContact.name}</strong>{' '}
+            <span className={layout.muted}>· {[data.mainContact.title, 'contact principal'].filter(Boolean).join(', ')}</span>
           </span>
           {data.contacts.map((contact) => (
             <span key={contact.id} className={layout.inline}>
@@ -163,9 +164,7 @@ function CaseView({ data }: { data: CaseDetail }) {
           )}
           <div>
             <dt>Prochaine action</dt>
-            <dd>
-              {data.nextAction} · {data.nextDate}
-            </dd>
+            <dd>{data.nextDate === '—' ? data.nextAction : `${data.nextAction} · ${data.nextDate}`}</dd>
           </div>
         </dl>
         <div className={layout.tabs}>

@@ -33,6 +33,35 @@ describe('bodies of the requests', () => {
 });
 
 type Portal = keyof typeof REQUEST_BODIES;
+const INVOICE = { number: 'F-2026-1132', externalRef: 'MA-2410', issuedOn: '2026-10-12', dueOn: '2026-11-11', amount: 264000, left: 164000 };
+const IDENTITY = {
+  legalName: 'X SAS',
+  name: 'X',
+  sector: '',
+  vatNumber: '',
+  address: '6 rue du Four',
+  postalCode: '69100',
+  city: 'Villeurbanne',
+  managerId: null,
+  portalEnabled: true,
+};
+const CONTACTS = [{ name: 'Élodie Rivaud', title: '', email: 'e.rivaud@exemple.test', phone: '', isMain: true }];
+const MANDATE = {
+  startsOn: '2026-01-01',
+  endsOn: null,
+  amicableRateBp: 800,
+  litigationRateBp: 1200,
+  openingFeeCents: 0,
+  planMonthsWithoutConsent: 6,
+  discountMaxBp: 500,
+  litigationNeedsConsent: true,
+  deferSmallRemittances: false,
+  interestMode: 'NONE',
+  contractRateBp: null,
+  fixedIndemnity: true,
+  reportingDay: 5,
+  scenario: 'BUSINESS',
+};
 const passkey = {
   id: 'cle',
   rawId: 'cle',
@@ -72,6 +101,12 @@ const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly
   staff: {
     'POST /auth/login': [{ email: 'cl@legarec.fr', password: 'motdepasse12', portal: 'espace', remember: false }],
     ...auth,
+    'POST /auth/proof': [
+      { method: 'PASSWORD', password: 'x' },
+      { method: 'TOTP', code: '123456' },
+      { method: 'BACKUP_CODE', code: '4821-7730' },
+      { method: 'WEBAUTHN', response: { id: 'x' } },
+    ],
     'PUT /auth/preferences': [{ theme: 'light', density: 'comfortable', lowVision: true }],
     'POST /notifications/read': [{ ids: ['n1', 'n2'] }, { ids: [] }],
     'PUT /notifications': [{ ids: ['n1', 'n2', 'n3', 'n4'], unread: false }],
@@ -116,6 +151,38 @@ const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly
       { ...qualification, outcome: 'NO_ANSWER', tcxCode: 'NON_REPONSE', interlocutor: '', notes: '', announced: false },
     ],
     'POST /calls/:id/ai-decision': [{ decision: 'ACCEPTED' }, { decision: 'IGNORED' }],
+    'POST /cases': [
+      {
+        creditorId: 'md',
+        mandateId: 'md-m1',
+        externalReference: '',
+        kind: 'COMPANY',
+        number: '732 829 320 00074',
+        name: 'Menuiserie Arnal',
+        nameConfirmed: true,
+        legalForm: '5499',
+        address: '18 chemin des Scieurs',
+        postalCode: '38500',
+        city: 'Voiron',
+        contactName: '',
+        contactTitle: '',
+        contacts: [{ kind: 'PHONE', label: 'Standard', value: '04 76 00 00 21', primary: true }],
+        invoices: [INVOICE],
+        scenario: 'BUSINESS',
+        toMe: true,
+        expected: { principal: 164000, invoices: 1 },
+      },
+    ],
+    'POST /cases/check': [{ creditorId: 'md', number: '732 829 320 00074' }],
+    'POST /cases/:id/invoices': [{ version: 1, invoices: [INVOICE], expected: { principal: 164000, invoices: 1 } }],
+    'POST /creditors': [{ siren: '732829320', identity: IDENTITY, contacts: CONTACTS, mandate: MANDATE }],
+    'PUT /creditors/:id': [{ version: 1, identity: IDENTITY, contacts: CONTACTS }],
+    'POST /creditors/:id/amendments': [{ amends: 'm1', mandate: MANDATE }],
+    'POST /creditors/:id/bank-accounts': [
+      { replaces: null, account: { holder: 'X', iban: 'GB82 WEST 1234 5698 7654 32', bic: 'PSSTFRPPXXX', confirmedWith: '' } },
+    ],
+    'POST /creditors/:id/bank-accounts/:accountId/confirm': [{ confirmedWith: 'Élodie Rivaud' }],
+    'POST /cases/:id/access-code/regenerate': [{ version: 1 }],
     'POST /cases/:id/coordinates': [
       { kind: 'PHONE', label: 'Mobile', value: '0611223344', primary: false, replaces: 'p1', source: 'CALL' },
       { kind: 'EMAIL', label: 'Comptabilité', value: 'compta@batiplus.example', primary: true, replaces: null, source: 'CREDITOR' },
@@ -186,7 +253,8 @@ const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly
     'POST /members/:id/disable': [{ reason: 'Départ', cases: 12 }],
     'PUT /members/:id/extension': [{ extension: '104' }, { extension: null }],
     'PUT /settings/:scope/:id': [{ duration: '12 mois' }, { iban: '[IBAN DU COMPTE DÉDIÉ]' }, { dailyCap: true }],
-    'POST /secrets': [{ name: 'EX_TEST', service: 'Test', value: 'valeur-fictive-de-test', rotation: '90' }],
+    'POST /secrets': [{ name: 'AI_API_KEY', value: 'valeur-fictive-de-test', rotation: '90' }],
+    'POST /secrets/:id/rotate': [{ value: 'valeur-fictive-de-test' }, {}],
     'POST /mailboxes': [
       { local: 'ac', holderId: null, sizeMb: 5000, requestId: '646c222a-4b11-4a27-acc8-6cf1909fc115' },
       { local: 'ac', holderId: 'hb', sizeMb: 5000 },
@@ -251,6 +319,7 @@ const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly
 };
 /** Only here may a body be empty: nothing to change, or a version to restore that is not named. */
 const MAY_BE_EMPTY = [
+  'POST /secrets/:id/rotate',
   'PUT /account/notifications',
   'PUT /cases/:id/coordinates/:coordinateId',
   'PUT /reminders/:id',
@@ -347,7 +416,15 @@ describe('ceilings', () => {
         const name = path.map((part) => (typeof part === 'number' ? '[]' : `.${part}`)).join('');
         const list = (current: unknown) => Array.from({ length: 5_000 }, () => (current as unknown[])[0]);
         const tries = [...TEXTS, 1e12, -1e12].map((value) => change(body, path, (current) => (Array.isArray(current) ? list(current) : value)));
-        if (tries.some((attempt) => schema.safeParse(attempt).success)) found.add(name.slice(1));
+        // Spaces inside a valid text: what a check that removes them lets through, if nothing else stops it.
+        const spaced: unknown[] = [];
+        change(body, path, (current) => {
+          // Inside, between two signs: around them, `trim()` takes them away.
+          if (typeof current === 'string' && current.trim().length >= 2)
+            spaced.push(change(body, path, () => `${current.slice(0, 1)}${' '.repeat(LONG)}${current.slice(1)}`));
+          return current;
+        });
+        if ([...tries, ...spaced].some((attempt) => schema.safeParse(attempt).success)) found.add(name.slice(1));
       }
     }
     return [...found].sort();

@@ -87,8 +87,8 @@ const KEY_GROUPS = [
   },
 ];
 const CREATE = [
-  { label: 'Débiteur', href: '/debiteurs', icon: 'users', key: 'D' },
-  { label: 'Créancier', href: '/creanciers', icon: 'building', key: 'M' },
+  { label: 'Débiteur', href: '/debiteurs/nouveau', icon: 'users', key: 'D' },
+  { label: 'Créancier', href: '/creanciers/nouveau', icon: 'building', key: 'M' },
   { label: 'Relance planifiée', href: '/relances', icon: 'agenda', key: 'R' },
   { label: 'Courrier', href: '/documents/rediger', icon: 'newdoc', key: 'C' },
   { label: 'Échéancier', href: '/echeanciers', icon: 'plan', key: 'E' },
@@ -118,8 +118,10 @@ const TRAILS: [string, { label: string; href?: string }[]][] = [
   ['/notifications', [{ label: 'Pilotage' }, { label: 'Notifications' }]],
   ['/equipe', [{ label: 'Pilotage' }, { label: 'Équipe' }]],
   ['/facturation', [{ label: 'Pilotage' }, { label: 'Facturation' }]],
+  ['/creanciers/nouveau', [{ label: 'Portefeuille' }, { label: 'Créanciers', href: '/creanciers' }, { label: 'Nouveau créancier' }]],
   ['/creanciers/', [{ label: 'Portefeuille' }, { label: 'Créanciers', href: '/creanciers' }, { label: 'Fiche créancier' }]],
   ['/creanciers', [{ label: 'Portefeuille' }, { label: 'Créanciers' }]],
+  ['/debiteurs/nouveau', [{ label: 'Portefeuille' }, { label: 'Débiteurs', href: '/debiteurs' }, { label: 'Nouveau débiteur' }]],
   ['/debiteurs/', [{ label: 'Portefeuille' }, { label: 'Débiteurs', href: '/debiteurs' }, { label: 'Fiche débiteur' }]],
   ['/debiteurs', [{ label: 'Portefeuille' }, { label: 'Débiteurs' }]],
   ['/relances', [{ label: 'Recouvrement' }, { label: 'Relances' }]],
@@ -255,9 +257,9 @@ export function Shell() {
     { label: 'Legarec' },
   ];
   // Breadcrumb of a file, read from the same answer as the page.
-  const caseId = /^\/debiteurs\/([^/]+)$/.exec(pathname)?.[1];
+  const caseId = /^\/debiteurs\/(?!nouveau$)([^/]+)$/.exec(pathname)?.[1];
   const { data: openCase } = useApi(caseDetail, `/cases/${caseId}`, { enabled: !!caseId && user.role !== 'DEVELOPER' });
-  const creditorId = /^\/creanciers\/([^/]+)$/.exec(pathname)?.[1];
+  const creditorId = /^\/creanciers\/(?!nouveau$)([^/]+)(?:\/modifier)?$/.exec(pathname)?.[1];
   const { data: openCreditor } = useApi(creditorDetail, `/creditors/${creditorId}`, { enabled: !!creditorId && user.role !== 'DEVELOPER' });
   const steps =
     creditorId && openCreditor
@@ -303,7 +305,7 @@ export function Shell() {
               })),
             ],
           }}
-          createItems={[...CREATE]}
+          createItems={CREATE.filter((item) => canOpen(item.href, user))}
           notifications={{
             href: '/notifications',
             preferencesHref: '/compte',

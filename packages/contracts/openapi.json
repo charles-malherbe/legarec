@@ -1934,6 +1934,96 @@
         }
       }
     },
+    "/staff/auth/proof": {
+      "get": {
+        "operationId": "ProofController_needed",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "methods": {
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "PASSWORD",
+                          "TOTP",
+                          "WEBAUTHN"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "methods"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      },
+      "post": {
+        "operationId": "ProofController_give",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      }
+    },
+    "/staff/auth/proof/webauthn": {
+      "post": {
+        "operationId": "ProofController_keyOptions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "challenge": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "challenge"
+                  ],
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "auth"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      }
+    },
     "/staff/account": {
       "get": {
         "operationId": "AccountController_data",
@@ -2999,6 +3089,3160 @@
         },
         "tags": [
           "notifications"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      }
+    },
+    "/staff/secrets": {
+      "get": {
+        "operationId": "SecretsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string",
+                            "enum": [
+                              "RESEND_API_KEY",
+                              "RESEND_ACCOUNT_API_KEY",
+                              "RESEND_WEBHOOK_SECRET",
+                              "MYSENDINGBOX_API_KEY",
+                              "MYSENDINGBOX_TEST_API_KEY",
+                              "SCW_ACCESS_KEY",
+                              "SCW_SECRET_KEY",
+                              "OVH_API_APP_KEY",
+                              "OVH_API_APP_SECRET",
+                              "OVH_API_CONSUMER_KEY",
+                              "OVH_SMS_APP_KEY",
+                              "OVH_SMS_APP_SECRET",
+                              "OVH_SMS_CONSUMER_KEY",
+                              "OVH_SMS_SERVICE_NAME",
+                              "COLLECTION_MAILBOX_PASSWORD",
+                              "TCX_API_CLIENT_ID",
+                              "TCX_API_CLIENT_SECRET",
+                              "AI_API_KEY",
+                              "MAILBOX_SECRETS_KEY",
+                              "ACCESS_CODE_KEY",
+                              "LOOKUP_KEY"
+                            ]
+                          },
+                          "internal": {
+                            "type": "boolean"
+                          },
+                          "service": {
+                            "type": "string"
+                          },
+                          "environment": {
+                            "type": "string"
+                          },
+                          "used": {
+                            "type": "string"
+                          },
+                          "rotated": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "VALID",
+                              "EXPIRING",
+                              "REVOKE_PENDING",
+                              "REVOKED"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "internal",
+                          "service",
+                          "environment",
+                          "used",
+                          "rotated",
+                          "status"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "vault"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "DEVELOPER"
+          ]
+        }
+      },
+      "post": {
+        "operationId": "SecretsController_save",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "vault"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "TECHNICAL"
+          ]
+        }
+      }
+    },
+    "/staff/secrets/{id}/rotate": {
+      "post": {
+        "operationId": "SecretsController_renew",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "vault"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "TECHNICAL"
+          ]
+        }
+      }
+    },
+    "/staff/secrets/{id}/revoke": {
+      "post": {
+        "operationId": "SecretsController_revoke",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "vault"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "TECHNICAL"
+          ]
+        }
+      }
+    },
+    "/staff/secrets/{id}/keep": {
+      "post": {
+        "operationId": "SecretsController_keep",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "vault"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ]
+        }
+      }
+    },
+    "/staff/settings/{scope}": {
+      "get": {
+        "operationId": "SettingsController_hub",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "canEdit": {
+                      "type": "boolean"
+                    },
+                    "groups": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "tiles": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "title": {
+                                  "type": "string"
+                                },
+                                "description": {
+                                  "type": "string"
+                                },
+                                "icon": {
+                                  "type": "string"
+                                },
+                                "status": {
+                                  "type": "string"
+                                },
+                                "statusTone": {
+                                  "type": "string",
+                                  "enum": [
+                                    "neutral",
+                                    "info",
+                                    "success",
+                                    "warning",
+                                    "danger",
+                                    "teal",
+                                    "violet",
+                                    "marine",
+                                    "or"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "title",
+                                "description",
+                                "icon",
+                                "status",
+                                "statusTone"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "label",
+                          "tiles"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "canEdit",
+                    "groups"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "settings"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      }
+    },
+    "/staff/settings/{scope}/{id}": {
+      "get": {
+        "operationId": "SettingsController_section",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "canEdit": {
+                      "type": "boolean"
+                    },
+                    "blocks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "fields": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "text",
+                                    "select",
+                                    "switch",
+                                    "value"
+                                  ]
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "description": {
+                                  "type": "string"
+                                },
+                                "value": {
+                                  "type": "string"
+                                },
+                                "checked": {
+                                  "type": "boolean"
+                                },
+                                "options": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "locked": {
+                                  "type": "boolean"
+                                },
+                                "status": {
+                                  "nullable": true,
+                                  "type": "string"
+                                },
+                                "statusTone": {
+                                  "type": "string",
+                                  "enum": [
+                                    "neutral",
+                                    "info",
+                                    "success",
+                                    "warning",
+                                    "danger",
+                                    "teal",
+                                    "violet",
+                                    "marine",
+                                    "or"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "kind",
+                                "label",
+                                "description",
+                                "value",
+                                "checked",
+                                "options",
+                                "locked",
+                                "status",
+                                "statusTone"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "description",
+                          "fields"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "tables": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "columns": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "rows": {
+                            "type": "array",
+                            "items": {
+                              "type": "array",
+                              "items": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "text": {
+                                        "type": "string"
+                                      },
+                                      "tone": {
+                                        "type": "string",
+                                        "enum": [
+                                          "neutral",
+                                          "info",
+                                          "success",
+                                          "warning",
+                                          "danger",
+                                          "teal",
+                                          "violet",
+                                          "marine",
+                                          "or"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "text",
+                                      "tone"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "description",
+                          "columns",
+                          "rows"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "notes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "version",
+                    "canEdit",
+                    "blocks",
+                    "tables",
+                    "notes"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "settings"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      },
+      "put": {
+        "operationId": "SettingsController_save",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "settings"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE",
+            "TECHNICAL"
+          ]
+        }
+      }
+    },
+    "/staff/creditors": {
+      "get": {
+        "operationId": "CreditorsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "initials": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "sector": {
+                        "type": "string"
+                      },
+                      "siren": {
+                        "type": "string"
+                      },
+                      "debtors": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "invoices": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "outstanding": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "recovered": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "rate": {
+                        "type": "number"
+                      },
+                      "fee": {
+                        "type": "string"
+                      },
+                      "owner": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "ACTIVE",
+                          "RENEWAL"
+                        ]
+                      },
+                      "statusLabel": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "initials",
+                      "name",
+                      "sector",
+                      "siren",
+                      "debtors",
+                      "invoices",
+                      "outstanding",
+                      "recovered",
+                      "rate",
+                      "fee",
+                      "owner",
+                      "status",
+                      "statusLabel"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "creditors"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      },
+      "post": {
+        "operationId": "CreditorsController_create",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "creditors"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER"
+          ]
+        }
+      }
+    },
+    "/staff/creditors/choices": {
+      "get": {
+        "operationId": "CreditorsController_choices",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "managers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "bankAccess": {
+                      "type": "string",
+                      "enum": [
+                        "EDIT",
+                        "NONE"
+                      ]
+                    },
+                    "defaults": {
+                      "type": "object",
+                      "properties": {
+                        "amicableRateBp": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 10000
+                        }
+                      },
+                      "required": [
+                        "amicableRateBp"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "managers",
+                    "bankAccess",
+                    "defaults"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "creditors"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER"
+          ]
+        }
+      }
+    },
+    "/staff/creditors/{id}": {
+      "get": {
+        "operationId": "CreditorsController_detail",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "initials": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "sector": {
+                      "type": "string"
+                    },
+                    "siren": {
+                      "type": "string"
+                    },
+                    "debtors": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "invoices": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "outstanding": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "recovered": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "rate": {
+                      "type": "number"
+                    },
+                    "fee": {
+                      "type": "string"
+                    },
+                    "owner": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ACTIVE",
+                        "RENEWAL"
+                      ]
+                    },
+                    "statusLabel": {
+                      "type": "string"
+                    },
+                    "mandateSince": {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    "ownerName": {
+                      "type": "string"
+                    },
+                    "totalDebtors": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "portfolio": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": "string"
+                          },
+                          "amount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "daysLate": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "OVERDUE",
+                              "PROMISE",
+                              "REMINDER",
+                              "DISPUTE",
+                              "SETTLED",
+                              "PLAN",
+                              "FORMAL_NOTICE",
+                              "LITIGATION",
+                              "NEW",
+                              "LOST"
+                            ]
+                          },
+                          "statusLabel": {
+                            "type": "string"
+                          },
+                          "invoices": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "number": {
+                                  "type": "string"
+                                },
+                                "externalRef": {
+                                  "type": "string"
+                                },
+                                "due": {
+                                  "type": "string",
+                                  "format": "date",
+                                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                                },
+                                "total": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "left": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "UNPAID",
+                                    "PARTIAL",
+                                    "DISPUTED",
+                                    "REMINDED",
+                                    "PLAN"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "number",
+                                "externalRef",
+                                "due",
+                                "total",
+                                "left",
+                                "state"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "reference",
+                          "amount",
+                          "daysLate",
+                          "status",
+                          "statusLabel",
+                          "invoices"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "payouts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "date": {
+                            "type": "string",
+                            "format": "date",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                          },
+                          "collections": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "gross": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "fee": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "net": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "date",
+                          "collections",
+                          "gross",
+                          "fee",
+                          "net"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "nextPayout": {
+                      "type": "object",
+                      "properties": {
+                        "date": {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                        },
+                        "net": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "gross": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "fee": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "date",
+                        "net",
+                        "gross",
+                        "fee"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "activity": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "who": {
+                            "type": "string"
+                          },
+                          "what": {
+                            "type": "string"
+                          },
+                          "when": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "nullable": true,
+                            "type": "string",
+                            "enum": [
+                              "OVERDUE",
+                              "PROMISE",
+                              "REMINDER",
+                              "DISPUTE",
+                              "SETTLED",
+                              "PLAN",
+                              "FORMAL_NOTICE",
+                              "LITIGATION",
+                              "NEW",
+                              "LOST"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "who",
+                          "what",
+                          "when",
+                          "status"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "mandateTerms": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "label",
+                          "value"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "contact": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "phone": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string",
+                          "format": "email",
+                          "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                        },
+                        "portalEnabled": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "title",
+                        "phone",
+                        "email",
+                        "portalEnabled"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "initials",
+                    "name",
+                    "sector",
+                    "siren",
+                    "debtors",
+                    "invoices",
+                    "outstanding",
+                    "recovered",
+                    "rate",
+                    "fee",
+                    "owner",
+                    "status",
+                    "statusLabel",
+                    "mandateSince",
+                    "ownerName",
+                    "totalDebtors",
+                    "portfolio",
+                    "payouts",
+                    "nextPayout",
+                    "activity",
+                    "mandateTerms",
+                    "contact"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "creditors"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      },
+      "put": {
+        "operationId": "CreditorsController_change",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "creditors"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER"
+          ]
+        }
+      }
+    },
+    "/staff/creditors/{id}/file": {
+      "get": {
+        "operationId": "CreditorsController_file",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "siren": {
+                      "type": "string"
+                    },
+                    "identity": {
+                      "type": "object",
+                      "properties": {
+                        "legalName": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "sector": {
+                          "type": "string"
+                        },
+                        "vatNumber": {
+                          "type": "string"
+                        },
+                        "address": {
+                          "type": "string"
+                        },
+                        "postalCode": {
+                          "type": "string"
+                        },
+                        "city": {
+                          "type": "string"
+                        },
+                        "managerId": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "portalEnabled": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "legalName",
+                        "name",
+                        "sector",
+                        "vatNumber",
+                        "address",
+                        "postalCode",
+                        "city",
+                        "managerId",
+                        "portalEnabled"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "contacts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 120
+                          },
+                          "title": {
+                            "type": "string",
+                            "maxLength": 120
+                          },
+                          "email": {
+                            "type": "string",
+                            "maxLength": 254,
+                            "format": "email",
+                            "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                          },
+                          "phone": {
+                            "type": "string",
+                            "maxLength": 30
+                          },
+                          "isMain": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "title",
+                          "email",
+                          "phone",
+                          "isMain"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "mandates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "amicableRateBp": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 10000
+                          },
+                          "litigationRateBp": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 10000
+                          },
+                          "openingFeeCents": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 2000000000
+                          },
+                          "planMonthsWithoutConsent": {
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "enum": [
+                                  3
+                                ]
+                              },
+                              {
+                                "type": "number",
+                                "enum": [
+                                  6
+                                ]
+                              },
+                              {
+                                "type": "number",
+                                "enum": [
+                                  12
+                                ]
+                              }
+                            ]
+                          },
+                          "discountMaxBp": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 10000
+                          },
+                          "litigationNeedsConsent": {
+                            "type": "boolean"
+                          },
+                          "deferSmallRemittances": {
+                            "type": "boolean"
+                          },
+                          "interestMode": {
+                            "type": "string",
+                            "enum": [
+                              "ECB_PLUS_TEN",
+                              "CONTRACT",
+                              "NONE"
+                            ]
+                          },
+                          "contractRateBp": {
+                            "nullable": true,
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 10000
+                          },
+                          "fixedIndemnity": {
+                            "type": "boolean"
+                          },
+                          "reportingDay": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 28
+                          },
+                          "scenario": {
+                            "type": "string",
+                            "enum": [
+                              "BUSINESS",
+                              "CONSUMER",
+                              "KEY_ACCOUNTS"
+                            ]
+                          },
+                          "startsOn": {
+                            "type": "string",
+                            "format": "date",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                          },
+                          "endsOn": {
+                            "nullable": true,
+                            "type": "string",
+                            "format": "date",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "CURRENT",
+                              "TO_COME",
+                              "ENDED"
+                            ]
+                          },
+                          "hasContract": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "amicableRateBp",
+                          "litigationRateBp",
+                          "openingFeeCents",
+                          "planMonthsWithoutConsent",
+                          "discountMaxBp",
+                          "litigationNeedsConsent",
+                          "deferSmallRemittances",
+                          "interestMode",
+                          "contractRateBp",
+                          "fixedIndemnity",
+                          "reportingDay",
+                          "scenario",
+                          "startsOn",
+                          "endsOn",
+                          "id",
+                          "state",
+                          "hasContract"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "openCases": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "updatedBy": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    },
+                    "bankAccess": {
+                      "type": "string",
+                      "enum": [
+                        "EDIT",
+                        "NONE"
+                      ]
+                    },
+                    "bankAccount": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "holder": {
+                          "type": "string"
+                        },
+                        "masked": {
+                          "type": "string"
+                        },
+                        "bic": {
+                          "type": "string"
+                        },
+                        "since": {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                        },
+                        "confirmed": {
+                          "nullable": true,
+                          "type": "object",
+                          "properties": {
+                            "on": {
+                              "type": "string",
+                              "format": "date",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                            },
+                            "with": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "on",
+                            "with"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "holder",
+                        "masked",
+                        "bic",
+                        "since",
+                        "confirmed"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "version",
+                    "siren",
+                    "identity",
+                    "contacts",
+                    "mandates",
+                    "openCases",
+                    "updatedBy",
+                    "updatedAt",
+                    "bankAccess",
+                    "bankAccount"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "creditors"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER"
+          ]
+        }
+      }
+    },
+    "/staff/creditors/{id}/amendments": {
+      "post": {
+        "operationId": "CreditorsController_amend",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "creditors"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER"
+          ]
+        }
+      }
+    },
+    "/staff/creditors/{id}/bank-accounts": {
+      "post": {
+        "operationId": "CreditorsController_replace",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "creditors"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      }
+    },
+    "/staff/creditors/{id}/bank-accounts/{accountId}/confirm": {
+      "post": {
+        "operationId": "CreditorsController_confirm",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "creditors"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      }
+    },
+    "/staff/creditors/{id}/bank-accounts/{accountId}/reveal": {
+      "post": {
+        "operationId": "CreditorsController_reveal",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "iban": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "iban"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "creditors"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      }
+    },
+    "/staff/cases/search": {
+      "post": {
+        "operationId": "CasesController_search",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "identifier": {
+                            "type": "string"
+                          },
+                          "creditorId": {
+                            "type": "string"
+                          },
+                          "creditor": {
+                            "type": "string"
+                          },
+                          "invoicesLabel": {
+                            "type": "string"
+                          },
+                          "amount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "daysLate": {
+                            "nullable": true,
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "OVERDUE",
+                              "PROMISE",
+                              "REMINDER",
+                              "DISPUTE",
+                              "SETTLED",
+                              "PLAN",
+                              "FORMAL_NOTICE",
+                              "LITIGATION",
+                              "NEW",
+                              "LOST"
+                            ]
+                          },
+                          "statusLabel": {
+                            "type": "string"
+                          },
+                          "nextAction": {
+                            "type": "string"
+                          },
+                          "nextDate": {
+                            "type": "string"
+                          },
+                          "officerId": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "officer": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "canAct": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "reference",
+                          "name",
+                          "identifier",
+                          "creditorId",
+                          "creditor",
+                          "invoicesLabel",
+                          "amount",
+                          "daysLate",
+                          "status",
+                          "statusLabel",
+                          "nextAction",
+                          "nextDate",
+                          "officerId",
+                          "officer",
+                          "canAct"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "total": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "counts": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "required": [
+                        "all",
+                        "overdue",
+                        "reminder",
+                        "promise",
+                        "dispute",
+                        "settled",
+                        "unassigned"
+                      ]
+                    },
+                    "stats": {
+                      "type": "object",
+                      "properties": {
+                        "outstanding": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "invoices": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "overdue": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "overdueAmount": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "promises": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "promisesToday": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "recovered": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "targetRatio": {
+                          "nullable": true,
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "outstanding",
+                        "invoices",
+                        "overdue",
+                        "overdueAmount",
+                        "promises",
+                        "promisesToday",
+                        "recovered",
+                        "targetRatio"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "total",
+                    "counts",
+                    "stats"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "cases"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      }
+    },
+    "/staff/cases/choices": {
+      "get": {
+        "operationId": "CasesController_choices",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "creditors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "officers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "mayAssign": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "creditors",
+                    "officers",
+                    "mayAssign"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "cases"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER"
+          ]
+        }
+      }
+    },
+    "/staff/cases/check": {
+      "post": {
+        "operationId": "CasesController_check",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mandate": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "since": {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                        },
+                        "scenario": {
+                          "type": "string",
+                          "enum": [
+                            "BUSINESS",
+                            "CONSUMER",
+                            "KEY_ACCOUNTS"
+                          ]
+                        },
+                        "fixedIndemnity": {
+                          "type": "boolean"
+                        },
+                        "terms": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "label": {
+                                "type": "string"
+                              },
+                              "value": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "label",
+                              "value"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "hasContract": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "since",
+                        "scenario",
+                        "fixedIndemnity",
+                        "terms",
+                        "hasContract"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "known": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "COMPANY",
+                            "SOLE_TRADER",
+                            "INDIVIDUAL"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "kind"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "startsOn": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    "open": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "reference": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "version": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "officer": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "canAct": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "reference",
+                        "name",
+                        "version",
+                        "officer",
+                        "canAct"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "others": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "creditor": {
+                            "type": "string"
+                          },
+                          "invoices": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "creditor",
+                          "invoices"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "mandate",
+                    "known",
+                    "startsOn",
+                    "open",
+                    "others"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "cases"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER"
+          ]
+        }
+      }
+    },
+    "/staff/cases/assign": {
+      "post": {
+        "operationId": "CasesController_assign",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "cases"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      }
+    },
+    "/staff/cases": {
+      "post": {
+        "operationId": "CasesController_open",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "reference"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "cases"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER"
+          ]
+        }
+      }
+    },
+    "/staff/cases/{id}": {
+      "get": {
+        "operationId": "CasesController_detail",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "identifier": {
+                      "type": "string"
+                    },
+                    "creditorId": {
+                      "type": "string"
+                    },
+                    "creditor": {
+                      "type": "string"
+                    },
+                    "invoicesLabel": {
+                      "type": "string"
+                    },
+                    "amount": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "daysLate": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "OVERDUE",
+                        "PROMISE",
+                        "REMINDER",
+                        "DISPUTE",
+                        "SETTLED",
+                        "PLAN",
+                        "FORMAL_NOTICE",
+                        "LITIGATION",
+                        "NEW",
+                        "LOST"
+                      ]
+                    },
+                    "statusLabel": {
+                      "type": "string"
+                    },
+                    "nextAction": {
+                      "type": "string"
+                    },
+                    "nextDate": {
+                      "type": "string"
+                    },
+                    "officerId": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "officer": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "canAct": {
+                      "type": "boolean"
+                    },
+                    "creditorRef": {
+                      "type": "string"
+                    },
+                    "isIndividual": {
+                      "type": "boolean"
+                    },
+                    "principal": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "interest": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "fees": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "remindersSent": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "remindersTotal": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "risk": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "reason": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "reason"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "contacts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "PHONE",
+                              "EMAIL"
+                            ]
+                          },
+                          "value": {
+                            "type": "string"
+                          },
+                          "verified": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "value",
+                          "verified"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "mainContact": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "phone": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "address": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "title",
+                        "phone",
+                        "email",
+                        "address"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "aiSummary": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "events": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "updated": {
+                          "type": "string"
+                        },
+                        "lines": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "k": {
+                                "type": "string"
+                              },
+                              "v": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "k",
+                              "v"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "events",
+                        "updated",
+                        "lines"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "invoices": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "number": {
+                            "type": "string"
+                          },
+                          "issued": {
+                            "type": "string",
+                            "format": "date",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                          },
+                          "due": {
+                            "type": "string",
+                            "format": "date",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                          },
+                          "amount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "daysLate": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "number",
+                          "issued",
+                          "due",
+                          "amount",
+                          "daysLate"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "history": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": "string"
+                          },
+                          "date": {
+                            "type": "string"
+                          },
+                          "actor": {
+                            "type": "string"
+                          },
+                          "onBehalfOf": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "tone": {
+                            "type": "string",
+                            "enum": [
+                              "danger",
+                              "info",
+                              "warning",
+                              "success",
+                              "neutral"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "detail",
+                          "date",
+                          "actor",
+                          "onBehalfOf",
+                          "tone"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "exchanges": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "EMAIL_IN",
+                              "EMAIL_OUT",
+                              "CALL",
+                              "SMS_IN",
+                              "SMS_OUT",
+                              "LETTER",
+                              "REGISTERED_LETTER",
+                              "PORTAL_IN",
+                              "PORTAL_OUT"
+                            ]
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "text": {
+                            "type": "string"
+                          },
+                          "when": {
+                            "type": "string"
+                          },
+                          "delivery": {
+                            "nullable": true,
+                            "type": "string",
+                            "enum": [
+                              "SENT",
+                              "DELIVERED",
+                              "ACKNOWLEDGED",
+                              "FAILED"
+                            ]
+                          },
+                          "acknowledgmentId": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "verified": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "channel",
+                          "title",
+                          "text",
+                          "when",
+                          "delivery",
+                          "acknowledgmentId",
+                          "verified"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "payments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "method": {
+                            "type": "string",
+                            "enum": [
+                              "CHEQUE",
+                              "TRANSFER"
+                            ]
+                          },
+                          "amount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "RECEIVED",
+                              "DEPOSITED",
+                              "CASHED",
+                              "BOUNCED",
+                              "RECONCILED",
+                              "TO_RECONCILE"
+                            ]
+                          },
+                          "receivedOn": {
+                            "type": "string",
+                            "format": "date",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                          },
+                          "depositedOn": {
+                            "nullable": true,
+                            "type": "string",
+                            "format": "date",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                          },
+                          "chequeNumber": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "bank": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "label": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "receiptId": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "allocation": {
+                            "type": "object",
+                            "properties": {
+                              "interest": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "principal": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "fees": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              }
+                            },
+                            "required": [
+                              "interest",
+                              "principal",
+                              "fees"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "method",
+                          "amount",
+                          "status",
+                          "receivedOn",
+                          "depositedOn",
+                          "chequeNumber",
+                          "bank",
+                          "label",
+                          "receiptId",
+                          "allocation"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "documents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "meta": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "PDF",
+                              "DOCX"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "meta",
+                          "kind"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "mandate": {
+                      "type": "object",
+                      "properties": {
+                        "sector": {
+                          "type": "string"
+                        },
+                        "terms": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "label": {
+                                "type": "string"
+                              },
+                              "value": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "label",
+                              "value"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "sector",
+                        "terms"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "otherClaims": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "creditor": {
+                            "type": "string"
+                          },
+                          "invoices": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "amount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "creditor",
+                          "invoices",
+                          "amount"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "scenario": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "when": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "DONE",
+                              "NEXT",
+                              "TODO"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "label",
+                          "when",
+                          "state"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "firstLetter": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "reference": {
+                          "type": "string"
+                        },
+                        "date": {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                        }
+                      },
+                      "required": [
+                        "reference",
+                        "date"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "contactLimit": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "reference",
+                    "name",
+                    "identifier",
+                    "creditorId",
+                    "creditor",
+                    "invoicesLabel",
+                    "amount",
+                    "daysLate",
+                    "status",
+                    "statusLabel",
+                    "nextAction",
+                    "nextDate",
+                    "officerId",
+                    "officer",
+                    "canAct",
+                    "creditorRef",
+                    "isIndividual",
+                    "principal",
+                    "interest",
+                    "fees",
+                    "remindersSent",
+                    "remindersTotal",
+                    "risk",
+                    "contacts",
+                    "mainContact",
+                    "aiSummary",
+                    "invoices",
+                    "history",
+                    "exchanges",
+                    "payments",
+                    "documents",
+                    "mandate",
+                    "otherClaims",
+                    "scenario",
+                    "firstLetter",
+                    "contactLimit"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "cases"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      }
+    },
+    "/staff/cases/{id}/invoices": {
+      "post": {
+        "operationId": "CasesController_addInvoices",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "cases"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER"
+          ]
+        }
+      }
+    },
+    "/staff/cases/{id}/access-code": {
+      "get": {
+        "operationId": "CasesController_accessCode",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "version"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "cases"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      }
+    },
+    "/staff/cases/{id}/access-code/regenerate": {
+      "post": {
+        "operationId": "CasesController_renewAccessCode",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "cases"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      }
+    },
+    "/staff/cases/{id}/coordinates": {
+      "post": {
+        "operationId": "CasesController_addContact",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "cases"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      }
+    },
+    "/staff/cases/{id}/coordinates/{coordinateId}": {
+      "put": {
+        "operationId": "CasesController_changeContact",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "cases"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      }
+    },
+    "/staff/shell": {
+      "get": {
+        "operationId": "ShellController_shell",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "creditors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "initials": {
+                            "type": "string"
+                          },
+                          "siren": {
+                            "type": "string"
+                          },
+                          "count": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "initials",
+                          "count"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "counts": {
+                      "type": "object",
+                      "properties": {
+                        "teamOnline": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "remindersToday": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "litigationUrgent": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "callQueue": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "unreadEmails": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "unreadSms": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "teamOnline",
+                        "remindersToday",
+                        "litigationUrgent",
+                        "callQueue",
+                        "unreadEmails",
+                        "unreadSms"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "notifications": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "PAYMENT",
+                              "MESSAGE",
+                              "DEADLINE",
+                              "CREDITOR",
+                              "SYSTEM"
+                            ]
+                          },
+                          "text": {
+                            "type": "string"
+                          },
+                          "meta": {
+                            "type": "string"
+                          },
+                          "href": {
+                            "type": "string"
+                          },
+                          "unread": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "text",
+                          "meta",
+                          "href",
+                          "unread"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "creditors",
+                    "counts",
+                    "notifications"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "shell"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      }
+    },
+    "/staff/search": {
+      "post": {
+        "operationId": "ShellController_search",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "DEBTOR",
+                          "CREDITOR",
+                          "INVOICE"
+                        ]
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "sub": {
+                        "type": "string"
+                      },
+                      "href": {
+                        "type": "string"
+                      },
+                      "initials": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "kind",
+                      "title",
+                      "sub",
+                      "href",
+                      "initials"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "shell"
         ],
         "x-access": {
           "portal": "staff"

@@ -3,6 +3,7 @@ import { Body, Controller, Delete, Get, HttpCode, Inject, Param, Post, Put } fro
 import { ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import type { z } from 'zod';
 import { AnyStaff } from '../../platform/access/access';
+import { RequiresProof } from '../../platform/access/proof';
 import { currentActor } from '../../platform/http/context';
 import { NoTransaction } from '../../platform/http/transaction.interceptor';
 import { AccountService, type StaffActor } from './account.service';
@@ -85,6 +86,7 @@ export class AccountController {
     return this.account.verifyKey(me(), body);
   }
 
+  @RequiresProof()
   @Delete('two-factor')
   @NoTransaction()
   @HttpCode(204)

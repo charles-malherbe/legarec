@@ -9,6 +9,7 @@ import type { INestApplicationContext } from '@nestjs/common';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { AnyStaff, PREFIX, type Portal } from '../src/platform/access/access';
+import { routesOf } from '../src/platform/access/routes';
 import { startApp, type TestApp } from './app';
 
 /** Rules of the code that no request can prove: they hold for the routes and the modules of the next lots too. */
@@ -102,6 +103,22 @@ describe('what a route receives', () => {
 
   it('matches the contract of the portals, on every route', () => {
     expect(wrong(test.app)).toEqual([]);
+  });
+
+  it('comes with a key on every change of the team, but those of one’s own account and those that commit nothing', () => {
+    const free = routesOf(test.app).filter(({ id, commits }) => !commits && /^(?!GET)\w+ \/staff\/(?!account\/|auth\/)/u.test(id));
+    expect(free.map(({ id }) => id).sort()).toEqual([
+      // Readings, whose question is in the body.
+      'POST /staff/cases/check',
+      'POST /staff/cases/search',
+      'POST /staff/notifications/read',
+      'POST /staff/search',
+      // Asked twice, they leave what they left once.
+      'PUT /staff/cases/:id/coordinates/:coordinateId',
+      'PUT /staff/delegations/:kind',
+      'PUT /staff/members/:id/extension',
+      'PUT /staff/notifications',
+    ]);
   });
 });
 

@@ -1,7 +1,7 @@
 import { cssVariablesResolver, espaceTheme } from '@legarec/tokens';
-import { ActivationPage, ConfirmProvider, ForgotPasswordPage, PageLegale, ResetPasswordPage, ToastProvider } from '@legarec/ui';
+import { ActivationPage, ConfirmProvider, ForgotPasswordPage, PageLegale, Reauthentification, ResetPasswordPage, ToastProvider } from '@legarec/ui';
 import { MantineProvider } from '@mantine/core';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { lazy, Suspense, useState } from 'react';
 import { Navigate, Outlet, Route, Routes } from 'react-router';
 import { BillingPage } from '../features/billing/BillingPage';
@@ -18,8 +18,10 @@ import { ComposePage } from '../features/documents/ComposePage';
 import { DocumentsPage } from '../features/documents/DocumentsPage';
 import { EmailsPage } from '../features/emails/EmailsPage';
 import { SmsPage } from '../features/sms/SmsPage';
+import { CaseFormPage } from '../features/cases/CaseFormPage';
 import { CasePage } from '../features/cases/CasePage';
 import { CasesPage } from '../features/cases/CasesPage';
+import { CreditorFormPage } from '../features/creditors/CreditorFormPage';
 import { CreditorPage } from '../features/creditors/CreditorPage';
 import { CreditorsPage } from '../features/creditors/CreditorsPage';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
@@ -28,7 +30,7 @@ import { LitigationPage } from '../features/litigation/LitigationPage';
 import { LoginPage } from '../features/login/LoginPage';
 import { PlansPage } from '../features/plans/PlansPage';
 import { CreditorScopeProvider } from './creditorScope';
-import { CurrentUser, useSession, useSessionEnd } from './session';
+import { CurrentUser, SESSION_KEY, useSession, useSessionEnd } from './session';
 import { Shell } from './Shell';
 
 // FullCalendar is only loaded with the agenda.
@@ -41,6 +43,7 @@ const LibraryPage = import.meta.env.DEV ? lazy(() => import('../features/library
 
 function RequireSession() {
   const { data, isPending } = useSession();
+  const client = useQueryClient();
   useSessionEnd();
   if (isPending) return null;
   // A single answer that fails changes nothing: what is on screen stays.
@@ -51,7 +54,9 @@ function RequireSession() {
       <ToastProvider>
         <ConfirmProvider>
           <CreditorScopeProvider>
-            <Outlet />
+            <Reauthentification onClosed={() => void client.invalidateQueries({ queryKey: SESSION_KEY })}>
+              <Outlet />
+            </Reauthentification>
           </CreditorScopeProvider>
         </ConfirmProvider>
       </ToastProvider>
@@ -79,8 +84,11 @@ export function App() {
             <Route element={<Shell />}>
               <Route index element={<DashboardPage />} />
               <Route path="creanciers" element={<CreditorsPage />} />
+              <Route path="creanciers/nouveau" element={<CreditorFormPage key="new" />} />
               <Route path="creanciers/:id" element={<CreditorPage />} />
+              <Route path="creanciers/:id/modifier" element={<CreditorFormPage />} />
               <Route path="debiteurs" element={<CasesPage />} />
+              <Route path="debiteurs/nouveau" element={<CaseFormPage />} />
               <Route path="debiteurs/:id" element={<CasePage />} />
               <Route
                 path="relances"

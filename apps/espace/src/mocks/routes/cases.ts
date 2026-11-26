@@ -1,5 +1,9 @@
 import {
   allocatePayment,
+  isValidSiret,
+  sirenOfNumber,
+  type CaseInvoice,
+  type NewCase,
   canActOnCase,
   canReadCase,
   hasDelegation,
@@ -14,6 +18,7 @@ import {
 } from '@legarec/contracts';
 import { http, HttpResponse } from 'msw';
 import { done, forbidden, guarded, notFound, staffWithCases } from '../http';
+import { creditorFacts } from './creditorFacts';
 import { addGdprRequest } from './settings';
 import { mayHoldCases } from './steering';
 
@@ -231,13 +236,18 @@ const seed = (): Stored[] => [
   ),
 ];
 let cases = seed();
+/** What was typed for the cases opened here; absent for those of the mockup. */
+let opened: Record<string, { body: NewCase; invoices: CaseInvoice[]; version: number }> = {};
 let payments: Record<string, Payment[]> = {};
 let extra: Record<string, { history: CaseDetail['history']; exchanges: CaseDetail['exchanges'] }> = {};
 /** Fictitious access codes, only held by the simulated API. */
 const codes = new Map<string, string>();
+const codeVersions = new Map<string, number>();
 export const resetCases = () => {
   codes.clear();
+  codeVersions.clear();
   cases = seed();
+  opened = {};
   payments = {};
   extra = {};
 };
@@ -280,7 +290,53 @@ const log = (
   });
 };
 
+const TODAY = '2026-11-25';
+const lateDays = (due: string) => Math.max(0, Math.round((Date.parse(TODAY) - Date.parse(due)) / 86_400_000));
+const left = (invoices: CaseInvoice[]) => invoices.reduce((sum, invoice) => sum + invoice.left, 0);
+const labelOf = (count: number) => `${count} facture${count > 1 ? 's' : ''}`;
+const openedDetail = (item: Stored, { body, invoices }: { body: NewCase; invoices: CaseInvoice[] }, session: Session): CaseDetail => ({
+  ...toItem(item, session),
+  creditorRef: body.externalReference || '—',
+  isIndividual: body.kind === 'INDIVIDUAL',
+  principal: left(invoices),
+  interest: 0,
+  fees: body.kind === 'INDIVIDUAL' ? 0 : invoices.filter((invoice) => lateDays(invoice.dueOn) > 0).length * 4000,
+  remindersSent: 0,
+  remindersTotal: 0,
+  risk: null,
+  contacts: body.contacts.map((contact, index) => ({ id: `n${index}`, kind: contact.kind, value: contact.value, verified: false })),
+  mainContact: {
+    name: body.contactName || 'Aucun interlocuteur',
+    title: body.contactTitle,
+    phone: body.contacts.find((contact) => contact.kind === 'PHONE')?.value ?? '',
+    email: body.contacts.find((contact) => contact.kind === 'EMAIL')?.value ?? '',
+    address: `${body.address}, ${body.postalCode} ${body.city}`,
+  },
+  aiSummary: null,
+  invoices: invoices.map((invoice) => ({
+    number: invoice.number,
+    issued: invoice.issuedOn,
+    due: invoice.dueOn,
+    amount: invoice.left,
+    daysLate: lateDays(invoice.dueOn),
+  })),
+  history: extra[item.id]?.history ?? [],
+  exchanges: [],
+  payments: payments[item.id] ?? [],
+  documents: [],
+  mandate: { sector: '', terms: creditorFacts.mandateOf(item.creditorId)?.terms ?? [] },
+  otherClaims: [],
+  scenario: [],
+  firstLetter: null,
+  contactLimit: null,
+});
+const opens = (session: Session) => session.role === 'DIRECTOR' || session.role === 'COLLECTION_MANAGER';
+/** Company behind a case of the mockup, or of one opened here. */
+const sirenOf = (item: Stored) => item.identifier.replace(/\D/gu, '').slice(0, 9);
+
 function detailOf(item: Stored, session: Session): CaseDetail {
+  const typed = opened[item.id];
+  if (typed) return openedDetail(item, typed, session);
   const isDemo = item.id === 'demo';
   const interest = isDemo ? 136600 : Math.round(item.amount * 0.02);
   const fees = item.identifier === 'Particulier' ? 0 : isDemo ? 12000 : 4000;
@@ -488,9 +544,16 @@ type Info = { request: Request; params: Record<string, unknown> };
 const acting = (resolve: (item: Stored, session: Session, info: Info) => Response | Promise<Response>) =>
   guarded<Info>(staffWithCases, (info, session) => {
     const item = find(info.params.id);
-    if (!item || !canReadCase(session, ownership(item))) return item ? forbidden() : notFound();
+    if (!item || !canReadCase(session, ownership(item))) return notFound();
     return canActOnCase(session, ownership(item)) ? resolve(item, session, info) : forbidden();
   });
+/** As the API: « Bâtiplus SAS » and « BATIPLUS » are the same name. */
+const plainName = (name: string) =>
+  normalize(name)
+    .replaceAll('.', '')
+    .replaceAll('&', ' et ')
+    .replace(/\b(?:sasu?|sarl|eurl|sa|snc|scs|sca|sci|scop|selarl|selas|ei|eirl|gie|ste|societe)\b/gu, '')
+    .replace(/[^a-z0-9]/gu, '');
 const administers = (session: Session) => session.role === 'DIRECTOR' || hasDelegation(session, 'ADMINISTRATIVE');
 const bulk = (title: string, apply: (item: Stored, body: { officerId?: string; reason?: string }) => void, managerOnly = false) =>
   guarded<Info>(
@@ -593,11 +656,121 @@ export const caseHandlers = [
     ),
   ),
   http.get(
+    '/api/cases/choices',
+    guarded(opens, (_info, session) =>
+      HttpResponse.json({
+        creditors: creditorFacts.list(),
+        officers: Object.entries(OFFICERS)
+          .filter(([id]) => id !== session.userId)
+          .map(([id, officer]) => ({ id, name: officer.name })),
+        mayAssign: administers(session),
+      }),
+    ),
+  ),
+  http.post(
+    '/api/cases/check',
+    guarded<Info>(opens, async ({ request }, session) => {
+      const { creditorId, number } = (await request.json()) as { creditorId: string; number: string };
+      if (!creditorFacts.list().some((item) => item.id === creditorId)) return notFound();
+      const siren = sirenOfNumber(number);
+      const same = /^\d{9}$/u.test(siren) ? readable(session).filter((item) => sirenOf(item) === siren && item.status !== 'SETTLED') : [];
+      const open = same.find((item) => item.creditorId === creditorId);
+      const mandate = creditorFacts.mandateOf(creditorId);
+      const [first] = same;
+      return HttpResponse.json({
+        mandate,
+        known: first ? { name: first.name, kind: 'COMPANY' } : null,
+        startsOn: mandate ? null : creditorFacts.nextOf(creditorId),
+        open: open
+          ? {
+              id: open.id,
+              reference: open.reference,
+              name: open.name,
+              version: opened[open.id]?.version ?? 1,
+              officer: open.officerId ? (OFFICERS[open.officerId]?.name ?? null) : null,
+              canAct: canActOnCase(session, ownership(open)),
+            }
+          : null,
+        others: same
+          .filter((item) => item.creditorId !== creditorId)
+          .map((item) => ({ creditor: item.creditor, invoices: Number.parseInt(item.invoicesLabel, 10) || 1 })),
+      });
+    }),
+  ),
+  http.post(
+    '/api/cases',
+    guarded<Info>(opens, async ({ request }, session) => {
+      const body = (await request.json()) as NewCase;
+      const creditor = creditorFacts.list().find((item) => item.id === body.creditorId);
+      if (!creditor) return notFound();
+      const mandate = creditorFacts.mandateOf(body.creditorId);
+      if (!mandate) return HttpResponse.json({ code: 'NO_MANDATE' }, { status: 409 });
+      if (mandate.id !== body.mandateId) return HttpResponse.json({ code: 'CHANGED' }, { status: 409 });
+      const siren = sirenOfNumber(body.number);
+      const known = body.kind !== 'INDIVIDUAL' ? cases.find((item) => sirenOf(item) === siren) : undefined;
+      if (known && (body.kind !== 'COMPANY' || plainName(known.name) !== plainName(body.name)))
+        return HttpResponse.json({ code: 'DEBTOR_MISMATCH' }, { status: 409 });
+      if (body.kind !== 'INDIVIDUAL' && cases.some((item) => item.creditorId === body.creditorId && sirenOf(item) === siren && item.status !== 'SETTLED'))
+        return HttpResponse.json({ code: 'CASE_EXISTS' }, { status: 409 });
+      const rank = Object.keys(opened).length + 1;
+      const id = `new${rank}`;
+      const reference = `LGR-2026-${String(300 + rank).padStart(5, '0')}`;
+      const late = Math.max(...body.invoices.map((invoice) => lateDays(invoice.dueOn)));
+      const digits = body.number.replace(/\D/gu, '');
+      cases = [
+        ...cases,
+        {
+          id,
+          reference,
+          name: cases.find((item) => body.kind !== 'INDIVIDUAL' && sirenOf(item) === siren)?.name ?? body.name,
+          identifier:
+            body.kind === 'INDIVIDUAL'
+              ? 'Particulier'
+              : `${isValidSiret(body.number) ? 'SIRET' : 'SIREN'} ${digits.replace(/(\d{3})(\d{3})(\d{3})(\d{5})?/u, (_all, a: string, b: string, c: string, d?: string) => [a, b, c, d].filter(Boolean).join(' '))}`,
+          creditorId: body.creditorId,
+          creditor: creditor.name,
+          invoicesLabel: labelOf(body.invoices.length),
+          amount: left(body.invoices),
+          daysLate: late > 0 ? late : null,
+          group: 'all',
+          status: 'NEW',
+          statusLabel: 'Nouveau',
+          nextAction: 'Envoyer le premier courrier',
+          nextDate: '—',
+          officerId: body.toMe ? session.userId : null,
+        },
+      ];
+      opened[id] = { body, invoices: body.invoices, version: 1 };
+      log(id, session, 'Dossier ouvert', labelOf(body.invoices.length));
+      return HttpResponse.json({ id, reference });
+    }),
+  ),
+  http.post(
+    '/api/cases/:id/invoices',
+    guarded<Info>(opens, async ({ params, request }, session) => {
+      const item = find(params.id);
+      if (!item || !canReadCase(session, ownership(item))) return notFound();
+      if (!canActOnCase(session, ownership(item))) return forbidden();
+      const { version, invoices } = (await request.json()) as { version: number; invoices: CaseInvoice[] };
+      if (item.status === 'SETTLED') return HttpResponse.json({ code: 'CASE_CLOSED' }, { status: 409 });
+      const typed = opened[item.id];
+      if (version !== (typed?.version ?? 1)) return HttpResponse.json({ code: 'CHANGED' }, { status: 409 });
+      if (typed?.invoices.some((known) => invoices.some((invoice) => invoice.number.toLowerCase() === known.number.toLowerCase())))
+        return HttpResponse.json({ code: 'INVOICE_EXISTS' }, { status: 409 });
+      if (typed) opened[item.id] = { ...typed, invoices: [...typed.invoices, ...invoices], version: version + 1 };
+      const count = (Number.parseInt(item.invoicesLabel, 10) || 0) + invoices.length;
+      cases = cases.map((entry) => (entry.id === item.id ? { ...entry, amount: entry.amount + left(invoices), invoicesLabel: labelOf(count) } : entry));
+      log(item.id, session, 'Factures ajoutées', labelOf(invoices.length));
+      return done();
+    }),
+  ),
+  http.get(
     '/api/cases/:id',
     guarded<Info>(staffWithCases, ({ params }, session) => {
       const item = find(params.id);
       if (!item) return notFound();
-      if (!canReadCase(session, ownership(item))) return forbidden();
+      // As the API: what is not shown does not exist.
+      if (!canReadCase(session, ownership(item))) return notFound();
       if (session.role === 'DIRECTOR' && item.officerId !== session.userId && !extra[item.id]?.history.some((entry) => entry.title === 'Dossier consulté'))
         log(item.id, session, 'Dossier consulté', 'Consultation par le Directeur', 'neutral');
       return HttpResponse.json(detailOf(item, session));
@@ -620,11 +793,19 @@ export const caseHandlers = [
   ),
   http.get(
     '/api/cases/:id/access-code',
-    acting((item) => HttpResponse.json({ code: codes.get(item.id) ?? 'KXPM' })),
+    acting((item) =>
+      item.status === 'SETTLED'
+        ? HttpResponse.json({ code: 'CASE_CLOSED' }, { status: 409 })
+        : HttpResponse.json({ code: codes.get(item.id) ?? 'KXPM', version: codeVersions.get(item.id) ?? 1 }),
+    ),
   ),
   http.post(
     '/api/cases/:id/access-code/regenerate',
-    acting((item, session) => {
+    acting(async (item, session, { request }) => {
+      if (item.status === 'SETTLED') return HttpResponse.json({ code: 'CASE_CLOSED' }, { status: 409 });
+      const known = codeVersions.get(item.id) ?? 1;
+      if (((await request.json()) as { version: number }).version !== known) return HttpResponse.json({ code: 'CHANGED' }, { status: 409 });
+      codeVersions.set(item.id, known + 1);
       codes.set(item.id, codes.get(item.id) === 'BRTV' ? 'HDZN' : 'BRTV');
       log(item.id, session, 'Code d’accès régénéré', 'Ancien code inutilisable', 'warning');
       return done();

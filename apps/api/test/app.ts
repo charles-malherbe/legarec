@@ -20,7 +20,9 @@ export const ACTOR_HEADER = 'x-test-actor';
 class TestResolver implements ActorResolver {
   constructor(private readonly actors: () => Record<string, Actor>) {}
   resolve(_portal: Portal, request: { headers: Record<string, unknown> }): Promise<Actor | null> {
-    return Promise.resolve(this.actors()[String(request.headers[ACTOR_HEADER])] ?? null);
+    const actor = this.actors()[String(request.headers[ACTOR_HEADER])] ?? null;
+    // Has just signed in: what an older proof refuses is tested with real sessions.
+    return Promise.resolve(actor?.kind === 'staff' ? { ...actor, provedAt: new Date() } : actor);
   }
 }
 

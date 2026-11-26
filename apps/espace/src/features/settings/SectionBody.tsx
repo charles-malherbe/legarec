@@ -1,5 +1,5 @@
-import { FIRM_IDENTITY_FIELDS, firmIdentity, settingsSection, type SettingTable } from '@legarec/contracts';
-import { saveFile } from '@legarec/platform';
+import { isFirmIdentity, settingProblems, settingsSection, type SettingTable } from '@legarec/contracts';
+import { api, ApiError, saveFile } from '@legarec/platform';
 import { Badge, Bouton, Carte, Champ, EtatListe, Reglage, Statut, Tableau, useConfirm, useToast } from '@legarec/ui';
 import { useState } from 'react';
 import { useApi, useChange } from '../../app/data';
@@ -35,11 +35,12 @@ export function SectionBody({ scope, id, label }: { scope: string; id: string; l
     setDraft((current) => ({ ...current, [key]: value }));
     setProblems({});
   };
-  const identity = FIRM_IDENTITY_FIELDS.filter((key) => id === 'cabinet' && key in draft && draft[key] !== before[key]);
+  const changed = Object.fromEntries(Object.entries(draft).filter(([key, value]) => value !== before[key]));
+  const identity = Object.keys(changed).filter((key) => scope === 'firm' && isFirmIdentity(id, key));
   const askSave = () => {
-    const parsed = firmIdentity.partial().safeParse(Object.fromEntries(identity.map((key) => [key, draft[key]])));
-    if (!parsed.success) return setProblems(Object.fromEntries(parsed.error.issues.map((issue) => [String(issue.path[0]), issue.message])));
-    setProblems({});
+    const found = settingProblems(data, changed);
+    setProblems(found);
+    if (Object.keys(found).length > 0) return;
     if (identity.length === 0) return void save();
     confirm({
       tone: 'danger',
@@ -50,18 +51,33 @@ export function SectionBody({ scope, id, label }: { scope: string; id: string; l
       onConfirm: save,
     });
   };
+  const undo = (version: number, former: Record<string, string | boolean>) =>
+    change(`${path}?version=${version}`, { method: 'PUT', body: former }).catch((failure: unknown) =>
+      toast({
+        message:
+          failure instanceof ApiError && failure.status === 409
+            ? 'Cette section vient d’être modifiée par quelqu’un d’autre : rien n’a été annulé.'
+            : 'L’annulation n’a pas abouti.',
+        tone: 'danger',
+      }),
+    );
   const save = async () => {
     setSaving(true);
     try {
-      await change(path, { method: 'PUT', body: Object.fromEntries(Object.entries(draft).filter(([key, value]) => value !== before[key])) });
+      await change(`${path}?version=${data.version}`, { method: 'PUT', body: changed });
       setDraft({});
+      const saved = identity.length > 0 ? null : await api(settingsSection, path).catch(() => null);
       toast({
         message: `« ${label} » enregistré.`,
         // Bank details are only changed through their own confirmation.
-        undo: identity.length > 0 ? undefined : () => void change(path, { method: 'PUT', body: before }),
+        undo: saved ? () => void undo(saved.version, before) : undefined,
       });
-    } catch {
-      toast({ message: 'L’enregistrement n’a pas abouti. Vos modifications sont conservées à l’écran : réessayez.' });
+    } catch (failure) {
+      toast(
+        failure instanceof ApiError && failure.status === 409
+          ? { message: 'Cette section vient d’être modifiée par quelqu’un d’autre. Vérifiez les valeurs, puis réessayez.', tone: 'danger' }
+          : { message: 'L’enregistrement n’a pas abouti. Vos modifications sont conservées à l’écran : réessayez.' },
+      );
     } finally {
       setSaving(false);
     }
@@ -112,6 +128,7 @@ export function SectionBody({ scope, id, label }: { scope: string; id: string; l
               label="Annuler"
               variant="dark"
               size="sm"
+              disabled={saving}
               onPress={() => {
                 setDraft({});
                 setProblems({});

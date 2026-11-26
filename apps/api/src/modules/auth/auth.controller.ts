@@ -3,6 +3,7 @@ import {
   linkInfo,
   loginResponse,
   partnerSession,
+  proofNeeded,
   REQUEST_BODIES,
   session as staffSession,
   setupDone,
@@ -19,6 +20,7 @@ import { Database } from '../../platform/database/database';
 import { currentActor } from '../../platform/http/context';
 import { NoTransaction } from '../../platform/http/transaction.interceptor';
 import { Links } from './links';
+import { Proofs } from './proofs';
 import { Sessions, type AccountPortal } from './sessions';
 import { SignIn } from './sign-in';
 import { SessionViews } from './views';
@@ -163,6 +165,40 @@ export function authController(portal: AccountPortal): Type {
   // Two classes of the same name would share their descriptions.
   Object.defineProperty(AuthController, 'name', { value: portal === 'staff' ? 'StaffAuthController' : 'PartnerAuthController' });
   return AuthController;
+}
+
+const proofBody = REQUEST_BODIES.staff['POST /auth/proof'];
+/** Of the team only: nothing of the creditors needs it. */
+@ApiTags('auth')
+@Controller('staff/auth/proof')
+export class ProofController {
+  constructor(@Inject(Proofs) private readonly proofs: Proofs) {}
+
+  @Get()
+  @AnyStaff()
+  @NoTransaction()
+  @ApiOkResponse({ standardSchema: proofNeeded })
+  needed() {
+    return this.proofs.needed(currentActor() as Extract<Actor, { kind: 'staff' }>);
+  }
+
+  @Post('webauthn')
+  @AnyStaff()
+  @NoTransaction()
+  @HttpCode(200)
+  @ApiOkResponse({ standardSchema: webauthnOptions })
+  keyOptions() {
+    return this.proofs.keyOptions(currentActor() as Extract<Actor, { kind: 'staff' }>);
+  }
+
+  @Post()
+  @AnyStaff()
+  @NoTransaction()
+  @HttpCode(204)
+  @ApiNoContentResponse()
+  give(@Body({ schema: proofBody }) body: z.infer<typeof proofBody>) {
+    return this.proofs.give(currentActor() as Extract<Actor, { kind: 'staff' }>, body);
+  }
 }
 
 const preferencesBody = REQUEST_BODIES.staff['PUT /auth/preferences'];
