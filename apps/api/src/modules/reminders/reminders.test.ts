@@ -47,6 +47,7 @@ describe('the agenda of the reminders', () => {
     // Not on a case of another, nor in the past.
     expect((await plan('officerA', theirs, 'CALL')).status).toBe(404);
     expect((await plan('officerA', mine, 'CALL', '10:00', '2020-01-02')).body).toEqual({ code: 'PAST_DATE' });
+    expect((await plan('officerA', mine, 'CALL', '10:00', '9999-01-07')).body).toEqual({ code: 'TOO_FAR' });
     // Each reads the reminders of the cases they read.
     const shown = agenda.parse((await call('officerA', 'GET', '/reminders')).body);
     expect(shown.items.filter((item) => item.debtor === 'Bâtiplus Agenda').map((item) => item.type)).toEqual(['SMS', 'CALL']);
@@ -61,6 +62,15 @@ describe('the agenda of the reminders', () => {
     expect((await call('officerA', 'PUT', `/reminders/${id}`, { date: FRIDAY, time: '11:00' })).status).toBe(204);
     expect((await call('officerA', 'PUT', `/reminders/${id}`, { done: true })).status).toBe(204);
     expect((await call('officerA', 'DELETE', `/reminders/${id}`)).status).toBe(403);
+    // Done, it stays: neither undone, nor moved, nor removed, even straight in PostgreSQL.
+    expect((await call('officerA', 'PUT', `/reminders/${id}`, { done: false })).body).toEqual({ code: 'DONE' });
+    expect((await call('officerA', 'PUT', `/reminders/${id}`, { done: true })).status).toBe(204);
+    await expect(rows('UPDATE planned_reminders SET done_at = NULL WHERE id = $1', [id])).rejects.toThrow(/reminder done/u);
+    expect(await rows("SELECT title FROM case_events WHERE case_id = $1 AND kind LIKE 'REMINDER_%' ORDER BY occurred_at", [mine])).toEqual([
+      { title: 'Relance planifiée' },
+      { title: 'Relance déplacée' },
+      { title: 'Relance faite' },
+    ]);
     expect(await rows('SELECT due_on::text, due_time, done_at IS NOT NULL AS done FROM planned_reminders WHERE id = $1', [id])).toEqual([
       { due_on: FRIDAY, due_time: '11:00', done: true },
     ]);

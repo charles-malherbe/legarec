@@ -11,6 +11,9 @@ import { capOf, capPeriod, outsideHours, type Channel } from './contact-rules';
 const DAY_MS = 86_400_000;
 const shift = (day: string, days: number) => new Date(Date.parse(`${day}T12:00:00Z`) + days * DAY_MS).toISOString().slice(0, 10);
 const asTime = (time: string) => time || null;
+const LABELS: Record<Channel, string> = { EMAIL: 'e-mail', SMS: 'SMS', CALL: 'appel', LETTER: 'courrier' };
+/** Two years ahead at most. */
+const FURTHEST_DAYS = 730;
 /** What the agenda shows: a month back, three months ahead. */
 const WINDOW = { back: 30, ahead: 92 };
 
@@ -107,9 +110,21 @@ export class RemindersService {
     return (row?.count ?? 0) >= cap ? `Plafond atteint : ${cap} ${unit} pour ce débiteur` : null;
   }
 
+  private checkDay(day: string) {
+    const today = dayOf(new Date());
+    if (day < today) throw new ApiError(422, 'PAST_DATE');
+    if (day > shift(today, FURTHEST_DAYS)) throw new ApiError(422, 'TOO_FAR');
+  }
+
+  /** In the history of the case, with both names when acting for the Director: no text typed by anyone. */
+  private async note(caseId: string, kind: string, title: string, channel: Channel, day: string) {
+    const detail = `${LABELS[channel]} du ${day.slice(8, 10)}/${day.slice(5, 7)}/${day.slice(0, 4)}`;
+    await this.database.tx.$executeRaw`SELECT app.add_case_event(${caseId}::uuid, ${kind}, ${title}, ${detail}, 'neutral'::event_tone, false)`;
+  }
+
   async plan(actor: StaffActor, body: z.infer<typeof newReminder>): Promise<z.infer<typeof reminderPlanned>> {
     const { tx } = this.database;
-    if (body.date < dayOf(new Date())) throw new ApiError(422, 'PAST_DATE');
+    this.checkDay(body.date);
     const found = await tx.case.findFirst({ where: { id: body.caseId, closedOn: null }, select: { id: true, creditorId: true, officerId: true } });
     if (!found) throw notFound();
     if (!this.canAct(actor, found.officerId)) throw new ApiError(403, 'FORBIDDEN');
@@ -126,32 +141,49 @@ export class RemindersService {
       },
       select: { id: true },
     });
+    await this.note(found.id, 'REMINDER_PLANNED', 'Relance planifiée', body.type, body.date);
     return { id, limit };
   }
 
+  /** Moved or marked done by whoever acts on the case; once done, it stays as it is. */
   async change(actor: StaffActor, id: string, body: z.infer<typeof reminderBody>): Promise<void> {
     const { tx } = this.database;
-    const found = await tx.plannedReminder.findFirst({ where: { id }, select: { id: true, doneAt: true, case: { select: { officerId: true } } } });
+    const found = await tx.plannedReminder.findFirst({
+      where: { id, case: { closedOn: null } },
+      select: { id: true, caseId: true, kind: true, dueOn: true, doneAt: true, case: { select: { officerId: true } } },
+    });
     if (!found) throw notFound();
     if (!this.canAct(actor, found.case.officerId)) throw new ApiError(403, 'FORBIDDEN');
-    if (body.date !== undefined && body.date < dayOf(new Date()) && body.done !== true) throw new ApiError(422, 'PAST_DATE');
+    if (found.doneAt) {
+      // Asked again: what is done stays done (PostgreSQL refuses it too).
+      if (body.done === true && body.date === undefined && body.time === undefined) return;
+      throw new ApiError(409, 'DONE');
+    }
+    if (body.date !== undefined) this.checkDay(body.date);
     await tx.plannedReminder.update({
       where: { id },
       data: {
         ...(body.date !== undefined ? { dueOn: new Date(`${body.date}T00:00:00Z`) } : {}),
         ...(body.time !== undefined ? { dueTime: asTime(body.time) } : {}),
-        ...(body.done !== undefined ? { doneAt: body.done ? (found.doneAt ?? new Date()) : null } : {}),
+        ...(body.done ? { doneAt: new Date() } : {}),
       },
       select: { id: true },
     });
+    const day = body.date ?? dayOf(found.dueOn);
+    if (body.done) await this.note(found.caseId, 'REMINDER_DONE', 'Relance faite', found.kind, day);
+    else if (body.date !== undefined) await this.note(found.caseId, 'REMINDER_MOVED', 'Relance déplacée', found.kind, day);
   }
 
   /** Only a reminder planned by hand and not done: never an installment. */
   async remove(actor: StaffActor, id: string): Promise<void> {
     const { tx } = this.database;
-    const found = await tx.plannedReminder.findFirst({ where: { id }, select: { doneAt: true, case: { select: { officerId: true } } } });
+    const found = await tx.plannedReminder.findFirst({
+      where: { id, case: { closedOn: null } },
+      select: { caseId: true, kind: true, dueOn: true, doneAt: true, case: { select: { officerId: true } } },
+    });
     if (!found) throw notFound();
     if (!this.canAct(actor, found.case.officerId) || found.doneAt) throw new ApiError(403, 'FORBIDDEN');
     await tx.plannedReminder.delete({ where: { id }, select: { id: true } });
+    await this.note(found.caseId, 'REMINDER_REMOVED', 'Relance planifiée supprimée', found.kind, dayOf(found.dueOn));
   }
 }

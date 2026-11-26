@@ -53,3 +53,15 @@ GRANT EXECUTE ON FUNCTION app.planned_contacts(uuid, planned_kind, date, date) T
 RESET ROLE;
 REVOKE CREATE ON SCHEMA app FROM legarec_definer;
 CREATE POLICY definer_read ON planned_reminders FOR SELECT TO legarec_definer USING (true);
+
+-- A reminder done stays done: it is the trace of a contact, and it counts in the caps (security review).
+CREATE POLICY keep_done ON planned_reminders AS RESTRICTIVE FOR DELETE TO legarec_staff USING (done_at IS NULL);
+CREATE FUNCTION app.keep_done_reminder() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, public, pg_temp AS $$
+BEGIN
+  IF OLD.done_at IS NOT NULL AND (NEW.done_at IS DISTINCT FROM OLD.done_at OR NEW.due_on IS DISTINCT FROM OLD.due_on OR NEW.due_time IS DISTINCT FROM OLD.due_time) THEN
+    RAISE EXCEPTION 'reminder done' USING ERRCODE = 'LG409';
+  END IF;
+  RETURN NEW;
+END
+$$;
+CREATE TRIGGER keep_done BEFORE UPDATE ON planned_reminders FOR EACH ROW EXECUTE FUNCTION app.keep_done_reminder();

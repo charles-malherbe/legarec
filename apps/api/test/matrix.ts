@@ -522,7 +522,13 @@ export const MATRIX: Record<string, MatrixEntry> = {
       reminderCase = (await newCase(test)).id;
       return '/staff/reminders';
     },
-    body: () => ({ caseId: reminderCase, type: 'CALL', date: '2099-01-05', time: '10:00', title: 'Point sur la promesse' }),
+    body: () => ({
+      caseId: reminderCase,
+      type: 'CALL',
+      date: new Date(Date.now() + 60 * 86_400_000).toISOString().slice(0, 10),
+      time: '10:00',
+      title: 'Point sur la promesse',
+    }),
     expect: withCases(404, { director: 403, manager: 200, managerAlone: 200 }),
   },
   'PUT /staff/reminders/:id': {
