@@ -25,6 +25,7 @@ import { DebtorController, StaffPortalController } from './debtor-access/debtor.
 import { PortalMessages } from './debtor-access/portal-messages';
 import { DebtorViews } from './debtor-access/debtor-views';
 import { PortalController } from './partners/portal.controller';
+import { ClaimImports } from './partners/imports';
 import { PortalService } from './partners/portal.service';
 import { DelegationsController } from './delegations/delegations.controller';
 import { MembersController } from './members/members.controller';
@@ -93,4 +94,5 @@ export const providers: Provider[] = [
   DebtorViews,
   PortalMessages,
   PortalService,
+  ClaimImports,
 ];

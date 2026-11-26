@@ -592,4 +592,7 @@ export const MATRIX: Record<string, MatrixEntry> = {
     expect: only({ partnerA: 409, partnerB: 409 }),
   },
   'POST /partner/portal/attachments': { file: PDF, expect: only({ partnerA: 200, partnerB: 200 }) },
+  // The file of the matrix is a PDF: unreadable as claims, alike for both creditors.
+  'POST /partner/portal/imports': { file: PDF, expect: only({ partnerA: 422, partnerB: 422 }) },
+  'POST /partner/portal/imports/:id/confirm': { path: () => `/partner/portal/imports/${randomUUID()}/confirm`, expect: only({ partnerA: 404, partnerB: 404 }) },
 };

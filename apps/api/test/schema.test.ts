@@ -182,6 +182,10 @@ describe('rights of the roles that face the outside', () => {
       // When a plan was asked, and beyond which length it needs the creditor.
       'payment_plans SELECT (accepted_at, case_id, created_at, creditor_id, first_due_on, id, method, months, status, threshold_months, total_cents)',
       'plan_approvals SELECT (case_id, creditor_id, decided_at, decision, id, plan_id, step)',
+      // Its imports of claims, until it confirms them.
+      'claim_imports INSERT (claims, creditor_id, errors, id, lines, status, total_cents, uploaded_by, valid)',
+      'claim_imports SELECT (claims, confirmed_at, created_at, created_count, creditor_id, errors, expires_at, id, lines, status, total_cents, uploaded_by, valid)',
+      'claim_imports UPDATE (confirmed_at, created_count, status)',
     ],
     legarec_debtor: [
       'cases SELECT (closed_on, creditor_id, debtor_id, formal_notice_on, id, mandate_id, opened_on, reference, status)',
@@ -262,6 +266,7 @@ describe('rights of the roles inside', () => {
       'documents INSERT (author_id, case_id, category, contains_access_code, creditor_id, id, kind, original_name, scan_status, sha256, size_bytes, source, storage_key, title, visible_to_debtor)',
       'documents SELECT (author_id, case_id, category, contains_access_code, created_at, creditor_id, id, kind, original_name, scan_status, scanned_at, sha256, shared_by, shared_with_creditor_at, size_bytes, source, storage_key, title, uploaded_by_creditor, uploaded_by_debtor, visible_to_debtor)',
       'documents UPDATE (category, title)',
+      'claim_imports SELECT (confirmed_at, created_at, created_count, creditor_id, id, lines, status, total_cents, uploaded_by, valid)',
       // Messages of the space of the debtor: read; written by their functions.
       'portal_message_attachments SELECT (case_id, creditor_id, document_id, id, message_id)',
       'portal_messages SELECT (author_id, case_id, created_at, creditor_id, id, read_by_debtor_at, read_by_staff_at, request_data, request_kind, side, text)',
@@ -322,6 +327,9 @@ describe('rights of the roles inside', () => {
       'receipts UPDATE (document_id)',
     ],
     legarec_retention: [
+      // Imports never confirmed, after 30 days.
+      'claim_imports DELETE (*)',
+      'claim_imports SELECT (expires_at, id, status)',
       'idempotency_keys DELETE (*)',
       'idempotency_keys SELECT (created_at)',
       'notifications DELETE (*)',

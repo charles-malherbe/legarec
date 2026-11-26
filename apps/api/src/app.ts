@@ -7,7 +7,7 @@ import { accessLog } from './platform/logging/access-log';
 import { FILE_MAX_BYTES } from './platform/storage/storage';
 
 /** Routes whose body is a file. */
-export const UPLOADS = [/^\/staff\/documents\/import$/u, /^\/debtor\/attachments$/u, /^\/partner\/portal\/attachments$/u];
+export const UPLOADS = [/^\/staff\/documents\/import$/u, /^\/debtor\/attachments$/u, /^\/partner\/portal\/attachments$/u, /^\/partner\/portal\/imports$/u];
 import { NestLogger } from './platform/logging/logger';
 
 /** The HTTP API, ready to listen. The same one is tested, documented and served. */

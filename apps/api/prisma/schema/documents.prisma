@@ -163,3 +163,30 @@ model PortalMessageAttachment {
 
   @@map("portal_message_attachments")
 }
+
+enum ImportStatus {
+  PENDING
+  CONFIRMED
+
+  @@map("import_status")
+}
+
+/// What the API understood of a file of claims; nothing is created before `confirmedAt`.
+model ClaimImport {
+  id           String       @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  creditorId   String       @map("creditor_id") @db.Uuid
+  uploadedBy   String       @map("uploaded_by") @db.Uuid
+  status       ImportStatus @default(PENDING)
+  lines        Int
+  valid        Int
+  totalCents   BigInt       @map("total_cents")
+  claims       Json
+  errors       Json
+  createdCount Int?         @map("created_count")
+  confirmedAt  DateTime?    @map("confirmed_at") @db.Timestamptz(3)
+  expiresAt    DateTime     @default(dbgenerated("(now() + '30 days'::interval)")) @map("expires_at") @db.Timestamptz(3)
+  createdAt    DateTime     @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
+
+  @@index([expiresAt], map: "claim_imports_expiry")
+  @@map("claim_imports")
+}

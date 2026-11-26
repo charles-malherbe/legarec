@@ -112,3 +112,43 @@ describe('a claim deposited by a creditor', () => {
     });
   });
 });
+
+describe('an import of claims', () => {
+  const send = (as: string, content: string | Uint8Array, type = 'text/csv') =>
+    test.call('POST', '/partner/portal/imports', {
+      as,
+      file: typeof content === 'string' ? new TextEncoder().encode(content) : content,
+      headers: { 'content-type': type },
+    });
+  const CSV = [
+    '﻿debiteur;siret;email;telephone;adresse;numero_facture;date_emission;date_echeance;montant_ttc',
+    'Garage Valmont;;compta@valmont.example;;45 route de Lyon, 38000 Grenoble;L-1;16/08/2026;16/09/2026;1 250,50',
+    'Garage Valmont;;compta@valmont.example;;45 route de Lyon, 38000 Grenoble;L-2;16/09/2026;16/10/2026;"2 000,00"',
+    'Studio Pixelia;;;;3 rue des Arts, 75011 Paris;SP-9;;12/10/2026;400',
+    'Studio Pixelia;;;;3 rue des Arts, 75011 Paris;SP-10;01/10/2026;12/10/2026;1.2OO,00',
+  ].join('\r\n');
+
+  it('reads every line, creates nothing before the confirmation, then deposits each claim', async () => {
+    const before = await rows<{ n: number }>('SELECT count(*)::int AS n FROM cases');
+    const answer = await send('partnerA', CSV);
+    expect(answer.status, JSON.stringify(answer.body)).toBe(200);
+    const report = answer.body as { id: string; lines: number; valid: number; total: number; errors: { line: number }[] };
+    expect(report).toMatchObject({ lines: 4, valid: 2, total: 325_050 });
+    expect(report.errors.map((error) => error.line)).toEqual([4, 5]);
+    expect(await rows<{ n: number }>('SELECT count(*)::int AS n FROM cases')).toEqual(before);
+    // Not that of another creditor.
+    expect((await call('partnerB', 'POST', `/partner/portal/imports/${report.id}/confirm`)).status).toBe(404);
+    const done = await call('partnerA', 'POST', `/partner/portal/imports/${report.id}/confirm`);
+    expect(done).toMatchObject({ status: 200, body: { created: 2, pending: 2 } });
+    expect(await rows("SELECT count(*)::int AS n FROM case_invoices WHERE number IN ('L-1', 'L-2')")).toEqual([{ n: 2 }]);
+    expect((await call('partnerA', 'POST', `/partner/portal/imports/${report.id}/confirm`)).status).toBe(404);
+  });
+
+  it('refuses what is not a table of claims', async () => {
+    expect((await send('partnerA', '<html><script>alert(1)</script></html>', 'text/html')).status).toBe(422);
+    expect((await send('partnerA', new Uint8Array([0xff, 0xfe, 0x00]), 'text/csv')).status).toBe(422);
+    const missing = (await send('partnerA', 'debiteur;montant\r\nX;10')).body as { errors: { message: string }[]; valid: number };
+    expect(missing.valid).toBe(0);
+    expect(missing.errors[0]?.message).toMatch(/^Colonnes manquantes/u);
+  });
+});
