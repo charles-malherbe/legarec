@@ -1,6 +1,7 @@
 import {
   accessCodeResponse,
   accountData,
+  aiJournal,
   caseCheckResult,
   caseChoices,
   caseDetail,
@@ -20,6 +21,7 @@ import {
   agenda,
   reminderTargets,
   gdprRegistry,
+  creditNotesData,
   partnerSession,
   proofNeeded,
   searchHit,
@@ -263,10 +265,37 @@ export const ACCOUNT_PARITY: Parity[] = [
   ...each(['director', 'manager', 'officer'], () => ({ request: 'GET /reminders/targets', status: 200, answer: reminderTargets })),
   { as: 'developer', request: 'GET /reminders', status: 403, answer: code('FORBIDDEN') },
   { as: 'director', request: 'GET /gdpr/requests', status: 200, answer: gdprRegistry },
+  // Credit notes: as all of the billing; the identity of the firm is between brackets on both sides.
+  ...each(['director', 'manager'], () => ({ request: 'GET /credit-notes', status: 200, answer: creditNotesData })),
+  ...each(['developer', 'officer'], () => ({ request: 'GET /credit-notes', status: 403, answer: code('FORBIDDEN') })),
+  {
+    as: 'director',
+    request: 'POST /credit-notes',
+    body: { invoiceId: UNKNOWN, scope: 'TOTAL', lines: [], reason: 'Erreur de taux', followUp: 'DEDUCTED', expectedLeft: 100, draftId: null },
+    status: 409,
+    answer: refused('FIRM_INCOMPLETE'),
+  },
+  {
+    as: 'manager',
+    request: 'POST /credit-notes/drafts',
+    body: { invoiceId: UNKNOWN, scope: 'PARTIAL', lines: [], reason: '', followUp: null },
+    status: 404,
+    answer: code('NOT_FOUND'),
+  },
+  { as: 'director', request: `DELETE /credit-notes/drafts/${UNKNOWN}`, status: 404, answer: code('NOT_FOUND') },
+  ...each(['officer'], () => ({
+    request: 'POST /credit-notes/drafts',
+    body: { invoiceId: UNKNOWN, scope: 'PARTIAL', lines: [], reason: '', followUp: null },
+    status: 403,
+    answer: code('FORBIDDEN'),
+  })),
   ...each(['developer', 'officer'], () => ({ request: 'GET /gdpr/requests', status: 403, answer: code('FORBIDDEN') })),
   { as: 'officer', request: 'PUT /notifications', body: { ids: [UNKNOWN], unread: false }, status: 204 },
   { as: 'officer', request: 'POST /notifications/read', body: { ids: [UNKNOWN] }, status: 204 },
 
+  // The journal of the assistant: the Director and the Developer (question 178).
+  ...each(['director', 'developer'], () => ({ request: 'GET /ai/journal', status: 200, answer: aiJournal })),
+  ...each(['manager', 'officer'], () => ({ request: 'GET /ai/journal', status: 403, answer: code('FORBIDDEN') })),
   ...each(['director', 'developer'], () => ({ request: 'GET /secrets', status: 200, answer: secretsData })),
   ...each(['manager', 'officer'], () => ({ request: 'GET /secrets', status: 403, answer: code('FORBIDDEN') })),
   { as: 'director', request: 'POST /secrets', body: { name: 'AI_API_KEY', value: 'valeur-fictive', rotation: '90' }, status: 204 },

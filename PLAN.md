@@ -141,13 +141,13 @@ Les 161 routes simulées se répartissent ainsi :
 | [ ] T | Téléphonie 3CX Call Control, enregistrements | 6 |
 | [ ] U | Contentieux, rapports, équipe, tableaux de bord, score de risque | 8 |
 | [ ] V | RGPD : registre, exports, anonymisation, purges | 3 |
-| [ ] W | IA : couche compatible OpenAI, essai mesuré, quatre fonctions | 3 |
+| [ ] W | IA : couche compatible OpenAI, essai de qualité (OVHcloud), quatre fonctions | 3 |
 | [x] X1 | Exploitation, première partie : Dockerfiles, compose, `infra/caddy/Caddyfile`, pgBackRest, Gatus, Loki, `bootstrap.sql` exécuté dans la base de l'application, sonde de santé du worker et délai d'arrêt de 90 secondes ; rien n'est déployé (`docs/deploiement.md`) | — |
-| [ ] X | Exploitation, fin : bascule finale, ClamAV et Chromium (après N), n8n, purge à la demande après une restauration, tâches planifiées bloquées après une restauration ; liste complète dans `docs/deploiement.md` | — |
+| [ ] X | Exploitation, fin : bascule finale, ClamAV et Chromium (après N), n8n, purge à la demande après une restauration, tâches planifiées bloquées après une restauration, stockage chez OVHcloud au lieu de Scaleway (variables `SCW_*`, pgBackRest, Caddy, Gatus) ; liste complète dans `docs/deploiement.md` | — |
 
 **Bascule** : chaque lot ajoute ses préfixes à une liste `VITE_API` (développement) : MSW laisse passer ces routes vers l'API. La valeur par défaut bascule portail par portail : paiement après O, partenaires après P, espace après U. Chaque lot rejoue les mêmes requêtes contre MSW et contre l'API et valide les deux par le même schéma Zod. En mode mixte, un lien vers un écran non branché peut ne pas trouver le dossier (développement seulement). MSW reste pour les tests de composants.
 
-**À fournir par le cabinet, jamais par Claude Code** : clés de test Resend et MySendingBox dans le `.env` (Q), Scaleway en option (N), voir `docs/api.md`, « Clés et secrets » ; compte SMS avec numéro virtuel (R) ; licence et identifiants 3CX (T) ; second domaine Resend (Q) ; valeurs entre crochets (N) ; déploiement (X). Sans elles, les adaptateurs tournent en mode simulé.
+**À fournir par le cabinet, jamais par Claude Code** : clés de test Resend et MySendingBox dans le `.env` (Q), stockage S3 OVHcloud en option (N), voir `docs/api.md`, « Clés et secrets » ; compte SMS avec numéro virtuel (R) ; licence et identifiants 3CX (T) ; second domaine Resend (Q) ; valeurs entre crochets (N) ; déploiement (X). Sans elles, les adaptateurs tournent en mode simulé.
 
 ## Lot J — Socle (état au 25/11/2026)
 - [x] Services de développement sans root ni service système (`infra/dev/services.mjs`), lancement de l'API et du worker (`pnpm --filter @legarec/api dev`)
@@ -191,14 +191,14 @@ Les 161 routes simulées se répartissent ainsi :
 - [x] PDF par Playwright sans JavaScript ni réseau, valeurs entre crochets (`FIRM_INCOMPLETE`), quittance PDF écrite par le worker
 - [ ] Courriers PDF (avec les envois, Q), logos (`media.legarec.fr`), essai d'un modèle (Q)
 - [x] Relecture `relecteur-securite` : aucun bloquant ; corrigés : empreinte d'idempotence d'un fichier, rattachement par numéro court, objets compressés des PDF, contenu des DOCX, partage par une fonction SQL, clé de stockage retirée aux rôles externes, téléchargement hors de ses dossiers journalisé, avertissement sur le code d'accès
-- Reporté : bucket Scaleway (X), conteneur ClamAV (X), envoi d'un document (Q), composition des courriers (Q), purge des fichiers sans ligne (X), corps lus avant la session sur l'import (limite Caddy, X), tests de cloisonnement des documents pour les rôles externes (O, P), boutons d'action masqués au Directeur dans Documents (contrat sans `canAct`)
+- Reporté : bucket OVHcloud (X), conteneur ClamAV (X), envoi d'un document (Q), composition des courriers (Q), purge des fichiers sans ligne (X), corps lus avant la session sur l'import (limite Caddy, X), tests de cloisonnement des documents pour les rôles externes (O, P), boutons d'action masqués au Directeur dans Documents (contrat sans `canAct`)
 
 ## Lot O — Espace débiteur (état au 26/11/2026)
 - [x] Connexion par identifiant et code, compteurs et blocage, levée par la régénération, sessions, lecture des dossiers et du solde (4 routes) ; relecture sécurité : connexion en une seule fonction SQL sur une empreinte du code, même travail pour un identifiant inconnu, blocage rattaché au débiteur même avant l'annonce, dixième essai juste sans blocage, échecs espacés comptés, Responsable prévenu sans gestionnaire, purge des sessions, compteurs des débiteurs protégés des autres fonctions, audit
 - [x] Messages du portail, pièces du débiteur (analysées, invisibles de l'équipe avant leur message), demandes guidées, réponse de l'équipe, code d'accès retiré du texte reçu (6 routes)
-- Reportés (relecture) : compteur aussi par débiteur pour un particulier aux nombreux dossiers, fenêtre glissante de la limite par réseau, alerte au-delà de 200 échecs par heure
+- [x] Compléments de la relecture : compteur aussi par débiteur (10 échecs au total sur ses identifiants, réponse de l'identifiant tapé, question 177), fenêtre glissante de la limite par réseau, alerte au-delà de 200 échecs par heure (Directeur et Développeur dans l'application, une par épisode, réseaux d’au moins 3 échecs suspendus 15 minutes, question 176 ; SMS au lot R), notification « accès bloqué » lisible dans la liste
 - [x] Accès limité, liens des courriers, code par SMS (mis en file, envoi au lot R), bascule du portail paiement en développement (4 routes)
-- [ ] Acceptation de l'échéancier par le débiteur (écran hors maquette à montrer au cabinet), alerte au-delà de 200 échecs par heure
+- [ ] Acceptation de l'échéancier par le débiteur (écran hors maquette à montrer au cabinet)
 
 ## Lot P — Portail des créanciers (état au 26/11/2026)
 - [x] Tableau de bord, dossiers, accord sur un échéancier long (4 routes)
@@ -226,14 +226,14 @@ Les 161 routes simulées se répartissent ainsi :
 | Fiche débiteur : la relance envoie un destinataire libre et des libellés ; devient un contact du dossier et des codes | Q |
 | Appel entrant lu une seule fois : interrogation toutes les 5 secondes | T |
 | Échec d'envoi et quota par boîte : compteur dans Valkey, plus en mémoire | R |
-| Écran Secrets : liste de noms attendus, « Renouveler » qui demande la nouvelle valeur, « Révoquer » masqué pour les clés internes, `SESSION_SIGNING_KEY` retirée, « Environnement » réel (108 à 110) | L |
+| Écran Secrets : liste de noms attendus, « Renouveler » qui demande la nouvelle valeur, « Révoquer » masqué pour les clés internes, `SESSION_SIGNING_KEY` retirée, « Environnement » réel (108 à 110) : fait (lot L) | L |
 | Appels : « Transcription en direct » devient une transcription proposée après l'appel (question 72) | W |
-| Tableau des permissions : « Valider un échéancier, une remise ou un abandon de créance », « Ses dossiers » pour le Directeur (question 86) ; « Validations » : accord du créancier après celui du Responsable | M |
+| Tableau des permissions : « Valider un échéancier, une remise ou un abandon de créance », « Ses dossiers » pour le Directeur (question 86) ; « Validations » : accord du créancier après celui du Responsable : fait (lot F1) | M |
 | Portail paiement : mêmes règles que les deux autres au changement de personne (`key`, autres onglets, déconnexion non reçue) | O |
 | Caddy masque les jetons des liens de réinitialisation et d'invitation dans ses journaux (`docs/api.md`) : fait, aucun chemin n'est journalisé, vérifié à chaque changement par GitHub Actions (`infra/ci/smoke.sh`) | X1 |
 | Remplaçant : notifications neutres à envoyer avec celles des dossiers (texte de Mon compte déjà ajusté) | L |
-| Cloche de la barre du haut : notifications encore simulées (`/shell`), page Notifications déjà réelle | L |
-| Tableau de bord : `queryFn` absente de la requête `shell` (erreur dans la console) ; Paramètres : « Annuler » actif pendant l'enregistrement | L, U |
+| Cloche de la barre du haut : notifications encore simulées (`/shell`), page Notifications déjà réelle : fait (lot L), la cloche lit les notifications par `/shell` | L |
+| Tableau de bord : `queryFn` absente de la requête `shell` (erreur dans la console) ; Paramètres : « Annuler » actif pendant l'enregistrement : faits (lot L) | L, U |
 | Données personnelles : durées modifiables et anonymisation désactivable à l'écran, alors qu'elles sont fixées ; page Confidentialité à compléter (durées, suivi des e-mails avant de l'activer) | Q, V |
 | Synchronisation d'un contact avec l'annuaire 3CX (`HANDOFF.md`) : annuaire commun à toute l'équipe, écart à signaler avant développement | T |
 
@@ -263,12 +263,15 @@ Les 161 routes simulées se répartissent ainsi :
 ## Lot V — RGPD (état au 26/11/2026)
 - [x] Registre des demandes, réponse motivée, export des données d'un débiteur (journalisé)
 - [x] Purges planifiées des tables de la nuit (imports non confirmés, messages sans code, marques du tableau de bord, registre RGPD)
-- [ ] Anonymisation à la demande d'un débiteur, purge des dossiers 5 ans après clôture
+- [x] Anonymisation à la demande d'un débiteur (API, questions 168 et 169), purge des dossiers 5 ans après clôture et de leurs fichiers
+- [x] Purge à 10 ans (fin de l'année de la pièce) des pièces comptables : lots de reversements, factures et avoirs, paiements et imputations, quittances et leurs PDF, documents comptables d'un dossier anonymisé ; registre RGPD à partir de la clôture (question 175)
+- [ ] Écran de l'effacement à la demande (pas d'état dans la maquette) ; à la fusion avec `lot/u2`, `litigation_files` dans `app.forget_case()`
 
 ## Lot S — Facturation et reversements (état au 26/11/2026)
 - [x] API des reversements : calcul unique en SQL, validation avec valeurs attendues, créancier retenu avec motif, factures de commission, « marquer comme versés »
 - [x] Écran « Reversements » (`/facturation/reversements`) : lot à valider, créancier retenu avec motif, validation, virements à faire, « Marquer comme versés »
-- [ ] Écran « Avoir » et avoirs, détail des encaissements par créancier, relevés PDF et envois, reprises (questions 156 à 159)
+- [x] Avoirs `AV-AAAA-NNNN` (API et écran Facturation) : bouton « Avoir » sur chaque facture émise, onglet « Avoirs », type « Avoir » dans « + Créer depuis un modèle », brouillons, statuts dérivés « Avoir partiel » et « Annulée par avoir », avoir rendu au prochain reversement (questions 170 à 174)
+- [ ] PDF de la facture et de l'avoir (aucun gabarit de facture encore), envoi de l'avoir au créancier (V3, lot R), « Préparer l'avoir » depuis Reversements (reprises), détail des encaissements par créancier, relevés PDF et envois, reprises (questions 156 à 159)
 
 ## Lot Q — Envois (état au 26/11/2026)
 - [x] Agenda des relances sur l'API : planifier, déplacer, marquer faite, supprimer ; plafonds tous créanciers confondus, plages et jours fériés
@@ -277,4 +280,7 @@ Les 161 routes simulées se répartissent ainsi :
 ## Lot W — IA (état au 26/11/2026)
 - [x] Couche fournisseur, garde-fous, budget, journal ; synthèse du dossier (régénérer, signaler)
 - [x] Alerte à 80 % du budget au Directeur
-- [ ] Génération à l'arrivée d'un événement, appels, e-mails, journal dans Paramètres, essai mesuré (question 106)
+- [x] Budget par défaut de 40 € dans le catalogue des paramètres (question 166)
+- [x] Synthèse du dossier refaite à l'arrivée d'un événement : tâche d'horloge toutes les 5 minutes, regroupée (5 minutes de calme), une fois par état du dossier, budget, clé et interrupteurs vérifiés avant la mise en file, « Synthèse refaite automatiquement » désactivée par défaut (question 179)
+- [x] Journal de l'IA dans Paramètres › Assistant IA sur l'API (`GET /staff/ai/journal`, paginé), Directeur et Développeur, sans référence de dossier pour le Développeur (question 178)
+- [ ] Résumé des appels (avec le lot T), tri et brouillons des e-mails (avec le lot R), essai de qualité des modèles chez OVHcloud (option C, cabinet), export du journal de l'IA (question 178)

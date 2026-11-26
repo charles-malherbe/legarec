@@ -6,13 +6,19 @@ import { Database } from '../../platform/database/database';
 import { ApiError } from '../../platform/errors/api-error';
 import { cookies, isBackground, requestFacts } from '../../platform/http/context';
 import { RateLimits } from '../../platform/limits/rate-limits';
+import { LOGGER, type AppLogger } from '../../platform/logging/logger';
 import { AuthKeys } from './keys';
 
 const COOKIE = 'debtor';
 /** Sessions: 12 hours at most, 30 minutes without a request (both in the database); « Se souvenir de moi » keeps the cookie 30 days. */
 const REMEMBERED_S = 30 * 24 * 3600;
-/** Twenty tries an hour from one network (bloc /64 in IPv6), whatever the identifier. */
-const TRIES = { name: 'debtor-access', max: 20, seconds: 3600 };
+/** Twenty tries over the last hour from one network (bloc /64 in IPv6), whatever the identifier. */
+const TRIES = { name: 'debtor-access', max: 20, seconds: 3600, sliding: true };
+/**
+ * Beyond 200 failures over the last hour, from all networks (question 114): the Director and the Developer are told, once
+ * an episode, and the networks in cause (three failures or more in the hour, question 176) are suspended 15 minutes.
+ */
+const FAILURES = { name: 'debtor-access-failures', max: 200, seconds: 3600, suspendSeconds: 15 * 60, least: 3 };
 
 type Outcome =
   { kind: 'open'; token: string; debtorId: string } | { kind: 'invalid'; left: number } | { kind: 'locked'; minutes: number } | { kind: 'blocked' };
@@ -30,6 +36,7 @@ export class DebtorSignIn {
     @Inject(Database) private readonly database: Database,
     @Inject(AuthKeys) private readonly keys: AuthKeys,
     @Inject(RateLimits) private readonly limits: RateLimits,
+    @Inject(LOGGER) private readonly logger: AppLogger,
   ) {}
 
   /** The debtor of the session cookie, or null. */
@@ -47,6 +54,7 @@ export class DebtorSignIn {
   }
 
   async access(identifier: DebtorIdentifier, code: string, remember: boolean): Promise<string> {
+    await this.limits.refuseSuspended(FAILURES);
     await this.limits.take(TRIES);
     const value = normalized(identifier);
     const attempt = this.keys.attempt('debtor', `${identifier.kind}:${value}`);
@@ -58,7 +66,7 @@ export class DebtorSignIn {
       (tx) =>
         tx.$queryRaw<{ outcome: string; attempts_left: number | null; minutes: number | null; debtor: string | null }[]>`
         SELECT * FROM app.debtor_sign_in(${identifier.kind}, ${value}, ${attempt}, ${this.keys.accessCode(code)}, ${this.keys.sessionHash(token)}, ${remember},
-          ${requestFacts().ip ?? null}::inet)`,
+          ${requestFacts().ip ?? null}::inet, ${this.keys.debtorCounters})`,
     );
     const outcome: Outcome =
       row!.outcome === 'OPEN'
@@ -68,6 +76,8 @@ export class DebtorSignIn {
           : row!.outcome === 'LOCKED'
             ? { kind: 'locked', minutes: row!.minutes ?? 15 }
             : { kind: 'invalid', left: row!.attempts_left ?? 0 };
+    // Counted whatever the identifier, known or not: only the right code is not a failure.
+    if (outcome.kind !== 'open') await this.watch();
     switch (outcome.kind) {
       case 'open':
         cookies().set(COOKIE, outcome.token, remember ? REMEMBERED_S : undefined);
@@ -78,6 +88,28 @@ export class DebtorSignIn {
         throw new ApiError(423, 'LOCKED', { minutes: outcome.minutes });
       case 'blocked':
         throw new ApiError(423, 'BLOCKED');
+    }
+  }
+
+  /**
+   * A failure in the count of all networks, and the alert when it is due. Never in the way of the answer of the counter:
+   * what fails here is written in the journal, and the next failure beyond the limit tries again to tell.
+   */
+  private async watch(): Promise<void> {
+    let due: boolean;
+    try {
+      due = await this.limits.failed(FAILURES);
+    } catch {
+      this.logger.error('debtor access failure not counted');
+      return;
+    }
+    if (!due) return;
+    try {
+      // At most once an hour, whoever calls it: two failures at the same time tell once.
+      await this.database.run({ kind: 'anonymous' }, (tx) => tx.$queryRaw`SELECT app.debtor_access_alert()`);
+      await this.limits.told(FAILURES);
+    } catch {
+      this.logger.error('debtor access alert not told');
     }
   }
 

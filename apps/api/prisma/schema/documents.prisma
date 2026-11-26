@@ -39,6 +39,13 @@ enum ScanStatus {
 }
 
 /// A file kept by `Storage` under `storageKey`; read only once `scanStatus` is CLEAN.
+enum RetentionClass {
+  CASE
+  ACCOUNTING
+
+  @@map("retention_class")
+}
+
 model Document {
   id                   String           @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
   caseId               String?          @map("case_id") @db.Uuid
@@ -63,6 +70,10 @@ model Document {
   /// A file of a creditor, waiting for its claim.
   uploadedByCreditor   String?          @map("uploaded_by_creditor") @db.Uuid
   createdAt            DateTime         @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
+  /// Computed by PostgreSQL from the category: receipts and remittances are kept ten years.
+  retentionClass       RetentionClass   @default(dbgenerated()) @map("retention_class")
+  /// Its file is erased; nobody but the purge sees it any more.
+  purgedAt             DateTime?        @map("purged_at") @db.Timestamptz(3)
 
   case     Case?     @relation(fields: [caseId, creditorId], references: [id, creditorId], onDelete: NoAction, onUpdate: NoAction)
   author   User?     @relation("documentAuthor", fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)

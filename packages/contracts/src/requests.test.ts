@@ -218,10 +218,25 @@ const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly
       { until: '2026-11-14', expected: [], retained: [{ creditorId: 'delta', reason: 'Litige sur le mandat' }] },
     ],
     'POST /remittances/:id/paid': [{ paidOn: '2026-11-16', expectedTotal: 2_290_000 }],
+    'POST /credit-notes': [
+      {
+        invoiceId: 'fa-0116',
+        scope: 'PARTIAL',
+        lines: [{ lineId: 'l1', net: 20_880 }],
+        reason: 'Chèque revenu impayé après reversement (dossier LGR-2026-00188).',
+        followUp: 'NEXT_REMITTANCE',
+        expectedLeft: 531_264,
+        draftId: null,
+      },
+      { invoiceId: 'fa-0114', scope: 'TOTAL', lines: [], reason: 'Erreur de taux', followUp: 'DEDUCTED', expectedLeft: 128_400, draftId: 'd1' },
+    ],
+    'POST /credit-notes/drafts': [{ invoiceId: 'fa-0116', scope: 'PARTIAL', lines: [{ lineId: 'l1', net: 0 }], reason: '', followUp: null }],
+    'PUT /credit-notes/drafts/:id': [{ invoiceId: 'fa-0116', scope: 'TOTAL', lines: [], reason: 'Erreur', followUp: 'TRANSFER' }],
     'PUT /gdpr/requests/:id': [
       { status: 'ANSWERED', reason: 'Copie envoyée par courrier' },
       { status: 'REFUSED', reason: 'Demande déjà traitée' },
     ],
+    'POST /gdpr/requests/:id/erasure': [{ expectedCases: 2, expectedDigest: 'a'.repeat(64) }],
     'POST /reminders': [
       { caseId: 'demo', type: 'CALL', date: '2026-11-21', time: '', title: 'Point sur la promesse' },
       { caseId: 'demo', type: 'EMAIL', date: '2026-11-24', time: '10:00', title: 'Relance' },

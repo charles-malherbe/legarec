@@ -7,6 +7,7 @@ import { toCsv } from '../../shared/csv';
 import layout from '@legarec/ui/layout.module.css';
 import { MembersCard } from '../team/MembersCard';
 import { TemplatesCard } from '../templates/TemplatesCard';
+import { AiJournalCard } from './AiJournalCard';
 import { GdprRegistryCard } from './GdprRegistryCard';
 import { InterestRatesCard } from './InterestRatesCard';
 import { MailboxesCard } from './MailboxesCard';
@@ -116,7 +117,15 @@ export function SectionBody({ scope, id, label }: { scope: string; id: string; l
       ))}
       {id === 'regles' && <InterestRatesCard />}
       {id === 'rgpd' && <GdprRegistryCard />}
-      {data.tables.map((item) => (id === 'audit' ? <AuditTable key={item.id} table={item} /> : <StaticTable key={item.id} table={item} />))}
+      {data.tables.map((item) =>
+        id === 'audit' ? (
+          <AuditTable key={item.id} table={item} />
+        ) : item.id === 'ai-log' ? (
+          <AiJournalCard key={item.id} title={item.title} description={item.description} />
+        ) : (
+          <StaticTable key={item.id} table={item} />
+        ),
+      )}
       {data.notes.map((note) => (
         <p key={note} role="note" className={layout.notice}>
           {note}

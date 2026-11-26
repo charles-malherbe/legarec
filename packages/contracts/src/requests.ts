@@ -4,6 +4,7 @@ import { loginRequest, newPassword, PASSWORD_MAX } from './auth';
 import { callQualification } from './calls';
 import { addedInvoices, caseCheck, gdprRequestKind, newCase, newPayment, paymentStatus, renewedCode } from './cases';
 import { litigationOutcome, litigationStage, newReminder } from './collection';
+import { creditNoteDraftBody, creditNoteIssue } from './creditNotes';
 import { coordinate, coordinateKind, coordinateSource, emailCategory, outgoingMessage } from './communication';
 import { debtorAccess, debtorIdentifier, debtorMessage, debtorRequest, limitedMessage } from './debtor';
 import { letterTemplate } from './documents';
@@ -100,6 +101,8 @@ export const paymentStatusBody = z.object({
 export const caseReminderBody = z.object({ channel: line(60), template: line(80), recipient: line(300), message: line(10_000) });
 export const gdprRequestBody = z.object({ caseId: id, kind: gdprRequestKind, origin: line(200) });
 export const gdprAnswerBody = z.object({ status: z.enum(['OPEN', 'ANSWERED', 'REFUSED']), reason });
+/** As many cases as were shown (`GET …/erasure`): any difference and nothing is erased (409). */
+export const gdprErasureBody = z.object({ expectedCases: z.number().int().min(0).max(1000), expectedDigest: z.string().regex(/^[0-9a-f]{64}$/u) });
 
 export const reminderBody = z.object({ date: z.iso.date(), time: newReminder.shape.time, done: z.boolean() }).partial();
 /** A file sent as the whole body (`POST /documents/import`), up to 15 Mo: its real type is checked by the API. */
@@ -237,6 +240,7 @@ export const REQUEST_BODIES = {
     'POST /cases/:id/reminders': caseReminderBody,
     'POST /gdpr/requests': gdprRequestBody,
     'PUT /gdpr/requests/:id': gdprAnswerBody,
+    'POST /gdpr/requests/:id/erasure': gdprErasureBody,
     'POST /reminders': newReminder,
     'PUT /reminders/:id': reminderBody,
     'POST /payment-plans': paymentPlanBody,
@@ -254,6 +258,9 @@ export const REQUEST_BODIES = {
     'POST /billing': billingBody,
     'POST /remittances': remittanceValidation,
     'POST /remittances/:id/paid': remittancePaid,
+    'POST /credit-notes': creditNoteIssue,
+    'POST /credit-notes/drafts': creditNoteDraftBody,
+    'PUT /credit-notes/drafts/:id': creditNoteDraftBody,
     'PUT /reports/scheduled/:id': activeBody,
     'POST /members': newMember,
     'PUT /members/:id/role': memberRoleBody,

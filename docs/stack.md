@@ -25,8 +25,8 @@ Deux ambiances sur les mêmes composants, en deux thèmes dérivés du thème de
 - **Valkey 8.1 + BullMQ 6** (`VALKEY_URL`) : scénarios de relance, envois groupés, synchronisation IMAP, reversements ; workers dans un conteneur séparé ; persistance AOF, `maxmemory-policy noeviction`.
 - **Documents** : modèles HTML Handlebars, PDF générés par **Playwright** (Chromium) ; fichiers reçus contrôlés par **ClamAV**.
 - **E-mails** : kit `kits/emails-handlebars` (25 modèles) et ajout `staff-message`, rendus par handlebars 4.x dans `apps/api/templates/emails/` ; envoi par Resend (automatiques) ou par SMTP OVH de la boîte du collaborateur (nodemailer).
-- **Fichiers** : **Scaleway Object Storage** (API S3).
-- **IA** : auto-hébergée si l'essai du lot W convient ; couche fournisseur (adaptateurs Anthropic et compatible OpenAI pour Scaleway et OVH), deux niveaux de modèle configurables ; voir `docs/ia.md`.
+- **Fichiers** : **OVHcloud Object Storage** (API S3, région Paris ; décision du 26/11/2026).
+- **IA** : OVHcloud AI Endpoints, services hébergés en France (option C, décision du 26/11/2026) ; couche fournisseur (adaptateurs Anthropic et compatible OpenAI pour Scaleway et OVH), deux niveaux de modèle configurables ; voir `docs/ia.md`.
 - **OVH** : API OVHcloud (gestion des boîtes MX Plan, SMS), appels signés sans le paquet `ovh`, clés aux droits limités.
 - **Développement** : PostgreSQL et Valkey des paquets Debian, lancés par `infra/dev/services.mjs` (utilisateur courant, 127.0.0.1) ; Node 26 par nvm.
 

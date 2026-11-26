@@ -55,7 +55,12 @@ function columns(onRetain?: (row: RemittanceRow) => void) {
       key: 'toPay',
       label: 'À verser',
       align: 'right' as const,
-      value: (row: RemittanceRow) => ({ text: row.state === 'BELOW_MINIMUM' ? 'reporté' : formatCents(row.toPay), strong: true }),
+      value: (row: RemittanceRow) => ({
+        text: row.state === 'BELOW_MINIMUM' ? 'reporté' : formatCents(row.toPay),
+        // A credit note given back with this remittance (question 69, V2).
+        sub: row.credits ? `dont ${formatCents(row.credits)} d’avoir` : undefined,
+        strong: true,
+      }),
     },
     { key: 'account', label: 'Compte', value: (row: RemittanceRow) => ({ text: row.account ?? '—', mono: true }) },
     {

@@ -34,10 +34,12 @@ import { MembersService } from './members/members.service';
 import { DashboardController } from './dashboard/dashboard.controller';
 import { DashboardService } from './dashboard/dashboard.service';
 import { GdprController } from './gdpr/gdpr.controller';
+import { CreditNotesController } from './remittances/credit-notes.controller';
 import { RemittancesController } from './remittances/remittances.controller';
 import { RemindersController } from './reminders/reminders.controller';
 import { RemindersService } from './reminders/reminders.service';
 import { AiController } from '../ai/ai.controller';
+import { AiJournalController } from '../ai/journal.controller';
 import { NotificationsController } from './notifications/notifications.controller';
 import { NotificationsService } from './notifications/notifications.service';
 import { LitigationController } from './litigation/litigation.controller';
@@ -64,9 +66,11 @@ export const controllers: Type[] = [
   SupportController,
   NotificationsController,
   AiController,
+  AiJournalController,
   RemindersController,
   LitigationController,
   RemittancesController,
+  CreditNotesController,
   GdprController,
   DashboardController,
   SecretsController,

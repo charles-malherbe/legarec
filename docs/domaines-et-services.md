@@ -40,7 +40,7 @@ Seul service exposé sur Internet (ports 80 et 443) : HTTPS automatique, en-têt
 - **Téléphonie** : 3CX (`legarec.on3cx.fr`), par l'API Call Control (question 71) : appels, files, qualification (codes PROMESSE, ECHEANCIER, RAPPEL, LITIGE, DEJA_PAYE, ABSENT, NON_REPONSE, FAUX_NUMERO). Poste du collaborateur dans son profil ; renvoi vers le mobile réglé dans 3CX.
 - **Lettres recommandées et courriers** : MySendingBox. Deux comptes : test et production, choisis par variable d'environnement. Jamais de bascule implicite vers la production.
 - **Paiement** : chèque et virement sur le compte dédié uniquement (RIB, référence du dossier). Aucun paiement en ligne.
-- **Fichiers** : Scaleway Object Storage : `legarec-media` (public), `legarec-documents` (privé, URL présignées), `legarec-sauvegardes` (versioning). Une clé d'accès par bucket.
+- **Fichiers** : OVHcloud Object Storage (région Paris, décision du 26/11/2026) : `legarec-media` (public), `legarec-documents` (privé, URL présignées), `legarec-sauvegardes` (versioning). Une clé d'accès par bucket.
 - **Antivirus** : ClamAV, sur le serveur ; tout fichier reçu reste en quarantaine jusqu'au résultat (question 87).
 - **Données d'entreprise** : API publique Recherche d'entreprises (forme juridique d'un débiteur), en tâche de fond, sans clé ; corrigeable à la main (question 80).
 - **Clés de ces services** : où les créer, avec quels droits, où les saisir : `docs/api.md`, « Clés et secrets ».

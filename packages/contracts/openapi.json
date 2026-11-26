@@ -3133,6 +3133,181 @@
         }
       }
     },
+    "/staff/ai/journal": {
+      "get": {
+        "operationId": "AiJournalController_journal",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "at": {
+                            "type": "string"
+                          },
+                          "feature": {
+                            "type": "string",
+                            "enum": [
+                              "CASE_SUMMARY"
+                            ]
+                          },
+                          "caseReference": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "input": {
+                            "type": "string"
+                          },
+                          "model": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "promptVersion": {
+                            "type": "string"
+                          },
+                          "outcome": {
+                            "type": "string",
+                            "enum": [
+                              "SUGGESTED",
+                              "REFUSED_BY_GUARD",
+                              "FAILED",
+                              "OVER_BUDGET"
+                            ]
+                          },
+                          "decision": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "ACCEPTED",
+                              "MODIFIED",
+                              "IGNORED",
+                              "REPORTED"
+                            ]
+                          },
+                          "colleague": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "tokens": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "costMicro": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "at",
+                          "feature",
+                          "caseReference",
+                          "input",
+                          "model",
+                          "promptVersion",
+                          "outcome",
+                          "decision",
+                          "colleague",
+                          "tokens",
+                          "costMicro"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "page": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "exclusiveMinimum": true,
+                      "maximum": 9007199254740991
+                    },
+                    "pageSize": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "exclusiveMinimum": true,
+                      "maximum": 9007199254740991
+                    },
+                    "total": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "last30Days": {
+                      "type": "object",
+                      "properties": {
+                        "suggested": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "accepted": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "modified": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "ignored": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "reported": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "suggested",
+                        "accepted",
+                        "modified",
+                        "ignored",
+                        "reported"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "page",
+                    "pageSize",
+                    "total",
+                    "last30Days"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ai"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "DEVELOPER"
+          ]
+        }
+      }
+    },
     "/staff/reminders": {
       "get": {
         "operationId": "RemindersController_agenda",
@@ -3488,6 +3663,11 @@
                             "minimum": -9007199254740991,
                             "maximum": 9007199254740991
                           },
+                          "credits": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
                           "toPay": {
                             "type": "integer",
                             "minimum": -9007199254740991,
@@ -3519,6 +3699,7 @@
                           "feesNet",
                           "feesVat",
                           "feesGross",
+                          "credits",
                           "toPay",
                           "accountId",
                           "account",
@@ -3790,6 +3971,11 @@
                             "minimum": -9007199254740991,
                             "maximum": 9007199254740991
                           },
+                          "credits": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
                           "toPay": {
                             "type": "integer",
                             "minimum": -9007199254740991,
@@ -3821,6 +4007,7 @@
                           "feesNet",
                           "feesVat",
                           "feesGross",
+                          "credits",
                           "toPay",
                           "accountId",
                           "account",
@@ -3865,6 +4052,558 @@
     "/staff/remittances/{id}/paid": {
       "post": {
         "operationId": "RemittancesController_paid",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "remittances"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      }
+    },
+    "/staff/credit-notes": {
+      "get": {
+        "operationId": "CreditNotesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "invoices": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "number": {
+                            "type": "string"
+                          },
+                          "issuedOn": {
+                            "type": "string",
+                            "format": "date",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                          },
+                          "client": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "legalName": {
+                                "type": "string"
+                              },
+                              "address": {
+                                "type": "string"
+                              },
+                              "siren": {
+                                "nullable": true,
+                                "type": "string"
+                              },
+                              "vatNumber": {
+                                "nullable": true,
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "legalName",
+                              "address",
+                              "siren",
+                              "vatNumber"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "net": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "vat": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "gross": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "left": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "settledOn": {
+                            "nullable": true,
+                            "type": "string",
+                            "format": "date",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                          },
+                          "credited": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "lines": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "net": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "vat": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "leftNet": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "leftVat": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "label",
+                                "net",
+                                "vat",
+                                "leftNet",
+                                "leftVat"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "number",
+                          "issuedOn",
+                          "client",
+                          "net",
+                          "vat",
+                          "gross",
+                          "left",
+                          "settledOn",
+                          "credited",
+                          "lines"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "number": {
+                            "type": "string"
+                          },
+                          "issuedOn": {
+                            "type": "string",
+                            "format": "date",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                          },
+                          "client": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "legalName": {
+                                "type": "string"
+                              },
+                              "address": {
+                                "type": "string"
+                              },
+                              "siren": {
+                                "nullable": true,
+                                "type": "string"
+                              },
+                              "vatNumber": {
+                                "nullable": true,
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "legalName",
+                              "address",
+                              "siren",
+                              "vatNumber"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "invoiceId": {
+                            "type": "string"
+                          },
+                          "invoice": {
+                            "type": "string"
+                          },
+                          "invoiceIssuedOn": {
+                            "type": "string",
+                            "format": "date",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                          },
+                          "invoiceStatus": {
+                            "type": "string",
+                            "enum": [
+                              "PARTIAL",
+                              "CANCELLED"
+                            ]
+                          },
+                          "scope": {
+                            "type": "string",
+                            "enum": [
+                              "PARTIAL",
+                              "TOTAL"
+                            ]
+                          },
+                          "net": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "vat": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "gross": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "followUp": {
+                            "type": "string",
+                            "enum": [
+                              "NEXT_REMITTANCE",
+                              "TRANSFER",
+                              "DEDUCTED"
+                            ]
+                          },
+                          "remittedOn": {
+                            "nullable": true,
+                            "type": "string",
+                            "format": "date",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "number",
+                          "issuedOn",
+                          "client",
+                          "invoiceId",
+                          "invoice",
+                          "invoiceIssuedOn",
+                          "invoiceStatus",
+                          "scope",
+                          "net",
+                          "vat",
+                          "gross",
+                          "reason",
+                          "followUp",
+                          "remittedOn"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "drafts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "invoiceId": {
+                            "type": "string"
+                          },
+                          "invoice": {
+                            "type": "string"
+                          },
+                          "client": {
+                            "type": "string"
+                          },
+                          "scope": {
+                            "type": "string",
+                            "enum": [
+                              "PARTIAL",
+                              "TOTAL"
+                            ]
+                          },
+                          "lines": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "lineId": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 64
+                                },
+                                "net": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 2000000000
+                                }
+                              },
+                              "required": [
+                                "lineId",
+                                "net"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "followUp": {
+                            "nullable": true,
+                            "type": "string",
+                            "enum": [
+                              "NEXT_REMITTANCE",
+                              "TRANSFER",
+                              "DEDUCTED"
+                            ]
+                          },
+                          "updatedAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "invoiceId",
+                          "invoice",
+                          "client",
+                          "scope",
+                          "lines",
+                          "reason",
+                          "followUp",
+                          "updatedAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "nextNumber": {
+                      "type": "string"
+                    },
+                    "nextRemittance": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    "firm": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "address": {
+                          "type": "string"
+                        },
+                        "phone": {
+                          "type": "string"
+                        },
+                        "siren": {
+                          "type": "string"
+                        },
+                        "vat": {
+                          "type": "string"
+                        },
+                        "rcs": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "address",
+                        "phone",
+                        "siren",
+                        "vat",
+                        "rcs"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "invoices",
+                    "items",
+                    "drafts",
+                    "nextNumber",
+                    "nextRemittance",
+                    "firm"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "remittances"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      },
+      "post": {
+        "operationId": "CreditNotesController_issue",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "number": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "number"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "remittances"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      }
+    },
+    "/staff/credit-notes/drafts": {
+      "post": {
+        "operationId": "CreditNotesController_create",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "remittances"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      }
+    },
+    "/staff/credit-notes/drafts/{id}": {
+      "put": {
+        "operationId": "CreditNotesController_change",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "remittances"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      },
+      "delete": {
+        "operationId": "CreditNotesController_remove",
         "parameters": [],
         "responses": {
           "204": {
@@ -4049,6 +4788,96 @@
                 }
               }
             }
+          }
+        },
+        "tags": [
+          "gdpr"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      }
+    },
+    "/staff/gdpr/requests/{id}/erasure": {
+      "get": {
+        "operationId": "GdprController_erasure",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "cases": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "digest": {
+                      "type": "string"
+                    },
+                    "blockers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "OPEN_CASE",
+                          "PAYMENT_PENDING",
+                          "NOT_REMITTED",
+                          "REQUEST_CLOSED"
+                        ]
+                      }
+                    },
+                    "homonyms": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "warning": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "cases",
+                    "digest",
+                    "blockers",
+                    "homonyms",
+                    "warning"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "gdpr"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      },
+      "post": {
+        "operationId": "GdprController_erase",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
           }
         },
         "tags": [

@@ -1,4 +1,5 @@
 import {
+  AI_JOURNAL_PAGE,
   newMailbox,
   canAccessTechnicalSettings,
   firmGroups,
@@ -7,6 +8,7 @@ import {
   INTERNAL_SECRETS,
   SERVICE_SECRETS,
   type ServiceSecret,
+  type AiJournalEntry,
   type GdprRequest,
   type Mailbox,
   type SecretItem,
@@ -27,6 +29,19 @@ const staff = (session: Session) => session.role !== 'CREDITOR';
 
 const seedGroups = () => ({ firm: asInMockup(firmGroups()), technical: asInMockup(technicalGroups()) });
 let groups = seedGroups();
+const cabinetField = (field: string) =>
+  groups.firm
+    .flatMap((group) => group.items)
+    .find((item) => item.id === 'cabinet')
+    ?.blocks.flatMap((block) => block.fields)
+    .find((item) => item.id === field);
+/** A value of Paramètres › Cabinet, as the documents of the firm print it. */
+export const firmText = (field: string) => cabinetField(field)?.value ?? '';
+/** Tests only: the Director has typed this value. */
+export const setFirmText = (field: string, value: string) => {
+  const item = cabinetField(field);
+  if (item) item.value = value;
+};
 const SCOPES: Record<string, 'firm' | 'technical'> = { firm: 'firm', techniques: 'technical' };
 const scopeOf = (value: unknown) => SCOPES[String(value)] ?? null;
 const canRead = (scope: 'firm' | 'technical', session: Session) => (scope === 'technical' ? canAccessTechnicalSettings(session) : staff(session));
@@ -158,6 +173,31 @@ const onBox = (resolve: (item: Mailbox, session: Session, info: Info) => Respons
     const item = boxes.find((entry) => entry.id === info.params.id);
     return item ? resolve(item, session, info) : notFound();
   });
+
+/** The journal of the assistant, from the mockup (Reglages, iaLogRows): only the summary of a case exists so far. */
+const AI_JOURNAL: AiJournalEntry[] = (
+  [
+    ['2026-11-23T09:42:00Z', 'DOS-2026-0142', 'Camille Laurent', 'ACCEPTED'],
+    ['2026-11-23T09:15:00Z', 'DOS-2026-0170', 'Camille Laurent', 'MODIFIED'],
+    ['2026-11-23T08:58:00Z', 'DOS-2026-0151', 'Thomas Giraud', 'ACCEPTED'],
+    ['2026-11-22T16:20:00Z', 'DOS-2026-0098', 'Hugo Benali', 'REPORTED'],
+    ['2026-11-22T15:03:00Z', 'DOS-2026-0181', 'Sarah Morel', 'MODIFIED'],
+    ['2026-11-22T13:47:00Z', 'DOS-2026-0177', 'Thomas Giraud', 'IGNORED'],
+  ] as const
+).map(([at, caseReference, colleague, decision], index) => ({
+  id: `ia-${index + 1}`,
+  at,
+  feature: 'CASE_SUMMARY',
+  caseReference,
+  input: `${index + 2} factures, ${12 + index} événements, ${1480 + index * 37} caractères`,
+  model: 'modele-avance',
+  promptVersion: 'synthese-dossier-v2',
+  outcome: 'SUGGESTED',
+  decision,
+  colleague,
+  tokens: 620 + index * 15,
+  costMicro: 4200 + index * 130,
+}));
 
 export const settingsHandlers = [
   http.get(
@@ -413,6 +453,31 @@ export const settingsHandlers = [
     }),
   ),
   // No deletion from the application: it is only done in the OVH customer area.
+  http.get(
+    '/api/ai/journal',
+    guarded(canAccessTechnicalSettings, ({ request }, session) => {
+      const query = new URL(request.url).searchParams;
+      const page = Math.max(1, Number(query.get('page') ?? '1') || 1);
+      const size = [25, 50, 100].includes(Number(query.get('size'))) ? Number(query.get('size')) : AI_JOURNAL_PAGE;
+      const count = (decision: AiJournalEntry['decision']) => AI_JOURNAL.filter((item) => item.decision === decision).length;
+      return HttpResponse.json({
+        // The Developer reads no case.
+        items: AI_JOURNAL.slice((page - 1) * size, page * size).map((item) =>
+          session.role === 'DIRECTOR' ? item : { ...item, caseReference: null },
+        ),
+        page,
+        pageSize: size,
+        total: AI_JOURNAL.length,
+        last30Days: {
+          suggested: AI_JOURNAL.length,
+          accepted: count('ACCEPTED'),
+          modified: count('MODIFIED'),
+          ignored: count('IGNORED'),
+          reported: count('REPORTED'),
+        },
+      });
+    }),
+  ),
   http.get(
     '/api/gdpr/requests',
     guarded(keepsRegistry, () => HttpResponse.json({ items: registry })),

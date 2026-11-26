@@ -41,6 +41,17 @@ export class Storage {
     return readFile(this.path(key));
   }
 
+  /** A file erased by the retention: whether it was still there (it is again after a restoration of the disk). */
+  async erase(key: string): Promise<boolean> {
+    try {
+      await rm(this.path(key));
+      return true;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false;
+      throw error;
+    }
+  }
+
   /** A file whose row was never written, or that ClamAV found infected. */
   async remove(key: string): Promise<void> {
     await rm(this.path(key), { force: true });

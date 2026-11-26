@@ -60,6 +60,22 @@ describe('settings', () => {
     expect((await call('ad', '/settings/firm/cabinet?version=0', { iban: '[IBAN DU COMPTE DÉDIÉ]' }, 'PUT')).status).toBe(204);
     expect(await (await call('ad', '/settings/technical/audit')).text()).not.toContain('Identifiants du cabinet modifiés');
   });
+  it('lets the Director validate a plan on his own cases only, then the creditor agree (question 86)', async () => {
+    const roles = openAs('ad', '/parametres/roles');
+    const row = (await screen.findByRole('cell', { name: 'Valider un échéancier, une remise ou un abandon de créance' })).closest('tr')!;
+    expect(within(row).getAllByRole('cell').map((cell) => cell.textContent)).toEqual([
+      'Valider un échéancier, une remise ou un abandon de créance',
+      'Non',
+      'Ses dossiers',
+      'Oui',
+      'Non',
+    ]);
+    roles.unmount();
+    openAs('ad', '/parametres/regles');
+    expect(
+      await screen.findByText('Validation par le Responsable du recouvrement (par le Directeur sur ses dossiers), puis accord du créancier'),
+    ).toBeVisible();
+  });
   it('keeps technical settings for the Developer and the Director', async () => {
     openAs('cl', '/parametres/techniques');
     expect(await screen.findByText('Réservé au rôle Développeur')).toBeVisible();
@@ -227,6 +243,39 @@ describe('mailboxes', () => {
       await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
     }
     expect(screen.getAllByText('Fait')).toHaveLength(3);
+  });
+});
+
+describe('journal of the assistant', () => {
+  it('shows each suggestion with its case, its colleague and its decision to the Director, a page at a time', async () => {
+    openAs('ad', '/parametres/ia');
+    const table = await screen.findByRole('table', { name: 'Journal de l’IA' });
+    expect(within(table).getByText('DOS-2026-0142')).toBeVisible();
+    expect(within(table).getAllByText('Synthèse du dossier')).toHaveLength(6);
+    expect(within(table).getByText('Signalée')).toBeVisible();
+    expect(screen.getByText(/30 derniers jours : 40 % acceptées telles quelles, 40 % modifiées, 20 % ignorées, 1 signalement\./)).toBeVisible();
+    expect(screen.getByRole('navigation', { name: 'Pages du journal de l’IA' })).toHaveTextContent('1–6 sur 6 suggestions');
+    expect(await axeViolations(document.body)).toEqual([]);
+  });
+  it('gives no case to the Developer', async () => {
+    openAs('dev', '/parametres/ia');
+    const table = await screen.findByRole('table', { name: 'Journal de l’IA' });
+    expect(within(table).queryByText(/DOS-2026/)).toBeNull();
+  });
+  it('is refused to the other roles, on the screen and by the API', async () => {
+    openAs('hb', '/parametres/ia');
+    expect(await screen.findByText('Le journal de l’IA est réservé au Directeur et au Développeur.')).toBeVisible();
+    expect(screen.queryByRole('table', { name: 'Journal de l’IA' })).toBeNull();
+    for (const who of ['hb', 'cl']) expect((await call(who, '/ai/journal')).status).toBe(403);
+  });
+  it('says when it is empty, and offers to try again after an error', async () => {
+    const empty = { items: [], page: 1, pageSize: 25, total: 0, last30Days: { suggested: 0, accepted: 0, modified: 0, ignored: 0, reported: 0 } };
+    server.use(http.get('/api/ai/journal', () => HttpResponse.json({ code: 'INTERNAL' }, { status: 500 })));
+    openAs('ad', '/parametres/ia');
+    expect(await screen.findByRole('button', { name: 'Réessayer' })).toBeVisible();
+    server.use(http.get('/api/ai/journal', () => HttpResponse.json(empty)));
+    await userEvent.click(screen.getByRole('button', { name: 'Réessayer' }));
+    expect(await screen.findByText('Aucune suggestion pour le moment')).toBeVisible();
   });
 });
 

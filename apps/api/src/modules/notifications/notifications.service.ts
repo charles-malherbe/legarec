@@ -105,6 +105,21 @@ export class NotificationsService {
               href: '/parametres/ia',
               cta: 'Voir le budget',
             };
+          case 'DEBTOR_BLOCKED':
+            return about
+              ? {
+                  text: `Accès de ${about.debtor.name} au portail de paiement bloqué après dix codes faux : régénérez le code pour le débloquer`,
+                  meta: `Dossier ${about.reference}`,
+                  href: `/debiteurs/${about.id}`,
+                  cta: 'Ouvrir le dossier',
+                }
+              : { text: 'Accès d’un débiteur au portail de paiement bloqué après dix codes faux', meta: 'Accès débiteur', ...HERE };
+          case 'DEBTOR_ACCESS_ALERT':
+            return {
+              text: 'Accès débiteur : plus de 200 codes faux en une heure. Les adresses en cause sont suspendues 15 minutes.',
+              meta: 'Sécurité de l’accès débiteur',
+              ...JOURNAL,
+            };
           case 'SUBSTITUTE_NOTICE':
             return { text: `Absence de ${signed(target)} : ses dossiers ont reçu une nouveauté`, meta: 'Remplacement', ...HERE };
           default:

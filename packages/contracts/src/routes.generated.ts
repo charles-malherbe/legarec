@@ -912,6 +912,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/staff/ai/journal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AiJournalController_journal"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/staff/reminders": {
         parameters: {
             query?: never;
@@ -1024,6 +1040,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/staff/credit-notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CreditNotesController_list"];
+        put?: never;
+        post: operations["CreditNotesController_issue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/credit-notes/drafts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CreditNotesController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/credit-notes/drafts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["CreditNotesController_change"];
+        post?: never;
+        delete: operations["CreditNotesController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/staff/gdpr/requests": {
         parameters: {
             query?: never;
@@ -1066,6 +1130,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["GdprController_export"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/gdpr/requests/{id}/erasure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GdprController_erasure"];
+        put?: never;
+        post: operations["GdprController_erase"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3671,6 +3751,53 @@ export interface operations {
             };
         };
     };
+    AiJournalController_journal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: {
+                            id: string;
+                            at: string;
+                            /** @enum {string} */
+                            feature: "CASE_SUMMARY";
+                            caseReference: string | null;
+                            input: string;
+                            model: string | null;
+                            promptVersion: string;
+                            /** @enum {string} */
+                            outcome: "SUGGESTED" | "REFUSED_BY_GUARD" | "FAILED" | "OVER_BUDGET";
+                            /** @enum {string} */
+                            decision: "PENDING" | "ACCEPTED" | "MODIFIED" | "IGNORED" | "REPORTED";
+                            colleague: string | null;
+                            tokens: number;
+                            costMicro: number;
+                        }[];
+                        page: number;
+                        pageSize: number;
+                        total: number;
+                        last30Days: {
+                            suggested: number;
+                            accepted: number;
+                            modified: number;
+                            ignored: number;
+                            reported: number;
+                        };
+                    };
+                };
+            };
+        };
+    };
     RemindersController_agenda: {
         parameters: {
             query?: never;
@@ -3824,6 +3951,7 @@ export interface operations {
                             feesNet: number;
                             feesVat: number;
                             feesGross: number;
+                            credits: number;
                             toPay: number;
                             accountId: string | null;
                             account: string | null;
@@ -3927,6 +4055,7 @@ export interface operations {
                             feesNet: number;
                             feesVat: number;
                             feesGross: number;
+                            credits: number;
                             toPay: number;
                             accountId: string | null;
                             account: string | null;
@@ -3939,6 +4068,189 @@ export interface operations {
         };
     };
     RemittancesController_paid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreditNotesController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        invoices: {
+                            id: string;
+                            number: string;
+                            /** Format: date */
+                            issuedOn: string;
+                            client: {
+                                id: string;
+                                name: string;
+                                legalName: string;
+                                address: string;
+                                siren: string | null;
+                                vatNumber: string | null;
+                            };
+                            net: number;
+                            vat: number;
+                            gross: number;
+                            left: number;
+                            /** Format: date */
+                            settledOn: string | null;
+                            credited: number;
+                            lines: {
+                                id: string;
+                                label: string;
+                                net: number;
+                                vat: number;
+                                leftNet: number;
+                                leftVat: number;
+                            }[];
+                        }[];
+                        items: {
+                            id: string;
+                            number: string;
+                            /** Format: date */
+                            issuedOn: string;
+                            client: {
+                                id: string;
+                                name: string;
+                                legalName: string;
+                                address: string;
+                                siren: string | null;
+                                vatNumber: string | null;
+                            };
+                            invoiceId: string;
+                            invoice: string;
+                            /** Format: date */
+                            invoiceIssuedOn: string;
+                            /** @enum {string} */
+                            invoiceStatus: "PARTIAL" | "CANCELLED";
+                            /** @enum {string} */
+                            scope: "PARTIAL" | "TOTAL";
+                            net: number;
+                            vat: number;
+                            gross: number;
+                            reason: string;
+                            /** @enum {string} */
+                            followUp: "NEXT_REMITTANCE" | "TRANSFER" | "DEDUCTED";
+                            /** Format: date */
+                            remittedOn: string | null;
+                        }[];
+                        drafts: {
+                            id: string;
+                            invoiceId: string;
+                            invoice: string;
+                            client: string;
+                            /** @enum {string} */
+                            scope: "PARTIAL" | "TOTAL";
+                            lines: {
+                                lineId: string;
+                                net: number;
+                            }[];
+                            reason: string;
+                            /** @enum {string|null} */
+                            followUp: "NEXT_REMITTANCE" | "TRANSFER" | "DEDUCTED" | null;
+                            updatedAt: string;
+                        }[];
+                        nextNumber: string;
+                        /** Format: date */
+                        nextRemittance: string | null;
+                        firm: {
+                            name: string;
+                            address: string;
+                            phone: string;
+                            siren: string;
+                            vat: string;
+                            rcs: string;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    CreditNotesController_issue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        number: string;
+                    };
+                };
+            };
+        };
+    };
+    CreditNotesController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+        };
+    };
+    CreditNotesController_change: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreditNotesController_remove: {
         parameters: {
             query?: never;
             header?: never;
@@ -4041,6 +4353,48 @@ export interface operations {
                         content: unknown;
                     };
                 };
+            };
+        };
+    };
+    GdprController_erasure: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        cases: number;
+                        digest: string;
+                        blockers: ("OPEN_CASE" | "PAYMENT_PENDING" | "NOT_REMITTED" | "REQUEST_CLOSED")[];
+                        homonyms: number;
+                        warning: string | null;
+                    };
+                };
+            };
+        };
+    };
+    GdprController_erase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

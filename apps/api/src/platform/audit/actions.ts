@@ -55,6 +55,7 @@ export const AUDIT_ACTIONS = {
   // Debtors
   DEBTOR_SIGNED_IN: 'Connexion d’un débiteur',
   DEBTOR_ACCESS_BLOCKED: 'Accès d’un débiteur bloqué après dix codes faux',
+  DEBTOR_ACCESS_ALERT: 'Accès débiteur : plus de 200 codes faux en une heure, adresses en cause suspendues 15 minutes',
   // Documents
   DOCUMENT_ATTACHED: 'Document importé et rattaché à un dossier',
   DOCUMENT_TO_FILE: 'Document importé, à classer',
@@ -99,12 +100,16 @@ export const AUDIT_ACTIONS = {
   REMITTANCES_VALIDATED: 'Lot de reversements validé : {count} virements',
   REMITTANCE_RETAINED: 'Créancier retenu du lot de reversements',
   REMITTANCES_PAID: 'Reversements marqués comme versés',
+  CREDIT_NOTE_ISSUED: 'Avoir émis',
+  CREDIT_NOTE_DRAFT_SAVED: 'Brouillon d’avoir enregistré',
+  CREDIT_NOTE_DRAFT_DELETED: 'Brouillon d’avoir supprimé',
   // Registry of the RGPD
   GDPR_REQUEST_ADDED: 'Demande RGPD enregistrée',
   GDPR_REQUEST_ANSWERED: 'Demande RGPD traitée',
   GDPR_REQUEST_REFUSED: 'Demande RGPD refusée',
   GDPR_REQUEST_OPEN: 'Demande RGPD rouverte',
   GDPR_EXPORTED: 'Export RGPD des données d’un débiteur',
+  GDPR_ERASED: 'Données d’un débiteur anonymisées à sa demande : {count} dossiers',
 } as const;
 export type AuditAction = keyof typeof AUDIT_ACTIONS;
 

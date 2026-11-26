@@ -64,6 +64,7 @@ interface Row {
   officer_id: string | null;
   officer: string | null;
   can_act: boolean;
+  anonymized: boolean;
   version: number;
   invoices: number;
   amount: bigint;
@@ -372,6 +373,8 @@ export class CasesService {
     const [row] = await this.rows(sql`AND c.id = ${id}::uuid`);
     if (!row) throw notFound();
     if (!row.can_act) throw forbidden();
+    // Anonymized (retention, erasure): nothing is added to it any more.
+    if (row.anonymized) throw conflict('CHANGED');
     return row;
   }
 
@@ -476,7 +479,7 @@ export class CasesService {
   private rows(where: Sql): Promise<Row[]> {
     return this.database.tx.$queryRaw<Row[]>`
       SELECT c.id, c.reference, c.creditor_id, k.name AS creditor, d.name, d.kind, d.siren, c.debtor_siret AS siret, c.status, c.first_letter_on, c.officer_id, c.version,
-        CASE WHEN u.id IS NOT NULL THEN u.first_name || ' ' || u.last_name END AS officer, app.can_act_on_case(c.officer_id) AS can_act,
+        CASE WHEN u.id IS NOT NULL THEN u.first_name || ' ' || u.last_name END AS officer, app.can_act_on_case(c.officer_id) AS can_act, c.anonymized_at IS NOT NULL AS anonymized,
         coalesce(i.invoices, 0)::int AS invoices, coalesce(i.amount, 0)::bigint AS amount, i.oldest
       FROM cases c JOIN creditors k ON k.id = c.creditor_id JOIN debtors d ON d.id = c.debtor_id LEFT JOIN users u ON u.id = c.officer_id
       LEFT JOIN LATERAL (
