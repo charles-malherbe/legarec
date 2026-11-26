@@ -14,6 +14,7 @@ import { newClaim } from './portal';
 import { preferences } from './roles';
 import { newMailbox, newSecret, redirectionTarget, renewedSecret } from './settings';
 import { billingType, newMember, staffRole } from './steering';
+import { cents } from './money';
 
 /** Body of every request of the portals: the only definition, read by the API, the forms and the simulations. */
 
@@ -21,6 +22,18 @@ const id = z.string().min(1).max(ID_MAX);
 const ids = z.array(id).min(1).max(500);
 const line = (max: number) => z.string().trim().min(1).max(max);
 const reason = z.string().trim().max(500).optional();
+const day = z.iso.date();
+/** A total of a batch: a billion euros, far above any. */
+const TOTAL_MAX = 100_000_000_000;
+/** The batch as it was shown: totals expected, creditors kept out with their reason (R7). */
+export const remittanceValidation = z.object({
+  until: day,
+  /** Each transfer as it was shown: creditor, amount and account; any difference and nothing is validated. */
+  expected: z.array(z.object({ creditorId: id, toPay: cents.min(0).max(TOTAL_MAX), accountId: id })).max(500),
+  retained: z.array(z.object({ creditorId: id, reason: line(500) })).max(500),
+});
+export const remittancePaid = z.object({ paidOn: day, expectedTotal: cents.min(0).max(TOTAL_MAX) });
+
 /** Six digits of an application, or a backup code: a wrong one is answered by the API, like any other. */
 const oneTimeCode = z.string().trim().min(1).max(20);
 /** Answer of the browser, checked by the API itself: only its size is bounded here. */
@@ -229,6 +242,8 @@ export const REQUEST_BODIES = {
     'POST /sms/:id/messages': smsBody,
     'POST /sms/:id/link': linkBody,
     'POST /billing': billingBody,
+    'POST /remittances': remittanceValidation,
+    'POST /remittances/:id/paid': remittancePaid,
     'PUT /reports/scheduled/:id': activeBody,
     'POST /members': newMember,
     'PUT /members/:id/role': memberRoleBody,

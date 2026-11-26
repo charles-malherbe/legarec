@@ -880,6 +880,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/staff/remittances/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["RemittancesController_draft"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/remittances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["RemittancesController_list"];
+        put?: never;
+        post: operations["RemittancesController_validate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/remittances/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["RemittancesController_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/remittances/{id}/paid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["RemittancesController_paid"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/staff/gdpr/requests": {
         parameters: {
             query?: never;
@@ -3462,6 +3526,164 @@ export interface operations {
         };
     };
     NotificationsController_markRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RemittancesController_draft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date */
+                        until: string;
+                        rows: {
+                            creditorId: string;
+                            creditor: string;
+                            /** @enum {string} */
+                            state: "READY" | "BELOW_MINIMUM" | "NO_ACCOUNT" | "NO_MANDATE" | "RETAINED" | "PAID";
+                            payments: number;
+                            collected: number;
+                            feesNet: number;
+                            feesVat: number;
+                            feesGross: number;
+                            toPay: number;
+                            accountId: string | null;
+                            account: string | null;
+                            invoice: string | null;
+                            reason: string | null;
+                        }[];
+                        total: number;
+                        transfers: number;
+                    };
+                };
+            };
+        };
+    };
+    RemittancesController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: {
+                            id: string;
+                            /** Format: date */
+                            until: string;
+                            /** @enum {string} */
+                            status: "VALIDATED" | "PAID";
+                            total: number;
+                            transfers: number;
+                            validatedAt: string;
+                            validatedBy: string;
+                            /** Format: date */
+                            paidOn: string | null;
+                        }[];
+                    };
+                };
+            };
+        };
+    };
+    RemittancesController_validate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+        };
+    };
+    RemittancesController_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        /** Format: date */
+                        until: string;
+                        /** @enum {string} */
+                        status: "VALIDATED" | "PAID";
+                        total: number;
+                        transfers: number;
+                        validatedAt: string;
+                        validatedBy: string;
+                        /** Format: date */
+                        paidOn: string | null;
+                        rows: {
+                            creditorId: string;
+                            creditor: string;
+                            /** @enum {string} */
+                            state: "READY" | "BELOW_MINIMUM" | "NO_ACCOUNT" | "NO_MANDATE" | "RETAINED" | "PAID";
+                            payments: number;
+                            collected: number;
+                            feesNet: number;
+                            feesVat: number;
+                            feesGross: number;
+                            toPay: number;
+                            accountId: string | null;
+                            account: string | null;
+                            invoice: string | null;
+                            reason: string | null;
+                        }[];
+                    };
+                };
+            };
+        };
+    };
+    RemittancesController_paid: {
         parameters: {
             query?: never;
             header?: never;

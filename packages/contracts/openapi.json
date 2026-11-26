@@ -3095,6 +3095,467 @@
         }
       }
     },
+    "/staff/remittances/draft": {
+      "get": {
+        "operationId": "RemittancesController_draft",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "until": {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    "rows": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "creditorId": {
+                            "type": "string"
+                          },
+                          "creditor": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "READY",
+                              "BELOW_MINIMUM",
+                              "NO_ACCOUNT",
+                              "NO_MANDATE",
+                              "RETAINED",
+                              "PAID"
+                            ]
+                          },
+                          "payments": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "collected": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "feesNet": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "feesVat": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "feesGross": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "toPay": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "accountId": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "account": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "invoice": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "reason": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "creditorId",
+                          "creditor",
+                          "state",
+                          "payments",
+                          "collected",
+                          "feesNet",
+                          "feesVat",
+                          "feesGross",
+                          "toPay",
+                          "accountId",
+                          "account",
+                          "invoice",
+                          "reason"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "total": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "transfers": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "until",
+                    "rows",
+                    "total",
+                    "transfers"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "remittances"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      }
+    },
+    "/staff/remittances": {
+      "post": {
+        "operationId": "RemittancesController_validate",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "remittances"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      },
+      "get": {
+        "operationId": "RemittancesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "until": {
+                            "type": "string",
+                            "format": "date",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "VALIDATED",
+                              "PAID"
+                            ]
+                          },
+                          "total": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "transfers": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "validatedAt": {
+                            "type": "string"
+                          },
+                          "validatedBy": {
+                            "type": "string"
+                          },
+                          "paidOn": {
+                            "nullable": true,
+                            "type": "string",
+                            "format": "date",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "until",
+                          "status",
+                          "total",
+                          "transfers",
+                          "validatedAt",
+                          "validatedBy",
+                          "paidOn"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "remittances"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      }
+    },
+    "/staff/remittances/{id}": {
+      "get": {
+        "operationId": "RemittancesController_detail",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "until": {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "VALIDATED",
+                        "PAID"
+                      ]
+                    },
+                    "total": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "transfers": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "validatedAt": {
+                      "type": "string"
+                    },
+                    "validatedBy": {
+                      "type": "string"
+                    },
+                    "paidOn": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    "rows": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "creditorId": {
+                            "type": "string"
+                          },
+                          "creditor": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "READY",
+                              "BELOW_MINIMUM",
+                              "NO_ACCOUNT",
+                              "NO_MANDATE",
+                              "RETAINED",
+                              "PAID"
+                            ]
+                          },
+                          "payments": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "collected": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "feesNet": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "feesVat": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "feesGross": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "toPay": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "accountId": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "account": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "invoice": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "reason": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "creditorId",
+                          "creditor",
+                          "state",
+                          "payments",
+                          "collected",
+                          "feesNet",
+                          "feesVat",
+                          "feesGross",
+                          "toPay",
+                          "accountId",
+                          "account",
+                          "invoice",
+                          "reason"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "until",
+                    "status",
+                    "total",
+                    "transfers",
+                    "validatedAt",
+                    "validatedBy",
+                    "paidOn",
+                    "rows"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "remittances"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      }
+    },
+    "/staff/remittances/{id}/paid": {
+      "post": {
+        "operationId": "RemittancesController_paid",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "remittances"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      }
+    },
     "/staff/gdpr/requests": {
       "post": {
         "operationId": "GdprController_add",

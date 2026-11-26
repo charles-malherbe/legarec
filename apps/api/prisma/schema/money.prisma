@@ -85,6 +85,7 @@ model Payment {
   receivedOn   DateTime      @map("received_on") @db.Date
   depositedOn  DateTime?     @map("deposited_on") @db.Date
   settledAt    DateTime?     @map("settled_at") @db.Timestamptz(3)
+  settledInLitigation Boolean? @map("settled_in_litigation")
   bouncedAt    DateTime?     @map("bounced_at") @db.Timestamptz(3)
   bounceReason String?       @map("bounce_reason")
   chequeNumber String?       @map("cheque_number")
