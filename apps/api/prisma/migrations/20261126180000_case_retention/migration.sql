@@ -28,7 +28,7 @@ ALTER TABLE cases
 CREATE INDEX cases_to_forget ON cases (closed_on) WHERE anonymized_at IS NULL AND closed_on IS NOT NULL;
 
 -- Receipts, statements of remittances and signed payment plans are pieces of accounting: ten years, whatever becomes of
--- their case (question 166).
+-- their case (question 169).
 ALTER TABLE documents
   ADD COLUMN retention_class retention_class NOT NULL GENERATED ALWAYS AS (
     CASE WHEN category IN ('RECEIPT', 'REMITTANCE', 'PAYMENT_PLAN') THEN 'ACCOUNTING'::retention_class ELSE 'CASE'::retention_class END) STORED,
