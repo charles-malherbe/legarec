@@ -178,7 +178,7 @@ BEGIN
   SELECT count(*)::integer INTO cases FROM public.cases c WHERE c.debtor_id = asked.debtor_id AND c.anonymized_at IS NULL;
   blockers := app.erasure_blockers(asked.debtor_id);
   IF asked.status <> 'OPEN' THEN
-    blockers := blockers || 'REQUEST_CLOSED';
+    blockers := array_append(blockers, 'REQUEST_CLOSED');
   END IF;
 END
 $$;
@@ -213,7 +213,7 @@ BEGIN
   UPDATE public.gdpr_requests g SET status = 'ANSWERED', answered_at = now(), answered_by = app.user_id(),
     reason = 'Données anonymisées ; quittances, factures, paiements et reversements conservés 10 ans (obligation légale).'
   WHERE g.id = target;
-  PERFORM app.log('GDPR_ERASED', 'gdpr_request', target, '{}'::jsonb);
+  PERFORM app.log('GDPR_ERASED', 'gdpr_request', target, jsonb_build_object('count', least(cardinality(held), 999)));
   RETURN cardinality(held);
 END
 $$;
