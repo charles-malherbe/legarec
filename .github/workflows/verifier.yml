@@ -35,5 +35,7 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # The PDF of the tests are written by the Chromium of Playwright, at the version of the lockfile.
+      - run: pnpm exec playwright install --with-deps chromium-headless-shell
       - run: pnpm verifier
       - run: pnpm --filter @legarec/api build
