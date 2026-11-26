@@ -21,7 +21,7 @@ import { Database, type Transaction } from '../../platform/database/database';
 import { takenIndex } from '../../platform/database/codes';
 import { containing, nothing, sql, type Sql } from '../../platform/database/sql';
 import { ApiError, conflict, forbidden, notFound } from '../../platform/errors/api-error';
-import { dayOf, longDay } from '../../platform/format';
+import { dayOf, longDay, timeOf } from '../../platform/format';
 import { AccessCodes } from '../debtor-access/access-codes';
 import { currentOf, dayText, termsOf } from '../creditors/mandates';
 import { lateDays } from '../creditors/late';
@@ -116,6 +116,18 @@ export class CasesService {
     };
   }
 
+  /** The last summary of the assistant, unless it was reported: always shown as « Proposé par l'IA ». */
+  private async aiSummary(id: string): Promise<CaseDetail['aiSummary']> {
+    const last = await this.database.tx.aiSuggestion.findFirst({
+      where: { caseId: id, feature: 'CASE_SUMMARY', outcome: 'SUGGESTED', decision: { not: 'REPORTED' } },
+      orderBy: { createdAt: 'desc' },
+      select: { output: true, events: true, createdAt: true },
+    });
+    const lines = (last?.output as { lines?: { k: string; v: string }[] } | null)?.lines;
+    if (!last || !lines) return null;
+    return { events: last.events, updated: `le ${dayOf(last.createdAt).slice(8, 10)}/${dayOf(last.createdAt).slice(5, 7)} à ${timeOf(last.createdAt)}`, lines };
+  }
+
   async detail(actor: StaffActor, id: string): Promise<CaseDetail> {
     const { tx } = this.database;
     const [row] = await this.rows(sql`AND c.id = ${id}::uuid`);
@@ -164,7 +176,7 @@ export class CasesService {
         email: main('EMAIL'),
         address: [found.debtorAddress, [found.debtorPostalCode, found.debtorCity].filter(Boolean).join(' ')].filter(Boolean).join(', '),
       },
-      aiSummary: null,
+      aiSummary: await this.aiSummary(id),
       invoices: found.invoices.map((invoice) => ({
         number: invoice.number,
         issued: dayText(invoice.issuedOn),

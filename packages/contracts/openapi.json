@@ -3095,6 +3095,50 @@
         }
       }
     },
+    "/staff/cases/{id}/ai-summary": {
+      "post": {
+        "operationId": "AiController_regenerate",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ai"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      }
+    },
+    "/staff/cases/{id}/ai-summary/report": {
+      "post": {
+        "operationId": "AiController_report",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ai"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      }
+    },
     "/staff/reminders": {
       "get": {
         "operationId": "RemindersController_agenda",

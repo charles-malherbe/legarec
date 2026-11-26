@@ -5,6 +5,8 @@ import { inject } from 'vitest';
 import { emailConfigOf } from '../src/emails/config';
 import { EmailsService } from '../src/emails/emails.service';
 import { EmailRenderer, TEMPLATES_DIR } from '../src/emails/renderer';
+import { aiJobs } from '../src/ai/ai.jobs';
+import type { AiSetup } from '../src/ai/provider';
 import { accountJobs } from '../src/modules/auth/auth.jobs';
 import { AuthKeys } from '../src/modules/auth/keys';
 import { accessCodeJobs } from '../src/modules/debtor-access/access-codes.jobs';
@@ -32,7 +34,7 @@ export interface Mail {
 }
 
 /** The real worker, whose e-mails go nowhere. */
-export function startMailWorker(test: TestApp) {
+export function startMailWorker(test: TestApp, { ai }: { ai?: AiSetup } = {}) {
   const prefix = `test-${randomBytes(5).toString('hex')}`;
   const logger = createLogger('debug', new Writable({ write: (chunk: Buffer, _encoding, done) => (test.logs.push(chunk.toString()), done()) }));
   const database = new Database(test.database.url('jobs'));
@@ -56,6 +58,7 @@ export function startMailWorker(test: TestApp) {
     maintenance: accessCodeJobs(new Vault(test.config)),
     documents: documentJobs(storageFor(test.config), new SimulatedScanner()),
     pdf: receiptJobs(storageFor(test.config), pdf, fileURLToPath(new URL('../templates/pdf/', import.meta.url))),
+    ai: aiJobs(() => ai ?? null, new Vault(test.config)),
   };
   const workers = startWorkers({ database, logger, connection: valkey, handlers, prefix });
   const publisher = new OutboxPublisher(database, logger, valkey, prefix);
