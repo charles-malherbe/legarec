@@ -195,6 +195,8 @@ media.legarec.fr {
 		header_up -Referer
 		header_up -User-Agent
 		header_down -Set-Cookie
+		# Nothing of the provider goes down to the visitor.
+		header_down -X-Amz-*
 		# Versioned paths, never replaced: kept for a year, but not an error.
 		@found status 200 206 304
 		handle_response @found {
