@@ -29,7 +29,7 @@ Conteneurs permanents : 4,9 Go au plus. Réserver 2,5 Go pour ClamAV et n8n, à 
 | `infra/caddy/` | Proxy et serveur des portails |
 | `infra/postgres/`, `infra/valkey/` | Base, sauvegardes, files |
 | `infra/gatus/`, `infra/loki/`, `infra/grafana/` | Surveillance et journaux |
-| `infra/systemd/` | Minuteries des sauvegardes et de l'essai de restauration |
+| `infra/systemd/` | Minuteries des sauvegardes, de leur vérification et de l'essai de restauration |
 | `infra/valeurs/` | Modèles des fichiers de `/etc/legarec/` (noms seulement) |
 | `infra/deployer.sh` | Déploiement, lancé par le cabinet |
 | `infra/ci/`, `.github/workflows/images.yml` | Essai complet dans GitHub Actions, sans secret ni publication |
@@ -128,7 +128,7 @@ sudo install -o root -g 10101 -m 640 /opt/legarec/infra/valeurs/api.env.exemple 
 4. Minuteries : copier `infra/systemd/*` dans `/etc/systemd/system/`, puis les activer.
 
    ```bash
-   sudo systemctl enable --now legarec-sauvegarde.timer legarec-sauvegarde-complete.timer legarec-essai-restauration.timer
+   sudo systemctl enable --now legarec-sauvegarde.timer legarec-sauvegarde-complete.timer legarec-verification-sauvegardes.timer legarec-essai-restauration.timer
    ```
 
 5. Premier Directeur, une seule fois. Le lien s'affiche une fois dans le terminal ; toujours `exec`, jamais `run`. Ajouter à la fin l'adresse, le prénom et le nom.
@@ -195,7 +195,7 @@ Retour en arrière : `sudo git -C /opt/legarec checkout <version précédente>`,
    ```
 
    ```bash
-   sudo systemctl start legarec-sauvegarde.timer legarec-sauvegarde-complete.timer legarec-essai-restauration.timer
+   sudo systemctl start legarec-sauvegarde.timer legarec-sauvegarde-complete.timer legarec-verification-sauvegardes.timer legarec-essai-restauration.timer
    ```
 
 Répétition à blanc : seulement par `legarec run --rm essai-restauration`, jamais sur une autre machine avec `pgbackrest.env`, qui écrirait dans les sauvegardes de production.
@@ -260,6 +260,6 @@ Journaux : ni adresse IP, ni chemin, ni en-tête dans ceux de Caddy ; ni requêt
 - Gatus : contrôle du bucket des documents (lot N).
 - Purge à la demande après une restauration : faite (`dist/purge.js`, étape 6 de « Restaurer la base »).
 - **Condition de mise en service** : `legarec-hold-tasks` ne bloque que les tâches en file (`outbox`). Chaque lot qui ajoute un planning dans PostgreSQL (relances, envois groupés, notifications) l'étend à ses tables, avec un test : sinon une relance déjà partie redeviendrait due.
-- `pgbackrest verify` chaque semaine (trou ancien dans le journal) et essai automatique d'une restauration à un instant précis.
+- `pgbackrest verify` chaque semaine : fait (minuterie `legarec-verification-sauvegardes`, dimanche 6 h, surveillée par Gatus). Reste l'essai automatique d'une restauration à un instant précis.
 - Versions du bucket `legarec-documents` : 70 jours (question 115), à revoir au lot N.
 - Contrôle de plusieurs copies de l'API : non prévu, une seule à la fois.

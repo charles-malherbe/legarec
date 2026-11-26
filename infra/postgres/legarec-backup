@@ -1,9 +1,23 @@
 #!/bin/bash
-# One backup: `full` or `incr`. Creates the place of the backups the first time, expires those past their time.
+# One backup, `full` or `incr`, or `verify`: reads every file of the backups and of the journal, and finds a hole or a
+# damaged file before a restoration needs it. Creates the place of the backups the first time, expires those past their time.
 set -euo pipefail
-kind="${1:?full or incr}"
-legarec-pgbackrest stanza-create
-legarec-pgbackrest check
-legarec-pgbackrest --type="$kind" backup
+kind="${1:?full, incr or verify}"
+case "$kind" in
+  full | incr)
+    legarec-pgbackrest stanza-create
+    legarec-pgbackrest check
+    legarec-pgbackrest --type="$kind" backup
+    key=sauvegardes_sauvegarde
+    ;;
+  verify)
+    legarec-pgbackrest verify
+    key=sauvegardes_verification
+    ;;
+  *)
+    echo "unknown: $kind" >&2
+    exit 2
+    ;;
+esac
 # Not told: the monitoring raises the alarm by itself.
-legarec-tell sauvegardes_sauvegarde || echo 'monitoring not told' >&2
+legarec-tell "$key" || echo 'monitoring not told' >&2

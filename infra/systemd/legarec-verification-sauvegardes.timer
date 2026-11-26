@@ -1,0 +1,11 @@
+[Unit]
+Description=Legarec : Vérification des sauvegardes et du journal chaque semaine
+
+[Timer]
+# After the full backup of Sunday night.
+OnCalendar=Sun *-*-* 06:00:00 Europe/Paris
+RandomizedDelaySec=10min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

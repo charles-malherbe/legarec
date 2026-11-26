@@ -90,6 +90,12 @@ external-endpoints:
     heartbeat:
       interval: 26h
     alerts: [{ type: custom, failure-threshold: 1, description: aucune sauvegarde réussie depuis 26 heures }]
+  - name: verification
+    group: sauvegardes
+    token: ${GATUS_BACKUP_TOKEN}
+    heartbeat:
+      interval: 192h
+    alerts: [{ type: custom, failure-threshold: 1, description: aucune vérification des sauvegardes réussie depuis 8 jours }]
   - name: essai-de-restauration
     group: sauvegardes
     token: ${GATUS_RESTORE_TOKEN}

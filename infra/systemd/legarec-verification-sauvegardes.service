@@ -1,0 +1,13 @@
+[Unit]
+Description=Legarec : Vérification des sauvegardes et du journal chaque semaine
+Requires=docker.service
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/legarec
+# The same lock as the backups: never at the same time as one of them.
+ExecStart=/usr/bin/flock --timeout 3600 /run/legarec-sauvegarde.lock /usr/bin/docker compose --file docker-compose.yml --env-file /etc/legarec/version.env run --rm sauvegarde verify
+TimeoutStartSec=6h
+# The container already logs to Loki, where its lines end after 60 days.
+StandardOutput=null
