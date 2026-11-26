@@ -126,6 +126,13 @@ describe('the erasure asked by a debtor', () => {
   });
 
   it('erases only the number of cases shown, once, and keeps the pieces of accounting', async () => {
+    // What the debtor did or said, and the trace of a payment (question 193).
+    await rows(
+      `INSERT INTO case_events (case_id, creditor_id, kind, title, detail, actor_kind, actor_label)
+       SELECT id, creditor_id, k.kind, k.title, 'Texte saisi', 'STAFF', 'Alba' FROM cases, (VALUES ('DISPUTE_RAISED', 'Contestation du débiteur'), ('PAYMENT_RECORDED', 'Paiement enregistré')) AS k(kind, title)
+       WHERE id = $1`,
+      [closed],
+    );
     expect(await erase('officerA', 2)).toMatchObject({ status: 403 });
     expect(await erase('director', 1)).toMatchObject({ status: 409, body: { code: 'CHANGED' } });
     // The same number, but not the cases that were shown.
@@ -147,7 +154,19 @@ describe('the erasure asked by a debtor', () => {
       { contact_name: null, debtor_address: null, anonymized: true },
       { contact_name: null, debtor_address: null, anonymized: true },
     ]);
-    expect(await rows('SELECT count(*)::int AS n FROM case_events WHERE case_id = $1', [closed])).toEqual([{ n: 0 }]);
+    // Asked by the debtor: of the history, the payments and the request alone stay, without what was typed (questions 169, 193).
+    expect(await rows("SELECT kind, detail FROM case_events WHERE case_id = $1 AND kind IN ('DISPUTE_RAISED', 'PAYMENT_RECORDED')", [closed])).toEqual([
+      { kind: 'PAYMENT_RECORDED', detail: null },
+    ]);
+    expect(
+      await rows(
+        "SELECT count(*)::int AS n FROM case_events WHERE case_id = $1 AND NOT (kind LIKE 'PAYMENT%' OR kind LIKE 'PLAN%' OR kind IN ('CASE_SETTLED', 'GDPR_REQUEST'))",
+        [closed],
+      ),
+    ).toEqual([{ n: 0 }]);
+    expect(await rows('SELECT reason FROM gdpr_requests WHERE id = $1', [request])).toEqual([
+      { reason: expect.stringContaining('seule trace de ces paiements et échéanciers dans l’historique') },
+    ]);
     expect(await rows('SELECT amount_cents FROM payments WHERE case_id = $1', [closed])).toEqual([{ amount_cents: 5000 }]);
     expect(await rows('SELECT status, origin, reason IS NOT NULL AS motivated FROM gdpr_requests WHERE id = $1', [request])).toEqual([
       { status: 'ANSWERED', origin: 'Demande anonymisée', motivated: true },

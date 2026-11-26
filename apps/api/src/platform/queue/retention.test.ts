@@ -358,6 +358,17 @@ describe('cases closed for more than five years', () => {
     const young = await closedCase(youngDebtor, '4 years 364 days');
     const exact = await closedCase(await debtor('Paul Durand'), '5 years');
     await rows('INSERT INTO debtor_access_codes (debtor_id, code_cipher) VALUES ($1, $2)', [oldDebtor, hash()]);
+    // A title naming the debtor, written otherwise, and one that names nobody (question 169).
+    await rows(
+      `INSERT INTO case_events (case_id, creditor_id, kind, title, actor_kind, actor_label)
+       VALUES ($1, $2, 'LETTER_SENT', 'Courrier à JEANNE-MARTIN', 'STAFF', 'Alba'), ($1, $2, 'REMINDER_DONE', 'Relance faite', 'STAFF', 'Alba')`,
+      [old, creditor],
+    );
+    // A line eleven years old: past the time of the pieces of accounting (question 192).
+    await rows(
+      "INSERT INTO case_events (case_id, creditor_id, kind, title, actor_kind, actor_label, occurred_at) VALUES ($1, $2, 'CASE_OPENED', 'Dossier ouvert', 'STAFF', 'Alba', now() - interval '11 years')",
+      [old, creditor],
+    );
     const evidence = await document(old, 'EVIDENCE');
     // A receipt, its payment and its PDF: ten years.
     const receipt = await document(old, 'RECEIPT');
@@ -392,8 +403,28 @@ describe('cases closed for more than five years', () => {
         anonymized: true,
       },
     ]);
-    for (const table of ['case_events', 'case_contacts', 'case_contact_events', 'portal_messages', 'planned_reminders', 'debtor_links', 'litigation_files'])
+    for (const table of ['case_contacts', 'case_contact_events', 'portal_messages', 'planned_reminders', 'debtor_links', 'litigation_files'])
       expect(await count(table, old), table).toBe(0);
+    // The history stays without names (question 169): what was typed goes, a title naming the person to reach is replaced,
+    // who of the team acted stays (question 132).
+    expect(await rows('SELECT kind, title, detail, actor_label FROM case_events WHERE case_id = $1 ORDER BY kind', [old])).toEqual([
+      { kind: 'CALL_DONE', title: 'Événement du dossier', detail: null, actor_label: 'Alba' },
+      { kind: 'CASE_OPENED', title: 'Dossier ouvert', detail: null, actor_label: 'Alba' },
+      { kind: 'LETTER_SENT', title: 'Événement du dossier', detail: null, actor_label: 'Alba' },
+      { kind: 'REMINDER_DONE', title: 'Relance faite', detail: null, actor_label: 'Alba' },
+    ]);
+    // Each line then goes as the pieces of accounting, ten years after the end of its year (question 192).
+    await rows('SET ROLE legarec_retention');
+    try {
+      expect((await rows<{ removed: number }>('SELECT app.purge_old_history() AS removed'))[0]!.removed).toBe(1);
+    } finally {
+      await rows('RESET ROLE');
+    }
+    expect((await rows<{ kind: string }>('SELECT kind FROM case_events WHERE case_id = $1 ORDER BY kind', [old])).map((row) => row.kind)).toEqual([
+      'CALL_DONE',
+      'LETTER_SENT',
+      'REMINDER_DONE',
+    ]);
     // The attachment: its line without its names, its file gone; the receipt untouched.
     expect(
       await rows('SELECT title, original_name, shared_with_creditor_at, purged_at IS NOT NULL AS purged FROM documents WHERE id = $1', [evidence.id]),
@@ -496,6 +527,26 @@ describe('cases closed for more than five years', () => {
       }
     }
     expect(await count('case_events', id)).toBe(1);
+    // Nobody empties the history by hand; the forgetter itself changes its title and its text only (question 169).
+    for (const role of ['legarec_staff', 'legarec_definer', 'legarec_worker']) {
+      await rows('BEGIN');
+      try {
+        await rows(`SET LOCAL ROLE ${role}`);
+        await expect(test.admin.query('UPDATE case_events SET detail = NULL WHERE case_id = $1', [id]), role).rejects.toThrow(/permission denied|append-only/u);
+      } finally {
+        await rows('ROLLBACK');
+      }
+    }
+    // The trigger itself, beyond the rights: even given another column for a moment, the forgetter changes nothing else.
+    await rows('BEGIN');
+    try {
+      await rows('GRANT UPDATE (visible_to_creditor) ON case_events TO legarec_forgetter');
+      await rows('SET LOCAL ROLE legarec_forgetter');
+      await expect(test.admin.query('UPDATE case_events SET visible_to_creditor = true WHERE case_id = $1', [id])).rejects.toThrow(/append-only/u);
+    } finally {
+      await rows('ROLLBACK');
+    }
+    expect(await rows('SELECT detail FROM case_events WHERE case_id = $1', [id])).toEqual([{ detail: 'Promet de payer' }]);
   });
 
   it('is done by the retention alone', async () => {
