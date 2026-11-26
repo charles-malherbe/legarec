@@ -143,7 +143,10 @@ export class TemplatesService {
 
   async submit(id: string, acknowledged: boolean): Promise<void> {
     this.item(id);
-    const pending = await this.database.tx.templateVersion.findFirst({ where: { templateCode: id, state: { in: ['IMPORTED', 'RESTORED'] } }, select: { hasWarnings: true } });
+    const pending = await this.database.tx.templateVersion.findFirst({
+      where: { templateCode: id, state: { in: ['IMPORTED', 'RESTORED'] } },
+      select: { hasWarnings: true },
+    });
     // Read again by PostgreSQL, which refuses as well.
     if (pending?.hasWarnings && !acknowledged) throw new ApiError(422, 'WARNINGS');
     await this.database.tx.$executeRaw`SELECT app.submit_template(${id}, ${acknowledged})`;

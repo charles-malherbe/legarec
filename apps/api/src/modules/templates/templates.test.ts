@@ -10,7 +10,8 @@ const call = (as: string, method: string, path: string, body?: unknown) =>
   test.call(method, `/staff/templates${path}`, { as, body, headers: method === 'GET' ? {} : { 'idempotency-key': randomUUID() } });
 const detail = async (as: string, id: string) => templateDetail.parse((await call(as, 'GET', `/${id}`)).body);
 /** The source of the catalogue, its first words changed: what the checks accept. */
-const SOURCE = () => sourceOf(TEMPLATE_CATALOGUE.find((item) => item.id === 'demeure')!).replace('Madame, Monsieur,', 'Madame, Monsieur, nous revenons vers vous.');
+const SOURCE = () =>
+  sourceOf(TEMPLATE_CATALOGUE.find((item) => item.id === 'demeure')!).replace('Madame, Monsieur,', 'Madame, Monsieur, nous revenons vers vous.');
 
 beforeAll(async () => {
   test = await startApp();
