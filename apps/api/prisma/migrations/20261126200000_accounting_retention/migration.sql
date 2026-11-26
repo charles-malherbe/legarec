@@ -50,7 +50,8 @@ BEGIN
       IF TG_TABLE_NAME IN ('case_events', 'case_contact_events', 'payment_allocations', 'receipts', 'remittance_lines', 'billing_documents', 'billing_lines') THEN
         RETURN OLD;
       END IF;
-    ELSIF current_user = 'legarec_definer' AND app.setting('purging') = TG_TABLE_NAME THEN
+    -- app.purge_audit() alone: a setting never opens any other table, not even to a function of the definer.
+    ELSIF current_user = 'legarec_definer' AND TG_TABLE_NAME = 'audit_log' AND app.setting('purging') = 'audit_log' THEN
       RETURN OLD;
     END IF;
   END IF;
