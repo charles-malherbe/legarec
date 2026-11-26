@@ -71,7 +71,7 @@ describe('a creditor', () => {
     expect(box.getByText('Boulangeries Rivaud · SIREN 732 829 007')).toBeVisible();
     expect(box.getByText('8 % HT, 12 % HT en judiciaire')).toBeVisible();
     // Masked, and on behalf of the Director.
-    expect(box.getByText('•••• 5432')).toBeVisible();
+    expect(box.getByText('•••• 5432, à confirmer par un autre collaborateur')).toBeVisible();
     expect(box.getByText('Marie Dubreuil, Directeur')).toBeVisible();
     await userEvent.click(box.getByRole('button', { name: 'Créer le créancier' }));
     expect(await screen.findByText('Boulangeries Rivaud créé.')).toBeVisible();
@@ -209,8 +209,8 @@ describe('the account', () => {
     expect(await (await call('ad', '/settings/techniques/audit')).text()).toContain('IBAN d’un créancier affiché');
   });
 
-  it('is replaced after a confirmation that shows it whole, then confirmed by telephone', async () => {
-    openAs('cl', '/creanciers/md/modifier');
+  it('is replaced after a confirmation that shows it whole, then confirmed by telephone by someone else', async () => {
+    const first = openAs('cl', '/creanciers/md/modifier');
     await userEvent.click(await screen.findByRole('button', { name: 'Remplacer le compte' }));
     await type('Titulaire', 'Matériaux Delta SAS');
     await type('IBAN(?! confirmé)', IBAN);
@@ -221,7 +221,13 @@ describe('the account', () => {
     expect(box.getByText('FR76 •••• •••• 4521')).toBeVisible();
     expect(box.getByText('Marie Dubreuil, Directeur')).toBeVisible();
     await userEvent.click(box.getByRole('button', { name: 'Remplacer le compte' }));
-    expect(await screen.findByText('IBAN à confirmer par téléphone')).toBeVisible();
+    // Whoever typed it does not confirm it (question 142).
+    expect(await screen.findByText('IBAN à confirmer par un autre collaborateur')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Confirmer le compte' })).toBeNull();
+    expect((await call('cl', '/creditors/md/bank-accounts/x/confirm', { confirmedWith: 'Claire Besson' })).status).toBe(409);
+    first.unmount();
+    openAs('ad', '/creanciers/md/modifier');
+    expect(await screen.findByText('Saisi par')).toBeVisible();
     await press('Confirmer le compte');
     expect(await screen.findByText('Indiquez avec qui.')).toBeVisible();
     await type('Confirmé par téléphone avec', 'Claire Besson');

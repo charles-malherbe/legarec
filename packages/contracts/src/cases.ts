@@ -136,6 +136,8 @@ export const caseDetail = caseListItem.extend({
   aiSummary: z.object({ events: z.number().int(), updated: z.string(), lines: z.array(z.object({ k: z.string(), v: z.string() })) }).nullable(),
   invoices: z.array(z.object({ number: z.string(), issued: z.iso.date(), due: z.iso.date(), amount: cents, daysLate: z.number().int() })),
   history: z.array(historyEntry),
+  /** The debtor as it is known, for the Director and the manager who may correct it (question 138); null for the others. */
+  correctable: z.object({ name: z.string(), kind: z.enum(['COMPANY', 'SOLE_TRADER', 'INDIVIDUAL']), hasSiren: z.boolean() }).nullable(),
   exchanges: z.array(exchange),
   payments: z.array(payment),
   documents: z.array(z.object({ id: z.string(), name: z.string(), meta: z.string(), kind: z.enum(['PDF', 'DOCX']) })),
@@ -147,7 +149,8 @@ export const caseDetail = caseListItem.extend({
 });
 export type CaseDetail = z.infer<typeof caseDetail>;
 /** No code when none of the keys opens it any more. */
-export const accessCodeResponse = z.object({ code: z.string().nullable(), version: z.number().int() });
+/** `closed`: shown read only, never renewed from a closed case (question 140). */
+export const accessCodeResponse = z.object({ code: z.string().nullable(), version: z.number().int(), closed: z.boolean() });
 /** The code that was on the screen when it was confirmed. */
 export const renewedCode = z.object({ version: z.number().int().positive().max(1_000_000) });
 export const gdprRequestKind = z.enum(['ACCESS', 'RECTIFICATION', 'OBJECTION', 'ERASURE']);
@@ -307,3 +310,8 @@ export const caseChoices = z.object({
   officers: z.array(z.object({ id: z.string(), name: z.string() })),
   mayAssign: z.boolean(),
 });
+
+/** The name and the kind of a debtor, corrected for all its cases (question 138); `seen`: the name that was shown. */
+export const debtorCorrection = z.object({ kind: debtorKind, name: typed(150, 'Indiquez le nom.'), seen: z.string().max(300) });
+/** A note of the team in the history of a case, never shown to the creditor (« + Ajouter une note » of the mockup). */
+export const caseNote = z.object({ text: z.string().trim().min(1, { error: 'Écrivez la note.' }).max(5000) });

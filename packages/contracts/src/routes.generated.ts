@@ -1632,6 +1632,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/staff/cases/{id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CasesController_addNote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/cases/{id}/debtor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["CasesController_correctDebtor"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/staff/cases/{id}/coordinates": {
         parameters: {
             query?: never;
@@ -5211,6 +5243,8 @@ export interface operations {
                                 on: string;
                                 with: string;
                             } | null;
+                            enteredBy: string;
+                            enteredByMe: boolean;
                         } | null;
                     };
                 };
@@ -5546,6 +5580,12 @@ export interface operations {
                             /** @enum {string} */
                             tone: "danger" | "info" | "warning" | "success" | "neutral";
                         }[];
+                        correctable: {
+                            name: string;
+                            /** @enum {string} */
+                            kind: "COMPANY" | "SOLE_TRADER" | "INDIVIDUAL";
+                            hasSiren: boolean;
+                        } | null;
                         exchanges: {
                             id: string;
                             /** @enum {string} */
@@ -5650,12 +5690,47 @@ export interface operations {
                     "application/json": {
                         code: string | null;
                         version: number;
+                        closed: boolean;
                     };
                 };
             };
         };
     };
     CasesController_renewAccessCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CasesController_addNote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CasesController_correctDebtor: {
         parameters: {
             query?: never;
             header?: never;

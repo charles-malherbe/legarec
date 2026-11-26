@@ -178,11 +178,11 @@ const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly
     'POST /creditors': [{ siren: '732829320', identity: IDENTITY, contacts: CONTACTS, mandate: MANDATE }],
     'PUT /creditors/:id': [{ version: 1, identity: IDENTITY, contacts: CONTACTS }],
     'POST /creditors/:id/amendments': [{ amends: 'm1', mandate: MANDATE }],
-    'POST /creditors/:id/bank-accounts': [
-      { replaces: null, account: { holder: 'X', iban: 'GB82 WEST 1234 5698 7654 32', bic: 'PSSTFRPPXXX', confirmedWith: '' } },
-    ],
+    'POST /creditors/:id/bank-accounts': [{ replaces: null, account: { holder: 'X', iban: 'GB82 WEST 1234 5698 7654 32', bic: 'PSSTFRPPXXX' } }],
     'POST /creditors/:id/bank-accounts/:accountId/confirm': [{ confirmedWith: 'Élodie Rivaud' }],
     'POST /cases/:id/access-code/regenerate': [{ version: 1 }],
+    'PUT /cases/:id/debtor': [{ kind: 'COMPANY', name: 'Bâti Plus SAS', seen: 'Bati Plus' }],
+    'POST /cases/:id/notes': [{ text: 'Rappeler après le 5 : le gérant attend le virement d’un client.' }],
     'POST /cases/:id/coordinates': [
       { kind: 'PHONE', label: 'Mobile', value: '0611223344', primary: false, replaces: 'p1', source: 'CALL' },
       { kind: 'EMAIL', label: 'Comptabilité', value: 'compta@batiplus.example', primary: true, replaces: null, source: 'CREDITOR' },
@@ -198,7 +198,10 @@ const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly
     'POST /cases/reminders': [{ ids: ['demo', 'lagarde'] }],
     'POST /cases/litigation': [{ ids: ['demo'], reason: 'Promesses non tenues', consentReceived: true }],
     'PUT /litigation/:id': [{ court: 'Tribunal de commerce de Lyon', partnerName: 'Me Durieux, avocat', version: 1 }],
-    'POST /litigation/:id/stage': [{ stage: 'PAYMENT_ORDER', version: 1 }, { stage: 'CLOSED', expectedOutcome: 'LOST', version: 2 }],
+    'POST /litigation/:id/stage': [
+      { stage: 'PAYMENT_ORDER', version: 1 },
+      { stage: 'CLOSED', expectedOutcome: 'LOST', version: 2 },
+    ],
     'POST /litigation/:id/consent': [{ version: 1 }],
     'POST /cases/assign': [{ ids: ['helio'], officerId: 'hb' }],
     'POST /cases/:id/portal-messages': [{ text: 'Bien reçu, merci.' }],

@@ -252,7 +252,8 @@ const creditor =
 const bankAccount = (then: string) => async (test: TestApp, id: string) => {
   const { rows } = await test.database.admin.query<{ id: string }>(
     "INSERT INTO creditor_bank_accounts (creditor_id, holder, iban_cipher, iban_masked, bic, created_by) VALUES ($1, 'x', '\\x00', 'GB82 •••• •••• 5432', 'PSSTFRPPXXX', $2) RETURNING id",
-    [id, test.s.director],
+    // Typed by someone else: whoever types it never confirms it (question 142).
+    [id, test.s.officerA],
   );
   return `/bank-accounts/${rows[0]!.id}/${then}`;
 };
@@ -276,7 +277,7 @@ const MANDATE = {
   reportingDay: 5,
   scenario: 'BUSINESS',
 };
-const ACCOUNT = { holder: 'X', iban: 'GB82 WEST 1234 5698 7654 32', bic: 'PSSTFRPPXXX', confirmedWith: '' };
+const ACCOUNT = { holder: 'X', iban: 'GB82 WEST 1234 5698 7654 32', bic: 'PSSTFRPPXXX' };
 
 /** The same sign-in on both portals, open to whoever is there: the answer does not depend on it. */
 const signIn = (portal: 'staff' | 'partner'): Record<string, MatrixEntry> => {
@@ -392,7 +393,8 @@ export const MATRIX: Record<string, MatrixEntry> = {
   },
   'GET /staff/cases/:id': {
     path: (test) => `/staff/cases/${test.s.cases.ofA}`,
-    expect: { ...withCases(200), officerB: 404 },
+    // « Accès refusé » for a case of someone else (question 141).
+    expect: { ...withCases(200), officerB: 403 },
   },
   // Held by nobody: the manager acts on it.
   'POST /staff/cases/:id/invoices': {
@@ -408,6 +410,18 @@ export const MATRIX: Record<string, MatrixEntry> = {
     path: async (test) => `/staff/cases/${(await newCase(test)).id}/access-code/regenerate`,
     body: () => ({ version: 1 }),
     expect: only({ director: 403, manager: 204, managerAlone: 204, officerA: 404, officerB: 404, liar: 404 }),
+  },
+  'POST /staff/cases/:id/notes': {
+    path: async (test) => `/staff/cases/${(await newCase(test)).id}/notes`,
+    body: () => ({ text: 'Rappeler après le 5.' }),
+    expect: only({ director: 403, manager: 204, managerAlone: 204, officerA: 404, officerB: 404, liar: 404 }),
+  },
+  // The Director and the manager, from a case they act on (question 138): the Director holds no case of nobody. The name shown
+  // is not the one known: refused once let in.
+  'PUT /staff/cases/:id/debtor': {
+    path: async (test) => `/staff/cases/${(await newCase(test)).id}/debtor`,
+    body: () => ({ kind: 'COMPANY', name: 'Nouveau nom', seen: 'Autre nom' }),
+    expect: only({ director: 403, manager: 409, managerAlone: 409, liar: 404 }),
   },
   'POST /staff/cases/:id/coordinates': {
     path: async (test) => `/staff/cases/${(await newCase(test)).id}/coordinates`,

@@ -31,8 +31,9 @@ describe('case access', () => {
       expect((await call('ad', path, body)).status).toBe(403);
     expect((await call('ad', '/cases/reminders', { ids: ['demo'] })).status).toBe(403);
     expect((await call('ad', '/cases/reminders', { ids: ['lagarde'] })).status).toBe(204);
-    // The same answer as for a case that does not exist.
-    expect((await call('hb', '/cases/demo')).status).toBe(404);
+    // Refused, unlike a case that does not exist (question 141).
+    expect((await call('hb', '/cases/demo')).status).toBe(403);
+    expect((await call('hb', '/cases/inconnu')).status).toBe(404);
     expect((await call('hb', '/cases/assign', { ids: ['helio'], officerId: 'hb' })).status).toBe(403);
     expect((await call('dev', '/cases/demo')).status).toBe(403);
   });
@@ -56,7 +57,11 @@ describe('case list', () => {
     await userEvent.click(within(dialog).getByLabelText(/Accord écrit du créancier reçu/));
     let sent: unknown;
     server.events.on('request:start', ({ request }) => {
-      if (request.url.endsWith('/cases/litigation')) void request.clone().json().then((body) => (sent = body));
+      if (request.url.endsWith('/cases/litigation'))
+        void request
+          .clone()
+          .json()
+          .then((body) => (sent = body));
     });
     await confirmWith('Passer en contentieux');
     expect(await screen.findByText(/transmis au contentieux/)).toBeVisible();
@@ -117,13 +122,35 @@ describe('case file', () => {
     ] as const)
       expect((await call(account, '/cases/demo/access-code')).status).toBe(status);
   });
-  it('shows no access code once the case is closed', async () => {
+  it('lets the manager correct the debtor in all its cases, after a confirmation (question 138)', async () => {
+    openAs('cl', '/debiteurs/demo');
+    await userEvent.click(await screen.findByRole('button', { name: 'Corriger le débiteur' }));
+    const name = screen.getByLabelText(/Nom du débiteur/);
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Bâti Plus Rénovation');
+    await userEvent.click(screen.getAllByRole('button', { name: 'Corriger le débiteur' }).at(-1)!);
+    await confirmWith('Corriger le débiteur');
+    expect(await screen.findByText('Débiteur corrigé.')).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Bâti Plus Rénovation' })).toBeVisible();
+    // Neither an officer.
+    expect((await call('hb', '/cases/demo/debtor', { kind: 'COMPANY', name: 'X', seen: 'Bâti Plus Rénovation' }, 'PUT')).status).toBe(403);
+  });
+  it('refuses a case of someone else, and does not find an unknown one (question 141)', async () => {
+    const first = openAs('hb', '/debiteurs/demo');
+    expect(await screen.findByText(/Ce dossier est suivi par un autre collaborateur/)).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Accès réservé' })).toBeVisible();
+    first.unmount();
+    openAs('hb', '/debiteurs/inconnu');
+    expect(await screen.findByRole('heading', { name: 'Page introuvable' })).toBeVisible();
+  });
+  it('shows the access code read only once the case is closed (question 140)', async () => {
     openAs('hb', '/debiteurs/castel');
-    expect(await screen.findByText(/Ce dossier est clos : le code d’accès/)).toBeVisible();
+    expect(await screen.findByText('Dossier clos : le code ne peut plus être régénéré d’ici.')).toBeVisible();
+    expect(screen.getByText('KXPM')).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Régénérer le code d’accès' })).toBeNull();
   });
   it('says that a code can no longer be read, and draws another one', async () => {
-    server.use(http.get('/api/cases/demo/access-code', () => HttpResponse.json({ code: null, version: 1 }), { once: true }));
+    server.use(http.get('/api/cases/demo/access-code', () => HttpResponse.json({ code: null, version: 1, closed: false }), { once: true }));
     openAs('cl', '/debiteurs/demo');
     expect(await screen.findByText('Illisible : régénérez-le')).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: 'Régénérer le code d’accès' }));

@@ -203,7 +203,8 @@ describe('an assignment', () => {
       const [told] = await list('officerB');
       expect(told).toMatchObject({ href: '/notifications', meta: 'Remplacement' });
       expect(JSON.stringify(told)).not.toMatch(/Ébénisterie|LGR|debiteurs|€/u);
-      expect((await call('officerB', 'GET', `/cases/${theirs}`)).status).toBe(404);
+      // Refused, as any case of someone else (question 141).
+      expect((await call('officerB', 'GET', `/cases/${theirs}`)).status).toBe(403);
       expect(await rows("SELECT case_id FROM notifications WHERE kind = 'SUBSTITUTE_NOTICE'")).toEqual([{ case_id: null }]);
       await assign('director', [theirs], test.s.officerB);
     });

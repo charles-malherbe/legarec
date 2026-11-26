@@ -112,7 +112,7 @@ const CASE = {
   expected: { principal: 48_600, invoices: 1 },
 };
 /** Example IBAN of the international standard, not a real account. */
-const ACCOUNT = { holder: 'X', iban: 'GB82 WEST 1234 5698 7654 32', bic: 'PSSTFRPPXXX', confirmedWith: '' };
+const ACCOUNT = { holder: 'X', iban: 'GB82 WEST 1234 5698 7654 32', bic: 'PSSTFRPPXXX' };
 const STAFF = ['director', 'manager', 'developer', 'officer'] as const;
 const each = <T extends ParityRole>(roles: readonly T[], of: (as: T) => Omit<Parity, 'as'>): Parity[] => roles.map((as) => ({ as, ...of(as) }));
 
@@ -271,7 +271,13 @@ export const ACCOUNT_PARITY: Parity[] = [
   { as: 'manager', request: `PUT /litigation/${UNKNOWN}`, body: { court: '', partnerName: '', version: 1 }, status: 404, answer: code('NOT_FOUND') },
   { as: 'manager', request: `POST /litigation/${UNKNOWN}/stage`, body: { stage: 'PAYMENT_ORDER', version: 1 }, status: 404, answer: code('NOT_FOUND') },
   { as: 'manager', request: `POST /litigation/${UNKNOWN}/consent`, body: { version: 1 }, status: 404, answer: code('NOT_FOUND') },
-  { as: 'officer', request: `POST /litigation/${UNKNOWN}/stage`, body: { stage: 'CLOSED', expectedOutcome: 'LOST', version: 1 }, status: 404, answer: code('NOT_FOUND') },
+  {
+    as: 'officer',
+    request: `POST /litigation/${UNKNOWN}/stage`,
+    body: { stage: 'CLOSED', expectedOutcome: 'LOST', version: 1 },
+    status: 404,
+    answer: code('NOT_FOUND'),
+  },
   { as: 'director', request: 'GET /gdpr/requests', status: 200, answer: gdprRegistry },
   // Credit notes: as all of the billing; the identity of the firm is between brackets on both sides.
   ...each(['director', 'manager'], () => ({ request: 'GET /credit-notes', status: 200, answer: creditNotesData })),
@@ -391,7 +397,8 @@ export const ACCOUNT_PARITY: Parity[] = [
   ...each(['director', 'manager'], () => ({ request: 'GET /cases/choices', status: 200, answer: caseChoices })),
   ...each(['developer', 'officer'], () => ({ request: 'GET /cases/choices', status: 403, answer: code('FORBIDDEN') })),
   ...each(['director', 'manager', 'officer'], () => ({ request: `GET /cases/${UNKNOWN}`, status: 404, answer: code('NOT_FOUND') })),
-  { as: 'manager', request: 'GET /cases/{caseOfDirector}', status: 404, answer: code('NOT_FOUND') },
+  // A case of someone else is refused, an unknown one not found (question 141).
+  { as: 'manager', request: 'GET /cases/{caseOfDirector}', status: 403, answer: code('FORBIDDEN') },
   { as: 'director', request: 'GET /cases/{caseOfDirector}', status: 200, answer: caseDetail },
   { as: 'manager', request: 'POST /cases/check', body: { creditorId: '{creditorId}', number: '' }, status: 200, answer: caseCheckResult },
   { as: 'manager', request: 'POST /cases/check', body: { creditorId: UNKNOWN, number: '' }, status: 404, answer: code('NOT_FOUND') },
@@ -415,6 +422,17 @@ export const ACCOUNT_PARITY: Parity[] = [
     status: 403,
     answer: code('FORBIDDEN'),
   },
+  { as: 'manager', request: 'POST /cases/{caseOfManager}/notes', body: { text: 'Rappeler après le 5.' }, status: 204 },
+  { as: 'director', request: 'POST /cases/{caseOfManager}/notes', body: { text: 'Rappeler après le 5.' }, status: 403, answer: code('FORBIDDEN') },
+  { as: 'manager', request: 'POST /cases/{caseOfDirector}/notes', body: { text: 'Rappeler après le 5.' }, status: 404, answer: code('NOT_FOUND') },
+  // The debtor, corrected by the Director and the manager (question 138): the name shown must be the one known.
+  ...each(['officer', 'developer'], () => ({
+    request: 'PUT /cases/{caseOfManager}/debtor',
+    body: { kind: 'COMPANY', name: 'Nouveau nom', seen: 'Autre nom' },
+    status: 403,
+    answer: code('FORBIDDEN'),
+  })),
+  { as: 'manager', request: 'PUT /cases/{caseOfManager}/debtor', body: { kind: 'COMPANY', name: 'Nouveau nom', seen: 'Autre nom' }, ...CHANGED },
   { as: 'manager', request: 'GET /cases/{caseOfManager}/access-code', status: 200, answer: accessCodeResponse },
   { as: 'director', request: 'GET /cases/{caseOfManager}/access-code', status: 403, answer: code('FORBIDDEN') },
   { as: 'manager', request: 'GET /cases/{caseOfDirector}/access-code', status: 404, answer: code('NOT_FOUND') },

@@ -317,9 +317,11 @@ describe('who reads what', () => {
     expect(await ids('officerA')).toEqual([s.cases.ofA]);
     expect(await ids('liar')).toEqual([s.cases.ofA]);
     expect((await call('developer', 'POST', '/search', { query: '' })).status).toBe(403);
+    // A case of someone else is refused, an unknown one is not found (question 141).
     for (const [as, id, status] of [
-      ['manager', s.cases.ofDirector, 404],
-      ['officerA', s.cases.ofB, 404],
+      ['manager', s.cases.ofDirector, 403],
+      ['officerA', s.cases.ofB, 403],
+      ['officerA', randomUUID(), 404],
       ['officerA', s.cases.ofA, 200],
       ['developer', s.cases.ofA, 403],
       ['director', s.cases.ofB, 200],
@@ -1010,5 +1012,86 @@ describe('PostgreSQL itself', () => {
     expect(elsewhere.id).toBeTruthy();
     const { id } = await open('manager', { contacts: what.includes('replaced') ? opening().contacts : [] });
     await expect(rows(statement, [id, creditor.id])).rejects.toThrow(constraint);
+  });
+});
+
+describe('the debtor, corrected (question 138)', () => {
+  it('by the Director and the manager, in all its cases, noted and audited; never by an officer', async () => {
+    const number = siren();
+    const elsewhere = async () => {
+      const creditorId = await newCreditor('Créancier Arnol');
+      return { creditorId, mandateId: await withMandate(creditorId) };
+    };
+    const mine = await open('manager', { number, name: 'Menuiserie Arnol' });
+    // Another case of the same debtor, for another creditor, held by an officer.
+    const theirs = await open('manager', { number, name: 'Menuiserie Arnol', toMe: false, ...(await elsewhere()) });
+    await rows('UPDATE cases SET officer_id = $2 WHERE id = $1', [theirs.id, test.s.officerA]);
+    const correct = (as: string, id: string, body: object) => call(as, 'PUT', `/${id}/debtor`, body);
+    expect((await detail('manager', mine.id)).correctable).toEqual({ name: 'Menuiserie Arnol', kind: 'COMPANY', hasSiren: true });
+    expect((await detail('officerA', theirs.id)).correctable).toBeNull();
+    for (const as of ['officerA', 'developer'])
+      expect((await correct(as, theirs.id, { kind: 'COMPANY', name: 'X', seen: 'Menuiserie Arnol' })).status, as).toBe(403);
+    // A debtor with a SIREN is never an individual; the name shown must be the one known.
+    expect((await correct('manager', mine.id, { kind: 'INDIVIDUAL', name: 'Menuiserie Arnal', seen: 'Menuiserie Arnol' })).status).toBe(422);
+    expect((await correct('manager', mine.id, { kind: 'COMPANY', name: 'Menuiserie Arnal', seen: 'Autre nom' })).body).toEqual({ code: 'CHANGED' });
+    expect((await correct('manager', mine.id, { kind: 'SOLE_TRADER', name: ' Menuiserie Arnal ', seen: 'Menuiserie Arnol' })).status).toBe(204);
+    expect(await rows('SELECT d.name, d.kind FROM cases c JOIN debtors d ON d.id = c.debtor_id WHERE c.id = ANY($1::uuid[])', [[mine.id, theirs.id]])).toEqual([
+      { name: 'Menuiserie Arnal', kind: 'SOLE_TRADER' },
+      { name: 'Menuiserie Arnal', kind: 'SOLE_TRADER' },
+    ]);
+    // Noted in every case of the debtor, kept from the creditor: by its author where it was done, by « Legarec » elsewhere.
+    const noted = await rows<{ case_id: string; detail: string; visible_to_creditor: boolean; actor_label: string }>(
+      "SELECT case_id, detail, visible_to_creditor, actor_label FROM case_events WHERE kind = 'DEBTOR_CORRECTED' AND case_id = ANY($1::uuid[])",
+      [[mine.id, theirs.id]],
+    );
+    expect(noted).toHaveLength(2);
+    expect(noted.every((row) => row.detail === 'Ancien nom : Menuiserie Arnol' && !row.visible_to_creditor)).toBe(true);
+    expect(noted.find((row) => row.case_id === theirs.id)!.actor_label).toBe('Legarec');
+    // Audited on the debtor, without its name.
+    const [{ debtor_id: debtorId }] = (await rows<{ debtor_id: string }>('SELECT debtor_id FROM cases WHERE id = $1', [mine.id])) as [{ debtor_id: string }];
+    expect(await rows("SELECT entity_type, params FROM audit_log WHERE action = 'DEBTOR_CORRECTED' AND entity_id = $1", [debtorId])).toEqual([
+      { entity_type: 'debtor', params: {} },
+    ]);
+    // The next opening with that name is no longer refused.
+    await open('manager', { number, name: 'Menuiserie Arnal', kind: 'SOLE_TRADER', ...(await elsewhere()) });
+    // The Director changes nothing from a case of someone else; from one of theirs, yes.
+    expect((await detail('director', theirs.id)).correctable).toBeNull();
+    expect((await correct('director', theirs.id, { kind: 'SOLE_TRADER', name: 'Menuiserie Arnal Fils', seen: 'Menuiserie Arnal' })).status).toBe(403);
+    await rows('UPDATE cases SET officer_id = $2 WHERE id = $1', [theirs.id, test.s.director]);
+    expect((await correct('director', theirs.id, { kind: 'SOLE_TRADER', name: 'Menuiserie Arnal Fils', seen: 'Menuiserie Arnal' })).status).toBe(204);
+    // Never from a forgotten case.
+    await rows('UPDATE cases SET anonymized_at = now() WHERE id = $1', [mine.id]);
+    expect((await detail('manager', mine.id)).correctable).toBeNull();
+    expect((await correct('manager', mine.id, { kind: 'SOLE_TRADER', name: 'X', seen: 'Menuiserie Arnal Fils' })).status).toBe(403);
+  });
+
+  it('from a case one reads only, and holds by PostgreSQL itself', async () => {
+    const { s } = test;
+    expect((await call('manager', 'PUT', `/${s.cases.ofDirector}/debtor`, { kind: 'COMPANY', name: 'X', seen: 'X' })).status).toBe(404);
+    const database = new Database(test.database.url('app'));
+    const officer = { kind: 'staff', userId: s.officerA, role: 'CLAIMS_OFFICER', delegations: [] } as const;
+    try {
+      await expect(
+        database.run(officer, (tx) => tx.$queryRaw`SELECT app.correct_debtor(${s.cases.ofA}::uuid, 'COMPANY'::debtor_kind, 'X', 'X')`),
+      ).rejects.toThrow(/42501|refused/u);
+      await expect(database.run(officer, (tx) => tx.$executeRaw`UPDATE debtors SET name = 'X'`)).rejects.toThrow(/permission denied/u);
+    } finally {
+      await database.close();
+    }
+  });
+});
+
+describe('a note of the team', () => {
+  it('is written by whoever acts on the case, kept from the creditor, audited without its text', async () => {
+    const { s } = test;
+    expect((await call('officerA', 'POST', `/${s.cases.ofA}/notes`, { text: 'Rappeler après le 5.' })).status).toBe(204);
+    expect(await rows("SELECT title, detail, visible_to_creditor FROM case_events WHERE case_id = $1 AND kind = 'CASE_NOTE'", [s.cases.ofA])).toEqual([
+      { title: 'Note', detail: 'Rappeler après le 5.', visible_to_creditor: false },
+    ]);
+    expect(await rows("SELECT params FROM audit_log WHERE action = 'CASE_NOTE_ADDED' AND entity_id = $1", [s.cases.ofA])).toEqual([{ params: {} }]);
+    expect((await call('officerB', 'POST', `/${s.cases.ofA}/notes`, { text: 'x' })).status).toBe(404);
+    expect((await call('director', 'POST', `/${s.cases.ofA}/notes`, { text: 'x' })).status).toBe(403);
+    expect((await call('officerA', 'POST', `/${s.cases.ofA}/notes`, { text: ' ' })).status).toBe(422);
+    expect((await call('officerA', 'POST', `/${s.cases.ofA}/notes`, { text: 'x'.repeat(5001) })).status).toBe(422);
   });
 });

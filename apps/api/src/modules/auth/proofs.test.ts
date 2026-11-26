@@ -133,7 +133,7 @@ const CASES: Record<Exclude<SensitiveAction, OwnFactor>, Case> = {
   'POST /creditors/:id/bank-accounts': {
     method: 'post',
     path: async () => `/creditors/${await creditor()}/bank-accounts`,
-    body: { replaces: null, account: { holder: 'X', iban: 'GB82 WEST 1234 5698 7654 32', bic: 'PSSTFRPPXXX', confirmedWith: '' } },
+    body: { replaces: null, account: { holder: 'X', iban: 'GB82 WEST 1234 5698 7654 32', bic: 'PSSTFRPPXXX' } },
     status: 204,
     changed: audited('CREDITOR_ACCOUNT_CHANGED'),
   },
@@ -143,7 +143,7 @@ const CASES: Record<Exclude<SensitiveAction, OwnFactor>, Case> = {
       const id = await creditor();
       const [account] = await rows<{ id: string }>(
         "INSERT INTO creditor_bank_accounts (creditor_id, holder, iban_cipher, iban_masked, bic, created_by) VALUES ($1, 'X', '\\x00', 'GB82 •••• •••• 5432', 'PSSTFRPPXXX', $2) RETURNING id",
-        [id, test.s.director],
+        [id, test.s.manager],
       );
       return `/creditors/${id}/bank-accounts/${account!.id}/confirm`;
     },

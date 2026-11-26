@@ -700,6 +700,8 @@ describe('rights on the functions', () => {
     ['require_for_developer', []],
     ['can_read_case', ['staff']],
     ['can_act_on_case', ['staff']],
+    ['case_exists', ['staff']],
+    ['correct_debtor', ['staff']],
     ['is_claims_officer', ['staff']],
     ['director_id', ['staff']],
     ...['save_interest_rate', 'decide_plan', 'record_payment', 'change_payment', 'ask_plan'].map((name) => [name, ['staff']] as [string, string[]]),
@@ -761,7 +763,7 @@ describe('rights on the functions', () => {
       'debtor_link ask_code_by_sms firm_payment_settings limited_message',
       'gdpr_request gdpr_keeper gdpr_registry gdpr_answer gdpr_export gdpr_erasure gdpr_erase',
       'anonymize_case forget_case forget_debtor erasure_blockers erasure_digest case_writable',
-      'note_ai_decision ai_key ai_spent ai_budget_alert ai_journal ai_journal_totals planned_contacts keep_done_reminder litigation_rules remittance_core creditor_payouts remittance_sources remittance_summary note_settlement remittance_draft validate_remittances mark_remittances_paid remittance_batches remittance_batch',
+      'note_ai_decision ai_key ai_spent ai_budget_alert ai_journal ai_journal_totals planned_contacts keep_done_reminder litigation_rules case_exists correct_debtor remittance_core creditor_payouts remittance_sources remittance_summary note_settlement remittance_draft validate_remittances mark_remittances_paid remittance_batches remittance_batch',
       'credit_notes save_credit_note_draft delete_credit_note_draft issue_credit_note invoice_lines_left invoice_left invoice_settled_on check_credit_lines',
       'purge_remittances purge_invoices purge_payments purge_accounting_documents forget_remittances forget_lone_invoices forget_bounced_payments forget_accounting_documents',
       'forget_payments forget_invoices invoice_batches accounting_cutoff',
@@ -770,6 +772,14 @@ describe('rights on the functions', () => {
       "SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'app' ORDER BY 1",
     );
     expect(found.map((row) => row.proname)).toEqual(listed.sort());
+  });
+
+  it('let the definer change a debtor in two functions only (question 138): its policy for the correction trusts them', async () => {
+    const found = await rows<{ proname: string }>(
+      `SELECT p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+       WHERE n.nspname = 'app' AND pg_get_userbyid(p.proowner) = 'legarec_definer' AND p.prosrc ~* 'update\\s+public\\.debtors' ORDER BY 1`,
+    );
+    expect(found.map((row) => row.proname)).toEqual(['correct_debtor', 'open_debtor']);
   });
 });
 

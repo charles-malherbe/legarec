@@ -140,8 +140,6 @@ export const bankAccountForm = z.object({
     .refine((value) => /^[A-Z]{6}[A-Z\d]{2}(?:[A-Z\d]{3})?$/u.test(value.replace(/\s/gu, '').toUpperCase()), {
       error: 'Ce BIC n’est pas valide (8 ou 11 caractères).',
     }),
-  /** Who confirmed it, at a number already known; empty while it is not. Nothing is remitted before. */
-  confirmedWith: optional(120),
 });
 
 export const newCreditor = z.object({
@@ -157,6 +155,7 @@ export const creditorChanges = z.object({ version: z.number().int().positive().m
 export const mandateAmendment = z.object({ amends: z.string().max(ID_MAX), mandate: mandateForm });
 /** Recorded by itself, by the Director or by the manager on their behalf. With the account it replaces, null for the first one. */
 export const bankAccountChange = z.object({ replaces: z.string().max(ID_MAX).nullable(), account: bankAccountForm });
+/** By someone other than whoever typed it (question 142), at a number already known. Nothing is remitted before. */
 export const bankAccountConfirmation = z.object({ confirmedWith: line(120, 'Indiquez avec qui.') });
 
 const mandateVersion = dated.extend({ id: z.string(), state: z.enum(['CURRENT', 'TO_COME', 'ENDED']), hasContract: z.boolean() });
@@ -193,6 +192,9 @@ export const creditorFile = z.object({
       bic: z.string(),
       since: z.iso.date(),
       confirmed: z.object({ on: z.iso.date(), with: z.string() }).nullable(),
+      /** Who typed it: never the one who confirms it. */
+      enteredBy: z.string(),
+      enteredByMe: z.boolean(),
     })
     .nullable(),
 });

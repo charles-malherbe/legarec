@@ -29,11 +29,18 @@ export class AccessCodes {
     @Inject(AuthKeys) private readonly authKeys: AuthKeys,
   ) {}
 
-  /** In clear for whoever acts on the case, without a trace of it (question 21). */
-  async show(caseId: string): Promise<{ code: string | null; version: number }> {
-    await this.mayAct(caseId);
+  /**
+   * In clear for whoever acts on the case, without a trace of it (question 21). A closed case shows it, read only
+   * (question 140): never drawn nor renewed from there.
+   */
+  async show(caseId: string): Promise<{ code: string | null; version: number; closed: boolean }> {
+    const closed = await this.mayRead(caseId);
+    if (closed) {
+      const known = await this.find(caseId);
+      return { code: known?.code ?? null, version: known?.version ?? 0, closed };
+    }
     const { code, version } = await this.ensure(caseId);
-    return { code, version };
+    return { code, version, closed };
   }
 
   /** At the opening of a case: that of the debtor, drawn if they have none. */
@@ -91,11 +98,16 @@ export class AccessCodes {
     return { debtorId: row.debtor_id, version: row.version, code };
   }
 
-  private async mayAct(caseId: string): Promise<void> {
+  /** Whether the case is closed, for whoever acts on it. */
+  private async mayRead(caseId: string): Promise<boolean> {
     const [row] = await this.database.tx.$queryRaw<{ may: boolean; closed: boolean }[]>`
       SELECT app.can_act_on_case(officer_id) AS may, closed_on IS NOT NULL AS closed FROM cases WHERE id = ${caseId}::uuid`;
     if (!row) throw notFound();
     if (!row.may) throw forbidden();
-    if (row.closed) throw conflict('CASE_CLOSED');
+    return row.closed;
+  }
+
+  private async mayAct(caseId: string): Promise<void> {
+    if (await this.mayRead(caseId)) throw conflict('CASE_CLOSED');
   }
 }

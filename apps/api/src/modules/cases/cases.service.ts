@@ -11,7 +11,7 @@ import {
   type CaseListItem,
   type NewCase,
 } from '@legarec/contracts';
-import type { addedInvoices, caseChoices, caseList, caseSearchQuery } from '@legarec/contracts';
+import type { addedInvoices, caseChoices, caseList, caseSearchQuery, debtorCorrection } from '@legarec/contracts';
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { z } from 'zod';
@@ -20,7 +20,7 @@ import type { Actor } from '../../platform/database/actor';
 import { Database, type Transaction } from '../../platform/database/database';
 import { takenIndex } from '../../platform/database/codes';
 import { containing, nothing, sql, type Sql } from '../../platform/database/sql';
-import { ApiError, conflict, forbidden, notFound } from '../../platform/errors/api-error';
+import { ApiError, conflict, forbidden, invalid, notFound } from '../../platform/errors/api-error';
 import { dayOf, longDay, timeOf } from '../../platform/format';
 import { AccessCodes } from '../debtor-access/access-codes';
 import { currentOf, dayText, termsOf } from '../creditors/mandates';
@@ -131,16 +131,38 @@ export class CasesService {
     return { events: last.events, updated: `le ${dayOf(last.createdAt).slice(8, 10)}/${dayOf(last.createdAt).slice(5, 7)} à ${timeOf(last.createdAt)}`, lines };
   }
 
+  /**
+   * The name and the kind of the debtor of a case, for all its cases (question 138). PostgreSQL checks who may, from a case
+   * they act on, that the name is still the one shown, and notes it in the history of each case of the debtor.
+   */
+  async correctDebtor(id: string, body: z.infer<typeof debtorCorrection>): Promise<void> {
+    const { tx } = this.database;
+    const found = await tx.case.findUnique({ where: { id }, select: { debtorId: true, debtor: { select: { siren: true } } } });
+    if (!found) throw notFound();
+    if (body.kind === 'INDIVIDUAL' && found.debtor.siren) throw invalid({ fields: ['kind'] });
+    const [row] = await tx.$queryRaw<{ done: string | null }[]>`
+      SELECT app.correct_debtor(${id}::uuid, ${body.kind}::debtor_kind, ${body.name}, ${body.seen}) AS done`;
+    if (!row?.done) throw notFound();
+    if (row.done !== 'DONE') throw conflict('CHANGED');
+    // The debtor, which all its cases share; never its name.
+    await this.audit.log({ action: 'DEBTOR_CORRECTED', entity: { type: 'debtor', id: found.debtorId } });
+  }
+
   async detail(actor: StaffActor, id: string): Promise<CaseDetail> {
     const { tx } = this.database;
     const [row] = await this.rows(sql`AND c.id = ${id}::uuid`);
-    if (!row) throw notFound();
+    if (!row) {
+      // « Accès refusé » for a case of someone else, as the firm wants it (question 141): the team alone is told that it exists.
+      const [known] = await tx.$queryRaw<{ found: boolean }[]>`SELECT app.case_exists(${id}::uuid) AS found`;
+      throw known?.found ? forbidden() : notFound();
+    }
     // The Director reads a case of someone else: noted once an hour.
     await tx.$executeRaw`SELECT app.note_consultation(${id}::uuid)`;
     const found = await tx.case.findUniqueOrThrow({
       where: { id },
       select: {
         externalReference: true,
+        anonymizedAt: true,
         debtorId: true,
         debtorAddress: true,
         debtorPostalCode: true,
@@ -151,6 +173,7 @@ export class CasesService {
         firstLetterOn: true,
         mandate: true,
         creditor: { select: { sector: true } },
+        debtor: { select: { name: true, kind: true, siren: true, anonymizedAt: true } },
         invoices: { orderBy: [{ dueOn: 'asc' }, { number: 'asc' }] },
         contacts: { where: { status: { not: 'INVALID' } }, orderBy: [{ kind: 'desc' }, { isPrimary: 'desc' }, { createdAt: 'asc' }] },
         events: { orderBy: { occurredAt: 'desc' }, take: SHOWN, include: { onBehalfOf: { select: { firstName: true, lastName: true } } } },
@@ -196,6 +219,11 @@ export class CasesService {
         onBehalfOf: event.onBehalfOf ? fullName(event.onBehalfOf) : null,
         tone: event.tone,
       })),
+      // From a case one acts on, not forgotten (the Director changes nothing from a case of someone else).
+      correctable:
+        (actor.role === 'DIRECTOR' || actor.role === 'COLLECTION_MANAGER') && row.can_act && !found.anonymizedAt && !found.debtor.anonymizedAt
+          ? { name: found.debtor.name, kind: found.debtor.kind, hasSiren: found.debtor.siren !== null }
+          : null,
       // Messages, payments, documents and scenarios: with their own modules.
       exchanges: (
         await tx.portalMessage.findMany({
@@ -347,6 +375,16 @@ export class CasesService {
     if (actor.role === 'DIRECTOR' && !body.toMe) await tx.$executeRaw`SELECT app.assign_cases(ARRAY[${id}]::uuid[], NULL)`;
     await this.audit.log({ action: 'CASE_OPENED', entity: { type: 'case', id } });
     return { id, reference };
+  }
+
+  /** A note of the team, kept from the creditor; whoever acts on the case writes it, and the audit notes it without its text. */
+  async addNote(id: string, text: string): Promise<void> {
+    const { tx } = this.database;
+    const [row] = await this.rows(sql`AND c.id = ${id}::uuid`);
+    if (!row) throw notFound();
+    if (!row.can_act) throw forbidden();
+    await tx.$executeRaw`SELECT app.add_case_event(${id}::uuid, 'CASE_NOTE', 'Note', ${text}, 'info'::event_tone, false)`;
+    await this.audit.log({ action: 'CASE_NOTE_ADDED', entity: { type: 'case', id } });
   }
 
   async addToCase(actor: StaffActor, id: string, { version, invoices }: z.infer<typeof addedInvoices>): Promise<void> {

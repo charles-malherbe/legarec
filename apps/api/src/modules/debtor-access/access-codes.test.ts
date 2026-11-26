@@ -154,14 +154,22 @@ describe('a code', () => {
 });
 
 describe('a closed case', () => {
-  it('gives the code of the debtor no more, nor another one', async () => {
+  it('shows the code of the debtor read only, never another one (question 140)', async () => {
     const closed = await newCase(debtor, test.s.officerB, true);
-    expect(await call('officerB', 'GET', `/cases/${closed}/access-code`)).toMatchObject({ status: 409, body: { code: 'CASE_CLOSED' } });
+    const shown = await call('officerB', 'GET', `/cases/${closed}/access-code`);
+    expect(shown).toMatchObject({ status: 200, body: { code: await code('officerA', mine), closed: true } });
     expect(await renew('officerB', closed)).toMatchObject({ status: 409, body: { code: 'CASE_CLOSED' } });
+    // To whoever acts on it alone, as an open case.
+    expect((await call('officerA', 'GET', `/cases/${closed}/access-code`)).status).toBe(404);
+    expect((await call('director', 'GET', `/cases/${closed}/access-code`)).status).toBe(403);
+    // Never from a forgotten case, though the debtor still has open ones.
+    const forgotten = await newCase(debtor, test.s.officerB, true);
+    await rows('UPDATE cases SET anonymized_at = now() WHERE id = $1', [forgotten]);
+    expect((await call('officerB', 'GET', `/cases/${forgotten}/access-code`)).body).toEqual({ code: null, version: 0, closed: true });
     const database = new Database(test.database.url('app'));
     const officer = { kind: 'staff', userId: test.s.officerB, role: 'CLAIMS_OFFICER', delegations: [] } as const;
     try {
-      expect(await database.run(officer, (tx) => tx.$queryRaw<unknown[]>`SELECT * FROM app.access_code(${closed}::uuid)`)).toEqual([]);
+      expect(await database.run(officer, (tx) => tx.$queryRaw<unknown[]>`SELECT debtor_id FROM app.access_code(${closed}::uuid)`)).toHaveLength(1);
       for (const statement of ['renew', 'first'])
         await expect(
           database.run(officer, (tx) =>
@@ -327,7 +335,7 @@ describe('an internal key', () => {
     const broken = Buffer.from(await cipher(of));
     broken[broken.length - 1]! ^= 1;
     await rows('UPDATE debtor_access_codes SET code_cipher = $2 WHERE debtor_id = $1', [of, broken]);
-    expect((await call('officerA', 'GET', `/cases/${id}/access-code`)).body).toEqual({ code: null, version: 1 });
+    expect((await call('officerA', 'GET', `/cases/${id}/access-code`)).body).toEqual({ code: null, version: 1, closed: false });
     const { id: key } = await keyOf('ACCESS_CODE_KEY');
     expect((await call('director', 'POST', `/secrets/${key}/rotate`, {})).status).toBe(204);
     expect((await renew('officerA', id)).status).toBe(204);
