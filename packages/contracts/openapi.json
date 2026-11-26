@@ -3095,6 +3095,297 @@
         }
       }
     },
+    "/staff/reminders": {
+      "get": {
+        "operationId": "RemindersController_agenda",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "today": {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "date": {
+                            "type": "string",
+                            "format": "date",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                          },
+                          "time": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "EMAIL",
+                              "SMS",
+                              "CALL",
+                              "LETTER",
+                              "INSTALLMENT",
+                              "COURT_DEADLINE"
+                            ]
+                          },
+                          "debtor": {
+                            "type": "string"
+                          },
+                          "caseId": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "creditorId": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "creditor": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "done": {
+                            "type": "boolean"
+                          },
+                          "automatic": {
+                            "type": "boolean"
+                          },
+                          "officerId": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "canAct": {
+                            "type": "boolean"
+                          },
+                          "limit": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "date",
+                          "time",
+                          "type",
+                          "debtor",
+                          "caseId",
+                          "creditorId",
+                          "creditor",
+                          "title",
+                          "done",
+                          "automatic",
+                          "officerId",
+                          "canAct",
+                          "limit"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "weekly": {
+                      "type": "object",
+                      "properties": {
+                        "emails": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "sms": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "letters": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "emails",
+                        "sms",
+                        "letters"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "today",
+                    "items",
+                    "weekly"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "reminders"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      },
+      "post": {
+        "operationId": "RemindersController_plan",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "limit": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "limit"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "reminders"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      }
+    },
+    "/staff/reminders/targets": {
+      "get": {
+        "operationId": "RemindersController_targets",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "creditor": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "creditor"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "reminders"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      }
+    },
+    "/staff/reminders/{id}": {
+      "put": {
+        "operationId": "RemindersController_change",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "reminders"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      },
+      "delete": {
+        "operationId": "RemindersController_remove",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "reminders"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      }
+    },
     "/staff/remittances/draft": {
       "get": {
         "operationId": "RemittancesController_draft",

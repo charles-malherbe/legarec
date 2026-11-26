@@ -880,6 +880,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/staff/reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["RemindersController_agenda"];
+        put?: never;
+        post: operations["RemindersController_plan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/reminders/targets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["RemindersController_targets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/reminders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["RemindersController_change"];
+        post?: never;
+        delete: operations["RemindersController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/staff/remittances/draft": {
         parameters: {
             query?: never;
@@ -3542,6 +3590,132 @@ export interface operations {
         };
     };
     NotificationsController_markRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RemindersController_agenda: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date */
+                        today: string;
+                        items: {
+                            id: string;
+                            /** Format: date */
+                            date: string;
+                            time: string | null;
+                            /** @enum {string} */
+                            type: "EMAIL" | "SMS" | "CALL" | "LETTER" | "INSTALLMENT" | "COURT_DEADLINE";
+                            debtor: string;
+                            caseId: string | null;
+                            creditorId: string | null;
+                            creditor: string;
+                            title: string;
+                            done: boolean;
+                            automatic: boolean;
+                            officerId: string | null;
+                            canAct: boolean;
+                            limit: string | null;
+                        }[];
+                        weekly: {
+                            emails: number;
+                            sms: number;
+                            letters: number;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    RemindersController_plan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        limit: string | null;
+                    };
+                };
+            };
+        };
+    };
+    RemindersController_targets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: {
+                            id: string;
+                            name: string;
+                            creditor: string;
+                        }[];
+                    };
+                };
+            };
+        };
+    };
+    RemindersController_change: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RemindersController_remove: {
         parameters: {
             query?: never;
             header?: never;

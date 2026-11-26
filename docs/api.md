@@ -117,6 +117,10 @@ Sans dépendance : Resend, MySendingBox, OVH (appels signés : le paquet `ovh` d
 ### Reversements dans l'espace du créancier (lot P, suite)
 - `GET /partner/portal/payouts` : par `app.creditor_payouts()`, les reversements du créancier seul (validés ou versés), son prochain reversement estimé par le même calcul que le lot (`app.remittance_core`, accordée à personne, sous deux portes qui vérifient qui appelle), le taux de son mandat et la date suivante selon Paramètres › Reversements.
 
+### Agenda des relances (lot Q, première partie)
+- `GET /staff/reminders` (relances planifiées et échéances des échéanciers en cours, d'un mois en arrière à trois mois en avant), `GET /staff/reminders/targets`, `POST /staff/reminders`, `PUT /staff/reminders/:id`, `DELETE /staff/reminders/:id` (seulement une relance planifiée à la main, pas encore faite) : table `planned_reminders`, droits par ligne des tables de dossier (lue avec le dossier, écrite par qui agit dessus).
+- Avertissement à la planification : plages horaires et jours fériés (`contact-rules.ts`, question 160), plafond du débiteur compté tous créanciers confondus par `app.planned_contacts` (seul un nombre sort). La relance est enregistrée avec l'avertissement (question 161). L'envoi vient avec la suite du lot Q.
+
 ### Règles de code
 Une requête = une transaction `Database.run(actor, fn)`, ouverte par la plateforme ; seul `modules/auth` en ouvre au nom d'un compte (ESLint) ; ESLint interdit Prisma ailleurs. Aucun appel externe dans une transaction : `outbox`, puis BullMQ. Une tâche de Valkey ne porte que son numéro : son nom, son auteur et ses identifiants sont relus dans `outbox`. SQL brut limité à : séquences, verrous consultatifs, recherche trigramme, agrégats ; `SET ROLE` et `set_config` dans `src/platform` seulement ; imports dynamiques de Prisma, `pg`, BullMQ ou ioredis interdits ailleurs (ESLint).
 
