@@ -56,7 +56,7 @@ Décision du 26/11/2026 : au lieu de Scaleway ; les variables `SCW_*` ci-dessous
 - [ ] Bucket `legarec-sauvegardes`, privé, versions activées, **clé propre à ce bucket**. Politique du bucket : cette clé ne peut ni effacer une version, ni couper les versions, ni changer le cycle de vie ; seconde clé, en lecture seule, pour l'essai de restauration.
 - [ ] Règle de cycle de vie : versions remplacées ou supprimées effacées après 7 jours.
 - [ ] Bucket `legarec-media`, public en lecture, liste du contenu désactivée, logos déposés.
-- [ ] Bucket `legarec-enregistrements` (lot T), privé, liste du contenu désactivée, sans versions (question 165), règle de cycle de vie : suppression après 190 jours ; **clé propre à ce bucket**.
+- [ ] Bucket `legarec-enregistrements` (lot T), privé, liste du contenu désactivée, versions activées (question 165), règles de cycle de vie : versions remplacées ou supprimées effacées après 7 jours, suppression après 190 jours ; **clé propre à ce bucket**, qui ne peut ni effacer une version ni changer les règles.
 
 ### Resend
 - [ ] Clé dédiée aux alertes, droit d'envoi seulement, domaine `mail.legarec.fr`.

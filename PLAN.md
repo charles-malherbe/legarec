@@ -277,4 +277,4 @@ Les 161 routes simulées se répartissent ainsi :
 ## Lot W — IA (état au 26/11/2026)
 - [x] Couche fournisseur, garde-fous, budget, journal ; synthèse du dossier (régénérer, signaler)
 - [x] Alerte à 80 % du budget au Directeur
-- [ ] Génération à l'arrivée d'un événement, appels, e-mails, journal dans Paramètres, essai de qualité des modèles chez OVHcloud (option C)
+- [ ] Génération à l'arrivée d'un événement, appels, e-mails, journal dans Paramètres, essai de qualité des modèles chez OVHcloud (option C), budget par défaut de 40 € dans le catalogue des paramètres (question 166)
