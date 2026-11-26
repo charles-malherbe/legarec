@@ -31,6 +31,8 @@ import { PortalService } from './partners/portal.service';
 import { DelegationsController } from './delegations/delegations.controller';
 import { MembersController } from './members/members.controller';
 import { MembersService } from './members/members.service';
+import { DashboardController } from './dashboard/dashboard.controller';
+import { DashboardService } from './dashboard/dashboard.service';
 import { NotificationsController } from './notifications/notifications.controller';
 import { NotificationsService } from './notifications/notifications.service';
 import { Ledgers } from './payments/ledger';
@@ -54,6 +56,7 @@ export const controllers: Type[] = [
   DelegationsController,
   SupportController,
   NotificationsController,
+  DashboardController,
   SecretsController,
   SettingsController,
   CreditorsController,
@@ -87,6 +90,7 @@ export const providers: Provider[] = [
   CasesService,
   ContactsService,
   NotificationsService,
+  DashboardService,
   Ledgers,
   Plans,
   DocumentsService,

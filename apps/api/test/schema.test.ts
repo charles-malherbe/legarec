@@ -267,6 +267,10 @@ describe('rights of the roles inside', () => {
       'documents SELECT (author_id, case_id, category, contains_access_code, created_at, creditor_id, id, kind, original_name, scan_status, scanned_at, sha256, shared_by, shared_with_creditor_at, size_bytes, source, storage_key, title, uploaded_by_creditor, uploaded_by_debtor, visible_to_debtor)',
       'documents UPDATE (category, title)',
       'claim_imports SELECT (confirmed_at, created_at, created_count, creditor_id, id, lines, status, total_cents, uploaded_by, valid)',
+      // What each one marked done on their dashboard: their own lines only.
+      'task_marks DELETE (*)',
+      'task_marks INSERT (key, user_id)',
+      'task_marks SELECT (done_at, key, user_id)',
       // Links of the letters and messages without a code: the manager reads the latter.
       'debtor_links SELECT (case_id, channel, created_at, creditor_id, debtor_id, expires_at, id, revoked_at, uses)',
       'limited_messages SELECT (claimed_reference, created_at, id, read_at, sender_email, sender_name, text)',
@@ -337,6 +341,9 @@ describe('rights of the roles inside', () => {
       // Imports never confirmed, after 30 days; messages without a code, after 6 months.
       'limited_messages DELETE (*)',
       'limited_messages SELECT (created_at, id)',
+      // Marks of the dashboard, after 2 years.
+      'task_marks DELETE (*)',
+      'task_marks SELECT (done_at)',
       'claim_imports DELETE (*)',
       'claim_imports SELECT (expires_at, id, status)',
       'idempotency_keys DELETE (*)',

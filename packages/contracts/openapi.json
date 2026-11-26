@@ -3095,6 +3095,547 @@
         }
       }
     },
+    "/staff/dashboard": {
+      "get": {
+        "operationId": "DashboardController_read",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "scope": {
+                      "type": "string",
+                      "enum": [
+                        "GLOBAL",
+                        "TEAM",
+                        "PERSONAL"
+                      ]
+                    },
+                    "date": {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    "outstanding": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "debtors": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "invoices": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "overdue30": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "overdue30Sub": {
+                      "type": "string"
+                    },
+                    "periods": {
+                      "type": "object",
+                      "properties": {
+                        "week": {
+                          "type": "object",
+                          "properties": {
+                            "note": {
+                              "type": "string"
+                            },
+                            "recovered": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "recoveredSub": {
+                              "type": "string"
+                            },
+                            "targetRatio": {
+                              "nullable": true,
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 100
+                            }
+                          },
+                          "required": [
+                            "note",
+                            "recovered",
+                            "recoveredSub",
+                            "targetRatio"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "month": {
+                          "type": "object",
+                          "properties": {
+                            "note": {
+                              "type": "string"
+                            },
+                            "recovered": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "recoveredSub": {
+                              "type": "string"
+                            },
+                            "targetRatio": {
+                              "nullable": true,
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 100
+                            }
+                          },
+                          "required": [
+                            "note",
+                            "recovered",
+                            "recoveredSub",
+                            "targetRatio"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "year": {
+                          "type": "object",
+                          "properties": {
+                            "note": {
+                              "type": "string"
+                            },
+                            "recovered": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "recoveredSub": {
+                              "type": "string"
+                            },
+                            "targetRatio": {
+                              "nullable": true,
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 100
+                            }
+                          },
+                          "required": [
+                            "note",
+                            "recovered",
+                            "recoveredSub",
+                            "targetRatio"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "week",
+                        "month",
+                        "year"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "invoicesRecovered": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "invoicesEntrusted": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "dsoDays": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "dsoSub": {
+                      "type": "string"
+                    },
+                    "priorities": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "meta": {
+                            "type": "string"
+                          },
+                          "tag": {
+                            "type": "string"
+                          },
+                          "tone": {
+                            "type": "string",
+                            "enum": [
+                              "OVERDUE",
+                              "PROMISE",
+                              "REMINDER",
+                              "DISPUTE",
+                              "SETTLED",
+                              "PLAN",
+                              "FORMAL_NOTICE",
+                              "LITIGATION",
+                              "NEW",
+                              "LOST"
+                            ]
+                          },
+                          "icon": {
+                            "type": "string",
+                            "enum": [
+                              "phone",
+                              "euro",
+                              "check",
+                              "mail",
+                              "alert",
+                              "scale"
+                            ]
+                          },
+                          "href": {
+                            "type": "string"
+                          },
+                          "cta": {
+                            "type": "string"
+                          },
+                          "done": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "meta",
+                          "tag",
+                          "tone",
+                          "icon",
+                          "href",
+                          "cta",
+                          "done"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "feed": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "PAYMENT",
+                              "CALL",
+                              "MESSAGE",
+                              "APPROVAL",
+                              "ALERT",
+                              "SYSTEM"
+                            ]
+                          },
+                          "text": {
+                            "type": "string"
+                          },
+                          "meta": {
+                            "type": "string"
+                          },
+                          "time": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "text",
+                          "meta",
+                          "time"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "monthlyTarget": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "months": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "amount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "label",
+                          "amount"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "aging": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "amount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "percent": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "label",
+                          "amount",
+                          "percent"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "creditors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "siren": {
+                            "type": "string"
+                          },
+                          "sector": {
+                            "type": "string"
+                          },
+                          "debtors": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "invoices": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "outstanding": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "recovered": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "rate": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "siren",
+                          "sector",
+                          "debtors",
+                          "invoices",
+                          "outstanding",
+                          "recovered",
+                          "rate"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "topDebtors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "siret": {
+                            "type": "string"
+                          },
+                          "creditor": {
+                            "type": "string"
+                          },
+                          "amount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "daysLate": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "OVERDUE",
+                              "PROMISE",
+                              "REMINDER",
+                              "DISPUTE",
+                              "SETTLED",
+                              "PLAN",
+                              "FORMAL_NOTICE",
+                              "LITIGATION",
+                              "NEW",
+                              "LOST"
+                            ]
+                          },
+                          "statusLabel": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "siret",
+                          "creditor",
+                          "amount",
+                          "daysLate",
+                          "status",
+                          "statusLabel"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "team": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "presence": {
+                            "type": "string",
+                            "enum": [
+                              "available",
+                              "call",
+                              "pause",
+                              "away"
+                            ]
+                          },
+                          "calls": {
+                            "nullable": true,
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "target": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "presence",
+                          "calls",
+                          "target"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "scope",
+                    "date",
+                    "outstanding",
+                    "debtors",
+                    "invoices",
+                    "overdue30",
+                    "overdue30Sub",
+                    "periods",
+                    "invoicesRecovered",
+                    "invoicesEntrusted",
+                    "dsoDays",
+                    "dsoSub",
+                    "priorities",
+                    "feed",
+                    "monthlyTarget",
+                    "months",
+                    "aging",
+                    "creditors",
+                    "topDebtors",
+                    "team"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "dashboard"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      }
+    },
+    "/staff/dashboard/priorities/{id}": {
+      "put": {
+        "operationId": "DashboardController_mark",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "dashboard"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      }
+    },
     "/staff/secrets": {
       "get": {
         "operationId": "SecretsController_list",

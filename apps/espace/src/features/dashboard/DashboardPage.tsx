@@ -99,14 +99,14 @@ export function DashboardPage() {
             label: 'Recouvré',
             value: current ? formatCents(current.recovered) : '',
             tone: 'success',
-            bar: current?.targetRatio,
+            bar: current?.targetRatio ?? undefined,
             barTone: 'or',
             sub: current?.recoveredSub ?? ' ',
           },
           {
             label: 'Factures recouvrées',
             value: data ? `${data.invoicesRecovered.toLocaleString('fr-FR')} / ${data.invoicesEntrusted.toLocaleString('fr-FR')}` : '',
-            sub: data ? `${Math.round((data.invoicesRecovered / data.invoicesEntrusted) * 100)} % des factures confiées` : ' ',
+            sub: data ? `${data.invoicesEntrusted ? Math.round((data.invoicesRecovered / data.invoicesEntrusted) * 100) : 0} % des factures confiées` : ' ',
           },
           { label: 'DSO moyen', value: data ? `${data.dsoDays} jours` : '', sub: data?.dsoSub ?? ' ' },
         ]}
@@ -322,27 +322,34 @@ export function DashboardPage() {
 }
 
 function MonthlyChart({ data }: { data: Dashboard }) {
-  const max = Math.max(...data.months.map((item) => item.amount), data.monthlyTarget) * 1.075;
+  const max = Math.max(...data.months.map((item) => item.amount), data.monthlyTarget, 1) * 1.075;
   const thousands = (value: number) => `${Math.round(value / 100_000)} k€`;
   const last = data.months.at(-1);
-  const ratio = last ? Math.round((last.amount / data.monthlyTarget) * 100) : 0;
+  // Without a goal in the settings, none is drawn (question 97).
+  const ratio = last && data.monthlyTarget ? Math.round((last.amount / data.monthlyTarget) * 100) : null;
   return (
     <section aria-labelledby="mois-titre" className={css.card} data-grow="1.4" data-padded>
       <div className={css.chartHead}>
         <div>
           <h2 id="mois-titre">Montants recouvrés</h2>
-          <span className={css.sub}>6 derniers mois · objectif mensuel {formatCents(data.monthlyTarget)}</span>
+          <span className={css.sub}>6 derniers mois{data.monthlyTarget ? ` · objectif mensuel ${formatCents(data.monthlyTarget)}` : ''}</span>
         </div>
-        <span className={css.target}>Novembre : {ratio} % de l&apos;objectif</span>
+        {ratio !== null && (
+          <span className={css.target}>
+            {last?.label} : {ratio} % de l&apos;objectif
+          </span>
+        )}
       </div>
       <div
         role="img"
         aria-label={`Recouvré par mois : ${data.months.map((item) => `${item.label} ${thousands(item.amount)}`).join(', ')} ; objectif ${thousands(data.monthlyTarget)}`}
         className={css.chart}
       >
-        <div className={css.targetLine} style={{ bottom: `${(data.monthlyTarget / max) * 80 + 12}%` }}>
-          <span>Objectif {thousands(data.monthlyTarget)}</span>
-        </div>
+        {data.monthlyTarget > 0 && (
+          <div className={css.targetLine} style={{ bottom: `${(data.monthlyTarget / max) * 80 + 12}%` }}>
+            <span>Objectif {thousands(data.monthlyTarget)}</span>
+          </div>
+        )}
         {data.months.map((item, index) => (
           <div key={item.label} className={css.month}>
             <span className={css.value} data-last={index === data.months.length - 1 || undefined}>

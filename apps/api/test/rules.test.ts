@@ -115,6 +115,7 @@ describe('what a route receives', () => {
       'POST /staff/search',
       // Asked twice, they leave what they left once.
       'PUT /staff/cases/:id/coordinates/:coordinateId',
+      'PUT /staff/dashboard/priorities/:id',
       'PUT /staff/delegations/:kind',
       'PUT /staff/members/:id/extension',
       'PUT /staff/notifications',

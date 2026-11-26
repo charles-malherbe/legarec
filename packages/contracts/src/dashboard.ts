@@ -4,7 +4,8 @@ import { cents } from './money';
 export const caseStatus = z.enum(['OVERDUE', 'PROMISE', 'REMINDER', 'DISPUTE', 'SETTLED', 'PLAN', 'FORMAL_NOTICE', 'LITIGATION', 'NEW', 'LOST']);
 export type CaseStatus = z.infer<typeof caseStatus>;
 
-const period = z.object({ note: z.string(), recovered: cents, recoveredSub: z.string(), targetRatio: z.number().min(0).max(100) });
+/** `targetRatio`: null without any goal in the settings (question 97). */
+const period = z.object({ note: z.string(), recovered: cents, recoveredSub: z.string(), targetRatio: z.number().min(0).max(100).nullable() });
 export const dashboard = z.object({
   /** GLOBAL: whole firm (Director). TEAM: Collection manager. PERSONAL: Claims officer. */
   scope: z.enum(['GLOBAL', 'TEAM', 'PERSONAL']),
@@ -80,3 +81,10 @@ export const dashboard = z.object({
   ),
 });
 export type Dashboard = z.infer<typeof dashboard>;
+/** `all`, or one creditor the person reads; anything else reads as `all`. */
+export const dashboardQuery = z.object({
+  creditor: z
+    .union([z.literal('all'), z.uuid()])
+    .catch('all')
+    .default('all'),
+});
