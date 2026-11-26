@@ -6,7 +6,7 @@ import { api } from '../../app/api';
 import { useChange } from '../../app/data';
 import { useCurrentUser } from '../../app/session';
 
-const EMPTY = { holder: '', iban: '', bic: '', confirmedWith: '' };
+const EMPTY = { holder: '', iban: '', bic: '' };
 
 /** Account of the remittances. The whole IBAN is asked for each time, noted each time, and kept nowhere. */
 export function AccountCard({ file, onMoved }: { file: CreditorFile; onMoved: (error: unknown) => boolean }) {
@@ -33,7 +33,7 @@ export function AccountCard({ file, onMoved }: { file: CreditorFile; onMoved: (e
           tone="neutral"
           icon="lock"
           title="Réservé au Directeur"
-          text="La délégation administrative a été retirée. Le Directeur saisit et confirme ce compte."
+          text="La délégation administrative a été retirée. Le Directeur saisit ce compte ; sa confirmation par téléphone attend le retour de la délégation, car elle revient à un autre collaborateur."
         />
       </Carte>
     );
@@ -61,7 +61,7 @@ export function AccountCard({ file, onMoved }: { file: CreditorFile; onMoved: (e
         ...(account ? [{ k: 'Ancien compte', v: account.masked }] : []),
         { k: 'Nouvel IBAN', v: data.iban.replace(/\s/gu, '').replace(/(.{4})(?=.)/gu, '$1 ') },
         { k: 'BIC', v: data.bic },
-        { k: 'Confirmé', v: data.confirmedWith ? `Par téléphone, ${data.confirmedWith}` : 'Non : aucun reversement avant' },
+        { k: 'Confirmation', v: 'Par un autre collaborateur, par téléphone : aucun reversement avant' },
         ...onBehalf,
       ],
       confirmLabel: account ? 'Remplacer le compte' : 'Enregistrer le compte',
@@ -119,6 +119,7 @@ export function AccountCard({ file, onMoved }: { file: CreditorFile; onMoved: (e
               ['IBAN', shown?.account === account.id ? shown.iban : account.masked],
               ['BIC', account.bic],
               ['Depuis le', formatDate(account.since)],
+              ['Saisi par', account.enteredByMe ? 'Vous' : account.enteredBy],
               ['Confirmé', account.confirmed ? `Par téléphone, ${formatDate(account.confirmed.on)}, ${account.confirmed.with}` : 'Non'],
             ] as const
           ).map(([label, value]) => (
@@ -131,7 +132,14 @@ export function AccountCard({ file, onMoved }: { file: CreditorFile; onMoved: (e
       ) : (
         <p className={layout.body}>Aucun compte enregistré.</p>
       )}
-      {account && !account.confirmed && (
+      {account && !account.confirmed && account.enteredByMe && (
+        <Alerte
+          tone="warning"
+          title="IBAN à confirmer par un autre collaborateur"
+          text="Vous avez saisi ce compte : le Directeur ou le Responsable du recouvrement doit le confirmer par téléphone, à un numéro déjà connu. Sans cela, aucun reversement."
+        />
+      )}
+      {account && !account.confirmed && !account.enteredByMe && (
         <>
           <Alerte tone="warning" title="IBAN à confirmer par téléphone" text="Avec l’interlocuteur, à un numéro déjà connu. Sans cela, aucun reversement." />
           <div className={layout.form}>
@@ -157,7 +165,6 @@ export function AccountCard({ file, onMoved }: { file: CreditorFile; onMoved: (e
             {field('holder', 'Titulaire', { required: true })}
             {field('iban', 'IBAN', { required: true, mono: true })}
             {field('bic', 'BIC', { required: true, mono: true })}
-            {field('confirmedWith', 'IBAN confirmé par téléphone avec', { optional: true, help: 'À un numéro déjà connu. Sans cela, aucun reversement.' })}
           </div>
           <div className={layout.end}>
             <Bouton variant="secondary" label="Annuler" onPress={() => (setForm(null), setErrors({}))} />

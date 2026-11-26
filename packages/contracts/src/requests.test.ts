@@ -179,7 +179,7 @@ const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly
     'PUT /creditors/:id': [{ version: 1, identity: IDENTITY, contacts: CONTACTS }],
     'POST /creditors/:id/amendments': [{ amends: 'm1', mandate: MANDATE }],
     'POST /creditors/:id/bank-accounts': [
-      { replaces: null, account: { holder: 'X', iban: 'GB82 WEST 1234 5698 7654 32', bic: 'PSSTFRPPXXX', confirmedWith: '' } },
+      { replaces: null, account: { holder: 'X', iban: 'GB82 WEST 1234 5698 7654 32', bic: 'PSSTFRPPXXX' } },
     ],
     'POST /creditors/:id/bank-accounts/:accountId/confirm': [{ confirmedWith: 'Élodie Rivaud' }],
     'POST /cases/:id/access-code/regenerate': [{ version: 1 }],

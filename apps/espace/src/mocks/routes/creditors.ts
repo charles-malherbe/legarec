@@ -280,6 +280,8 @@ const firstFile = (item: CreditorListItem): Stored => ({
     bic: 'PSSTFRPPXXX',
     since: '2024-03-12',
     confirmed: { on: '2024-03-12', with: 'Claire Besson' },
+    enteredBy: 'Camille Laurent',
+    enteredByMe: false,
   },
 });
 let added: CreditorListItem[] = [];
@@ -384,7 +386,11 @@ const formHandlers = [
         ...file,
         openCases: readable(session).filter((item) => item.creditorId === file.id).length,
         bankAccess: administers(session) ? 'EDIT' : 'NONE',
-        bankAccount: administers(session) ? file.bankAccount : null,
+        // As the API: whoever typed it is told so, and does not confirm it (question 142).
+        bankAccount:
+          administers(session) && file.bankAccount
+            ? { ...file.bankAccount, enteredByMe: file.bankAccount.enteredBy === `${session.firstName} ${session.lastName}` }
+            : null,
       }),
     ),
   ),
@@ -437,7 +443,9 @@ const formHandlers = [
           masked: `${iban.slice(0, 4)} •••• •••• ${iban.slice(-4)}`,
           bic: compact(account.bic),
           since: TODAY,
-          confirmed: account.confirmedWith ? { on: TODAY, with: account.confirmedWith } : null,
+          confirmed: null,
+          enteredBy: `${session.firstName} ${session.lastName}`,
+          enteredByMe: false,
         },
       });
       audit(session, 'Compte de reversement enregistré', 'ADMINISTRATIVE');
@@ -450,6 +458,7 @@ const formHandlers = [
     onFile(administers, async (file, session, { request, params }) => {
       const { confirmedWith } = (await request.json()) as { confirmedWith: string };
       if (!file.bankAccount || file.bankAccount.id !== params.accountId || file.bankAccount.confirmed) return changed();
+      if (file.bankAccount.enteredBy === `${session.firstName} ${session.lastName}`) return HttpResponse.json({ code: 'SAME_PERSON' }, { status: 409 });
       files.set(file.id, { ...file, bankAccount: { ...file.bankAccount, confirmed: { on: TODAY, with: confirmedWith } } });
       audit(session, 'Compte de reversement confirmé par téléphone', 'ADMINISTRATIVE');
       return done();

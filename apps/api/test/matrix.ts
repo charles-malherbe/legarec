@@ -252,7 +252,8 @@ const creditor =
 const bankAccount = (then: string) => async (test: TestApp, id: string) => {
   const { rows } = await test.database.admin.query<{ id: string }>(
     "INSERT INTO creditor_bank_accounts (creditor_id, holder, iban_cipher, iban_masked, bic, created_by) VALUES ($1, 'x', '\\x00', 'GB82 •••• •••• 5432', 'PSSTFRPPXXX', $2) RETURNING id",
-    [id, test.s.director],
+    // Typed by someone else: whoever types it never confirms it (question 142).
+    [id, test.s.officerA],
   );
   return `/bank-accounts/${rows[0]!.id}/${then}`;
 };
@@ -276,7 +277,7 @@ const MANDATE = {
   reportingDay: 5,
   scenario: 'BUSINESS',
 };
-const ACCOUNT = { holder: 'X', iban: 'GB82 WEST 1234 5698 7654 32', bic: 'PSSTFRPPXXX', confirmedWith: '' };
+const ACCOUNT = { holder: 'X', iban: 'GB82 WEST 1234 5698 7654 32', bic: 'PSSTFRPPXXX' };
 
 /** The same sign-in on both portals, open to whoever is there: the answer does not depend on it. */
 const signIn = (portal: 'staff' | 'partner'): Record<string, MatrixEntry> => {

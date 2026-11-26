@@ -23,7 +23,7 @@ const EMPTY_IDENTITY = {
   portalEnabled: true,
 };
 const EMPTY_CONTACT = { name: '', title: '', email: '', phone: '', isMain: false };
-const EMPTY_ACCOUNT = { holder: '', iban: '', bic: '', confirmedWith: '' };
+const EMPTY_ACCOUNT = { holder: '', iban: '', bic: '' };
 type Identity = typeof EMPTY_IDENTITY;
 type Contact = typeof EMPTY_CONTACT;
 type Errors = Record<string, string>;
@@ -222,7 +222,7 @@ function Create({ managers, bankAccess, rate }: { managers: { id: string; name: 
         { k: 'Frais d’ouverture', v: `${formatCents(data.mandate.openingFeeCents)} HT par dossier` },
         { k: 'Échéancier sans accord', v: `${data.mandate.planMonthsWithoutConsent} mois` },
         { k: 'Convention', v: 'À déposer' },
-        { k: 'Compte', v: typed ? `•••• ${account.iban.replace(/\s/gu, '').slice(-4)}` : 'À saisir' },
+        { k: 'Compte', v: typed ? `•••• ${account.iban.replace(/\s/gu, '').slice(-4)}, à confirmer par un autre collaborateur` : 'À saisir' },
         ...(typed && user.role !== 'DIRECTOR' ? [{ k: 'Compte, pour le compte de', v: `${user.directorName}, Directeur` }] : []),
       ],
       confirmLabel: 'Créer le créancier',
@@ -305,21 +305,13 @@ function Create({ managers, bankAccess, rate }: { managers: { id: string; name: 
               onChange={(iban) => setAccount({ ...account, iban })}
             />
             <Champ label="BIC" mono value={account.bic} error={errors['account.bic']} autocomplete="off" onChange={(bic) => setAccount({ ...account, bic })} />
-            <Champ
-              label="IBAN confirmé par téléphone avec"
-              optional
-              help="À un numéro déjà connu. Sans cela, aucun reversement."
-              value={account.confirmedWith}
-              autocomplete="off"
-              onChange={(confirmedWith) => setAccount({ ...account, confirmedWith })}
-            />
           </div>
         ) : (
           <Alerte
             tone="neutral"
             icon="lock"
             title="Réservé au Directeur"
-            text="La délégation administrative a été retirée. Le Directeur saisit et confirme ce compte."
+            text="La délégation administrative a été retirée. Le Directeur saisit ce compte ; sa confirmation par téléphone attend le retour de la délégation, car elle revient à un autre collaborateur."
           />
         )}
       </Carte>

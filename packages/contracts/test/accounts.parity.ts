@@ -112,7 +112,7 @@ const CASE = {
   expected: { principal: 48_600, invoices: 1 },
 };
 /** Example IBAN of the international standard, not a real account. */
-const ACCOUNT = { holder: 'X', iban: 'GB82 WEST 1234 5698 7654 32', bic: 'PSSTFRPPXXX', confirmedWith: '' };
+const ACCOUNT = { holder: 'X', iban: 'GB82 WEST 1234 5698 7654 32', bic: 'PSSTFRPPXXX' };
 const STAFF = ['director', 'manager', 'developer', 'officer'] as const;
 const each = <T extends ParityRole>(roles: readonly T[], of: (as: T) => Omit<Parity, 'as'>): Parity[] => roles.map((as) => ({ as, ...of(as) }));
 

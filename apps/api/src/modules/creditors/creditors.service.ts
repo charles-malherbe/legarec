@@ -164,9 +164,10 @@ export class CreditorsService {
       access === 'EDIT'
         ? await tx.creditorBankAccount.findFirst({
             where: { creditorId: id, validUntil: null },
-            select: { id: true, holder: true, ibanMasked: true, bic: true, validFrom: true, confirmedAt: true, confirmedWith: true },
+            select: { id: true, holder: true, ibanMasked: true, bic: true, validFrom: true, confirmedAt: true, confirmedWith: true, createdBy: true },
           })
         : null;
+    const typist = account ? await tx.user.findUnique({ where: { id: account.createdBy }, select: { firstName: true, lastName: true } }) : null;
     return {
       id,
       version: item.version,
@@ -195,6 +196,8 @@ export class CreditorsService {
         bic: account.bic,
         since: dayOf(account.validFrom),
         confirmed: account.confirmedAt ? { on: dayOf(account.confirmedAt), with: account.confirmedWith ?? '' } : null,
+        enteredBy: typist ? fullName(typist) : '',
+        enteredByMe: account.createdBy === actor.userId,
       },
     };
   }
@@ -256,7 +259,10 @@ export class CreditorsService {
     await this.writeAccount(actor, id, account);
   }
 
+  /** By someone other than whoever typed it (question 142): PostgreSQL refuses it too. */
   async confirmAccount(actor: StaffActor, id: string, accountId: string, confirmedWith: string): Promise<void> {
+    const typed = await this.database.tx.creditorBankAccount.findFirst({ where: { id: accountId, creditorId: id }, select: { createdBy: true } });
+    if (typed?.createdBy === actor.userId) throw conflict('SAME_PERSON');
     const { count } = await this.database.tx.creditorBankAccount.updateMany({
       where: { id: accountId, creditorId: id, validUntil: null, confirmedAt: null },
       data: { confirmedBy: actor.userId, confirmedAt: new Date(), confirmedWith },
@@ -280,13 +286,12 @@ export class CreditorsService {
     const id = randomUUID();
     const iban = compact(account.iban);
     const [behalf] = await tx.$queryRaw<{ id: string | null }[]>`SELECT app.on_behalf_of() AS id`;
-    // Written without reading it back: the team never selects the value.
+    // Written without reading it back: the team never selects the value. Unconfirmed: someone else makes the call (question 142).
     await tx.$executeRaw`
-      INSERT INTO creditor_bank_accounts (id, creditor_id, holder, iban_cipher, iban_masked, bic, confirmed_by, confirmed_at, confirmed_with, created_by, on_behalf_of_id)
+      INSERT INTO creditor_bank_accounts (id, creditor_id, holder, iban_cipher, iban_masked, bic, created_by, on_behalf_of_id)
       VALUES (${id}::uuid, ${creditorId}::uuid, ${account.holder}, ${this.vault.sealFor({ table: 'creditor_bank_accounts', id, column: 'iban_cipher' }, iban)}, ${masked(iban)}, ${compact(account.bic)},
-        ${account.confirmedWith ? actor.userId : null}::uuid, ${account.confirmedWith ? new Date() : null}::timestamptz, ${account.confirmedWith || null}, ${actor.userId}::uuid, ${behalf?.id ?? null}::uuid)`;
+        ${actor.userId}::uuid, ${behalf?.id ?? null}::uuid)`;
     await this.audit.log({ action: 'CREDITOR_ACCOUNT_CHANGED', entity: { type: 'creditor', id: creditorId } });
-    if (account.confirmedWith) await this.audit.log({ action: 'CREDITOR_ACCOUNT_CONFIRMED', entity: { type: 'creditor', id: creditorId } });
   }
 
   // ---------------------------------------------------------------- Shared
