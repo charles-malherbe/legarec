@@ -31,6 +31,6 @@ export class DashboardController {
     @Param('id') id: string,
     @Body({ schema: bodies['PUT /dashboard/priorities/:id'] }) { done }: z.infer<(typeof bodies)['PUT /dashboard/priorities/:id']>,
   ) {
-    await this.dashboard.mark(me().userId, id, done);
+    await this.dashboard.mark(me().role, me().userId, id, done);
   }
 }

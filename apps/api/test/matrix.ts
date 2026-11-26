@@ -468,7 +468,7 @@ export const MATRIX: Record<string, MatrixEntry> = {
   'PUT /staff/dashboard/priorities/:id': {
     path: async (test) => `/staff/dashboard/priorities/call:${(await newCase(test)).id}`,
     body: () => ({ done: true }),
-    expect: withCases(404, { director: 204, manager: 204, managerAlone: 204 }),
+    expect: withCases(404, { manager: 204, managerAlone: 204 }),
   },
   'GET /staff/notifications': { expect: staffOf(200) },
   'PUT /staff/notifications': { body: () => ({ ids: [randomUUID()], unread: false }), expect: staffOf(204) },

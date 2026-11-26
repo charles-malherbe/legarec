@@ -214,10 +214,12 @@ export class DashboardService {
   }
 
   /** Marked done for the person only; a key of a case they no longer read is refused. */
-  async mark(userId: string, id: string, done: boolean): Promise<void> {
+  async mark(role: StaffRole, userId: string, id: string, done: boolean): Promise<void> {
     const { tx } = this.database;
     const match = /^([a-z-]{1,32}):([0-9a-f-]{36})$/u.exec(id);
-    if (!match || !(await tx.case.findFirst({ where: { id: match[2] }, select: { id: true } }))) throw notFound();
+    // The Director has priorities on their own cases only, as in `read()`.
+    const own = role === 'DIRECTOR' ? { officerId: userId } : {};
+    if (!match || !(await tx.case.findFirst({ where: { id: match[2], ...own }, select: { id: true } }))) throw notFound();
     if (done) await tx.taskMark.upsert({ where: { userId_key: { userId, key: id } }, create: { userId, key: id }, update: {}, select: { key: true } });
     else await tx.taskMark.deleteMany({ where: { userId, key: id } });
   }
