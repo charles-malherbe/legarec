@@ -34,14 +34,6 @@ const FIELDS: Record<string, Partial<SettingField>> = {
   'ia.budget': { description: 'Au-delà, les fonctions passent en pause jusqu’au mois suivant ; alerte à 80 %. 6,40 € consommés ce mois.' },
 };
 const ROWS: Record<string, SettingTable['rows']> = {
-  'ai-log': [
-    ['23/11 10:42', 'Résumé d’appel', 'Camille Laurent', ok('Acceptée')],
-    ['23/11 10:15', 'Brouillon de réponse', 'Camille Laurent', { text: 'Modifiée', tone: 'info' }],
-    ['23/11 09:58', 'Tri des e-mails', 'Thomas Giraud', ok('Acceptée')],
-    ['22/11 17:20', 'Synthèse du dossier', 'Hugo Benali', { text: 'Signalée', tone: 'warning' }],
-    ['22/11 16:03', 'Tri des e-mails', 'Sarah Morel', { text: 'Corrigée', tone: 'info' }],
-    ['22/11 14:47', 'Résumé d’appel', 'Thomas Giraud', { text: 'Ignorée', tone: 'neutral' }],
-  ],
   extensions: [
     ['Camille Laurent', '101', '800', ok('En appel')],
     ['Hugo Benali', '102', '800', { text: 'Disponible', tone: 'info' }],
@@ -61,9 +53,6 @@ const ROWS: Record<string, SettingTable['rows']> = {
 const tables = (items: SettingTable[] = []) =>
   items.map((item) => ({
     ...item,
-    ...(item.id === 'ai-log'
-      ? { description: `${item.description} 30 derniers jours : 82 % acceptées telles quelles, 13 % modifiées, 5 % ignorées, 3 signalements.` }
-      : {}),
     rows:
       item.id === 'tools'
         ? item.rows.map((row) => (['Signature électronique', 'Données entreprises'].includes(String(row[0])) ? row : [...row.slice(0, 2), ok('Connecté')]))

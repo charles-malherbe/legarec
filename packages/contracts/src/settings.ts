@@ -174,3 +174,68 @@ export const gdprErasure = z.object({
   homonyms: z.number().int(),
   warning: z.string().nullable(),
 });
+
+/** The journal of the assistant (Paramètres › Assistant IA): Director and Developer only (question W-1). */
+export const AI_JOURNAL_PAGE = 25;
+export const aiJournalQuery = z.object({
+  page: z
+    .string()
+    .regex(/^\d{1,5}$/u)
+    .transform(Number)
+    .refine((page) => page >= 1)
+    .optional(),
+  /** Lines per page, as the other lists offer them. */
+  size: z.enum(['25', '50', '100']).transform(Number).optional(),
+});
+export const AI_FEATURE_LABELS = { CASE_SUMMARY: 'Synthèse du dossier' } as const;
+export const AI_OUTCOME_LABELS = {
+  SUGGESTED: 'Proposée',
+  REFUSED_BY_GUARD: 'Refusée par un garde-fou',
+  FAILED: 'Échec',
+  OVER_BUDGET: 'Budget atteint',
+} as const;
+export const AI_DECISION_LABELS = {
+  PENDING: 'En attente',
+  ACCEPTED: 'Acceptée',
+  MODIFIED: 'Modifiée',
+  IGNORED: 'Ignorée',
+  REPORTED: 'Signalée',
+} as const;
+export const aiJournal = z.object({
+  items: z.array(
+    z.object({
+      id: z.string(),
+      at: z.string(),
+      feature: z.enum(['CASE_SUMMARY']),
+      /** Null for whoever may not read the case (the Developer). */
+      caseReference: z.string().nullable(),
+      /** What was sent, in short: counts, never the text. */
+      input: z.string(),
+      model: z.string().nullable(),
+      promptVersion: z.string(),
+      outcome: z.enum(['SUGGESTED', 'REFUSED_BY_GUARD', 'FAILED', 'OVER_BUDGET']),
+      decision: z.enum(['PENDING', 'ACCEPTED', 'MODIFIED', 'IGNORED', 'REPORTED']),
+      /** Who decided, or who asked; null when the application made it after an event and nobody has decided yet. */
+      colleague: z.string().nullable(),
+      tokens: z.number().int().nonnegative(),
+      /** In millionths of a euro. */
+      costMicro: z.number().int().nonnegative(),
+    }),
+  ),
+  page: z.number().int().positive(),
+  pageSize: z.number().int().positive(),
+  total: z.number().int().nonnegative(),
+  /** The last 30 days: suggestions made, and how they were decided. */
+  last30Days: z.object({
+    suggested: z.number().int().nonnegative(),
+    accepted: z.number().int().nonnegative(),
+    modified: z.number().int().nonnegative(),
+    ignored: z.number().int().nonnegative(),
+    reported: z.number().int().nonnegative(),
+  }),
+});
+export type AiJournal = z.infer<typeof aiJournal>;
+export type AiJournalEntry = AiJournal['items'][number];
+/** `0,0042 €`: the cost of a call, in euros. */
+export const formatMicroEuros = (micro: number) =>
+  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(micro / 1_000_000);

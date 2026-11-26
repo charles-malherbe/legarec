@@ -3133,6 +3133,181 @@
         }
       }
     },
+    "/staff/ai/journal": {
+      "get": {
+        "operationId": "AiJournalController_journal",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "at": {
+                            "type": "string"
+                          },
+                          "feature": {
+                            "type": "string",
+                            "enum": [
+                              "CASE_SUMMARY"
+                            ]
+                          },
+                          "caseReference": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "input": {
+                            "type": "string"
+                          },
+                          "model": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "promptVersion": {
+                            "type": "string"
+                          },
+                          "outcome": {
+                            "type": "string",
+                            "enum": [
+                              "SUGGESTED",
+                              "REFUSED_BY_GUARD",
+                              "FAILED",
+                              "OVER_BUDGET"
+                            ]
+                          },
+                          "decision": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "ACCEPTED",
+                              "MODIFIED",
+                              "IGNORED",
+                              "REPORTED"
+                            ]
+                          },
+                          "colleague": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "tokens": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "costMicro": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "at",
+                          "feature",
+                          "caseReference",
+                          "input",
+                          "model",
+                          "promptVersion",
+                          "outcome",
+                          "decision",
+                          "colleague",
+                          "tokens",
+                          "costMicro"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "page": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "exclusiveMinimum": true,
+                      "maximum": 9007199254740991
+                    },
+                    "pageSize": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "exclusiveMinimum": true,
+                      "maximum": 9007199254740991
+                    },
+                    "total": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "last30Days": {
+                      "type": "object",
+                      "properties": {
+                        "suggested": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "accepted": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "modified": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "ignored": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "reported": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "suggested",
+                        "accepted",
+                        "modified",
+                        "ignored",
+                        "reported"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "page",
+                    "pageSize",
+                    "total",
+                    "last30Days"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ai"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "DEVELOPER"
+          ]
+        }
+      }
+    },
     "/staff/reminders": {
       "get": {
         "operationId": "RemindersController_agenda",

@@ -39,6 +39,7 @@ import { RemittancesController } from './remittances/remittances.controller';
 import { RemindersController } from './reminders/reminders.controller';
 import { RemindersService } from './reminders/reminders.service';
 import { AiController } from '../ai/ai.controller';
+import { AiJournalController } from '../ai/journal.controller';
 import { NotificationsController } from './notifications/notifications.controller';
 import { NotificationsService } from './notifications/notifications.service';
 import { Ledgers } from './payments/ledger';
@@ -63,6 +64,7 @@ export const controllers: Type[] = [
   SupportController,
   NotificationsController,
   AiController,
+  AiJournalController,
   RemindersController,
   RemittancesController,
   CreditNotesController,

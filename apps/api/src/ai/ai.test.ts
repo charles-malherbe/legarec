@@ -1,4 +1,4 @@
-import { caseDetail } from '@legarec/contracts';
+import { aiJournal, caseDetail } from '@legarec/contracts';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { startApp, type TestApp } from '../../test/app';
@@ -259,5 +259,54 @@ describe('the summary made again when something new happens on a case', () => {
     await rows("UPDATE cases SET closed_on = current_date, status = 'SETTLED' WHERE id = $1", [quiet]);
     await sweep();
     expect(await queued(quiet)).toBe(0);
+  });
+});
+
+describe('the journal of the assistant', () => {
+  const journal = async (as: string, query = '') => call(as, 'GET', `/ai/journal${query}`);
+
+  it('is read by the Director and the Developer only', async () => {
+    for (const as of ['manager', 'officerA']) expect((await journal(as)).status).toBe(403);
+    expect((await journal('director')).status).toBe(200);
+    expect((await journal('developer')).status).toBe(200);
+    expect((await journal('director', '?page=0')).status).toBe(422);
+    expect((await journal('director', '?size=1000')).status).toBe(422);
+    expect(aiJournal.parse((await journal('director', '?size=50')).body).pageSize).toBe(50);
+  });
+
+  it('says the feature, the case, the counts sent, the model, the prompt, the decision, the colleague and the cost, never the text', async () => {
+    const answer = await journal('director');
+    const body = aiJournal.parse(answer.body);
+    expect(body.total).toBeGreaterThan(0);
+    const reported = body.items.find((item) => item.decision === 'REPORTED')!;
+    expect(reported).toMatchObject({ feature: 'CASE_SUMMARY', caseReference: 'LGR-2026-77001', model: 'modele-avance', colleague: expect.any(String) });
+    expect(reported.input).toMatch(/^\d+ factures, \d+ événements, \d+ caractères$/u);
+    expect(reported.costMicro).toBeGreaterThan(0);
+    expect(body.items.some((item) => item.outcome === 'OVER_BUDGET')).toBe(true);
+    // Neither the suggestion, nor what was sent, nor the debtor.
+    const text = JSON.stringify(answer.body);
+    expect(text).not.toMatch(/synthèse|Bâtiplus|IA Delta|MASQUÉ|48 200/iu);
+    expect(body.last30Days.reported).toBeGreaterThanOrEqual(1);
+  });
+
+  it('gives no case to the Developer, who reads none', async () => {
+    const body = aiJournal.parse((await journal('developer')).body);
+    expect(body.items.length).toBeGreaterThan(0);
+    expect(body.items.every((item) => item.caseReference === null)).toBe(true);
+  });
+
+  it('is read a page at a time', async () => {
+    const [{ id: some }] = (await rows<{ id: string }>('SELECT id FROM cases WHERE reference = $1', ['LGR-2026-77001'])) as [{ id: string }];
+    await rows(
+      `INSERT INTO ai_suggestions (feature, case_id, creditor_id, outcome, input_summary, prompt_version)
+       SELECT 'CASE_SUMMARY', $1, $2, 'OVER_BUDGET', '0 factures, 0 événements, 0 caractères', 'synthese-dossier-v2' FROM generate_series(1, 30)`,
+      [some, creditorId],
+    );
+    const first = aiJournal.parse((await journal('director')).body);
+    const second = aiJournal.parse((await journal('director', '?page=2')).body);
+    expect(first.items).toHaveLength(first.pageSize);
+    expect(second.total).toBe(first.total);
+    expect(second.items).toHaveLength(first.total - first.pageSize);
+    expect(second.items.map((item) => item.id)).not.toContain(first.items[0]!.id);
   });
 });
