@@ -43,6 +43,8 @@ const workerSchema = z.object({
     .string()
     .regex(/^tcp:\/\/[a-z0-9.-]+:\d{1,5}$/u)
     .optional(),
+  /** Chromium of the image, for the PDF; absent: that of Playwright (development, tests). */
+  CHROMIUM_PATH: z.string().startsWith('/').optional(),
 });
 
 export type Config = Readonly<z.infer<typeof apiSchema>>;

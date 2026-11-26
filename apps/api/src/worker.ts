@@ -40,7 +40,7 @@ const clamd = config.CLAMAV_URL ? new URL(config.CLAMAV_URL) : null;
 // Without an antivirus in production, received files wait unread; elsewhere, the simulated one.
 const scanner = clamd ? new ClamavScanner(clamd.hostname, Number(clamd.port)) : config.NODE_ENV === 'production' ? null : new SimulatedScanner();
 const storage = storageFor(config);
-const pdf = new PdfRenderer();
+const pdf = new PdfRenderer(config.CHROMIUM_PATH);
 const handlers: JobHandlers = {
   documents: documentJobs(storage, scanner),
   pdf: receiptJobs(storage, pdf, fileURLToPath(new URL('../templates/pdf/', import.meta.url))),
