@@ -6,7 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 hex() { openssl rand -hex 24; }
 declare -A value=(
-  [ACME_EMAIL]=ci@example.com [AUTHORIZED_IPS]=192.0.2.1 [SCW_REGION]=ci
+  [ACME_EMAIL]=ci@example.com [AUTHORIZED_IPS]=192.0.2.1 [S3_REGION]=ci
   [VAULT_MASTER_KEY]="$(openssl rand -base64 32)" [SESSION_SIGNING_KEY]="$(openssl rand -base64 32)"
   [POSTGRES_PASSWORD]="$(hex)" [LEGAREC_OWNER_PASSWORD]="$(hex)" [LEGAREC_APP_PASSWORD]="$(hex)" [LEGAREC_JOBS_PASSWORD]="$(hex)"
   [VALKEY_PASSWORD]="$(hex)" [GATUS_WORKER_TOKEN]="$(hex)" [GATUS_BACKUP_TOKEN]="$(hex)" [GATUS_RESTORE_TOKEN]="$(hex)" [GATUS_ALERT_KEY]="$(hex)" [GATUS_ALERT_TO]=ci@example.com
