@@ -15,7 +15,7 @@ Principe : **l'IA suggère, un collaborateur valide.** Aucune suggestion n'est a
 - Transcription seulement après l'annonce de l'enregistrement ; sinon rien n'est envoyé.
 - Minimisation : IBAN, données bancaires, pièces d'identité et code d'accès masqués avant envoi.
 - Les mentions obligatoires viennent des modèles validés, jamais de l'IA. Ton conforme au recouvrement amiable (pas de pression ni de menace).
-- Journal : chaque suggestion est conservée (fonction, dossier, entrée résumée, version du modèle et du prompt, décision : acceptée, modifiée, ignorée, corrigée, signalée, collaborateur).
+- Journal : chaque suggestion est conservée (fonction, dossier, entrée résumée, version du modèle et du prompt, décision : acceptée, modifiée, ignorée, corrigée, signalée, collaborateur). Affiché dans Paramètres › Assistant IA au Directeur et au Développeur (sans référence de dossier pour ce dernier), sans la suggestion ni le texte envoyé (question W-1).
 
 ## Technique
 - Module `apps/api/src/ai` : un service par fonction, appels derrière une **couche fournisseur** (interface unique ; adaptateurs Anthropic et compatible OpenAI pour Scaleway et OVH), sorties structurées (JSON validé par Zod) pour tout ce qui pré-remplit un formulaire. Le front ne dépend d'aucun fournisseur.
