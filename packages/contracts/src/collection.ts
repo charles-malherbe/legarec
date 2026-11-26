@@ -87,7 +87,9 @@ export const planSimulation = z.object({ caseId: z.string(), debtor: z.string(),
 export type PlanSimulation = z.infer<typeof planSimulation>;
 /** Rates typed each semester (question 75), and the semesters that lack one while interest runs. */
 export const interestRates = z.object({
-  items: z.array(z.object({ kind: z.enum(['ECB', 'LEGAL_INDIVIDUAL']), validFrom: z.iso.date(), rateBp: z.number().int(), enteredBy: z.string(), updatedAt: z.string() })),
+  items: z.array(
+    z.object({ kind: z.enum(['ECB', 'LEGAL_INDIVIDUAL']), validFrom: z.iso.date(), rateBp: z.number().int(), enteredBy: z.string(), updatedAt: z.string() }),
+  ),
   canEdit: z.boolean(),
 });
 export const plansData = z.object({

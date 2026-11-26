@@ -3570,6 +3570,7 @@ export interface operations {
                             feesVat: number;
                             feesGross: number;
                             toPay: number;
+                            accountId: string | null;
                             account: string | null;
                             invoice: string | null;
                             reason: string | null;
@@ -3672,6 +3673,7 @@ export interface operations {
                             feesVat: number;
                             feesGross: number;
                             toPay: number;
+                            accountId: string | null;
                             account: string | null;
                             invoice: string | null;
                             reason: string | null;

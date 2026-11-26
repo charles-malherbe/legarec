@@ -29,7 +29,8 @@ export const remittanceRow = z.object({
   feesVat: cents,
   feesGross: cents,
   toPay: cents,
-  /** Masked: the whole IBAN is shown on request and written in the audit (C3). */
+  /** The confirmed account the transfer goes to, sent back at the validation; masked, the whole IBAN shown on request (C3). */
+  accountId: z.string().nullable(),
   account: z.string().nullable(),
   invoice: z.string().nullable(),
   reason: z.string().nullable(),

@@ -491,7 +491,7 @@ describe('rights of the roles inside', () => {
       'payment_plans SELECT (case_id, creditor_id, id, months, requested_by, status, version)',
       'payment_plans UPDATE (status, version)',
       'payments INSERT (amount_cents, bank, case_id, cheque_number, creditor_id, deposited_on, id, label, method, on_behalf_of_id, received_on, recorded_by, settled_at, status)',
-      'payments SELECT (amount_cents, case_id, creditor_id, id, method, received_on, settled_at, status, version)',
+      'payments SELECT (amount_cents, case_id, creditor_id, id, method, received_on, settled_at, settled_in_litigation, status, version)',
       'payments UPDATE (bounce_reason, bounced_at, settled_at, status, version)',
       'plan_approvals INSERT (case_id, creditor_id, plan_id, step)',
       'plan_approvals SELECT (decision, id, plan_id, step)',
@@ -601,7 +601,7 @@ describe('rights on the functions', () => {
     ...['remittance_draft', 'validate_remittances', 'mark_remittances_paid', 'remittance_batches', 'remittance_batch'].map(
       (name) => [name, ['staff']] as [string, string[]],
     ),
-    ['remittance_sources', []],
+    ...['remittance_sources', 'remittance_summary', 'note_settlement'].map((name) => [name, []] as [string, string[]]),
     ...['creditor_decide_plan', 'creditor_upload', 'creditor_deposit'].map((name) => [name, ['partner']] as [string, string[]]),
     ...['money_case', 'issue_receipt', 'follow_allocation', 'check_allocations', 'keep_receipt'].map((name) => [name, []] as [string, string[]]),
     // Tools of the migrations.
@@ -633,7 +633,7 @@ describe('rights on the functions', () => {
       'own_access_code debtor_upload debtor_message read_portal_messages staff_message creditor_decide_plan creditor_upload creditor_deposit',
       'debtor_link ask_code_by_sms firm_payment_settings limited_message',
       'gdpr_request gdpr_keeper gdpr_registry gdpr_answer gdpr_export',
-      'remittance_sources remittance_draft validate_remittances mark_remittances_paid remittance_batches remittance_batch',
+      'remittance_sources remittance_summary note_settlement remittance_draft validate_remittances mark_remittances_paid remittance_batches remittance_batch',
     ].flatMap((names) => names.split(' '));
     const found = await rows<{ proname: string }>(
       "SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'app' ORDER BY 1",
