@@ -1,4 +1,4 @@
--- Retention of the pieces of accounting (docs/api.md, « Conservation » ; question V-10): invoices of the firm, credit
+-- Retention of the pieces of accounting (docs/api.md, « Conservation » ; question 175): invoices of the firm, credit
 -- notes, payments and their allocations, receipts, remittances, and the registry of the RGPD are kept ten years. Article
 -- L123-22 of the Code de commerce counts them from the close of the financial year: the most prudent reading is kept, the
 -- end of the calendar year of the piece. A piece of year Y is kept until 31 December of Y + 10 and goes from 1 January of
@@ -17,7 +17,7 @@
 --   * the files kept for accounting of an anonymized case (signed payment plans, statements), once old enough. A file of
 --     accounting without a case (a statement of remittances) is tied to nothing that says whether its batch stays: kept.
 -- An invoice with a draft of credit note changed in the last 30 days stays (the draft goes on its own after 30 days).
--- A payment cashed and never remitted, or still pending, stays: it is money the creditor is owed (question V-10). The case
+-- A payment cashed and never remitted, or still pending, stays: it is money the creditor is owed (question 175). The case
 -- and its debtor keep their lines. Numbers are drawn from number_sequences, which nothing here touches: none is used again.
 --
 -- What is erased is erased by the forgetter (20261126180000_case_retention), through the functions of the definer that the
