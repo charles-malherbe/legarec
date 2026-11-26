@@ -2,6 +2,7 @@ import { plansData, portalCase, portalCases, portalDashboard } from '@legarec/co
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { startApp, type TestApp } from '../../../test/app';
+import { xlsx, zip } from '../../../test/zip';
 
 let test: TestApp;
 const rows = async <T extends object = Record<string, unknown>>(sql: string, values: unknown[] = []) => (await test.database.admin.query<T>(sql, values)).rows;
@@ -147,6 +148,29 @@ describe('an import of claims', () => {
     expect(done).toMatchObject({ status: 200, body: { created: 2, pending: 2 } });
     expect(await rows("SELECT count(*)::int AS n FROM case_invoices WHERE number IN ('L-1', 'L-2')")).toEqual([{ n: 2 }]);
     expect((await call('partnerA', 'POST', `/partner/portal/imports/${report.id}/confirm`)).status).toBe(404);
+    // Confirmed, it keeps no copy of the debtors.
+    expect(await rows('SELECT claims, errors FROM claim_imports WHERE id = $1', [report.id])).toEqual([{ claims: [], errors: [] }]);
+  });
+
+  it('reads an Excel workbook, and refuses one that would inflate beyond its ceiling', async () => {
+    const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    const head = ['debiteur', 'siret', 'email', 'telephone', 'adresse', 'numero_facture', 'date_emission', 'date_echeance', 'montant_ttc'];
+    const book = xlsx([head, ['Atelier Brun', '', '', '', '2 rue Haute, 69001 Lyon', 'X-1', '01/09/2026', '01/10/2026', '980,00']]);
+    const read = await send('partnerA', book, XLSX);
+    expect(read.status, JSON.stringify(read.body)).toBe(200);
+    expect(read.body).toMatchObject({ lines: 1, valid: 1, total: 98_000 });
+    const bomb = zip([{ name: 'xl/worksheets/sheet1.xml', data: '0'.repeat(25 * 1024 * 1024) }]);
+    expect(await send('partnerA', bomb, XLSX)).toMatchObject({ status: 422, body: { code: 'UNREADABLE' } });
+  });
+
+  it('cuts a number too long in what it says of a line', async () => {
+    const answer = await send(
+      'partnerA',
+      `debiteur;siret;email;telephone;adresse;numero_facture;date_emission;date_echeance;montant_ttc\r\nX;123;;;;${'9'.repeat(5000)};;;1`,
+    );
+    const { errors } = answer.body as { errors: { message: string }[] };
+    expect(answer.status).toBe(200);
+    expect(errors[0]!.message.length).toBeLessThan(80);
   });
 
   it('refuses what is not a table of claims', async () => {
