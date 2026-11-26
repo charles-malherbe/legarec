@@ -76,7 +76,13 @@ export class DebtorSignIn {
             : { kind: 'invalid', left: row!.attempts_left ?? 0 };
     // Counted whatever the identifier, known or not: only the right code is not a failure.
     if (outcome.kind !== 'open' && (await this.limits.failed(FAILURES)))
-      await this.database.run({ kind: 'anonymous' }, (tx) => tx.$queryRaw`SELECT app.debtor_access_alert()`);
+      try {
+        await this.database.run({ kind: 'anonymous' }, (tx) => tx.$queryRaw`SELECT app.debtor_access_alert()`);
+      } catch (error) {
+        // Never an episode left untold: the next failure beyond the limit tries again.
+        await this.limits.untold(FAILURES).catch(() => undefined);
+        throw error;
+      }
     switch (outcome.kind) {
       case 'open':
         cookies().set(COOKIE, outcome.token, remember ? REMEMBERED_S : undefined);

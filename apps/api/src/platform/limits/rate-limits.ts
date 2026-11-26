@@ -138,6 +138,11 @@ export class RateLimits {
     return answer === 1;
   }
 
+  /** The episode was not told after all (the alert could not be written): the next failure beyond the limit starts it again. */
+  async untold({ name }: FailureWatch): Promise<void> {
+    await this.valkey.del(`limit:${name}:episode:${this.digest(`all:${name}`)}`);
+  }
+
   private digest(of: string): string {
     return digest(this.key, of).toString('base64url');
   }

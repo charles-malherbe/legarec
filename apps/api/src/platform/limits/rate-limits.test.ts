@@ -132,6 +132,10 @@ describe('failures in all', () => {
     vi.setSystemTime(Date.now() + 3_600_000);
     for (const of of ['a', 'b', 'c']) expect(await limits.failed(watch, of)).toBe(false);
     expect(await limits.failed(watch, 'e')).toBe(true);
+    // Not told after all: the next failure starts it again.
+    await limits.untold(watch);
+    expect(await limits.failed(watch, 'f')).toBe(true);
+    expect(await limits.failed(watch, 'g')).toBe(false);
   });
 
   it('keeps no address, and every key ends', async () => {
