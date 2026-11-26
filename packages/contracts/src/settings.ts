@@ -163,4 +163,14 @@ export type GdprRequest = z.infer<typeof gdprRegistry>['items'][number];
 export const gdprExport = z.object({ fileName: z.string(), content: z.unknown() });
 /** What an erasure would anonymize, and what stands in its way (article 17.3 of the RGPD). */
 export const gdprErasureBlocker = z.enum(['OPEN_CASE', 'PAYMENT_PENDING', 'NOT_REMITTED', 'REQUEST_CLOSED']);
-export const gdprErasure = z.object({ cases: z.number().int(), blockers: z.array(gdprErasureBlocker) });
+/**
+ * `digest`: a fingerprint of the cases shown, sent back with the confirmation. `homonyms`: other individuals with the same
+ * name, never put together with this one (a line per creditor may be the same person), only counted; `warning` says it.
+ */
+export const gdprErasure = z.object({
+  cases: z.number().int(),
+  digest: z.string(),
+  blockers: z.array(gdprErasureBlocker),
+  homonyms: z.number().int(),
+  warning: z.string().nullable(),
+});

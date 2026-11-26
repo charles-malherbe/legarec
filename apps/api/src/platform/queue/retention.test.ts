@@ -423,6 +423,48 @@ describe('cases closed for more than five years', () => {
     expect(await rows('SELECT name, siren FROM debtors WHERE id = $1', [shared])).toEqual([{ name: 'Débiteur anonymisé', siren: null }]);
   });
 
+  it('keeps the signed payment plan ten years, and forgets why a cheque bounced', async () => {
+    const id = await closedCase(await debtor('Anne Roux'), '6 years');
+    const plan = await document(id, 'PAYMENT_PLAN');
+    // A free text about the debtor, left in the line of a payment.
+    await rows(
+      `WITH p AS (INSERT INTO payments (case_id, creditor_id, method, amount_cents, status, received_on, settled_at, cheque_number, bank, recorded_by, bounce_reason)
+         VALUES ($1, $2, 'CHEQUE', 1000, 'CASHED', '2020-01-04', '2020-01-09', '7654320', 'Banque', $3, 'Provision insuffisante, Mme Roux au chômage') RETURNING id)
+       INSERT INTO payment_allocations (case_id, creditor_id, payment_id, component, amount_cents) SELECT $1, $2, p.id, 'OVERPAYMENT', 1000 FROM p`,
+      [id, creditor, s.officerA],
+    );
+    expect(await purge(jobs, logger, storage)).toMatchObject({ cases: 1, 'document-files': 0 });
+    expect(await rows('SELECT retention_class, purged_at FROM documents WHERE id = $1', [plan.id])).toEqual([
+      { retention_class: 'ACCOUNTING', purged_at: null },
+    ]);
+    expect((await storage.read(plan.key)).byteLength).toBeGreaterThan(0);
+    expect(await rows('SELECT amount_cents, bounce_reason FROM payments WHERE case_id = $1', [id])).toEqual([{ amount_cents: 1000, bounce_reason: null }]);
+  });
+
+  it('forgets nothing for a session that only says it is forgetting', async () => {
+    const id = await closedCase(await debtor('Rose Blanc'), null);
+    for (const role of ['legarec_staff', 'legarec_definer', 'legarec_worker']) {
+      await rows('BEGIN');
+      try {
+        await rows(`SET LOCAL ROLE ${role}`);
+        await rows("SELECT set_config('app.forgetting', 'on', true), set_config('app.purging', 'case_events', true)");
+        // The definer calls it from its own functions only; no session takes its role.
+        if (role !== 'legarec_definer') await expect(test.admin.query('SELECT app.forget_case($1)', [id]), role).rejects.toThrow(/permission denied/u);
+      } finally {
+        await rows('ROLLBACK');
+      }
+      await rows('BEGIN');
+      try {
+        await rows(`SET LOCAL ROLE ${role}`);
+        await rows("SELECT set_config('app.forgetting', 'on', true)");
+        await expect(test.admin.query('DELETE FROM case_events WHERE case_id = $1', [id]), role).rejects.toThrow(/permission denied/u);
+      } finally {
+        await rows('ROLLBACK');
+      }
+    }
+    expect(await count('case_events', id)).toBe(1);
+  });
+
   it('is done by the retention alone', async () => {
     const callers = await rows<{ role: string; anonymize: boolean; forget: boolean }>(
       `SELECT r AS role, has_function_privilege(r, 'app.anonymize_case()', 'EXECUTE') AS anonymize, has_function_privilege(r, 'app.forget_case(uuid)', 'EXECUTE') AS forget

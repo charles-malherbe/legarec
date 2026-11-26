@@ -60,12 +60,18 @@ describe('the erasure asked by a debtor', () => {
   let open = '';
   let request = '';
   const erasure = async () => gdprErasure.parse((await call('director', 'GET', `/gdpr/requests/${request}/erasure`)).body);
-  const erase = (as: string, expectedCases: number, key: string = randomUUID()) =>
-    test.call('POST', `/staff/gdpr/requests/${request}/erasure`, { as, body: { expectedCases }, headers: { 'idempotency-key': key } });
+  const erase = async (as: string, expectedCases: number, key: string = randomUUID(), expectedDigest?: string) =>
+    test.call('POST', `/staff/gdpr/requests/${request}/erasure`, {
+      as,
+      body: { expectedCases, expectedDigest: expectedDigest ?? (await erasure()).digest },
+      headers: { 'idempotency-key': key },
+    });
 
   beforeAll(async () => {
     const [creditor] = await rows<{ id: string }>("INSERT INTO creditors (name) VALUES ('Effacement Delta') RETURNING id");
     [{ id: debtor }] = (await rows<{ id: string }>("INSERT INTO debtors (kind, name) VALUES ('INDIVIDUAL', 'Hélène Faure') RETURNING id")) as [{ id: string }];
+    // Perhaps the same person, followed for another creditor: never put together with her.
+    await rows("INSERT INTO debtors (kind, name) VALUES ('INDIVIDUAL', 'HELENE  FAURE'), ('COMPANY', 'Hélène Faure')");
     // Two creditors, the same debtor: one case settled last year, one still under way.
     [{ id: closed }] = (await rows<{ id: string }>(
       `INSERT INTO cases (reference, creditor_id, debtor_id, officer_id, status, closed_on, debtor_address, contact_name)
@@ -81,7 +87,13 @@ describe('the erasure asked by a debtor', () => {
   });
 
   it('is refused, with its reason, while one of the cases of the debtor is open', async () => {
-    expect(await erasure()).toEqual({ cases: 2, blockers: ['OPEN_CASE'] });
+    expect(await erasure()).toEqual({
+      cases: 2,
+      digest: expect.stringMatching(/^[0-9a-f]{64}$/u),
+      blockers: ['OPEN_CASE'],
+      homonyms: 1,
+      warning: 'D’autres fiches au même nom existent : à vérifier.',
+    });
     expect((await call('officerA', 'GET', `/gdpr/requests/${request}/erasure`)).status).toBe(403);
     expect(await erase('director', 2)).toMatchObject({ status: 409, body: { code: 'ERASURE_REFUSED', blockers: ['OPEN_CASE'] } });
     expect(await rows('SELECT name FROM debtors WHERE id = $1', [debtor])).toEqual([{ name: 'Hélène Faure' }]);
@@ -96,7 +108,7 @@ describe('the erasure asked by a debtor', () => {
        INSERT INTO payment_allocations (case_id, creditor_id, payment_id, component, amount_cents) SELECT $1, $2, p.id, 'OVERPAYMENT', 5000 FROM p RETURNING payment_id AS id`,
       [closed, creditor!.creditor_id, test.s.officerA],
     );
-    expect(await erasure()).toEqual({ cases: 2, blockers: ['NOT_REMITTED'] });
+    expect(await erasure()).toMatchObject({ cases: 2, blockers: ['NOT_REMITTED'] });
     const [batch] = await rows<{ id: string }>(
       "INSERT INTO remittance_batches (covers_until, status, total_cents, transfers, validated_by, paid_on) VALUES ('2025-05-31', 'PAID', 4500, 1, $1, '2025-06-02') RETURNING id",
       [test.s.director],
@@ -110,17 +122,20 @@ describe('the erasure asked by a debtor', () => {
       "INSERT INTO remittance_lines (remittance_id, case_id, creditor_id, kind, payment_id, amount_cents, fee_net_cents, fee_vat_cents) VALUES ($1, $2, $3, 'PAYMENT', $4, 5000, 400, 100)",
       [remittance!.id, closed, creditor!.creditor_id, payment!.id],
     );
-    expect(await erasure()).toEqual({ cases: 2, blockers: [] });
+    expect(await erasure()).toMatchObject({ cases: 2, blockers: [] });
   });
 
   it('erases only the number of cases shown, once, and keeps the pieces of accounting', async () => {
     expect(await erase('officerA', 2)).toMatchObject({ status: 403 });
     expect(await erase('director', 1)).toMatchObject({ status: 409, body: { code: 'CHANGED' } });
+    // The same number, but not the cases that were shown.
+    expect(await erase('director', 2, randomUUID(), '0'.repeat(64))).toMatchObject({ status: 409, body: { code: 'CHANGED' } });
     expect(await rows('SELECT name FROM debtors WHERE id = $1', [debtor])).toEqual([{ name: 'Hélène Faure' }]);
     const key = randomUUID();
-    expect((await erase('manager', 2, key)).status).toBe(204);
+    const { digest } = await erasure();
+    expect((await erase('manager', 2, key, digest)).status).toBe(204);
     // The same confirmation again: the same answer, nothing more done; a new one: the request is answered.
-    expect((await erase('manager', 2, key)).status).toBe(204);
+    expect((await erase('manager', 2, key, digest)).status).toBe(204);
     expect(await erase('director', 0)).toMatchObject({ status: 409, body: { code: 'ERASURE_REFUSED', blockers: ['REQUEST_CLOSED'] } });
 
     expect(await rows('SELECT name, anonymized_at IS NOT NULL AS anonymized FROM debtors WHERE id = $1', [debtor])).toEqual([
@@ -134,12 +149,22 @@ describe('the erasure asked by a debtor', () => {
     ]);
     expect(await rows('SELECT count(*)::int AS n FROM case_events WHERE case_id = $1', [closed])).toEqual([{ n: 0 }]);
     expect(await rows('SELECT amount_cents FROM payments WHERE case_id = $1', [closed])).toEqual([{ amount_cents: 5000 }]);
-    expect(await rows('SELECT status, reason IS NOT NULL AS motivated FROM gdpr_requests WHERE id = $1', [request])).toEqual([
-      { status: 'ANSWERED', motivated: true },
+    expect(await rows('SELECT status, origin, reason IS NOT NULL AS motivated FROM gdpr_requests WHERE id = $1', [request])).toEqual([
+      { status: 'ANSWERED', origin: 'Demande anonymisée', motivated: true },
     ]);
     expect(await rows("SELECT params FROM audit_log WHERE action = 'GDPR_ERASED' AND entity_id = $1", [request])).toEqual([{ params: { count: 2 } }]);
     const { items } = gdprRegistry.parse((await call('director', 'GET', '/gdpr/requests')).body);
     expect(items.find((item) => item.id === request)).toMatchObject({ debtor: 'Débiteur anonymisé', status: 'ANSWERED' });
+  });
+
+  it('leaves nothing to be added to an anonymized case', async () => {
+    const coordinate = { kind: 'PHONE', label: 'Mobile', value: '06 11 22 33 44', primary: false, replaces: null, source: 'CALL' };
+    expect(await call('officerA', 'POST', `/cases/${closed}/coordinates`, coordinate)).toMatchObject({ status: 409, body: { code: 'CHANGED' } });
+    const cheque = { method: 'CHEQUE', amount: 1000, chequeNumber: '1234560', bank: 'Banque', receivedOn: '2026-11-02', depositedOn: null };
+    expect(await call('officerA', 'POST', `/cases/${closed}/payments`, cheque)).toMatchObject({ status: 409, body: { code: 'CHANGED' } });
+    expect(await call('officerA', 'POST', '/gdpr/requests', { caseId: closed, kind: 'ACCESS', origin: 'Courrier' })).toMatchObject({ status: 409 });
+    expect(await rows('SELECT count(*)::int AS n FROM case_contacts WHERE case_id = $1', [closed])).toEqual([{ n: 0 }]);
+    expect(await rows('SELECT count(*)::int AS n FROM payments WHERE case_id = $1', [closed])).toEqual([{ n: 1 }]);
   });
 
   it('is asked of an erasure only, and never by a creditor', async () => {

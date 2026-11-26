@@ -4082,6 +4082,9 @@
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
                     },
+                    "digest": {
+                      "type": "string"
+                    },
                     "blockers": {
                       "type": "array",
                       "items": {
@@ -4093,11 +4096,23 @@
                           "REQUEST_CLOSED"
                         ]
                       }
+                    },
+                    "homonyms": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "warning": {
+                      "nullable": true,
+                      "type": "string"
                     }
                   },
                   "required": [
                     "cases",
-                    "blockers"
+                    "digest",
+                    "blockers",
+                    "homonyms",
+                    "warning"
                   ],
                   "additionalProperties": false
                 }

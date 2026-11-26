@@ -88,10 +88,10 @@ export class GdprController {
   @StaffOrDelegate('ADMINISTRATIVE', 'DIRECTOR')
   @ApiOkResponse({ standardSchema: gdprErasure })
   async erasure(@Param('id') id: string): Promise<z.infer<typeof gdprErasure>> {
-    const [row] = await this.database.tx.$queryRaw<{ cases: number; blockers: z.infer<typeof gdprErasure>['blockers'] }[]>`
-      SELECT cases, blockers FROM app.gdpr_erasure(${id}::uuid)`;
+    const [row] = await this.database.tx.$queryRaw<{ cases: number; digest: string; blockers: z.infer<typeof gdprErasure>['blockers']; homonyms: number }[]>`
+      SELECT cases, digest, blockers, homonyms FROM app.gdpr_erasure(${id}::uuid)`;
     if (!row) throw notFound();
-    return { cases: row.cases, blockers: row.blockers };
+    return { ...row, warning: row.homonyms > 0 ? 'D’autres fiches au même nom existent : à vérifier.' : null };
   }
 
   /**
@@ -103,9 +103,12 @@ export class GdprController {
   @Commits()
   @HttpCode(204)
   @ApiNoContentResponse()
-  async erase(@Param('id') id: string, @Body({ schema: bodies['POST /gdpr/requests/:id/erasure'] }) { expectedCases }: In<'POST /gdpr/requests/:id/erasure'>) {
+  async erase(
+    @Param('id') id: string,
+    @Body({ schema: bodies['POST /gdpr/requests/:id/erasure'] }) { expectedCases, expectedDigest }: In<'POST /gdpr/requests/:id/erasure'>,
+  ) {
     const { blockers } = await this.erasure(id);
     if (blockers.length) throw conflict('ERASURE_REFUSED', { blockers });
-    await this.database.tx.$queryRaw`SELECT app.gdpr_erase(${id}::uuid, ${expectedCases}::integer)`;
+    await this.database.tx.$queryRaw`SELECT app.gdpr_erase(${id}::uuid, ${expectedCases}::integer, ${expectedDigest})`;
   }
 }

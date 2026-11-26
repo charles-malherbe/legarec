@@ -94,7 +94,7 @@ export const caseReminderBody = z.object({ channel: line(60), template: line(80)
 export const gdprRequestBody = z.object({ caseId: id, kind: gdprRequestKind, origin: line(200) });
 export const gdprAnswerBody = z.object({ status: z.enum(['OPEN', 'ANSWERED', 'REFUSED']), reason });
 /** As many cases as were shown (`GET …/erasure`): any difference and nothing is erased (409). */
-export const gdprErasureBody = z.object({ expectedCases: z.number().int().min(0).max(1000) });
+export const gdprErasureBody = z.object({ expectedCases: z.number().int().min(0).max(1000), expectedDigest: z.string().regex(/^[0-9a-f]{64}$/u) });
 
 export const reminderBody = z.object({ date: z.iso.date(), time: newReminder.shape.time, done: z.boolean() }).partial();
 /** A file sent as the whole body (`POST /documents/import`), up to 15 Mo: its real type is checked by the API. */

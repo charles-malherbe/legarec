@@ -4076,7 +4076,10 @@ export interface operations {
                 content: {
                     "application/json": {
                         cases: number;
+                        digest: string;
                         blockers: ("OPEN_CASE" | "PAYMENT_PENDING" | "NOT_REMITTED" | "REQUEST_CLOSED")[];
+                        homonyms: number;
+                        warning: string | null;
                     };
                 };
             };

@@ -103,7 +103,7 @@ describe('functions that see more than their caller', () => {
   it('belong to a role without login, with a fixed search path', async () => {
     const wrong = await rows(`
       SELECT p.proname, r.rolname, p.proconfig FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace JOIN pg_roles r ON r.oid = p.proowner
-      WHERE n.nspname IN ('app', 'public') AND p.prosecdef AND (r.rolname <> 'legarec_definer' OR r.rolcanlogin OR p.proconfig IS DISTINCT FROM ARRAY['search_path=pg_catalog, public, pg_temp'])`);
+      WHERE n.nspname IN ('app', 'public') AND p.prosecdef AND ((r.rolname <> 'legarec_definer' AND NOT (r.rolname = 'legarec_forgetter' AND p.proname IN ('forget_case', 'forget_debtor'))) OR r.rolcanlogin OR p.proconfig IS DISTINCT FROM ARRAY['search_path=pg_catalog, public, pg_temp'])`);
     expect(wrong).toEqual([]);
   });
 });
@@ -379,7 +379,7 @@ describe('rights of the roles inside', () => {
       'webhook_events DELETE (*)',
       'webhook_events SELECT (id, received_at, status)',
       // The files of the documents erased with their case, removed from the disk.
-      'documents SELECT (purged_at, storage_key)',
+      'documents SELECT (id, purged_at, storage_key)',
     ],
     legarec_definer: [
       'audit_log DELETE (*)',
@@ -392,7 +392,7 @@ describe('rights of the roles inside', () => {
       'backup_codes SELECT (user_id)',
       'case_events INSERT (*)',
       'case_events SELECT (actor_id, case_id, creditor_id, kind, occurred_at, title)',
-      'cases UPDATE (anonymized_at, closed_on, contact_name, contact_title, debtor_address, debtor_city, debtor_postal_code, debtor_siret, deposited_name, external_reference, officer_id, status, version)',
+      'cases UPDATE (closed_on, officer_id, status, version)',
       'creditors SELECT (id, name, portal_enabled)',
       'delegations INSERT (granted_by, kind)',
       'delegations SELECT (*)',
@@ -448,7 +448,7 @@ describe('rights of the roles inside', () => {
       'debtor_access_codes SELECT (code_cipher, code_hmac, debtor_id, version)',
       'debtor_access_codes UPDATE (code_cipher, code_hmac, generated_at, generated_by, version)',
       'debtors SELECT (anonymized_at, id, kind, name, name_confirmed, siren)',
-      'debtors UPDATE (anonymized_at, kind, legal_form_checked_at, legal_form_code, legal_form_source, name, name_confirmed, siren)',
+      'debtors UPDATE (kind, name, name_confirmed)',
       // Access of the debtors: their sessions and the attempts counted on their identifiers.
       'debtor_sessions DELETE (*)',
       'debtor_sessions INSERT (*)',
@@ -464,10 +464,10 @@ describe('rights of the roles inside', () => {
       'template_versions UPDATE (number, on_behalf_of_id, published_at, review_reason, reviewed_by, state, submitted_by, updated_at)',
       // Documents: shared by its function.
       'documents INSERT (category, id, kind, original_name, sha256, size_bytes, source, storage_key, title, uploaded_by_creditor, uploaded_by_debtor)',
-      'documents SELECT (case_id, contains_access_code, created_at, creditor_id, id, purged_at, retention_class, scan_status, shared_with_creditor_at, source, uploaded_by_creditor, uploaded_by_debtor)',
-      'documents UPDATE (case_id, creditor_id, original_name, purged_at, shared_by, shared_with_creditor_at, title, visible_to_debtor)',
+      'documents SELECT (case_id, contains_access_code, created_at, creditor_id, id, scan_status, shared_with_creditor_at, source, uploaded_by_creditor, uploaded_by_debtor)',
+      'documents UPDATE (case_id, creditor_id, shared_by, shared_with_creditor_at)',
       'debtor_links SELECT (case_id, debtor_id, expires_at, id, revoked_at, token_hash, uses)',
-      'ai_suggestions SELECT (case_id, cost_micro, created_at)',
+      'ai_suggestions SELECT (cost_micro, created_at)',
       'planned_reminders SELECT (case_id, done_at, due_on, id, kind)',
       // Remittances and invoices of the firm: their functions only.
       'billing_documents INSERT (*)',
@@ -508,28 +508,56 @@ describe('rights of the roles inside', () => {
       'payment_allocations INSERT (amount_cents, case_id, component, creditor_id, invoice_id, payment_id, reverses_id)',
       'payment_allocations SELECT (amount_cents, case_id, component, creditor_id, id, invoice_id, payment_id, reverses_id)',
       'payment_plans INSERT (case_id, creditor_id, first_due_on, id, method, months, on_behalf_of_id, owned_by_director, requested_by, status, threshold_months, total_cents)',
-      'payment_plans SELECT (accepted_ip, case_id, creditor_id, id, months, requested_by, status, version)',
-      'payment_plans UPDATE (accepted_ip, status, version)',
+      'payment_plans SELECT (case_id, creditor_id, id, months, requested_by, status, version)',
+      'payment_plans UPDATE (status, version)',
       'payments INSERT (amount_cents, bank, case_id, cheque_number, creditor_id, deposited_on, id, label, method, on_behalf_of_id, received_on, recorded_by, settled_at, status)',
       'payments SELECT (amount_cents, case_id, creditor_id, id, method, received_on, settled_at, settled_in_litigation, status, version)',
       'payments UPDATE (bounce_reason, bounced_at, settled_at, status, version)',
       'plan_approvals INSERT (case_id, creditor_id, plan_id, step)',
-      'plan_approvals SELECT (case_id, decision, id, plan_id, reason, step)',
+      'plan_approvals SELECT (decision, id, plan_id, step)',
       'plan_approvals UPDATE (decided_at, decided_by, decision, on_behalf_of_id, reason)',
       'receipts INSERT (case_id, creditor_id, id, number, payment_id)',
       'receipts SELECT (document_id, id, payment_id)',
-      // Retention of the cases and erasure asked by a debtor (app.forget_case), only while they forget (policies).
+    ],
+    // What a case and its debtor hold, erased by app.forget_case() and app.forget_debtor() only: the role owns nothing else.
+    legarec_forgetter: [
       'ai_suggestions DELETE (*)',
+      'ai_suggestions SELECT (case_id)',
       'case_contact_events DELETE (*)',
       'case_contact_events SELECT (case_id)',
       'case_contacts DELETE (*)',
+      'case_contacts SELECT (case_id)',
       'case_events DELETE (*)',
+      'case_events SELECT (case_id)',
+      'cases SELECT (anonymized_at, debtor_id, id)',
+      'cases UPDATE (anonymized_at, contact_name, contact_title, debtor_address, debtor_city, debtor_postal_code, debtor_siret, deposited_name, external_reference)',
       'debtor_access_codes DELETE (*)',
+      'debtor_access_codes SELECT (debtor_id)',
       'debtor_links DELETE (*)',
+      'debtor_links SELECT (case_id, debtor_id)',
       'debtor_retired_codes DELETE (*)',
+      'debtor_retired_codes SELECT (debtor_id)',
+      'debtor_sessions DELETE (*)',
+      'debtor_sessions SELECT (debtor_id)',
+      'debtors SELECT (anonymized_at, id)',
+      'debtors UPDATE (anonymized_at, legal_form_checked_at, legal_form_code, legal_form_source, name, siren)',
+      'documents SELECT (case_id, id, purged_at, retention_class, uploaded_by_debtor)',
+      'documents UPDATE (original_name, purged_at, shared_by, shared_with_creditor_at, title, visible_to_debtor)',
+      'gdpr_requests SELECT (debtor_id)',
+      'gdpr_requests UPDATE (origin)',
+      'payment_plans SELECT (accepted_ip, case_id, document_id)',
+      'payment_plans UPDATE (accepted_ip)',
+      'payments SELECT (bounce_reason, case_id)',
+      'payments UPDATE (bounce_reason)',
+      'plan_approvals SELECT (case_id, reason)',
+      'plan_approvals UPDATE (reason)',
       'planned_reminders DELETE (*)',
+      'planned_reminders SELECT (case_id)',
       'portal_message_attachments DELETE (*)',
+      'portal_message_attachments SELECT (case_id)',
       'portal_messages DELETE (*)',
+      'portal_messages SELECT (case_id)',
+      'receipts SELECT (document_id)',
     ],
   };
   it.each(Object.entries(expected))('%s', async (role, rights) => {
@@ -565,6 +593,7 @@ describe('rights of the roles inside', () => {
       'legarec_jobs > legarec_staff',
       'legarec_jobs > legarec_worker',
       'legarec_owner > legarec_definer',
+      'legarec_owner > legarec_forgetter',
     ]);
   });
 });
@@ -589,7 +618,10 @@ describe('rights on the functions', () => {
     ['purge_sign_ins', ['retention']],
     ['anonymize_accounts', ['retention']],
     ['anonymize_case', ['retention']],
-    ...['forget_case', 'forget_debtor', 'erasure_blockers'].map((name) => [name, []] as [string, string[]]),
+    // Owned by the forgetter, called by the functions of the definer only.
+    ...['forget_case', 'forget_debtor'].map((name) => [name, ['forgetter']] as [string, string[]]),
+    ...['erasure_blockers', 'erasure_digest'].map((name) => [name, []] as [string, string[]]),
+    ['case_writable', ['debtor', 'partner', 'staff', 'worker']],
     // The sign-in.
     ...['account_of', 'account_of_link', 'inviter_name', 'resume_session', 'take_attempt', 'clear_attempts', 'subject', 'proved_subject', 'tell_reset'].map(
       (name) => [name, ['auth']] as [string, string[]],
@@ -674,7 +706,7 @@ describe('rights on the functions', () => {
       'own_access_code debtor_upload debtor_message read_portal_messages staff_message creditor_decide_plan creditor_upload creditor_deposit',
       'debtor_link ask_code_by_sms firm_payment_settings limited_message',
       'gdpr_request gdpr_keeper gdpr_registry gdpr_answer gdpr_export gdpr_erasure gdpr_erase',
-      'anonymize_case forget_case forget_debtor erasure_blockers',
+      'anonymize_case forget_case forget_debtor erasure_blockers erasure_digest case_writable',
       'note_ai_decision ai_key ai_spent ai_budget_alert planned_contacts keep_done_reminder remittance_core creditor_payouts remittance_sources remittance_summary note_settlement remittance_draft validate_remittances mark_remittances_paid remittance_batches remittance_batch',
     ].flatMap((names) => names.split(' '));
     const found = await rows<{ proname: string }>(

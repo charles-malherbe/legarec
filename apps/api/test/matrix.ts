@@ -507,7 +507,7 @@ export const MATRIX: Record<string, MatrixEntry> = {
   'GET /staff/gdpr/requests/:id/erasure': { path: gdprRequest('/erasure', 'ERASURE'), expect: only({ director: 200, manager: 200 }) },
   'POST /staff/gdpr/requests/:id/erasure': {
     path: gdprRequest('/erasure', 'ERASURE'),
-    body: () => ({ expectedCases: 1 }),
+    body: () => ({ expectedCases: 1, expectedDigest: '0'.repeat(64) }),
     expect: only({ director: 409, manager: 409 }),
   },
   // Remittances: the Director, or the manager acting for them; an empty batch is not validated.
