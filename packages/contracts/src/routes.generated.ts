@@ -880,6 +880,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/staff/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DashboardController_read"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/dashboard/priorities/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["DashboardController_mark"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/staff/secrets": {
         parameters: {
             query?: never;
@@ -3382,6 +3414,137 @@ export interface operations {
         };
     };
     NotificationsController_markRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DashboardController_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        scope: "GLOBAL" | "TEAM" | "PERSONAL";
+                        /** Format: date */
+                        date: string;
+                        outstanding: number;
+                        debtors: number;
+                        invoices: number;
+                        overdue30: number;
+                        overdue30Sub: string;
+                        periods: {
+                            week: {
+                                note: string;
+                                recovered: number;
+                                recoveredSub: string;
+                                targetRatio: number | null;
+                            };
+                            month: {
+                                note: string;
+                                recovered: number;
+                                recoveredSub: string;
+                                targetRatio: number | null;
+                            };
+                            year: {
+                                note: string;
+                                recovered: number;
+                                recoveredSub: string;
+                                targetRatio: number | null;
+                            };
+                        };
+                        invoicesRecovered: number;
+                        invoicesEntrusted: number;
+                        dsoDays: number;
+                        dsoSub: string;
+                        priorities: {
+                            id: string;
+                            title: string;
+                            meta: string;
+                            tag: string;
+                            /** @enum {string} */
+                            tone: "OVERDUE" | "PROMISE" | "REMINDER" | "DISPUTE" | "SETTLED" | "PLAN" | "FORMAL_NOTICE" | "LITIGATION" | "NEW" | "LOST";
+                            /** @enum {string} */
+                            icon: "phone" | "euro" | "check" | "mail" | "alert" | "scale";
+                            href: string;
+                            cta: string;
+                            done: boolean;
+                        }[];
+                        feed: {
+                            id: string;
+                            /** @enum {string} */
+                            kind: "PAYMENT" | "CALL" | "MESSAGE" | "APPROVAL" | "ALERT" | "SYSTEM";
+                            text: string;
+                            meta: string;
+                            time: string;
+                        }[];
+                        monthlyTarget: number;
+                        months: {
+                            label: string;
+                            amount: number;
+                        }[];
+                        aging: {
+                            label: string;
+                            amount: number;
+                            percent: number;
+                        }[];
+                        creditors: {
+                            id: string;
+                            name: string;
+                            siren: string;
+                            sector: string;
+                            debtors: number;
+                            invoices: number;
+                            outstanding: number;
+                            recovered: number;
+                            rate: number;
+                        }[];
+                        topDebtors: {
+                            id: string;
+                            name: string;
+                            siret: string;
+                            creditor: string;
+                            amount: number;
+                            daysLate: number;
+                            /** @enum {string} */
+                            status: "OVERDUE" | "PROMISE" | "REMINDER" | "DISPUTE" | "SETTLED" | "PLAN" | "FORMAL_NOTICE" | "LITIGATION" | "NEW" | "LOST";
+                            statusLabel: string;
+                        }[];
+                        team: {
+                            id: string;
+                            name: string;
+                            /** @enum {string} */
+                            presence: "available" | "call" | "pause" | "away";
+                            calls: number | null;
+                            target: number;
+                        }[];
+                    };
+                };
+            };
+        };
+    };
+    DashboardController_mark: {
         parameters: {
             query?: never;
             header?: never;

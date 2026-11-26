@@ -67,7 +67,8 @@ const secret =
     );
     return `/staff/secrets/${rows[0]!.id}/${then}`;
   };
-const withCases = (status: number) => only({ director: status, manager: status, managerAlone: status, officerA: status, officerB: status, liar: status });
+const withCases = (status: number, some: Some = {}) =>
+  only({ director: status, manager: status, managerAlone: status, officerA: status, officerB: status, liar: status, ...some });
 /** The Director and the manager; the liar is let in by the guard, then shown nothing. */
 const opens = (status: number) => only({ director: status, manager: status, managerAlone: status, liar: status });
 let lastCreditor = '';
@@ -462,6 +463,13 @@ export const MATRIX: Record<string, MatrixEntry> = {
   'POST /staff/secrets/:id/rotate': { path: secret('rotate'), body: () => ({ value: 'valeur-fictive' }), expect: hidden },
   'POST /staff/secrets/:id/revoke': { path: secret('revoke'), expect: hidden },
   'POST /staff/secrets/:id/keep': { path: secret('keep', 'REVOKE_PENDING'), expect: only({ director: 204, liar: 404 }) },
+  // Dashboard: whoever reads cases; the Developer reads none. A case held by nobody: officers do not see it.
+  'GET /staff/dashboard': { expect: withCases(200) },
+  'PUT /staff/dashboard/priorities/:id': {
+    path: async (test) => `/staff/dashboard/priorities/call:${(await newCase(test)).id}`,
+    body: () => ({ done: true }),
+    expect: withCases(404, { manager: 204, managerAlone: 204 }),
+  },
   'GET /staff/notifications': { expect: staffOf(200) },
   'PUT /staff/notifications': { body: () => ({ ids: [randomUUID()], unread: false }), expect: staffOf(204) },
   'POST /staff/notifications/read': { body: () => ({ ids: [] }), expect: staffOf(204) },

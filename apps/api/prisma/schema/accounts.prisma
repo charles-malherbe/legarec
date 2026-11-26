@@ -367,3 +367,13 @@ model Delegation {
 
   @@map("delegations")
 }
+
+/// What a person marked done among the priorities of their dashboard.
+model TaskMark {
+  userId String   @map("user_id") @db.Uuid
+  key    String
+  doneAt DateTime @default(dbgenerated("now()")) @map("done_at") @db.Timestamptz(3)
+
+  @@id([userId, key])
+  @@map("task_marks")
+}

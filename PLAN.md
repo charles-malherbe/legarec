@@ -255,3 +255,7 @@ Les 161 routes simulées se répartissent ainsi :
 3. `pnpm e2e` contre l'API pour les portails basculés, axe, quatre largeurs ; `/comparer` sur les écrans modifiés.
 4. Recette de cloisonnement : deux créanciers, deux gestionnaires, deux débiteurs ; aucune donnée croisée à l'écran, dans l'API ni en SQL.
 5. `relecteur-securite` sans point bloquant avant chaque PR.
+
+## Lot U — Pilotage (état au 26/11/2026)
+- [x] Tableau de bord de l'espace sur l'API (encours, recouvré, balance âgée, créanciers, débiteurs, fil, priorités marquées par personne), objectifs facultatifs
+- [ ] Contentieux, rapports, équipe (présence et appels avec T), score de risque

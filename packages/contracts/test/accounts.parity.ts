@@ -16,6 +16,7 @@ import {
   loginResponse,
   membersData,
   notificationItem,
+  dashboard,
   partnerSession,
   proofNeeded,
   searchHit,
@@ -252,6 +253,8 @@ export const ACCOUNT_PARITY: Parity[] = [
   })),
   { as: 'officer', request: 'POST /support-tickets', body: { subject: '', message: 'court' }, status: 422, answer: refused('INVALID') },
   ...each(STAFF, () => ({ request: 'GET /notifications', status: 200, answer: z.array(notificationItem) })),
+  ...each(['director', 'manager', 'officer'], () => ({ request: 'GET /dashboard?creditor=all', status: 200, answer: dashboard })),
+  { as: 'developer', request: 'GET /dashboard?creditor=all', status: 403, answer: code('FORBIDDEN') },
   { as: 'officer', request: 'PUT /notifications', body: { ids: [UNKNOWN], unread: false }, status: 204 },
   { as: 'officer', request: 'POST /notifications/read', body: { ids: [UNKNOWN] }, status: 204 },
 
