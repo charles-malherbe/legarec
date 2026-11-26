@@ -261,7 +261,9 @@ Les 161 routes simulées se répartissent ainsi :
 ## Lot U — Pilotage (état au 26/11/2026)
 - [x] Tableau de bord de l'espace sur l'API (encours, recouvré, balance âgée, créanciers, débiteurs, fil, priorités marquées par personne), objectifs facultatifs
 - [x] Contentieux en suivi minimal (question 163) : passage avec l'accord du créancier en case cochée, étape, juridiction et intervenant, clôture avec son issue, compteur du menu ; écran Contentieux et simulations refaits sur ce suivi ; fiche supprimée avec l'anonymisation du dossier
-- [ ] Rapports, équipe (présence et appels avec T), score de risque
+- [x] Rapports sur l'API (`GET /staff/reports`, `PUT /staff/reports/scheduled/:id`) : recouvré, confié, taux, DSO, irrécouvrable, issue des dossiers clos, résultats par gestionnaire, calculés sur les dossiers que chacun lit ; ni appels, ni promesses, ni honoraires, ni rapport programmé (questions 200 à 203)
+- [x] Équipe sur l'API (`GET /staff/team`) : portefeuille suivi et encaissé par gestionnaire ; l'écran dit « Téléphonie non connectée » et ne montre ni présence, ni appels, ni promesses (question 204)
+- [ ] Équipe : présence, appels, objectifs et promesses (avec T) ; rapports programmés et exports (avec Q et R) ; honoraires dans les rapports ; score de risque
 
 ## Lot V — RGPD (état au 26/11/2026)
 - [x] Registre des demandes, réponse motivée, export des données d'un débiteur (journalisé)

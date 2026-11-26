@@ -257,20 +257,21 @@ Journaux : ni adresse IP, ni chemin, ni en-tête dans ceux de Caddy ; ni requêt
 ## Reste à faire (fin du lot X)
 
 ### Avant la mise en service : écrans encore sans API
-Une page construite pour la production n'a aucune simulation : elle appelle l'API. État au 26/11/2026, après `lot/s5` (comparaison des routes simulées et de `packages/contracts/openapi.json`) :
+Une page construite pour la production n'a aucune simulation : elle appelle l'API. État au 26/11/2026, après `lot/u3` (comparaison des routes simulées et de `packages/contracts/openapi.json`) :
 
 | Portail | Routes appelées | Sur l'API | Manquent |
 |---|---|---|---|
 | `paiement` | 13 | 13 | — |
 | `partenaires` | 19 | 19 | — |
-| `espace` | 167 | 128 | 39, ci-dessous |
+| `espace` | 167 | 131 | 36, ci-dessous |
 
 | Écran de l'espace | Ce qui manque | Attend |
 |---|---|---|
-| Rapports, Équipe | `GET /reports`, `PUT /reports/scheduled/:id`, `GET /team` | Rien pour les rapports ; présence et appels de l'équipe avec le lot T |
 | Relances envoyées depuis un dossier, un échéancier ou la liste ; envoi et composition d'un document ; essai d'un modèle | 8 routes | Clés de test Resend et MySendingBox (lot Q) |
 | Messagerie (e-mails, SMS), boîtes OVH dans Paramètres | 21 routes | Compte SMS et boîtes OVH (lot R) |
 | Appels | 7 routes | Licence et identifiants 3CX (lot T) |
+
+Sur l'API depuis `lot/u3`, sans ce que la base ne sait pas encore : Rapports calcule ses chiffres sur les dossiers réels, sans appels, promesses, honoraires ni rapports programmés (questions 200 à 203) ; Équipe montre le portefeuille et l'encaissé de chacun et dit « Téléphonie non connectée » à la place de la présence et des appels (question 204, lot T).
 
 Sur l'API depuis `lot/s5`, mais incomplets faute de décision : Facturation liste les factures de commission, ses onglets « Devis » et « Contrats » sont vides et « + Créer depuis un modèle » répond que la création n'est pas encore disponible (questions 195 et 196) ; les Documents du créancier listent ce que l'équipe lui a partagé, sans relevé, rapport ni téléchargement (questions 197 à 199).
 
