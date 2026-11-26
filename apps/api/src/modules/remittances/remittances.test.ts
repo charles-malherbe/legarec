@@ -1,4 +1,5 @@
-import { remittanceBatch, remittanceDraft } from '@legarec/contracts';
+import { portalPayouts, remittanceBatch, remittanceDraft } from '@legarec/contracts';
+import { nextPayoutDay } from '../partners/payouts';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { startApp, type TestApp } from '../../../test/app';
@@ -120,6 +121,31 @@ describe('a batch of remittances', () => {
     expect((await paid(today)).status).toBe(204);
     expect(remittanceBatch.parse((await call('director', 'GET', `/remittances/${id}`)).body).status).toBe('PAID');
     expect((await paid(today)).status).toBe(409);
+  });
+
+  it('shows a creditor its remittances in its space, and the next one, never those of another', async () => {
+    const [mandate] = await rows<{ id: string }>(
+      `INSERT INTO mandates (creditor_id, starts_on, amicable_rate_bp, litigation_rate_bp, opening_fee_cents, plan_months_without_consent, discount_max_bp,
+         litigation_needs_consent, interest_mode, fixed_indemnity, reporting_day, scenario)
+       VALUES ($1, '2026-01-01', 800, 1200, 0, 6, 500, true, 'ECB_PLUS_TEN', true, 5, 'BUSINESS') RETURNING id`,
+      [test.s.creditorA],
+    );
+    await paidCase({ creditor: test.s.creditorA, mandate: mandate!.id }, [10_000]);
+    const space = (as: string) => test.call('GET', '/partner/portal/payouts', { as }).then((answer) => portalPayouts.parse(answer.body));
+    // 8 % of 100 €, with its tax.
+    expect((await space('partnerA')).next).toMatchObject({ collected: 10_000, fee: 960, net: 9_040 });
+    expect((await space('partnerA')).rateLabel).toMatch(/commission de 8 % HT retenue avec la TVA/u);
+    const other = await space('partnerB');
+    expect(other.next).toMatchObject({ collected: 0, fee: 0, net: 0 });
+    expect(other.items).toEqual([]);
+  });
+
+  it('says the next day of transfers as the settings say it', () => {
+    expect(nextPayoutDay('Mensuelle, le 15', '2026-11-26')).toBe('2026-12-15');
+    expect(nextPayoutDay('Mensuelle, le 15', '2026-11-03')).toBe('2026-11-15');
+    expect(nextPayoutDay('Bimensuelle, le 1er et le 15', '2026-11-20')).toBe('2026-12-01');
+    expect(nextPayoutDay('Hebdomadaire, le lundi', '2026-11-26')).toBe('2026-11-30');
+    expect(nextPayoutDay('Mensuelle, le 15', '2026-12-20')).toBe('2027-01-15');
   });
 
   it('is for the Director and the manager acting for them only', async () => {

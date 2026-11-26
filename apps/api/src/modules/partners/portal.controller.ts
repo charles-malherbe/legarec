@@ -1,11 +1,13 @@
-import { importDone, importReport, portalCase, portalCases, portalDashboard, REQUEST_BODIES, uploadedFile } from '@legarec/contracts';
+import { importDone, importReport, portalCase, portalCases, portalDashboard, portalPayouts, REQUEST_BODIES, uploadedFile } from '@legarec/contracts';
 import { Body, Controller, Get, HttpCode, Inject, Param, Post } from '@nestjs/common';
 import { ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import type { z } from 'zod';
 import { Partner } from '../../platform/access/access';
 import { uploadedType } from '../../platform/http/context';
 import { Commits } from '../../platform/http/transaction.interceptor';
+import { Database } from '../../platform/database/database';
 import { ClaimImports } from './imports';
+import { payouts } from './payouts';
 import { PortalService } from './portal.service';
 
 const bodies = REQUEST_BODIES.partner;
@@ -18,6 +20,7 @@ export class PortalController {
   constructor(
     @Inject(PortalService) private readonly portal: PortalService,
     @Inject(ClaimImports) private readonly imports: ClaimImports,
+    @Inject(Database) private readonly database: Database,
   ) {}
 
   @Get('dashboard')
@@ -25,6 +28,14 @@ export class PortalController {
   @ApiOkResponse({ standardSchema: portalDashboard })
   dashboard() {
     return this.portal.dashboard();
+  }
+
+  /** Its remittances: those made, and the next one as computed today. */
+  @Get('payouts')
+  @Partner()
+  @ApiOkResponse({ standardSchema: portalPayouts })
+  payouts() {
+    return payouts(this.database.tx);
   }
 
   @Get('cases')

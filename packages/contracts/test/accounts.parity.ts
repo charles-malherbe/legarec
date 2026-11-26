@@ -29,6 +29,7 @@ import {
   ticketSent,
   portalCases,
   portalDashboard,
+  portalPayouts,
   templatesData,
   templateDetail,
   plansData,
@@ -487,6 +488,7 @@ export const PARTNER_PARITY: Parity[] = [
   { as: 'nobody', request: 'POST /auth/logout', status: 204 },
   // Portal (lot P).
   { as: 'partner', request: 'GET /portal/dashboard', status: 200, answer: portalDashboard },
+  { as: 'partner', request: 'GET /portal/payouts', status: 200, answer: portalPayouts },
   { as: 'partner', request: 'GET /portal/cases', status: 200, answer: portalCases },
   { as: 'partner', request: `GET /portal/cases/${UNKNOWN}`, status: 404, answer: code('NOT_FOUND') },
   { as: 'nobody', request: 'GET /portal/cases', status: 401, answer: code('UNAUTHORIZED') },
