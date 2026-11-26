@@ -753,6 +753,7 @@ export const MATRIX: Record<string, MatrixEntry> = {
   // Creditors: their own cases only; the cases of A are not those of B.
   'GET /partner/portal/dashboard': { expect: only({ partnerA: 200, partnerB: 200 }) },
   'GET /partner/portal/payouts': { expect: only({ partnerA: 200, partnerB: 200 }) },
+  'GET /partner/portal/documents': { expect: only({ partnerA: 200, partnerB: 200 }) },
   'GET /partner/portal/cases': { expect: only({ partnerA: 200, partnerB: 200 }) },
   'GET /partner/portal/cases/:id': { path: (test) => `/partner/portal/cases/${test.s.cases.ofA}`, expect: only({ partnerA: 200, partnerB: 404 }) },
   'POST /partner/portal/plans/:id/decision': { path: creditorPlan, body: () => ({ accepted: true }), expect: only({ partnerA: 204, partnerB: 404 }) },

@@ -1,4 +1,4 @@
-import { depositsData, plansData, portalCase, portalCases, portalDashboard } from '@legarec/contracts';
+import { depositsData, plansData, portalCase, portalCases, portalDashboard, portalDocuments } from '@legarec/contracts';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { startApp, type TestApp } from '../../../test/app';
@@ -285,5 +285,66 @@ describe('an import of claims', () => {
     const missing = (await send('partnerA', 'debiteur;montant\r\nX;10')).body as { errors: { message: string }[]; valid: number };
     expect(missing.valid).toBe(0);
     expect(missing.errors[0]?.message).toMatch(/^Colonnes manquantes/u);
+  });
+});
+
+describe('the documents of a creditor', () => {
+  let count = 0;
+  /** A file as the team keeps it, on a case or waiting for one. */
+  const file = async (title: string, change: Record<string, unknown> = {}) => {
+    const row: Record<string, unknown> = {
+      case_id: test.s.cases.ofA,
+      creditor_id: test.s.creditorA,
+      category: 'EVIDENCE',
+      kind: 'PDF',
+      title,
+      original_name: `piece-${(count += 1)}.pdf`,
+      storage_key: randomUUID(),
+      size_bytes: 215_040,
+      sha256: 'a'.repeat(64),
+      source: 'UPLOAD',
+      scan_status: 'CLEAN',
+      scanned_at: new Date(),
+      ...change,
+    };
+    const names = Object.keys(row);
+    const [made] = await rows<{ id: string }>(
+      `INSERT INTO documents (${names.join(', ')}) VALUES (${names.map((_, index) => `$${index + 1}`).join(', ')}) RETURNING id`,
+      Object.values(row),
+    );
+    return made!.id;
+  };
+  const read = async (as: string) => {
+    const answer = await call(as, 'GET', '/partner/portal/documents');
+    expect(answer.status, JSON.stringify(answer.body)).toBe(200);
+    return portalDocuments.parse(answer.body).items;
+  };
+
+  it('are those shared with it on its own cases, and never those of another creditor', async () => {
+    const shared = { shared_with_creditor_at: new Date(), shared_by: test.s.manager };
+    const ofA = await file('Mise en demeure du 02/11/2026', shared);
+    const kept = await file('Note interne du gestionnaire');
+    const ofB = await file('Quittance du 05/11/2026', { ...shared, case_id: test.s.cases.ofB, creditor_id: test.s.creditorB, kind: 'JPEG' });
+    // Sent by the creditor itself, waiting for its claim: it reads the row, yet it is no document of the team.
+    const waiting = await file('Pièce déposée', { case_id: null, creditor_id: null, source: 'CREDITOR', uploaded_by_creditor: test.s.creditorA });
+    const erased = await file('Pièce effacée', { ...shared, purged_at: new Date() });
+
+    const [reference] = await rows<{ reference: string }>('SELECT reference FROM cases WHERE id = $1', [test.s.cases.ofA]);
+    const mine = await read('partnerA');
+    expect(mine).toEqual([
+      { id: ofA, name: 'Mise en demeure du 02/11/2026', meta: `PDF · 210 Ko · dossier ${reference!.reference}`, extension: 'PDF', available: false },
+    ]);
+    for (const id of [kept, ofB, waiting, erased]) expect(mine.map((item) => item.id)).not.toContain(id);
+    const theirs = await read('partnerB');
+    expect(theirs.map((item) => item.id)).toEqual([ofB]);
+    expect(theirs[0]).toMatchObject({ extension: 'JPG' });
+    // Neither the name of the file as it was sent, nor where it is kept.
+    expect(JSON.stringify([mine, theirs])).not.toMatch(/piece-|storage|sha256/u);
+  });
+
+  it('are closed to the team and to who is not signed in', async () => {
+    for (const as of ['director', 'manager', 'officerA', 'developer', 'debtorA'])
+      expect((await call(as, 'GET', '/partner/portal/documents')).status, as).toBeGreaterThanOrEqual(401);
+    expect((await test.call('GET', '/partner/portal/documents')).status).toBe(401);
   });
 });

@@ -2256,6 +2256,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/partner/portal/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PortalController_documents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/partner/portal/cases": {
         parameters: {
             query?: never;
@@ -6889,6 +6905,33 @@ export interface operations {
                             collected: number;
                             fee: number;
                             net: number;
+                        }[];
+                    };
+                };
+            };
+        };
+    };
+    PortalController_documents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: {
+                            id: string;
+                            name: string;
+                            meta: string;
+                            extension: string;
+                            available: boolean;
                         }[];
                     };
                 };
