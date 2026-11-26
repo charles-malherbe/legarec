@@ -51,7 +51,8 @@ Conteneurs permanents : 4,9 Go au plus. Réserver 2,5 Go pour ClamAV et n8n, à 
 - [ ] `espace`, `partenaires`, `paiement`, `api`, `status`, `n8n`, `media`, `mail` et `www.espace`, `www.partenaires`, `www.paiement`. Pour `mail`, ne pas toucher aux enregistrements MX, SPF et DKIM de Resend.
 - `legarec.fr` et `www.legarec.fr` restent chez leur hébergeur.
 
-### Scaleway
+### OVHcloud Object Storage (région Paris `eu-west-par`)
+Décision du 26/11/2026 : au lieu de Scaleway ; les variables `SCW_*` ci-dessous et la configuration de pgBackRest sont à adapter au lot X. Sauvegardes chez le même fournisseur que le serveur : question 167.
 - [ ] Bucket `legarec-sauvegardes`, privé, versions activées, **clé propre à ce bucket**. Politique du bucket : cette clé ne peut ni effacer une version, ni couper les versions, ni changer le cycle de vie ; seconde clé, en lecture seule, pour l'essai de restauration.
 - [ ] Règle de cycle de vie : versions remplacées ou supprimées effacées après 7 jours.
 - [ ] Bucket `legarec-media`, public en lecture, liste du contenu désactivée, logos déposés.
@@ -109,7 +110,7 @@ sudo install -o root -g 10101 -m 640 /opt/legarec/infra/valeurs/api.env.exemple 
 
 ## Ordre de mise en service
 
-1. Serveur, DNS, Scaleway, Resend, fichiers de `/etc/legarec/` (ci-dessus).
+1. Serveur, DNS, OVHcloud Object Storage, Resend, fichiers de `/etc/legarec/` (ci-dessus).
 2. Dans `/opt/legarec`, à jour sur `main`, déploiement. Le script refuse une copie que root ne possède pas ou une version absente de `main`, contrôle les fichiers, construit les images, démarre la base, **sauvegarde**, applique les migrations, puis démarre le reste.
 
    ```bash
