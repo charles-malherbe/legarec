@@ -18,6 +18,8 @@ FROM base AS production
 RUN pnpm install --frozen-lockfile --prod --filter @legarec/api...
 
 FROM node:26.13.1-trixie-slim@sha256:abe7e5a82b61a8ef67b315b85497c9e65173387ccf2f4a029248184b8e020be5
+# Chromium of Debian for the PDF of the worker (Playwright drives it, without JavaScript nor network), and its fonts.
+RUN apt-get update && apt-get install --yes --no-install-recommends chromium fonts-dejavu-core fonts-liberation && rm -rf /var/lib/apt/lists/*
 # Nothing to install once in production.
 RUN rm -rf /usr/local/lib/node_modules /usr/local/bin/npm /usr/local/bin/npx /opt/yarn* /usr/local/bin/yarn /usr/local/bin/yarnpkg
 ENV NODE_ENV=production
