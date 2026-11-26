@@ -91,6 +91,11 @@ export const AUDIT_ACTIONS = {
   SECRET_REVOKED: 'Secret révoqué : {secret}',
   SECRET_KEPT: 'Révocation refusée : {secret}',
   PLAN_APPROVED: 'Échéancier de {months} mois validé',
+  // Litigation (question 163)
+  LITIGATION_OPENED: 'Dossier passé en contentieux',
+  LITIGATION_CONSENT_NOTED: 'Accord écrit du créancier noté pour le contentieux',
+  LITIGATION_STAGE_CHANGED: 'Contentieux : étape {stage} sur 4',
+  LITIGATION_CLOSED: 'Procédure contentieuse close',
   // Remittances
   REMITTANCES_VALIDATED: 'Lot de reversements validé : {count} virements',
   REMITTANCE_RETAINED: 'Créancier retenu du lot de reversements',

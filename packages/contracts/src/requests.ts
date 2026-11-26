@@ -3,7 +3,7 @@ import { absenceForm, passwordForm, profileForm, supportTicket } from './account
 import { loginRequest, newPassword, PASSWORD_MAX } from './auth';
 import { callQualification } from './calls';
 import { addedInvoices, caseCheck, gdprRequestKind, newCase, newPayment, paymentStatus, renewedCode } from './cases';
-import { newReminder } from './collection';
+import { litigationOutcome, litigationStage, newReminder } from './collection';
 import { creditNoteDraftBody, creditNoteIssue } from './creditNotes';
 import { coordinate, coordinateKind, coordinateSource, emailCategory, outgoingMessage } from './communication';
 import { debtorAccess, debtorIdentifier, debtorMessage, debtorRequest, limitedMessage } from './debtor';
@@ -82,7 +82,16 @@ export const newCoordinateBody = z.object({
 export const coordinateBody = coordinate.pick({ status: true, primary: true }).partial();
 
 export const casesBody = z.object({ ids });
-export const litigationBody = z.object({ ids, reason: line(500) });
+/** `consentReceived`: the written agreement of the creditor is in hand, for the cases whose mandate asks for one. */
+export const litigationBody = z.object({ ids, reason: line(500), consentReceived: z.boolean() });
+const litigationVersion = z.number().int().min(1).max(1_000_000);
+/** Court and partner, typed freely; empty clears them. */
+export const litigationFileBody = z.object({ court: z.string().trim().max(200), partnerName: z.string().trim().max(200), version: litigationVersion });
+/** The next stage, or closed; closing says what it expects for the case (settled or lost), refused if it changed (409). */
+export const litigationStageBody = z
+  .object({ stage: litigationStage, expectedOutcome: litigationOutcome.optional(), version: litigationVersion })
+  .refine((body) => body.stage !== 'CLOSED' || body.expectedOutcome !== undefined, { path: ['expectedOutcome'] });
+export const litigationConsentBody = z.object({ version: litigationVersion });
 export const assignBody = z.object({ ids, officerId: id });
 export const portalMessageBody = z.object({ text: line(5000) });
 /** `version`: that of the payment shown; changed since, it is refused (409). */
@@ -222,6 +231,9 @@ export const REQUEST_BODIES = {
     'POST /cases/search': searchBody,
     'POST /cases/reminders': casesBody,
     'POST /cases/litigation': litigationBody,
+    'PUT /litigation/:id': litigationFileBody,
+    'POST /litigation/:id/stage': litigationStageBody,
+    'POST /litigation/:id/consent': litigationConsentBody,
     'POST /cases/assign': assignBody,
     'POST /cases/:id/portal-messages': portalMessageBody,
     'POST /documents/import': fileBody,

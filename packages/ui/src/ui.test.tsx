@@ -172,7 +172,7 @@ describe('Confirm', () => {
     expect(within(dialog).getByRole('button', { name: 'Envoyer' })).toBeDisabled();
     await userEvent.type(within(dialog).getByLabelText('Motif'), 'Accord reçu');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Envoyer' }));
-    expect(run).toHaveBeenCalledWith('Accord reçu');
+    expect(run).toHaveBeenCalledWith('Accord reçu', false);
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
     await waitFor(() => expect(screen.getByRole('button', { name: 'Ouvrir' })).toHaveFocus());
   });

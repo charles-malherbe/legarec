@@ -1,5 +1,12 @@
-import { newReminder, type LitigationCase, type PaymentPlan, type Reminder, type ReminderType, type Session } from '@legarec/contracts';
+import {
+  LITIGATION_STAGES,
+  litigationConsentBody,
+  litigationFileBody,
+  litigationStageBody,
+  newReminder,
+  type LitigationCase, type PaymentPlan, type Reminder, type ReminderType, type Session } from '@legarec/contracts';
 import { http, HttpResponse } from 'msw';
+import type { z } from 'zod';
 import { audit } from '../audit';
 import { done, forbidden, guarded, notFound, staffWithCases } from '../http';
 import { actsOn, OFFICERS, readable } from './cases';
@@ -232,178 +239,93 @@ let requests = seedRequests();
 /** Hors maquette: values of the demonstration, never real rates of the firm (typed by the Director). */
 let interestRates: { kind: 'ECB' | 'LEGAL_INDIVIDUAL'; validFrom: string; rateBp: number; enteredBy: string; updatedAt: string }[] = [];
 
-const act = (title: string, date: string, state: 'DONE' | 'NOW' | 'TODO') => ({ title, date, state });
-const litigation: (Omit<LitigationCase, 'canAct' | 'actionSent'> & { officerId: string })[] = [
-  {
-    id: 'bellet',
-    stage: 0,
-    debtor: 'Charpentes Bellet',
-    siret: '607 529 179 00006',
-    creditorId: 'md',
-    creditor: 'Matériaux Delta',
-    amount: 2730000,
-    step: 'Mise en demeure LRAR envoyée',
-    due: 'Délai expire le 30/11',
-    urgent: true,
-    procedure: 'Mise en demeure',
-    court: 'Tribunal de commerce de Lyon',
-    partner: 'Me Durieux, avocat',
-    action: 'Préparer la requête en injonction',
-    officerId: 'cl',
-    acts: [
-      act('Relances amiables (3) sans résultat', '14/09 → 28/10/2026', 'DONE'),
-      act('Accord du créancier pour le contentieux', '05/11/2026', 'DONE'),
-      act('Mise en demeure LRAR — accusé de réception signé', '16/11/2026', 'NOW'),
-      act('Requête en injonction de payer', 'Prévue après le 30/11/2026', 'TODO'),
-    ],
-  },
-  {
-    id: 'valmont',
-    stage: 0,
-    debtor: 'Garage Valmont',
-    siret: '193 786 571 00094',
-    creditorId: 'tl',
-    creditor: 'TransAlp Leasing',
-    amount: 2390000,
-    step: 'Accord créancier demandé',
-    due: 'En attente depuis 3 j',
-    urgent: false,
-    procedure: 'Mise en demeure',
-    court: 'Tribunal judiciaire de Grenoble',
-    partner: 'À désigner',
-    action: 'Relancer le créancier',
-    officerId: 'cl',
-    acts: [
-      act('Relances amiables sans résultat', '20/08 → 10/11/2026', 'DONE'),
-      act('Demande d’accord au créancier', '18/11/2026', 'NOW'),
-      act('Mise en demeure LRAR', 'À venir', 'TODO'),
-    ],
-  },
-  {
-    id: 'fabre',
-    stage: 1,
-    debtor: 'Électricité Fabre',
-    siret: '887 789 329 00018',
-    creditorId: 'er',
-    creditor: 'Énergies Rhône',
-    amount: 1248000,
-    step: 'Requête déposée au greffe',
-    due: 'Ordonnance attendue',
-    urgent: false,
-    procedure: 'Injonction de payer',
-    court: 'Tribunal judiciaire de Valence',
-    partner: 'Me Roche, avocate',
-    action: 'Suivre au greffe',
-    officerId: 'hb',
-    acts: [
-      act('Mise en demeure LRAR', '02/10/2026', 'DONE'),
-      act('Requête en injonction de payer déposée', '04/11/2026', 'NOW'),
-      act('Ordonnance du juge', 'En attente', 'TODO'),
-      act('Signification par commissaire de justice', 'À venir', 'TODO'),
-    ],
-  },
-  {
-    id: 'pixelia',
-    stage: 1,
-    debtor: 'Studio Pixelia',
-    siret: '979 217 429 00013',
-    creditorId: 'mt',
-    creditor: 'Médiatel',
-    amount: 396000,
-    step: 'Procédure simplifiée (< 5 000 €)',
-    due: 'Réponse débiteur avant le 04/12',
-    urgent: true,
-    procedure: 'Procédure simplifiée',
-    court: '—',
-    partner: 'Étude Garnier, commissaires de justice',
-    action: 'Voir la proposition d’accord',
-    officerId: 'hb',
-    acts: [
-      act('Mise en demeure LRAR', '15/10/2026', 'DONE'),
-      act('Lettre du commissaire de justice (procédure simplifiée)', '04/11/2026', 'NOW'),
-      act('Accord du débiteur → titre exécutoire', 'Délai d’un mois', 'TODO'),
-    ],
-  },
-  {
-    id: 'arnal',
-    stage: 2,
-    debtor: 'Menuiserie Arnal',
-    siret: '280 967 928 00019',
-    creditorId: 'md',
-    creditor: 'Matériaux Delta',
-    amount: 1875000,
-    step: 'Ordonnance signifiée',
-    due: 'Opposition possible jusqu’au 02/12',
-    urgent: true,
-    procedure: 'Injonction de payer',
-    court: 'Tribunal de commerce de Lyon',
-    partner: 'Étude Garnier',
-    action: 'Demander la formule exécutoire',
-    officerId: 'cl',
-    acts: [
-      act('Ordonnance d’injonction de payer rendue', '20/10/2026', 'DONE'),
-      act('Signification au débiteur', '02/11/2026', 'DONE'),
-      act('Délai d’opposition d’un mois', 'Jusqu’au 02/12/2026', 'NOW'),
-      act('Apposition de la formule exécutoire', 'À venir', 'TODO'),
-    ],
-  },
-  {
-    id: 'lemaire',
-    stage: 3,
-    debtor: 'Transports Lemaire',
-    siret: '868 426 842 00068',
-    creditorId: 'tl',
-    creditor: 'TransAlp Leasing',
-    amount: 3150000,
-    step: 'Saisie-attribution sur compte',
-    due: 'Fonds attendus 05/12',
-    urgent: false,
-    procedure: 'Exécution forcée',
-    court: 'Tribunal judiciaire de Grenoble',
-    partner: 'Étude Garnier',
-    action: 'Voir le procès-verbal',
-    officerId: 'cl',
-    acts: [
-      act('Titre exécutoire obtenu', '12/09/2026', 'DONE'),
-      act('Commandement de payer', '01/10/2026', 'DONE'),
-      act('Saisie-attribution sur compte bancaire', '17/11/2026', 'NOW'),
-      act('Versement des fonds saisis', 'Attendu le 05/12/2026', 'TODO'),
-    ],
-  },
-  {
-    id: 'morin',
-    stage: 4,
-    debtor: 'Boulangerie Morin',
-    siret: '181 003 393 00012',
-    creditorId: 'ch',
-    creditor: 'Crédit Horizon',
-    amount: 724000,
-    step: 'Recouvré intégralement',
-    due: 'Clos le 10/11',
-    urgent: false,
-    procedure: 'Clos',
-    court: 'Tribunal judiciaire de Lyon',
-    partner: 'Me Durieux',
-    action: 'Archiver',
-    officerId: 'sm',
-    acts: [act('Titre exécutoire', '02/07/2026', 'DONE'), act('Paiement intégral + frais', '10/11/2026', 'DONE')],
-  },
-];
-let sent = new Set<string>();
+type StoredLitigation = Omit<LitigationCase, 'canAct'> & { officerId: string };
+const step = (title: string, date: string, who: string) => ({ title, date, who });
+/** `maquette/donnees-demo/Contentieux.json`, reduced to what the minimal follow-up keeps (question 163). */
+const seedLitigation = (): StoredLitigation[] =>
+  (
+    [
+      ['bellet', 0, '2026-11-16', 'Charpentes Bellet', '607 529 179 00006', MD, 2730000, 'Tribunal de commerce de Lyon', 'Me Durieux, avocat', 'RECEIVED', 'cl', [
+        step('Passage en contentieux', '2026-11-05', 'Claire Lambert'),
+        step('Accord écrit du créancier reçu', '2026-11-05', 'Claire Lambert'),
+      ]],
+      ['valmont', 0, '2026-11-18', 'Garage Valmont', '193 786 571 00094', TL, 2390000, 'Tribunal judiciaire de Grenoble', '', 'WAITING', 'cl', [
+        step('Passage en contentieux', '2026-11-18', 'Claire Lambert'),
+      ]],
+      ['fabre', 1, '2026-11-04', 'Électricité Fabre', '887 789 329 00018', ER, 1248000, 'Tribunal judiciaire de Valence', 'Me Roche, avocate', 'RECEIVED', 'hb', [
+        step('Passage en contentieux', '2026-10-02', 'Hugo Bernard'),
+        step('Accord écrit du créancier reçu', '2026-10-02', 'Hugo Bernard'),
+        step('Contentieux : Injonction de payer', '2026-11-04', 'Hugo Bernard'),
+      ]],
+      ['pixelia', 1, '2026-11-04', 'Studio Pixelia', '979 217 429 00013', MT, 396000, '', 'Étude Garnier, commissaires de justice', 'NOT_NEEDED', 'hb', [
+        step('Passage en contentieux', '2026-10-15', 'Hugo Bernard'),
+        step('Contentieux : Injonction de payer', '2026-11-04', 'Hugo Bernard'),
+      ]],
+      ['arnal', 2, '2026-11-02', 'Menuiserie Arnal', '280 967 928 00019', MD, 1875000, 'Tribunal de commerce de Lyon', 'Étude Garnier', 'RECEIVED', 'cl', [
+        step('Passage en contentieux', '2026-09-21', 'Claire Lambert'),
+        step('Accord écrit du créancier reçu', '2026-09-21', 'Claire Lambert'),
+        step('Contentieux : Injonction de payer', '2026-10-20', 'Claire Lambert'),
+        step('Contentieux : Titre exécutoire', '2026-11-02', 'Claire Lambert'),
+      ]],
+      ['lemaire', 3, '2026-10-01', 'Transports Lemaire', '868 426 842 00068', TL, 3150000, 'Tribunal judiciaire de Grenoble', 'Étude Garnier', 'RECEIVED', 'cl', [
+        step('Passage en contentieux', '2026-06-08', 'Claire Lambert'),
+        step('Accord écrit du créancier reçu', '2026-06-10', 'Claire Lambert'),
+        step('Contentieux : Injonction de payer', '2026-07-01', 'Claire Lambert'),
+        step('Contentieux : Titre exécutoire', '2026-09-12', 'Claire Lambert'),
+        step('Contentieux : Exécution forcée', '2026-10-01', 'Claire Lambert'),
+      ]],
+      ['morin', 4, '2026-11-10', 'Boulangerie Morin', '181 003 393 00012', CH, 0, 'Tribunal judiciaire de Lyon', 'Me Durieux', 'NOT_NEEDED', 'sm', [
+        step('Passage en contentieux', '2026-05-11', 'Sofia Martin'),
+        step('Contentieux : Titre exécutoire', '2026-07-02', 'Sofia Martin'),
+        step('Procédure close : recouvré', '2026-11-10', 'Sofia Martin'),
+      ]],
+    ] as const
+  ).map(([id, stage, stageSince, debtor, siret, [creditorId, creditor], amount, court, partnerName, consent, officerId, events]) => ({
+    id,
+    caseId: id,
+    stage,
+    stageSince,
+    debtor,
+    identifier: `SIRET ${siret}`,
+    creditorId: creditorId ?? '',
+    creditor: creditor ?? '',
+    amount,
+    balance: amount,
+    court,
+    partnerName,
+    consent,
+    events: [...events],
+    version: 1,
+    officerId,
+  }));
+let litigation = seedLitigation();
 export const resetCollection = () => {
   planned.clear();
   reminders = seedReminders();
   requests = seedRequests();
   interestRates = [];
-  sent = new Set();
+  litigation = seedLitigation();
 };
-const TOTALS = [
-  [6, 3860000],
-  [5, 6414000],
-  [4, 7190000],
-  [3, 8126000],
-  [3, 2900000],
-].map(([count, amount]) => ({ count: count ?? 0, amount: amount ?? 0 }));
+const nameOf = (session: Session) => `${session.firstName} ${session.lastName}`;
+const conflict = (code: string) => HttpResponse.json({ code }, { status: 409 });
+/** A change to a litigation file: by whoever acts on its case, on the version that was shown, never once closed. */
+const followed = <S extends z.ZodType<{ version: number }>>(
+  schema: S,
+  apply: (item: StoredLitigation, body: z.infer<S>, session: Session) => Response | undefined | void,
+) =>
+  guarded<Info>(staffWithCases, async ({ request, params }, session) => {
+    const body = schema.safeParse(await request.json());
+    if (!body.success) return HttpResponse.json({ code: 'INVALID' }, { status: 422 });
+    const item = litigation.find((entry) => entry.id === params.id && reads(session, entry.officerId));
+    if (!item) return notFound();
+    if (!acts(session, item.officerId)) return forbidden();
+    if (item.stage === 4) return conflict('LITIGATION_CLOSED');
+    if (item.version !== body.data.version) return conflict('CHANGED');
+    const refused = apply(item, body.data, session);
+    if (refused) return refused;
+    item.version += 1;
+    return done();
+  });
 
 export const collectionHandlers = [
   http.get(
@@ -577,36 +499,53 @@ export const collectionHandlers = [
     '/api/litigation',
     guarded(staffWithCases, (_info, session) => {
       const visible = litigation.filter((item) => reads(session, item.officerId));
-      const whole = session.role !== 'CLAIMS_OFFICER';
-      const totals = whole
-        ? TOTALS
-        : TOTALS.map((_, index) => {
-            const list = visible.filter((item) => item.stage === index);
-            return { count: list.length, amount: list.reduce((sum, item) => sum + item.amount, 0) };
-          });
+      const open = visible.filter((item) => item.stage < 4);
       return HttpResponse.json({
-        cases: visible.map(({ officerId, ...item }) => ({ ...item, actionSent: sent.has(item.id), canAct: acts(session, officerId) })),
-        stageTotals: totals,
-        deadlines: [
-          { caseId: 'bellet', date: '2026-11-30', title: 'Fin du délai de mise en demeure', who: 'Charpentes Bellet · Matériaux Delta', tone: 'danger' },
-          { caseId: 'arnal', date: '2026-12-02', title: 'Fin du délai d’opposition', who: 'Menuiserie Arnal · Matériaux Delta', tone: 'danger' },
-          { caseId: 'pixelia', date: '2026-12-04', title: 'Réponse en procédure simplifiée', who: 'Studio Pixelia · Médiatel', tone: 'warning' },
-          { caseId: 'lemaire', date: '2026-12-05', title: 'Versement des fonds saisis', who: 'Transports Lemaire · TransAlp Leasing', tone: 'neutral' },
-        ].filter((item) => visible.some((row) => row.id === item.caseId)),
-        stats: whole
-          ? { amount: 28490000, count: 21, advancedFees: 482000, titles: 14, waiting: 3, soon: 4 }
-          : { amount: visible.reduce((sum, item) => sum + item.amount, 0), count: visible.length, advancedFees: 64000, titles: 2, waiting: 0, soon: 1 },
+        cases: visible.map(({ officerId, ...item }) => ({ ...item, canAct: item.stage < 4 && acts(session, officerId) })),
+        stageTotals: LITIGATION_STAGES.map((_, index) => {
+          const list = visible.filter((item) => item.stage === index);
+          return { count: list.length, amount: list.reduce((sum, item) => sum + item.amount, 0) };
+        }),
+        stats: {
+          amount: open.reduce((sum, item) => sum + item.amount, 0),
+          count: open.length,
+          titles: visible.filter((item) => item.events.some((event) => event.title === 'Contentieux : Titre exécutoire' && event.date.startsWith('2026'))).length,
+          waiting: open.filter((item) => item.consent === 'WAITING').length,
+        },
       });
     }),
   ),
+  http.put(
+    '/api/litigation/:id',
+    followed(litigationFileBody, (item, body) => {
+      item.court = body.court;
+      item.partnerName = body.partnerName;
+    }),
+  ),
   http.post(
-    '/api/litigation/:id/action',
-    guarded<Info>(staffWithCases, ({ params }, session) => {
-      const item = litigation.find((entry) => entry.id === params.id);
-      if (!item) return notFound();
-      if (!acts(session, item.officerId)) return forbidden();
-      sent.add(item.id);
-      return done();
+    '/api/litigation/:id/stage',
+    followed(litigationStageBody, (item, body, session) => {
+      const next = LITIGATION_STAGES.findIndex((stage) => stage.code === body.stage);
+      if (body.stage === 'CLOSED') {
+        if (body.expectedOutcome !== (item.balance === 0 ? 'SETTLED' : 'LOST')) return conflict('CHANGED');
+        item.events.push(step(item.balance === 0 ? 'Procédure close : recouvré' : 'Procédure close : irrécouvrable', TODAY, nameOf(session)));
+      } else {
+        if (next !== item.stage + 1) return conflict('CHANGED');
+        if (item.consent === 'WAITING') return conflict('CONSENT_AWAITED');
+        item.events.push(step(`Contentieux : ${LITIGATION_STAGES[next]?.label ?? ''}`, TODAY, nameOf(session)));
+      }
+      item.stage = next;
+      item.stageSince = TODAY;
+      return undefined;
+    }),
+  ),
+  http.post(
+    '/api/litigation/:id/consent',
+    followed(litigationConsentBody, (item, _body, session) => {
+      if (item.consent !== 'WAITING') return conflict('CHANGED');
+      item.consent = 'RECEIVED';
+      item.events.push(step('Accord écrit du créancier reçu', TODAY, nameOf(session)));
+      return undefined;
     }),
   ),
 ];

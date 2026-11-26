@@ -7,6 +7,8 @@ import { Database } from '../../platform/database/database';
 import { currentActor } from '../../platform/http/context';
 import { CasesService } from '../cases/cases.service';
 import { CreditorsService, initialsOf } from '../creditors/creditors.service';
+import type { StaffActor } from '../account/account.service';
+import { LitigationService } from '../litigation/litigation.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
 const bodies = REQUEST_BODIES.staff;
@@ -25,13 +27,14 @@ export class ShellController {
     @Inject(CasesService) private readonly cases: CasesService,
     @Inject(CreditorsService) private readonly creditors: CreditorsService,
     @Inject(NotificationsService) private readonly notifications: NotificationsService,
+    @Inject(LitigationService) private readonly litigation: LitigationService,
   ) {}
 
   @Get('shell')
   @ApiOkResponse({ standardSchema: shellData })
   async shell(): Promise<ShellData> {
     const bell = (await this.notifications.list(BELL)).map(({ id, text, meta, href, unread }) => ({ id, kind: 'SYSTEM' as const, text, meta, href, unread }));
-    // Reminders, litigation, calls and messages: with their own modules.
+    // Reminders, calls and messages: with their own modules.
     const counts = { teamOnline: 0, remindersToday: 0, litigationUrgent: 0, callQueue: 0, unreadEmails: 0, unreadSms: 0 };
     if (this.withoutCases()) return { creditors: [], counts, notifications: bell };
     const creditors = (await this.creditors.list()).map(({ id, name, initials, siren, debtors }) => ({ id, name, initials, siren, count: debtors }));
@@ -40,7 +43,8 @@ export class ShellController {
     });
     return {
       creditors: [{ id: 'all', name: 'Tous les créanciers', initials: '', count: creditors.reduce((total, item) => total + item.count, 0) }, ...creditors],
-      counts: { ...counts, teamOnline: online },
+      // Litigation: the cases awaiting the agreement of their creditor, on which this person acts.
+      counts: { ...counts, teamOnline: online, litigationUrgent: await this.litigation.waiting(currentActor() as StaffActor) },
       notifications: bell,
     };
   }

@@ -261,6 +261,7 @@ model Case {
   documents Document[]
   portalMessages PortalMessage[]
   plannedReminders PlannedReminder[]
+  litigation LitigationFile[]
 
   @@unique([id, creditorId], map: "cases_id_creditor")
   @@index([officerId, status], map: "cases_officer")
@@ -513,6 +514,48 @@ model PlannedReminder {
   @@index([dueOn], map: "planned_reminders_due")
   @@index([caseId], map: "planned_reminders_case")
   @@map("planned_reminders")
+}
+
+enum LitigationStage {
+  FORMAL_NOTICE
+  PAYMENT_ORDER
+  ENFORCEABLE_TITLE
+  ENFORCEMENT
+  CLOSED
+
+  @@map("litigation_stage")
+}
+
+enum LitigationConsent {
+  NOT_NEEDED
+  WAITING
+  RECEIVED
+
+  @@map("litigation_consent")
+}
+
+/// Litigation in a minimal follow-up (question 163): the stage, the court and the partner; the acts stay with the lawyer.
+model LitigationFile {
+  id             String            @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  caseId         String            @unique(map: "litigation_files_case") @map("case_id") @db.Uuid
+  creditorId     String            @map("creditor_id") @db.Uuid
+  stage          LitigationStage   @default(FORMAL_NOTICE)
+  stageSince     DateTime          @default(dbgenerated("((now() AT TIME ZONE 'Europe/Paris'::text))::date")) @map("stage_since") @db.Date
+  court          String?
+  partnerName    String?           @map("partner_name")
+  consent        LitigationConsent
+  consentNotedBy String?           @map("consent_noted_by") @db.Uuid
+  consentNotedAt DateTime?         @map("consent_noted_at") @db.Timestamptz(3)
+  titleOn        DateTime?         @map("title_on") @db.Date
+  createdBy      String            @default(dbgenerated("app.user_id()")) @map("created_by") @db.Uuid
+  onBehalfOfId   String?           @default(dbgenerated("app.on_behalf_of()")) @map("on_behalf_of_id") @db.Uuid
+  createdAt      DateTime          @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
+  version        Int               @default(1)
+
+  case Case @relation(fields: [caseId, creditorId], references: [id, creditorId], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([stage], map: "litigation_files_stage")
+  @@map("litigation_files")
 }
 
 enum AiFeature {

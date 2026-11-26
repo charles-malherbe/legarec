@@ -126,35 +126,44 @@ export function planApprovals(months: number, threshold: number, ownedByDirector
 }
 
 export const LITIGATION_STAGES = [
-  { label: 'Mise en demeure', hint: 'Accord créancier, LRAR' },
-  { label: 'Injonction de payer', hint: 'ou procédure simplifiée' },
-  { label: 'Titre exécutoire', hint: 'Signification, délai d’opposition' },
-  { label: 'Exécution forcée', hint: 'Commandement, saisies' },
-  { label: 'Clos', hint: 'Recouvré ou irrécouvrable' },
+  { code: 'FORMAL_NOTICE', label: 'Mise en demeure', hint: 'Accord créancier, LRAR' },
+  { code: 'PAYMENT_ORDER', label: 'Injonction de payer', hint: 'ou procédure simplifiée' },
+  { code: 'ENFORCEABLE_TITLE', label: 'Titre exécutoire', hint: 'Signification, délai d’opposition' },
+  { code: 'ENFORCEMENT', label: 'Exécution forcée', hint: 'Commandement, saisies' },
+  { code: 'CLOSED', label: 'Clos', hint: 'Recouvré ou irrécouvrable' },
 ] as const;
+export const litigationStage = z.enum(['FORMAL_NOTICE', 'PAYMENT_ORDER', 'ENFORCEABLE_TITLE', 'ENFORCEMENT', 'CLOSED']);
+export type LitigationStage = z.infer<typeof litigationStage>;
+/** Written agreement of the creditor, when the mandate asks for one (question 163): a box ticked by the team. */
+export const litigationConsent = z.enum(['NOT_NEEDED', 'WAITING', 'RECEIVED']);
+/** What closing does to the case: settled when nothing is left to pay, otherwise lost. */
+export const litigationOutcome = z.enum(['SETTLED', 'LOST']);
+/** Litigation in a minimal follow-up (question 163): the stage, the court and the partner; the acts stay with the lawyer. */
 export const litigationCase = z.object({
   id: z.string(),
+  caseId: z.string(),
   stage: z.number().int().min(0).max(4),
+  stageSince: z.iso.date(),
   debtor: z.string(),
-  siret: z.string(),
+  /** « SIRET … », « SIREN … » or « Particulier ». */
+  identifier: z.string(),
   creditorId: z.string(),
   creditor: z.string(),
+  /** Principal left to pay. */
   amount: cents,
-  step: z.string(),
-  due: z.string(),
-  urgent: z.boolean(),
-  procedure: z.string(),
+  /** All that is owed today (principal, interest, fees): what closing compares to zero. */
+  balance: cents,
   court: z.string(),
-  partner: z.string(),
-  action: z.string(),
-  actionSent: z.boolean(),
-  acts: z.array(z.object({ title: z.string(), date: z.string(), state: z.enum(['DONE', 'NOW', 'TODO']) })),
+  partnerName: z.string(),
+  consent: litigationConsent,
+  /** Steps of the procedure, from the history of the case. */
+  events: z.array(z.object({ title: z.string(), date: z.iso.date(), who: z.string() })),
+  version: z.number().int(),
   canAct: z.boolean(),
 });
 export type LitigationCase = z.infer<typeof litigationCase>;
 export const litigationData = z.object({
   cases: z.array(litigationCase),
   stageTotals: z.array(z.object({ count: z.number().int(), amount: cents })),
-  deadlines: z.array(z.object({ caseId: z.string(), date: z.iso.date(), title: z.string(), who: z.string(), tone: z.enum(['danger', 'warning', 'neutral']) })),
-  stats: z.object({ amount: cents, count: z.number().int(), advancedFees: cents, titles: z.number().int(), waiting: z.number().int(), soon: z.number().int() }),
+  stats: z.object({ amount: cents, count: z.number().int(), titles: z.number().int(), waiting: z.number().int() }),
 });

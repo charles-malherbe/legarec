@@ -90,16 +90,20 @@ export function CasesPage() {
     confirm({
       tone: 'danger',
       title: `Passer ${chosen.length} dossier${plural} en contentieux ?`,
-      body: 'Les relances amiables s’arrêtent. Une demande d’accord est envoyée à chaque créancier avant tout engagement de frais.',
+      body: 'Les relances amiables s’arrêtent. Quand le mandat du créancier exige son accord écrit, aucune étape qui engage des frais n’est possible avant que cet accord soit noté.',
       details: [
         { k: 'Débiteurs', v: names },
         { k: 'Montant total', v: formatCents(total) },
       ],
       reasonLabel: 'Motif du passage en contentieux',
       confirmLabel: 'Passer en contentieux',
-      onConfirm: async (reason) => {
-        await change('/cases/litigation', { body: { ids, reason } });
-        toast({ message: `${chosen.length} dossier(s) transmis au contentieux · demandes d’accord envoyées aux créanciers.` });
+      check: {
+        label: 'Accord écrit du créancier reçu',
+        description: 'Pour les créanciers dont le mandat exige un accord écrit. Sans cette case, l’accord reste à noter dans Contentieux.',
+      },
+      onConfirm: async (reason, consentReceived) => {
+        await change('/cases/litigation', { body: { ids, reason, consentReceived } });
+        toast({ message: `${chosen.length} dossier(s) transmis au contentieux.` });
         setSelected([]);
       },
     });

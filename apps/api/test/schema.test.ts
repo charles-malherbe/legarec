@@ -275,6 +275,10 @@ describe('rights of the roles inside', () => {
       'planned_reminders INSERT (case_id, creditor_id, due_on, due_time, kind, title, warning)',
       'planned_reminders SELECT (case_id, created_at, created_by, creditor_id, done_at, due_on, due_time, id, kind, title, warning)',
       'planned_reminders UPDATE (done_at, due_on, due_time)',
+      // Litigation: read with the cases; opened and followed on those one acts on, the dates and the author set by PostgreSQL.
+      'litigation_files INSERT (case_id, consent, creditor_id, stage, version)',
+      'litigation_files SELECT (case_id, consent, consent_noted_at, consent_noted_by, court, created_at, created_by, creditor_id, id, on_behalf_of_id, partner_name, stage, stage_since, title_on, version)',
+      'litigation_files UPDATE (consent, court, partner_name, stage, version)',
       // What each one marked done on their dashboard: their own lines only.
       'task_marks DELETE (*)',
       'task_marks INSERT (key, user_id)',
@@ -564,6 +568,8 @@ describe('rights of the roles inside', () => {
       'documents UPDATE (original_name, purged_at, shared_by, shared_with_creditor_at, title, visible_to_debtor)',
       'gdpr_requests SELECT (debtor_id)',
       'gdpr_requests UPDATE (origin)',
+      'litigation_files DELETE (*)',
+      'litigation_files SELECT (case_id)',
       'payment_allocations DELETE (*)',
       'payment_allocations SELECT (payment_id)',
       'payment_plans SELECT (accepted_ip, case_id, document_id)',
@@ -591,6 +597,17 @@ describe('rights of the roles inside', () => {
   };
   it.each(Object.entries(expected))('%s', async (role, rights) => {
     expect((await rightsOf(role)).sort()).toEqual([...rights].sort());
+  });
+
+  it('close every table attached to a case once the case is anonymized, whenever the table was added', async () => {
+    const open = await rows<{ table_name: string }>(
+      `SELECT c.table_name FROM information_schema.columns c JOIN information_schema.tables t USING (table_schema, table_name)
+       WHERE c.table_schema = 'public' AND c.column_name = 'case_id' AND t.table_type = 'BASE TABLE' AND c.table_name <> 'notifications'
+         AND (SELECT count(*) FROM pg_policies p WHERE p.schemaname = 'public' AND p.tablename = c.table_name
+           AND p.policyname IN ('case_not_forgotten_add', 'case_not_forgotten_change') AND p.permissive = 'RESTRICTIVE') <> 2
+       ORDER BY 1`,
+    );
+    expect(open).toEqual([]);
   });
 
   it('let nobody create anything, not even for the time of a session', async () => {
@@ -710,6 +727,7 @@ describe('rights on the functions', () => {
     ...['ai_key', 'ai_spent', 'ai_budget_alert'].map((name) => [name, ['worker']] as [string, string[]]),
     ...['ai_journal', 'ai_journal_totals'].map((name) => [name, ['staff']] as [string, string[]]),
     ['keep_done_reminder', []],
+    ['litigation_rules', []],
     ...['remittance_core', 'remittance_sources', 'remittance_summary', 'note_settlement'].map((name) => [name, []] as [string, string[]]),
     ...['creditor_decide_plan', 'creditor_upload', 'creditor_deposit'].map((name) => [name, ['partner']] as [string, string[]]),
     ...['money_case', 'issue_receipt', 'follow_allocation', 'check_allocations', 'keep_receipt'].map((name) => [name, []] as [string, string[]]),
@@ -743,7 +761,7 @@ describe('rights on the functions', () => {
       'debtor_link ask_code_by_sms firm_payment_settings limited_message',
       'gdpr_request gdpr_keeper gdpr_registry gdpr_answer gdpr_export gdpr_erasure gdpr_erase',
       'anonymize_case forget_case forget_debtor erasure_blockers erasure_digest case_writable',
-      'note_ai_decision ai_key ai_spent ai_budget_alert ai_journal ai_journal_totals planned_contacts keep_done_reminder remittance_core creditor_payouts remittance_sources remittance_summary note_settlement remittance_draft validate_remittances mark_remittances_paid remittance_batches remittance_batch',
+      'note_ai_decision ai_key ai_spent ai_budget_alert ai_journal ai_journal_totals planned_contacts keep_done_reminder litigation_rules remittance_core creditor_payouts remittance_sources remittance_summary note_settlement remittance_draft validate_remittances mark_remittances_paid remittance_batches remittance_batch',
       'credit_notes save_credit_note_draft delete_credit_note_draft issue_credit_note invoice_lines_left invoice_left invoice_settled_on check_credit_lines',
       'purge_remittances purge_invoices purge_payments purge_accounting_documents forget_remittances forget_lone_invoices forget_bounced_payments forget_accounting_documents',
       'forget_payments forget_invoices invoice_batches accounting_cutoff',

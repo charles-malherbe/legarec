@@ -1,6 +1,7 @@
 import { FocusTrap, Portal } from '@mantine/core';
 import { createContext, use, useCallback, useEffect, useId, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { Bouton } from './Bouton';
+import { Case } from './Case';
 import { Champ } from './Champ';
 import css from './Confirm.module.css';
 import { Icone } from './Icone';
@@ -21,7 +22,9 @@ export interface ConfirmProps {
   reasonPlaceholder?: string;
   /** Exact text the user must type before confirming (irreversible actions). */
   typeToConfirm?: { label: string; expected: string };
-  onConfirm: (reason: string) => void | Promise<unknown>;
+  /** A box to tick in the dialog; `required` blocks the confirmation until it is ticked. */
+  check?: { label: string; description?: string; required?: boolean };
+  onConfirm: (reason: string, checked: boolean) => void | Promise<unknown>;
   onCancel: () => void;
 }
 
@@ -39,25 +42,27 @@ function ConfirmBody({
   reasonLabel,
   reasonPlaceholder = 'Précisez le motif…',
   typeToConfirm,
+  check,
   onConfirm,
   onCancel,
 }: Omit<ConfirmProps, 'open'>) {
   const [reason, setReason] = useState('');
   const [typed, setTyped] = useState('');
+  const [checked, setChecked] = useState(false);
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
   const [opener] = useState(() => document.activeElement as HTMLElement | null);
   useEffect(() => () => void setTimeout(() => opener?.focus?.(), 0), [opener]);
   const textId = useId();
   const titleId = useId();
-  const blocked = (!!reasonLabel && !reason.trim()) || (!!typeToConfirm && typed.trim() !== typeToConfirm.expected);
+  const blocked = (!!reasonLabel && !reason.trim()) || (!!typeToConfirm && typed.trim() !== typeToConfirm.expected) || (!!check?.required && !checked);
 
   const confirm = async () => {
     if (blocked || pending) return;
     setPending(true);
     setFailed(false);
     try {
-      await onConfirm(reason.trim());
+      await onConfirm(reason.trim(), checked);
     } catch {
       setFailed(true);
     } finally {
@@ -140,6 +145,11 @@ function ConfirmBody({
                 <Champ label={typeToConfirm.label} value={typed} onChange={setTyped} autocomplete="off" spellCheck={false} autoFocus={!reasonLabel} />
               </div>
             )}
+            {check && (
+              <div className={css.field}>
+                <Case checked={checked} label={check.label} description={check.description} onToggle={setChecked} />
+              </div>
+            )}
             {failed && (
               <p role="alert" className={css.failed}>
                 L’action n’a pas abouti. Rien n’a été enregistré : réessayez.
@@ -183,8 +193,8 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
           {...request}
           open={open}
           onCancel={() => setOpen(false)}
-          onConfirm={async (reason) => {
-            await request.onConfirm(reason);
+          onConfirm={async (reason, checked) => {
+            await request.onConfirm(reason, checked);
             setOpen(false);
           }}
         />

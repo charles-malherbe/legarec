@@ -87,26 +87,13 @@
   font-size: var(--fs-base);
   font-weight: 600;
 }
-.date {
-  width: 48px;
-  flex-shrink: 0;
-  padding: var(--sp-1) 0;
-  border-radius: var(--r-md);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-size: var(--fs-xs);
-  background: var(--surface-3);
-  color: var(--text-2);
+.followUp {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--sp-3);
+  align-items: start;
 }
-.date strong {
-  font-size: var(--fs-md);
-}
-.date[data-tone='danger'] {
-  background: var(--danger-bg);
-  color: var(--danger-fg);
-}
-.date[data-tone='warning'] {
-  background: var(--warning-bg);
-  color: var(--warning-fg);
+.followUp > button {
+  justify-self: start;
+  grid-column: 1 / -1;
 }

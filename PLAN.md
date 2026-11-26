@@ -258,14 +258,16 @@ Les 161 routes simulées se répartissent ainsi :
 
 ## Lot U — Pilotage (état au 26/11/2026)
 - [x] Tableau de bord de l'espace sur l'API (encours, recouvré, balance âgée, créanciers, débiteurs, fil, priorités marquées par personne), objectifs facultatifs
-- [ ] Contentieux en suivi minimal (question 163 : étape, juridiction, intervenant), rapports, équipe (présence et appels avec T), score de risque
+- [x] Contentieux en suivi minimal (question 163) : passage avec l'accord du créancier en case cochée, étape, juridiction et intervenant, clôture avec son issue, compteur du menu ; écran Contentieux et simulations refaits sur ce suivi ; fiche supprimée avec l'anonymisation du dossier
+- [ ] Rapports, équipe (présence et appels avec T), score de risque
 
 ## Lot V — RGPD (état au 26/11/2026)
 - [x] Registre des demandes, réponse motivée, export des données d'un débiteur (journalisé)
 - [x] Purges planifiées des tables de la nuit (imports non confirmés, messages sans code, marques du tableau de bord, registre RGPD)
 - [x] Anonymisation à la demande d'un débiteur (API, questions 168 et 169), purge des dossiers 5 ans après clôture et de leurs fichiers
 - [x] Purge à 10 ans (fin de l'année de la pièce) des pièces comptables : lots de reversements, factures et avoirs, paiements et imputations, quittances et leurs PDF, documents comptables d'un dossier anonymisé ; registre RGPD à partir de la clôture (question 175)
-- [ ] Écran de l'effacement à la demande (pas d'état dans la maquette) ; à la fusion avec `lot/u2`, `litigation_files` dans `app.forget_case()`
+- [x] `litigation_files` dans `app.forget_case()` (migration `20261127010000_litigation_retention`)
+- [ ] Écran de l'effacement à la demande (pas d'état dans la maquette)
 
 ## Lot S — Facturation et reversements (état au 26/11/2026)
 - [x] API des reversements : calcul unique en SQL, validation avec valeurs attendues, créancier retenu avec motif, factures de commission, « marquer comme versés »
