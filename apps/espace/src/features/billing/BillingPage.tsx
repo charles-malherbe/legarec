@@ -9,6 +9,8 @@ import {
   type BillingData,
   type BillingLine,
   type BillingType,
+  type CreditNoteDraft,
+  creditNotesData,
 } from '@legarec/contracts';
 import { Badge, Bouton, Carte, Champ, EtatListe, PageHeader, Tableau, Toolbar, useConfirm, useToast } from '@legarec/ui';
 import { useState } from 'react';
@@ -17,25 +19,39 @@ import layout from '@legarec/ui/layout.module.css';
 import { listState, matches } from '../../shared/listState';
 import css from './Billing.module.css';
 import { CONTRACT_TERMS, TYPES } from './templates';
+import { CreditNoteCreator, creditNoteRows, CreditNotesList } from './CreditNotes';
 
 const TABS: [BillingType, string][] = [
   ['INVOICE', 'Factures'],
   ['QUOTE', 'Devis'],
   ['CONTRACT', 'Contrats'],
 ];
+/** Tab and type « Avoir », added after the others (question 69, V4). */
+type Kind = BillingType | 'CREDIT_NOTE';
+const LIST_TABS: [Kind, string][] = [...TABS, ['CREDIT_NOTE', 'Avoirs']];
+const CHOICES: [Kind, string, string][] = [
+  ...TABS.map(([id]): [Kind, string, string] => [id, TYPES[id].label, TYPES[id].hint]),
+  ['CREDIT_NOTE', 'Avoir', 'Corrige une facture émise'],
+];
 
 type Copy = { client: string; subject: string; amount: number | null };
+type Seed = { key: number; type: Kind; copy?: Copy; invoice?: string; draft?: CreditNoteDraft };
 
 export function BillingPage() {
   const toast = useToast();
   const { data, isPending, error, refetch } = useApi(billingData, '/billing');
   const [creating, setCreating] = useState(true);
-  const [tab, setTab] = useState<BillingType>('INVOICE');
+  const [tab, setTab] = useState<Kind>('INVOICE');
   const [query, setQuery] = useState('');
   const [client, setClient] = useState('all');
   const [status, setStatus] = useState('all');
-  const [seed, setSeed] = useState<{ key: number; type: BillingType; copy?: Copy }>({ key: 0, type: 'INVOICE' });
+  const [seed, setSeed] = useState<Seed>({ key: 0, type: 'INVOICE' });
+  const credits = creditNoteRows(useApi(creditNotesData, '/credit-notes').data);
   const documents = data?.documents ?? [];
+  const open = (next: Omit<Seed, 'key'>) => {
+    setSeed({ ...next, key: seed.key + 1 });
+    setCreating(true);
+  };
   const rows = documents.filter(
     (item) =>
       item.type === tab &&
@@ -79,16 +95,27 @@ export function BillingPage() {
           <EtatListe kind={error ? 'error' : 'loading'} onAction={() => void refetch()} />
         </div>
       )}
-      {data && creating && <Creator key={`${seed.key}`} data={data} initialType={seed.type} copy={seed.copy} onClose={() => setCreating(false)} />}
+      {data && creating && (
+        <Creator
+          key={`${seed.key}`}
+          data={data}
+          seed={seed}
+          onClose={() => setCreating(false)}
+          onIssued={() => {
+            setCreating(false);
+            setTab('CREDIT_NOTE');
+          }}
+        />
+      )}
       <Toolbar
         label="Filtrer les documents"
         tabsLabel="Type de document"
         placeholder="N°, client, SIREN…"
         query={query}
         onQuery={setQuery}
-        tabs={TABS.map(([id, label]) => ({
+        tabs={LIST_TABS.map(([id, label]) => ({
           label,
-          count: documents.filter((item) => item.type === id).length,
+          count: id === 'CREDIT_NOTE' ? credits.length : documents.filter((item) => item.type === id).length,
           selected: id === tab,
           pick: () => {
             setTab(id);
@@ -101,7 +128,10 @@ export function BillingPage() {
             value: client,
             options: [
               { value: 'all', label: 'Tous les clients' },
-              ...[...new Set(documents.map((item) => item.client))].map((value) => ({ value, label: value })),
+              ...[...new Set(tab === 'CREDIT_NOTE' ? credits.map((item) => item.client) : documents.map((item) => item.client))].map((value) => ({
+                value,
+                label: value,
+              })),
             ],
             onChange: setClient,
           },
@@ -110,66 +140,121 @@ export function BillingPage() {
             value: status,
             options: [
               { value: 'all', label: 'Tous les statuts' },
-              ...[...new Set(documents.filter((item) => item.type === tab).map((item) => item.status))].map((value) => ({ value, label: value })),
+              ...[
+                ...new Set(
+                  tab === 'CREDIT_NOTE' ? credits.map((item) => item.status) : documents.filter((item) => item.type === tab).map((item) => item.status),
+                ),
+              ].map((value) => ({ value, label: value })),
             ],
             onChange: setStatus,
           },
         ]}
       />
-      <Carte title={TABS.find(([id]) => id === tab)?.[1]} description={`${rows.length} documents`} padding="none">
-        <Tableau
-          caption="Documents"
-          hideCaption
-          tight
-          bordered={false}
-          rows={rows}
-          rowId={(row) => row.id}
-          state={state}
-          columns={[
-            { key: 'number', label: 'Numéro', value: (row) => ({ text: row.number, strong: true }) },
-            { key: 'client', label: 'Client', value: (row) => ({ text: row.client, sub: row.idLine }) },
-            { key: 'subject', label: 'Objet', value: (row) => row.subject },
-            { key: 'date', label: 'Date', sortValue: (row) => row.date, value: (row) => formatDate(row.date) },
-            {
-              key: 'amount',
-              label: tab === 'CONTRACT' ? 'Durée' : 'Montant TTC',
-              align: 'right',
-              value: (row) => ({ text: row.amount === null ? (row.duration ?? '—') : formatCents(row.amount, { decimals: 'always' }), strong: true }),
-            },
-            { key: 'status', label: 'Statut', render: (row) => <Badge label={row.status} tone={row.tone} /> },
-            {
-              key: 'actions',
-              label: 'Actions',
-              render: (row) => (
-                <span className={layout.inline}>
-                  <Bouton variant="secondary" size="sm" label="PDF" ariaLabel={`PDF ${row.number}`} href="/documents" />
-                  <Bouton
-                    variant="secondary"
-                    size="sm"
-                    label="Dupliquer"
-                    ariaLabel={`Dupliquer ${row.number}`}
-                    onPress={() => {
-                      setSeed({ key: seed.key + 1, type: row.type, copy: { client: row.client, subject: row.subject, amount: row.amount } });
-                      setCreating(true);
-                      toast({ message: `Copie de ${row.number} ouverte dans le créateur.` });
-                    }}
-                  />
-                </span>
-              ),
-            },
-          ]}
+      {tab === 'CREDIT_NOTE' ? (
+        <CreditNotesList
+          query={query}
+          client={client}
+          status={status}
+          onResume={(draft) => open({ type: 'CREDIT_NOTE', draft })}
+          onClear={() => setQuery('')}
         />
-      </Carte>
+      ) : (
+        <Carte title={TABS.find(([id]) => id === tab)?.[1]} description={`${rows.length} documents`} padding="none">
+          <Tableau
+            caption="Documents"
+            hideCaption
+            tight
+            bordered={false}
+            rows={rows}
+            rowId={(row) => row.id}
+            state={state}
+            columns={[
+              { key: 'number', label: 'Numéro', value: (row) => ({ text: row.number, strong: true }) },
+              { key: 'client', label: 'Client', value: (row) => ({ text: row.client, sub: row.idLine }) },
+              { key: 'subject', label: 'Objet', value: (row) => row.subject },
+              { key: 'date', label: 'Date', sortValue: (row) => row.date, value: (row) => formatDate(row.date) },
+              {
+                key: 'amount',
+                label: tab === 'CONTRACT' ? 'Durée' : 'Montant TTC',
+                align: 'right',
+                value: (row) => ({ text: row.amount === null ? (row.duration ?? '—') : formatCents(row.amount, { decimals: 'always' }), strong: true }),
+              },
+              { key: 'status', label: 'Statut', render: (row) => <Badge label={row.status} tone={row.tone} /> },
+              {
+                key: 'actions',
+                label: 'Actions',
+                render: (row) => (
+                  <span className={css.actions}>
+                    <Bouton variant="secondary" size="sm" label="PDF" ariaLabel={`PDF ${row.number}`} href="/documents" />
+                    <Bouton
+                      variant="secondary"
+                      size="sm"
+                      label="Dupliquer"
+                      ariaLabel={`Dupliquer ${row.number}`}
+                      onPress={() => {
+                        open({ type: row.type, copy: { client: row.client, subject: row.subject, amount: row.amount } });
+                        toast({ message: `Copie de ${row.number} ouverte dans le créateur.` });
+                      }}
+                    />
+                    {row.type === 'INVOICE' && row.status !== 'Brouillon' && (
+                      <Bouton
+                        variant="secondary"
+                        size="sm"
+                        label="Avoir"
+                        ariaLabel={`Avoir sur ${row.number}`}
+                        disabled={row.status === 'Annulée par avoir'}
+                        onPress={() => open({ type: 'CREDIT_NOTE', invoice: row.number })}
+                      />
+                    )}
+                  </span>
+                ),
+              },
+            ]}
+          />
+        </Carte>
+      )}
     </>
   );
 }
 
-function Creator({ data, initialType, copy, onClose }: { data: BillingData; initialType: BillingType; copy?: Copy; onClose: () => void }) {
+/** « Créer depuis un modèle »: the type first; an « Avoir » corrects an invoice already issued. */
+function Creator({ data, seed, onClose, onIssued }: { data: BillingData; seed: Seed; onClose: () => void; onIssued: () => void }) {
+  const [type, setType] = useState<Kind>(seed.type);
+  const picker = (
+    <fieldset className={css.fieldset}>
+      <legend>1. Type de document</legend>
+      <div className={css.types}>
+        {CHOICES.map(([id, label, hint]) => (
+          <button key={id} type="button" className={css.choice} aria-pressed={type === id} onClick={() => setType(id)}>
+            <strong>{label}</strong>
+            <span className={layout.hint}>{hint}</span>
+          </button>
+        ))}
+      </div>
+    </fieldset>
+  );
+  if (type === 'CREDIT_NOTE')
+    return <CreditNoteCreator typePicker={picker} invoiceNumber={seed.invoice} draft={seed.draft} onClose={onClose} onIssued={onIssued} />;
+  return <DocumentCreator key={type} data={data} type={type} copy={type === seed.type ? seed.copy : undefined} picker={picker} onClose={onClose} />;
+}
+
+function DocumentCreator({
+  data,
+  type,
+  copy,
+  picker,
+  onClose,
+}: {
+  data: BillingData;
+  type: BillingType;
+  copy?: Copy;
+  picker: React.ReactNode;
+  onClose: () => void;
+}) {
   const change = useChange();
   const confirm = useConfirm();
   const toast = useToast();
-  const [type, setType] = useState(initialType);
-  const [templateId, setTemplateId] = useState(TYPES[initialType].templates[0]!.id);
+  const [templateId, setTemplateId] = useState(TYPES[type].templates[0]!.id);
   const [clientId, setClientId] = useState((data.clients.find((item) => item.name === copy?.client) ?? data.clients[0])?.id ?? '');
   const definition = TYPES[type];
   const template = definition.templates.find((item) => item.id === templateId) ?? definition.templates[0]!;
@@ -189,12 +274,6 @@ function Creator({ data, initialType, copy, onClose }: { data: BillingData; init
     : `${template.label}${template.id === 'commission' ? ' · novembre 2026' : ''}`;
   const idLine = client.siren ? `SIREN ${client.siren} · TVA ${vatNumber(client.siren)}` : 'SIREN à renseigner (9 chiffres)';
   const money = (value: number) => formatCents(value, { decimals: 'always' });
-  const choose = (next: BillingType) => {
-    const first = TYPES[next].templates[0]!;
-    setType(next);
-    setTemplateId(first.id);
-    setLines(first.lines);
-  };
   const update = (index: number, patch: Partial<BillingLine>) => setLines(lines.map((line, position) => (position === index ? { ...line, ...patch } : line)));
   const save = async (draft: boolean) =>
     change('/billing', {
@@ -250,17 +329,7 @@ function Creator({ data, initialType, copy, onClose }: { data: BillingData; init
     >
       <div className={css.creator}>
         <div className={layout.stack}>
-          <fieldset className={css.fieldset}>
-            <legend>1. Type de document</legend>
-            <div className={css.types}>
-              {TABS.map(([id]) => (
-                <button key={id} type="button" className={css.choice} aria-pressed={type === id} onClick={() => choose(id)}>
-                  <strong>{TYPES[id].label}</strong>
-                  <span className={layout.hint}>{TYPES[id].hint}</span>
-                </button>
-              ))}
-            </div>
-          </fieldset>
+          {picker}
           <fieldset className={css.fieldset}>
             <legend>2. Modèle</legend>
             {definition.templates.map((item) => (
