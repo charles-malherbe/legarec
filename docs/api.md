@@ -135,7 +135,7 @@ Sans dépendance : Resend, MySendingBox, OVH (appels signés : le paquet `ovh` d
 - Clôture : le dossier devient soldé si plus rien n'est dû (principal, intérêts, frais), sinon perdu ; l'écran annonce l'issue, l'API la refuse (409) si elle a changé entre-temps. Elle prend le verrou des paiements du dossier et attend qu'aucun paiement ne soit en attente d'encaissement ou de rapprochement (409 `PAYMENT_PENDING`). Une seule fiche par dossier : un dossier revenu d'une procédure close ne repasse pas en contentieux (409 `LITIGATION_CLOSED`, question 183).
 - Historique : passage, accord et étapes sont visibles par le créancier ; le motif, la juridiction et l'intervenant ne le sont pas. Journal d'audit : `LITIGATION_OPENED`, `LITIGATION_CONSENT_NOTED`, `LITIGATION_STAGE_CHANGED`, `LITIGATION_CLOSED`.
 - Compteur du menu (`litigationUrgent`) : fiches en attente d'accord sur lesquelles la personne peut agir.
-- Conservation : la fiche est supprimée par `app.forget_case()` avec l'historique du dossier (5 ans après clôture, ou effacement à la demande).
+- Conservation : la fiche est supprimée par `app.forget_case()` (5 ans après clôture, ou effacement à la demande) ; les étapes restent dans l'historique, gardé sans noms (question 169).
 - **Essai** : ajouter `litigation` à `VITE_API` (le passage en contentieux passe déjà avec `cases`).
 
 ### Agenda des relances (lot Q, première partie)
@@ -354,7 +354,7 @@ Une clé dérivée par usage (HKDF). La version de clé est dans l'en-tête de c
 
 | Durée | Données |
 |---|---|
-| 5 ans après clôture | dossiers, historique, échanges, pièces : anonymisés, fichiers S3 supprimés |
+| 5 ans après clôture | dossiers, échanges, pièces : anonymisés, fichiers S3 supprimés ; historique gardé sans noms (texte libre vidé, titre qui nommerait le débiteur ou l'interlocuteur remplacé, question 169) |
 | 10 ans après la fin de l'année de la pièce | factures du cabinet et avoirs, quittances, paiements et leurs imputations, reversements, registre RGPD (à partir de la clôture de la demande) |
 | 2 ans | notifications, questions au support ; compte désactivé, puis anonymisé ; clés de tâches |
 | 1 an | journal d'audit, verrouillages, invitation jamais ouverte (question 131), journal de l'IA, présence 3CX (12 mois) |

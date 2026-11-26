@@ -147,7 +147,8 @@ describe('the erasure asked by a debtor', () => {
       { contact_name: null, debtor_address: null, anonymized: true },
       { contact_name: null, debtor_address: null, anonymized: true },
     ]);
-    expect(await rows('SELECT count(*)::int AS n FROM case_events WHERE case_id = $1', [closed])).toEqual([{ n: 0 }]);
+    // Its history stays, without what was typed (question 169).
+    expect(await rows('SELECT count(*)::int AS n FROM case_events WHERE case_id = $1 AND detail IS NOT NULL', [closed])).toEqual([{ n: 0 }]);
     expect(await rows('SELECT amount_cents FROM payments WHERE case_id = $1', [closed])).toEqual([{ amount_cents: 5000 }]);
     expect(await rows('SELECT status, origin, reason IS NOT NULL AS motivated FROM gdpr_requests WHERE id = $1', [request])).toEqual([
       { status: 'ANSWERED', origin: 'Demande anonymisée', motivated: true },

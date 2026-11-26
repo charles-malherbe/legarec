@@ -392,8 +392,13 @@ describe('cases closed for more than five years', () => {
         anonymized: true,
       },
     ]);
-    for (const table of ['case_events', 'case_contacts', 'case_contact_events', 'portal_messages', 'planned_reminders', 'debtor_links', 'litigation_files'])
+    for (const table of ['case_contacts', 'case_contact_events', 'portal_messages', 'planned_reminders', 'debtor_links', 'litigation_files'])
       expect(await count(table, old), table).toBe(0);
+    // The history stays without names (question 169): what was typed goes, a title naming the person to reach is replaced,
+    // who of the team acted stays (question 132).
+    expect(await rows('SELECT kind, title, detail, actor_label FROM case_events WHERE case_id = $1', [old])).toEqual([
+      { kind: 'CALL_DONE', title: 'Événement du dossier', detail: null, actor_label: 'Alba' },
+    ]);
     // The attachment: its line without its names, its file gone; the receipt untouched.
     expect(
       await rows('SELECT title, original_name, shared_with_creditor_at, purged_at IS NOT NULL AS purged FROM documents WHERE id = $1', [evidence.id]),
@@ -496,6 +501,26 @@ describe('cases closed for more than five years', () => {
       }
     }
     expect(await count('case_events', id)).toBe(1);
+    // Nobody empties the history by hand; the forgetter itself changes its title and its text only (question 169).
+    for (const role of ['legarec_staff', 'legarec_definer', 'legarec_worker']) {
+      await rows('BEGIN');
+      try {
+        await rows(`SET LOCAL ROLE ${role}`);
+        await expect(test.admin.query('UPDATE case_events SET detail = NULL WHERE case_id = $1', [id]), role).rejects.toThrow(/permission denied|append-only/u);
+      } finally {
+        await rows('ROLLBACK');
+      }
+    }
+    await rows('BEGIN');
+    try {
+      await rows('SET LOCAL ROLE legarec_forgetter');
+      await expect(test.admin.query("UPDATE case_events SET title = 'x', visible_to_creditor = true WHERE case_id = $1", [id])).rejects.toThrow(
+        /permission denied|append-only/u,
+      );
+    } finally {
+      await rows('ROLLBACK');
+    }
+    expect(await rows('SELECT detail FROM case_events WHERE case_id = $1', [id])).toEqual([{ detail: 'Promet de payer' }]);
   });
 
   it('is done by the retention alone', async () => {

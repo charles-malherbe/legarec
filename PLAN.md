@@ -266,6 +266,7 @@ Les 161 routes simulées se répartissent ainsi :
 - [x] Registre des demandes, réponse motivée, export des données d'un débiteur (journalisé)
 - [x] Purges planifiées des tables de la nuit (imports non confirmés, messages sans code, marques du tableau de bord, registre RGPD)
 - [x] Anonymisation à la demande d'un débiteur (API, questions 168 et 169), purge des dossiers 5 ans après clôture et de leurs fichiers
+- [x] Question 169, réponse du 26/11/2026 : l'historique d'un dossier anonymisé est gardé sans noms (`app.forget_case`, migration `20261127050000_anonymized_history`)
 - [x] Purge à 10 ans (fin de l'année de la pièce) des pièces comptables : lots de reversements, factures et avoirs, paiements et imputations, quittances et leurs PDF, documents comptables d'un dossier anonymisé ; registre RGPD à partir de la clôture (question 175)
 - [x] `litigation_files` dans `app.forget_case()` (migration `20261127010000_litigation_retention`)
 - [ ] Écran de l'effacement à la demande (pas d'état dans la maquette)
