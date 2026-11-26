@@ -7185,6 +7185,12 @@
                             "with"
                           ],
                           "additionalProperties": false
+                        },
+                        "enteredBy": {
+                          "type": "string"
+                        },
+                        "enteredByMe": {
+                          "type": "boolean"
                         }
                       },
                       "required": [
@@ -7193,7 +7199,9 @@
                         "masked",
                         "bic",
                         "since",
-                        "confirmed"
+                        "confirmed",
+                        "enteredBy",
+                        "enteredByMe"
                       ],
                       "additionalProperties": false
                     }
@@ -8175,6 +8183,32 @@
                         "additionalProperties": false
                       }
                     },
+                    "correctable": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "COMPANY",
+                            "SOLE_TRADER",
+                            "INDIVIDUAL"
+                          ]
+                        },
+                        "hasSiren": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "kind",
+                        "hasSiren"
+                      ],
+                      "additionalProperties": false
+                    },
                     "exchanges": {
                       "type": "array",
                       "items": {
@@ -8516,6 +8550,7 @@
                     "aiSummary",
                     "invoices",
                     "history",
+                    "correctable",
                     "exchanges",
                     "payments",
                     "documents",
@@ -8585,11 +8620,15 @@
                       "type": "integer",
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
+                    },
+                    "closed": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
                     "code",
-                    "version"
+                    "version",
+                    "closed"
                   ],
                   "additionalProperties": false
                 }
@@ -8628,6 +8667,27 @@
             "DIRECTOR",
             "COLLECTION_MANAGER",
             "CLAIMS_OFFICER"
+          ]
+        }
+      }
+    },
+    "/staff/cases/{id}/debtor": {
+      "put": {
+        "operationId": "CasesController_correctDebtor",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "cases"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER"
           ]
         }
       }

@@ -143,7 +143,8 @@ function Form({ choices }: { choices: { creditors: { id: string; name: string }[
     return (
       {
         CASE_EXISTS: 'Un dossier est déjà ouvert pour ce débiteur chez ce créancier.',
-        DEBTOR_MISMATCH: 'Ce SIREN est déjà enregistré sous un autre nom ou un autre type de débiteur : vérifiez-les.',
+        DEBTOR_MISMATCH:
+          'Ce SIREN est déjà enregistré sous un autre nom ou un autre type de débiteur : vérifiez-les, ou faites corriger le débiteur depuis l’un de ses dossiers.',
         NO_MANDATE: 'Aucun mandat actif : aucun dossier ne s’ouvre.',
         INVOICE_EXISTS: 'Une de ces factures figure déjà dans le dossier.',
         CASE_CLOSED: 'Ce dossier est clos.',

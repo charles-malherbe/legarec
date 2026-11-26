@@ -416,6 +416,14 @@ export const ACCOUNT_PARITY: Parity[] = [
     status: 403,
     answer: code('FORBIDDEN'),
   },
+  // The debtor, corrected by the Director and the manager (question 138): the name shown must be the one known.
+  ...each(['officer', 'developer'], () => ({
+    request: 'PUT /cases/{caseOfManager}/debtor',
+    body: { kind: 'COMPANY', name: 'Nouveau nom', seen: 'Autre nom' },
+    status: 403,
+    answer: code('FORBIDDEN'),
+  })),
+  { as: 'manager', request: 'PUT /cases/{caseOfManager}/debtor', body: { kind: 'COMPANY', name: 'Nouveau nom', seen: 'Autre nom' }, ...CHANGED },
   { as: 'manager', request: 'GET /cases/{caseOfManager}/access-code', status: 200, answer: accessCodeResponse },
   { as: 'director', request: 'GET /cases/{caseOfManager}/access-code', status: 403, answer: code('FORBIDDEN') },
   { as: 'manager', request: 'GET /cases/{caseOfDirector}/access-code', status: 404, answer: code('NOT_FOUND') },

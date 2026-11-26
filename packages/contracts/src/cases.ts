@@ -136,6 +136,8 @@ export const caseDetail = caseListItem.extend({
   aiSummary: z.object({ events: z.number().int(), updated: z.string(), lines: z.array(z.object({ k: z.string(), v: z.string() })) }).nullable(),
   invoices: z.array(z.object({ number: z.string(), issued: z.iso.date(), due: z.iso.date(), amount: cents, daysLate: z.number().int() })),
   history: z.array(historyEntry),
+  /** The debtor as it is known, for the Director and the manager who may correct it (question 138); null for the others. */
+  correctable: z.object({ name: z.string(), kind: z.enum(['COMPANY', 'SOLE_TRADER', 'INDIVIDUAL']), hasSiren: z.boolean() }).nullable(),
   exchanges: z.array(exchange),
   payments: z.array(payment),
   documents: z.array(z.object({ id: z.string(), name: z.string(), meta: z.string(), kind: z.enum(['PDF', 'DOCX']) })),
@@ -308,3 +310,6 @@ export const caseChoices = z.object({
   officers: z.array(z.object({ id: z.string(), name: z.string() })),
   mayAssign: z.boolean(),
 });
+
+/** The name and the kind of a debtor, corrected for all its cases (question 138); `seen`: the name that was shown. */
+export const debtorCorrection = z.object({ kind: debtorKind, name: typed(150, 'Indiquez le nom.'), seen: z.string().max(300) });

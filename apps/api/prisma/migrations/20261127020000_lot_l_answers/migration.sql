@@ -52,3 +52,48 @@ REVOKE ALL ON FUNCTION app.case_exists(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION app.case_exists(uuid) TO legarec_staff;
 RESET ROLE;
 REVOKE CREATE ON SCHEMA app FROM legarec_definer;
+
+-- ---------------------------------------------------------------- Question 138: the name and the kind of a debtor, corrected
+
+-- By the Director and the manager, from a case of the debtor they read: the name changes in all its cases, for all the
+-- creditors. The SIREN never changes; a debtor with one is never an individual (debtors_individual).
+CREATE POLICY definer_correct ON debtors FOR UPDATE TO legarec_definer
+  USING ((SELECT app.staff_role()) IN ('DIRECTOR', 'COLLECTION_MANAGER') AND anonymized_at IS NULL
+    AND EXISTS (SELECT 1 FROM cases c WHERE c.debtor_id = debtors.id AND app.can_read_case(c.officer_id)))
+  WITH CHECK (name_confirmed AND anonymized_at IS NULL);
+
+GRANT CREATE ON SCHEMA app TO legarec_definer;
+SET LOCAL ROLE legarec_definer;
+-- `seen`: the name that was on the screen. NULL when the case is not read; 'CHANGED' when the debtor changed since.
+CREATE FUNCTION app.correct_debtor(target uuid, wanted_kind debtor_kind, wanted_name text, seen text) RETURNS text
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+DECLARE
+  known uuid;
+  number text;
+  current text;
+  forgotten timestamptz;
+BEGIN
+  IF app.staff_role() IS NULL OR app.staff_role() NOT IN ('DIRECTOR', 'COLLECTION_MANAGER') THEN
+    PERFORM app.refuse('42501');
+  END IF;
+  SELECT d.id, d.siren INTO known, number FROM public.cases c JOIN public.debtors d ON d.id = c.debtor_id
+  WHERE c.id = target AND app.can_read_case(c.officer_id);
+  IF known IS NULL THEN
+    RETURN NULL;
+  END IF;
+  -- As at the opening of a case with this SIREN.
+  IF number IS NOT NULL THEN
+    PERFORM pg_advisory_xact_lock(hashtextextended('debtor:' || number, 0));
+  END IF;
+  SELECT d.name, d.anonymized_at INTO current, forgotten FROM public.debtors d WHERE d.id = known FOR UPDATE;
+  IF forgotten IS NOT NULL OR current IS DISTINCT FROM seen THEN
+    RETURN 'CHANGED';
+  END IF;
+  UPDATE public.debtors d SET name = btrim(wanted_name), kind = wanted_kind, name_confirmed = true WHERE d.id = known;
+  RETURN 'DONE';
+END
+$$;
+REVOKE ALL ON FUNCTION app.correct_debtor(uuid, debtor_kind, text, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION app.correct_debtor(uuid, debtor_kind, text, text) TO legarec_staff;
+RESET ROLE;
+REVOKE CREATE ON SCHEMA app FROM legarec_definer;

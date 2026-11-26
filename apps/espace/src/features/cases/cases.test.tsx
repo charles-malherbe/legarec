@@ -118,6 +118,19 @@ describe('case file', () => {
     ] as const)
       expect((await call(account, '/cases/demo/access-code')).status).toBe(status);
   });
+  it('lets the manager correct the debtor in all its cases, after a confirmation (question 138)', async () => {
+    openAs('cl', '/debiteurs/demo');
+    await userEvent.click(await screen.findByRole('button', { name: 'Corriger le débiteur' }));
+    const name = screen.getByLabelText(/Nom du débiteur/);
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Bâti Plus Rénovation');
+    await userEvent.click(screen.getAllByRole('button', { name: 'Corriger le débiteur' }).at(-1)!);
+    await confirmWith('Corriger le débiteur');
+    expect(await screen.findByText('Débiteur corrigé.')).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Bâti Plus Rénovation' })).toBeVisible();
+    // Neither an officer.
+    expect((await call('hb', '/cases/demo/debtor', { kind: 'COMPANY', name: 'X', seen: 'Bâti Plus Rénovation' }, 'PUT')).status).toBe(403);
+  });
   it('refuses a case of someone else, and does not find an unknown one (question 141)', async () => {
     const first = openAs('hb', '/debiteurs/demo');
     expect(await screen.findByText(/Ce dossier est suivi par un autre collaborateur/)).toBeVisible();

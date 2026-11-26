@@ -105,6 +105,16 @@ export class CasesController {
     return this.codes.renew(id, version);
   }
 
+  /** The Director and the manager in their own right (question 138): the debtor of all its cases, for all the creditors. */
+  @Put(':id/debtor')
+  @Staff('DIRECTOR', 'COLLECTION_MANAGER')
+  @Commits()
+  @HttpCode(204)
+  @ApiNoContentResponse()
+  correctDebtor(@Param('id') id: string, @Body({ schema: bodies['PUT /cases/:id/debtor'] }) body: In<'PUT /cases/:id/debtor'>) {
+    return this.cases.correctDebtor(id, body);
+  }
+
   @Post(':id/coordinates')
   @WithCases()
   @Commits()

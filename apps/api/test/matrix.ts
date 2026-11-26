@@ -411,6 +411,12 @@ export const MATRIX: Record<string, MatrixEntry> = {
     body: () => ({ version: 1 }),
     expect: only({ director: 403, manager: 204, managerAlone: 204, officerA: 404, officerB: 404, liar: 404 }),
   },
+  // The Director and the manager (question 138); the name shown is not the one known: refused once let in.
+  'PUT /staff/cases/:id/debtor': {
+    path: async (test) => `/staff/cases/${(await newCase(test)).id}/debtor`,
+    body: () => ({ kind: 'COMPANY', name: 'Nouveau nom', seen: 'Autre nom' }),
+    expect: only({ director: 409, manager: 409, managerAlone: 409, liar: 404 }),
+  },
   'POST /staff/cases/:id/coordinates': {
     path: async (test) => `/staff/cases/${(await newCase(test)).id}/coordinates`,
     body: () => ({ kind: 'PHONE', label: 'x', value: '06 00 00 00 01', primary: false, replaces: null, source: 'CALL' }),

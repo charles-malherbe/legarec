@@ -1014,3 +1014,57 @@ describe('PostgreSQL itself', () => {
     await expect(rows(statement, [id, creditor.id])).rejects.toThrow(constraint);
   });
 });
+
+describe('the debtor, corrected (question 138)', () => {
+  it('by the Director and the manager, in all its cases, noted and audited; never by an officer', async () => {
+    const number = siren();
+    const elsewhere = async () => {
+      const creditorId = await newCreditor('Créancier Arnol');
+      return { creditorId, mandateId: await withMandate(creditorId) };
+    };
+    const mine = await open('manager', { number, name: 'Menuiserie Arnol' });
+    // Another case of the same debtor, for another creditor, held by an officer.
+    const theirs = await open('manager', { number, name: 'Menuiserie Arnol', toMe: false, ...(await elsewhere()) });
+    await rows('UPDATE cases SET officer_id = $2 WHERE id = $1', [theirs.id, test.s.officerA]);
+    const correct = (as: string, id: string, body: object) => call(as, 'PUT', `/${id}/debtor`, body);
+    expect((await detail('manager', mine.id)).correctable).toEqual({ name: 'Menuiserie Arnol', kind: 'COMPANY', hasSiren: true });
+    expect((await detail('officerA', theirs.id)).correctable).toBeNull();
+    for (const as of ['officerA', 'developer'])
+      expect((await correct(as, theirs.id, { kind: 'COMPANY', name: 'X', seen: 'Menuiserie Arnol' })).status, as).toBe(403);
+    // A debtor with a SIREN is never an individual; the name shown must be the one known.
+    expect((await correct('manager', mine.id, { kind: 'INDIVIDUAL', name: 'Menuiserie Arnal', seen: 'Menuiserie Arnol' })).status).toBe(422);
+    expect((await correct('manager', mine.id, { kind: 'COMPANY', name: 'Menuiserie Arnal', seen: 'Autre nom' })).body).toEqual({ code: 'CHANGED' });
+    expect((await correct('manager', mine.id, { kind: 'SOLE_TRADER', name: ' Menuiserie Arnal ', seen: 'Menuiserie Arnol' })).status).toBe(204);
+    expect(await rows('SELECT d.name, d.kind FROM cases c JOIN debtors d ON d.id = c.debtor_id WHERE c.id = ANY($1::uuid[])', [[mine.id, theirs.id]])).toEqual([
+      { name: 'Menuiserie Arnal', kind: 'SOLE_TRADER' },
+      { name: 'Menuiserie Arnal', kind: 'SOLE_TRADER' },
+    ]);
+    // Noted in the open cases this person acts on, kept from the creditor; audited without the name.
+    const noted = await rows<{ case_id: string; detail: string; visible_to_creditor: boolean }>(
+      "SELECT case_id, detail, visible_to_creditor FROM case_events WHERE kind = 'DEBTOR_CORRECTED' AND case_id = ANY($1::uuid[]) ORDER BY case_id",
+      [[mine.id, theirs.id]],
+    );
+    expect(noted.map((row) => row.case_id).sort()).toEqual([mine.id, theirs.id].sort());
+    expect(noted.every((row) => row.detail === 'Ancien nom : Menuiserie Arnol' && !row.visible_to_creditor)).toBe(true);
+    expect(await rows("SELECT params FROM audit_log WHERE action = 'DEBTOR_CORRECTED' AND entity_id = $1", [mine.id])).toEqual([{ params: {} }]);
+    // The next opening with that name is no longer refused.
+    await open('manager', { number, name: 'Menuiserie Arnal', kind: 'SOLE_TRADER', ...(await elsewhere()) });
+    // The Director, from a case of someone else.
+    expect((await correct('director', theirs.id, { kind: 'SOLE_TRADER', name: 'Menuiserie Arnal Fils', seen: 'Menuiserie Arnal' })).status).toBe(204);
+  });
+
+  it('from a case one reads only, and holds by PostgreSQL itself', async () => {
+    const { s } = test;
+    expect((await call('manager', 'PUT', `/${s.cases.ofDirector}/debtor`, { kind: 'COMPANY', name: 'X', seen: 'X' })).status).toBe(404);
+    const database = new Database(test.database.url('app'));
+    const officer = { kind: 'staff', userId: s.officerA, role: 'CLAIMS_OFFICER', delegations: [] } as const;
+    try {
+      await expect(
+        database.run(officer, (tx) => tx.$queryRaw`SELECT app.correct_debtor(${s.cases.ofA}::uuid, 'COMPANY'::debtor_kind, 'X', 'X')`),
+      ).rejects.toThrow(/42501|refused/u);
+      await expect(database.run(officer, (tx) => tx.$executeRaw`UPDATE debtors SET name = 'X'`)).rejects.toThrow(/permission denied/u);
+    } finally {
+      await database.close();
+    }
+  });
+});

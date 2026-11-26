@@ -10,6 +10,7 @@ import { ApiError } from '../../app/api';
 import { AccessDenied } from '../error/ErrorPage';
 import { AccessCodeCard } from './AccessCodeCard';
 import { CaseMessage } from './CaseMessage';
+import { DebtorCorrection } from './DebtorCorrection';
 import { ExchangesCard } from './ExchangesCard';
 import { GdprCard } from './GdprCard';
 import { PaymentForm, PaymentsCard } from './Payments';
@@ -44,7 +45,7 @@ function CaseView({ data }: { data: CaseDetail }) {
   const change = useChange();
   const toast = useToast();
   const [tab, setTab] = useState<Tab>('overview');
-  const [panel, setPanel] = useState<'reminder' | 'payment' | 'message' | null>(null);
+  const [panel, setPanel] = useState<'reminder' | 'payment' | 'message' | 'debtor' | null>(null);
   const [reported, setReported] = useState(false);
   const initials = data.name
     .split(' ')
@@ -101,8 +102,16 @@ function CaseView({ data }: { data: CaseDetail }) {
               · {data.reference} · {data.identifier} · Réf. créancier {data.creditorRef} · Gestionnaire : {data.officer ?? 'à attribuer'}
             </p>
           </div>
+          {data.correctable && !data.canAct && (
+            <div className={layout.inline}>
+              <Bouton variant="secondary" label="Corriger le débiteur" onPress={() => setPanel('debtor')} expanded={panel === 'debtor'} />
+            </div>
+          )}
           {data.canAct && (
             <div className={layout.inline}>
+              {data.correctable && (
+                <Bouton variant="secondary" label="Corriger le débiteur" onPress={() => setPanel('debtor')} expanded={panel === 'debtor'} />
+              )}
               <Bouton variant="secondary" label="Proposer un échéancier" href={`/echeanciers?dossier=${data.id}`} />
               <Bouton variant="secondary" label="Enregistrer un paiement" onPress={() => setPanel('payment')} expanded={panel === 'payment'} />
               <Bouton variant="secondary" label="Envoyer une relance" onPress={() => setPanel('reminder')} expanded={panel === 'reminder'} />
@@ -181,6 +190,7 @@ function CaseView({ data }: { data: CaseDetail }) {
       {data.contactLimit && data.canAct && <Alerte tone="warning" text={data.contactLimit} />}
       {panel === 'reminder' && <ReminderForm data={data} onClose={() => setPanel(null)} />}
       {panel === 'payment' && <PaymentForm data={data} onClose={() => setPanel(null)} />}
+      {panel === 'debtor' && data.correctable && <DebtorCorrection data={data} onClose={() => setPanel(null)} />}
       <div className={layout.columns}>
         <div className={layout.wide}>
           {tab === 'overview' && data.aiSummary && (
