@@ -24,6 +24,8 @@ CREATE INDEX documents_purged ON documents (purged_at) WHERE purged_at IS NOT NU
 
 -- Nobody but the purge sees an erased document: lists and downloads leave it out by themselves.
 CREATE POLICY not_purged ON documents AS RESTRICTIVE FOR SELECT TO legarec_staff, legarec_partner, legarec_debtor, legarec_worker USING (purged_at IS NULL);
+-- Nor changed again by any function (shared again, filed elsewhere), but by those that forget.
+CREATE POLICY not_purged_change ON documents AS RESTRICTIVE FOR UPDATE TO legarec_definer USING (purged_at IS NULL OR (SELECT app.setting('forgetting')) = 'on');
 -- An anonymized case is never changed again by the team.
 CREATE POLICY staff_not_forgotten ON cases AS RESTRICTIVE FOR UPDATE TO legarec_staff USING (anonymized_at IS NULL);
 

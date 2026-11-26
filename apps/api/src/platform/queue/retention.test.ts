@@ -366,6 +366,14 @@ describe('cases closed for more than five years', () => {
       await rows('SELECT title, original_name, shared_with_creditor_at, purged_at IS NOT NULL AS purged FROM documents WHERE id = $1', [evidence.id]),
     ).toEqual([{ title: 'Pièce supprimée', original_name: 'piece-supprimee', shared_with_creditor_at: null, purged: true }]);
     await expect(storage.read(evidence.key)).rejects.toThrow();
+    // No function shares it again: it is out of reach, even of their owner.
+    await rows('BEGIN');
+    try {
+      await rows('SET LOCAL ROLE legarec_definer');
+      expect((await test.admin.query('UPDATE documents SET shared_with_creditor_at = now() WHERE id = $1', [evidence.id])).rowCount).toBe(0);
+    } finally {
+      await rows('ROLLBACK');
+    }
     expect(await rows('SELECT title, purged_at FROM documents WHERE id = $1', [receipt.id])).toEqual([{ title: 'Facture Jeanne Martin', purged_at: null }]);
     expect((await storage.read(receipt.key)).byteLength).toBeGreaterThan(0);
     for (const table of ['receipts', 'payments', 'payment_allocations']) expect(await count(table, old), table).toBe(1);
