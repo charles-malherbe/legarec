@@ -341,6 +341,9 @@ describe('rights of the roles inside', () => {
       // Imports never confirmed, after 30 days; messages without a code, after 6 months.
       'limited_messages DELETE (*)',
       'limited_messages SELECT (created_at, id)',
+      // The registry of the RGPD, after 10 years.
+      'gdpr_requests DELETE (*)',
+      'gdpr_requests SELECT (id, received_on)',
       // Marks of the dashboard, after 2 years.
       'task_marks DELETE (*)',
       'task_marks SELECT (done_at)',
@@ -370,9 +373,9 @@ describe('rights of the roles inside', () => {
       'backup_codes DELETE (*)',
       'backup_codes SELECT (user_id)',
       'case_events INSERT (*)',
-      'case_events SELECT (actor_id, case_id, creditor_id, kind, occurred_at)',
+      'case_events SELECT (actor_id, case_id, creditor_id, kind, occurred_at, title)',
       'cases UPDATE (closed_on, officer_id, status, version)',
-      'creditors SELECT (id, portal_enabled)',
+      'creditors SELECT (id, name, portal_enabled)',
       'delegations INSERT (granted_by, kind)',
       'delegations SELECT (*)',
       'delegations UPDATE (withdrawn_at, withdrawn_by)',
@@ -415,9 +418,9 @@ describe('rights of the roles inside', () => {
       'vault_secrets UPDATE (decided_by, requested_by, rotated_at, status, value_cipher)',
       'creditor_bank_accounts SELECT (creditor_id, iban_cipher, id)',
       'case_contact_events INSERT (actor_id, actor_label, case_id, contact_id, creditor_id, what)',
-      'case_contacts SELECT (case_id, creditor_id, id, kind, status, value_normalized)',
+      'case_contacts SELECT (case_id, created_at, creditor_id, id, kind, label, status, value, value_normalized)',
       'debtors INSERT (id, kind, legal_form_checked_at, legal_form_code, legal_form_source, name, name_confirmed, siren)',
-      'cases SELECT (closed_on, creditor_id, debtor_id, first_letter_on, id, mandate_id, officer_id, reference, status, version)',
+      'cases SELECT (closed_on, contact_name, creditor_id, debtor_address, debtor_city, debtor_id, debtor_postal_code, first_letter_on, id, mandate_id, officer_id, opened_on, reference, status, version)',
       'debtor_access_codes INSERT (code_cipher, debtor_id, generated_by)',
       'debtor_retired_codes INSERT (code_hmac, debtor_id)',
       'debtor_retired_codes SELECT (code_hmac, debtor_id)',
@@ -426,7 +429,7 @@ describe('rights of the roles inside', () => {
       'users SELECT (absent_from, absent_until, anonymized_at, creditor_id, disabled_at, email, first_name, id, invited_at, invited_by, last_name, password_hash, role, status, substitute_id, two_factor_required)',
       'debtor_access_codes SELECT (code_cipher, code_hmac, debtor_id, version)',
       'debtor_access_codes UPDATE (code_cipher, code_hmac, generated_at, generated_by, version)',
-      'debtors SELECT (id, kind, name, name_confirmed, siren)',
+      'debtors SELECT (anonymized_at, id, kind, name, name_confirmed, siren)',
       'debtors UPDATE (kind, name, name_confirmed)',
       // Access of the debtors: their sessions and the attempts counted on their identifiers.
       'debtor_sessions DELETE (*)',
@@ -446,6 +449,10 @@ describe('rights of the roles inside', () => {
       'documents SELECT (case_id, contains_access_code, created_at, creditor_id, id, scan_status, shared_with_creditor_at, source, uploaded_by_creditor, uploaded_by_debtor)',
       'documents UPDATE (case_id, creditor_id, shared_by, shared_with_creditor_at)',
       'debtor_links SELECT (case_id, debtor_id, expires_at, id, revoked_at, token_hash, uses)',
+      // The registry of the RGPD: its functions only.
+      'gdpr_requests INSERT (*)',
+      'gdpr_requests SELECT (*)',
+      'gdpr_requests UPDATE (answered_at, answered_by, reason, status)',
       'debtor_links UPDATE (uses)',
       'limited_messages INSERT (claimed_reference, sender_email, sender_name, text)',
       // Deposits of the creditors: a case held by nobody, its invoices and the coordinates it gives.
@@ -458,7 +465,7 @@ describe('rights of the roles inside', () => {
       'portal_messages SELECT (*)',
       'portal_messages UPDATE (read_by_debtor_at, read_by_staff_at)',
       // Money: written by its functions, which check again who acts and what it adds up to.
-      'case_invoices SELECT (case_id, due_on, id, number, principal_cents, principal_paid_cents, state)',
+      'case_invoices SELECT (case_id, due_on, id, issued_on, number, principal_cents, principal_paid_cents, state)',
       'case_invoices UPDATE (principal_paid_cents, state)',
       'installments INSERT (amount_cents, case_id, creditor_id, due_on, number, plan_id)',
       'interest_rates INSERT (entered_by, kind, on_behalf_of_id, rate_bp, valid_from)',
@@ -577,6 +584,7 @@ describe('rights on the functions', () => {
     ['read_portal_messages', ['debtor', 'staff']],
     ['staff_message', ['staff']],
     ...['debtor_link', 'ask_code_by_sms', 'firm_payment_settings', 'limited_message'].map((name) => [name, ['auth']] as [string, string[]]),
+    ...['gdpr_request', 'gdpr_keeper', 'gdpr_registry', 'gdpr_answer', 'gdpr_export'].map((name) => [name, ['staff']] as [string, string[]]),
     ...['creditor_decide_plan', 'creditor_upload', 'creditor_deposit'].map((name) => [name, ['partner']] as [string, string[]]),
     ...['money_case', 'issue_receipt', 'follow_allocation', 'check_allocations', 'keep_receipt'].map((name) => [name, []] as [string, string[]]),
     // Tools of the migrations.
@@ -607,6 +615,7 @@ describe('rights on the functions', () => {
       'debtor_sign_in resume_debtor_session close_debtor_session forget_debtor_access set_code_hmac',
       'own_access_code debtor_upload debtor_message read_portal_messages staff_message creditor_decide_plan creditor_upload creditor_deposit',
       'debtor_link ask_code_by_sms firm_payment_settings limited_message',
+      'gdpr_request gdpr_keeper gdpr_registry gdpr_answer gdpr_export',
     ].flatMap((names) => names.split(' '));
     const found = await rows<{ proname: string }>(
       "SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'app' ORDER BY 1",

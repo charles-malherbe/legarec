@@ -103,6 +103,11 @@ Sans dépendance : Resend, MySendingBox, OVH (appels signés : le paquet `ovh` d
 - Priorités tirées de l'état des dossiers (premier courrier, promesse, litige, à appeler, mise en demeure), les plus en retard d'abord ; pour le Directeur, seulement ses propres dossiers. `PUT /staff/dashboard/priorities/:id` (`<type>:<dossier>`) marque « fait » pour la personne seule (table `task_marks`, 2 ans).
 - Objectifs : ceux de Paramètres > Règles et validations ; vides, aucun ratio ni ligne d'objectif (question 97). Présence et appels de l'équipe : avec la téléphonie (lot T), d'ici là « absent » et aucun appel.
 
+### Registre RGPD (lot V, première partie)
+- `POST /staff/gdpr/requests` (qui agit sur le dossier ; réponse due sous un mois, article 12), `GET /staff/gdpr/requests`, `PUT /staff/gdpr/requests/:id` (refus motivé obligatoire), `POST /staff/gdpr/requests/:id/export` : Directeur, ou Responsable par la délégation administrative. Tout passe par les fonctions `app.gdpr_*`, qui revérifient qui agit ; table `gdpr_requests`, 10 ans.
+- Export : ce que le cabinet détient sur le débiteur dans tous ses dossiers (identité, adresses, factures, coordonnées, paiements, historique, messages), jamais son code d'accès ; fichier nommé d'après la demande, inscrit au journal d'audit.
+- Reste au lot V : anonymisation à la demande et purges planifiées des durées de conservation.
+
 ### Règles de code
 Une requête = une transaction `Database.run(actor, fn)`, ouverte par la plateforme ; seul `modules/auth` en ouvre au nom d'un compte (ESLint) ; ESLint interdit Prisma ailleurs. Aucun appel externe dans une transaction : `outbox`, puis BullMQ. Une tâche de Valkey ne porte que son numéro : son nom, son auteur et ses identifiants sont relus dans `outbox`. SQL brut limité à : séquences, verrous consultatifs, recherche trigramme, agrégats ; `SET ROLE` et `set_config` dans `src/platform` seulement ; imports dynamiques de Prisma, `pg`, BullMQ ou ioredis interdits ailleurs (ESLint).
 

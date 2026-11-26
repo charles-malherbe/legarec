@@ -438,3 +438,42 @@ model LimitedMessage {
   @@index([createdAt(sort: Desc)], map: "limited_messages_created")
   @@map("limited_messages")
 }
+
+enum GdprKind {
+  ACCESS
+  RECTIFICATION
+  OBJECTION
+  ERASURE
+
+  @@map("gdpr_kind")
+}
+
+enum GdprStatus {
+  OPEN
+  ANSWERED
+  REFUSED
+
+  @@map("gdpr_status")
+}
+
+/// A request of a debtor about their data; read and written by the `app.gdpr_*` functions only.
+model GdprRequest {
+  id           String     @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  caseId       String     @map("case_id") @db.Uuid
+  creditorId   String     @map("creditor_id") @db.Uuid
+  debtorId     String     @map("debtor_id") @db.Uuid
+  kind         GdprKind
+  origin       String
+  receivedOn   DateTime   @default(dbgenerated("((now() AT TIME ZONE 'Europe/Paris'::text))::date")) @map("received_on") @db.Date
+  dueOn        DateTime   @map("due_on") @db.Date
+  status       GdprStatus @default(OPEN)
+  reason       String?
+  answeredAt   DateTime?  @map("answered_at") @db.Timestamptz(3)
+  answeredBy   String?    @map("answered_by") @db.Uuid
+  createdBy    String     @map("created_by") @db.Uuid
+  onBehalfOfId String?    @map("on_behalf_of_id") @db.Uuid
+  createdAt    DateTime   @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
+
+  @@index([receivedOn(sort: Desc)], map: "gdpr_requests_received")
+  @@map("gdpr_requests")
+}

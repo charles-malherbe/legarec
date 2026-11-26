@@ -90,6 +90,12 @@ export const AUDIT_ACTIONS = {
   SECRET_REVOKED: 'Secret révoqué : {secret}',
   SECRET_KEPT: 'Révocation refusée : {secret}',
   PLAN_APPROVED: 'Échéancier de {months} mois validé',
+  // Registry of the RGPD
+  GDPR_REQUEST_ADDED: 'Demande RGPD enregistrée',
+  GDPR_REQUEST_ANSWERED: 'Demande RGPD traitée',
+  GDPR_REQUEST_REFUSED: 'Demande RGPD refusée',
+  GDPR_REQUEST_OPEN: 'Demande RGPD rouverte',
+  GDPR_EXPORTED: 'Export RGPD des données d’un débiteur',
 } as const;
 export type AuditAction = keyof typeof AUDIT_ACTIONS;
 

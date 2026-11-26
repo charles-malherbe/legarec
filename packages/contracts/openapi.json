@@ -3095,6 +3095,186 @@
         }
       }
     },
+    "/staff/gdpr/requests": {
+      "post": {
+        "operationId": "GdprController_add",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "gdpr"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      },
+      "get": {
+        "operationId": "GdprController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "receivedOn": {
+                            "type": "string"
+                          },
+                          "dueOn": {
+                            "type": "string"
+                          },
+                          "daysLeft": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "ACCESS",
+                              "RECTIFICATION",
+                              "OBJECTION",
+                              "ERASURE"
+                            ]
+                          },
+                          "debtor": {
+                            "type": "string"
+                          },
+                          "caseId": {
+                            "type": "string"
+                          },
+                          "origin": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "OPEN",
+                              "ANSWERED",
+                              "REFUSED"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "receivedOn",
+                          "dueOn",
+                          "daysLeft",
+                          "kind",
+                          "debtor",
+                          "caseId",
+                          "origin",
+                          "status"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "gdpr"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      }
+    },
+    "/staff/gdpr/requests/{id}": {
+      "put": {
+        "operationId": "GdprController_answer",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "gdpr"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      }
+    },
+    "/staff/gdpr/requests/{id}/export": {
+      "post": {
+        "operationId": "GdprController_export",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "fileName": {
+                      "type": "string"
+                    },
+                    "content": {}
+                  },
+                  "required": [
+                    "fileName",
+                    "content"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "gdpr"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      }
+    },
     "/staff/dashboard": {
       "get": {
         "operationId": "DashboardController_read",
