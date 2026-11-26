@@ -40,8 +40,8 @@ const closest = (code: string) =>
   code.length > 60
     ? undefined
     : MERGE_FIELD_CODES.map((item) => ({ item, score: distance(code, item) }))
-    .filter((entry) => entry.score <= 4)
-    .sort((a, b) => a.score - b.score)[0]?.item;
+        .filter((entry) => entry.score <= 4)
+        .sort((a, b) => a.score - b.score)[0]?.item;
 
 /** Marks a block boundary, a comment or a partial in the scanned text. */
 const BLOCK = '\uE001';
