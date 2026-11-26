@@ -141,13 +141,13 @@ Les 161 routes simulées se répartissent ainsi :
 | [ ] T | Téléphonie 3CX Call Control, enregistrements | 6 |
 | [ ] U | Contentieux, rapports, équipe, tableaux de bord, score de risque | 8 |
 | [ ] V | RGPD : registre, exports, anonymisation, purges | 3 |
-| [ ] W | IA : couche compatible OpenAI, essai mesuré, quatre fonctions | 3 |
+| [ ] W | IA : couche compatible OpenAI, essai de qualité (OVHcloud), quatre fonctions | 3 |
 | [x] X1 | Exploitation, première partie : Dockerfiles, compose, `infra/caddy/Caddyfile`, pgBackRest, Gatus, Loki, `bootstrap.sql` exécuté dans la base de l'application, sonde de santé du worker et délai d'arrêt de 90 secondes ; rien n'est déployé (`docs/deploiement.md`) | — |
-| [ ] X | Exploitation, fin : bascule finale, ClamAV et Chromium (après N), n8n, purge à la demande après une restauration, tâches planifiées bloquées après une restauration ; liste complète dans `docs/deploiement.md` | — |
+| [ ] X | Exploitation, fin : bascule finale, ClamAV et Chromium (après N), n8n, purge à la demande après une restauration, tâches planifiées bloquées après une restauration, stockage chez OVHcloud au lieu de Scaleway (variables `SCW_*`, pgBackRest, Caddy, Gatus) ; liste complète dans `docs/deploiement.md` | — |
 
 **Bascule** : chaque lot ajoute ses préfixes à une liste `VITE_API` (développement) : MSW laisse passer ces routes vers l'API. La valeur par défaut bascule portail par portail : paiement après O, partenaires après P, espace après U. Chaque lot rejoue les mêmes requêtes contre MSW et contre l'API et valide les deux par le même schéma Zod. En mode mixte, un lien vers un écran non branché peut ne pas trouver le dossier (développement seulement). MSW reste pour les tests de composants.
 
-**À fournir par le cabinet, jamais par Claude Code** : clés de test Resend et MySendingBox dans le `.env` (Q), Scaleway en option (N), voir `docs/api.md`, « Clés et secrets » ; compte SMS avec numéro virtuel (R) ; licence et identifiants 3CX (T) ; second domaine Resend (Q) ; valeurs entre crochets (N) ; déploiement (X). Sans elles, les adaptateurs tournent en mode simulé.
+**À fournir par le cabinet, jamais par Claude Code** : clés de test Resend et MySendingBox dans le `.env` (Q), stockage S3 OVHcloud en option (N), voir `docs/api.md`, « Clés et secrets » ; compte SMS avec numéro virtuel (R) ; licence et identifiants 3CX (T) ; second domaine Resend (Q) ; valeurs entre crochets (N) ; déploiement (X). Sans elles, les adaptateurs tournent en mode simulé.
 
 ## Lot J — Socle (état au 25/11/2026)
 - [x] Services de développement sans root ni service système (`infra/dev/services.mjs`), lancement de l'API et du worker (`pnpm --filter @legarec/api dev`)
@@ -191,7 +191,7 @@ Les 161 routes simulées se répartissent ainsi :
 - [x] PDF par Playwright sans JavaScript ni réseau, valeurs entre crochets (`FIRM_INCOMPLETE`), quittance PDF écrite par le worker
 - [ ] Courriers PDF (avec les envois, Q), logos (`media.legarec.fr`), essai d'un modèle (Q)
 - [x] Relecture `relecteur-securite` : aucun bloquant ; corrigés : empreinte d'idempotence d'un fichier, rattachement par numéro court, objets compressés des PDF, contenu des DOCX, partage par une fonction SQL, clé de stockage retirée aux rôles externes, téléchargement hors de ses dossiers journalisé, avertissement sur le code d'accès
-- Reporté : bucket Scaleway (X), conteneur ClamAV (X), envoi d'un document (Q), composition des courriers (Q), purge des fichiers sans ligne (X), corps lus avant la session sur l'import (limite Caddy, X), tests de cloisonnement des documents pour les rôles externes (O, P), boutons d'action masqués au Directeur dans Documents (contrat sans `canAct`)
+- Reporté : bucket OVHcloud (X), conteneur ClamAV (X), envoi d'un document (Q), composition des courriers (Q), purge des fichiers sans ligne (X), corps lus avant la session sur l'import (limite Caddy, X), tests de cloisonnement des documents pour les rôles externes (O, P), boutons d'action masqués au Directeur dans Documents (contrat sans `canAct`)
 
 ## Lot O — Espace débiteur (état au 26/11/2026)
 - [x] Connexion par identifiant et code, compteurs et blocage, levée par la régénération, sessions, lecture des dossiers et du solde (4 routes) ; relecture sécurité : connexion en une seule fonction SQL sur une empreinte du code, même travail pour un identifiant inconnu, blocage rattaché au débiteur même avant l'annonce, dixième essai juste sans blocage, échecs espacés comptés, Responsable prévenu sans gestionnaire, purge des sessions, compteurs des débiteurs protégés des autres fonctions, audit
@@ -278,4 +278,4 @@ Les 161 routes simulées se répartissent ainsi :
 ## Lot W — IA (état au 26/11/2026)
 - [x] Couche fournisseur, garde-fous, budget, journal ; synthèse du dossier (régénérer, signaler)
 - [x] Alerte à 80 % du budget au Directeur
-- [ ] Génération à l'arrivée d'un événement, appels, e-mails, journal dans Paramètres, essai mesuré (question 106)
+- [ ] Génération à l'arrivée d'un événement, appels, e-mails, journal dans Paramètres, essai de qualité des modèles chez OVHcloud (option C), budget par défaut de 40 € dans le catalogue des paramètres (question 166)
