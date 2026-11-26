@@ -120,6 +120,8 @@ describe('what a route receives', () => {
       'PUT /staff/delegations/:kind',
       'PUT /staff/members/:id/extension',
       'PUT /staff/notifications',
+      // Writes nothing: no scheduled report exists yet (question 203).
+      'PUT /staff/reports/scheduled/:id',
     ]);
   });
 });

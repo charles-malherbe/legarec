@@ -219,3 +219,71 @@ it('limits reports to the officer’s own results', async () => {
   expect(data.team.map((item) => item.id)).toEqual(['hb']);
   expect((await call('dev', '/reports?creditor=all')).status).toBe(403);
 });
+
+describe('what the API answers before the telephony', () => {
+  it('shows the team without presence, calls nor promises', async () => {
+    const agent = {
+      id: 'u1',
+      name: 'Hugo Benali',
+      roleLabel: 'Gestionnaire de créances',
+      scope: 'Médiatel',
+      book: '2 débiteurs · 1 500,00 €',
+      cashed: 123400,
+      presence: 'AWAY',
+      status: '—',
+      calls: 0,
+      goal: 0,
+      reached: 0,
+      promises: 0,
+      promisedAmount: 0,
+      average: '—',
+      kept: 0,
+      login: '—',
+      pause: '—',
+      live: null,
+      hours: [],
+    };
+    server.use(http.get('/api/team', () => HttpResponse.json({ agents: [agent], calls: [], callsTotal: 0, alerts: [], telephony: false })));
+    const { container } = openAs('cl', '/equipe');
+    expect(await screen.findByText(/Téléphonie non connectée : statuts, appels et promesses s’afficheront avec 3CX\./)).toBeVisible();
+    expect(screen.getAllByText('2 débiteurs · 1 500,00 €')).not.toHaveLength(0);
+    expect(screen.getAllByText(/^1\s234\s€$/u).length).toBeGreaterThan(0);
+    // Nothing the telephony alone knows: no presence, no goal, no promise kept, no duration, no call.
+    for (const text of [
+      /en ligne sur/,
+      'Absent',
+      '4 min 05',
+      /78 % tenues/,
+      'Promesses tenues (30 j)',
+      'Première connexion',
+      'Temps en pause',
+      'Appels par heure',
+    ])
+      expect(screen.queryByText(text)).toBeNull();
+    expect(screen.queryByRole('heading', { name: "Points d'attention" })).toBeNull();
+    expect(screen.queryByRole('table', { name: 'Appels passés' })).toBeNull();
+    expect(screen.getAllByText('avec la téléphonie (3CX)')).toHaveLength(4);
+    expect(await axeViolations(container)).toEqual([]);
+  });
+  it('shows reports without calls, promises nor scheduled reports', async () => {
+    const report = { text: 'Année 2026 (au 26/11)', kpis: [{ label: 'Recouvré', value: '600,00 €', delta: '2 paiements', tone: 'neutral' }], bars: [] };
+    server.use(
+      http.get('/api/reports', () =>
+        HttpResponse.json({
+          scope: 'TEAM',
+          periods: { month: report, quarter: report, year: report },
+          outcomes: [{ label: 'Recouvré intégralement', percent: 100, tone: 'success' }],
+          promisesKept: null,
+          team: [{ id: 'u1', name: 'Hugo Benali', cases: 3, calls: null, promises: null, recovered: 60000, rate: 50 }],
+          scheduled: [],
+        }),
+      ),
+    );
+    const { container } = openAs('cl', '/rapports');
+    const row = within((await screen.findByText('Hugo Benali')).closest('tr')!);
+    expect(row.getAllByText('—')).toHaveLength(2);
+    expect(screen.queryByText(/Promesses de paiement tenues/)).toBeNull();
+    expect(screen.queryByText('Rapports programmés')).toBeNull();
+    expect(await axeViolations(container)).toEqual([]);
+  });
+});

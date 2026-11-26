@@ -30,9 +30,12 @@ import { ClaimImports } from './partners/imports';
 import { PortalService } from './partners/portal.service';
 import { DelegationsController } from './delegations/delegations.controller';
 import { MembersController } from './members/members.controller';
+import { TeamController } from './members/team.controller';
 import { MembersService } from './members/members.service';
 import { DashboardController } from './dashboard/dashboard.controller';
 import { DashboardService } from './dashboard/dashboard.service';
+import { ReportsController } from './reports/reports.controller';
+import { ReportsService } from './reports/reports.service';
 import { GdprController } from './gdpr/gdpr.controller';
 import { BillingController } from './remittances/billing.controller';
 import { CreditNotesController } from './remittances/credit-notes.controller';
@@ -78,6 +81,8 @@ export const controllers: Type[] = [
   BillingController,
   GdprController,
   DashboardController,
+  ReportsController,
+  TeamController,
   SecretsController,
   SettingsController,
   CreditorsController,
@@ -115,6 +120,7 @@ export const providers: Provider[] = [
   LitigationService,
   DepositsService,
   DashboardService,
+  ReportsService,
   Ledgers,
   Plans,
   DocumentsService,
