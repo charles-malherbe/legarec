@@ -35,6 +35,8 @@ import { DashboardController } from './dashboard/dashboard.controller';
 import { DashboardService } from './dashboard/dashboard.service';
 import { GdprController } from './gdpr/gdpr.controller';
 import { RemittancesController } from './remittances/remittances.controller';
+import { RemindersController } from './reminders/reminders.controller';
+import { RemindersService } from './reminders/reminders.service';
 import { NotificationsController } from './notifications/notifications.controller';
 import { NotificationsService } from './notifications/notifications.service';
 import { Ledgers } from './payments/ledger';
@@ -58,6 +60,7 @@ export const controllers: Type[] = [
   DelegationsController,
   SupportController,
   NotificationsController,
+  RemindersController,
   RemittancesController,
   GdprController,
   DashboardController,
@@ -94,6 +97,7 @@ export const providers: Provider[] = [
   CasesService,
   ContactsService,
   NotificationsService,
+  RemindersService,
   DashboardService,
   Ledgers,
   Plans,

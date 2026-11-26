@@ -268,3 +268,7 @@ Les 161 routes simulées se répartissent ainsi :
 ## Lot S — Facturation et reversements (état au 26/11/2026)
 - [x] API des reversements : calcul unique en SQL, validation avec valeurs attendues, créancier retenu avec motif, factures de commission, « marquer comme versés »
 - [ ] Écrans « Validation des reversements » et « Avoir » (propositions validées), avoirs, relevés PDF et envois, reprises (questions 156 à 159)
+
+## Lot Q — Envois (état au 26/11/2026)
+- [x] Agenda des relances sur l'API : planifier, déplacer, marquer faite, supprimer ; plafonds tous créanciers confondus, plages et jours fériés
+- [ ] Envois (Resend, MySendingBox en test), scénarios, premier courrier, relances depuis un dossier

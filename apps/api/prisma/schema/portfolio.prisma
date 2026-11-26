@@ -256,6 +256,7 @@ model Case {
   installments Installment[]
   documents Document[]
   portalMessages PortalMessage[]
+  plannedReminders PlannedReminder[]
 
   @@unique([id, creditorId], map: "cases_id_creditor")
   @@index([officerId, status], map: "cases_officer")
@@ -476,4 +477,35 @@ model GdprRequest {
 
   @@index([receivedOn(sort: Desc)], map: "gdpr_requests_received")
   @@map("gdpr_requests")
+}
+
+enum PlannedKind {
+  EMAIL
+  SMS
+  CALL
+  LETTER
+
+  @@map("planned_kind")
+}
+
+/// A reminder planned by hand in the agenda; sent with lot Q.
+model PlannedReminder {
+  id           String      @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  caseId       String      @map("case_id") @db.Uuid
+  creditorId   String      @map("creditor_id") @db.Uuid
+  kind         PlannedKind
+  dueOn        DateTime    @map("due_on") @db.Date
+  dueTime      String?     @map("due_time")
+  title        String
+  warning      String?
+  doneAt       DateTime?   @map("done_at") @db.Timestamptz(3)
+  createdBy    String      @default(dbgenerated("app.user_id()")) @map("created_by") @db.Uuid
+  onBehalfOfId String?     @default(dbgenerated("app.on_behalf_of()")) @map("on_behalf_of_id") @db.Uuid
+  createdAt    DateTime    @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
+
+  case Case @relation(fields: [caseId, creditorId], references: [id, creditorId], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([dueOn], map: "planned_reminders_due")
+  @@index([caseId], map: "planned_reminders_case")
+  @@map("planned_reminders")
 }

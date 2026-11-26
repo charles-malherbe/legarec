@@ -267,6 +267,11 @@ describe('rights of the roles inside', () => {
       'documents SELECT (author_id, case_id, category, contains_access_code, created_at, creditor_id, id, kind, original_name, scan_status, scanned_at, sha256, shared_by, shared_with_creditor_at, size_bytes, source, storage_key, title, uploaded_by_creditor, uploaded_by_debtor, visible_to_debtor)',
       'documents UPDATE (category, title)',
       'claim_imports SELECT (confirmed_at, created_at, created_count, creditor_id, id, lines, status, total_cents, uploaded_by, valid)',
+      // Reminders planned in the agenda: those of the cases one reads; planned and changed on those one acts on.
+      'planned_reminders DELETE (*)',
+      'planned_reminders INSERT (case_id, creditor_id, due_on, due_time, kind, title, warning)',
+      'planned_reminders SELECT (case_id, created_at, created_by, creditor_id, done_at, due_on, due_time, id, kind, title, warning)',
+      'planned_reminders UPDATE (done_at, due_on, due_time)',
       // What each one marked done on their dashboard: their own lines only.
       'task_marks DELETE (*)',
       'task_marks INSERT (key, user_id)',
@@ -330,6 +335,8 @@ describe('rights of the roles inside', () => {
       'portal_messages SELECT (author_id, case_id, created_at, creditor_id, id, read_by_debtor_at, read_by_staff_at, request_data, request_kind, side, text)',
       // The templates in force, for the letters.
       'template_versions SELECT (id, number, source, state, template_code)',
+      // The reminders it will send (lot Q).
+      'planned_reminders SELECT (case_id, creditor_id, done_at, due_on, due_time, id, kind, title)',
       // The links of the letters it sends (lot Q).
       'debtor_links INSERT (case_id, channel, creditor_id, debtor_id, expires_at, token_hash)',
       'debtor_links SELECT (case_id, channel, creditor_id, debtor_id, expires_at, id, revoked_at, uses)',
@@ -449,6 +456,7 @@ describe('rights of the roles inside', () => {
       'documents SELECT (case_id, contains_access_code, created_at, creditor_id, id, scan_status, shared_with_creditor_at, source, uploaded_by_creditor, uploaded_by_debtor)',
       'documents UPDATE (case_id, creditor_id, shared_by, shared_with_creditor_at)',
       'debtor_links SELECT (case_id, debtor_id, expires_at, id, revoked_at, token_hash, uses)',
+      'planned_reminders SELECT (case_id, done_at, due_on, id, kind)',
       // Remittances and invoices of the firm: their functions only.
       'billing_documents INSERT (*)',
       'billing_documents SELECT (*)',
@@ -602,6 +610,8 @@ describe('rights on the functions', () => {
       (name) => [name, ['staff']] as [string, string[]],
     ),
     ['creditor_payouts', ['partner']],
+    ['planned_contacts', ['staff']],
+    ['keep_done_reminder', []],
     ...['remittance_core', 'remittance_sources', 'remittance_summary', 'note_settlement'].map((name) => [name, []] as [string, string[]]),
     ...['creditor_decide_plan', 'creditor_upload', 'creditor_deposit'].map((name) => [name, ['partner']] as [string, string[]]),
     ...['money_case', 'issue_receipt', 'follow_allocation', 'check_allocations', 'keep_receipt'].map((name) => [name, []] as [string, string[]]),
@@ -634,7 +644,7 @@ describe('rights on the functions', () => {
       'own_access_code debtor_upload debtor_message read_portal_messages staff_message creditor_decide_plan creditor_upload creditor_deposit',
       'debtor_link ask_code_by_sms firm_payment_settings limited_message',
       'gdpr_request gdpr_keeper gdpr_registry gdpr_answer gdpr_export',
-      'remittance_core creditor_payouts remittance_sources remittance_summary note_settlement remittance_draft validate_remittances mark_remittances_paid remittance_batches remittance_batch',
+      'planned_contacts keep_done_reminder remittance_core creditor_payouts remittance_sources remittance_summary note_settlement remittance_draft validate_remittances mark_remittances_paid remittance_batches remittance_batch',
     ].flatMap((names) => names.split(' '));
     const found = await rows<{ proname: string }>(
       "SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'app' ORDER BY 1",

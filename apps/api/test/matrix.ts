@@ -100,6 +100,15 @@ const owingCase = async (test: TestApp) => {
   return made;
 };
 let gdprCase = '';
+let reminderCase = '';
+const plannedReminder = async (test: TestApp) => {
+  const made = await newCase(test);
+  const { rows } = await test.database.admin.query<{ id: string }>(
+    "INSERT INTO planned_reminders (case_id, creditor_id, kind, due_on, title, created_by) VALUES ($1, $2, 'CALL', '2099-01-05', 'Appel', $3) RETURNING id",
+    [made.id, made.creditorId, test.s.manager],
+  );
+  return `/staff/reminders/${rows[0]!.id}`;
+};
 const gdprRequest = (then: string) => async (test: TestApp) => {
   const made = await newCase(test);
   const { rows } = await test.database.admin.query<{ id: string }>(
@@ -505,6 +514,29 @@ export const MATRIX: Record<string, MatrixEntry> = {
     body: () => ({ paidOn: '2026-01-02', expectedTotal: 0 }),
     expect: only({ director: 409, manager: 409 }),
   },
+  // Agenda of the reminders: read with the cases; planned on a case one acts on (here held by nobody: the managers).
+  'GET /staff/reminders': { expect: withCases(200) },
+  'GET /staff/reminders/targets': { expect: withCases(200) },
+  'POST /staff/reminders': {
+    path: async (test) => {
+      reminderCase = (await newCase(test)).id;
+      return '/staff/reminders';
+    },
+    body: () => ({
+      caseId: reminderCase,
+      type: 'CALL',
+      date: new Date(Date.now() + 60 * 86_400_000).toISOString().slice(0, 10),
+      time: '10:00',
+      title: 'Point sur la promesse',
+    }),
+    expect: withCases(404, { director: 403, manager: 200, managerAlone: 200 }),
+  },
+  'PUT /staff/reminders/:id': {
+    path: plannedReminder,
+    body: () => ({ done: true }),
+    expect: withCases(404, { director: 403, manager: 204, managerAlone: 204 }),
+  },
+  'DELETE /staff/reminders/:id': { path: plannedReminder, expect: withCases(404, { director: 403, manager: 204, managerAlone: 204 }) },
   'GET /staff/notifications': { expect: staffOf(200) },
   'PUT /staff/notifications': { body: () => ({ ids: [randomUUID()], unread: false }), expect: staffOf(204) },
   'POST /staff/notifications/read': { body: () => ({ ids: [] }), expect: staffOf(204) },
