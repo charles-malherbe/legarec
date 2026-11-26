@@ -27,6 +27,7 @@ CREATE TABLE ai_suggestions (
   decision ai_decision NOT NULL DEFAULT 'PENDING',
   decided_by uuid REFERENCES users (id),
   decided_at timestamptz(3),
+  decided_for uuid REFERENCES users (id),
   asked_by uuid REFERENCES users (id),
   created_at timestamptz(3) NOT NULL DEFAULT now(),
   FOREIGN KEY (case_id, creditor_id) REFERENCES cases (id, creditor_id)
@@ -36,9 +37,24 @@ CREATE INDEX ai_suggestions_month ON ai_suggestions (created_at);
 
 -- Read with the case; the decision is said by whoever acts on it; written by the worker alone.
 CALL app.secure_case_table('ai_suggestions');
-GRANT SELECT (id, feature, case_id, creditor_id, outcome, output, model, prompt_version, events, decision, created_at), UPDATE (decision, decided_by, decided_at)
+GRANT SELECT (id, feature, case_id, creditor_id, outcome, output, model, prompt_version, events, decision, created_at), UPDATE (decision)
   ON ai_suggestions TO legarec_staff;
-GRANT SELECT (id, feature, case_id, creditor_id, outcome, cost_micro, created_at),
+-- Who decided, when, and for whom: from the session, never from the request.
+CREATE FUNCTION app.note_ai_decision() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, public, pg_temp AS $$
+BEGIN
+  IF NEW.decision IS DISTINCT FROM OLD.decision THEN
+    IF OLD.decision <> 'PENDING' THEN
+      RAISE EXCEPTION 'decided' USING ERRCODE = 'LG409';
+    END IF;
+    NEW.decided_by := app.user_id();
+    NEW.decided_at := now();
+    NEW.decided_for := app.on_behalf_of();
+  END IF;
+  RETURN NEW;
+END
+$$;
+CREATE TRIGGER note_ai_decision BEFORE UPDATE ON ai_suggestions FOR EACH ROW EXECUTE FUNCTION app.note_ai_decision();
+GRANT SELECT (id, feature, case_id, creditor_id, outcome, cost_micro, events, decision, created_at),
   INSERT (feature, case_id, creditor_id, outcome, input_summary, output, model, prompt_version, input_tokens, output_tokens, cost_micro, events, asked_by, decision)
   ON ai_suggestions TO legarec_worker;
 CREATE POLICY retention_purge ON ai_suggestions FOR DELETE TO legarec_retention USING (created_at < now() - interval '1 year');

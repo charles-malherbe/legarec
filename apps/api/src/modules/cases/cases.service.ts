@@ -119,10 +119,12 @@ export class CasesService {
   /** The last summary of the assistant, unless it was reported: always shown as « Proposé par l'IA ». */
   private async aiSummary(id: string): Promise<CaseDetail['aiSummary']> {
     const last = await this.database.tx.aiSuggestion.findFirst({
-      where: { caseId: id, feature: 'CASE_SUMMARY', outcome: 'SUGGESTED', decision: { not: 'REPORTED' } },
+      where: { caseId: id, feature: 'CASE_SUMMARY', outcome: 'SUGGESTED' },
       orderBy: { createdAt: 'desc' },
-      select: { output: true, events: true, createdAt: true },
+      select: { output: true, events: true, createdAt: true, decision: true },
     });
+    // Reported, nothing is shown: never an older one in its place.
+    if (last?.decision === 'REPORTED') return null;
     const lines = (last?.output as { lines?: { k: string; v: string }[] } | null)?.lines;
     if (!last || !lines) return null;
     return { events: last.events, updated: `le ${dayOf(last.createdAt).slice(8, 10)}/${dayOf(last.createdAt).slice(5, 7)} à ${timeOf(last.createdAt)}`, lines };

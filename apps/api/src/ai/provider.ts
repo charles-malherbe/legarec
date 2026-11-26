@@ -26,6 +26,8 @@ async function post(url: string, headers: Record<string, string>, body: unknown)
     headers: { 'content-type': 'application/json', ...headers },
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(TIMEOUT_MS),
+    // A redirection would carry the key elsewhere.
+    redirect: 'error',
   });
   // Neither the body nor the key is ever quoted: only the status.
   if (!response.ok) throw new ProviderError(`status ${response.status}`);

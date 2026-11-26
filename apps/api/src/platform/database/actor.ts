@@ -13,7 +13,15 @@ export interface ActorSession {
 export type Actor =
   /** The sign-in: `subject` is the account it has found, `proved` once that account has shown who it is. */
   | { kind: 'anonymous'; subject?: string; proved?: boolean }
-  | { kind: 'staff'; userId: string; role: Exclude<Role, 'CREDITOR'>; delegations: readonly Delegation[]; actingFor?: Delegation; session?: ActorSession; provedAt?: Date }
+  | {
+      kind: 'staff';
+      userId: string;
+      role: Exclude<Role, 'CREDITOR'>;
+      delegations: readonly Delegation[];
+      actingFor?: Delegation;
+      session?: ActorSession;
+      provedAt?: Date;
+    }
   | { kind: 'partner'; userId: string; creditorId: string; session?: ActorSession }
   | { kind: 'debtor'; debtorId: string }
   | { kind: 'hook' }

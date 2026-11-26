@@ -553,6 +553,7 @@ model AiSuggestion {
   decision      AiDecision @default(PENDING)
   decidedBy     String?    @map("decided_by") @db.Uuid
   decidedAt     DateTime?  @map("decided_at") @db.Timestamptz(3)
+  decidedFor    String?    @map("decided_for") @db.Uuid
   askedBy       String?    @map("asked_by") @db.Uuid
   createdAt     DateTime   @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
 

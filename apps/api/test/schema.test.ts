@@ -269,7 +269,7 @@ describe('rights of the roles inside', () => {
       'claim_imports SELECT (confirmed_at, created_at, created_count, creditor_id, id, lines, status, total_cents, uploaded_by, valid)',
       // The journal of the assistant: read with the case; the decision said by whoever acts on it.
       'ai_suggestions SELECT (case_id, created_at, creditor_id, decision, events, feature, id, model, outcome, output, prompt_version)',
-      'ai_suggestions UPDATE (decided_at, decided_by, decision)',
+      'ai_suggestions UPDATE (decision)',
       // Reminders planned in the agenda: those of the cases one reads; planned and changed on those one acts on.
       'planned_reminders DELETE (*)',
       'planned_reminders INSERT (case_id, creditor_id, due_on, due_time, kind, title, warning)',
@@ -340,7 +340,7 @@ describe('rights of the roles inside', () => {
       'template_versions SELECT (id, number, source, state, template_code)',
       // The suggestions of the assistant it writes, and what the month has cost.
       'ai_suggestions INSERT (asked_by, case_id, cost_micro, creditor_id, decision, events, feature, input_summary, input_tokens, model, outcome, output, output_tokens, prompt_version)',
-      'ai_suggestions SELECT (case_id, cost_micro, created_at, creditor_id, feature, id, outcome)',
+      'ai_suggestions SELECT (case_id, cost_micro, created_at, creditor_id, decision, events, feature, id, outcome)',
       // The reminders it will send (lot Q).
       'planned_reminders SELECT (case_id, creditor_id, done_at, due_on, due_time, id, kind, title)',
       // The links of the letters it sends (lot Q).
@@ -621,6 +621,7 @@ describe('rights on the functions', () => {
     ),
     ['creditor_payouts', ['partner']],
     ['planned_contacts', ['staff']],
+    ['note_ai_decision', []],
     ...['ai_key', 'ai_spent'].map((name) => [name, ['worker']] as [string, string[]]),
     ['keep_done_reminder', []],
     ...['remittance_core', 'remittance_sources', 'remittance_summary', 'note_settlement'].map((name) => [name, []] as [string, string[]]),
@@ -655,7 +656,7 @@ describe('rights on the functions', () => {
       'own_access_code debtor_upload debtor_message read_portal_messages staff_message creditor_decide_plan creditor_upload creditor_deposit',
       'debtor_link ask_code_by_sms firm_payment_settings limited_message',
       'gdpr_request gdpr_keeper gdpr_registry gdpr_answer gdpr_export',
-      'ai_key ai_spent planned_contacts keep_done_reminder remittance_core creditor_payouts remittance_sources remittance_summary note_settlement remittance_draft validate_remittances mark_remittances_paid remittance_batches remittance_batch',
+      'note_ai_decision ai_key ai_spent planned_contacts keep_done_reminder remittance_core creditor_payouts remittance_sources remittance_summary note_settlement remittance_draft validate_remittances mark_remittances_paid remittance_batches remittance_batch',
     ].flatMap((names) => names.split(' '));
     const found = await rows<{ proname: string }>(
       "SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'app' ORDER BY 1",

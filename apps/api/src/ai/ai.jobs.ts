@@ -10,6 +10,7 @@ import { minimize, refusedByGuard } from './guards';
 import { CASE_SUMMARY_SYSTEM, CASE_SUMMARY_VERSION, caseSummaryInput, caseSummaryOutput, type CaseFacts } from './prompts/case-summary';
 import { costOf, type AiSetup } from './provider';
 
+const MAX_TOKENS = 800;
 const short = (day: Date) => `${dayOf(day).slice(8, 10)}/${dayOf(day).slice(5, 7)}`;
 /** Paramètres › Assistant IA: whether a feature is on, and the budget of the month in millionths of a euro. */
 export function aiSettings(values: SettingValues, feature: string): { on: boolean; budgetMicro: number } {
@@ -24,18 +25,24 @@ export function aiSettings(values: SettingValues, feature: string): { on: boolea
 }
 
 /** What the case says, read with the rights of the colleague who asked. */
-async function factsOf(tx: Transaction, id: string): Promise<{ facts: CaseFacts; creditorId: string; events: number } | null> {
+/** The details of these events are made by the application (amounts, dates, channels); the others are free text: title only. */
+const DETAILED = /^(PLAN|PAYMENT|REMINDER|RECEIPT)_/u;
+
+async function factsOf(tx: Transaction, id: string): Promise<{ facts: CaseFacts; creditorId: string; events: number; known: string[] } | null> {
   const row = await tx.case.findFirst({
     where: { id },
     select: {
       reference: true,
       status: true,
       creditorId: true,
-      creditor: { select: { name: true } },
-      debtor: { select: { kind: true } },
+      depositedName: true,
+      contactName: true,
+      debtorAddress: true,
+      debtor: { select: { kind: true, name: true } },
+      contacts: { select: { value: true } },
       invoices: { select: { number: true, dueOn: true, principalCents: true, principalPaidCents: true } },
       plans: { where: { status: 'ACTIVE' }, take: 1, select: { months: true, totalCents: true } },
-      events: { orderBy: { occurredAt: 'desc' }, take: 25, select: { occurredAt: true, title: true, detail: true } },
+      events: { orderBy: { occurredAt: 'desc' }, take: 25, select: { kind: true, occurredAt: true, title: true, detail: true } },
       _count: { select: { events: true } },
     },
   });
@@ -43,13 +50,16 @@ async function factsOf(tx: Transaction, id: string): Promise<{ facts: CaseFacts;
   const open = row.invoices.filter((invoice) => invoice.principalPaidCents < invoice.principalCents);
   const oldest = open.reduce<Date | null>((min, invoice) => (!min || invoice.dueOn < min ? invoice.dueOn : min), null);
   const plan = row.plans[0];
+  const known = [row.debtor.name, row.depositedName, row.contactName, row.debtorAddress, ...row.contacts.map((contact) => contact.value)].filter(
+    (value): value is string => !!value,
+  );
   return {
     creditorId: row.creditorId,
     events: row._count.events,
+    known,
     facts: {
       reference: row.reference,
       status: row.status,
-      creditor: row.creditor.name,
       debtorKind: row.debtor.kind === 'INDIVIDUAL' ? 'particulier' : 'professionnel',
       outstanding: formatCents(open.reduce((sum, invoice) => sum + invoice.principalCents - invoice.principalPaidCents, 0)),
       daysLate: lateDays(oldest, dayOf(new Date())),
@@ -62,7 +72,7 @@ async function factsOf(tx: Transaction, id: string): Promise<{ facts: CaseFacts;
       events: row.events.map((event) => ({
         on: short(event.occurredAt),
         title: event.title,
-        detail: event.detail ? minimize(event.detail).slice(0, 200) : null,
+        detail: event.detail && DETAILED.test(event.kind) ? minimize(event.detail, known).slice(0, 200) : null,
       })),
     },
   };
@@ -75,8 +85,8 @@ async function factsOf(tx: Transaction, id: string): Promise<{ facts: CaseFacts;
 export const aiJobs = (setup: () => AiSetup | null, vault: Pick<Vault, 'open'>): Record<string, JobDefinition> => ({
   'case-summary': {
     from: ['STAFF'],
-    // A second try only costs another call: nothing reaches anyone.
-    repeatable: true,
+    // A single try: a second one would be billed again, and the first one might already be.
+    repeatable: false,
     run: async ({ payload, asAuthor, authorize }) => {
       const id = String(payload.case);
       const ai = setup();
@@ -86,7 +96,16 @@ export const aiJobs = (setup: () => AiSetup | null, vault: Pick<Vault, 'open'>):
       );
       const read = await asAuthor((tx) => factsOf(tx, id));
       if (!read) throw new GiveUp('UNKNOWN_CASE');
-      const user = caseSummaryInput(read.facts);
+      // Nothing new since the last summary still shown: no call (the cache of docs/ia.md).
+      const last = await asApplication((tx) =>
+        tx.aiSuggestion.findFirst({
+          where: { caseId: id, feature: 'CASE_SUMMARY', outcome: 'SUGGESTED' },
+          orderBy: { createdAt: 'desc' },
+          select: { events: true, decision: true },
+        }),
+      );
+      if (last && last.decision !== 'REPORTED' && last.events === read.events) return;
+      const user = minimize(caseSummaryInput(read.facts), read.known);
       const summary = `${read.facts.invoices.length} factures, ${read.facts.events.length} événements, ${user.length} caractères`;
       const author = String(payload.by ?? '') || null;
       const record = (data: {
@@ -132,9 +151,11 @@ export const aiJobs = (setup: () => AiSetup | null, vault: Pick<Vault, 'open'>):
       const key = vault.open(state.key.id, state.key.value_cipher);
       let completion;
       try {
-        completion = await ai.provider.complete({ model: ai.advanced, system: CASE_SUMMARY_SYSTEM, user: minimize(user), maxTokens: 800 }, key);
+        completion = await ai.provider.complete({ model: ai.advanced, system: CASE_SUMMARY_SYSTEM, user, maxTokens: MAX_TOKENS }, key);
       } catch {
-        await record({ outcome: 'FAILED' });
+        // The provider may have billed it all the same: counted at the most it could cost.
+        const estimate = { inputTokens: Math.ceil((CASE_SUMMARY_SYSTEM.length + user.length) / 3), outputTokens: MAX_TOKENS };
+        await record({ outcome: 'FAILED', ...estimate, costMicro: costOf(ai.price, { text: '', ...estimate }) });
         return;
       }
       const cost = { inputTokens: completion.inputTokens, outputTokens: completion.outputTokens, costMicro: costOf(ai.price, completion) };

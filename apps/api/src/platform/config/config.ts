@@ -20,8 +20,14 @@ const common = {
   /** Absent: the AI is off, whatever the settings say. */
   AI_ENABLED: z.literal('true').optional(),
   /** The two levels of model (docs/ia.md): absent, the AI is off. Never a name in the code. */
-  IA_MODELE_RAPIDE: z.string().regex(/^[\w.:/-]{1,120}$/u).optional(),
-  IA_MODELE_AVANCE: z.string().regex(/^[\w.:/-]{1,120}$/u).optional(),
+  IA_MODELE_RAPIDE: z
+    .string()
+    .regex(/^[\w.:/-]{1,120}$/u)
+    .optional(),
+  IA_MODELE_AVANCE: z
+    .string()
+    .regex(/^[\w.:/-]{1,120}$/u)
+    .optional(),
   /** The provider behind the single interface; `simulated` outside production only. */
   AI_PROVIDER: z.enum(['anthropic', 'openai-compatible', 'simulated']).optional(),
   /** Address of a provider compatible with OpenAI (Scaleway, OVH, or the server of the firm). */
