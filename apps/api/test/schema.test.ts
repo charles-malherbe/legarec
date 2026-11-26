@@ -103,7 +103,7 @@ describe('functions that see more than their caller', () => {
   it('belong to a role without login, with a fixed search path', async () => {
     const wrong = await rows(`
       SELECT p.proname, r.rolname, p.proconfig FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace JOIN pg_roles r ON r.oid = p.proowner
-      WHERE n.nspname IN ('app', 'public') AND p.prosecdef AND ((r.rolname <> 'legarec_definer' AND NOT (r.rolname = 'legarec_forgetter' AND p.proname IN ('forget_case', 'forget_debtor'))) OR r.rolcanlogin OR p.proconfig IS DISTINCT FROM ARRAY['search_path=pg_catalog, public, pg_temp'])`);
+      WHERE n.nspname IN ('app', 'public') AND p.prosecdef AND ((r.rolname <> 'legarec_definer' AND NOT (r.rolname = 'legarec_forgetter' AND p.proname IN ('forget_case', 'forget_debtor', 'forget_remittances', 'forget_lone_invoices', 'forget_bounced_payments', 'forget_accounting_documents'))) OR r.rolcanlogin OR p.proconfig IS DISTINCT FROM ARRAY['search_path=pg_catalog, public, pg_temp'])`);
     expect(wrong).toEqual([]);
   });
 });
@@ -359,7 +359,7 @@ describe('rights of the roles inside', () => {
       'limited_messages SELECT (created_at, id)',
       // The registry of the RGPD, after 10 years.
       'gdpr_requests DELETE (*)',
-      'gdpr_requests SELECT (id, received_on)',
+      'gdpr_requests SELECT (answered_at, id, received_on)',
       // Marks of the dashboard, after 2 years.
       'task_marks DELETE (*)',
       'task_marks SELECT (done_at)',
@@ -530,10 +530,14 @@ describe('rights of the roles inside', () => {
       'receipts INSERT (case_id, creditor_id, id, number, payment_id)',
       'receipts SELECT (document_id, id, payment_id)',
     ],
-    // What a case and its debtor hold, erased by app.forget_case() and app.forget_debtor() only: the role owns nothing else.
+    // What a case and its debtor hold, and the pieces of accounting ten years old: erased by the forget_* functions only.
     legarec_forgetter: [
       'ai_suggestions DELETE (*)',
       'ai_suggestions SELECT (case_id)',
+      'billing_documents DELETE (*)',
+      'billing_documents SELECT (corrected_id, id, issued_on, kind)',
+      'billing_lines DELETE (*)',
+      'billing_lines SELECT (document_id)',
       'case_contact_events DELETE (*)',
       'case_contact_events SELECT (case_id)',
       'case_contacts DELETE (*)',
@@ -542,6 +546,10 @@ describe('rights of the roles inside', () => {
       'case_events SELECT (case_id)',
       'cases SELECT (anonymized_at, debtor_id, id)',
       'cases UPDATE (anonymized_at, contact_name, contact_title, debtor_address, debtor_city, debtor_postal_code, debtor_siret, deposited_name, external_reference)',
+      'credit_note_drafts DELETE (*)',
+      'credit_note_drafts SELECT (invoice_id, updated_at)',
+      'credit_note_refunds DELETE (*)',
+      'credit_note_refunds SELECT (credit_note_id, remittance_id)',
       'debtor_access_codes DELETE (*)',
       'debtor_access_codes SELECT (debtor_id)',
       'debtor_links DELETE (*)',
@@ -552,13 +560,16 @@ describe('rights of the roles inside', () => {
       'debtor_sessions SELECT (debtor_id)',
       'debtors SELECT (anonymized_at, id)',
       'debtors UPDATE (anonymized_at, legal_form_checked_at, legal_form_code, legal_form_source, name, siren)',
-      'documents SELECT (case_id, id, purged_at, retention_class, uploaded_by_debtor)',
+      'documents SELECT (case_id, created_at, id, purged_at, retention_class, uploaded_by_debtor)',
       'documents UPDATE (original_name, purged_at, shared_by, shared_with_creditor_at, title, visible_to_debtor)',
       'gdpr_requests SELECT (debtor_id)',
       'gdpr_requests UPDATE (origin)',
+      'payment_allocations DELETE (*)',
+      'payment_allocations SELECT (payment_id)',
       'payment_plans SELECT (accepted_ip, case_id, document_id)',
       'payment_plans UPDATE (accepted_ip)',
-      'payments SELECT (bounce_reason, case_id)',
+      'payments DELETE (*)',
+      'payments SELECT (bounce_reason, bounced_at, case_id, deposited_on, id, received_on, settled_at, status)',
       'payments UPDATE (bounce_reason)',
       'plan_approvals SELECT (case_id, reason)',
       'plan_approvals UPDATE (reason)',
@@ -568,7 +579,14 @@ describe('rights of the roles inside', () => {
       'portal_message_attachments SELECT (case_id)',
       'portal_messages DELETE (*)',
       'portal_messages SELECT (case_id)',
-      'receipts SELECT (document_id)',
+      'receipts DELETE (*)',
+      'receipts SELECT (document_id, issued_at, payment_id)',
+      'remittance_batches DELETE (*)',
+      'remittance_batches SELECT (id, paid_on, status, validated_at)',
+      'remittance_lines DELETE (*)',
+      'remittance_lines SELECT (case_id, payment_id, remittance_id)',
+      'remittances DELETE (*)',
+      'remittances SELECT (batch_id, id, invoice_id, state)',
     ],
   };
   it.each(Object.entries(expected))('%s', async (role, rights) => {
@@ -629,8 +647,12 @@ describe('rights on the functions', () => {
     ['purge_sign_ins', ['retention']],
     ['anonymize_accounts', ['retention']],
     ['anonymize_case', ['retention']],
-    // Owned by the forgetter, called by the functions of the definer only.
-    ...['forget_case', 'forget_debtor'].map((name) => [name, ['forgetter']] as [string, string[]]),
+    ...['purge_remittances', 'purge_invoices', 'purge_payments', 'purge_accounting_documents'].map((name) => [name, ['retention']] as [string, string[]]),
+    // Owned by the forgetter, called by the functions of the definer only, or by its own.
+    ...['forget_case', 'forget_debtor', 'forget_remittances', 'forget_lone_invoices', 'forget_bounced_payments', 'forget_accounting_documents'].map(
+      (name) => [name, ['forgetter']] as [string, string[]],
+    ),
+    ...['forget_payments', 'forget_invoices', 'invoice_batches', 'accounting_cutoff'].map((name) => [name, ['forgetter']] as [string, string[]]),
     ...['erasure_blockers', 'erasure_digest'].map((name) => [name, []] as [string, string[]]),
     ['case_writable', ['debtor', 'partner', 'staff', 'worker']],
     // The sign-in.
@@ -722,6 +744,8 @@ describe('rights on the functions', () => {
       'anonymize_case forget_case forget_debtor erasure_blockers erasure_digest case_writable',
       'note_ai_decision ai_key ai_spent ai_budget_alert planned_contacts keep_done_reminder remittance_core creditor_payouts remittance_sources remittance_summary note_settlement remittance_draft validate_remittances mark_remittances_paid remittance_batches remittance_batch',
       'credit_notes save_credit_note_draft delete_credit_note_draft issue_credit_note invoice_lines_left invoice_left invoice_settled_on check_credit_lines',
+      'purge_remittances purge_invoices purge_payments purge_accounting_documents forget_remittances forget_lone_invoices forget_bounced_payments forget_accounting_documents',
+      'forget_payments forget_invoices invoice_batches accounting_cutoff',
     ].flatMap((names) => names.split(' '));
     const found = await rows<{ proname: string }>(
       "SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'app' ORDER BY 1",

@@ -245,11 +245,18 @@ describe('what tonight’s lots keep', () => {
       creditor!.id,
       debtor!.id,
     ]);
-    for (const years of [11, 9])
+    // Ten years from the close of the request, counted from the end of its year: closed on the last day of the year eleven
+    // years ago, it goes; on the first day of the year ten years ago, or still open, it stays.
+    const [{ year }] = (await rows<{ year: number }>("SELECT extract(year FROM now() AT TIME ZONE 'Europe/Paris')::int AS year")) as [{ year: number }];
+    for (const [received, answered] of [
+      [`${year - 12}-03-01`, `${year - 11}-12-31`],
+      [`${year - 11}-03-01`, `${year - 10}-01-01`],
+      [`${year - 12}-03-01`, null],
+    ])
       await rows(
-        `INSERT INTO gdpr_requests (case_id, creditor_id, debtor_id, kind, origin, received_on, due_on, created_by)
-         VALUES ($1, $2, $3, 'ACCESS', 'Courrier', current_date - interval '${years} years', current_date, $4)`,
-        [made!.id, creditor!.id, debtor!.id, s.manager],
+        `INSERT INTO gdpr_requests (case_id, creditor_id, debtor_id, kind, origin, received_on, due_on, status, answered_at, created_by)
+         VALUES ($1, $2, $3, 'ACCESS', 'Courrier', $4::date, $4::date, $5, ($6::date + time '12:00') AT TIME ZONE 'Europe/Paris', $7)`,
+        [made!.id, creditor!.id, debtor!.id, received, answered === null ? 'OPEN' : 'ANSWERED', answered, s.manager],
       );
     await rows(`INSERT INTO task_marks (user_id, key, done_at) VALUES ($1, $2, now() - interval '25 months'), ($1, $3, now())`, [
       s.officerA,
@@ -275,6 +282,10 @@ describe('what tonight’s lots keep', () => {
       'credit-note-drafts': 1,
     });
     expect(await rows('SELECT count(*)::int AS n FROM credit_note_drafts')).toEqual([{ n: 1 }]);
+    expect(await rows('SELECT status::text FROM gdpr_requests WHERE case_id = $1 ORDER BY status', [made!.id])).toEqual([
+      { status: 'ANSWERED' },
+      { status: 'OPEN' },
+    ]);
     expect(await rows('SELECT count(*)::int AS n FROM limited_messages')).toEqual([{ n: 1 }]);
     expect(await rows('SELECT key FROM task_marks')).toEqual([{ key: `dispute:${made!.id}` }]);
   });
@@ -489,5 +500,300 @@ describe('cases closed for more than five years', () => {
        FROM unnest(ARRAY['legarec_staff', 'legarec_worker', 'legarec_partner', 'legarec_debtor', 'legarec_retention']) r`,
     );
     expect(callers.filter((row) => row.anonymize || row.forget)).toEqual([{ role: 'legarec_retention', anonymize: true, forget: false }]);
+  });
+});
+
+describe('pieces of accounting, ten years after the end of their year', () => {
+  let creditor = '';
+  let year = 0;
+  /** The last day of the year eleven years ago: gone. The first day of the year ten years ago: kept until 31 December. */
+  let old = '';
+  let young = '';
+  let serial = 0;
+  const next = () => (serial += 1);
+  const one = async (sql: string, values: unknown[] = []) => (await rows<{ id: string }>(sql, values))[0]!.id;
+
+  /** A case anonymized, or still open, with its debtor. */
+  const caseOf = async (anonymized = true) => {
+    const debtor = await one("INSERT INTO debtors (kind, name, anonymized_at) VALUES ('INDIVIDUAL', 'Débiteur anonymisé', now()) RETURNING id");
+    return one(
+      `INSERT INTO cases (reference, creditor_id, debtor_id, status, closed_on, anonymized_at)
+       VALUES ($1, $2, $3, ${anonymized ? "'SETTLED', '2015-06-01', now()" : "'REMINDER', NULL, NULL"}) RETURNING id`,
+      [`LGR-2014-${String(next()).padStart(5, '0')}`, creditor, debtor],
+    );
+  };
+  const file = async (id: string | null, category: string, day: string) => {
+    const stored = await storage.put(new TextEncoder().encode(`%PDF-1.4 ${next()}`));
+    const made = await one(
+      `INSERT INTO documents (case_id, creditor_id, category, kind, title, original_name, storage_key, size_bytes, sha256, source, scan_status, scanned_at, created_at)
+       VALUES ($1, $2, $3, 'PDF', 'Pièce', 'piece.pdf', $4, $5, $6, 'UPLOAD', 'CLEAN', now(), $7::date) RETURNING id`,
+      [id, id === null ? null : creditor, category, stored.key, stored.size, stored.sha256, day],
+    );
+    return { id: made, key: stored.key };
+  };
+  /** A cheque cashed (or bounced) on `day`, with its receipt and the PDF of it. */
+  const payment = async (id: string, day: string, status: 'CASHED' | 'BOUNCED' = 'CASHED') => {
+    // The payment and its allocations in one statement: they add up at the end of it.
+    const paid = await one(
+      `WITH p AS (INSERT INTO payments (case_id, creditor_id, method, amount_cents, status, received_on, settled_at, bounced_at, cheque_number, bank, recorded_by)
+         VALUES ($1, $2, 'CHEQUE', 1000, $3, $4::date, ${status === 'CASHED' ? '$4::date' : 'NULL'}, ${status === 'BOUNCED' ? '$4::date' : 'NULL'}, $7, 'Banque', $5) RETURNING id),
+       a AS (INSERT INTO payment_allocations (case_id, creditor_id, payment_id, component, amount_cents) SELECT $1, $2, p.id, 'OVERPAYMENT', 1000 FROM p RETURNING id, payment_id),
+       b AS (INSERT INTO payment_allocations (case_id, creditor_id, payment_id, component, amount_cents, reverses_id)
+         SELECT $1, $2, a.payment_id, 'OVERPAYMENT', -1000, a.id FROM a WHERE $6::boolean)
+       SELECT payment_id AS id FROM a`,
+      [id, creditor, status, day, s.officerA, status === 'BOUNCED', String(2_000_000 + next())],
+    );
+    const pdf = await file(id, 'RECEIPT', day);
+    await rows('INSERT INTO receipts (case_id, creditor_id, payment_id, number, document_id, issued_at) VALUES ($1, $2, $3, $4, $5, $6::date)', [
+      id,
+      creditor,
+      paid,
+      `Q-2015-${String(next()).padStart(5, '0')}`,
+      pdf.id,
+      day,
+    ]);
+    return { id: paid, receipt: pdf };
+  };
+  const invoice = async (day: string, number = `FA-2015-${String(next()).padStart(4, '0')}`) => {
+    const made = await one(
+      `INSERT INTO billing_documents (kind, number, creditor_id, issued_on, net_cents, vat_cents, gross_cents, created_by)
+       VALUES ('INVOICE', $1, $2, $3::date, 100, 20, 120, $4) RETURNING id`,
+      [number, creditor, day, s.director],
+    );
+    await rows("INSERT INTO billing_lines (document_id, label, net_cents, vat_cents, gross_cents) VALUES ($1, 'Commission', 100, 20, 120)", [made]);
+    return made;
+  };
+  /** A credit note of the whole invoice, given back by `remittance` (null: waiting), or deducted. */
+  const creditNote = async (corrected: string, day: string, refund: string | null | undefined = undefined) => {
+    const made = await one(
+      `INSERT INTO billing_documents (kind, number, creditor_id, issued_on, net_cents, vat_cents, gross_cents, corrected_id, reason, scope, follow_up, created_by)
+       VALUES ('CREDIT_NOTE', $1, $2, $3::date, 100, 20, 120, $4, 'Erreur', 'TOTAL', $5, $6) RETURNING id`,
+      [`AV-2015-${String(next()).padStart(4, '0')}`, creditor, day, corrected, refund === undefined ? 'DEDUCTED' : 'NEXT_REMITTANCE', s.director],
+    );
+    await rows(
+      "INSERT INTO billing_lines (document_id, label, net_cents, vat_cents, gross_cents, corrected_line_id) SELECT $1, 'Commission', 100, 20, 120, l.id FROM billing_lines l WHERE l.document_id = $2",
+      [made, corrected],
+    );
+    if (refund !== undefined)
+      await rows('INSERT INTO credit_note_refunds (credit_note_id, creditor_id, amount_cents, remittance_id) VALUES ($1, $2, 120, $3)', [
+        made,
+        creditor,
+        refund,
+      ]);
+    return made;
+  };
+  /** A batch paid on `day`, its remittance issuing an invoice of the same day, a line per payment. */
+  const batch = async (day: string, payments: { case: string; id: string }[], paid = true) => {
+    const made = await one(
+      `INSERT INTO remittance_batches (covers_until, status, total_cents, transfers, validated_by, validated_at, paid_on)
+       VALUES ($1::date, $3, 1000, 1, $2, $1::date, ${paid ? '$1::date' : 'NULL'}) RETURNING id`,
+      [day, s.director, paid ? 'PAID' : 'VALIDATED'],
+    );
+    const issued = await invoice(day);
+    const remittance = await one(
+      `INSERT INTO remittances (batch_id, creditor_id, state, payments, collected_cents, fee_net_cents, fee_vat_cents, fee_gross_cents, to_pay_cents, invoice_id)
+       VALUES ($1, $2, $5, $3, 1000, 100, 20, 120, 880, $4) RETURNING id`,
+      [made, creditor, payments.length, issued, paid ? 'PAID' : 'READY'],
+    );
+    for (const paid of payments)
+      await rows(
+        "INSERT INTO remittance_lines (remittance_id, case_id, creditor_id, kind, payment_id, amount_cents, fee_net_cents, fee_vat_cents) VALUES ($1, $2, $3, 'PAYMENT', $4, 1000, 100, 20)",
+        [remittance, paid.case, creditor, paid.id],
+      );
+    return { id: made, remittance, invoice: issued };
+  };
+  /** An invoice or a credit note dated back to the last day it may go: written once, so changed past its trigger. */
+  const backdate = async (id: string) => {
+    await rows('BEGIN');
+    try {
+      await rows('SET LOCAL session_replication_role = replica');
+      await rows('UPDATE billing_documents SET issued_on = $1::date WHERE id = $2', [old, id]);
+    } finally {
+      await rows('COMMIT');
+    }
+  };
+  const exists = async (table: string, id: string, column = 'id') => (await rows(`SELECT 1 FROM ${table} WHERE ${column} = $1`, [id])).length === 1;
+  const count = async (table: string, id: string) => (await rows<{ n: number }>(`SELECT count(*)::int AS n FROM ${table} WHERE case_id = $1`, [id]))[0]!.n;
+  const purged = async (id: string) =>
+    (await rows<{ purged: boolean }>('SELECT purged_at IS NOT NULL AS purged FROM documents WHERE id = $1', [id]))[0]!.purged;
+
+  beforeAll(async () => {
+    creditor = await one("INSERT INTO creditors (name) VALUES ('Purge Dix Ans') RETURNING id");
+    [{ year }] = (await rows<{ year: number }>("SELECT extract(year FROM now() AT TIME ZONE 'Europe/Paris')::int AS year")) as [{ year: number }];
+    old = `${year - 11}-12-31`;
+    young = `${year - 10}-01-01`;
+  });
+
+  it('removes a batch of remittances once the latest of its pieces is ten years past the end of its year, with all it holds', async () => {
+    const gone = await caseOf();
+    const goneCash = await payment(gone, old);
+    const goneBatch = await batch(old, [{ case: gone, id: goneCash.id }]);
+    await rows(
+      "INSERT INTO credit_note_drafts (invoice_id, scope, lines, reason, created_by, updated_at) VALUES ($1, 'TOTAL', '[]', '', $2, now() - interval '31 days')",
+      [goneBatch.invoice, s.director],
+    );
+    // The same, but its payment came on the first day of the next year: ten years less a day after the close.
+    const kept = await caseOf();
+    const keptCash = await payment(kept, young);
+    const keptBatch = await batch(old, [{ case: kept, id: keptCash.id }]);
+
+    expect(await purge(jobs, logger, storage)).toMatchObject({ remittances: 1, invoices: 0, payments: 0, 'accounting-documents': 0, 'document-files': 1 });
+
+    expect(await exists('remittance_batches', goneBatch.id)).toBe(false);
+    expect(await exists('remittances', goneBatch.remittance)).toBe(false);
+    expect(await exists('billing_documents', goneBatch.invoice)).toBe(false);
+    expect(await exists('billing_lines', goneBatch.invoice, 'document_id')).toBe(false);
+    expect(await exists('credit_note_drafts', goneBatch.invoice, 'invoice_id')).toBe(false);
+    for (const table of ['payments', 'payment_allocations', 'receipts', 'remittance_lines']) expect(await count(table, gone), table).toBe(0);
+    // The PDF of the receipt: its line without its names, its file erased.
+    expect(await purged(goneCash.receipt.id)).toBe(true);
+    await expect(storage.read(goneCash.receipt.key)).rejects.toThrow();
+    // The case and its debtor keep their lines.
+    expect(await rows('SELECT reference FROM cases WHERE id = $1', [gone])).toHaveLength(1);
+
+    expect(await exists('remittance_batches', keptBatch.id)).toBe(true);
+    expect(await exists('billing_documents', keptBatch.invoice)).toBe(true);
+    for (const table of ['payments', 'payment_allocations', 'receipts', 'remittance_lines']) expect(await count(table, kept), table).toBeGreaterThan(0);
+    expect(await purged(keptCash.receipt.id)).toBe(false);
+    expect((await storage.read(keptCash.receipt.key)).byteLength).toBeGreaterThan(0);
+
+    // Nothing more the next night: once is enough.
+    expect(await purge(jobs, logger, storage)).toMatchObject({ remittances: 0, invoices: 0, payments: 0, 'accounting-documents': 0, 'document-files': 0 });
+    expect(await rows("SELECT removed FROM retention_runs WHERE kind = 'remittances' ORDER BY ran_at DESC LIMIT 2")).toEqual([{ removed: 0 }, { removed: 1 }]);
+  });
+
+  it('keeps a batch while one of its cases is not anonymized, or still has a payment to remit', async () => {
+    const open = await caseOf(false);
+    const openBatch = await batch(old, [{ case: open, id: (await payment(open, old)).id }]);
+    // Validated eleven years ago and never marked as paid: the creditor has not been paid.
+    const unpaid = await caseOf();
+    const unpaidCash = await payment(unpaid, old);
+    const unpaidBatch = await batch(old, [{ case: unpaid, id: unpaidCash.id }], false);
+    const owed = await caseOf();
+    const owedBatch = await batch(old, [{ case: owed, id: (await payment(owed, old)).id }]);
+    // Cashed, never remitted: the creditor is owed it, and the opening fee of the case would be taken again.
+    await payment(owed, old);
+    expect(await purge(jobs, logger, storage)).toMatchObject({ remittances: 0, payments: 0 });
+    expect(await exists('remittance_batches', openBatch.id)).toBe(true);
+    expect(await exists('remittance_batches', owedBatch.id)).toBe(true);
+    expect(await exists('remittance_batches', unpaidBatch.id)).toBe(true);
+    expect(await exists('payments', unpaidCash.id)).toBe(true);
+    expect(await purged(unpaidCash.receipt.id)).toBe(false);
+    expect(await count('payments', owed)).toBe(2);
+  });
+
+  it('keeps a batch paid while its case has a payment in a batch never marked as paid', async () => {
+    const id = await caseOf();
+    const remitted = await payment(id, old);
+    const paidBatch = await batch(old, [{ case: id, id: remitted.id }]);
+    // A second payment of the same case, in a remittance validated as long ago and never paid: not remitted yet.
+    const waiting = await payment(id, old);
+    const waitingBatch = await batch(old, [{ case: id, id: waiting.id }], false);
+    expect(await purge(jobs, logger, storage)).toMatchObject({ remittances: 0 });
+    for (const kept of [paidBatch.id, waitingBatch.id]) expect(await exists('remittance_batches', kept)).toBe(true);
+    for (const cash of [remitted, waiting]) {
+      expect(await exists('payments', cash.id)).toBe(true);
+      expect(await exists('receipts', cash.id, 'payment_id')).toBe(true);
+      expect(await purged(cash.receipt.id)).toBe(false);
+    }
+  });
+
+  it('removes an invoice with its credit notes, when the latest of them may go, and batches tied by a refund together', async () => {
+    const first = await caseOf();
+    const firstBatch = await batch(old, [{ case: first, id: (await payment(first, old)).id }]);
+    const second = await caseOf();
+    const secondBatch = await batch(young, [{ case: second, id: (await payment(second, old)).id }]);
+    // The invoice of the first batch is corrected, and given back by the second, ten years less a day ago.
+    const note = await creditNote(firstBatch.invoice, old, secondBatch.remittance);
+    expect(await purge(jobs, logger, storage)).toMatchObject({ remittances: 0 });
+    expect(await exists('billing_documents', firstBatch.invoice)).toBe(true);
+    expect(await exists('billing_documents', note)).toBe(true);
+    // The second one ages a day: both go, the credit note and its refund with them.
+    await rows('UPDATE remittance_batches SET validated_at = $1::date, paid_on = $1::date WHERE id = $2', [old, secondBatch.id]);
+    await backdate(secondBatch.invoice);
+    expect(await purge(jobs, logger, storage)).toMatchObject({ remittances: 2 });
+    for (const id of [firstBatch.invoice, note, secondBatch.invoice]) expect(await exists('billing_documents', id)).toBe(false);
+    expect(await exists('credit_note_refunds', note, 'credit_note_id')).toBe(false);
+
+    // An invoice that no remittance holds: kept while its credit note is young, then gone with it.
+    const lone = await invoice(old);
+    const lateNote = await creditNote(lone, young);
+    expect(await purge(jobs, logger, storage)).toMatchObject({ invoices: 0 });
+    expect(await exists('billing_documents', lone)).toBe(true);
+    await backdate(lateNote);
+    // An invoice being corrected (a draft changed in the last 30 days): kept, the draft with it.
+    const drafted = await invoice(old);
+    await rows("INSERT INTO credit_note_drafts (invoice_id, scope, lines, reason, created_by) VALUES ($1, 'TOTAL', '[]', '', $2)", [drafted, s.director]);
+    // A credit note waiting for the next remittance: money still owed, kept.
+    const waiting = await invoice(old);
+    await creditNote(waiting, old, null);
+    expect(await purge(jobs, logger, storage)).toMatchObject({ invoices: 1 });
+    expect(await exists('billing_documents', lone)).toBe(false);
+    expect(await exists('billing_documents', lateNote)).toBe(false);
+    expect(await exists('billing_documents', waiting)).toBe(true);
+    expect(await exists('credit_note_drafts', drafted, 'invoice_id')).toBe(true);
+  });
+
+  it('removes a bounced payment never remitted, and the files an anonymized case kept for accounting', async () => {
+    const id = await caseOf();
+    const bounced = await payment(id, old, 'BOUNCED');
+    const recent = await payment(id, young, 'BOUNCED');
+    const plan = await file(id, 'PAYMENT_PLAN', old);
+    const youngPlan = await file(id, 'PAYMENT_PLAN', young);
+    const statement = await file(null, 'REMITTANCE', old);
+    const living = await caseOf(false);
+    const livingPlan = await file(living, 'PAYMENT_PLAN', old);
+    expect(await purge(jobs, logger, storage)).toMatchObject({ payments: 1, 'accounting-documents': 1, 'document-files': 2 });
+    expect(await exists('payments', bounced.id)).toBe(false);
+    expect(await exists('payments', recent.id)).toBe(true);
+    expect(await purged(bounced.receipt.id)).toBe(true);
+    expect(await purged(recent.receipt.id)).toBe(false);
+    // A statement without a case says nothing of whether its batch stays: kept.
+    expect([await purged(plan.id), await purged(statement.id), await purged(youngPlan.id), await purged(livingPlan.id)]).toEqual([true, false, false, false]);
+    await expect(storage.read(plan.key)).rejects.toThrow();
+  });
+
+  it('never draws a number again', async () => {
+    await rows("INSERT INTO number_sequences (kind, year, last_value) VALUES ('INVOICE', $1, 7) ON CONFLICT (kind, year) DO UPDATE SET last_value = 7", [year]);
+    const numbered = await invoice(old, `FA-${year}-0007`);
+    expect(await purge(jobs, logger, storage)).toMatchObject({ invoices: 1 });
+    expect(await exists('billing_documents', numbered)).toBe(false);
+    await rows('BEGIN');
+    try {
+      await rows('SET LOCAL ROLE legarec_worker');
+      expect(await rows("SELECT for_year, number FROM app.next_number('INVOICE')")).toEqual([{ for_year: year, number: 8 }]);
+    } finally {
+      await rows('ROLLBACK');
+    }
+    // Neither the retention nor the forgetter may touch a counter.
+    expect(
+      await rows(
+        "SELECT r FROM unnest(ARRAY['legarec_retention', 'legarec_forgetter']) r WHERE has_table_privilege(r, 'number_sequences', 'SELECT, INSERT, UPDATE, DELETE, TRUNCATE')",
+      ),
+    ).toEqual([]);
+  });
+
+  it('is done by the retention alone, through the forgetter', async () => {
+    const roles = ['legarec_staff', 'legarec_worker', 'legarec_partner', 'legarec_debtor', 'legarec_retention', 'legarec_definer'];
+    const callable = async (fn: string) =>
+      (await rows<{ role: string }>(`SELECT r AS role FROM unnest($1::text[]) r WHERE has_function_privilege(r, $2, 'EXECUTE')`, [roles, fn])).map(
+        (row) => row.role,
+      );
+    for (const name of ['purge_remittances', 'purge_invoices', 'purge_payments', 'purge_accounting_documents'])
+      expect(await callable(`app.${name}()`), name).toEqual(['legarec_retention', 'legarec_definer']);
+    for (const name of ['forget_remittances', 'forget_lone_invoices', 'forget_bounced_payments', 'forget_accounting_documents'])
+      expect(await callable(`app.${name}()`), name).toEqual(['legarec_definer']);
+    for (const name of ['forget_payments(uuid[])', 'forget_invoices(uuid[])']) expect(await callable(`app.${name}`), name).toEqual([]);
+    // A receipt, a line of a remittance or an invoice: nobody else removes them, not even the owner of the tables' functions.
+    for (const table of ['receipts', 'remittance_lines', 'billing_documents', 'payment_allocations']) {
+      await rows('BEGIN');
+      try {
+        await rows('SET LOCAL ROLE legarec_definer');
+        await rows("SELECT set_config('app.purging', 'nothing', true)");
+        await expect(test.admin.query(`DELETE FROM ${table}`), table).rejects.toThrow(/append-only|permission denied/u);
+      } finally {
+        await rows('ROLLBACK');
+      }
+    }
   });
 });
