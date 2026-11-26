@@ -266,7 +266,7 @@ Tâche née d'un utilisateur : `outbox.actor_kind`, `actor_id` et `acting_for`, 
 | `message_templates` | use, name, subject, text | — | FIRM |
 | `calls` | exchange_id, [c+cr], officer_id, direction, phone_e164, tcx_call_id?, started_at, answered_at?, ended_at?, queue?, recording_announced, outcome?, tcx_code?, interlocutor?, notes?, qualified_at? | UQ tcx_call_id | CASE |
 | `call_targets` | [c+cr], officer_id, kind, reason, slot_at?, priority, status, reminder_id? | index (officer_id, status) | CASE |
-| `call_recordings`, `call_transcripts` | call_id, [c+cr], document_id, expires_on ; segments_cipher, expires_on | index expires_on (6 mois) | CASE |
+| `call_recordings`, `call_transcripts` | call_id, [c+cr], storage_key (bucket `legarec-enregistrements`, fichier chiffré par l'API), expires_on ; segments_cipher, expires_on | index expires_on (6 mois) | CASE |
 | `presence_events` | user_id, state, since, until? | index (user_id, since) | Directeur, Responsable |
 
 **Contentieux, facturation, dépôts, pilotage**
