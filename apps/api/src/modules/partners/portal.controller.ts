@@ -1,8 +1,9 @@
-import { portalCase, portalCases, portalDashboard, REQUEST_BODIES } from '@legarec/contracts';
+import { portalCase, portalCases, portalDashboard, REQUEST_BODIES, uploadedFile } from '@legarec/contracts';
 import { Body, Controller, Get, HttpCode, Inject, Param, Post } from '@nestjs/common';
 import { ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import type { z } from 'zod';
 import { Partner } from '../../platform/access/access';
+import { uploadedType } from '../../platform/http/context';
 import { Commits } from '../../platform/http/transaction.interceptor';
 import { PortalService } from './portal.service';
 
@@ -44,5 +45,24 @@ export class PortalController {
   @ApiNoContentResponse()
   decide(@Param('id') id: string, @Body({ schema: bodies['POST /portal/plans/:id/decision'] }) { accepted, reason }: In<'POST /portal/plans/:id/decision'>) {
     return this.portal.decide(id, accepted, reason);
+  }
+
+  /** A claim opens a case held by nobody: the manager takes it. */
+  @Post('claims')
+  @Partner()
+  @Commits()
+  @HttpCode(204)
+  @ApiNoContentResponse()
+  deposit(@Body({ schema: bodies['POST /portal/claims'] }) body: In<'POST /portal/claims'>) {
+    return this.portal.deposit(body);
+  }
+
+  /** The body is the file alone, without its name. */
+  @Post('attachments')
+  @Partner()
+  @HttpCode(200)
+  @ApiOkResponse({ standardSchema: uploadedFile })
+  attach(@Body({ schema: bodies['POST /portal/attachments'] }) bytes: Uint8Array) {
+    return this.portal.upload(bytes, uploadedType());
   }
 }

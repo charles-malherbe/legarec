@@ -201,7 +201,8 @@ Les 161 routes simulées se répartissent ainsi :
 
 ## Lot P — Portail des créanciers (état au 26/11/2026)
 - [x] Tableau de bord, dossiers, accord sur un échéancier long (4 routes)
-- [ ] Dépôt de créances, imports, pièces, messages ; relevés (avec S)
+- [x] Dépôt d'une créance (dossier sans gestionnaire, fonction SQL), pièces du créancier analysées (2 routes)
+- [ ] Imports CSV et Excel (rapport, confirmation), messages ; relevés (avec S)
 
 ## Points à reprendre du front
 

@@ -1,8 +1,12 @@
 import { formatCents, type PlanApproval, type PortalCase, type portalCases, type portalDashboard, type PortalStatus } from '@legarec/contracts';
 import { Inject, Injectable } from '@nestjs/common';
 import type { z } from 'zod';
+import { randomUUID } from 'node:crypto';
 import { Database } from '../../platform/database/database';
-import { ApiError, notFound } from '../../platform/errors/api-error';
+import { Outbox } from '../../platform/queue/outbox';
+import { Storage } from '../../platform/storage/storage';
+import { checkFile } from '../documents/file-type';
+import { ApiError, conflict, notFound } from '../../platform/errors/api-error';
 import { dayOf } from '../../platform/format';
 import { dayText } from '../creditors/mandates';
 
@@ -25,7 +29,11 @@ const plural = (count: number, word: string) => `${count} ${word}${count > 1 ? '
 /** What a creditor reads of its cases: PostgreSQL shows its own only, and their history only where it is marked for it. */
 @Injectable()
 export class PortalService {
-  constructor(@Inject(Database) private readonly database: Database) {}
+  constructor(
+    @Inject(Database) private readonly database: Database,
+    @Inject(Storage) private readonly storage: Storage,
+    @Inject(Outbox) private readonly outbox: Outbox,
+  ) {}
 
   private async rows() {
     return this.database.tx.case.findMany({
@@ -174,5 +182,50 @@ export class PortalService {
     // Checked again by PostgreSQL.
     if (!accepted && !reason?.trim()) throw new ApiError(422, 'REASON_REQUIRED');
     await this.database.tx.$executeRaw`SELECT app.creditor_decide_plan(${id}::uuid, ${accepted}, ${reason ?? ''})`;
+  }
+
+  /**
+   * A claim deposited by the creditor: a case held by nobody, under its mandate in force, that the manager takes. PostgreSQL
+   * checks everything again; what the creditor gives of the debtor is not verified.
+   */
+  async deposit(body: {
+    debtor: string;
+    siret: string;
+    email: string;
+    phone: string;
+    address: string;
+    invoices: unknown[];
+    attachments: string[];
+  }): Promise<void> {
+    const [row] = await this.database.tx.$queryRaw<{ outcome: string }[]>`
+      SELECT outcome FROM app.creditor_deposit(${body.debtor}, ${body.siret.replace(/\s/gu, '')}, ${body.address}, ${body.email}, ${body.phone},
+        ${JSON.stringify(body.invoices)}::jsonb, ${body.attachments}::uuid[])`;
+    switch (row?.outcome) {
+      case 'OPENED':
+        return;
+      case 'NO_MANDATE':
+      case 'DEBTOR_MISMATCH':
+      case 'CASE_EXISTS':
+        throw conflict(row.outcome);
+      default:
+        throw conflict('CHANGED');
+    }
+  }
+
+  /** A file of the creditor: real type checked, analysed before anyone reads it, kept until its claim takes it. */
+  async upload(bytes: Uint8Array, declared: string): Promise<{ id: string }> {
+    const kind = checkFile(bytes, declared);
+    if (!kind) throw new ApiError(415, 'REFUSED');
+    const stored = await this.storage.put(bytes);
+    const id = randomUUID();
+    try {
+      await this.database.tx
+        .$executeRaw`SELECT app.creditor_upload(${id}::uuid, ${kind}::document_kind, ${stored.key}, ${stored.size}::integer, ${stored.sha256})`;
+      await this.outbox.add({ queue: 'documents', name: 'scan-document', payload: { document: id } });
+    } catch (error) {
+      await this.storage.remove(stored.key);
+      throw error;
+    }
+    return { id };
   }
 }

@@ -60,6 +60,8 @@ model Document {
   scannedAt            DateTime?        @map("scanned_at") @db.Timestamptz(3)
   /// A file of a debtor, waiting for their message.
   uploadedByDebtor     String?          @map("uploaded_by_debtor") @db.Uuid
+  /// A file of a creditor, waiting for its claim.
+  uploadedByCreditor   String?          @map("uploaded_by_creditor") @db.Uuid
   createdAt            DateTime         @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
 
   case     Case?     @relation(fields: [caseId, creditorId], references: [id, creditorId], onDelete: NoAction, onUpdate: NoAction)

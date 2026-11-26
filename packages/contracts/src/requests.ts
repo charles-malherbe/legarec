@@ -256,6 +256,7 @@ export const REQUEST_BODIES = {
     'POST /auth/setup/totp/verify': oneTimeCodeBody,
     'POST /portal/plans/:id/decision': partnerDecisionBody,
     'POST /portal/claims': claimBody,
+    'POST /portal/attachments': fileBody,
     'POST /portal/messages/:id': portalMessageBody,
   },
   debtor: {

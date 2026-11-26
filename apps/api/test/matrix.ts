@@ -181,6 +181,7 @@ const creditorPlan = async (test: TestApp) => {
   );
   return `/partner/portal/plans/${rows[0]!.id}/decision`;
 };
+const INVOICE_OF_CLAIM = { number: 'F-1', issuedOn: '2026-09-01', dueOn: '2026-10-01', amount: 10000 };
 let assigned: unknown;
 let planned: unknown;
 let rateTurn = 0;
@@ -577,4 +578,18 @@ export const MATRIX: Record<string, MatrixEntry> = {
   'GET /partner/portal/cases': { expect: only({ partnerA: 200, partnerB: 200 }) },
   'GET /partner/portal/cases/:id': { path: (test) => `/partner/portal/cases/${test.s.cases.ofA}`, expect: only({ partnerA: 200, partnerB: 404 }) },
   'POST /partner/portal/plans/:id/decision': { path: creditorPlan, body: () => ({ accepted: true }), expect: only({ partnerA: 204, partnerB: 404 }) },
+  // Without a mandate in force (the test set has none), a deposit is refused alike for both creditors.
+  'POST /partner/portal/claims': {
+    body: () => ({
+      debtor: 'Bâtiplus SAS',
+      siret: '',
+      email: '',
+      phone: '',
+      address: '14 rue des Forges, 69007 Lyon',
+      attachments: [],
+      invoices: [INVOICE_OF_CLAIM],
+    }),
+    expect: only({ partnerA: 409, partnerB: 409 }),
+  },
+  'POST /partner/portal/attachments': { file: PDF, expect: only({ partnerA: 200, partnerB: 200 }) },
 };

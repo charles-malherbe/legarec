@@ -8412,6 +8412,56 @@
         }
       }
     },
+    "/partner/portal/claims": {
+      "post": {
+        "operationId": "PortalController_deposit",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "partner"
+        ],
+        "x-access": {
+          "portal": "partner"
+        }
+      }
+    },
+    "/partner/portal/attachments": {
+      "post": {
+        "operationId": "PortalController_attach",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "partner"
+        ],
+        "x-access": {
+          "portal": "partner"
+        }
+      }
+    },
     "/staff/shell": {
       "get": {
         "operationId": "ShellController_shell",
