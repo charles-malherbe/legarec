@@ -1,10 +1,10 @@
-import { gdprExport, gdprRegistry, REQUEST_BODIES, type GdprRequest } from '@legarec/contracts';
+import { gdprErasure, gdprExport, gdprRegistry, REQUEST_BODIES, type GdprRequest } from '@legarec/contracts';
 import { Body, Controller, Get, HttpCode, Inject, Param, Post, Put } from '@nestjs/common';
 import { ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import type { z } from 'zod';
 import { Staff, StaffOrDelegate } from '../../platform/access/access';
 import { Database } from '../../platform/database/database';
-import { notFound } from '../../platform/errors/api-error';
+import { conflict, notFound } from '../../platform/errors/api-error';
 import { dayOf } from '../../platform/format';
 import { Commits } from '../../platform/http/transaction.interceptor';
 
@@ -81,5 +81,34 @@ export class GdprController {
     const [row] = await this.database.tx.$queryRaw<{ data: unknown }[]>`SELECT app.gdpr_export(${id}::uuid) AS data`;
     if (!row) throw notFound();
     return { fileName: `export-rgpd-${id}.json`, content: row.data };
+  }
+
+  /** What an erasure would anonymize (the number confirmed afterwards), and what stands in its way. */
+  @Get(':id/erasure')
+  @StaffOrDelegate('ADMINISTRATIVE', 'DIRECTOR')
+  @ApiOkResponse({ standardSchema: gdprErasure })
+  async erasure(@Param('id') id: string): Promise<z.infer<typeof gdprErasure>> {
+    const [row] = await this.database.tx.$queryRaw<{ cases: number; digest: string; blockers: z.infer<typeof gdprErasure>['blockers']; homonyms: number }[]>`
+      SELECT cases, digest, blockers, homonyms FROM app.gdpr_erasure(${id}::uuid)`;
+    if (!row) throw notFound();
+    return { ...row, warning: row.homonyms > 0 ? 'D’autres fiches au même nom existent : à vérifier.' : null };
+  }
+
+  /**
+   * Anonymizes every case of the debtor and the debtor themselves; the pieces of accounting stay ten years. Refused with
+   * its reasons while a claim or a legal obligation holds (article 17.3 of the RGPD), and if the count shown has changed.
+   */
+  @Post(':id/erasure')
+  @StaffOrDelegate('ADMINISTRATIVE', 'DIRECTOR')
+  @Commits()
+  @HttpCode(204)
+  @ApiNoContentResponse()
+  async erase(
+    @Param('id') id: string,
+    @Body({ schema: bodies['POST /gdpr/requests/:id/erasure'] }) { expectedCases, expectedDigest }: In<'POST /gdpr/requests/:id/erasure'>,
+  ) {
+    const { blockers } = await this.erasure(id);
+    if (blockers.length) throw conflict('ERASURE_REFUSED', { blockers });
+    await this.database.tx.$queryRaw`SELECT app.gdpr_erase(${id}::uuid, ${expectedCases}::integer, ${expectedDigest})`;
   }
 }

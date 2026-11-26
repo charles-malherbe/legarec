@@ -239,6 +239,10 @@ model Case {
   formalNoticeOn       DateTime?  @map("formal_notice_on") @db.Date
   /// The name of the debtor as a creditor gave it in its deposit: shown to that creditor, checked by the team.
   depositedName        String?    @map("deposited_name")
+  /// Five years after it closed, everything it held about its debtor is gone (app.anonymize_case).
+  anonymizedAt         DateTime?  @map("anonymized_at") @db.Timestamptz(3)
+  /// Shown only: computed by PostgreSQL from `closedOn`.
+  purgeAfter           DateTime?  @map("purge_after") @db.Date
 
   mandate  Mandate?    @relation(fields: [mandateId, creditorId], references: [id, creditorId], onDelete: NoAction, onUpdate: NoAction)
   invoices CaseInvoice[]

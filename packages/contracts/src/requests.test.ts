@@ -219,6 +219,7 @@ const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly
       { status: 'ANSWERED', reason: 'Copie envoyée par courrier' },
       { status: 'REFUSED', reason: 'Demande déjà traitée' },
     ],
+    'POST /gdpr/requests/:id/erasure': [{ expectedCases: 2, expectedDigest: 'a'.repeat(64) }],
     'POST /reminders': [
       { caseId: 'demo', type: 'CALL', date: '2026-11-21', time: '', title: 'Point sur la promesse' },
       { caseId: 'demo', type: 'EMAIL', date: '2026-11-24', time: '10:00', title: 'Relance' },

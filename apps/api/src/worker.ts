@@ -79,7 +79,7 @@ async function main() {
   if (stopping) return;
   // Started again by its container, in a clean state.
   const onDead = () => void stop(1);
-  workers = startWorkers({ database, logger, connection, handlers, scheduled: maintenance(database, logger, resealAll), onDead });
+  workers = startWorkers({ database, logger, connection, handlers, scheduled: maintenance(database, logger, storage, resealAll), onDead });
   publisher.start();
   const schedule = () => scheduleMaintenance(connection).catch(() => logger.warn('maintenance not scheduled'));
   // Again every hour: the schedule lives in Valkey, and would be lost with it.

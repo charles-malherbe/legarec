@@ -1,15 +1,19 @@
 import { randomBytes } from 'node:crypto';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { Writable } from 'node:stream';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDatabase, seed, type Seed, type TestDatabase } from '../../../test/database';
 import { Database } from '../database/database';
 import { createLogger } from '../logging/logger';
+import { Storage } from '../storage/storage';
 import { purge } from './maintenance';
 
 let test: TestDatabase;
 let s: Seed;
 let jobs: Database;
+const storage = new Storage(join(tmpdir(), `legarec-retention-${process.pid}`));
 const logger = createLogger('debug', new Writable({ write: (_chunk, _encoding, done) => done() }));
 const rows = async <T extends object = Record<string, unknown>>(sql: string, values: unknown[] = []) => (await test.admin.query<T>(sql, values)).rows;
 const hash = () => randomBytes(32);
@@ -55,7 +59,7 @@ describe('sign-ins', () => {
       "INSERT INTO lockouts (key_hash, scope, failures, last_failure_at) VALUES ($1, 'SIGN_IN', 1, now() - interval '13 months'), ($2, 'SIGN_IN', 1, now() - interval '11 months')",
       [hash(), hash()],
     );
-    expect(await purge(jobs, logger)).toMatchObject({ 'sign-ins': 7 });
+    expect(await purge(jobs, logger, storage)).toMatchObject({ 'sign-ins': 7 });
     expect((await rows<{ device_label: string }>('SELECT device_label FROM user_sessions ORDER BY 1')).map((row) => row.device_label)).toEqual([
       'closed a moment ago',
       'expired a moment ago',
@@ -80,10 +84,10 @@ describe('sign-ins', () => {
       session!.id,
       hash(),
     ]);
-    await purge(jobs, logger);
+    await purge(jobs, logger, storage);
     expect(await rows('SELECT 1 FROM user_sessions WHERE id = $1', [session!.id])).toHaveLength(1);
     await rows("UPDATE auth_tokens SET expires_at = now() - interval '49 hours' WHERE session_id = $1", [session!.id]);
-    await purge(jobs, logger);
+    await purge(jobs, logger, storage);
     expect(await rows('SELECT 1 FROM user_sessions WHERE id = $1', [session!.id])).toEqual([]);
   });
 });
@@ -121,7 +125,7 @@ describe('accounts', () => {
       [s.cases.ofA, s.creditorA, old],
     );
     await rows('UPDATE users SET substitute_id = $1 WHERE id = ANY ($2::uuid[])', [s.officerB, [old, recent]]);
-    expect(await purge(jobs, logger)).toMatchObject({ accounts: 1 });
+    expect(await purge(jobs, logger, storage)).toMatchObject({ accounts: 1 });
     expect(await rows('SELECT substitute_id FROM users WHERE id = ANY ($1::uuid[]) ORDER BY id = $2', [[old, recent], recent])).toEqual([
       { substitute_id: null },
       { substitute_id: s.officerB },
@@ -157,7 +161,7 @@ describe('accounts', () => {
     // The history of the case still knows that somebody wrote.
     expect(await rows('SELECT actor_id FROM case_events WHERE actor_id = $1', [old])).toHaveLength(1);
     // Once is enough, and nothing happens to the others.
-    expect(await purge(jobs, logger)).toMatchObject({ accounts: 0 });
+    expect(await purge(jobs, logger, storage)).toMatchObject({ accounts: 0 });
     expect(await rows("SELECT 1 FROM users WHERE status = 'ACTIVE' AND anonymized_at IS NOT NULL")).toEqual([]);
   });
 
@@ -178,7 +182,7 @@ describe('accounts', () => {
       await rows("INSERT INTO mailbox_requests (user_id, local, requested_by) VALUES ($1, 'x', $2)", [id, s.director]);
       await rows("INSERT INTO auth_tokens (purpose, user_id, token_hash, expires_at) VALUES ('INVITATION', $1, $2, now() + interval '1 hour')", [id, hash()]);
     }
-    expect(await purge(jobs, logger)).toMatchObject({ accounts: 1 });
+    expect(await purge(jobs, logger, storage)).toMatchObject({ accounts: 1 });
     expect(
       (await rows<{ id: string }>('SELECT id FROM users WHERE id = ANY ($1::uuid[]) ORDER BY email', [[old, recent, opened]])).map((row) => row.id),
     ).toEqual([opened, recent]);
@@ -189,7 +193,7 @@ describe('accounts', () => {
   it('of someone who came back are kept', async () => {
     const id = await disabled('25 months');
     await rows("UPDATE users SET status = 'ACTIVE', disabled_at = NULL, disabled_by = NULL, disabled_reason = NULL WHERE id = $1", [id]);
-    expect(await purge(jobs, logger)).toMatchObject({ accounts: 0 });
+    expect(await purge(jobs, logger, storage)).toMatchObject({ accounts: 0 });
   });
 
   it('opened again while they are being forgotten are kept whole', async () => {
@@ -199,7 +203,7 @@ describe('accounts', () => {
     try {
       await other.query('BEGIN');
       await other.query("UPDATE users SET status = 'ACTIVE', disabled_at = NULL, disabled_by = NULL, disabled_reason = NULL WHERE id = $1", [id]);
-      expect(await purge(jobs, logger)).toMatchObject({ accounts: 0 });
+      expect(await purge(jobs, logger, storage)).toMatchObject({ accounts: 0 });
       await other.query('COMMIT');
     } finally {
       await other.end();
@@ -226,7 +230,7 @@ describe('notifications and questions to the support', () => {
         [s.developer, ticket!.id, s.officerA],
       );
     }
-    expect(await purge(jobs, logger)).toMatchObject({ notifications: 1, 'support-tickets': 1 });
+    expect(await purge(jobs, logger, storage)).toMatchObject({ notifications: 1, 'support-tickets': 1 });
     expect(await rows('SELECT number FROM support_tickets')).toEqual([{ number: '2025-0001' }]);
   });
 });
@@ -252,8 +256,220 @@ describe('what tonight’s lots keep', () => {
       `call:${made!.id}`,
       `dispute:${made!.id}`,
     ]);
-    expect(await purge(jobs, logger)).toMatchObject({ 'limited-messages': 1, 'gdpr-requests': 1, 'task-marks': 1, 'claim-imports': 0 });
+    expect(await purge(jobs, logger, storage)).toMatchObject({ 'limited-messages': 1, 'gdpr-requests': 1, 'task-marks': 1, 'claim-imports': 0 });
     expect(await rows('SELECT count(*)::int AS n FROM limited_messages')).toEqual([{ n: 1 }]);
     expect(await rows('SELECT key FROM task_marks')).toEqual([{ key: `dispute:${made!.id}` }]);
+  });
+});
+
+describe('cases closed for more than five years', () => {
+  const today = "(now() AT TIME ZONE 'Europe/Paris')::date";
+  let creditor = '';
+  let reference = 99100;
+  /** A case closed `age` ago (an interval), or still open, with what a case holds. */
+  const closedCase = async (debtor: string, age: string | null) => {
+    reference += 1;
+    const closed = age === null ? 'NULL' : `(${today} - interval '${age}')::date`;
+    const [made] = await rows<{ id: string }>(
+      `INSERT INTO cases (reference, creditor_id, debtor_id, status, closed_on, debtor_address, debtor_postal_code, debtor_city, contact_name, external_reference)
+       VALUES ($1, $2, $3, ${age === null ? "'REMINDER'" : "'SETTLED'"}, ${closed}, '3 rue des Lilas', '75011', 'Paris', 'Jeanne Martin', 'CLI-42') RETURNING id`,
+      [`LGR-2021-${reference}`, creditor, debtor],
+    );
+    const id = made!.id;
+    await rows(
+      "INSERT INTO case_events (case_id, creditor_id, kind, title, detail, actor_kind, actor_label) VALUES ($1, $2, 'CALL_DONE', 'Appel à Jeanne Martin', 'Promet de payer', 'STAFF', 'Alba')",
+      [id, creditor],
+    );
+    const [contact] = await rows<{ id: string }>(
+      "INSERT INTO case_contacts (case_id, creditor_id, kind, label, value, value_normalized, source) VALUES ($1, $2, 'PHONE', 'Mobile', '06 12 34 56 78', '0612345678', 'CALL') RETURNING id",
+      [id, creditor],
+    );
+    await rows("INSERT INTO case_contact_events (case_id, creditor_id, contact_id, actor_label, what) VALUES ($1, $2, $3, 'Alba', 'ADDED')", [
+      id,
+      creditor,
+      contact!.id,
+    ]);
+    await rows("INSERT INTO portal_messages (case_id, creditor_id, side, text) VALUES ($1, $2, 'DEBTOR', 'Je paierai fin du mois')", [id, creditor]);
+    await rows(
+      "INSERT INTO planned_reminders (case_id, creditor_id, kind, due_on, title, created_by) VALUES ($1, $2, 'CALL', '2099-01-05', 'Rappeler Jeanne', $3)",
+      [id, creditor, s.manager],
+    );
+    await rows(
+      "INSERT INTO debtor_links (debtor_id, case_id, creditor_id, token_hash, channel, expires_at) VALUES ($1, $2, $3, $4, 'LETTER', now() + interval '1 day')",
+      [debtor, id, creditor, hash()],
+    );
+    return id;
+  };
+  const document = async (id: string, category: string) => {
+    const stored = await storage.put(new TextEncoder().encode('%PDF-1.4 Jeanne Martin'));
+    const [made] = await rows<{ id: string }>(
+      `INSERT INTO documents (case_id, creditor_id, category, kind, title, original_name, storage_key, size_bytes, sha256, source, scan_status, scanned_at, shared_with_creditor_at)
+       VALUES ($1, $2, $3, 'PDF', 'Facture Jeanne Martin', 'martin.pdf', $4, $5, $6, 'UPLOAD', 'CLEAN', now(), now()) RETURNING id`,
+      [id, creditor, category, stored.key, stored.size, stored.sha256],
+    );
+    return { id: made!.id, key: stored.key };
+  };
+  let siren = 412_345_000;
+  const debtor = async (name: string) =>
+    (await rows<{ id: string }>("INSERT INTO debtors (kind, name, siren) VALUES ('SOLE_TRADER', $1, $2) RETURNING id", [name, String((siren += 1))]))[0]!.id;
+  const count = async (table: string, id: string) => (await rows<{ n: number }>(`SELECT count(*)::int AS n FROM ${table} WHERE case_id = $1`, [id]))[0]!.n;
+
+  beforeAll(async () => {
+    [{ id: creditor }] = (await rows<{ id: string }>("INSERT INTO creditors (name) VALUES ('Purge Cinq Ans') RETURNING id")) as [{ id: string }];
+  });
+
+  it('anonymizes the case closed 5 years and a day ago, not the one closed 4 years and 364 days ago, nor 5 years to the day', async () => {
+    const oldDebtor = await debtor('Jeanne Martin');
+    const youngDebtor = await debtor('Paul Durand');
+    const old = await closedCase(oldDebtor, '5 years 1 day');
+    const young = await closedCase(youngDebtor, '4 years 364 days');
+    const exact = await closedCase(await debtor('Paul Durand'), '5 years');
+    await rows('INSERT INTO debtor_access_codes (debtor_id, code_cipher) VALUES ($1, $2)', [oldDebtor, hash()]);
+    const evidence = await document(old, 'EVIDENCE');
+    // A receipt, its payment and its PDF: ten years.
+    const receipt = await document(old, 'RECEIPT');
+    const [payment] = await rows<{ id: string }>(
+      `WITH p AS (INSERT INTO payments (case_id, creditor_id, method, amount_cents, status, received_on, settled_at, cheque_number, bank, recorded_by)
+         VALUES ($1, $2, 'CHEQUE', 1000, 'CASHED', '2021-01-04', '2021-01-05', '1234567', 'Banque', $3) RETURNING id)
+       INSERT INTO payment_allocations (case_id, creditor_id, payment_id, component, amount_cents) SELECT $1, $2, p.id, 'OVERPAYMENT', 1000 FROM p RETURNING payment_id AS id`,
+      [old, creditor, s.officerA],
+    );
+    await rows("INSERT INTO receipts (case_id, creditor_id, payment_id, number, document_id) VALUES ($1, $2, $3, 'Q-2021-00001', $4)", [
+      old,
+      creditor,
+      payment!.id,
+      receipt.id,
+    ]);
+
+    expect(await purge(jobs, logger, storage)).toMatchObject({ cases: 1, 'document-files': 1 });
+
+    expect(
+      await rows(
+        'SELECT reference, status, debtor_address, debtor_city, contact_name, external_reference, anonymized_at IS NOT NULL AS anonymized FROM cases WHERE id = $1',
+        [old],
+      ),
+    ).toEqual([
+      {
+        reference: 'LGR-2021-99101',
+        status: 'SETTLED',
+        debtor_address: null,
+        debtor_city: null,
+        contact_name: null,
+        external_reference: null,
+        anonymized: true,
+      },
+    ]);
+    for (const table of ['case_events', 'case_contacts', 'case_contact_events', 'portal_messages', 'planned_reminders', 'debtor_links'])
+      expect(await count(table, old), table).toBe(0);
+    // The attachment: its line without its names, its file gone; the receipt untouched.
+    expect(
+      await rows('SELECT title, original_name, shared_with_creditor_at, purged_at IS NOT NULL AS purged FROM documents WHERE id = $1', [evidence.id]),
+    ).toEqual([{ title: 'Pièce supprimée', original_name: 'piece-supprimee', shared_with_creditor_at: null, purged: true }]);
+    await expect(storage.read(evidence.key)).rejects.toThrow();
+    // No function shares it again: it is out of reach, even of their owner.
+    await rows('BEGIN');
+    try {
+      await rows('SET LOCAL ROLE legarec_definer');
+      expect((await test.admin.query('UPDATE documents SET shared_with_creditor_at = now() WHERE id = $1', [evidence.id])).rowCount).toBe(0);
+    } finally {
+      await rows('ROLLBACK');
+    }
+    expect(await rows('SELECT title, purged_at FROM documents WHERE id = $1', [receipt.id])).toEqual([{ title: 'Facture Jeanne Martin', purged_at: null }]);
+    expect((await storage.read(receipt.key)).byteLength).toBeGreaterThan(0);
+    for (const table of ['receipts', 'payments', 'payment_allocations']) expect(await count(table, old), table).toBe(1);
+    // Its debtor had no other case: their line stays, without name, SIREN nor access code.
+    expect(await rows('SELECT name, siren, anonymized_at IS NOT NULL AS anonymized FROM debtors WHERE id = $1', [oldDebtor])).toEqual([
+      { name: 'Débiteur anonymisé', siren: null, anonymized: true },
+    ]);
+    expect(await rows('SELECT 1 FROM debtor_access_codes WHERE debtor_id = $1', [oldDebtor])).toEqual([]);
+    // Too young, or five years to the day: nothing changes.
+    for (const kept of [young, exact]) {
+      expect(await rows('SELECT contact_name, anonymized_at FROM cases WHERE id = $1', [kept])).toEqual([
+        { contact_name: 'Jeanne Martin', anonymized_at: null },
+      ]);
+      expect(await count('case_events', kept)).toBe(1);
+    }
+    expect(await rows('SELECT name FROM debtors WHERE id = $1', [youngDebtor])).toEqual([{ name: 'Paul Durand' }]);
+    expect(await rows("SELECT removed FROM retention_runs WHERE kind = 'cases' ORDER BY ran_at DESC LIMIT 1")).toEqual([{ removed: 1 }]);
+  });
+
+  it('does nothing twice, and erases the files again after a restoration of the disk', async () => {
+    const id = await closedCase(await debtor('Luc Petit'), '6 years');
+    const file = await document(id, 'EVIDENCE');
+    expect(await purge(jobs, logger, storage)).toMatchObject({ cases: 1, 'document-files': 1 });
+    expect(await purge(jobs, logger, storage)).toMatchObject({ cases: 0, 'document-files': 0 });
+    // The disk restored from a backup: the file is back, and erased again.
+    const restored = await storage.put(new TextEncoder().encode('%PDF-1.4'));
+    await rows('UPDATE documents SET storage_key = $1 WHERE id = $2', [restored.key, file.id]);
+    expect(await purge(jobs, logger, storage)).toMatchObject({ cases: 0, 'document-files': 1 });
+  });
+
+  it('anonymizes a debtor shared by several cases only with the last of them', async () => {
+    const shared = await debtor('Marc Leroy');
+    const [{ siren: known }] = (await rows<{ siren: string }>('SELECT siren FROM debtors WHERE id = $1', [shared])) as [{ siren: string }];
+    const first = await closedCase(shared, '6 years');
+    const second = await closedCase(shared, null);
+    expect(await purge(jobs, logger, storage)).toMatchObject({ cases: 1 });
+    expect(await rows('SELECT id, anonymized_at IS NOT NULL AS anonymized FROM cases WHERE id IN ($1, $2)', [first, second])).toEqual(
+      expect.arrayContaining([
+        { id: first, anonymized: true },
+        { id: second, anonymized: false },
+      ]),
+    );
+    expect(await rows('SELECT name, siren FROM debtors WHERE id = $1', [shared])).toEqual([{ name: 'Marc Leroy', siren: known }]);
+    // The other one closes, and five years go by.
+    await rows(`UPDATE cases SET status = 'LOST', closed_on = (${today} - interval '5 years 2 days')::date WHERE id = $1`, [second]);
+    expect(await purge(jobs, logger, storage)).toMatchObject({ cases: 1 });
+    expect(await rows('SELECT name, siren FROM debtors WHERE id = $1', [shared])).toEqual([{ name: 'Débiteur anonymisé', siren: null }]);
+  });
+
+  it('keeps the signed payment plan ten years, and forgets why a cheque bounced', async () => {
+    const id = await closedCase(await debtor('Anne Roux'), '6 years');
+    const plan = await document(id, 'PAYMENT_PLAN');
+    // A free text about the debtor, left in the line of a payment.
+    await rows(
+      `WITH p AS (INSERT INTO payments (case_id, creditor_id, method, amount_cents, status, received_on, settled_at, cheque_number, bank, recorded_by, bounce_reason)
+         VALUES ($1, $2, 'CHEQUE', 1000, 'CASHED', '2020-01-04', '2020-01-09', '7654320', 'Banque', $3, 'Provision insuffisante, Mme Roux au chômage') RETURNING id)
+       INSERT INTO payment_allocations (case_id, creditor_id, payment_id, component, amount_cents) SELECT $1, $2, p.id, 'OVERPAYMENT', 1000 FROM p`,
+      [id, creditor, s.officerA],
+    );
+    expect(await purge(jobs, logger, storage)).toMatchObject({ cases: 1, 'document-files': 0 });
+    expect(await rows('SELECT retention_class, purged_at FROM documents WHERE id = $1', [plan.id])).toEqual([
+      { retention_class: 'ACCOUNTING', purged_at: null },
+    ]);
+    expect((await storage.read(plan.key)).byteLength).toBeGreaterThan(0);
+    expect(await rows('SELECT amount_cents, bounce_reason FROM payments WHERE case_id = $1', [id])).toEqual([{ amount_cents: 1000, bounce_reason: null }]);
+  });
+
+  it('forgets nothing for a session that only says it is forgetting', async () => {
+    const id = await closedCase(await debtor('Rose Blanc'), null);
+    for (const role of ['legarec_staff', 'legarec_definer', 'legarec_worker']) {
+      await rows('BEGIN');
+      try {
+        await rows(`SET LOCAL ROLE ${role}`);
+        await rows("SELECT set_config('app.forgetting', 'on', true), set_config('app.purging', 'case_events', true)");
+        // The definer calls it from its own functions only; no session takes its role.
+        if (role !== 'legarec_definer') await expect(test.admin.query('SELECT app.forget_case($1)', [id]), role).rejects.toThrow(/permission denied/u);
+      } finally {
+        await rows('ROLLBACK');
+      }
+      await rows('BEGIN');
+      try {
+        await rows(`SET LOCAL ROLE ${role}`);
+        await rows("SELECT set_config('app.forgetting', 'on', true)");
+        await expect(test.admin.query('DELETE FROM case_events WHERE case_id = $1', [id]), role).rejects.toThrow(/permission denied/u);
+      } finally {
+        await rows('ROLLBACK');
+      }
+    }
+    expect(await count('case_events', id)).toBe(1);
+  });
+
+  it('is done by the retention alone', async () => {
+    const callers = await rows<{ role: string; anonymize: boolean; forget: boolean }>(
+      `SELECT r AS role, has_function_privilege(r, 'app.anonymize_case()', 'EXECUTE') AS anonymize, has_function_privilege(r, 'app.forget_case(uuid)', 'EXECUTE') AS forget
+       FROM unnest(ARRAY['legarec_staff', 'legarec_worker', 'legarec_partner', 'legarec_debtor', 'legarec_retention']) r`,
+    );
+    expect(callers.filter((row) => row.anonymize || row.forget)).toEqual([{ role: 'legarec_retention', anonymize: true, forget: false }]);
   });
 });

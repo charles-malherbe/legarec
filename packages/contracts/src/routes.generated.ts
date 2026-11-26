@@ -1072,6 +1072,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/staff/gdpr/requests/{id}/erasure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GdprController_erasure"];
+        put?: never;
+        post: operations["GdprController_erase"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/staff/dashboard": {
         parameters: {
             query?: never;
@@ -4041,6 +4057,48 @@ export interface operations {
                         content: unknown;
                     };
                 };
+            };
+        };
+    };
+    GdprController_erasure: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        cases: number;
+                        digest: string;
+                        blockers: ("OPEN_CASE" | "PAYMENT_PENDING" | "NOT_REMITTED" | "REQUEST_CLOSED")[];
+                        homonyms: number;
+                        warning: string | null;
+                    };
+                };
+            };
+        };
+    };
+    GdprController_erase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

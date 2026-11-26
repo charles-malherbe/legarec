@@ -100,6 +100,7 @@ export const AUDIT_ACTIONS = {
   GDPR_REQUEST_REFUSED: 'Demande RGPD refusée',
   GDPR_REQUEST_OPEN: 'Demande RGPD rouverte',
   GDPR_EXPORTED: 'Export RGPD des données d’un débiteur',
+  GDPR_ERASED: 'Données d’un débiteur anonymisées à sa demande : {count} dossiers',
 } as const;
 export type AuditAction = keyof typeof AUDIT_ACTIONS;
 

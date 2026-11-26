@@ -109,15 +109,17 @@ const plannedReminder = async (test: TestApp) => {
   );
   return `/staff/reminders/${rows[0]!.id}`;
 };
-const gdprRequest = (then: string) => async (test: TestApp) => {
-  const made = await newCase(test);
-  const { rows } = await test.database.admin.query<{ id: string }>(
-    `INSERT INTO gdpr_requests (case_id, creditor_id, debtor_id, kind, origin, due_on, created_by)
-     SELECT c.id, c.creditor_id, c.debtor_id, 'ACCESS', 'Courrier', current_date + 30, $2 FROM cases c WHERE c.id = $1 RETURNING id`,
-    [made.id, test.s.manager],
-  );
-  return `/staff/gdpr/requests/${rows[0]!.id}${then}`;
-};
+const gdprRequest =
+  (then: string, kind = 'ACCESS') =>
+  async (test: TestApp) => {
+    const made = await newCase(test);
+    const { rows } = await test.database.admin.query<{ id: string }>(
+      `INSERT INTO gdpr_requests (case_id, creditor_id, debtor_id, kind, origin, due_on, created_by)
+     SELECT c.id, c.creditor_id, c.debtor_id, $3, 'Courrier', current_date + 30, $2 FROM cases c WHERE c.id = $1 RETURNING id`,
+      [made.id, test.s.manager, kind],
+    );
+    return `/staff/gdpr/requests/${rows[0]!.id}${then}`;
+  };
 const cheque = () => ({
   method: 'CHEQUE',
   amount: 1000,
@@ -501,6 +503,13 @@ export const MATRIX: Record<string, MatrixEntry> = {
   'GET /staff/gdpr/requests': { expect: only({ director: 200, manager: 200 }) },
   'PUT /staff/gdpr/requests/:id': { path: gdprRequest(''), body: () => ({ status: 'ANSWERED', reason: 'Données envoyées' }), expect: administers },
   'POST /staff/gdpr/requests/:id/export': { path: gdprRequest('/export'), expect: only({ director: 200, manager: 200 }) },
+  // Erasure: the Director or their administrative delegate; the case is still open, so it is refused with its reason.
+  'GET /staff/gdpr/requests/:id/erasure': { path: gdprRequest('/erasure', 'ERASURE'), expect: only({ director: 200, manager: 200 }) },
+  'POST /staff/gdpr/requests/:id/erasure': {
+    path: gdprRequest('/erasure', 'ERASURE'),
+    body: () => ({ expectedCases: 1, expectedDigest: '0'.repeat(64) }),
+    expect: only({ director: 409, manager: 409 }),
+  },
   // Remittances: the Director, or the manager acting for them; an empty batch is not validated.
   'GET /staff/remittances/draft': { expect: only({ director: 200, manager: 200 }) },
   'POST /staff/remittances': {

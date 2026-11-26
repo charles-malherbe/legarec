@@ -16,6 +16,11 @@ BEGIN
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'legarec_definer') THEN
     CREATE ROLE legarec_definer NOLOGIN NOINHERIT NOBYPASSRLS;
   END IF;
+  -- Owner of the two functions that erase what the retention or a debtor asks to forget: no one signs in with it, and only
+  -- legarec_definer calls them.
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'legarec_forgetter') THEN
+    CREATE ROLE legarec_forgetter NOLOGIN NOINHERIT NOBYPASSRLS;
+  END IF;
   -- legarec_owner runs the migrations; legarec_app is the HTTP API; legarec_jobs is the worker.
   FOREACH name IN ARRAY ARRAY['legarec_owner', 'legarec_app', 'legarec_jobs'] LOOP
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = name) THEN
@@ -48,4 +53,4 @@ ALTER ROLE legarec_jobs SET statement_timeout = '60s';
 ALTER ROLE legarec_jobs SET lock_timeout = '10s';
 ALTER ROLE legarec_jobs SET idle_in_transaction_session_timeout = '120s';
 -- The migrations hand the definer functions over to their owner.
-GRANT legarec_definer TO legarec_owner WITH INHERIT FALSE, SET TRUE;
+GRANT legarec_definer, legarec_forgetter TO legarec_owner WITH INHERIT FALSE, SET TRUE;

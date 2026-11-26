@@ -3,6 +3,7 @@ import { readWorkerConfig } from './platform/config/config';
 import { Database } from './platform/database/database';
 import { createLogger } from './platform/logging/logger';
 import { purge } from './platform/queue/maintenance';
+import { storageFor } from './platform/storage/storage';
 
 /**
  *   node dist/purge.js
@@ -13,7 +14,7 @@ const config = readWorkerConfig(process.env);
 const logger = createLogger(config.LOG_LEVEL);
 const database = new Database(config.JOBS_DATABASE_URL, { poolSize: 1 });
 try {
-  const counts = await purge(database, logger);
+  const counts = await purge(database, logger, storageFor(config));
   process.stdout.write(
     `Purge faite : ${Object.entries(counts)
       .map(([kind, removed]) => `${kind} ${removed}`)
