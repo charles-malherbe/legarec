@@ -34,11 +34,24 @@ const STEPS: readonly [kind: string, remove: (tx: Transaction) => Promise<number
   ['task-marks', (tx) => tx.$executeRaw`DELETE FROM task_marks WHERE done_at < now() - interval '2 years'`],
   // The journal of the assistant: 1 year.
   ['ai-suggestions', (tx) => tx.$executeRaw`DELETE FROM ai_suggestions WHERE created_at < now() - interval '1 year'`],
-  // The registry of the RGPD: 10 years (question 115).
-  ['gdpr-requests', (tx) => tx.$executeRaw`DELETE FROM gdpr_requests WHERE received_on < (now() - interval '10 years')::date`],
+  // The registry of the RGPD: 10 years from the close of the request, counted as the accounting from the end of its year
+  // (questions 115 and V-10); one still open stays.
+  [
+    'gdpr-requests',
+    (tx) => tx.$executeRaw`
+      DELETE FROM gdpr_requests WHERE answered_at IS NOT NULL
+        AND (answered_at AT TIME ZONE 'Europe/Paris')::date < make_date(extract(year FROM now() AT TIME ZONE 'Europe/Paris')::integer - 10, 1, 1)`,
+  ],
   // Cases closed for more than 5 years, and their debtor with the last of them; receipts, invoices, payments and
   // remittances stay 10 years (question 77). Before the files: their documents are marked there.
   ['cases', async (tx) => counted(await tx.$queryRaw`SELECT app.anonymize_case() AS removed`)],
+  // The pieces of accounting, 10 years after the end of their year (question V-10), after the cases: only those of an
+  // anonymized case go. Batches of remittances with what they hold, invoices that no remittance holds, bounced payments,
+  // then the files still kept for accounting; their files go with the next step.
+  ['remittances', async (tx) => counted(await tx.$queryRaw`SELECT app.purge_remittances() AS removed`)],
+  ['invoices', async (tx) => counted(await tx.$queryRaw`SELECT app.purge_invoices() AS removed`)],
+  ['payments', async (tx) => counted(await tx.$queryRaw`SELECT app.purge_payments() AS removed`)],
+  ['accounting-documents', async (tx) => counted(await tx.$queryRaw`SELECT app.purge_accounting_documents() AS removed`)],
 ];
 
 const FILES_AT_ONCE = 1000;
