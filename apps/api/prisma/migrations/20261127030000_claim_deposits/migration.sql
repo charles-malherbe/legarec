@@ -46,6 +46,12 @@ GRANT SELECT (id, creditor_id, deposited_by, debtor_name, siret, address, email,
 GRANT SELECT, INSERT, UPDATE ON claim_deposits TO legarec_definer;
 GRANT SELECT (id, status, decided_at), DELETE ON claim_deposits TO legarec_retention;
 
+-- A deposit opens no case any more: the policies that let it are gone; only the opening by the team below writes one.
+DROP POLICY definer_deposit ON cases;
+DROP POLICY definer_deposit ON case_invoices;
+DROP POLICY definer_deposit ON case_contacts;
+GRANT SELECT (purged_at) ON documents TO legarec_definer;
+
 -- The case opened from a deposit takes its id: these let the definer write it, and nothing else, while the deposit waits.
 CREATE POLICY definer_accept ON cases FOR INSERT TO legarec_definer WITH CHECK (
   status = 'NEW' AND officer_id IS NULL AND (SELECT app.staff_role()) IN ('DIRECTOR', 'COLLECTION_MANAGER')
@@ -74,8 +80,18 @@ BEGIN
   IF app.actor_kind() IS DISTINCT FROM 'CREDITOR' OR holder IS NULL OR jsonb_typeof(invoices) <> 'array' OR jsonb_array_length(invoices) NOT BETWEEN 1 AND 50 THEN
     PERFORM app.refuse('42501');
   END IF;
+  -- Each line as the opening will read it: a date, a date, an amount, a number (refused here rather than at the opening).
+  IF EXISTS (SELECT 1 FROM jsonb_array_elements(invoices) AS line
+      WHERE (line ->> 'issuedOn')::date IS NULL OR (line ->> 'dueOn')::date IS NULL OR (line ->> 'amount')::bigint NOT BETWEEN 1 AND 2147483647
+        OR length(btrim(coalesce(line ->> 'number', ''))) NOT BETWEEN 1 AND 60) THEN
+    PERFORM app.refuse('42501');
+  END IF;
+  -- One deposit of this creditor at a time: its files, its count of the day.
+  PERFORM pg_advisory_xact_lock(hashtextextended('deposits:' || holder::text, 0));
+  -- Its own files, waiting, and not already given with another deposit that waits.
   IF cardinality(coalesce(files, '{}')) > 20 OR (SELECT count(*) FROM public.documents d WHERE d.id = ANY (coalesce(files, '{}')) AND d.uploaded_by_creditor = holder
-      AND d.case_id IS NULL) <> cardinality(coalesce(files, '{}')) THEN
+      AND d.case_id IS NULL AND d.purged_at IS NULL) <> cardinality(coalesce(files, '{}'))
+    OR EXISTS (SELECT 1 FROM public.claim_deposits k WHERE k.creditor_id = holder AND k.status = 'PENDING' AND k.files && coalesce(creditor_deposit.files, '{}')) THEN
     outcome := 'FILES';
     RETURN;
   END IF;
@@ -83,7 +99,6 @@ BEGIN
     outcome := 'NO_MANDATE';
     RETURN;
   END IF;
-  PERFORM pg_advisory_xact_lock(hashtextextended('deposits:' || holder::text, 0));
   IF (SELECT count(*) FROM public.claim_deposits k WHERE k.creditor_id = holder AND k.created_at > now() - interval '1 day') >= 500 THEN
     outcome := 'TOO_MANY';
     RETURN;
@@ -197,16 +212,22 @@ BEGIN
 END
 $$;
 
--- Refused by the Director or the manager, with a reason: kept 30 days, what the creditor gave is emptied at once. Its files
--- stay without a case, as those of a claim never deposited. Outcome: REFUSED, CHANGED; NULL when there is no such deposit.
+-- Refused by the Director or the manager, with a reason: kept 30 days, what the creditor gave is emptied at once. Its files,
+-- without a case, go with the others (app.forget_waiting_files). Outcome: REFUSED, CHANGED; NULL when there is no such deposit.
 CREATE FUNCTION app.refuse_deposit(target uuid, why text) RETURNS text
 LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+DECLARE
+  deposit public.claim_deposits%ROWTYPE;
 BEGIN
   IF app.actor_kind() IS DISTINCT FROM 'STAFF' OR app.staff_role() IS NULL OR app.staff_role() NOT IN ('DIRECTOR', 'COLLECTION_MANAGER') THEN
     PERFORM app.refuse('42501');
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.claim_deposits k WHERE k.id = target) THEN
+  SELECT * INTO deposit FROM public.claim_deposits k WHERE k.id = target FOR UPDATE;
+  IF NOT FOUND THEN
     RETURN NULL;
+  END IF;
+  IF deposit.status <> 'PENDING' THEN
+    RETURN 'CHANGED';
   END IF;
   UPDATE public.claim_deposits k SET status = 'REFUSED', reason = btrim(why), decided_by = app.user_id(), on_behalf_of_id = app.on_behalf_of(), decided_at = now(),
     debtor_name = NULL, siret = NULL, address = NULL, email = NULL, phone = NULL, invoices = NULL, files = '{}'
@@ -220,5 +241,42 @@ END
 $$;
 REVOKE ALL ON FUNCTION app.accept_deposit(uuid, bigint), app.refuse_deposit(uuid, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION app.accept_deposit(uuid, bigint), app.refuse_deposit(uuid, text) TO legarec_staff;
+RESET ROLE;
+REVOKE CREATE ON SCHEMA app FROM legarec_definer;
+
+-- ---------------------------------------------------------------- The files of a creditor that no case took
+
+-- Every night, by the retention: a file of a creditor still without a case 30 days after it was sent (never deposited, or
+-- its deposit refused) is purged, unless a deposit waiting for the team holds it; its storage goes with the purge of files.
+GRANT SELECT (source, uploaded_by_creditor, created_at) ON documents TO legarec_forgetter;
+GRANT SELECT (files, status) ON claim_deposits TO legarec_forgetter;
+CREATE POLICY forgetter_read ON claim_deposits FOR SELECT TO legarec_forgetter USING (true);
+GRANT CREATE ON SCHEMA app TO legarec_forgetter;
+SET LOCAL ROLE legarec_forgetter;
+CREATE FUNCTION app.forget_waiting_files() RETURNS integer
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+DECLARE
+  removed integer;
+BEGIN
+  UPDATE public.documents d SET title = 'Pièce supprimée', original_name = 'piece-supprimee', purged_at = now()
+  WHERE d.source = 'CREDITOR' AND d.case_id IS NULL AND d.purged_at IS NULL AND d.created_at < now() - interval '30 days'
+    AND NOT EXISTS (SELECT 1 FROM public.claim_deposits k WHERE k.status = 'PENDING' AND d.id = ANY (k.files));
+  GET DIAGNOSTICS removed = ROW_COUNT;
+  RETURN removed;
+END
+$$;
+REVOKE ALL ON FUNCTION app.forget_waiting_files() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION app.forget_waiting_files() TO legarec_definer;
+RESET ROLE;
+REVOKE CREATE ON SCHEMA app FROM legarec_forgetter;
+-- Called by the retention through the definer, as the other purges (app.purge_invoices…).
+GRANT CREATE ON SCHEMA app TO legarec_definer;
+SET LOCAL ROLE legarec_definer;
+CREATE FUNCTION app.purge_waiting_files() RETURNS integer
+LANGUAGE sql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+  SELECT app.forget_waiting_files()
+$$;
+REVOKE ALL ON FUNCTION app.purge_waiting_files() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION app.purge_waiting_files() TO legarec_retention;
 RESET ROLE;
 REVOKE CREATE ON SCHEMA app FROM legarec_definer;

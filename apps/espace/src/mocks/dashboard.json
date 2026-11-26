@@ -1,5 +1,6 @@
 {
   "scope": "TEAM",
+  "depositsWaiting": null,
   "date": "2026-11-21",
   "outstanding": 128456000,
   "debtors": 248,

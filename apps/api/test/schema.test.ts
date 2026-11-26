@@ -103,7 +103,7 @@ describe('functions that see more than their caller', () => {
   it('belong to a role without login, with a fixed search path', async () => {
     const wrong = await rows(`
       SELECT p.proname, r.rolname, p.proconfig FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace JOIN pg_roles r ON r.oid = p.proowner
-      WHERE n.nspname IN ('app', 'public') AND p.prosecdef AND ((r.rolname <> 'legarec_definer' AND NOT (r.rolname = 'legarec_forgetter' AND p.proname IN ('forget_case', 'forget_debtor', 'forget_remittances', 'forget_lone_invoices', 'forget_bounced_payments', 'forget_accounting_documents'))) OR r.rolcanlogin OR p.proconfig IS DISTINCT FROM ARRAY['search_path=pg_catalog, public, pg_temp'])`);
+      WHERE n.nspname IN ('app', 'public') AND p.prosecdef AND ((r.rolname <> 'legarec_definer' AND NOT (r.rolname = 'legarec_forgetter' AND p.proname IN ('forget_case', 'forget_debtor', 'forget_remittances', 'forget_lone_invoices', 'forget_bounced_payments', 'forget_accounting_documents', 'forget_waiting_files'))) OR r.rolcanlogin OR p.proconfig IS DISTINCT FROM ARRAY['search_path=pg_catalog, public, pg_temp'])`);
     expect(wrong).toEqual([]);
   });
 });
@@ -477,7 +477,7 @@ describe('rights of the roles inside', () => {
       'template_versions UPDATE (number, on_behalf_of_id, published_at, review_reason, reviewed_by, state, submitted_by, updated_at)',
       // Documents: shared by its function.
       'documents INSERT (category, id, kind, original_name, sha256, size_bytes, source, storage_key, title, uploaded_by_creditor, uploaded_by_debtor)',
-      'documents SELECT (case_id, contains_access_code, created_at, creditor_id, id, scan_status, shared_with_creditor_at, source, uploaded_by_creditor, uploaded_by_debtor)',
+      'documents SELECT (case_id, contains_access_code, created_at, creditor_id, id, purged_at, scan_status, shared_with_creditor_at, source, uploaded_by_creditor, uploaded_by_debtor)',
       'documents UPDATE (case_id, creditor_id, shared_by, shared_with_creditor_at)',
       'debtor_links SELECT (case_id, debtor_id, expires_at, id, revoked_at, token_hash, uses)',
       'ai_suggestions SELECT (asked_by, case_id, cost_micro, created_at, decided_by, decision, feature, id, input_summary, input_tokens, model, outcome, output_tokens, prompt_version)',
@@ -556,6 +556,7 @@ describe('rights of the roles inside', () => {
       'case_events SELECT (case_id)',
       'cases SELECT (anonymized_at, debtor_id, id)',
       'cases UPDATE (anonymized_at, contact_name, contact_title, debtor_address, debtor_city, debtor_postal_code, debtor_siret, deposited_name, external_reference)',
+      'claim_deposits SELECT (files, status)',
       'credit_note_drafts DELETE (*)',
       'credit_note_drafts SELECT (invoice_id, updated_at)',
       'credit_note_refunds DELETE (*)',
@@ -570,7 +571,7 @@ describe('rights of the roles inside', () => {
       'debtor_sessions SELECT (debtor_id)',
       'debtors SELECT (anonymized_at, id)',
       'debtors UPDATE (anonymized_at, legal_form_checked_at, legal_form_code, legal_form_source, name, siren)',
-      'documents SELECT (case_id, created_at, id, purged_at, retention_class, uploaded_by_debtor)',
+      'documents SELECT (case_id, created_at, id, purged_at, retention_class, source, uploaded_by_creditor, uploaded_by_debtor)',
       'documents UPDATE (original_name, purged_at, shared_by, shared_with_creditor_at, title, visible_to_debtor)',
       'gdpr_requests SELECT (debtor_id)',
       'gdpr_requests UPDATE (origin)',
@@ -670,11 +671,19 @@ describe('rights on the functions', () => {
     ['purge_sign_ins', ['retention']],
     ['anonymize_accounts', ['retention']],
     ['anonymize_case', ['retention']],
-    ...['purge_remittances', 'purge_invoices', 'purge_payments', 'purge_accounting_documents'].map((name) => [name, ['retention']] as [string, string[]]),
-    // Owned by the forgetter, called by the functions of the definer only, or by its own.
-    ...['forget_case', 'forget_debtor', 'forget_remittances', 'forget_lone_invoices', 'forget_bounced_payments', 'forget_accounting_documents'].map(
-      (name) => [name, ['forgetter']] as [string, string[]],
+    ...['purge_remittances', 'purge_invoices', 'purge_payments', 'purge_accounting_documents', 'purge_waiting_files'].map(
+      (name) => [name, ['retention']] as [string, string[]],
     ),
+    // Owned by the forgetter, called by the functions of the definer only, or by its own.
+    ...[
+      'forget_case',
+      'forget_debtor',
+      'forget_remittances',
+      'forget_lone_invoices',
+      'forget_bounced_payments',
+      'forget_accounting_documents',
+      'forget_waiting_files',
+    ].map((name) => [name, ['forgetter']] as [string, string[]]),
     ...['forget_payments', 'forget_invoices', 'invoice_batches', 'accounting_cutoff'].map((name) => [name, ['forgetter']] as [string, string[]]),
     ...['erasure_blockers', 'erasure_digest'].map((name) => [name, []] as [string, string[]]),
     ['case_writable', ['debtor', 'partner', 'staff', 'worker']],
@@ -774,6 +783,7 @@ describe('rights on the functions', () => {
       'note_ai_decision ai_key ai_spent ai_budget_alert ai_journal ai_journal_totals planned_contacts keep_done_reminder litigation_rules case_exists correct_debtor accept_deposit refuse_deposit remittance_core creditor_payouts remittance_sources remittance_summary note_settlement remittance_draft validate_remittances mark_remittances_paid remittance_batches remittance_batch',
       'credit_notes save_credit_note_draft delete_credit_note_draft issue_credit_note invoice_lines_left invoice_left invoice_settled_on check_credit_lines',
       'purge_remittances purge_invoices purge_payments purge_accounting_documents forget_remittances forget_lone_invoices forget_bounced_payments forget_accounting_documents',
+      'purge_waiting_files forget_waiting_files',
       'forget_payments forget_invoices invoice_batches accounting_cutoff',
     ].flatMap((names) => names.split(' '));
     const found = await rows<{ proname: string }>(

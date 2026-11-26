@@ -1,5 +1,6 @@
 import {
   accessCodeResponse,
+  depositsData,
   accountData,
   aiJournal,
   caseCheckResult,
@@ -422,6 +423,12 @@ export const ACCOUNT_PARITY: Parity[] = [
     status: 403,
     answer: code('FORBIDDEN'),
   },
+  // Claims deposited by creditors, waiting for the Director or the manager (question 155).
+  ...each(['director', 'manager'], () => ({ request: 'GET /deposits', status: 200, answer: depositsData })),
+  ...each(['officer', 'developer'], () => ({ request: 'GET /deposits', status: 403, answer: code('FORBIDDEN') })),
+  { as: 'manager', request: `POST /deposits/${UNKNOWN}/accept`, body: { expectedTotal: 100 }, status: 404, answer: code('NOT_FOUND') },
+  { as: 'manager', request: `POST /deposits/${UNKNOWN}/refuse`, body: { reason: 'Motif du refus' }, status: 404, answer: code('NOT_FOUND') },
+  { as: 'officer', request: `POST /deposits/${UNKNOWN}/refuse`, body: { reason: 'Motif du refus' }, status: 403, answer: code('FORBIDDEN') },
   { as: 'manager', request: 'POST /cases/{caseOfManager}/notes', body: { text: 'Rappeler après le 5.' }, status: 204 },
   { as: 'director', request: 'POST /cases/{caseOfManager}/notes', body: { text: 'Rappeler après le 5.' }, status: 403, answer: code('FORBIDDEN') },
   { as: 'manager', request: 'POST /cases/{caseOfDirector}/notes', body: { text: 'Rappeler après le 5.' }, status: 404, answer: code('NOT_FOUND') },

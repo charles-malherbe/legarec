@@ -96,7 +96,13 @@ describe('a claim deposited by a creditor', () => {
     // Nothing of the debtor before the team: neither a case nor a debtor, and the file waits.
     expect(await rows('SELECT (SELECT count(*)::int FROM cases) AS cases, (SELECT count(*)::int FROM debtors) AS debtors')).toEqual(before);
     expect(await rows('SELECT case_id FROM documents WHERE id = $1', [attachment])).toEqual([{ case_id: null }]);
+    // The same file cannot go with a second deposit that waits (the same answer as a file that is not its own).
+    expect((await call('partnerA', 'POST', '/partner/portal/claims', claim({ debtor: 'Autre Débiteur', siret: '', attachments: [attachment] }))).status).toBe(
+      409,
+    );
     const waiting = await pendingOf('Menuiserie Arnal');
+    // The liar, let in by the guard as a Director, reads none of them in PostgreSQL.
+    expect(depositsData.parse((await call('liar', 'GET', '/staff/deposits')).body)).toEqual({ items: [], count: 0 });
     expect(waiting).toMatchObject({
       creditorId: test.s.creditorA,
       identifier: 'SIRET 512 334 871 00088',
@@ -152,6 +158,10 @@ describe('a claim deposited by a creditor', () => {
     expect((await call('partnerB', 'POST', '/partner/portal/claims', claim({ debtor: 'Autre Nom SARL' }))).status).toBe(204);
     const other = await pendingOf('Autre Nom SARL');
     expect((await call('director', 'POST', `/staff/deposits/${other.id}/accept`, { expectedTotal: other.total })).status).toBe(200);
+    // In their own name.
+    expect(await rows('SELECT decided_by, on_behalf_of_id FROM claim_deposits WHERE id = $1', [other.id])).toEqual([
+      { decided_by: test.s.director, on_behalf_of_id: null },
+    ]);
     const theirs = portalCases.parse((await call('partnerB', 'GET', '/partner/portal/cases')).body).items.find((item) => item.debtor === 'Autre Nom SARL');
     expect(theirs).toBeDefined();
     expect(await rows("SELECT visible_to_creditor FROM case_events WHERE case_id = $1 AND kind = 'DEPOSITED_NAME'", [theirs!.id])).toEqual([
@@ -161,8 +171,13 @@ describe('a claim deposited by a creditor', () => {
     expect(await rows("SELECT name, name_confirmed FROM debtors WHERE siren = '512334871'")).toEqual([{ name: 'Menuiserie Arnal', name_confirmed: false }]);
   });
 
-  it('is refused with a reason, kept 30 days without what the creditor gave, and never in the audit', async () => {
-    expect((await call('partnerA', 'POST', '/partner/portal/claims', claim({ debtor: 'Studio Refusé', siret: '' }))).status).toBe(204);
+  it('is refused with a reason, kept 30 days without what the creditor gave nor its files, and never in the audit', async () => {
+    const pdf = new TextEncoder().encode('%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n% refusée\n%%EOF\n');
+    const file = await test.call('POST', '/partner/portal/attachments', { as: 'partnerA', file: pdf, headers: { 'content-type': 'application/pdf' } });
+    expect(file.status, JSON.stringify(file.body)).toBe(200);
+    const { id: attachment } = file.body as { id: string };
+    const sent = await call('partnerA', 'POST', '/partner/portal/claims', claim({ debtor: 'Studio Refusé', siret: '', attachments: [attachment] }));
+    expect(sent.status, JSON.stringify(sent.body)).toBe(204);
     const waiting = await pendingOf('Studio Refusé');
     expect(waiting.identifier).toBe('Particulier');
     expect((await call('manager', 'POST', `/staff/deposits/${waiting.id}/refuse`, { reason: 'non' })).status).toBe(422);
@@ -175,6 +190,18 @@ describe('a claim deposited by a creditor', () => {
       { status: 'REFUSED', reason, debtor_name: null, invoices: null },
     ]);
     expect(JSON.stringify(await rows("SELECT params FROM audit_log WHERE action = 'DEPOSIT_REFUSED'"))).not.toContain('réglée');
+    // Its file, without a case, goes 30 days after it was sent, with those never deposited.
+    await rows("UPDATE documents SET created_at = now() - interval '31 days' WHERE id = $1", [attachment]);
+    const { admin } = test.database;
+    await admin.query('SET ROLE legarec_retention');
+    try {
+      expect((await admin.query<{ removed: number }>('SELECT app.purge_waiting_files() AS removed')).rows[0]!.removed).toBeGreaterThanOrEqual(1);
+    } finally {
+      await admin.query('RESET ROLE');
+    }
+    expect(await rows('SELECT purged_at IS NOT NULL AS purged, title FROM documents WHERE id = $1', [attachment])).toEqual([
+      { purged: true, title: 'Pièce supprimée' },
+    ]);
     expect((await deposits()).items.some((item) => item.id === waiting.id)).toBe(false);
     // Purged 30 days after the decision; one waiting stays.
     await rows("UPDATE claim_deposits SET decided_at = now() - interval '31 days' WHERE id = $1", [waiting.id]);
