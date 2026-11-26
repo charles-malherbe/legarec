@@ -313,6 +313,7 @@ const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly
       { name: 'Test', email: 'a@exemple.fr', reference: 'LGR-2026-00181', text: 'Bonjour', attachments: [{ id: 'f1', name: 'virement.pdf' }] },
     ],
     'POST /debtor/cases/:id/messages': [{ text: 'Bonjour', attachmentKind: 'TRANSFER_PROOF', attachments: [{ id: 'f1', name: 'virement.pdf' }] }],
+    'POST /debtor/attachments': [new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d])],
     'POST /debtor/cases/:id/requests': [
       { kind: 'PLAN', months: 6, note: '' },
       {
@@ -339,7 +340,7 @@ const MAY_BE_EMPTY = [
 /** Answers of the browser, fields of a setting, terms of a contract: their content is checked further by the API. */
 const OPEN = ['POST /account/two-factor/webauthn/verify', 'PUT /settings/:scope/:id'];
 /** Their body is a file, not JSON: tested on their own below. */
-const FILES = ['POST /documents/import'];
+const FILES = ['POST /documents/import', 'POST /debtor/attachments'];
 const ROUTES = (Object.keys(BODIES) as Portal[]).flatMap((portal) =>
   Object.entries(BODIES[portal] as Record<string, readonly unknown[]>)
     .filter(([route]) => !FILES.includes(route))

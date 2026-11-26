@@ -7784,6 +7784,196 @@
         }
       }
     },
+    "/debtor/cases/{id}/messages": {
+      "get": {
+        "operationId": "DebtorController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "mine": {
+                            "type": "boolean"
+                          },
+                          "who": {
+                            "type": "string"
+                          },
+                          "when": {
+                            "type": "string"
+                          },
+                          "text": {
+                            "type": "string"
+                          },
+                          "attachments": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "receipt": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "mine",
+                          "who",
+                          "when",
+                          "text",
+                          "attachments",
+                          "receipt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "debtor"
+        ],
+        "x-access": {
+          "portal": "debtor"
+        }
+      },
+      "post": {
+        "operationId": "DebtorController_write",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "debtor"
+        ],
+        "x-access": {
+          "portal": "debtor"
+        }
+      }
+    },
+    "/debtor/cases/{id}/messages/read": {
+      "post": {
+        "operationId": "DebtorController_read",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "debtor"
+        ],
+        "x-access": {
+          "portal": "debtor"
+        }
+      }
+    },
+    "/debtor/cases/{id}/requests": {
+      "post": {
+        "operationId": "DebtorController_request",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "debtor"
+        ],
+        "x-access": {
+          "portal": "debtor"
+        }
+      }
+    },
+    "/debtor/attachments": {
+      "post": {
+        "operationId": "DebtorController_attach",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "debtor"
+        ],
+        "x-access": {
+          "portal": "debtor"
+        }
+      }
+    },
+    "/staff/cases/{id}/portal-messages": {
+      "post": {
+        "operationId": "StaffPortalController_answer",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "cases"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      }
+    },
     "/staff/shell": {
       "get": {
         "operationId": "ShellController_shell",

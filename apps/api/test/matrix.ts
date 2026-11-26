@@ -541,4 +541,23 @@ export const MATRIX: Record<string, MatrixEntry> = {
   'GET /debtor/session': { expect: only({ debtorA: 200, debtorB: 200 }) },
   // A case announced to debtor A only.
   'GET /debtor/cases/:id': { path: (test) => `/debtor/cases/${test.s.cases.ofA}`, expect: only({ debtorA: 200, debtorB: 404 }) },
+  'GET /debtor/cases/:id/messages': { path: (test) => `/debtor/cases/${test.s.cases.ofA}/messages`, expect: only({ debtorA: 200, debtorB: 404 }) },
+  'POST /debtor/cases/:id/messages': {
+    path: (test) => `/debtor/cases/${test.s.cases.ofA}/messages`,
+    body: () => ({ text: 'Bonjour', attachmentKind: 'OTHER', attachments: [] }),
+    expect: only({ debtorA: 204, debtorB: 404 }),
+  },
+  'POST /debtor/cases/:id/messages/read': { path: (test) => `/debtor/cases/${test.s.cases.ofA}/messages/read`, expect: only({ debtorA: 204, debtorB: 404 }) },
+  'POST /debtor/cases/:id/requests': {
+    path: (test) => `/debtor/cases/${test.s.cases.ofA}/requests`,
+    body: () => ({ kind: 'CALLBACK', phone: '06 12 34 56 78', slot: 'MORNING' }),
+    expect: only({ debtorA: 204, debtorB: 404 }),
+  },
+  'POST /debtor/attachments': { file: PDF, expect: only({ debtorA: 200, debtorB: 200 }) },
+  // Held by nobody: the manager answers; the Director reads it without acting.
+  'POST /staff/cases/:id/portal-messages': {
+    path: async (test) => `/staff/cases/${(await newCase(test)).id}/portal-messages`,
+    body: () => ({ text: 'Bonjour' }),
+    expect: only({ director: 403, manager: 204, managerAlone: 204, officerA: 404, officerB: 404, liar: 404 }),
+  },
 };

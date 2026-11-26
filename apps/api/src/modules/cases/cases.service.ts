@@ -182,7 +182,23 @@ export class CasesService {
         tone: event.tone,
       })),
       // Messages, payments, documents and scenarios: with their own modules.
-      exchanges: [],
+      exchanges: (
+        await tx.portalMessage.findMany({
+          where: { caseId: id },
+          orderBy: { createdAt: 'desc' },
+          take: SHOWN,
+          select: { id: true, side: true, text: true, createdAt: true },
+        })
+      ).map((message) => ({
+        id: message.id,
+        channel: message.side === 'DEBTOR' ? ('PORTAL_IN' as const) : ('PORTAL_OUT' as const),
+        title: message.side === 'DEBTOR' ? 'Message dans l’espace débiteur' : 'Réponse du cabinet',
+        text: message.text,
+        when: longDay(message.createdAt),
+        delivery: message.side === 'STAFF' ? ('SENT' as const) : null,
+        acknowledgmentId: null,
+        verified: true,
+      })),
       payments: ledger?.payments ?? [],
       documents: [],
       mandate: { sector: found.creditor.sector ?? '', terms: found.mandate ? termsOf(found.mandate, 'case') : [] },

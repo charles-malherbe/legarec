@@ -155,3 +155,81 @@ describe('the access of a debtor', () => {
     expect((await asDebtor(cookie, '/session')).status).toBe(401);
   });
 });
+
+describe('the messages of the space of the debtor', () => {
+  const post = (cookie: string, path: string, body?: unknown, file?: Uint8Array) =>
+    test.call('POST', `/debtor${path}`, {
+      body,
+      file,
+      headers: { cookie: `__Host-debtor=${cookie}`, 'x-forwarded-for': network, ...(file ? { 'content-type': 'application/pdf' } : {}) },
+    });
+  const signedIn = async () => {
+    network = `10.${randomBytes(3).join('.')}`;
+    const found = await debtorWithCode();
+    return { ...found, cookie: cookieOf(await access(found.siren!, found.code))! };
+  };
+  const PDF = new TextEncoder().encode('%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n');
+
+  it('never keeps the access code of the debtor, however it is written', async () => {
+    const { cookie, caseId, code } = await signedIn();
+    const spaced = [...code].join(' ').toLowerCase();
+    expect(
+      (await post(cookie, `/cases/${caseId}/messages`, { text: `Mon code est ${code}, ou ${spaced}. Merci.`, attachmentKind: 'OTHER', attachments: [] }))
+        .status,
+    ).toBe(204);
+    const [kept] = await rows<{ text: string }>('SELECT text FROM portal_messages WHERE case_id = $1', [caseId]);
+    expect(kept!.text).toBe('Mon code est ••••, ou ••••. Merci.');
+    expect(kept!.text.toUpperCase()).not.toContain(code);
+  });
+
+  it('a dispute puts the case in dispute, and the team answers; the debtor sees what is unread', async () => {
+    const { cookie, caseId } = await signedIn();
+    const dispute = await post(cookie, `/cases/${caseId}/requests`, {
+      kind: 'DISPUTE',
+      reason: 'Le montant est erroné',
+      text: 'La facture F-1 a été annulée.',
+      attachments: [],
+    });
+    expect(dispute.status).toBe(204);
+    expect(await rows('SELECT status FROM cases WHERE id = $1', [caseId])).toEqual([{ status: 'DISPUTE' }]);
+    const answer = await staff.call('POST', `/staff/cases/${caseId}/portal-messages`, {
+      as: 'officerA',
+      body: { text: 'Nous vérifions auprès du créancier.' },
+      headers: { 'idempotency-key': randomUUID() },
+    });
+    expect(answer.status).toBe(204);
+    expect(debtorCase.parse((await asDebtor(cookie, `/cases/${caseId}`)).body)).toMatchObject({ unread: 1, lastMessage: { who: 'Legarec' } });
+    expect((await post(cookie, `/cases/${caseId}/messages/read`)).status).toBe(204);
+    expect(debtorCase.parse((await asDebtor(cookie, `/cases/${caseId}`)).body).unread).toBe(0);
+    const seen = (await staff.call('GET', `/staff/cases/${caseId}`, { as: 'officerA' })).body as { exchanges: { channel: string }[] };
+    expect(seen.exchanges.map((item) => item.channel)).toEqual(['PORTAL_OUT', 'PORTAL_IN']);
+  });
+
+  it('a file of the debtor waits unseen by the team, then goes with their message, for that case only', async () => {
+    const { cookie, caseId } = await signedIn();
+    const sent = await post(cookie, '/attachments', undefined, PDF);
+    expect(sent.status, JSON.stringify(sent.body)).toBe(200);
+    const { id } = sent.body as { id: string };
+    expect(((await staff.call('GET', '/staff/documents', { as: 'manager' })).body as { items: { id: string }[] }).items.some((item) => item.id === id)).toBe(
+      false,
+    );
+    // Someone else cannot take it.
+    const other = await signedIn();
+    expect(
+      (await post(other.cookie, `/cases/${other.caseId}/messages`, { text: 'Pièce', attachmentKind: 'OTHER', attachments: [{ id, name: 'x.pdf' }] })).status,
+    ).toBe(409);
+    expect(
+      (
+        await post(cookie, `/cases/${caseId}/messages`, {
+          text: 'Voici le justificatif.',
+          attachmentKind: 'TRANSFER_PROOF',
+          attachments: [{ id, name: 'x.pdf' }],
+        })
+      ).status,
+    ).toBe(204);
+    expect(await rows('SELECT case_id, source FROM documents WHERE id = $1', [id])).toEqual([{ case_id: caseId, source: 'DEBTOR' }]);
+    const listed = (await asDebtor(cookie, `/cases/${caseId}/messages`)).body as { items: { attachments: { id: string }[] }[] };
+    expect(listed.items[0]?.attachments.map((item) => item.id)).toEqual([id]);
+    expect((await post(cookie, '/attachments', undefined, new TextEncoder().encode('MZ programme'))).status).toBe(415);
+  });
+});

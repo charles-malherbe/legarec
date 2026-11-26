@@ -58,11 +58,14 @@ model Document {
   containsAccessCode   Boolean          @default(false) @map("contains_access_code")
   scanStatus           ScanStatus       @default(PENDING) @map("scan_status")
   scannedAt            DateTime?        @map("scanned_at") @db.Timestamptz(3)
+  /// A file of a debtor, waiting for their message.
+  uploadedByDebtor     String?          @map("uploaded_by_debtor") @db.Uuid
   createdAt            DateTime         @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
 
   case     Case?     @relation(fields: [caseId, creditorId], references: [id, creditorId], onDelete: NoAction, onUpdate: NoAction)
   author   User?     @relation("documentAuthor", fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   receipts Receipt[]
+  attachedTo PortalMessageAttachment[]
 
   @@unique([id, caseId], map: "documents_id_case_id_key")
   @@index([caseId, createdAt(sort: Desc)], map: "documents_case")
@@ -105,4 +108,56 @@ model TemplateVersion {
 
   @@index([templateCode, createdAt(sort: Desc)], map: "template_versions_code")
   @@map("template_versions")
+}
+
+enum MessageSide {
+  DEBTOR
+  STAFF
+
+  @@map("message_side")
+}
+
+enum DebtorRequestKind {
+  PLAN
+  DISPUTE
+  ALREADY_PAID
+  CALLBACK
+
+  @@map("debtor_request_kind")
+}
+
+/// Between the debtor and the team, on one case; written by `app.debtor_message()` and `app.staff_message()`.
+model PortalMessage {
+  id             String             @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  caseId         String             @map("case_id") @db.Uuid
+  creditorId     String             @map("creditor_id") @db.Uuid
+  side           MessageSide
+  authorId       String?            @map("author_id") @db.Uuid
+  text           String
+  requestKind    DebtorRequestKind? @map("request_kind")
+  requestData    Json?              @map("request_data")
+  readByStaffAt  DateTime?          @map("read_by_staff_at") @db.Timestamptz(3)
+  readByDebtorAt DateTime?          @map("read_by_debtor_at") @db.Timestamptz(3)
+  createdAt      DateTime           @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
+
+  case        Case                      @relation(fields: [caseId, creditorId], references: [id, creditorId], onDelete: NoAction, onUpdate: NoAction)
+  author      User?                     @relation("portalAuthor", fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  attachments PortalMessageAttachment[]
+
+  @@unique([id, caseId], map: "portal_messages_id_case_id_key")
+  @@index([caseId, createdAt], map: "portal_messages_case")
+  @@map("portal_messages")
+}
+
+model PortalMessageAttachment {
+  id         String @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  caseId     String @map("case_id") @db.Uuid
+  creditorId String @map("creditor_id") @db.Uuid
+  messageId  String @map("message_id") @db.Uuid
+  documentId String @unique @map("document_id") @db.Uuid
+
+  message  PortalMessage @relation(fields: [messageId, caseId], references: [id, caseId], onDelete: NoAction, onUpdate: NoAction)
+  document Document      @relation(fields: [documentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("portal_message_attachments")
 }

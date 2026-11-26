@@ -1,9 +1,12 @@
-import { debtorCase, debtorSession, REQUEST_BODIES } from '@legarec/contracts';
+import { debtorCase, debtorMessages, debtorSession, REQUEST_BODIES, uploadedFile } from '@legarec/contracts';
 import { Body, Controller, Get, HttpCode, Inject, Param, Post } from '@nestjs/common';
 import { ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import type { z } from 'zod';
 import { Anonymous, Debtor } from '../../platform/access/access';
-import { currentActor } from '../../platform/http/context';
+import { Staff } from '../../platform/access/access';
+import { currentActor, uploadedType } from '../../platform/http/context';
+import { Commits } from '../../platform/http/transaction.interceptor';
+import { PortalMessages } from './portal-messages';
 import { DebtorSignIn } from '../auth/debtor-sign-in';
 import { DebtorViews } from './debtor-views';
 
@@ -18,6 +21,7 @@ export class DebtorController {
   constructor(
     @Inject(DebtorSignIn) private readonly signIn: DebtorSignIn,
     @Inject(DebtorViews) private readonly views: DebtorViews,
+    @Inject(PortalMessages) private readonly messages: PortalMessages,
   ) {}
 
   @Get('session')
@@ -50,5 +54,65 @@ export class DebtorController {
   @ApiOkResponse({ standardSchema: debtorCase })
   detail(@Param('id') id: string) {
     return this.views.detail(id);
+  }
+
+  @Get('cases/:id/messages')
+  @Debtor()
+  @ApiOkResponse({ standardSchema: debtorMessages })
+  list(@Param('id') id: string) {
+    return this.messages.list(id);
+  }
+
+  /** The access code is taken out of what the debtor writes, before anything keeps it. */
+  @Post('cases/:id/messages')
+  @Debtor()
+  @HttpCode(204)
+  @ApiNoContentResponse()
+  write(
+    @Param('id') id: string,
+    @Body({ schema: bodies['POST /debtor/cases/:id/messages'] }) { text, attachmentKind, attachments }: In<'POST /debtor/cases/:id/messages'>,
+  ) {
+    return this.messages.write(id, text, attachmentKind, attachments);
+  }
+
+  @Post('cases/:id/messages/read')
+  @Debtor()
+  @HttpCode(204)
+  @ApiNoContentResponse()
+  read(@Param('id') id: string) {
+    return this.messages.read(id);
+  }
+
+  @Post('cases/:id/requests')
+  @Debtor()
+  @HttpCode(204)
+  @ApiNoContentResponse()
+  request(@Param('id') id: string, @Body({ schema: bodies['POST /debtor/cases/:id/requests'] }) request: In<'POST /debtor/cases/:id/requests'>) {
+    return this.messages.request(id, request);
+  }
+
+  /** The body is the file alone, without its name. */
+  @Post('attachments')
+  @Debtor()
+  @HttpCode(200)
+  @ApiOkResponse({ standardSchema: uploadedFile })
+  attach(@Body({ schema: bodies['POST /debtor/attachments'] }) bytes: Uint8Array) {
+    return this.messages.upload(bytes, uploadedType());
+  }
+}
+
+/** The answers of the team in the space of the debtor. */
+@ApiTags('cases')
+@Controller('staff/cases/:id/portal-messages')
+export class StaffPortalController {
+  constructor(@Inject(PortalMessages) private readonly messages: PortalMessages) {}
+
+  @Post()
+  @Staff('DIRECTOR', 'COLLECTION_MANAGER', 'CLAIMS_OFFICER')
+  @Commits()
+  @HttpCode(204)
+  @ApiNoContentResponse()
+  answer(@Param('id') id: string, @Body({ schema: REQUEST_BODIES.staff['POST /cases/:id/portal-messages'] }) { text }: { text: string }) {
+    return this.messages.answer(id, text);
   }
 }

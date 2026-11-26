@@ -192,7 +192,10 @@ describe('rights of the roles that face the outside', () => {
       'debtors SELECT (id, kind, name, siren)',
       ...IDEMPOTENCY,
       'case_invoices SELECT (case_id, claimed_cents, creditor_id, due_on, external_ref, id, issued_on, number, principal_cents, principal_paid_cents, state)',
-      ...MONEY_OUTSIDE.filter((entry) => !entry.startsWith('payment_plans')),
+      ...MONEY_OUTSIDE.filter((entry) => !entry.startsWith('payment_plans') && !entry.startsWith('documents')),
+      'documents SELECT (case_id, category, created_at, creditor_id, id, kind, original_name, scan_status, size_bytes, source, title)',
+      'portal_message_attachments SELECT (case_id, creditor_id, document_id, id, message_id)',
+      'portal_messages SELECT (case_id, created_at, creditor_id, id, read_by_debtor_at, read_by_staff_at, request_kind, side, text)',
       'receipts SELECT (case_id, creditor_id, id, issued_at, number, payment_id)',
     ],
   };
@@ -255,8 +258,11 @@ describe('rights of the roles inside', () => {
       'notifications SELECT (action, actor_id, case_count, case_id, created_at, creditor_id, id, kind, plan_decision, plan_id, read_at, target_id, ticket_id, user_id)',
       // Documents: received in one's own name, never scanned nor filed by hand.
       'documents INSERT (author_id, case_id, category, contains_access_code, creditor_id, id, kind, original_name, scan_status, sha256, size_bytes, source, storage_key, title, visible_to_debtor)',
-      'documents SELECT (author_id, case_id, category, contains_access_code, created_at, creditor_id, id, kind, original_name, scan_status, scanned_at, sha256, shared_by, shared_with_creditor_at, size_bytes, source, storage_key, title, visible_to_debtor)',
+      'documents SELECT (author_id, case_id, category, contains_access_code, created_at, creditor_id, id, kind, original_name, scan_status, scanned_at, sha256, shared_by, shared_with_creditor_at, size_bytes, source, storage_key, title, uploaded_by_debtor, visible_to_debtor)',
       'documents UPDATE (category, title)',
+      // Messages of the space of the debtor: read; written by their functions.
+      'portal_message_attachments SELECT (case_id, creditor_id, document_id, id, message_id)',
+      'portal_messages SELECT (author_id, case_id, created_at, creditor_id, id, read_by_debtor_at, read_by_staff_at, request_data, request_kind, side, text)',
       // Templates: every version read; written by their functions.
       'template_versions SELECT (accepted, checks, created_at, file_name, has_warnings, id, imported_by, number, on_behalf_of_id, published_at, review_reason, reviewed_by, source, state, submitted_by, template_code, updated_at)',
       // Money: read only; written by the functions of the money.
@@ -303,8 +309,10 @@ describe('rights of the roles inside', () => {
       'plan_approvals SELECT (case_id, creditor_id, decided_at, decision, id, plan_id, step)',
       // The verdict of ClamAV, and the documents it generates.
       'documents INSERT (case_id, category, contains_access_code, creditor_id, id, kind, original_name, scan_status, scanned_at, sha256, size_bytes, source, storage_key, title, visible_to_debtor)',
-      'documents SELECT (author_id, case_id, category, contains_access_code, created_at, creditor_id, id, kind, original_name, scan_status, scanned_at, sha256, shared_with_creditor_at, size_bytes, source, storage_key, title, visible_to_debtor)',
+      'documents SELECT (author_id, case_id, category, contains_access_code, created_at, creditor_id, id, kind, original_name, scan_status, scanned_at, sha256, shared_with_creditor_at, size_bytes, source, storage_key, title, uploaded_by_debtor, visible_to_debtor)',
       'documents UPDATE (scan_status, scanned_at)',
+      'portal_message_attachments SELECT (case_id, creditor_id, document_id, id, message_id)',
+      'portal_messages SELECT (author_id, case_id, created_at, creditor_id, id, read_by_debtor_at, read_by_staff_at, request_data, request_kind, side, text)',
       // The templates in force, for the letters.
       'template_versions SELECT (id, number, source, state, template_code)',
       // The PDF of a receipt (lot N).
@@ -405,8 +413,14 @@ describe('rights of the roles inside', () => {
       'template_versions SELECT (*)',
       'template_versions UPDATE (number, on_behalf_of_id, published_at, review_reason, reviewed_by, state, submitted_by, updated_at)',
       // Documents: shared by its function.
-      'documents SELECT (case_id, contains_access_code, id, scan_status, shared_with_creditor_at)',
-      'documents UPDATE (shared_by, shared_with_creditor_at)',
+      'documents INSERT (category, id, kind, original_name, sha256, size_bytes, source, storage_key, title, uploaded_by_debtor)',
+      'documents SELECT (case_id, contains_access_code, created_at, creditor_id, id, scan_status, shared_with_creditor_at, source, uploaded_by_debtor)',
+      'documents UPDATE (case_id, creditor_id, shared_by, shared_with_creditor_at)',
+      'portal_message_attachments INSERT (*)',
+      'portal_message_attachments SELECT (*)',
+      'portal_messages INSERT (*)',
+      'portal_messages SELECT (*)',
+      'portal_messages UPDATE (read_by_debtor_at, read_by_staff_at)',
       // Money: written by its functions, which check again who acts and what it adds up to.
       'case_invoices SELECT (case_id, due_on, id, number, principal_cents, principal_paid_cents, state)',
       'case_invoices UPDATE (principal_paid_cents, state)',
@@ -531,6 +545,9 @@ describe('rights on the functions', () => {
       'mark_debtor_attempt',
     ].map((name) => [name, ['auth']] as [string, string[]]),
     ['forget_debtor_access', ['staff']],
+    ...['own_access_code', 'debtor_upload', 'debtor_message'].map((name) => [name, ['debtor']] as [string, string[]]),
+    ['read_portal_messages', ['debtor', 'staff']],
+    ['staff_message', ['staff']],
     ...['money_case', 'issue_receipt', 'follow_allocation', 'check_allocations', 'keep_receipt'].map((name) => [name, []] as [string, string[]]),
     // Tools of the migrations.
     ['secure', []],
@@ -558,6 +575,7 @@ describe('rights on the functions', () => {
       'save_interest_rate decide_plan follow_allocation check_allocations record_payment change_payment ask_plan money_case issue_receipt keep_receipt share_document',
       'import_template cancel_template submit_template review_template template_editor',
       'debtor_for_access debtor_attempt open_debtor_session resume_debtor_session close_debtor_session note_debtor_blocked forget_debtor_access mark_debtor_attempt',
+      'own_access_code debtor_upload debtor_message read_portal_messages staff_message',
     ].flatMap((names) => names.split(' '));
     const found = await rows<{ proname: string }>(
       "SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'app' ORDER BY 1",

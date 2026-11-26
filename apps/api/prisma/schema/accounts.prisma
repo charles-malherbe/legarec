@@ -168,6 +168,7 @@ model User {
   plansRequested       PaymentPlan[]            @relation("planRequester")
   documents            Document[]               @relation("documentAuthor")
   templateVersions     TemplateVersion[]        @relation("templateImporter")
+  portalMessages       PortalMessage[]          @relation("portalAuthor")
 
   @@map("users")
 }

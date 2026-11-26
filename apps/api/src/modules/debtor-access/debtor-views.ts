@@ -58,6 +58,21 @@ export class DebtorViews {
     };
   }
 
+  /** The last message of the case, and the answers of the team not read yet. */
+  private async messages(id: string): Promise<Pick<DebtorCase, 'lastMessage' | 'unread'>> {
+    const { tx } = this.database;
+    const last = await tx.portalMessage.findFirst({
+      where: { caseId: id },
+      orderBy: { createdAt: 'desc' },
+      select: { side: true, text: true, createdAt: true },
+    });
+    const unread = await tx.portalMessage.count({ where: { caseId: id, side: 'STAFF', readByDebtorAt: null } });
+    return {
+      lastMessage: last ? { who: last.side === 'DEBTOR' ? 'Vous' : 'Legarec', when: dayText(last.createdAt), text: last.text.slice(0, 200) } : null,
+      unread,
+    };
+  }
+
   async detail(id: string): Promise<DebtorCase> {
     const { tx } = this.database;
     const today = dayOf(new Date());
@@ -109,8 +124,7 @@ export class DebtorViews {
         .filter((payment) => payment.status !== 'BOUNCED')
         .map((payment) => ({ id: payment.id, amount: payment.amount, date: payment.receivedOn, method: payment.method, receiptId: payment.receiptId })),
       next: next ? { date: next.date, amount: next.amount } : null,
-      lastMessage: null,
-      unread: 0,
+      ...(await this.messages(id)),
       plan:
         plan && plan.acceptedAt
           ? {

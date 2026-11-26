@@ -264,6 +264,7 @@ export const REQUEST_BODIES = {
     'POST /debtor/limited/messages': limitedMessage,
     'POST /debtor/cases/:id/messages': debtorMessage,
     'POST /debtor/cases/:id/requests': debtorRequest,
+    'POST /debtor/attachments': fileBody,
   },
 } as const satisfies Record<string, Record<string, z.ZodType>>;
 

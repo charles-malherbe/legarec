@@ -249,6 +249,7 @@ model Case {
   approvals PlanApproval[]
   installments Installment[]
   documents Document[]
+  portalMessages PortalMessage[]
 
   @@unique([id, creditorId], map: "cases_id_creditor")
   @@index([officerId, status], map: "cases_officer")
