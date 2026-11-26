@@ -24,6 +24,13 @@ const STEPS: readonly [kind: string, remove: (tx: Transaction) => Promise<number
   ['notifications', (tx) => tx.$executeRaw`DELETE FROM notifications WHERE created_at < now() - interval '2 years'`],
   // After the notifications, of the same age, that refer to them.
   ['support-tickets', (tx) => tx.$executeRaw`DELETE FROM support_tickets WHERE created_at < now() - interval '2 years'`],
+  // Imports never confirmed, 30 days after they were read.
+  ['claim-imports', (tx) => tx.$executeRaw`DELETE FROM claim_imports WHERE status = 'PENDING' AND expires_at < now()`],
+  // Messages without a code, unverified: 6 months.
+  ['limited-messages', (tx) => tx.$executeRaw`DELETE FROM limited_messages WHERE created_at < now() - interval '6 months'`],
+  ['task-marks', (tx) => tx.$executeRaw`DELETE FROM task_marks WHERE done_at < now() - interval '2 years'`],
+  // The registry of the RGPD: 10 years (question 115).
+  ['gdpr-requests', (tx) => tx.$executeRaw`DELETE FROM gdpr_requests WHERE received_on < (now() - interval '10 years')::date`],
 ];
 
 /** Each step stands alone: one that fails neither undoes nor prevents the others. Counts are kept, never what was removed. */

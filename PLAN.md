@@ -262,4 +262,5 @@ Les 161 routes simulées se répartissent ainsi :
 
 ## Lot V — RGPD (état au 26/11/2026)
 - [x] Registre des demandes, réponse motivée, export des données d'un débiteur (journalisé)
-- [ ] Anonymisation à la demande, purges planifiées (worker `legarec_retention`)
+- [x] Purges planifiées des tables de la nuit (imports non confirmés, messages sans code, marques du tableau de bord, registre RGPD)
+- [ ] Anonymisation à la demande d'un débiteur, purge des dossiers 5 ans après clôture

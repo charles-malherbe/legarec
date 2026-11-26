@@ -230,3 +230,30 @@ describe('notifications and questions to the support', () => {
     expect(await rows('SELECT number FROM support_tickets')).toEqual([{ number: '2025-0001' }]);
   });
 });
+
+describe('what tonight’s lots keep', () => {
+  it('forgets messages without a code after 6 months, marks after 2 years, the registry of the RGPD after 10', async () => {
+    for (const age of ['7 months', '5 months'])
+      await rows(`INSERT INTO limited_messages (sender_name, text, created_at) VALUES ('Jean', 'Bonjour', now() - interval '${age}')`);
+    const [creditor] = await rows<{ id: string }>("INSERT INTO creditors (name) VALUES ('Purge Delta') RETURNING id");
+    const [debtor] = await rows<{ id: string }>("INSERT INTO debtors (kind, name) VALUES ('INDIVIDUAL', 'X') RETURNING id");
+    const [made] = await rows<{ id: string }>("INSERT INTO cases (reference, creditor_id, debtor_id) VALUES ('LGR-2026-99001', $1, $2) RETURNING id", [
+      creditor!.id,
+      debtor!.id,
+    ]);
+    for (const years of [11, 9])
+      await rows(
+        `INSERT INTO gdpr_requests (case_id, creditor_id, debtor_id, kind, origin, received_on, due_on, created_by)
+         VALUES ($1, $2, $3, 'ACCESS', 'Courrier', current_date - interval '${years} years', current_date, $4)`,
+        [made!.id, creditor!.id, debtor!.id, s.manager],
+      );
+    await rows(`INSERT INTO task_marks (user_id, key, done_at) VALUES ($1, $2, now() - interval '25 months'), ($1, $3, now())`, [
+      s.officerA,
+      `call:${made!.id}`,
+      `dispute:${made!.id}`,
+    ]);
+    expect(await purge(jobs, logger)).toMatchObject({ 'limited-messages': 1, 'gdpr-requests': 1, 'task-marks': 1, 'claim-imports': 0 });
+    expect(await rows('SELECT count(*)::int AS n FROM limited_messages')).toEqual([{ n: 1 }]);
+    expect(await rows('SELECT key FROM task_marks')).toEqual([{ key: `dispute:${made!.id}` }]);
+  });
+});
