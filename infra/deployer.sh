@@ -48,6 +48,9 @@ echo 'Base de données, files et surveillance'
 compose up --detach --wait postgres valkey gatus-interne
 echo 'Sauvegarde avant migration'
 flock --timeout 3600 /run/legarec-sauvegarde.lock docker compose "${files[@]}" --env-file /dev/null run --rm sauvegarde incr
+echo 'Rôles de la base'
+# bootstrap.sql only runs by itself when the data folder is created: a role added since then comes from here.
+compose exec --no-TTY postgres legarec-roles
 echo 'Migrations'
 compose run --rm migration
 echo 'Démarrage'

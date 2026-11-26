@@ -111,7 +111,7 @@ sudo install -o root -g 10101 -m 640 /opt/legarec/infra/valeurs/api.env.exemple 
 ## Ordre de mise en service
 
 1. Serveur, DNS, OVHcloud Object Storage, Resend, fichiers de `/etc/legarec/` (ci-dessus).
-2. Dans `/opt/legarec`, à jour sur `main`, déploiement. Le script refuse une copie que root ne possède pas ou une version absente de `main`, contrôle les fichiers, construit les images, démarre la base, **sauvegarde**, applique les migrations, puis démarre le reste.
+2. Dans `/opt/legarec`, à jour sur `main`, déploiement. Le script refuse une copie que root ne possède pas ou une version absente de `main`, contrôle les fichiers, construit les images, démarre la base, **sauvegarde**, met à jour les rôles de la base (`legarec-roles`, sans effet s'ils existent déjà), applique les migrations, puis démarre le reste.
 
    ```bash
    sudo /opt/legarec/infra/deployer.sh
