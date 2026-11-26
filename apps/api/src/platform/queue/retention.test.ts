@@ -256,7 +256,25 @@ describe('what tonight’s lots keep', () => {
       `call:${made!.id}`,
       `dispute:${made!.id}`,
     ]);
-    expect(await purge(jobs, logger, storage)).toMatchObject({ 'limited-messages': 1, 'gdpr-requests': 1, 'task-marks': 1, 'claim-imports': 0 });
+    // Drafts of credit notes left aside for more than 30 days.
+    const [invoice] = await rows<{ id: string }>(
+      `INSERT INTO billing_documents (kind, number, creditor_id, issued_on, net_cents, vat_cents, gross_cents, created_by)
+       VALUES ('INVOICE', 'FA-2026-9901', $1, current_date, 100, 20, 120, $2) RETURNING id`,
+      [creditor!.id, s.director],
+    );
+    for (const age of ['31 days', '29 days'])
+      await rows(
+        `INSERT INTO credit_note_drafts (invoice_id, scope, lines, reason, created_by, updated_at) VALUES ($1, 'TOTAL', '[]', '', $2, now() - interval '${age}')`,
+        [invoice!.id, s.director],
+      );
+    expect(await purge(jobs, logger, storage)).toMatchObject({
+      'limited-messages': 1,
+      'gdpr-requests': 1,
+      'task-marks': 1,
+      'claim-imports': 0,
+      'credit-note-drafts': 1,
+    });
+    expect(await rows('SELECT count(*)::int AS n FROM credit_note_drafts')).toEqual([{ n: 1 }]);
     expect(await rows('SELECT count(*)::int AS n FROM limited_messages')).toEqual([{ n: 1 }]);
     expect(await rows('SELECT key FROM task_marks')).toEqual([{ key: `dispute:${made!.id}` }]);
   });

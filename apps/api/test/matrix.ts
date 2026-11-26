@@ -523,6 +523,26 @@ export const MATRIX: Record<string, MatrixEntry> = {
     body: () => ({ paidOn: '2026-01-02', expectedTotal: 0 }),
     expect: only({ director: 409, manager: 409 }),
   },
+  // Credit notes: as all of the billing, the Director or the manager acting for them; an unknown invoice or draft is nothing.
+  'GET /staff/credit-notes': { expect: only({ director: 200, manager: 200 }) },
+  'POST /staff/credit-notes': {
+    body: () => ({ invoiceId: randomUUID(), scope: 'TOTAL', lines: [], reason: 'Erreur de taux', followUp: 'DEDUCTED', expectedLeft: 100, draftId: null }),
+    // The identity of the firm is still between brackets in the test set: nothing is issued.
+    expect: only({ director: 409, manager: 409 }),
+  },
+  'POST /staff/credit-notes/drafts': {
+    body: () => ({ invoiceId: randomUUID(), scope: 'PARTIAL', lines: [], reason: '', followUp: null }),
+    expect: only({ director: 404, manager: 404 }),
+  },
+  'PUT /staff/credit-notes/drafts/:id': {
+    path: () => `/staff/credit-notes/drafts/${randomUUID()}`,
+    body: () => ({ invoiceId: randomUUID(), scope: 'PARTIAL', lines: [], reason: '', followUp: null }),
+    expect: only({ director: 404, manager: 404 }),
+  },
+  'DELETE /staff/credit-notes/drafts/:id': {
+    path: () => `/staff/credit-notes/drafts/${randomUUID()}`,
+    expect: only({ director: 404, manager: 404 }),
+  },
   // Agenda of the reminders: read with the cases; planned on a case one acts on (here held by nobody: the managers).
   'GET /staff/reminders': { expect: withCases(200) },
   'GET /staff/reminders/targets': { expect: withCases(200) },

@@ -34,6 +34,7 @@ import { MembersService } from './members/members.service';
 import { DashboardController } from './dashboard/dashboard.controller';
 import { DashboardService } from './dashboard/dashboard.service';
 import { GdprController } from './gdpr/gdpr.controller';
+import { CreditNotesController } from './remittances/credit-notes.controller';
 import { RemittancesController } from './remittances/remittances.controller';
 import { RemindersController } from './reminders/reminders.controller';
 import { RemindersService } from './reminders/reminders.service';
@@ -64,6 +65,7 @@ export const controllers: Type[] = [
   AiController,
   RemindersController,
   RemittancesController,
+  CreditNotesController,
   GdprController,
   DashboardController,
   SecretsController,

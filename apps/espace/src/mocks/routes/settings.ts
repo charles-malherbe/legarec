@@ -27,6 +27,19 @@ const staff = (session: Session) => session.role !== 'CREDITOR';
 
 const seedGroups = () => ({ firm: asInMockup(firmGroups()), technical: asInMockup(technicalGroups()) });
 let groups = seedGroups();
+const cabinetField = (field: string) =>
+  groups.firm
+    .flatMap((group) => group.items)
+    .find((item) => item.id === 'cabinet')
+    ?.blocks.flatMap((block) => block.fields)
+    .find((item) => item.id === field);
+/** A value of Paramètres › Cabinet, as the documents of the firm print it. */
+export const firmText = (field: string) => cabinetField(field)?.value ?? '';
+/** Tests only: the Director has typed this value. */
+export const setFirmText = (field: string, value: string) => {
+  const item = cabinetField(field);
+  if (item) item.value = value;
+};
 const SCOPES: Record<string, 'firm' | 'technical'> = { firm: 'firm', techniques: 'technical' };
 const scopeOf = (value: unknown) => SCOPES[String(value)] ?? null;
 const canRead = (scope: 'firm' | 'technical', session: Session) => (scope === 'technical' ? canAccessTechnicalSettings(session) : staff(session));

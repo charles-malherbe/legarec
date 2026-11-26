@@ -124,6 +124,37 @@
   flex-direction: column;
   gap: var(--sp-2);
 }
+.actions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--sp-2);
+}
+.creditHead,
+.creditLine {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 100px 160px;
+  gap: var(--sp-2);
+  align-items: center;
+  font-size: var(--fs-sm);
+}
+.creditHead {
+  color: var(--text-2);
+}
+.creditLine > :nth-child(2) {
+  text-align: right;
+}
+.strongFact {
+  font-weight: 700;
+}
+.paragraph {
+  margin: 0;
+}
 @media (max-width: 1199px) {
   .creator {
     grid-template-columns: minmax(0, 1fr);
@@ -134,6 +165,15 @@
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
   }
   .line > :first-child {
+    grid-column: 1 / -1;
+  }
+  .creditHead {
+    display: none;
+  }
+  .creditLine {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .creditLine > :first-child {
     grid-column: 1 / -1;
   }
   .sheet {

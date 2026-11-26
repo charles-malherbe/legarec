@@ -13,6 +13,7 @@ import {
   type Session,
 } from '@legarec/contracts';
 import { http, HttpResponse } from 'msw';
+import { correctedStatus } from './creditNotes';
 import { audit } from '../audit';
 import { done, forbidden, guarded, notFound, staffWithCases } from '../http';
 import { addMailboxRequest, closeMailboxRequestOf } from '../mailboxRequests';
@@ -685,7 +686,11 @@ export const steeringHandlers = [
           signer: 'Marie Dubreuil, direction',
         },
         clients: CLIENTS,
-        documents,
+        // The invoice never changes: its status says the credit notes that cite it.
+        documents: documents.map((item) => {
+          const corrected = item.type === 'INVOICE' ? correctedStatus(item.number) : null;
+          return corrected ? { ...item, status: corrected, tone: corrected === 'Avoir partiel' ? ('warning' as const) : ('neutral' as const) } : item;
+        }),
         nextNumbers: { INVOICE: 'FA-2026-0118', QUOTE: 'DE-2026-0043', CONTRACT: 'CT-2026-0010' },
         stats: [
           { label: 'Facturé en 2026', value: '131 860 € HT', sub: 'commissions et frais refacturés' },

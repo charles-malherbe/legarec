@@ -4,6 +4,7 @@ import { loginRequest, newPassword, PASSWORD_MAX } from './auth';
 import { callQualification } from './calls';
 import { addedInvoices, caseCheck, gdprRequestKind, newCase, newPayment, paymentStatus, renewedCode } from './cases';
 import { newReminder } from './collection';
+import { creditNoteDraftBody, creditNoteIssue } from './creditNotes';
 import { coordinate, coordinateKind, coordinateSource, emailCategory, outgoingMessage } from './communication';
 import { debtorAccess, debtorIdentifier, debtorMessage, debtorRequest, limitedMessage } from './debtor';
 import { letterTemplate } from './documents';
@@ -247,6 +248,9 @@ export const REQUEST_BODIES = {
     'POST /billing': billingBody,
     'POST /remittances': remittanceValidation,
     'POST /remittances/:id/paid': remittancePaid,
+    'POST /credit-notes': creditNoteIssue,
+    'POST /credit-notes/drafts': creditNoteDraftBody,
+    'PUT /credit-notes/drafts/:id': creditNoteDraftBody,
     'PUT /reports/scheduled/:id': activeBody,
     'POST /members': newMember,
     'PUT /members/:id/role': memberRoleBody,

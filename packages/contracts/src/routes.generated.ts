@@ -1024,6 +1024,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/staff/credit-notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CreditNotesController_list"];
+        put?: never;
+        post: operations["CreditNotesController_issue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/credit-notes/drafts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CreditNotesController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/credit-notes/drafts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["CreditNotesController_change"];
+        post?: never;
+        delete: operations["CreditNotesController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/staff/gdpr/requests": {
         parameters: {
             query?: never;
@@ -3840,6 +3888,7 @@ export interface operations {
                             feesNet: number;
                             feesVat: number;
                             feesGross: number;
+                            credits: number;
                             toPay: number;
                             accountId: string | null;
                             account: string | null;
@@ -3943,6 +3992,7 @@ export interface operations {
                             feesNet: number;
                             feesVat: number;
                             feesGross: number;
+                            credits: number;
                             toPay: number;
                             accountId: string | null;
                             account: string | null;
@@ -3955,6 +4005,189 @@ export interface operations {
         };
     };
     RemittancesController_paid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreditNotesController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        invoices: {
+                            id: string;
+                            number: string;
+                            /** Format: date */
+                            issuedOn: string;
+                            client: {
+                                id: string;
+                                name: string;
+                                legalName: string;
+                                address: string;
+                                siren: string | null;
+                                vatNumber: string | null;
+                            };
+                            net: number;
+                            vat: number;
+                            gross: number;
+                            left: number;
+                            /** Format: date */
+                            settledOn: string | null;
+                            credited: number;
+                            lines: {
+                                id: string;
+                                label: string;
+                                net: number;
+                                vat: number;
+                                leftNet: number;
+                                leftVat: number;
+                            }[];
+                        }[];
+                        items: {
+                            id: string;
+                            number: string;
+                            /** Format: date */
+                            issuedOn: string;
+                            client: {
+                                id: string;
+                                name: string;
+                                legalName: string;
+                                address: string;
+                                siren: string | null;
+                                vatNumber: string | null;
+                            };
+                            invoiceId: string;
+                            invoice: string;
+                            /** Format: date */
+                            invoiceIssuedOn: string;
+                            /** @enum {string} */
+                            invoiceStatus: "PARTIAL" | "CANCELLED";
+                            /** @enum {string} */
+                            scope: "PARTIAL" | "TOTAL";
+                            net: number;
+                            vat: number;
+                            gross: number;
+                            reason: string;
+                            /** @enum {string} */
+                            followUp: "NEXT_REMITTANCE" | "TRANSFER" | "DEDUCTED";
+                            /** Format: date */
+                            remittedOn: string | null;
+                        }[];
+                        drafts: {
+                            id: string;
+                            invoiceId: string;
+                            invoice: string;
+                            client: string;
+                            /** @enum {string} */
+                            scope: "PARTIAL" | "TOTAL";
+                            lines: {
+                                lineId: string;
+                                net: number;
+                            }[];
+                            reason: string;
+                            /** @enum {string|null} */
+                            followUp: "NEXT_REMITTANCE" | "TRANSFER" | "DEDUCTED" | null;
+                            updatedAt: string;
+                        }[];
+                        nextNumber: string;
+                        /** Format: date */
+                        nextRemittance: string | null;
+                        firm: {
+                            name: string;
+                            address: string;
+                            phone: string;
+                            siren: string;
+                            vat: string;
+                            rcs: string;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    CreditNotesController_issue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        number: string;
+                    };
+                };
+            };
+        };
+    };
+    CreditNotesController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+        };
+    };
+    CreditNotesController_change: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreditNotesController_remove: {
         parameters: {
             query?: never;
             header?: never;

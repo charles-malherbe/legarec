@@ -94,6 +94,9 @@ export const AUDIT_ACTIONS = {
   REMITTANCES_VALIDATED: 'Lot de reversements validé : {count} virements',
   REMITTANCE_RETAINED: 'Créancier retenu du lot de reversements',
   REMITTANCES_PAID: 'Reversements marqués comme versés',
+  CREDIT_NOTE_ISSUED: 'Avoir émis',
+  CREDIT_NOTE_DRAFT_SAVED: 'Brouillon d’avoir enregistré',
+  CREDIT_NOTE_DRAFT_DELETED: 'Brouillon d’avoir supprimé',
   // Registry of the RGPD
   GDPR_REQUEST_ADDED: 'Demande RGPD enregistrée',
   GDPR_REQUEST_ANSWERED: 'Demande RGPD traitée',
