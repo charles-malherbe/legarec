@@ -281,6 +281,8 @@ export const sourceOf = (item: StoredTemplate) => {
 /** Preview of a source: blocks and fields replaced by examples. */
 export const renderPreview = (source: string) =>
   source
+    // Comments show nothing.
+    .replace(/\{\{!--[\s\S]*?--\}\}|\{\{![\s\S]*?\}\}/gu, '')
     .replace(/\{\{>\s*([\w]+)\s*\}\}/g, (_all, code: string) => `<p>[${escape(MANDATORY_BLOCKS.find((item) => item.code === code)?.content ?? code)}]</p>`)
     .replace(/\{\{[^}#/]*?([\w]+\.[\w]+)\s*\}\}/g, (_all, code: string) => escape(example[code] ?? ''));
 export const slug = (name: string) =>

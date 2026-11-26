@@ -59,6 +59,8 @@ export const AUDIT_ACTIONS = {
   // Templates
   TEMPLATE_IMPORTED: 'Modèle importé',
   TEMPLATE_RESTORED: 'Version d’un modèle restaurée',
+  TEMPLATE_SUBMITTED: 'Modèle soumis à validation',
+  TEMPLATE_CANCELLED: 'Import d’un modèle annulé',
   TEMPLATE_PUBLISHED: 'Modèle publié',
   TEMPLATE_REJECTED: 'Modèle refusé',
   // Money

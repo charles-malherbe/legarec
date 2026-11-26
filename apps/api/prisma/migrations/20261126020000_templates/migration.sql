@@ -31,7 +31,7 @@ CREATE UNIQUE INDEX template_versions_in_force ON template_versions (template_co
 CREATE INDEX template_versions_code ON template_versions (template_code, created_at DESC);
 
 GRANT CREATE ON SCHEMA app TO legarec_definer;
-GRANT SELECT, INSERT (template_code, source, file_name, accepted, checks, has_warnings, state, imported_by, on_behalf_of_id),
+GRANT SELECT, INSERT (id, template_code, source, file_name, accepted, checks, has_warnings, state, imported_by, on_behalf_of_id),
   UPDATE (number, state, submitted_by, reviewed_by, on_behalf_of_id, review_reason, published_at, updated_at) ON template_versions TO legarec_definer;
 SET LOCAL ROLE legarec_definer;
 
@@ -47,6 +47,8 @@ $$;
 -- A new file replaces what was pending, unless it already waits for validation.
 CREATE FUNCTION app.import_template(code text, wanted_source text, wanted_name text, ok boolean, found_checks jsonb, warned boolean, restored boolean) RETURNS void
 LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+DECLARE
+  added uuid := app.uuid_v7();
 BEGIN
   PERFORM app.template_editor();
   PERFORM pg_advisory_xact_lock(hashtextextended('template:' || code, 0));
@@ -54,9 +56,9 @@ BEGIN
     PERFORM app.refuse('LG409');
   END IF;
   UPDATE public.template_versions v SET state = 'CANCELLED', updated_at = now() WHERE v.template_code = code AND v.state IN ('IMPORTED', 'RESTORED');
-  INSERT INTO public.template_versions (template_code, source, file_name, accepted, checks, has_warnings, state, imported_by, on_behalf_of_id)
-  VALUES (code, wanted_source, wanted_name, ok, found_checks, warned, CASE WHEN restored THEN 'RESTORED' ELSE 'IMPORTED' END::template_state, app.user_id(), app.on_behalf_of());
-  PERFORM app.log(CASE WHEN restored THEN 'TEMPLATE_RESTORED' ELSE 'TEMPLATE_IMPORTED' END, NULL, NULL, '{}');
+  INSERT INTO public.template_versions (id, template_code, source, file_name, accepted, checks, has_warnings, state, imported_by, on_behalf_of_id)
+  VALUES (added, code, wanted_source, wanted_name, ok, found_checks, warned, CASE WHEN restored THEN 'RESTORED' ELSE 'IMPORTED' END::template_state, app.user_id(), app.on_behalf_of());
+  PERFORM app.log(CASE WHEN restored THEN 'TEMPLATE_RESTORED' ELSE 'TEMPLATE_IMPORTED' END, 'template_version', added, '{}');
 END
 $$;
 
@@ -68,9 +70,12 @@ BEGIN
   PERFORM pg_advisory_xact_lock(hashtextextended('template:' || code, 0));
   IF NOT undo THEN
     IF EXISTS (SELECT 1 FROM public.template_versions v WHERE v.template_code = code AND v.state = 'WAITING') THEN
-      PERFORM app.refuse('42501');
+      PERFORM app.refuse('LG409');
     END IF;
     UPDATE public.template_versions v SET state = 'CANCELLED', updated_at = now() WHERE v.template_code = code AND v.state IN ('IMPORTED', 'RESTORED');
+    IF FOUND THEN
+      PERFORM app.log('TEMPLATE_CANCELLED', NULL, NULL, '{}');
+    END IF;
     RETURN;
   END IF;
   UPDATE public.template_versions v SET state = 'IMPORTED', updated_at = now()
@@ -92,12 +97,13 @@ BEGIN
   PERFORM app.template_editor();
   SELECT v.id, v.accepted, v.has_warnings INTO pending FROM public.template_versions v WHERE v.template_code = code AND v.state IN ('IMPORTED', 'RESTORED') FOR UPDATE;
   IF NOT FOUND OR NOT pending.accepted THEN
-    PERFORM app.refuse('42501');
+    PERFORM app.refuse('LG409');
   END IF;
   IF pending.has_warnings AND NOT acknowledged THEN
     PERFORM app.refuse('22023');
   END IF;
   UPDATE public.template_versions v SET state = 'WAITING', submitted_by = app.user_id(), updated_at = now() WHERE v.id = pending.id;
+  PERFORM app.log('TEMPLATE_SUBMITTED', 'template_version', pending.id, '{}');
 END
 $$;
 
@@ -113,7 +119,7 @@ BEGIN
   PERFORM pg_advisory_xact_lock(hashtextextended('template:' || code, 0));
   SELECT v.id INTO pending FROM public.template_versions v WHERE v.template_code = code AND v.state = 'WAITING' FOR UPDATE;
   IF NOT FOUND THEN
-    PERFORM app.refuse('42501');
+    PERFORM app.refuse('LG409');
   END IF;
   IF approved THEN
     UPDATE public.template_versions v SET state = 'ARCHIVED', updated_at = now() WHERE v.template_code = code AND v.state = 'PUBLISHED';
@@ -125,7 +131,7 @@ BEGIN
     UPDATE public.template_versions v SET state = 'REJECTED', reviewed_by = app.user_id(), on_behalf_of_id = app.on_behalf_of(), review_reason = nullif(btrim(why), ''), updated_at = now()
     WHERE v.id = pending;
   END IF;
-  PERFORM app.log(CASE WHEN approved THEN 'TEMPLATE_PUBLISHED' ELSE 'TEMPLATE_REJECTED' END, NULL, NULL, '{}');
+  PERFORM app.log(CASE WHEN approved THEN 'TEMPLATE_PUBLISHED' ELSE 'TEMPLATE_REJECTED' END, 'template_version', pending, '{}');
 END
 $$;
 GRANT EXECUTE ON FUNCTION app.import_template(text, text, text, boolean, jsonb, boolean, boolean), app.cancel_template(text, boolean),

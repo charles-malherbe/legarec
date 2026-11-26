@@ -24,6 +24,24 @@ const textOf = (source: string) =>
     .replace(/&quot;/gu, '"')
     .trim();
 
+/** The first 30 lines of a report, then how many more: a file badly made is told so, without filling the database. */
+const SHOWN_CHECKS = 30;
+const shortened = (checks: TemplateCheck[]): TemplateCheck[] =>
+  checks.length <= SHOWN_CHECKS
+    ? checks
+    : [
+        ...checks.slice(0, SHOWN_CHECKS),
+        {
+          level: checks.slice(SHOWN_CHECKS).some((check) => check.level === 'ERROR')
+            ? 'ERROR'
+            : checks.slice(SHOWN_CHECKS).some((check) => check.level === 'WARNING')
+              ? 'WARNING'
+              : 'OK',
+          label: `Et ${checks.length - SHOWN_CHECKS} autres points`,
+          detail: 'Les premiers sont montrés : corrigez-les, puis importez de nouveau le fichier.',
+        },
+      ];
+
 /** Templates of the firm: the catalogue, then the versions published here. PostgreSQL decides who changes what. */
 @Injectable()
 export class TemplatesService {
@@ -117,7 +135,7 @@ export class TemplatesService {
     if (Buffer.byteLength(source) > TEMPLATE_MAX_BYTES) throw new ApiError(413, 'FILE_TOO_LARGE');
     const report = checkTemplate({ ...item, block: blockOf(item) }, source);
     await this.database.tx.$executeRaw`SELECT app.import_template(${id}, ${source}, ${fileName.trim() || 'modele.html'}, ${report.accepted},
-      ${JSON.stringify(report.checks)}::jsonb, ${report.checks.some((check) => check.level === 'WARNING')}, false)`;
+      ${JSON.stringify(shortened(report.checks))}::jsonb, ${report.checks.some((check) => check.level === 'WARNING')}, false)`;
   }
 
   async cancel(id: string, undo: boolean): Promise<void> {
@@ -138,7 +156,7 @@ export class TemplatesService {
     }
     const report = checkTemplate({ ...item, block: blockOf(item) }, source);
     await this.database.tx.$executeRaw`SELECT app.import_template(${id}, ${source}, ${`${slug(item.name)}-v${wanted}.${item.kind === 'SMS' ? 'txt' : 'html'}`},
-      ${report.accepted}, ${JSON.stringify(report.checks)}::jsonb, ${report.checks.some((check) => check.level === 'WARNING')}, true)`;
+      ${report.accepted}, ${JSON.stringify(shortened(report.checks))}::jsonb, ${report.checks.some((check) => check.level === 'WARNING')}, true)`;
   }
 
   async submit(id: string, acknowledged: boolean): Promise<void> {

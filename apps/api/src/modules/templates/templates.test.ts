@@ -40,7 +40,7 @@ describe('templates', () => {
     expect(imported).toMatchObject({ status: 'IMPORTED', pending: { fileName: 'demeure.html', accepted: true } });
     expect(imported.pending?.previewHtml).not.toContain('{{');
     // Not before it is submitted, and not by the manager without the delegation.
-    expect((await call('director', 'POST', '/demeure/review', { approved: true })).status).toBe(403);
+    expect((await call('director', 'POST', '/demeure/review', { approved: true })).status).toBe(409);
     expect((await call('manager', 'POST', '/demeure/submit', { acknowledged: true })).status).toBe(204);
     expect((await call('manager', 'POST', '/demeure/import', { source: SOURCE(), fileName: 'autre.html' })).status).toBe(409);
     expect((await call('managerAlone', 'POST', '/demeure/review', { approved: true })).status).toBe(403);
@@ -64,12 +64,27 @@ describe('templates', () => {
   it('a file refused by the checks is never submitted; « Annuler », then « Annuler » again', async () => {
     expect((await call('director', 'POST', '/ferme/import', { source: '<p><script>alert(1)</script></p>', fileName: 'ferme.html' })).status).toBe(204);
     expect((await detail('director', 'ferme')).pending).toMatchObject({ accepted: false, previewHtml: '' });
-    expect((await call('director', 'POST', '/ferme/submit', { acknowledged: true })).status).toBe(403);
+    expect((await call('director', 'POST', '/ferme/submit', { acknowledged: true })).status).toBe(409);
     expect((await call('director', 'DELETE', '/ferme/import')).status).toBe(204);
     expect((await detail('director', 'ferme')).status).toBe('PUBLISHED');
     expect((await call('director', 'POST', '/ferme/import/undo')).status).toBe(204);
     expect((await detail('director', 'ferme')).status).toBe('IMPORTED');
     expect((await call('director', 'POST', '/ferme/import/undo')).status).toBe(404);
+  });
+
+  it('hides no markup in a comment, and keeps a long report short', async () => {
+    const hidden = SOURCE().replace('</body>', '{{!-- <script>alert(1)</script><meta http-equiv="refresh" content="0"> --}}\n</body>');
+    expect((await call('director', 'POST', '/attestation/import', { source: hidden, fileName: 'a.html' })).status).toBe(204);
+    const seen = await detail('director', 'attestation');
+    expect(seen.pending).toMatchObject({ accepted: false, previewHtml: '' });
+    expect(seen.pending?.checks.some((check) => check.label.startsWith('Commentaire refusé'))).toBe(true);
+    const many = SOURCE().replace('</body>', `${Array.from({ length: 300 }, (_, index) => `{{inconnu.champ${index}}}`).join(' ')}\n</body>`);
+    expect((await call('director', 'POST', '/attestation/import', { source: many, fileName: 'b.html' })).status).toBe(204);
+    const report = (await detail('director', 'attestation')).pending!;
+    expect(report.accepted).toBe(false);
+    expect(report.checks.length).toBeLessThanOrEqual(31);
+    expect(report.checks.at(-1)?.label).toMatch(/^Et \d+ autres points$/u);
+    expect(await rows("SELECT entity_type FROM audit_log WHERE action = 'TEMPLATE_IMPORTED' LIMIT 1")).toEqual([{ entity_type: 'template_version' }]);
   });
 
   it('refuses a file beyond 500 Ko', async () => {

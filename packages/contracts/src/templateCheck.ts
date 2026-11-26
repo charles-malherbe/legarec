@@ -35,8 +35,11 @@ function distance(a: string, b: string): number {
   }
   return row[b.length]!;
 }
+/** A guess only for a code of a sensible length: the distance costs the product of both lengths. */
 const closest = (code: string) =>
-  MERGE_FIELD_CODES.map((item) => ({ item, score: distance(code, item) }))
+  code.length > 60
+    ? undefined
+    : MERGE_FIELD_CODES.map((item) => ({ item, score: distance(code, item) }))
     .filter((entry) => entry.score <= 4)
     .sort((a, b) => a.score - b.score)[0]?.item;
 
@@ -131,11 +134,14 @@ const RAW = new Set(['style', 'title', 'colgroup']);
  * A tag holds no marker, so it is whole in every branch: what is scanned is what is rendered.
  */
 function scanHtml(html: string): { index: number; found: string } | null {
+  // Once: read again at each tag, it made a large file slow to check.
+  const lower = html.toLowerCase();
   let index = 0;
   while (index < html.length) {
     const open = html.indexOf('<', index);
     if (open < 0) return null;
-    const rest = html.slice(open);
+    // A tag is read within its first characters, never the whole rest of the file each time.
+    const rest = html.slice(open, open + 20_000);
     const doctype = /^<!doctype html>/iu.exec(rest);
     if (doctype) {
       index = open + doctype[0].length;
@@ -158,7 +164,7 @@ function scanHtml(html: string): { index: number; found: string } | null {
     }
     index = open + tag[0].length;
     if (RAW.has(name)) {
-      const end = html.toLowerCase().indexOf(`</${name}>`, index);
+      const end = lower.indexOf(`</${name}>`, index);
       const content = html.slice(index, end < 0 ? undefined : end);
       const problem =
         end < 0
@@ -234,11 +240,13 @@ export function checkTemplate(
           html += (node as hbs.AST.ContentStatement).original;
           break;
         case 'CommentStatement':
+          // A comment shows nothing, and hides no markup either: it would reach the preview as it is.
+          if (/[<>]/u.test((node as hbs.AST.CommentStatement).value)) fail(`Commentaire refusé, ligne ${line}`, 'Un commentaire ne contient aucune balise');
           html += BLOCK + '\n'.repeat(node.loc.end.line - line);
           break;
         case 'MustacheStatement': {
           const mustache = node as hbs.AST.MustacheStatement;
-          const written = (source.split('\n')[line - 1] ?? '').slice(node.loc.start.column);
+          const written = (lines[line - 1] ?? '').slice(node.loc.start.column);
           if (!mustache.escaped || /^\{\{~?[{&]/u.test(written)) {
             fail(`Champ non protégé, ligne ${line}`, 'Utilisez deux accolades');
             break;

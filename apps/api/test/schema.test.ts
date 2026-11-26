@@ -388,7 +388,7 @@ describe('rights of the roles inside', () => {
       'debtor_access_codes UPDATE (code_cipher, generated_at, generated_by, version)',
       'debtors SELECT (id, kind, name, siren)',
       // Templates: their steps, by their functions.
-      'template_versions INSERT (accepted, checks, file_name, has_warnings, imported_by, on_behalf_of_id, source, state, template_code)',
+      'template_versions INSERT (accepted, checks, file_name, has_warnings, id, imported_by, on_behalf_of_id, source, state, template_code)',
       'template_versions SELECT (*)',
       'template_versions UPDATE (number, on_behalf_of_id, published_at, review_reason, reviewed_by, state, submitted_by, updated_at)',
       // Documents: shared by its function.
