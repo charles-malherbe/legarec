@@ -22,6 +22,7 @@ import { TemplatesController } from './templates/templates.controller';
 import { TemplatesService } from './templates/templates.service';
 import { DebtorSignIn } from './auth/debtor-sign-in';
 import { DebtorController, StaffPortalController } from './debtor-access/debtor.controller';
+import { LimitedSpace } from './debtor-access/limited';
 import { PortalMessages } from './debtor-access/portal-messages';
 import { DebtorViews } from './debtor-access/debtor-views';
 import { PortalController } from './partners/portal.controller';
@@ -93,6 +94,7 @@ export const providers: Provider[] = [
   DebtorSignIn,
   DebtorViews,
   PortalMessages,
+  LimitedSpace,
   PortalService,
   ClaimImports,
 ];

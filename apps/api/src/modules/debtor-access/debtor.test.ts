@@ -2,6 +2,8 @@ import { debtorCase, debtorSession } from '@legarec/contracts';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { startApp, type TestApp } from '../../../test/app';
+import { Database } from '../../platform/database/database';
+import { AuthKeys } from '../auth/keys';
 
 let test: TestApp;
 /** The same database, for the team: its callers named by the header of the tests. */
@@ -278,5 +280,68 @@ describe('what the review of the access found', () => {
     expect(renewed.status).toBe(204);
     const { code: next } = (await staff.call('GET', `/staff/cases/${found.caseId}/access-code`, { as: 'officerA' })).body as { code: string };
     expect((await access(found.siren!, next)).status).toBe(200);
+  });
+});
+
+describe('the space before any code', () => {
+  it('a link fills the identifier in, until it expires or its case closes', async () => {
+    network = `10.${randomBytes(3).join('.')}`;
+    const { caseId, debtorId, siren: value } = await debtorWithCode();
+    const token = randomBytes(8).toString('base64url');
+    const [{ creditor_id: creditorId }] = (await rows<{ creditor_id: string }>('SELECT creditor_id FROM cases WHERE id = $1', [caseId])) as [
+      { creditor_id: string },
+    ];
+    await rows(
+      "INSERT INTO debtor_links (debtor_id, case_id, creditor_id, token_hash, channel, expires_at) VALUES ($1, $2, $3, $4, 'LETTER', now() + interval '30 days')",
+      [debtorId, caseId, creditorId, test.app.get(AuthKeys).debtorLink(token)],
+    );
+    const found = await test.call('GET', `/debtor/links/${token}`, { headers: { 'x-forwarded-for': network } });
+    expect(found).toMatchObject({ status: 200, body: { identifier: { kind: 'SIREN', value: value!.replace(/(\d{3})(\d{3})(\d{3})/u, '$1 $2 $3') } } });
+    await rows('UPDATE debtor_links SET expires_at = now() WHERE case_id = $1', [caseId]);
+    expect((await test.call('GET', `/debtor/links/${token}`, { headers: { 'x-forwarded-for': network } })).body).toEqual({ code: 'UNKNOWN_LINK' });
+  });
+
+  it('the code by text message leaves only for a mobile a colleague confirmed, with the same answer', async () => {
+    network = `10.${randomBytes(3).join('.')}`;
+    const { caseId, siren: value } = await debtorWithCode();
+    const ask = () => test.call('POST', '/debtor/code-by-sms', { body: { kind: 'SIREN', value }, headers: { 'x-forwarded-for': network } });
+    expect(await ask()).toMatchObject({ status: 200, body: { requested: true } });
+    expect(await rows("SELECT 1 FROM outbox WHERE name = 'access-code-sms'")).toEqual([]);
+    const [{ creditor_id: creditorId }] = (await rows<{ creditor_id: string }>('SELECT creditor_id FROM cases WHERE id = $1', [caseId])) as [
+      { creditor_id: string },
+    ];
+    await rows(
+      "INSERT INTO case_contacts (case_id, creditor_id, kind, label, value, value_normalized, source, status) VALUES ($1, $2, 'PHONE', 'Mobile', '06 12 34 56 78', '0612345678', 'CALL', 'VERIFIED')",
+      [caseId, creditorId],
+    );
+    expect((await ask()).status).toBe(200);
+    expect(await rows("SELECT payload FROM outbox WHERE name = 'access-code-sms'")).toHaveLength(1);
+    // Three an hour for one identifier.
+    expect((await ask()).status).toBe(200);
+    expect(await ask()).toMatchObject({ status: 429, body: { code: 'TOO_MANY' } });
+  });
+
+  it('says how to pay, and takes a message without a code that only the manager reads', async () => {
+    network = `10.${randomBytes(3).join('.')}`;
+    expect(((await test.call('GET', '/debtor/limited/payment', { headers: { 'x-forwarded-for': network } })).body as { iban: string }).iban).toBe(
+      '[IBAN DU COMPTE DÉDIÉ]',
+    );
+    const sent = await test.call('POST', '/debtor/limited/messages', {
+      body: { name: 'Jean Martin', email: 'jm@exemple.test', reference: 'LGR-2026-00001', text: 'Je ne retrouve pas mon code.', attachments: [] },
+      headers: { 'x-forwarded-for': network, origin: 'http://localhost:5175' },
+    });
+    expect(sent.status).toBe(204);
+    const read = (as: string) =>
+      staff.app.get(Database).run(
+        {
+          kind: 'staff',
+          userId: as === 'manager' ? test.s.manager : test.s.officerA,
+          role: as === 'manager' ? 'COLLECTION_MANAGER' : 'CLAIMS_OFFICER',
+          delegations: [],
+        },
+        (tx) => tx.limitedMessage.count(),
+      );
+    expect(await read('manager')).toBe(1);
+    expect(await read('officerA')).toBe(0);
   });
 });

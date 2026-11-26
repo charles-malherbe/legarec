@@ -89,6 +89,12 @@ try {
       );
     }
   }
+  // Announced to their debtor (first letter of the demonstration): the space of payment opens for them, with the code a
+  // colleague shows in the case.
+  await client.query(
+    `UPDATE cases SET first_letter_reference = 'LR-2026-' || lpad(right(reference, 4), 4, '0'), first_letter_on = '2026-10-01'
+     WHERE status <> 'NEW' AND first_letter_on IS NULL AND reference LIKE 'LGR-2026-%'`,
+  );
   // The next ones do not take the numbers above.
   await client.query(
     "INSERT INTO number_sequences (kind, year, last_value) VALUES ('CASE', 2026, 300) ON CONFLICT (kind, year) DO UPDATE SET last_value = greatest(number_sequences.last_value, 300)",

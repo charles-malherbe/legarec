@@ -94,6 +94,10 @@ Sans dépendance : Resend, MySendingBox, OVH (appels signés : le paquet `ovh` d
 
 - `POST /partner/portal/claims` (`app.creditor_deposit`) : un dossier sans gestionnaire au mandat en vigueur, ses factures, les coordonnées données (non vérifiées, jamais utilisées pour le code d'accès) ; refus `NO_MANDATE`, `DEBTOR_MISMATCH`, `CASE_EXISTS`. `POST /partner/portal/attachments` : le fichier seul, type réel vérifié, analysé, invisible de l'équipe avant le dépôt qui le prend.
 
+### Espace débiteur (lot O, troisième partie) et bascule du portail de paiement
+- `GET /debtor/links/:token` (empreinte à clé dérivée de `VAULT_MASTER_KEY`, 60 lectures par heure et par réseau ; 404 `UNKNOWN_LINK` uniforme), `POST /debtor/code-by-sms` (toujours la même réponse ; tâche `access-code-sms` seulement vers un mobile confirmé par un collaborateur, question 112 ; 3 par heure et 5 par jour par identifiant, 20 par jour et par réseau ; envoi au lot R), `GET /debtor/limited/payment` (compte et chèques du cabinet seulement), `POST /debtor/limited/messages` (message non vérifié, lu par le Responsable seul, 6 mois, sans pièce).
+- **Bascule** : en développement, le portail de paiement parle à l'API de la machine par défaut (proxy Vite, `/api` → racine de l'API) ; `VITE_API=none` rend la simulation. Les dossiers de démonstration au-delà de « Nouveau » ont un premier courrier : un collaborateur affiche le code dans le dossier, le débiteur se connecte avec le SIREN ou la référence.
+
 ### Règles de code
 Une requête = une transaction `Database.run(actor, fn)`, ouverte par la plateforme ; seul `modules/auth` en ouvre au nom d'un compte (ESLint) ; ESLint interdit Prisma ailleurs. Aucun appel externe dans une transaction : `outbox`, puis BullMQ. Une tâche de Valkey ne porte que son numéro : son nom, son auteur et ses identifiants sont relus dans `outbox`. SQL brut limité à : séquences, verrous consultatifs, recherche trigramme, agrégats ; `SET ROLE` et `set_config` dans `src/platform` seulement ; imports dynamiques de Prisma, `pg`, BullMQ ou ioredis interdits ailleurs (ESLint).
 

@@ -267,6 +267,10 @@ describe('rights of the roles inside', () => {
       'documents SELECT (author_id, case_id, category, contains_access_code, created_at, creditor_id, id, kind, original_name, scan_status, scanned_at, sha256, shared_by, shared_with_creditor_at, size_bytes, source, storage_key, title, uploaded_by_creditor, uploaded_by_debtor, visible_to_debtor)',
       'documents UPDATE (category, title)',
       'claim_imports SELECT (confirmed_at, created_at, created_count, creditor_id, id, lines, status, total_cents, uploaded_by, valid)',
+      // Links of the letters and messages without a code: the manager reads the latter.
+      'debtor_links SELECT (case_id, channel, created_at, creditor_id, debtor_id, expires_at, id, revoked_at, uses)',
+      'limited_messages SELECT (claimed_reference, created_at, id, read_at, sender_email, sender_name, text)',
+      'limited_messages UPDATE (read_at)',
       // Messages of the space of the debtor: read; written by their functions.
       'portal_message_attachments SELECT (case_id, creditor_id, document_id, id, message_id)',
       'portal_messages SELECT (author_id, case_id, created_at, creditor_id, id, read_by_debtor_at, read_by_staff_at, request_data, request_kind, side, text)',
@@ -322,12 +326,17 @@ describe('rights of the roles inside', () => {
       'portal_messages SELECT (author_id, case_id, created_at, creditor_id, id, read_by_debtor_at, read_by_staff_at, request_data, request_kind, side, text)',
       // The templates in force, for the letters.
       'template_versions SELECT (id, number, source, state, template_code)',
+      // The links of the letters it sends (lot Q).
+      'debtor_links INSERT (case_id, channel, creditor_id, debtor_id, expires_at, token_hash)',
+      'debtor_links SELECT (case_id, channel, creditor_id, debtor_id, expires_at, id, revoked_at, uses)',
       // The PDF of a receipt (lot N).
       'receipts SELECT (case_id, creditor_id, document_id, id, issued_at, number, payment_id)',
       'receipts UPDATE (document_id)',
     ],
     legarec_retention: [
-      // Imports never confirmed, after 30 days.
+      // Imports never confirmed, after 30 days; messages without a code, after 6 months.
+      'limited_messages DELETE (*)',
+      'limited_messages SELECT (created_at, id)',
       'claim_imports DELETE (*)',
       'claim_imports SELECT (expires_at, id, status)',
       'idempotency_keys DELETE (*)',
@@ -399,7 +408,7 @@ describe('rights of the roles inside', () => {
       'vault_secrets UPDATE (decided_by, requested_by, rotated_at, status, value_cipher)',
       'creditor_bank_accounts SELECT (creditor_id, iban_cipher, id)',
       'case_contact_events INSERT (actor_id, actor_label, case_id, contact_id, creditor_id, what)',
-      'case_contacts SELECT (case_id, creditor_id, id)',
+      'case_contacts SELECT (case_id, creditor_id, id, kind, status, value_normalized)',
       'debtors INSERT (id, kind, legal_form_checked_at, legal_form_code, legal_form_source, name, name_confirmed, siren)',
       'cases SELECT (closed_on, creditor_id, debtor_id, first_letter_on, id, mandate_id, officer_id, reference, status, version)',
       'debtor_access_codes INSERT (code_cipher, debtor_id, generated_by)',
@@ -429,6 +438,9 @@ describe('rights of the roles inside', () => {
       'documents INSERT (category, id, kind, original_name, sha256, size_bytes, source, storage_key, title, uploaded_by_creditor, uploaded_by_debtor)',
       'documents SELECT (case_id, contains_access_code, created_at, creditor_id, id, scan_status, shared_with_creditor_at, source, uploaded_by_creditor, uploaded_by_debtor)',
       'documents UPDATE (case_id, creditor_id, shared_by, shared_with_creditor_at)',
+      'debtor_links SELECT (case_id, debtor_id, expires_at, id, revoked_at, token_hash, uses)',
+      'debtor_links UPDATE (uses)',
+      'limited_messages INSERT (claimed_reference, sender_email, sender_name, text)',
       // Deposits of the creditors: a case held by nobody, its invoices and the coordinates it gives.
       'case_contacts INSERT (case_id, creditor_id, is_primary, kind, label, source, status, value, value_normalized)',
       'case_invoices INSERT (case_id, claimed_cents, creditor_id, due_on, issued_on, number, principal_cents)',
@@ -557,6 +569,7 @@ describe('rights on the functions', () => {
     ...['own_access_code', 'debtor_upload', 'debtor_message'].map((name) => [name, ['debtor']] as [string, string[]]),
     ['read_portal_messages', ['debtor', 'staff']],
     ['staff_message', ['staff']],
+    ...['debtor_link', 'ask_code_by_sms', 'firm_payment_settings', 'limited_message'].map((name) => [name, ['auth']] as [string, string[]]),
     ...['creditor_decide_plan', 'creditor_upload', 'creditor_deposit'].map((name) => [name, ['partner']] as [string, string[]]),
     ...['money_case', 'issue_receipt', 'follow_allocation', 'check_allocations', 'keep_receipt'].map((name) => [name, []] as [string, string[]]),
     // Tools of the migrations.
@@ -586,6 +599,7 @@ describe('rights on the functions', () => {
       'import_template cancel_template submit_template review_template template_editor',
       'debtor_sign_in resume_debtor_session close_debtor_session forget_debtor_access set_code_hmac',
       'own_access_code debtor_upload debtor_message read_portal_messages staff_message creditor_decide_plan creditor_upload creditor_deposit',
+      'debtor_link ask_code_by_sms firm_payment_settings limited_message',
     ].flatMap((names) => names.split(' '));
     const found = await rows<{ proname: string }>(
       "SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'app' ORDER BY 1",

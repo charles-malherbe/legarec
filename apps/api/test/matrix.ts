@@ -595,4 +595,12 @@ export const MATRIX: Record<string, MatrixEntry> = {
   // The file of the matrix is a PDF: unreadable as claims, alike for both creditors.
   'POST /partner/portal/imports': { file: PDF, expect: only({ partnerA: 422, partnerB: 422 }) },
   'POST /partner/portal/imports/:id/confirm': { path: () => `/partner/portal/imports/${randomUUID()}/confirm`, expect: only({ partnerA: 404, partnerB: 404 }) },
+  // Before any code: open to whoever is there, and the same answer for all.
+  'GET /debtor/links/:token': { path: () => `/debtor/links/${randomBytes(9).toString('base64url')}`, expect: everyone(404) },
+  'POST /debtor/code-by-sms': { body: () => ({ kind: 'SIREN', value: unknownSiren() }), expect: everyone(200) },
+  'GET /debtor/limited/payment': { expect: everyone(200) },
+  'POST /debtor/limited/messages': {
+    body: () => ({ name: 'Jean Martin', email: '', reference: '', text: 'Bonjour', attachments: [] }),
+    expect: everyone(204),
+  },
 };

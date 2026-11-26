@@ -1,4 +1,4 @@
-import { debtorCase, debtorMessages, debtorSession, REQUEST_BODIES, uploadedFile } from '@legarec/contracts';
+import { codeBySms, debtorCase, debtorLink, debtorMessages, debtorSession, paymentInfo, REQUEST_BODIES, uploadedFile } from '@legarec/contracts';
 import { Body, Controller, Get, HttpCode, Inject, Param, Post } from '@nestjs/common';
 import { ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import type { z } from 'zod';
@@ -6,6 +6,7 @@ import { Anonymous, Debtor } from '../../platform/access/access';
 import { Staff } from '../../platform/access/access';
 import { currentActor, uploadedType } from '../../platform/http/context';
 import { Commits } from '../../platform/http/transaction.interceptor';
+import { LimitedSpace } from './limited';
 import { PortalMessages } from './portal-messages';
 import { DebtorSignIn } from '../auth/debtor-sign-in';
 import { DebtorViews } from './debtor-views';
@@ -22,6 +23,7 @@ export class DebtorController {
     @Inject(DebtorSignIn) private readonly signIn: DebtorSignIn,
     @Inject(DebtorViews) private readonly views: DebtorViews,
     @Inject(PortalMessages) private readonly messages: PortalMessages,
+    @Inject(LimitedSpace) private readonly limited: LimitedSpace,
   ) {}
 
   @Get('session')
@@ -54,6 +56,37 @@ export class DebtorController {
   @ApiOkResponse({ standardSchema: debtorCase })
   detail(@Param('id') id: string) {
     return this.views.detail(id);
+  }
+
+  /** The link of a letter or a text message: it fills the identifier in, never the code. */
+  @Get('links/:token')
+  @Anonymous('debtor')
+  @ApiOkResponse({ standardSchema: debtorLink })
+  link(@Param('token') token: string) {
+    return this.limited.link(token);
+  }
+
+  @Post('code-by-sms')
+  @Anonymous('debtor')
+  @HttpCode(200)
+  @ApiOkResponse({ standardSchema: codeBySms })
+  codeBySms(@Body({ schema: bodies['POST /debtor/code-by-sms'] }) identifier: In<'POST /debtor/code-by-sms'>) {
+    return this.limited.codeBySms(identifier);
+  }
+
+  @Get('limited/payment')
+  @Anonymous('debtor')
+  @ApiOkResponse({ standardSchema: paymentInfo })
+  limitedPayment() {
+    return this.limited.payment();
+  }
+
+  @Post('limited/messages')
+  @Anonymous('debtor')
+  @HttpCode(204)
+  @ApiNoContentResponse()
+  limitedMessage(@Body({ schema: bodies['POST /debtor/limited/messages'] }) body: In<'POST /debtor/limited/messages'>) {
+    return this.limited.message(body);
   }
 
   @Get('cases/:id/messages')

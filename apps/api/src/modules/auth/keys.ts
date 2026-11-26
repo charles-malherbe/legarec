@@ -35,6 +35,8 @@ export class AuthKeys {
   linkHash = (token: string): Buffer => digest(this.links[0]!, token);
   linkHashes = (token: string): string[] => this.links.map((key) => digest(key, token).toString('hex'));
   deviceHash = (token: string): Buffer => digest(this.devices, token);
+  /** A link of a letter or a text message to the space of the debtor: from the master key, so that renewing the signing key keeps it. */
+  debtorLink = (token: string): Buffer => digest(this.lookups, `debtor-link:${token}`);
   /** Keyed fingerprint of an access code: what the sign-in of a debtor compares, without the code being opened. */
   accessCode = (code: string): Buffer => digest(this.lookups, `access-code:${code.trim().toUpperCase()}`);
   /** Counter of the failures of an address or of an account, known or not. */
