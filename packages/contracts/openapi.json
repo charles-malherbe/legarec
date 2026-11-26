@@ -8846,7 +8846,6 @@
                             "type": "string",
                             "enum": [
                               "ON_TRACK",
-                              "LATE",
                               "DEFAULT",
                               "WAITING_CREDITOR",
                               "WAITING_DEBTOR"

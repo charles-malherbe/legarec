@@ -37,12 +37,13 @@ import { pageOf } from '../../shared/paging';
 import { listState, matches } from '../../shared/listState';
 
 type Data = z.infer<typeof plansData>;
-const TONE: Record<PaymentPlan['state'], Tone> = { ON_TRACK: 'success', LATE: 'warning', DEFAULT: 'danger', WAITING_CREDITOR: 'info', WAITING_DEBTOR: 'info' };
+const TONE: Record<PaymentPlan['state'], Tone> = { ON_TRACK: 'success', DEFAULT: 'danger', WAITING_CREDITOR: 'info', WAITING_DEBTOR: 'info' };
 const METHOD = { CHEQUE: 'Chèque', TRANSFER: 'Virement' } as const;
 const FILTERS = [
   ['all', 'Tous', () => true],
   ['ok', 'À jour', (plan: PaymentPlan) => plan.state === 'ON_TRACK'],
-  ['late', 'Retard / défaut', (plan: PaymentPlan) => plan.state === 'LATE' || plan.state === 'DEFAULT'],
+  // In default from the first installment missed (question 145): « Retard / défaut » of the mockup becomes « En défaut ».
+  ['late', 'En défaut', (plan: PaymentPlan) => plan.state === 'DEFAULT'],
   ['wait', 'À valider', (plan: PaymentPlan) => plan.state === 'WAITING_CREDITOR'],
 ] as const;
 const paid = (plan: PaymentPlan) => plan.installments.filter((item) => item.state === 'PAID').length;
@@ -134,7 +135,7 @@ export function PlansPage() {
         stats={[
           { label: 'À percevoir en décembre', value: s ? formatCents(s.nextMonth) : '', sub: s ? `${s.nextMonthCount} échéances` : ' ' },
           { label: 'Échéances honorées', value: s ? `${s.honored} %` : '', sub: '▲ 3 pts sur 90 jours', tone: 'success' },
-          { label: 'Plans en défaut', value: String(s?.defaults ?? ''), sub: '2 impayés ou plus', tone: 'danger' },
+          { label: 'Plans en défaut', value: String(s?.defaults ?? ''), sub: 'Dès 1 échéance impayée', tone: 'danger' },
           { label: 'À valider', value: String(pending), sub: 'par un responsable', tone: 'warning' },
         ]}
         actions={[

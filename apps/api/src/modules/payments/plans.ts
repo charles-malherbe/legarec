@@ -19,8 +19,8 @@ const spaced = (siren: string) => siren.replace(/(\d{3})(\d{3})(\d{3})/u, '$1 $2
 
 /**
  * Where each installment stands, from the payments of the case since the plan was asked: what was paid fills the
- * installments in order. A bounced cheque counts for nothing. Two installments missed or more: the plan is in default
- * (« 2 impayés ou plus », maquette).
+ * installments in order. A bounced cheque counts for nothing. One installment missed: the plan is in default (question 145,
+ * instead of « 2 impayés ou plus » of the mockup; there is no « late » plan any more).
  */
 export function installmentStates(
   rows: { number: number; dueOn: Day; amount: number }[],
@@ -100,11 +100,9 @@ export class Plans {
         ? plan.status === 'WAITING_DEBTOR'
           ? 'WAITING_DEBTOR'
           : 'WAITING_CREDITOR'
-        : plan.status === 'DEFAULT' || missed >= 2
+        : plan.status === 'DEFAULT' || missed >= 1
           ? 'DEFAULT'
-          : missed === 1
-            ? 'LATE'
-            : 'ON_TRACK';
+          : 'ON_TRACK';
       if (running) {
         stats.active += 1;
         stats.remaining += left;
