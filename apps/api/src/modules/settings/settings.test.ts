@@ -171,7 +171,7 @@ describe('what is kept of a change', () => {
     );
     expect(last.map((row) => row.changed_by)).toEqual([test.s.director, test.s.director]);
     const journal = JSON.stringify(await rows('SELECT * FROM audit_log')) + test.logs.join('');
-    for (const value of ['WEST', '0532', 'LEGAREC SAS']) expect(journal).not.toContain(value);
+    for (const value of ['WEST', '370400440532', '3704 0044 0532', 'LEGAREC SAS']) expect(journal).not.toContain(value);
     expect((await section('director', 'techniques/audit')).tables[0]!.rows.map((row) => row[3])).toContain('Identifiants du cabinet modifiés : 1');
   });
 

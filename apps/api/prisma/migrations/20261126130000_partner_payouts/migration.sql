@@ -50,7 +50,8 @@ BEGIN
       'net', coalesce(upcoming.to_pay_cents, 0)),
     'items', coalesce((SELECT jsonb_agg(jsonb_build_object('id', r.id, 'state', r.state, 'on', coalesce(b.paid_on, (b.validated_at AT TIME ZONE 'Europe/Paris')::date),
         'count', r.payments, 'collected', r.collected_cents, 'fee', r.fee_gross_cents, 'net', r.to_pay_cents) ORDER BY b.validated_at DESC)
-      FROM public.remittances r JOIN public.remittance_batches b ON b.id = r.batch_id WHERE r.creditor_id = own AND r.state IN ('READY', 'PAID')), '[]')
+      FROM (SELECT r.* FROM public.remittances r JOIN public.remittance_batches w ON w.id = r.batch_id WHERE r.creditor_id = own AND r.state IN ('READY', 'PAID')
+        ORDER BY w.validated_at DESC LIMIT 200) r JOIN public.remittance_batches b ON b.id = r.batch_id), '[]')
   );
 END
 $$;

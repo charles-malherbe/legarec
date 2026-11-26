@@ -131,13 +131,29 @@ describe('a batch of remittances', () => {
       [test.s.creditorA],
     );
     await paidCase({ creditor: test.s.creditorA, mandate: mandate!.id }, [10_000]);
+    await rows(
+      `INSERT INTO creditor_bank_accounts (creditor_id, holder, iban_cipher, iban_masked, bic, confirmed_by, confirmed_at, confirmed_with, created_by)
+       VALUES ($1, 'Alpha', '\\x00', 'FR76 •••• •••• 9999', 'BNPAFRPP', $2, now(), 'M. Alpha', $2)`,
+      [test.s.creditorA, test.s.manager],
+    );
     const space = (as: string) => test.call('GET', '/partner/portal/payouts', { as }).then((answer) => portalPayouts.parse(answer.body));
     // 8 % of 100 €, with its tax.
     expect((await space('partnerA')).next).toMatchObject({ collected: 10_000, fee: 960, net: 9_040 });
     expect((await space('partnerA')).rateLabel).toMatch(/commission de 8 % HT retenue avec la TVA/u);
+    // Once remitted, A reads its remittance; B reads nothing of it, nor the rate of A.
+    const shown = await draft();
+    const ready = shown.rows.filter((item) => item.state === 'READY');
+    const done = await call('director', 'POST', '/remittances', {
+      until: shown.until,
+      expected: ready.map((item) => ({ creditorId: item.creditorId, toPay: item.toPay, accountId: item.accountId! })),
+      retained: [],
+    });
+    expect(done.status, JSON.stringify(done.body)).toBe(200);
+    expect((await space('partnerA')).items[0]).toMatchObject({ collected: 10_000, fee: 960, net: 9_040 });
     const other = await space('partnerB');
     expect(other.next).toMatchObject({ collected: 0, fee: 0, net: 0 });
     expect(other.items).toEqual([]);
+    expect(other.rateLabel).not.toMatch(/8 %/u);
   });
 
   it('says the next day of transfers as the settings say it', () => {
