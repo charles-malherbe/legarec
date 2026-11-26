@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -27,8 +27,12 @@ export class Storage {
   async put(bytes: Uint8Array): Promise<Stored> {
     const key = randomUUID();
     const path = this.path(key);
-    await mkdir(join(this.folder, key.slice(0, 2)), { recursive: true, mode: 0o700 });
-    await writeFile(`${path}.part`, bytes, { mode: 0o600 });
+    // Read and written by the API and the worker, by their common group (the folder keeps it: setgid), nobody else.
+    const folder = join(this.folder, key.slice(0, 2));
+    await mkdir(folder, { recursive: true });
+    await chmod(folder, 0o2770);
+    await writeFile(`${path}.part`, bytes);
+    await chmod(`${path}.part`, 0o660);
     await rename(`${path}.part`, path);
     return { key, size: bytes.byteLength, sha256: createHash('sha256').update(bytes).digest('hex') };
   }

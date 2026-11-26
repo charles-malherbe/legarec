@@ -102,6 +102,10 @@ services:
     user: '10101:10101'
     command: [node, --env-file=/run/secrets/api, --max-old-space-size=384, dist/main.js]
     secrets: [api]
+    # The documents, shared with the worker through their group (docs/deploiement.md, « Documents »).
+    group_add: ['10120']
+    environment: { DOCUMENTS_DIR: /documents }
+    volumes: ['/var/lib/legarec/documents:/documents']
     # Three passwords are checked at once, 64 MB each, outside of the memory of Node.
     mem_limit: 768m
     memswap_limit: 768m
@@ -120,8 +124,14 @@ services:
     user: '10102:10102'
     command: [node, --env-file=/run/secrets/worker, --max-old-space-size=512, dist/worker.js]
     secrets: [worker]
-    mem_limit: 768m
-    memswap_limit: 768m
+    group_add: ['10120']
+    # Chromium writes the PDF (receipts): its processes, and its files in /tmp.
+    environment: { DOCUMENTS_DIR: /documents, CHROMIUM_PATH: /usr/bin/chromium, HOME: /tmp }
+    volumes: ['/var/lib/legarec/documents:/documents']
+    pids_limit: 400
+    tmpfs: ['/tmp:size=256m,mode=1777']
+    mem_limit: 1g
+    memswap_limit: 1g
     # A task under way ends before the worker stops: a letter or a text message cut short would have an unknown outcome.
     stop_grace_period: 90s
     networks: [donnees, surveillance, sortie-worker]
