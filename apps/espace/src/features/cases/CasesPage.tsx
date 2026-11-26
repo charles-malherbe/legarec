@@ -1,16 +1,17 @@
-import { canAccessBilling, caseList, formatCents, type CaseFilter } from '@legarec/contracts';
+import { canAccessBilling, caseList, depositsData, formatCents, type CaseFilter } from '@legarec/contracts';
 import { Avatar, Badge, Bouton, Champ, PageHeader, Pagination, Tableau, Toolbar, useConfirm, useToast } from '@legarec/ui';
 import { useDebouncedValue } from '@mantine/hooks';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { api } from '../../app/api';
 import { useCreditorScope } from '../../app/creditorScope';
-import { useChange } from '../../app/data';
+import { useApi, useChange } from '../../app/data';
 import { useCurrentUser } from '../../app/session';
 import layout from '@legarec/ui/layout.module.css';
 import { listState } from '../../shared/listState';
 import { STATUS_TONE } from '../dashboard/DashboardPage';
+import { DepositsTab } from './DepositsTab';
 
 const TABS: [CaseFilter, string][] = [
   ['all', 'Tous'],
@@ -43,7 +44,11 @@ export function CasesPage() {
   const change = useChange();
   const [query, setQuery] = useState('');
   const [search] = useDebouncedValue(query, 250);
-  const [tab, setTab] = useState<CaseFilter>('all');
+  // « Dépôts à valider » (question 155): the Director and the manager, opened from the dashboard by `?onglet=depots`.
+  const [searchParams] = useSearchParams();
+  const validates = user.role === 'DIRECTOR' || user.role === 'COLLECTION_MANAGER';
+  const [tab, setTab] = useState<CaseFilter | 'deposits'>(validates && searchParams.get('onglet') === 'depots' ? 'deposits' : 'all');
+  const deposits = useApi(depositsData, '/deposits', { enabled: validates });
   const [age, setAge] = useState('all');
   const [officer, setOfficer] = useState('all');
   const [page, setPage] = useState(1);
@@ -51,7 +56,7 @@ export function CasesPage() {
   const [selected, setSelected] = useState<string[]>([]);
   const [target, setTarget] = useState('');
   // The search may hold a name or a SIRET: it is sent in the body, never in the URL.
-  const params = new URLSearchParams({ creditor: scope.id, status: tab, age, officer, page: String(page), size: String(size) });
+  const params = new URLSearchParams({ creditor: scope.id, status: tab === 'deposits' ? 'all' : tab, age, officer, page: String(page), size: String(size) });
   const { data, isPending, error, refetch } = useApiSearch(`/cases/search?${params}`, search);
   const rows = data?.items ?? [];
   const chosen = rows.filter((row) => selected.includes(row.id));
@@ -60,7 +65,10 @@ export function CasesPage() {
   // Only what the summary shows may be acted upon.
   const ids = chosen.map((row) => row.id);
   const names = chosen.map((row) => row.name).join(', ');
-  const tabs: [CaseFilter, string][] = user.role === 'COLLECTION_MANAGER' && data?.counts.unassigned ? [...TABS, ['unassigned', 'Sans gestionnaire']] : TABS;
+  const tabs: [CaseFilter | 'deposits', string][] = [
+    ...(user.role === 'COLLECTION_MANAGER' && data?.counts.unassigned ? [...TABS, ['unassigned', 'Sans gestionnaire'] as [CaseFilter, string]] : TABS),
+    ...(validates && (deposits.data?.count || tab === 'deposits') ? [['deposits', 'Dépôts à valider'] as ['deposits', string]] : []),
+  ];
   const state = listState({
     pending: isPending,
     error,
@@ -167,7 +175,7 @@ export function CasesPage() {
         }}
         tabs={tabs.map(([id, label]) => ({
           label,
-          count: data?.counts[id] ?? '',
+          count: id === 'deposits' ? (deposits.data?.count ?? '') : (data?.counts[id] ?? ''),
           selected: id === tab,
           pick: () => {
             setTab(id);
@@ -184,7 +192,8 @@ export function CasesPage() {
           ...(user.role === 'CLAIMS_OFFICER' ? [] : [{ label: 'Gestionnaire', value: officer, options: OFFICERS, onChange: narrow(setOfficer) }]),
         ]}
       />
-      <section aria-label="Liste des dossiers" className={layout.card}>
+      {tab === 'deposits' && <DepositsTab data={deposits.data} pending={deposits.isPending} error={deposits.error} onRetry={() => void deposits.refetch()} />}
+      <section aria-label="Liste des dossiers" className={layout.card} hidden={tab === 'deposits'}>
         <Tableau
           caption="Dossiers"
           hideCaption

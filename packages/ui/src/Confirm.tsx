@@ -20,6 +20,8 @@ export interface ConfirmProps {
   details?: ConfirmDetail[];
   reasonLabel?: string;
   reasonPlaceholder?: string;
+  /** What is said of the reason under its field: where it is kept. */
+  reasonHelp?: string;
   /** Exact text the user must type before confirming (irreversible actions). */
   typeToConfirm?: { label: string; expected: string };
   /** A box to tick in the dialog; `required` blocks the confirmation until it is ticked. */
@@ -41,6 +43,7 @@ function ConfirmBody({
   details = [],
   reasonLabel,
   reasonPlaceholder = 'Précisez le motif…',
+  reasonHelp = "Obligatoire · conservé dans le journal d'audit",
   typeToConfirm,
   check,
   onConfirm,
@@ -134,7 +137,7 @@ function ConfirmBody({
                   label={reasonLabel}
                   value={reason}
                   placeholder={reasonPlaceholder}
-                  help="Obligatoire · conservé dans le journal d'audit"
+                  help={reasonHelp}
                   onChange={setReason}
                   autoFocus
                 />

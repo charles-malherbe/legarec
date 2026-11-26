@@ -279,25 +279,10 @@ export const handlers = [
   ),
   http.post(
     '/api/portal/claims',
-    owned(async (creditorId, { request }) => {
+    owned(async (_creditorId, { request }) => {
       const parsed = newClaim.safeParse(await request.json());
       if (!parsed.success) return HttpResponse.json({ code: 'INVALID' }, { status: 422 });
-      cases = [
-        file(
-          creditorId,
-          `n${cases.length}`,
-          'NEW',
-          parsed.data.debtor,
-          '—',
-          `LGR-2026-002${String(cases.length).padStart(2, '0')}`,
-          `${parsed.data.invoices.length} facture${parsed.data.invoices.length > 1 ? 's' : ''}`,
-          parsed.data.invoices.reduce((sum, item) => sum + item.amount, 0) / 100,
-          0,
-          'Déposé aujourd’hui',
-          [['Créance déposée par vous', 'aujourd’hui']],
-        ),
-        ...cases,
-      ];
+      // As the API: the claim waits for the team before it becomes a case (question 155); nothing shows before.
       return done();
     }),
   ),

@@ -187,8 +187,8 @@ export class PortalService {
   }
 
   /**
-   * A claim deposited by the creditor: a case held by nobody, under its mandate in force, that the manager takes. PostgreSQL
-   * checks everything again; what the creditor gives of the debtor is not verified.
+   * A claim deposited by the creditor: it waits for the Director or the manager, who opens it as a case held by nobody, or
+   * refuses it (question 155). PostgreSQL checks everything again; what the creditor gives of the debtor is not verified.
    */
   async deposit(body: {
     debtor: string;
@@ -203,7 +203,8 @@ export class PortalService {
       SELECT outcome FROM app.creditor_deposit(${body.debtor}, ${body.siret.replace(/\s/gu, '')}, ${body.address}, ${body.email}, ${body.phone},
         ${JSON.stringify(body.invoices)}::jsonb, ${body.attachments}::uuid[])`;
     switch (row?.outcome) {
-      case 'OPENED':
+      // Waiting for the team before it becomes a case (question 155): the creditor is told nothing more.
+      case 'DEPOSITED':
         return;
       case 'NO_MANDATE':
       case 'CASE_EXISTS':

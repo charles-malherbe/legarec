@@ -161,7 +161,8 @@ export class ClaimImports {
     for (const claim of found.claims as Claim[]) {
       const [row] = await tx.$queryRaw<{ outcome: string }[]>`
         SELECT outcome FROM app.creditor_deposit(${claim.debtor}, ${claim.siret}, ${claim.address}, ${claim.email}, ${claim.phone}, ${JSON.stringify(claim.invoices)}::jsonb, '{}'::uuid[])`;
-      if (row?.outcome === 'OPENED') created += claim.invoices.length;
+      // Deposited, waiting for the team (question 155).
+      if (row?.outcome === 'DEPOSITED') created += claim.invoices.length;
       else refused += claim.invoices.length;
     }
     await tx.claimImport.update({ where: { id }, data: { status: 'CONFIRMED', confirmedAt: new Date(), createdCount: created, claims: [], errors: [] } });

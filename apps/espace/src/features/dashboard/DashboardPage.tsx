@@ -1,5 +1,6 @@
 import { dashboard as dashboardSchema, formatCents, shellData, type CaseStatus, type Dashboard } from '@legarec/contracts';
 import {
+  Alerte,
   Avatar,
   Badge,
   Bouton,
@@ -124,6 +125,16 @@ export function DashboardPage() {
         scope={{ name: creditorName, onReset: scope.id === 'all' ? undefined : () => scope.setId('all') }}
         note={current?.note}
       />
+      {/* Claims deposited by creditors, waiting before they become cases (question 155): the Director and the manager. */}
+      {!!data?.depositsWaiting && (
+        <Alerte
+          tone="info"
+          title={`${data.depositsWaiting} créance${data.depositsWaiting > 1 ? 's' : ''} déposée${data.depositsWaiting > 1 ? 's' : ''} à valider`}
+          text="Déposées par les créanciers dans leur portail : ouvrez le dossier ou refusez-les avec un motif."
+          actionLabel="Voir les dépôts"
+          actionHref="/debiteurs?onglet=depots"
+        />
+      )}
       {error ? (
         <EtatListe kind="error" onAction={() => void refetch()} />
       ) : !data ? (

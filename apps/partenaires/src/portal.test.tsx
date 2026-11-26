@@ -62,7 +62,7 @@ it('creates nothing before the confirmation of an import', async () => {
   const dialog = await inDialog();
   expect(dialog.getByText('Lignes en erreur')).toBeVisible();
   await userEvent.click(dialog.getByRole('button', { name: 'Confier les 22 créances' }));
-  expect(await screen.findByText(/22 créances importées/)).toBeVisible();
+  expect(await screen.findByText(/22 créances déposées : le cabinet les vérifie/)).toBeVisible();
 });
 it('checks a claim, then confirms it', async () => {
   openAs('cb', '/depot');
@@ -80,7 +80,7 @@ it('checks a claim, then confirms it', async () => {
   await userEvent.clear(screen.getByLabelText(/SIRET/));
   await userEvent.click(screen.getByRole('button', { name: 'Déposer la créance' }));
   await userEvent.click((await inDialog()).getByRole('button', { name: 'Confier la créance' }));
-  expect(await screen.findByText(/Créance déposée/)).toBeVisible();
+  expect(await screen.findByText(/Créance déposée. Le cabinet la vérifie avant d’ouvrir le dossier/)).toBeVisible();
 });
 it('signs in on the creditors’ portal only', async () => {
   openAs('none');

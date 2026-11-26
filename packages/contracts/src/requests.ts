@@ -7,6 +7,7 @@ import { litigationOutcome, litigationStage, newReminder } from './collection';
 import { creditNoteDraftBody, creditNoteIssue } from './creditNotes';
 import { coordinate, coordinateKind, coordinateSource, emailCategory, outgoingMessage } from './communication';
 import { debtorAccess, debtorIdentifier, debtorMessage, debtorRequest, limitedMessage } from './debtor';
+import { depositAcceptance, depositRefusal } from './deposits';
 import { letterTemplate } from './documents';
 import { bankAccountChange, bankAccountConfirmation, creditorChanges, mandateAmendment, newCreditor } from './creditors';
 import { EMAIL_MAX, ID_MAX } from './limits';
@@ -228,6 +229,8 @@ export const REQUEST_BODIES = {
     'POST /cases/:id/access-code/regenerate': renewedCode,
     'PUT /cases/:id/debtor': debtorCorrection,
     'POST /cases/:id/notes': caseNote,
+    'POST /deposits/:id/accept': depositAcceptance,
+    'POST /deposits/:id/refuse': depositRefusal,
     'POST /cases/:id/coordinates': newCoordinateBody,
     'PUT /cases/:id/coordinates/:coordinateId': coordinateBody,
     'POST /cases/search': searchBody,

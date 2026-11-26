@@ -3,7 +3,7 @@ import { saveFile, upload } from '@legarec/platform';
 import { Alerte, Badge, Bouton, Champ, DepotFichiers, Onglets, useConfirm, useToast } from '@legarec/ui';
 import { useState } from 'react';
 import css from '../app/Portal.module.css';
-import { useChange, usePartner } from '../app/data';
+import { useChange } from '../app/data';
 
 const TEMPLATE = 'debiteur;siret;email;telephone;adresse;numero_facture;date_emission;date_echeance;montant_ttc\r\n';
 
@@ -34,7 +34,6 @@ const EMPTY = { debtor: '', siret: '', email: '', phone: '', address: '' };
 const INVOICE = { number: '', issuedOn: '', dueOn: '', amount: '' };
 
 function OneClaim() {
-  const user = usePartner();
   const change = useChange();
   const confirm = useConfirm();
   const [form, setForm] = useState(EMPTY);
@@ -134,7 +133,7 @@ function OneClaim() {
         files={files}
         onChange={setFiles}
       />
-      {done && <Alerte tone="success" text={`Créance déposée. Statut « Nouveau » : ${user.officer} la prendra en charge sous 24 h ouvrées.`} />}
+      {done && <Alerte tone="success" text="Créance déposée. Le cabinet la vérifie avant d’ouvrir le dossier ; vous le verrez ensuite dans Dossiers." />}
       <div className={css.end}>
         <Bouton variant="secondary" label="Ajouter une autre facture" onPress={() => setInvoices((current) => [...current, INVOICE])} />
         <Bouton type="submit" label="Déposer la créance" />
@@ -230,7 +229,7 @@ function Batch() {
       {result && (
         <Alerte
           tone="success"
-          text={`${result.created} créances importées avec le statut « Nouveau ».${result.pending > 0 ? ` Les ${result.pending} lignes à corriger n’ont pas été créées : déposez-les dans un nouveau fichier.` : ''}`}
+          text={`${result.created} créances déposées : le cabinet les vérifie avant d’ouvrir les dossiers.${result.pending > 0 ? ` Les ${result.pending} lignes à corriger n’ont pas été créées : déposez-les dans un nouveau fichier.` : ''}`}
         />
       )}
       <div className={css.end}>

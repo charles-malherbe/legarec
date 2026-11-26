@@ -2,6 +2,7 @@ import { acceptsBody, hasDelegation, isFirmIdentity, loginRequest, PROOF_MINUTES
 import { http, HttpResponse, type HttpHandler } from 'msw';
 import { ACCOUNTS, DEMO_PASSWORD } from './accounts';
 import dashboardData from './dashboard.json';
+import { depositHandlers, depositsWaiting } from './routes/deposits';
 import { documentHandlers } from './routes/documents';
 import { memberOf, steeringHandlers } from './routes/steering';
 import { remittanceHandlers } from './routes/remittances';
@@ -162,6 +163,7 @@ export const handlers: HttpHandler[] = [
     return HttpResponse.json({ code: 'LOCKED', closed: true }, { status: 423 });
   }),
   ...documentHandlers,
+  ...depositHandlers,
   ...settingsHandlers,
   ...templateHandlers,
   ...accountHandlers,
@@ -298,6 +300,7 @@ export const handlers: HttpHandler[] = [
       return HttpResponse.json({
         ...base,
         scope: 'PERSONAL',
+        depositsWaiting: null,
         outstanding: 31240000,
         debtors: 62,
         invoices: 418,
@@ -308,7 +311,7 @@ export const handlers: HttpHandler[] = [
         team: [],
         feed: base.feed.filter((item) => mayRead(session, item.text)),
       });
-    return HttpResponse.json({ ...base, scope: session.role === 'DIRECTOR' ? 'GLOBAL' : 'TEAM', priorities });
+    return HttpResponse.json({ ...base, scope: session.role === 'DIRECTOR' ? 'GLOBAL' : 'TEAM', depositsWaiting: depositsWaiting(), priorities });
   }),
   http.put('/api/dashboard/priorities/:id', async ({ params, request }) => {
     if (!currentSession()) return unauthorized();

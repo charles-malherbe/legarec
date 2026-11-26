@@ -411,6 +411,18 @@ export const MATRIX: Record<string, MatrixEntry> = {
     body: () => ({ version: 1 }),
     expect: only({ director: 403, manager: 204, managerAlone: 204, officerA: 404, officerB: 404, liar: 404 }),
   },
+  // Claims deposited by creditors (question 155): the Director and the manager in their own right.
+  'GET /staff/deposits': { path: () => '/staff/deposits', expect: only({ director: 200, manager: 200, managerAlone: 200, liar: 200 }) },
+  'POST /staff/deposits/:id/accept': {
+    path: () => `/staff/deposits/${randomUUID()}/accept`,
+    body: () => ({ expectedTotal: 100 }),
+    expect: only({ director: 404, manager: 404, managerAlone: 404, liar: 403 }),
+  },
+  'POST /staff/deposits/:id/refuse': {
+    path: () => `/staff/deposits/${randomUUID()}/refuse`,
+    body: () => ({ reason: 'Motif du refus' }),
+    expect: only({ director: 404, manager: 404, managerAlone: 404, liar: 403 }),
+  },
   'POST /staff/cases/:id/notes': {
     path: async (test) => `/staff/cases/${(await newCase(test)).id}/notes`,
     body: () => ({ text: 'Rappeler après le 5.' }),
