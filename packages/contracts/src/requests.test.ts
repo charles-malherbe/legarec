@@ -183,6 +183,8 @@ const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly
     'POST /cases/:id/access-code/regenerate': [{ version: 1 }],
     'PUT /cases/:id/debtor': [{ kind: 'COMPANY', name: 'Bâti Plus SAS', seen: 'Bati Plus' }],
     'POST /cases/:id/notes': [{ text: 'Rappeler après le 5 : le gérant attend le virement d’un client.' }],
+    'POST /deposits/:id/accept': [{ expectedTotal: 1_250_000 }],
+    'POST /deposits/:id/refuse': [{ reason: 'Créance déjà réglée selon le débiteur : justificatif demandé au créancier.' }],
     'POST /cases/:id/coordinates': [
       { kind: 'PHONE', label: 'Mobile', value: '0611223344', primary: false, replaces: 'p1', source: 'CALL' },
       { kind: 'EMAIL', label: 'Comptabilité', value: 'compta@batiplus.example', primary: true, replaces: null, source: 'CREDITOR' },

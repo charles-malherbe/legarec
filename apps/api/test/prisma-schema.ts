@@ -53,7 +53,8 @@ export function readPrismaSchema(directory: string): PrismaSchema {
           ? `timestamp(${native[2]}) with time zone`
           : (NATIVE[native[1]!] ?? `unknown ${native[1]}`)
         : (enumNames.get(base) ?? SCALAR[base] ?? `unknown ${base}`);
-      columns[column] = { type, nullable: declared.endsWith('?') };
+      // A list (`String[] @db.Uuid`) is an array of its type in PostgreSQL.
+      columns[column] = { type: declared.endsWith('[]') ? `${type}[]` : type, nullable: declared.endsWith('?') };
       if (/\s@id\b/u.test(line)) key = [column];
     }
     const composite = lines.map((line) => /^@@id\(\[([^\]]+)\]/u.exec(line)?.[1]).find(Boolean);

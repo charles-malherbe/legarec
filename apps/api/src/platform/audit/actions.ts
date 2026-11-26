@@ -51,6 +51,8 @@ export const AUDIT_ACTIONS = {
   CASE_OPENED: 'Dossier ouvert',
   CASES_ASSIGNED: 'Dossiers attribués : {count}',
   CASE_DEPOSITED: 'Créance déposée par un créancier : {count} factures',
+  DEPOSIT_ACCEPTED: 'Créance déposée : dossier ouvert',
+  DEPOSIT_REFUSED: 'Créance déposée : refusée',
   CASE_INVOICES_ADDED: 'Factures ajoutées à un dossier : {count}',
   // Debtors
   DEBTOR_SIGNED_IN: 'Connexion d’un débiteur',

@@ -13,6 +13,8 @@ export const dashboard = z.object({
   outstanding: cents,
   debtors: z.number().int(),
   invoices: z.number().int(),
+  /** Claims deposited by creditors waiting for the team (question 155): the Director and the manager; null for the others. */
+  depositsWaiting: z.number().int().nullable(),
   overdue30: cents,
   overdue30Sub: z.string(),
   periods: z.object({ week: period, month: period, year: period }),

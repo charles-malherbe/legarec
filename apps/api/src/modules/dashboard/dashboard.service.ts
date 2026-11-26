@@ -152,6 +152,9 @@ export class DashboardService {
       outstanding,
       debtors: new Set(open.map((row) => row.debtor.id)).size,
       invoices: open.reduce((sum, row) => sum + row.invoices.filter((invoice) => invoice.principalPaidCents < invoice.principalCents).length, 0),
+      // PostgreSQL lets the Director and the manager alone read them (question 155).
+      depositsWaiting:
+        role === 'DIRECTOR' || role === 'COLLECTION_MANAGER' ? await this.database.tx.claimDeposit.count({ where: { status: 'PENDING' } }) : null,
       overdue30: ages.filter((item) => item.days > 30).reduce((sum, item) => sum + item.amount, 0),
       overdue30Sub: plural(ages.filter((item) => item.days > 30).length, 'dossier'),
       periods: {

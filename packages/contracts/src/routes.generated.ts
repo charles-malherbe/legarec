@@ -1056,6 +1056,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/staff/deposits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DepositsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/deposits/{id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["DepositsController_accept"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/deposits/{id}/refuse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["DepositsController_refuse"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/staff/remittances/draft": {
         parameters: {
             query?: never;
@@ -4159,6 +4207,87 @@ export interface operations {
             };
         };
     };
+    DepositsController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: {
+                            id: string;
+                            creditorId: string;
+                            creditor: string;
+                            debtor: string;
+                            identifier: string;
+                            address: string;
+                            email: string;
+                            phone: string;
+                            invoices: {
+                                number: string;
+                                /** Format: date */
+                                issuedOn: string;
+                                /** Format: date */
+                                dueOn: string;
+                                amount: number;
+                            }[];
+                            total: number;
+                            files: number;
+                            /** Format: date */
+                            depositedOn: string;
+                        }[];
+                        count: number;
+                    };
+                };
+            };
+        };
+    };
+    DepositsController_accept: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        caseId: string;
+                    };
+                };
+            };
+        };
+    };
+    DepositsController_refuse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     RemittancesController_draft: {
         parameters: {
             query?: never;
@@ -4655,6 +4784,7 @@ export interface operations {
                         outstanding: number;
                         debtors: number;
                         invoices: number;
+                        depositsWaiting: number | null;
                         overdue30: number;
                         overdue30Sub: string;
                         periods: {

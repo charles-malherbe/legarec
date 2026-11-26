@@ -666,6 +666,17 @@ describe('rights of a task', () => {
 
 describe('purge', () => {
   it('removes what is out of date, and only that, and keeps the counts', async () => {
+    // A deposit decided 31 days ago goes; one decided yesterday, and one still waiting, stay (question 155).
+    await test.admin.query(
+      `INSERT INTO claim_deposits (creditor_id, deposited_by, status, reason, decided_by, decided_at, total_cents, invoice_count) VALUES
+         ($1, $2, 'REFUSED', 'Motif du refus', $3, now() - interval '31 days', 1, 1), ($1, $2, 'REFUSED', 'Motif du refus', $3, now() - interval '1 day', 1, 1)`,
+      [s.creditorA, s.partnerA, s.director],
+    );
+    await test.admin.query(
+      `INSERT INTO claim_deposits (creditor_id, deposited_by, debtor_name, invoices, total_cents, invoice_count)
+       VALUES ($1, $2, 'X', '[{"number":"N","issuedOn":"2026-01-01","dueOn":"2026-02-01","amount":1}]', 1, 1)`,
+      [s.creditorA, s.partnerA],
+    );
     await test.admin.query(`
       INSERT INTO idempotency_keys (actor, key, route, request_hash, created_at) VALUES
         ('user:x', gen_random_uuid(), 'r', '\\x00', now() - interval '49 hours'), ('user:x', gen_random_uuid(), 'r', '\\x00', now() - interval '47 hours');
@@ -693,6 +704,7 @@ describe('purge', () => {
       notifications: 0,
       'support-tickets': 0,
       'claim-imports': 0,
+      'claim-deposits': 1,
       'credit-note-drafts': 0,
       'limited-messages': 0,
       'task-marks': 0,
@@ -707,7 +719,7 @@ describe('purge', () => {
     };
     expect(await purge(jobs, logger, storage)).toEqual(counts);
     expect(await rows('SELECT action FROM audit_log')).toEqual([{ action: 'KEPT_ENTRY' }]);
-    const kept = await rows<{ kind: string; removed: number }>('SELECT kind, removed FROM retention_runs ORDER BY ran_at DESC LIMIT 21');
+    const kept = await rows<{ kind: string; removed: number }>('SELECT kind, removed FROM retention_runs ORDER BY ran_at DESC LIMIT 22');
     expect(Object.fromEntries(kept.map((row) => [row.kind, row.removed]))).toEqual(counts);
     // The key of a task still to come is kept, however old it is.
     expect(await rows('SELECT right(key, 1) AS key FROM task_keys ORDER BY key')).toEqual([{ key: '2' }, { key: '3' }]);
@@ -730,7 +742,7 @@ describe('purge', () => {
     await Promise.all([scheduleMaintenance(valkey, prefix), scheduleMaintenance(valkey, prefix)]);
     expect(await valkey.zcard(`${prefix}:maintenance:repeat`)).toBe(1);
     await queue().add('purge', {});
-    await until(() => logged('purge done') === 21);
+    await until(() => logged('purge done') === 22);
   });
 
   it('is out of reach of the HTTP API', async () => {

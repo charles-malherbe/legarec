@@ -28,6 +28,8 @@ const STEPS: readonly [kind: string, remove: (tx: Transaction) => Promise<number
   ['support-tickets', (tx) => tx.$executeRaw`DELETE FROM support_tickets WHERE created_at < now() - interval '2 years'`],
   // Imports never confirmed, 30 days after they were read.
   ['claim-imports', (tx) => tx.$executeRaw`DELETE FROM claim_imports WHERE status = 'PENDING' AND expires_at < now()`],
+  // A deposit decided goes 30 days later (question 155); one waiting for the team stays.
+  ['claim-deposits', (tx) => tx.$executeRaw`DELETE FROM claim_deposits WHERE status <> 'PENDING' AND decided_at < now() - interval '30 days'`],
   // Drafts of credit notes left aside, 30 days after their last change.
   ['credit-note-drafts', (tx) => tx.$executeRaw`DELETE FROM credit_note_drafts WHERE updated_at < now() - interval '30 days'`],
   // Messages without a code, unverified: 6 months.

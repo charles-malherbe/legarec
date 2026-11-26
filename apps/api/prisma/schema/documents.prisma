@@ -201,3 +201,40 @@ model ClaimImport {
   @@index([expiresAt], map: "claim_imports_expiry")
   @@map("claim_imports")
 }
+
+enum DepositStatus {
+  PENDING
+  ACCEPTED
+  REFUSED
+
+  @@map("deposit_status")
+}
+
+/// A claim deposited by a creditor, waiting for the Director or the manager before it becomes a case (question 155).
+/// Written by app.creditor_deposit, app.accept_deposit and app.refuse_deposit only.
+model ClaimDeposit {
+  id           String        @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  creditorId   String        @map("creditor_id") @db.Uuid
+  depositedBy  String        @map("deposited_by") @db.Uuid
+  debtorName   String?       @map("debtor_name")
+  siret        String?
+  address      String?
+  email        String?
+  phone        String?
+  invoices     Json?
+  files        String[]      @default([]) @db.Uuid
+  totalCents   BigInt        @map("total_cents")
+  invoiceCount Int           @map("invoice_count")
+  status       DepositStatus @default(PENDING)
+  reason       String?
+  decidedBy    String?       @map("decided_by") @db.Uuid
+  onBehalfOfId String?       @map("on_behalf_of_id") @db.Uuid
+  decidedAt    DateTime?     @map("decided_at") @db.Timestamptz(3)
+  openedCase   String?       @map("opened_case") @db.Uuid
+  createdAt    DateTime      @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
+
+  @@index([createdAt], map: "claim_deposits_waiting")
+  @@index([creditorId, createdAt], map: "claim_deposits_day")
+  @@index([decidedAt], map: "claim_deposits_decided_at")
+  @@map("claim_deposits")
+}
