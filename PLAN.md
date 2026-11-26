@@ -133,7 +133,7 @@ Les 161 routes simulées se répartissent ainsi :
 | [x] L | Portefeuille : paramètres et coffre, créanciers et mandats, débiteurs, dossiers, coordonnées, code d'accès, recherche, notifications. **Écrans** créancier et débiteur | 21 |
 | [x] M | Argent : intérêts, paiements, échéanciers (promesses et litiges : avec les appels, T, et l'espace débiteur, O) | 6 |
 | [ ] N | Documents : S3 (disque local en développement), antivirus, modèles, PDF, téléchargements, valeurs entre crochets, logos | 16 |
-| [ ] O | Espace débiteur : accès, messages, demandes, acceptation de l'échéancier | 14 |
+| [x] O | Espace débiteur : accès, messages, demandes, acceptation de l'échéancier | 14 |
 | [ ] P | Portail partenaires : dépôts, imports, accords, messages, relevés | 13 |
 | [ ] Q | Envois : plafonds, plages, scénarios, relances, Resend, courriers MySendingBox (test) | 7 |
 | [ ] R | Boîtes OVH, IMAP et SMTP, e-mails, SMS | 21 |
@@ -143,7 +143,7 @@ Les 161 routes simulées se répartissent ainsi :
 | [ ] V | RGPD : registre, exports, anonymisation, purges | 3 |
 | [ ] W | IA : couche compatible OpenAI, essai de qualité (OVHcloud), quatre fonctions | 3 |
 | [x] X1 | Exploitation, première partie : Dockerfiles, compose, `infra/caddy/Caddyfile`, pgBackRest, Gatus, Loki, `bootstrap.sql` exécuté dans la base de l'application, sonde de santé du worker et délai d'arrêt de 90 secondes ; rien n'est déployé (`docs/deploiement.md`) | — |
-| [ ] X | Exploitation, fin : bascule finale, ClamAV et Chromium (après N), n8n, purge à la demande après une restauration, tâches planifiées bloquées après une restauration, stockage chez OVHcloud au lieu de Scaleway (variables `SCW_*`, pgBackRest, Caddy, Gatus) ; liste complète dans `docs/deploiement.md` | — |
+| [ ] X | Exploitation, fin : bascule finale, ClamAV et Chromium (après N), n8n, purge à la demande après une restauration, tâches planifiées bloquées après une restauration, stockage chez OVHcloud au lieu de Scaleway (fait : variables `S3_*`, pgBackRest, Caddy ; reste le bucket des documents et son contrôle Gatus), état des écrans sans API ; liste complète dans `docs/deploiement.md` | — |
 
 **Bascule** : chaque lot ajoute ses préfixes à une liste `VITE_API` (développement) : MSW laisse passer ces routes vers l'API. La valeur par défaut bascule portail par portail : paiement après O, partenaires après P, espace après U. Chaque lot rejoue les mêmes requêtes contre MSW et contre l'API et valide les deux par le même schéma Zod. En mode mixte, un lien vers un écran non branché peut ne pas trouver le dossier (développement seulement). MSW reste pour les tests de composants.
 

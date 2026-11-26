@@ -52,7 +52,7 @@ Conteneurs permanents : 4,9 Go au plus. Réserver 2,5 Go pour ClamAV et n8n, à 
 - `legarec.fr` et `www.legarec.fr` restent chez leur hébergeur.
 
 ### OVHcloud Object Storage (région Paris `eu-west-par`)
-Décision du 26/11/2026 : au lieu de Scaleway ; les variables `SCW_*` ci-dessous et la configuration de pgBackRest sont à adapter au lot X. Sauvegardes chez le même fournisseur que le serveur, sans seconde copie : risque accepté par le cabinet (question 167).
+Décision du 26/11/2026, au lieu de Scaleway. Adresse du service : `s3.eu-west-par.io.cloud.ovh.net` (déjà écrite dans les modèles de `infra/valeurs/`, avec la région). Sauvegardes chez le même fournisseur que le serveur, sans seconde copie : risque accepté par le cabinet (question 167).
 - [ ] Bucket `legarec-sauvegardes`, privé, versions activées, **clé propre à ce bucket**. Politique du bucket : cette clé ne peut ni effacer une version, ni couper les versions, ni changer le cycle de vie ; seconde clé, en lecture seule, pour l'essai de restauration.
 - [ ] Règle de cycle de vie : versions remplacées ou supprimées effacées après 7 jours.
 - [ ] Bucket `legarec-media`, public en lecture, liste du contenu désactivée, logos déposés.
@@ -67,7 +67,7 @@ Un fichier par conteneur dans `/etc/legarec/`, d'après `infra/valeurs/*.exemple
 
 | Fichier | Groupe | Valeurs |
 |---|---|---|
-| `caddy.env` | 10110 | `ACME_EMAIL`, `AUTHORIZED_IPS` (adresses du cabinet, séparées par une espace), `SCW_REGION` |
+| `caddy.env` | 10110 | `ACME_EMAIL`, `AUTHORIZED_IPS` (adresses du cabinet, séparées par une espace), `S3_REGION` (`eu-west-par`, déjà écrite) |
 | `api.env` | 10101 | `DATABASE_URL`, `VALKEY_URL`, `VAULT_MASTER_KEY`, `SESSION_SIGNING_KEY`, adresses des portails, `MYSENDINGBOX_ENV` |
 | `worker.env` | 10102 | `JOBS_DATABASE_URL`, les mêmes `VALKEY_URL`, `VAULT_MASTER_KEY` et `SESSION_SIGNING_KEY`, `GATUS_PUSH_URL`, `GATUS_PUSH_TOKEN` |
 | `migration.env` | 10104 | `MIGRATION_DATABASE_URL` |
@@ -255,13 +255,34 @@ Journaux : ni adresse IP, ni chemin, ni en-tête dans ceux de Caddy ; ni requêt
 - **Chromium** : paquet Debian de l'image (`CHROMIUM_PATH=/usr/bin/chromium`), utilisé par le worker seul, sans son bac à sable (le conteneur en tient lieu, la page n'exécute aucun script et ne charge rien). Worker : 1 Go de mémoire, 400 processus, `/tmp` de 256 Mo.
 
 ## Reste à faire (fin du lot X)
-- **Bascule de MSW vers l'API**, portail par portail (`VITE_API`, `PLAN.md`) ; avant elle, aucun portail ne fonctionne en production.
+
+### Avant la mise en service : écrans encore sans API
+Une page construite pour la production n'a aucune simulation : elle appelle l'API. État au 26/11/2026, après `lot/v4` (comparaison des routes simulées et de `packages/contracts/openapi.json`) :
+
+| Portail | Routes appelées | Sur l'API | Manquent |
+|---|---|---|---|
+| `paiement` | 13 | 13 | — |
+| `partenaires` | 19 | 18 | Documents (`GET /portal/documents`) |
+| `espace` | 167 | 126 | 41, ci-dessous |
+
+| Écran de l'espace | Ce qui manque | Attend |
+|---|---|---|
+| Facturation (liste des factures, « + Créer depuis un modèle ») | `GET` et `POST /billing` | Rien : lot S |
+| Rapports, Équipe | `GET /reports`, `PUT /reports/scheduled/:id`, `GET /team` | Rien pour les rapports ; présence et appels de l'équipe avec le lot T |
+| Relances envoyées depuis un dossier, un échéancier ou la liste ; envoi et composition d'un document ; essai d'un modèle | 8 routes | Clés de test Resend et MySendingBox (lot Q) |
+| Messagerie (e-mails, SMS), boîtes OVH dans Paramètres | 21 routes | Compte SMS et boîtes OVH (lot R) |
+| Appels | 7 routes | Licence et identifiants 3CX (lot T) |
+
+Tant qu'une route manque, son écran affiche son état d'erreur (« Réessayer ») : rien ne se perd, mais l'écran ne sert pas. **À décider par le cabinet (question 194)** : attendre tous les lots, ou mettre en service avec les écrans prêts et masquer les autres.
+
+### Le reste
+- **Stockage chez OVHcloud** : fait pour Caddy (`media.legarec.fr`), pgBackRest et les noms des clés (`S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_REGION`, `S3_DOCUMENTS_BUCKET`). pgBackRest reste en adresses « chemin » (`repo1-s3-uri-style=path`), qu'OVHcloud accepte ; **jamais essayé contre un vrai bucket** : le premier `legarec run --rm sauvegarde full` de la mise en service le dira, avant toute donnée. Le bucket `legarec-documents` n'est pas encore branché (ci-dessous).
 - ClamAV : conteneur à ajouter (1,5 à 2 Go de mémoire, image désignée par son empreinte), joint par le worker seul (`CLAMAV_URL=tcp://clamav:3310`) ; d'ici là, les fichiers reçus attendent sans être lus (rien ne se perd). Le bucket `legarec-documents` remplacera ensuite le dossier des documents.
-- Chemin des modèles d'e-mails une fois l'API construite (lot Q) : `apps/api/src/emails/renderer.ts` remonte de deux dossiers depuis le fichier source ; à vérifier depuis `dist/`.
+- Chemin des modèles d'e-mails et de PDF : vérifié. Le worker les lit dans `templates/`, à côté de `dist/` (`apps/api/src/worker.ts`), et l'image copie ce dossier ; `TEMPLATES_DIR` de `renderer.ts` ne sert qu'aux tests.
 - n8n : avec les comptes de service ; conteneur et valeurs (`N8N_ENCRYPTION_KEY`) à ajouter, sur un réseau partagé avec l'API seule. Sa route existe déjà dans Caddy, réservée aux adresses du cabinet : elle répond 502 d'ici là.
 - Gatus : contrôle du bucket des documents (lot N).
 - Purge à la demande après une restauration : faite (`dist/purge.js`, étape 6 de « Restaurer la base »).
-- **Condition de mise en service** : `legarec-hold-tasks` ne bloque que les tâches en file (`outbox`). Chaque lot qui ajoute un planning dans PostgreSQL (relances, envois groupés, notifications) l'étend à ses tables, avec un test : sinon une relance déjà partie redeviendrait due.
+- **Condition de mise en service** : `legarec-hold-tasks` ne bloque que les tâches en file (`outbox`). Chaque lot qui ajoute un planning dans PostgreSQL (relances, envois groupés, notifications) l'étend à ses tables, avec un test : sinon une relance déjà partie redeviendrait due. L'agenda des relances (`planned_reminders`, lot Q) n'envoie encore rien de lui-même : à étendre avec l'envoi automatique.
 - `pgbackrest verify` chaque semaine : fait (minuterie `legarec-verification-sauvegardes`, dimanche 6 h, surveillée par Gatus). Reste l'essai automatique d'une restauration à un instant précis.
 - Versions du bucket `legarec-documents` : 70 jours (question 115), à revoir au lot N.
 - Contrôle de plusieurs copies de l'API : non prévu, une seule à la fois.

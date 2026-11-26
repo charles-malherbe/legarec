@@ -47,3 +47,19 @@ Session Claude Code lancée sur le VPS pendant l'absence de l'utilisateur, avec 
 - Questions **168** (règle de l'effacement à la demande) et **169** (ce qui reste d'un dossier anonymisé) à confirmer, en place par défaut.
 - Fusion avec `lot/u2` (contentieux) : **faite le 26/11** (migration `20261127010000_litigation_retention`, `app.forget_case()` supprime la fiche de contentieux). Questions **180 à 184** à confirmer ; la 183 est à trancher (un dossier revenu d'une procédure close ne repasse pas en contentieux).
 - Reste ouvert : écran d'effacement (absent de la maquette, API seulement) ; relevés de reversements sans dossier jamais purgés tant que rien ne les relie à leur lot (à revoir avec les relevés PDF du lot S).
+
+# Session du 26/11/2026 au soir : préparer le déploiement
+
+Consigne de l'utilisateur : « Continuer à avancer le projet pour préparer le déploiement ». Session `debian-09`, worktree `.claude/worktrees/deploiement`. L'autre session (« Statut et avancement ») est prévenue ; elle ne travaille ni sur la pile #60–#66 ni sur ces sujets. Questions 194 à 199 réservées à cette session.
+
+## Initiatives
+| Initiative | Raison |
+|---|---|
+| Branche `lot/x5` partie du sommet de la pile (`lot/v4`, #66) et non de `main` | #60 à #66 ne sont pas fusionnées ; partir de `main` aurait créé des conflits dans `QUESTIONS.md`, `PLAN.md` et les migrations |
+| Clés de stockage renommées `S3_ACCESS_KEY` et `S3_SECRET_KEY` (migration `20261127060000_storage_secret_names`), variables `S3_REGION` et `S3_DOCUMENTS_BUCKET` | `docs/api.md` prévoyait ce renommage au lot X ; un nom sans fournisseur ne sera plus à changer. Aucune production n'existe : rien à ressaisir |
+| Libellé « Scaleway Object Storage » remplacé par « OVHcloud Object Storage » dans Paramètres (secrets et liste des services) | Décision du cabinet du 26/11/2026. **Écart à un libellé de la maquette**, à confirmer ; `maquette/`, `kits/` et `PROMPT-FRONT.md` ne sont pas modifiés et nomment encore Scaleway |
+| Région `eu-west-par` et adresse `s3.eu-west-par.io.cloud.ovh.net` écrites dans les modèles de `infra/valeurs/` au lieu de `[RÉGION]` | Valeurs décidées et publiques (documentation OVHcloud) ; une valeur de moins à saisir |
+| pgBackRest laissé en adresses « chemin » | OVHcloud accepte les deux formes ; **non essayé contre un vrai bucket** (aucune clé, et jamais depuis ce serveur) : le premier `sauvegarde full` de la mise en service le vérifiera |
+| Question 194 ajoutée : que faire des écrans sans API à la mise en service | La comparaison des routes simulées et du contrat de l'API montre 41 routes de l'espace et 1 du portail des créanciers absentes ; 5 seulement ne dépendent d'aucune clé externe |
+
+## Avancement
