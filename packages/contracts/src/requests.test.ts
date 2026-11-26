@@ -210,6 +210,11 @@ const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly
     ],
     'POST /cases/:id/reminders': [{ channel: 'E-mail', template: 'Relance n°1', recipient: 'compta@batiplus.example', message: 'Bonjour' }],
     'POST /gdpr/requests': [{ caseId: 'meunier', kind: 'ACCESS', origin: 'Courrier' }],
+    'POST /remittances': [
+      { until: '2026-11-14', expectedTotal: 2_290_000, expectedTransfers: 3, retained: [] },
+      { until: '2026-11-14', expectedTotal: 0, expectedTransfers: 0, retained: [{ creditorId: 'delta', reason: 'Litige sur le mandat' }] },
+    ],
+    'POST /remittances/:id/paid': [{ paidOn: '2026-11-16', expectedTotal: 2_290_000 }],
     'PUT /gdpr/requests/:id': [
       { status: 'ANSWERED', reason: 'Copie envoyée par courrier' },
       { status: 'REFUSED', reason: 'Demande déjà traitée' },

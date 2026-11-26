@@ -12,6 +12,7 @@ export * from './cases';
 export * from './collection';
 export * from './communication';
 export * from './steering';
+export * from './remittances';
 export * from './documents';
 export * from './mergeFields';
 export * from './templates';

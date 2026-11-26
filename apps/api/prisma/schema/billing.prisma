@@ -1,0 +1,112 @@
+// Remittances and invoices of the firm: written and read by the `app.*remittance*` functions only (migration
+// 20261126120000_remittances); the models let the tests and the worker read them.
+
+enum RemittanceState {
+  READY
+  BELOW_MINIMUM
+  NO_ACCOUNT
+  NO_MANDATE
+  RETAINED
+  PAID
+
+  @@map("remittance_state")
+}
+
+enum RemittanceBatchStatus {
+  VALIDATED
+  PAID
+
+  @@map("remittance_batch_status")
+}
+
+enum RemittanceLineKind {
+  PAYMENT
+  OPENING_FEE
+
+  @@map("remittance_line_kind")
+}
+
+enum BillingKind {
+  INVOICE
+  CREDIT_NOTE
+
+  @@map("billing_kind")
+}
+
+model RemittanceBatch {
+  id           String                @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  coversUntil  DateTime              @map("covers_until") @db.Date
+  status       RemittanceBatchStatus @default(VALIDATED)
+  totalCents   BigInt                @map("total_cents")
+  transfers    Int
+  validatedBy  String                @map("validated_by") @db.Uuid
+  onBehalfOfId String?               @map("on_behalf_of_id") @db.Uuid
+  validatedAt  DateTime              @default(dbgenerated("now()")) @map("validated_at") @db.Timestamptz(3)
+  paidOn       DateTime?             @map("paid_on") @db.Date
+  paidBy       String?               @map("paid_by") @db.Uuid
+
+  @@map("remittance_batches")
+}
+
+model Remittance {
+  id            String          @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  batchId       String          @map("batch_id") @db.Uuid
+  creditorId    String          @map("creditor_id") @db.Uuid
+  state         RemittanceState
+  payments      Int
+  collectedCents BigInt         @map("collected_cents")
+  feeNetCents   BigInt          @map("fee_net_cents")
+  feeVatCents   BigInt          @map("fee_vat_cents")
+  feeGrossCents BigInt          @map("fee_gross_cents")
+  toPayCents    BigInt          @map("to_pay_cents")
+  bankAccountId String?         @map("bank_account_id") @db.Uuid
+  invoiceId     String?         @map("invoice_id") @db.Uuid
+  reason        String?
+
+  @@unique([batchId, creditorId])
+  @@map("remittances")
+}
+
+model RemittanceLine {
+  id           String             @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  remittanceId String             @map("remittance_id") @db.Uuid
+  caseId       String             @map("case_id") @db.Uuid
+  creditorId   String             @map("creditor_id") @db.Uuid
+  kind         RemittanceLineKind
+  paymentId    String?            @map("payment_id") @db.Uuid
+  amountCents  BigInt             @map("amount_cents")
+  feeNetCents  BigInt             @map("fee_net_cents")
+  feeVatCents  BigInt             @map("fee_vat_cents")
+
+  @@map("remittance_lines")
+}
+
+model BillingDocument {
+  id           String      @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  kind         BillingKind
+  number       String      @unique
+  creditorId   String      @map("creditor_id") @db.Uuid
+  issuedOn     DateTime    @map("issued_on") @db.Date
+  netCents     BigInt      @map("net_cents")
+  vatCents     BigInt      @map("vat_cents")
+  grossCents   BigInt      @map("gross_cents")
+  correctedId  String?     @map("corrected_id") @db.Uuid
+  reason       String?
+  createdBy    String      @map("created_by") @db.Uuid
+  onBehalfOfId String?     @map("on_behalf_of_id") @db.Uuid
+  createdAt    DateTime    @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
+
+  @@map("billing_documents")
+}
+
+model BillingLine {
+  id         String @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  documentId String @map("document_id") @db.Uuid
+  label      String
+  netCents   BigInt @map("net_cents")
+  vatCents   BigInt @map("vat_cents")
+  grossCents BigInt @map("gross_cents")
+
+  @@index([documentId], map: "billing_lines_document")
+  @@map("billing_lines")
+}

@@ -492,6 +492,19 @@ export const MATRIX: Record<string, MatrixEntry> = {
   'GET /staff/gdpr/requests': { expect: only({ director: 200, manager: 200 }) },
   'PUT /staff/gdpr/requests/:id': { path: gdprRequest(''), body: () => ({ status: 'ANSWERED', reason: 'Données envoyées' }), expect: administers },
   'POST /staff/gdpr/requests/:id/export': { path: gdprRequest('/export'), expect: only({ director: 200, manager: 200 }) },
+  // Remittances: the Director, or the manager acting for them; an empty batch is not validated.
+  'GET /staff/remittances/draft': { expect: only({ director: 200, manager: 200 }) },
+  'POST /staff/remittances': {
+    body: () => ({ until: '2026-01-01', expectedTotal: 0, expectedTransfers: 0, retained: [] }),
+    expect: only({ director: 409, manager: 409 }),
+  },
+  'GET /staff/remittances': { expect: only({ director: 200, manager: 200 }) },
+  'GET /staff/remittances/:id': { path: () => `/staff/remittances/${randomUUID()}`, expect: only({ director: 404, manager: 404 }) },
+  'POST /staff/remittances/:id/paid': {
+    path: () => `/staff/remittances/${randomUUID()}/paid`,
+    body: () => ({ paidOn: '2026-01-02', expectedTotal: 0 }),
+    expect: only({ director: 409, manager: 409 }),
+  },
   'GET /staff/notifications': { expect: staffOf(200) },
   'PUT /staff/notifications': { body: () => ({ ids: [randomUUID()], unread: false }), expect: staffOf(204) },
   'POST /staff/notifications/read': { body: () => ({ ids: [] }), expect: staffOf(204) },

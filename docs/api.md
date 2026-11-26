@@ -108,6 +108,12 @@ Sans dépendance : Resend, MySendingBox, OVH (appels signés : le paquet `ovh` d
 - Export : ce que le cabinet détient sur le débiteur dans tous ses dossiers (identité, adresses, factures, coordonnées, paiements, historique, messages), jamais son code d'accès ; fichier nommé d'après la demande, inscrit au journal d'audit.
 - Reste au lot V : anonymisation à la demande et purges planifiées des durées de conservation.
 
+### Reversements et factures de commission (lot S, première partie)
+- `GET /staff/remittances/draft`, `POST /staff/remittances` (`until`, `expectedTotal`, `expectedTransfers`, `retained` avec motif), `GET /staff/remittances`, `GET /staff/remittances/:id`, `POST /staff/remittances/:id/paid` : Directeur, ou Responsable par la délégation administrative.
+- Un seul calcul, `app.remittance_draft(until)` (sur `app.remittance_sources`), pour ce qui est montré et ce qui est validé : chèques encaissés et virements rapprochés jusqu'à la veille, pas encore reversés ; commission du mandat du dossier (contentieux ou amiable), frais d'ouverture une fois par dossier, TVA 20 %, retenus TTC (R1) ; aucun montant saisi. États : prêt, sous le seuil (si le mandat le prévoit), compte manquant ou non confirmé, mandat manquant, retenu, versé. La validation refuse (409) un lot changé depuis l'affichage.
+- À la validation : une facture `FA-AAAA-NNNN` par créancier versé (lignes « Honoraires de recouvrement » et « Frais d'ouverture de dossier »), tables `billing_documents` et `billing_lines` en ajout seul ; chaque paiement et chaque frais d'ouverture ne sont pris qu'une fois (index uniques de `remittance_lines`).
+- Reste au lot S : écrans (proposition validée), avoirs `AV-AAAA-NNNN`, relevé PDF et envoi (`remittance-invoice`), reprises (questions 156 à 159).
+
 ### Règles de code
 Une requête = une transaction `Database.run(actor, fn)`, ouverte par la plateforme ; seul `modules/auth` en ouvre au nom d'un compte (ESLint) ; ESLint interdit Prisma ailleurs. Aucun appel externe dans une transaction : `outbox`, puis BullMQ. Une tâche de Valkey ne porte que son numéro : son nom, son auteur et ses identifiants sont relus dans `outbox`. SQL brut limité à : séquences, verrous consultatifs, recherche trigramme, agrégats ; `SET ROLE` et `set_config` dans `src/platform` seulement ; imports dynamiques de Prisma, `pg`, BullMQ ou ioredis interdits ailleurs (ESLint).
 

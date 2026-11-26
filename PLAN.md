@@ -264,3 +264,7 @@ Les 161 routes simulées se répartissent ainsi :
 - [x] Registre des demandes, réponse motivée, export des données d'un débiteur (journalisé)
 - [x] Purges planifiées des tables de la nuit (imports non confirmés, messages sans code, marques du tableau de bord, registre RGPD)
 - [ ] Anonymisation à la demande d'un débiteur, purge des dossiers 5 ans après clôture
+
+## Lot S — Facturation et reversements (état au 26/11/2026)
+- [x] API des reversements : calcul unique en SQL, validation avec valeurs attendues, créancier retenu avec motif, factures de commission, « marquer comme versés »
+- [ ] Écrans « Validation des reversements » et « Avoir » (propositions validées), avoirs, relevés PDF et envois, reprises (questions 156 à 159)

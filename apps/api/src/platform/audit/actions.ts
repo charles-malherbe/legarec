@@ -90,6 +90,10 @@ export const AUDIT_ACTIONS = {
   SECRET_REVOKED: 'Secret révoqué : {secret}',
   SECRET_KEPT: 'Révocation refusée : {secret}',
   PLAN_APPROVED: 'Échéancier de {months} mois validé',
+  // Remittances
+  REMITTANCES_VALIDATED: 'Lot de reversements validé : {count} virements',
+  REMITTANCE_RETAINED: 'Créancier retenu du lot de reversements',
+  REMITTANCES_PAID: 'Reversements marqués comme versés',
   // Registry of the RGPD
   GDPR_REQUEST_ADDED: 'Demande RGPD enregistrée',
   GDPR_REQUEST_ANSWERED: 'Demande RGPD traitée',
