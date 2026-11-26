@@ -271,7 +271,13 @@ export const ACCOUNT_PARITY: Parity[] = [
   { as: 'manager', request: `PUT /litigation/${UNKNOWN}`, body: { court: '', partnerName: '', version: 1 }, status: 404, answer: code('NOT_FOUND') },
   { as: 'manager', request: `POST /litigation/${UNKNOWN}/stage`, body: { stage: 'PAYMENT_ORDER', version: 1 }, status: 404, answer: code('NOT_FOUND') },
   { as: 'manager', request: `POST /litigation/${UNKNOWN}/consent`, body: { version: 1 }, status: 404, answer: code('NOT_FOUND') },
-  { as: 'officer', request: `POST /litigation/${UNKNOWN}/stage`, body: { stage: 'CLOSED', expectedOutcome: 'LOST', version: 1 }, status: 404, answer: code('NOT_FOUND') },
+  {
+    as: 'officer',
+    request: `POST /litigation/${UNKNOWN}/stage`,
+    body: { stage: 'CLOSED', expectedOutcome: 'LOST', version: 1 },
+    status: 404,
+    answer: code('NOT_FOUND'),
+  },
   { as: 'director', request: 'GET /gdpr/requests', status: 200, answer: gdprRegistry },
   // Credit notes: as all of the billing; the identity of the firm is between brackets on both sides.
   ...each(['director', 'manager'], () => ({ request: 'GET /credit-notes', status: 200, answer: creditNotesData })),

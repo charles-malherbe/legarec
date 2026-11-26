@@ -162,6 +162,10 @@ describe('a closed case', () => {
     // To whoever acts on it alone, as an open case.
     expect((await call('officerA', 'GET', `/cases/${closed}/access-code`)).status).toBe(404);
     expect((await call('director', 'GET', `/cases/${closed}/access-code`)).status).toBe(403);
+    // Never from a forgotten case, though the debtor still has open ones.
+    const forgotten = await newCase(debtor, test.s.officerB, true);
+    await rows('UPDATE cases SET anonymized_at = now() WHERE id = $1', [forgotten]);
+    expect((await call('officerB', 'GET', `/cases/${forgotten}/access-code`)).body).toEqual({ code: null, version: 0, closed: true });
     const database = new Database(test.database.url('app'));
     const officer = { kind: 'staff', userId: test.s.officerB, role: 'CLAIMS_OFFICER', delegations: [] } as const;
     try {

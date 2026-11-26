@@ -132,8 +132,8 @@ export class CasesService {
   }
 
   /**
-   * The name and the kind of the debtor of a case, for all its cases (question 138). PostgreSQL checks who may, and that
-   * the name is still the one shown; the open cases this person acts on note it in their history.
+   * The name and the kind of the debtor of a case, for all its cases (question 138). PostgreSQL checks who may, from a case
+   * they act on, that the name is still the one shown, and notes it in the history of each case of the debtor.
    */
   async correctDebtor(id: string, body: z.infer<typeof debtorCorrection>): Promise<void> {
     const { tx } = this.database;
@@ -144,11 +144,8 @@ export class CasesService {
       SELECT app.correct_debtor(${id}::uuid, ${body.kind}::debtor_kind, ${body.name}, ${body.seen}) AS done`;
     if (!row?.done) throw notFound();
     if (row.done !== 'DONE') throw conflict('CHANGED');
-    const shown = await tx.$queryRaw<{ id: string }[]>`
-      SELECT id FROM cases WHERE debtor_id = ${found.debtorId}::uuid AND closed_on IS NULL AND app.can_act_on_case(officer_id)`;
-    for (const item of shown)
-      await tx.$executeRaw`SELECT app.add_case_event(${item.id}::uuid, 'DEBTOR_CORRECTED', 'Débiteur corrigé', ${`Ancien nom : ${body.seen}`}, 'info'::event_tone, false)`;
-    await this.audit.log({ action: 'DEBTOR_CORRECTED', entity: { type: 'case', id } });
+    // The debtor, which all its cases share; never its name.
+    await this.audit.log({ action: 'DEBTOR_CORRECTED', entity: { type: 'debtor', id: found.debtorId } });
   }
 
   async detail(actor: StaffActor, id: string): Promise<CaseDetail> {
@@ -165,6 +162,7 @@ export class CasesService {
       where: { id },
       select: {
         externalReference: true,
+        anonymizedAt: true,
         debtorId: true,
         debtorAddress: true,
         debtorPostalCode: true,
@@ -221,8 +219,9 @@ export class CasesService {
         onBehalfOf: event.onBehalfOf ? fullName(event.onBehalfOf) : null,
         tone: event.tone,
       })),
+      // From a case one acts on, not forgotten (the Director changes nothing from a case of someone else).
       correctable:
-        (actor.role === 'DIRECTOR' || actor.role === 'COLLECTION_MANAGER') && !found.debtor.anonymizedAt
+        (actor.role === 'DIRECTOR' || actor.role === 'COLLECTION_MANAGER') && row.can_act && !found.anonymizedAt && !found.debtor.anonymizedAt
           ? { name: found.debtor.name, kind: found.debtor.kind, hasSiren: found.debtor.siren !== null }
           : null,
       // Messages, payments, documents and scenarios: with their own modules.

@@ -7,6 +7,7 @@ import { useApi, useChange } from '../../app/data';
 import layout from '@legarec/ui/layout.module.css';
 import { STATUS_TONE } from '../dashboard/DashboardPage';
 import { ApiError } from '../../app/api';
+import { useCurrentUser } from '../../app/session';
 import { AccessDenied } from '../error/ErrorPage';
 import { AccessCodeCard } from './AccessCodeCard';
 import { CaseMessage } from './CaseMessage';
@@ -20,6 +21,7 @@ type Tab = 'overview' | 'invoices' | 'history' | 'exchanges' | 'documents';
 
 export function CasePage() {
   const { id = '' } = useParams();
+  const user = useCurrentUser();
   const { data, isPending, error, refetch } = useApi(caseDetail, `/cases/${id}`);
   if (isPending)
     return (
@@ -27,9 +29,13 @@ export function CasePage() {
         <EtatListe kind="loading" />
       </div>
     );
-  // A case of someone else is refused, an unknown one is not found (question 141).
+  // A case of someone else is refused, an unknown one is not found (question 141). The Developer reads no case at all.
   if (error instanceof ApiError && error.status === 403)
-    return <AccessDenied text="Ce dossier est suivi par un autre collaborateur. Si vous devez y accéder, demandez-le au responsable du recouvrement." />;
+    return user.role === 'DEVELOPER' ? (
+      <AccessDenied />
+    ) : (
+      <AccessDenied text="Ce dossier est suivi par un autre collaborateur. Si vous devez y accéder, demandez-le au responsable du recouvrement." />
+    );
   if (error instanceof ApiError && error.status === 404) return <AccessDenied code={404} />;
   if (error || !data)
     return (
@@ -102,16 +108,9 @@ function CaseView({ data }: { data: CaseDetail }) {
               · {data.reference} · {data.identifier} · Réf. créancier {data.creditorRef} · Gestionnaire : {data.officer ?? 'à attribuer'}
             </p>
           </div>
-          {data.correctable && !data.canAct && (
-            <div className={layout.inline}>
-              <Bouton variant="secondary" label="Corriger le débiteur" onPress={() => setPanel('debtor')} expanded={panel === 'debtor'} />
-            </div>
-          )}
           {data.canAct && (
             <div className={layout.inline}>
-              {data.correctable && (
-                <Bouton variant="secondary" label="Corriger le débiteur" onPress={() => setPanel('debtor')} expanded={panel === 'debtor'} />
-              )}
+              {data.correctable && <Bouton variant="secondary" label="Corriger le débiteur" onPress={() => setPanel('debtor')} expanded={panel === 'debtor'} />}
               <Bouton variant="secondary" label="Proposer un échéancier" href={`/echeanciers?dossier=${data.id}`} />
               <Bouton variant="secondary" label="Enregistrer un paiement" onPress={() => setPanel('payment')} expanded={panel === 'payment'} />
               <Bouton variant="secondary" label="Envoyer une relance" onPress={() => setPanel('reminder')} expanded={panel === 'reminder'} />

@@ -26,27 +26,28 @@ $$;
 -- ---------------------------------------------------------------- Question 140: the access code of a closed case, read only
 
 -- Of the debtor of a case, for whoever acts on that case, closed or not: the code opens all the cases of the debtor. It is
--- drawn and renewed only from an open case (app.first_access_code, app.renew_access_code), and never for a forgotten debtor.
+-- drawn and renewed only from an open case (app.first_access_code, app.renew_access_code), and never shown from a forgotten
+-- case nor for a forgotten debtor.
 GRANT CREATE ON SCHEMA app TO legarec_definer;
 SET LOCAL ROLE legarec_definer;
 CREATE OR REPLACE FUNCTION app.access_code(target uuid) RETURNS TABLE (debtor_id uuid, code_cipher bytea, version integer)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
   SELECT a.debtor_id, a.code_cipher, a.version FROM public.cases c JOIN public.debtor_access_codes a ON a.debtor_id = c.debtor_id
     JOIN public.debtors d ON d.id = c.debtor_id
-  WHERE c.id = target AND d.anonymized_at IS NULL AND app.can_act_on_case(c.officer_id)
+  WHERE c.id = target AND c.anonymized_at IS NULL AND d.anonymized_at IS NULL AND app.can_act_on_case(c.officer_id)
 $$;
 RESET ROLE;
 REVOKE CREATE ON SCHEMA app FROM legarec_definer;
 
 -- ---------------------------------------------------------------- Question 141: « Accès refusé » for a case of someone else
 
--- Whether a case exists, nothing more, and to the team alone: a creditor or a debtor is never told (they are not granted it,
--- and app.staff_role() is null for them).
+-- Whether a case exists, nothing more, and to the roles that hold cases alone: a creditor, a debtor or the Developer is
+-- never told (the first two are not granted it; app.staff_role() says who the others are).
 GRANT CREATE ON SCHEMA app TO legarec_definer;
 SET LOCAL ROLE legarec_definer;
 CREATE FUNCTION app.case_exists(target uuid) RETURNS boolean
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
-  SELECT app.staff_role() IS NOT NULL AND EXISTS (SELECT 1 FROM public.cases c WHERE c.id = target)
+  SELECT coalesce(app.staff_role() IN ('DIRECTOR', 'COLLECTION_MANAGER', 'CLAIMS_OFFICER'), false) AND EXISTS (SELECT 1 FROM public.cases c WHERE c.id = target)
 $$;
 REVOKE ALL ON FUNCTION app.case_exists(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION app.case_exists(uuid) TO legarec_staff;
@@ -55,31 +56,39 @@ REVOKE CREATE ON SCHEMA app FROM legarec_definer;
 
 -- ---------------------------------------------------------------- Question 138: the name and the kind of a debtor, corrected
 
--- By the Director and the manager, from a case of the debtor they read: the name changes in all its cases, for all the
--- creditors. The SIREN never changes; a debtor with one is never an individual (debtors_individual).
+-- By the Director and the manager, from a case of the debtor they act on (the Director changes nothing from a case of someone
+-- else): the name changes in all its cases, for all the creditors. The SIREN never changes; a debtor with one is never an
+-- individual (debtors_individual). The functions of the definer that change a debtor are listed by test/schema.test.ts.
 CREATE POLICY definer_correct ON debtors FOR UPDATE TO legarec_definer
   USING ((SELECT app.staff_role()) IN ('DIRECTOR', 'COLLECTION_MANAGER') AND anonymized_at IS NULL
-    AND EXISTS (SELECT 1 FROM cases c WHERE c.debtor_id = debtors.id AND app.can_read_case(c.officer_id)))
+    AND EXISTS (SELECT 1 FROM cases c WHERE c.debtor_id = debtors.id AND c.anonymized_at IS NULL AND app.can_act_on_case(c.officer_id)))
   WITH CHECK (name_confirmed AND anonymized_at IS NULL);
 
 GRANT CREATE ON SCHEMA app TO legarec_definer;
 SET LOCAL ROLE legarec_definer;
--- `seen`: the name that was on the screen. NULL when the case is not read; 'CHANGED' when the debtor changed since.
+-- `seen`: the name that was on the screen. NULL when the case is not read; 'CHANGED' when the debtor changed since. Each case
+-- of the debtor not forgotten notes it, kept from the creditor: by its author in the case it was done from, by « Legarec »
+-- elsewhere (whoever follows another case learns that the name changed, not who did it).
 CREATE FUNCTION app.correct_debtor(target uuid, wanted_kind debtor_kind, wanted_name text, seen text) RETURNS text
 LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE
   known uuid;
   number text;
+  may boolean;
   current text;
   forgotten timestamptz;
 BEGIN
   IF app.staff_role() IS NULL OR app.staff_role() NOT IN ('DIRECTOR', 'COLLECTION_MANAGER') THEN
     PERFORM app.refuse('42501');
   END IF;
-  SELECT d.id, d.siren INTO known, number FROM public.cases c JOIN public.debtors d ON d.id = c.debtor_id
+  SELECT d.id, d.siren, app.can_act_on_case(c.officer_id) AND c.anonymized_at IS NULL INTO known, number, may
+  FROM public.cases c JOIN public.debtors d ON d.id = c.debtor_id
   WHERE c.id = target AND app.can_read_case(c.officer_id);
   IF known IS NULL THEN
     RETURN NULL;
+  END IF;
+  IF NOT may THEN
+    PERFORM app.refuse('42501');
   END IF;
   -- As at the opening of a case with this SIREN.
   IF number IS NOT NULL THEN
@@ -90,6 +99,14 @@ BEGIN
     RETURN 'CHANGED';
   END IF;
   UPDATE public.debtors d SET name = btrim(wanted_name), kind = wanted_kind, name_confirmed = true WHERE d.id = known;
+  IF NOT FOUND THEN
+    RETURN 'CHANGED';
+  END IF;
+  INSERT INTO public.case_events (case_id, creditor_id, kind, title, detail, tone, actor_kind, actor_id, actor_label, on_behalf_of_id)
+  SELECT c.id, c.creditor_id, 'DEBTOR_CORRECTED', 'Débiteur corrigé', 'Ancien nom : ' || current, 'info',
+    CASE WHEN c.id = target THEN app.actor_kind() ELSE 'SYSTEM' END, CASE WHEN c.id = target THEN app.actor_id() END,
+    CASE WHEN c.id = target THEN app.actor_label() ELSE 'Legarec' END, CASE WHEN c.id = target THEN app.on_behalf_of() END
+  FROM public.cases c WHERE c.debtor_id = known AND c.anonymized_at IS NULL;
   RETURN 'DONE';
 END
 $$;

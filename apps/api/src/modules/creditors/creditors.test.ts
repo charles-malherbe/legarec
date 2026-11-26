@@ -365,19 +365,46 @@ describe('the account of the remittances', () => {
     const mine = await file(id, 'manager');
     expect(mine.bankAccount).toMatchObject({ confirmed: null, enteredBy: expect.any(String), enteredByMe: true });
     expect((await file(id)).bankAccount).toMatchObject({ enteredBy: mine.bankAccount!.enteredBy, enteredByMe: false });
-    expect((await call('manager', 'POST', `/${id}/bank-accounts/${mine.bankAccount!.id}/confirm`, { confirmedWith: 'x' })).body).toEqual({ code: 'SAME_PERSON' });
+    expect((await call('manager', 'POST', `/${id}/bank-accounts/${mine.bankAccount!.id}/confirm`, { confirmedWith: 'x' })).body).toEqual({
+      code: 'SAME_PERSON',
+    });
     const database = new Database(test.database.url('app'));
-    const manager = { kind: 'staff', userId: test.s.manager, role: 'COLLECTION_MANAGER', delegations: ['ADMINISTRATIVE'], actingFor: 'ADMINISTRATIVE' } as const;
+    const manager = {
+      kind: 'staff',
+      userId: test.s.manager,
+      role: 'COLLECTION_MANAGER',
+      delegations: ['ADMINISTRATIVE'],
+      actingFor: 'ADMINISTRATIVE',
+    } as const;
     try {
       await expect(
-        database.run(manager, (tx) =>
-          tx.$executeRaw`UPDATE creditor_bank_accounts SET confirmed_by = ${test.s.manager}::uuid, confirmed_at = now(), confirmed_with = 'x' WHERE id = ${mine.bankAccount!.id}::uuid`,
+        database.run(
+          manager,
+          (tx) =>
+            tx.$executeRaw`UPDATE creditor_bank_accounts SET confirmed_by = ${test.s.manager}::uuid, confirmed_at = now(), confirmed_with = 'x' WHERE id = ${mine.bankAccount!.id}::uuid`,
         ),
       ).rejects.toThrow(/confirmed by its author/u);
     } finally {
       await database.close();
     }
     expect((await call('director', 'POST', `/${id}/bank-accounts/${mine.bankAccount!.id}/confirm`, { confirmedWith: 'Élodie Rivaud' })).status).toBe(204);
+    // The other way round: typed by the Director, never confirmed by the Director, PostgreSQL too.
+    const other = await create();
+    await call('director', 'POST', `/${other}/bank-accounts`, { replaces: null, account: account() });
+    const typed = (await file(other)).bankAccount!;
+    expect((await call('director', 'POST', `/${other}/bank-accounts/${typed.id}/confirm`, { confirmedWith: 'x' })).body).toEqual({ code: 'SAME_PERSON' });
+    const directorDb = new Database(test.database.url('app'));
+    try {
+      await expect(
+        directorDb.run(
+          { kind: 'staff', userId: test.s.director, role: 'DIRECTOR', delegations: [] },
+          (tx) =>
+            tx.$executeRaw`UPDATE creditor_bank_accounts SET confirmed_by = ${test.s.director}::uuid, confirmed_at = now(), confirmed_with = 'x' WHERE id = ${typed.id}::uuid`,
+        ),
+      ).rejects.toThrow(/confirmed by its author/u);
+    } finally {
+      await directorDb.close();
+    }
     expect(await rows('SELECT confirmed_by FROM creditor_bank_accounts WHERE creditor_id = $1', [id])).toEqual([{ confirmed_by: test.s.director }]);
   });
 
@@ -502,7 +529,13 @@ describe('what is noted', () => {
     const before = (await file(id)).bankAccount!;
     await call('manager', 'POST', `/${id}/bank-accounts/${before.id}/confirm`, { confirmedWith: 'Élodie Rivaud' });
     await call('director', 'POST', `/${id}/bank-accounts`, { replaces: before.id, account: account(OTHER) });
-    expect(await actions(id)).toEqual(['CREDITOR_CREATED', 'CREDITOR_CHANGED', 'CREDITOR_ACCOUNT_CHANGED', 'CREDITOR_ACCOUNT_CONFIRMED', 'CREDITOR_ACCOUNT_CHANGED']);
+    expect(await actions(id)).toEqual([
+      'CREDITOR_CREATED',
+      'CREDITOR_CHANGED',
+      'CREDITOR_ACCOUNT_CHANGED',
+      'CREDITOR_ACCOUNT_CONFIRMED',
+      'CREDITOR_ACCOUNT_CHANGED',
+    ]);
     const [first] = (await file(id)).mandates;
     await call('director', 'POST', `/${id}/amendments`, { amends: first!.id, mandate: mandate({ startsOn: '2027-01-01' }) });
     const [last] = (await file(id)).mandates;

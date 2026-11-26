@@ -57,7 +57,11 @@ describe('case list', () => {
     await userEvent.click(within(dialog).getByLabelText(/Accord écrit du créancier reçu/));
     let sent: unknown;
     server.events.on('request:start', ({ request }) => {
-      if (request.url.endsWith('/cases/litigation')) void request.clone().json().then((body) => (sent = body));
+      if (request.url.endsWith('/cases/litigation'))
+        void request
+          .clone()
+          .json()
+          .then((body) => (sent = body));
     });
     await confirmWith('Passer en contentieux');
     expect(await screen.findByText(/transmis au contentieux/)).toBeVisible();

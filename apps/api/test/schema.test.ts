@@ -773,6 +773,14 @@ describe('rights on the functions', () => {
     );
     expect(found.map((row) => row.proname)).toEqual(listed.sort());
   });
+
+  it('let the definer change a debtor in two functions only (question 138): its policy for the correction trusts them', async () => {
+    const found = await rows<{ proname: string }>(
+      `SELECT p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+       WHERE n.nspname = 'app' AND pg_get_userbyid(p.proowner) = 'legarec_definer' AND p.prosrc ~* 'update\\s+public\\.debtors' ORDER BY 1`,
+    );
+    expect(found.map((row) => row.proname)).toEqual(['correct_debtor', 'open_debtor']);
+  });
 });
 
 describe('database', () => {

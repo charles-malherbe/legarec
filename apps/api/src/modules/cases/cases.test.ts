@@ -1039,18 +1039,30 @@ describe('the debtor, corrected (question 138)', () => {
       { name: 'Menuiserie Arnal', kind: 'SOLE_TRADER' },
       { name: 'Menuiserie Arnal', kind: 'SOLE_TRADER' },
     ]);
-    // Noted in the open cases this person acts on, kept from the creditor; audited without the name.
-    const noted = await rows<{ case_id: string; detail: string; visible_to_creditor: boolean }>(
-      "SELECT case_id, detail, visible_to_creditor FROM case_events WHERE kind = 'DEBTOR_CORRECTED' AND case_id = ANY($1::uuid[]) ORDER BY case_id",
+    // Noted in every case of the debtor, kept from the creditor: by its author where it was done, by « Legarec » elsewhere.
+    const noted = await rows<{ case_id: string; detail: string; visible_to_creditor: boolean; actor_label: string }>(
+      "SELECT case_id, detail, visible_to_creditor, actor_label FROM case_events WHERE kind = 'DEBTOR_CORRECTED' AND case_id = ANY($1::uuid[])",
       [[mine.id, theirs.id]],
     );
-    expect(noted.map((row) => row.case_id).sort()).toEqual([mine.id, theirs.id].sort());
+    expect(noted).toHaveLength(2);
     expect(noted.every((row) => row.detail === 'Ancien nom : Menuiserie Arnol' && !row.visible_to_creditor)).toBe(true);
-    expect(await rows("SELECT params FROM audit_log WHERE action = 'DEBTOR_CORRECTED' AND entity_id = $1", [mine.id])).toEqual([{ params: {} }]);
+    expect(noted.find((row) => row.case_id === theirs.id)!.actor_label).toBe('Legarec');
+    // Audited on the debtor, without its name.
+    const [{ debtor_id: debtorId }] = (await rows<{ debtor_id: string }>('SELECT debtor_id FROM cases WHERE id = $1', [mine.id])) as [{ debtor_id: string }];
+    expect(await rows("SELECT entity_type, params FROM audit_log WHERE action = 'DEBTOR_CORRECTED' AND entity_id = $1", [debtorId])).toEqual([
+      { entity_type: 'debtor', params: {} },
+    ]);
     // The next opening with that name is no longer refused.
     await open('manager', { number, name: 'Menuiserie Arnal', kind: 'SOLE_TRADER', ...(await elsewhere()) });
-    // The Director, from a case of someone else.
+    // The Director changes nothing from a case of someone else; from one of theirs, yes.
+    expect((await detail('director', theirs.id)).correctable).toBeNull();
+    expect((await correct('director', theirs.id, { kind: 'SOLE_TRADER', name: 'Menuiserie Arnal Fils', seen: 'Menuiserie Arnal' })).status).toBe(403);
+    await rows('UPDATE cases SET officer_id = $2 WHERE id = $1', [theirs.id, test.s.director]);
     expect((await correct('director', theirs.id, { kind: 'SOLE_TRADER', name: 'Menuiserie Arnal Fils', seen: 'Menuiserie Arnal' })).status).toBe(204);
+    // Never from a forgotten case.
+    await rows('UPDATE cases SET anonymized_at = now() WHERE id = $1', [mine.id]);
+    expect((await detail('manager', mine.id)).correctable).toBeNull();
+    expect((await correct('manager', mine.id, { kind: 'SOLE_TRADER', name: 'X', seen: 'Menuiserie Arnal Fils' })).status).toBe(403);
   });
 
   it('from a case one reads only, and holds by PostgreSQL itself', async () => {

@@ -187,7 +187,11 @@ describe('a debtor who already has a case', () => {
     await invoice();
     await press('Ouvrir le dossier');
     await userEvent.click((await dialog()).getByRole('button', { name: 'Ouvrir le dossier' }));
-    expect(await screen.findByText(/sous un autre nom ou un autre type de débiteur : vérifiez-les, ou faites corriger le débiteur depuis l’un de ses dossiers\. Rien n’a été enregistré/)).toBeVisible();
+    expect(
+      await screen.findByText(
+        /sous un autre nom ou un autre type de débiteur : vérifiez-les, ou faites corriger le débiteur depuis l’un de ses dossiers\. Rien n’a été enregistré/,
+      ),
+    ).toBeVisible();
     expect(screen.getByLabelText(/^Ville/)).toHaveValue('Villeurbanne');
   });
   it('at another creditor is named, without the case', async () => {

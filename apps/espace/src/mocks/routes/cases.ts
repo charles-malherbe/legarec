@@ -332,9 +332,11 @@ const openedDetail = (item: Stored, { body, invoices }: { body: NewCase; invoice
   contactLimit: null,
 });
 const opens = (session: Session) => session.role === 'DIRECTOR' || session.role === 'COLLECTION_MANAGER';
-/** As the API: the Director and the manager may correct the debtor (question 138). */
+/** As the API: the Director and the manager may correct the debtor, from a case they act on (question 138). */
 const correctableOf = (item: Stored, session: Session): CaseDetail['correctable'] =>
-  opens(session) ? { name: item.name, kind: item.identifier === 'Particulier' ? 'INDIVIDUAL' : 'COMPANY', hasSiren: item.identifier !== 'Particulier' } : null;
+  opens(session) && canActOnCase(session, ownership(item))
+    ? { name: item.name, kind: item.identifier === 'Particulier' ? 'INDIVIDUAL' : 'COMPANY', hasSiren: item.identifier !== 'Particulier' }
+    : null;
 /** Company behind a case of the mockup, or of one opened here. */
 const sirenOf = (item: Stored) => item.identifier.replace(/\D/gu, '').slice(0, 9);
 
@@ -789,13 +791,14 @@ export const caseHandlers = [
       if (!opens(session)) return forbidden();
       const item = find(params.id);
       if (!item || !canReadCase(session, ownership(item))) return notFound();
+      if (!canActOnCase(session, ownership(item))) return forbidden();
       const body = (await request.json()) as { kind: string; name: string; seen: string };
       if (body.kind === 'INDIVIDUAL' && item.identifier !== 'Particulier') return HttpResponse.json({ code: 'INVALID', fields: ['kind'] }, { status: 422 });
       if (body.seen !== item.name) return HttpResponse.json({ code: 'CHANGED' }, { status: 409 });
-      // As the API: in all the cases of the debtor, noted in the open ones this person acts on.
+      // As the API: in all the cases of the debtor, each one noting it.
       for (const other of cases.filter((candidate) => candidate.name === body.seen && candidate.identifier === item.identifier)) {
         other.name = body.name.trim();
-        if (canActOnCase(session, ownership(other))) log(other.id, session, 'Débiteur corrigé', `Ancien nom : ${body.seen}`);
+        log(other.id, session, 'Débiteur corrigé', `Ancien nom : ${body.seen}`);
       }
       return done();
     }),
@@ -819,7 +822,11 @@ export const caseHandlers = [
     '/api/cases/:id/access-code',
     // As the API: read only once the case is closed (question 140).
     acting((item) =>
-      HttpResponse.json({ code: codes.get(item.id) ?? 'KXPM', version: codeVersions.get(item.id) ?? 1, closed: item.status === 'SETTLED' || item.status === 'LOST' }),
+      HttpResponse.json({
+        code: codes.get(item.id) ?? 'KXPM',
+        version: codeVersions.get(item.id) ?? 1,
+        closed: item.status === 'SETTLED' || item.status === 'LOST',
+      }),
     ),
   ),
   http.post(
