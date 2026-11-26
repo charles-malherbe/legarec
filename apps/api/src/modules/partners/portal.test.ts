@@ -106,10 +106,15 @@ describe('a claim deposited by a creditor', () => {
        VALUES ($1, '2026-01-01', 800, 1200, 6, 500, true, 'NONE', true, 5, 'BUSINESS')`,
       [test.s.creditorB],
     );
-    expect(await call('partnerB', 'POST', '/partner/portal/claims', claim({ debtor: 'Autre Nom SARL' }))).toMatchObject({
-      status: 409,
-      body: { code: 'DEBTOR_MISMATCH' },
-    });
+    // Under another name: the same answer as for any SIREN, the name it gave on its case, a check asked of the team.
+    expect((await call('partnerB', 'POST', '/partner/portal/claims', claim({ debtor: 'Autre Nom SARL' }))).status).toBe(204);
+    const theirs = portalCases.parse((await call('partnerB', 'GET', '/partner/portal/cases')).body).items.find((item) => item.debtor === 'Autre Nom SARL');
+    expect(theirs).toBeDefined();
+    expect(await rows("SELECT visible_to_creditor FROM case_events WHERE case_id = $1 AND kind = 'DEPOSITED_NAME'", [theirs!.id])).toEqual([
+      { visible_to_creditor: false },
+    ]);
+    // A debtor first named by a creditor: the team, opening under the confirmed name, replaces it.
+    expect(await rows("SELECT name, name_confirmed FROM debtors WHERE siren = '512334871'")).toEqual([{ name: 'Menuiserie Arnal', name_confirmed: false }]);
   });
 });
 

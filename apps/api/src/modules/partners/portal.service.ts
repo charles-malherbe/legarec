@@ -45,6 +45,7 @@ export class PortalService {
         externalReference: true,
         openedOn: true,
         closedOn: true,
+        depositedName: true,
         debtor: { select: { name: true } },
         invoices: { select: { principalCents: true } },
         payments: { select: { amountCents: true, status: true, receivedOn: true } },
@@ -59,7 +60,8 @@ export class PortalService {
     return {
       id: row.id,
       status: STATUS[row.status] ?? 'REMINDING',
-      debtor: row.debtor.name,
+      // The name it gave, when it deposited the claim: never the one the firm knows from elsewhere.
+      debtor: row.depositedName ?? row.debtor.name,
       externalReference: row.externalReference ?? '—',
       reference: row.reference,
       invoices: plural(row.invoices.length, 'facture'),
@@ -86,7 +88,7 @@ export class PortalService {
   /** The plans that wait for the creditor, and those it decided lately. */
   private async approvals(): Promise<PlanApproval[]> {
     const plans = await this.database.tx.paymentPlan.findMany({
-      where: { status: { in: ['WAITING_CREDITOR', 'WAITING_DEBTOR', 'REFUSED', 'ACTIVE'] }, approvals: { some: { step: 'CREDITOR' } } },
+      where: { status: { in: ['WAITING_CREDITOR', 'WAITING_DEBTOR', 'ACTIVE'] }, approvals: { some: { step: 'CREDITOR' } } },
       orderBy: { createdAt: 'desc' },
       take: 50,
       select: {
@@ -99,7 +101,7 @@ export class PortalService {
         thresholdMonths: true,
         installments: { orderBy: { number: 'asc' }, take: 1, select: { amountCents: true } },
         approvals: { where: { step: 'CREDITOR' }, select: { decision: true, decidedAt: true } },
-        case: { select: { reference: true, debtor: { select: { name: true } } } },
+        case: { select: { reference: true, depositedName: true, debtor: { select: { name: true } } } },
       },
     });
     const recent = Date.now() - 30 * 86_400_000;
@@ -108,7 +110,7 @@ export class PortalService {
       .map((plan) => ({
         id: plan.id,
         caseId: plan.caseId,
-        debtor: plan.case.debtor.name,
+        debtor: plan.case.depositedName ?? plan.case.debtor.name,
         reference: plan.case.reference,
         months: plan.months,
         installment: plan.installments[0]?.amountCents ?? 0,
@@ -149,7 +151,7 @@ export class PortalService {
       };
     });
     const activity = rows
-      .flatMap((row) => row.events.map((event) => ({ ...event, who: row.debtor.name })))
+      .flatMap((row) => row.events.map((event) => ({ ...event, who: row.depositedName ?? row.debtor.name })))
       .sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime())
       .slice(0, 6)
       .map((event) => ({
@@ -204,9 +206,10 @@ export class PortalService {
       case 'OPENED':
         return;
       case 'NO_MANDATE':
-      case 'DEBTOR_MISMATCH':
       case 'CASE_EXISTS':
         throw conflict(row.outcome);
+      case 'TOO_MANY':
+        throw new ApiError(429, 'TOO_MANY');
       default:
         throw conflict('CHANGED');
     }

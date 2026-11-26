@@ -202,7 +202,9 @@ Les 161 routes simulées se répartissent ainsi :
 ## Lot P — Portail des créanciers (état au 26/11/2026)
 - [x] Tableau de bord, dossiers, accord sur un échéancier long (4 routes)
 - [x] Dépôt d'une créance (dossier sans gestionnaire, fonction SQL), pièces du créancier analysées (2 routes)
-- [ ] Imports CSV et Excel (rapport, confirmation), messages ; relevés (avec S)
+- [x] Imports CSV et Excel (rapport ligne par ligne, confirmation) (2 routes)
+- [x] Relecture sécurité : dépôt sans fuite de l'existence d'un SIREN, nom donné gardé sur le dossier et vérifié par l'équipe, nom d'un débiteur nommé par un créancier remplacé par celui de l'équipe, pièces rattachées sous verrou, politiques limitées au créancier, limite de 500 dépôts par jour. Reportés : doublons probables des particuliers, `note_contact` des coordonnées déposées, notification du Responsable, purge des pièces sans dossier (X), même règle de mandat en vigueur pour l'équipe
+- [ ] Messages du créancier ; relevés (avec S)
 
 ## Points à reprendre du front
 
