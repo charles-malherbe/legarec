@@ -682,6 +682,22 @@ describe('pieces of accounting, ten years after the end of their year', () => {
     expect(await count('payments', owed)).toBe(2);
   });
 
+  it('keeps a batch paid while its case has a payment in a batch never marked as paid', async () => {
+    const id = await caseOf();
+    const remitted = await payment(id, old);
+    const paidBatch = await batch(old, [{ case: id, id: remitted.id }]);
+    // A second payment of the same case, in a remittance validated as long ago and never paid: not remitted yet.
+    const waiting = await payment(id, old);
+    const waitingBatch = await batch(old, [{ case: id, id: waiting.id }], false);
+    expect(await purge(jobs, logger, storage)).toMatchObject({ remittances: 0 });
+    for (const kept of [paidBatch.id, waitingBatch.id]) expect(await exists('remittance_batches', kept)).toBe(true);
+    for (const cash of [remitted, waiting]) {
+      expect(await exists('payments', cash.id)).toBe(true);
+      expect(await exists('receipts', cash.id, 'payment_id')).toBe(true);
+      expect(await purged(cash.receipt.id)).toBe(false);
+    }
+  });
+
   it('removes an invoice with its credit notes, when the latest of them may go, and batches tied by a refund together', async () => {
     const first = await caseOf();
     const firstBatch = await batch(old, [{ case: first, id: (await payment(first, old)).id }]);
