@@ -411,6 +411,11 @@ export const MATRIX: Record<string, MatrixEntry> = {
     body: () => ({ version: 1 }),
     expect: only({ director: 403, manager: 204, managerAlone: 204, officerA: 404, officerB: 404, liar: 404 }),
   },
+  'POST /staff/cases/:id/notes': {
+    path: async (test) => `/staff/cases/${(await newCase(test)).id}/notes`,
+    body: () => ({ text: 'Rappeler après le 5.' }),
+    expect: only({ director: 403, manager: 204, managerAlone: 204, officerA: 404, officerB: 404, liar: 404 }),
+  },
   // The Director and the manager, from a case they act on (question 138): the Director holds no case of nobody. The name shown
   // is not the one known: refused once let in.
   'PUT /staff/cases/:id/debtor': {

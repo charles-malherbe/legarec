@@ -13,6 +13,8 @@ export interface CarteProps extends LayoutProps {
   actionLabel?: string;
   actionIcon?: IconName;
   actionHref?: string;
+  /** `link`: a short link on the line of the title, as « Voir le créancier → » in the mockup. */
+  actionVariant?: 'secondary' | 'link';
   onAction?: () => void;
   padding?: 'none' | 'sm' | 'md';
   tone?: 'default' | 'subtle' | 'highlight' | 'danger';
@@ -28,6 +30,7 @@ export function Carte({
   actionLabel,
   actionIcon,
   actionHref,
+  actionVariant = 'secondary',
   onAction,
   padding = 'md',
   tone = 'default',
@@ -38,7 +41,7 @@ export function Carte({
   return (
     <section className={css.root} data-tone={tone} style={layout}>
       {title && (
-        <div className={css.head} data-open={children ? true : undefined}>
+        <div className={css.head} data-open={children ? true : undefined} data-action={actionLabel ? actionVariant : undefined}>
           <div className={css.text}>
             <div className={css.heading}>
               <h2 className={css.title}>{title}</h2>
@@ -46,7 +49,7 @@ export function Carte({
             </div>
             {description && <p className={css.description}>{description}</p>}
           </div>
-          {actionLabel && <Bouton label={actionLabel} variant="secondary" size="sm" icon={actionIcon} href={actionHref} onPress={onAction} />}
+          {actionLabel && <Bouton label={actionLabel} variant={actionVariant} size="sm" icon={actionIcon} href={actionHref} onPress={onAction} />}
         </div>
       )}
       <div className={css.body} data-padding={padding}>

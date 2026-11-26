@@ -313,3 +313,5 @@ export const caseChoices = z.object({
 
 /** The name and the kind of a debtor, corrected for all its cases (question 138); `seen`: the name that was shown. */
 export const debtorCorrection = z.object({ kind: debtorKind, name: typed(150, 'Indiquez le nom.'), seen: z.string().max(300) });
+/** A note of the team in the history of a case, never shown to the creditor (« + Ajouter une note » of the mockup). */
+export const caseNote = z.object({ text: z.string().trim().min(1, { error: 'Écrivez la note.' }).max(5000) });

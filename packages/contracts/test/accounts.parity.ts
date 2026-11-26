@@ -422,6 +422,9 @@ export const ACCOUNT_PARITY: Parity[] = [
     status: 403,
     answer: code('FORBIDDEN'),
   },
+  { as: 'manager', request: 'POST /cases/{caseOfManager}/notes', body: { text: 'Rappeler après le 5.' }, status: 204 },
+  { as: 'director', request: 'POST /cases/{caseOfManager}/notes', body: { text: 'Rappeler après le 5.' }, status: 403, answer: code('FORBIDDEN') },
+  { as: 'manager', request: 'POST /cases/{caseOfDirector}/notes', body: { text: 'Rappeler après le 5.' }, status: 404, answer: code('NOT_FOUND') },
   // The debtor, corrected by the Director and the manager (question 138): the name shown must be the one known.
   ...each(['officer', 'developer'], () => ({
     request: 'PUT /cases/{caseOfManager}/debtor',

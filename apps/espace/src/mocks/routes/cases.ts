@@ -804,6 +804,16 @@ export const caseHandlers = [
     }),
   ),
   http.post(
+    '/api/cases/:id/notes',
+    // As the API: whoever acts on the case, kept from the creditor.
+    acting(async (item, session, { request }) => {
+      const { text } = (await request.json()) as { text: string };
+      if (!text.trim()) return HttpResponse.json({ code: 'INVALID', fields: ['text'] }, { status: 422 });
+      log(item.id, session, 'Note', text.trim());
+      return done();
+    }),
+  ),
+  http.post(
     '/api/cases/:id/reminders',
     acting((item, session) => {
       log(item.id, session, 'Relance envoyée', 'Niveau 3');

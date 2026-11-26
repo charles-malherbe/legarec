@@ -11,6 +11,7 @@ import { useCurrentUser } from '../../app/session';
 import { AccessDenied } from '../error/ErrorPage';
 import { AccessCodeCard } from './AccessCodeCard';
 import { CaseMessage } from './CaseMessage';
+import { CaseNote } from './CaseNote';
 import { DebtorCorrection } from './DebtorCorrection';
 import { ExchangesCard } from './ExchangesCard';
 import { GdprCard } from './GdprCard';
@@ -18,6 +19,15 @@ import { PaymentForm, PaymentsCard } from './Payments';
 import { ReminderForm } from './ReminderForm';
 
 type Tab = 'overview' | 'invoices' | 'history' | 'exchanges' | 'documents';
+
+/** « Bâtiplus SAS » → « BS ». */
+const initialsOf = (name: string) =>
+  name
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
 
 export function CasePage() {
   const { id = '' } = useParams();
@@ -53,12 +63,8 @@ function CaseView({ data }: { data: CaseDetail }) {
   const [tab, setTab] = useState<Tab>('overview');
   const [panel, setPanel] = useState<'reminder' | 'payment' | 'message' | 'debtor' | null>(null);
   const [reported, setReported] = useState(false);
-  const initials = data.name
-    .split(' ')
-    .map((part) => part[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
+  const [noting, setNoting] = useState(false);
+  const initials = initialsOf(data.name);
   const tabs: [Tab, string, number?][] = [
     ['overview', 'Vue d’ensemble'],
     ['invoices', 'Factures', data.invoices.length],
@@ -92,24 +98,27 @@ function CaseView({ data }: { data: CaseDetail }) {
       )}
       <section aria-label="Débiteur" className={layout.card}>
         <div className={layout.fiche}>
-          <span aria-hidden className={layout.initials} data-size="lg">
-            {initials}
-          </span>
-          <div className={`${layout.text} ${layout.grow}`}>
-            <span className={layout.inline}>
-              <h1 className={layout.ficheTitle}>{data.name}</h1>
-              <Badge label={data.daysLate === null ? data.statusLabel : `${data.statusLabel} · ${data.daysLate} j`} tone={STATUS_TONE[data.status]} />
-              {data.correctable && (
-                <Bouton variant="link" size="xs" label="Corriger le débiteur" onPress={() => setPanel('debtor')} expanded={panel === 'debtor'} />
-              )}
+          {/* As in the mockup: the initials stay beside the name, the actions go under them when they lack room. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-4)', minWidth: 0 }}>
+            <span aria-hidden className={layout.initials} data-size="lg">
+              {initials}
             </span>
-            <p className={layout.body}>
-              Créancier :{' '}
-              <Link to={`/creanciers/${data.creditorId}`} className={layout.strong}>
-                {data.creditor}
-              </Link>{' '}
-              · {data.reference} · {data.identifier} · Réf. créancier {data.creditorRef} · Gestionnaire : {data.officer ?? 'à attribuer'}
-            </p>
+            <div className={layout.text}>
+              <span className={layout.inline}>
+                <h1 className={layout.ficheTitle}>{data.name}</h1>
+                <Badge label={data.daysLate === null ? data.statusLabel : `${data.statusLabel} · ${data.daysLate} j`} tone={STATUS_TONE[data.status]} />
+                {data.correctable && (
+                  <Bouton variant="link" size="xs" label="Corriger le débiteur" onPress={() => setPanel('debtor')} expanded={panel === 'debtor'} />
+                )}
+              </span>
+              <p className={layout.body}>
+                Créancier :{' '}
+                <Link to={`/creanciers/${data.creditorId}`} className={layout.strong}>
+                  {data.creditor}
+                </Link>{' '}
+                · {data.reference} · {data.identifier} · Réf. créancier {data.creditorRef} · Gestionnaire : {data.officer ?? 'à attribuer'}
+              </p>
+            </div>
           </div>
           {data.canAct && (
             <div className={layout.inline}>
@@ -199,18 +208,14 @@ function CaseView({ data }: { data: CaseDetail }) {
               title="Synthèse du dossier"
               note="Rédigé par l’IA à partir de l’historique, des appels et des e-mails du dossier. À vérifier avant de s’y fier."
               facts={data.aiSummary.lines}
+              subtitle={`Mise à jour ${data.aiSummary.updated} · d’après ${data.aiSummary.events} événements (appels, e-mails, relances)`}
               headerExtra={
-                <span className={layout.inline} style={{ marginLeft: 'auto' }}>
-                  <span className={layout.hint}>
-                    Mise à jour {data.aiSummary.updated} · d’après {data.aiSummary.events} événements (appels, e-mails, relances)
+                data.canAct && (
+                  <span className={layout.inline} style={{ marginLeft: 'auto' }}>
+                    <Bouton variant="ghost" size="sm" icon="refresh" label="Régénérer" onPress={() => void regenerate()} />
+                    <Bouton variant="ghost" size="sm" label="Signaler une erreur" onPress={() => void report()} />
                   </span>
-                  {data.canAct && (
-                    <>
-                      <Bouton variant="ghost" size="sm" icon="refresh" label="Régénérer" onPress={() => void regenerate()} />
-                      <Bouton variant="ghost" size="sm" label="Signaler une erreur" onPress={() => void report()} />
-                    </>
-                  )}
-                </span>
+                )
               }
             >
               {reported && (
@@ -240,7 +245,8 @@ function CaseView({ data }: { data: CaseDetail }) {
           )}
           {tab === 'invoices' && <PaymentsCard data={data} />}
           {(tab === 'overview' || tab === 'history') && (
-            <Carte title="Historique des actions">
+            <Carte title="Historique des actions" actionLabel={data.canAct && !noting ? '+ Ajouter une note' : undefined} onAction={() => setNoting(true)}>
+              {noting && <CaseNote caseId={data.id} onClose={() => setNoting(false)} />}
               <ol className={layout.timeline}>
                 {data.history.map((item) => (
                   <li key={item.id}>
@@ -286,11 +292,16 @@ function CaseView({ data }: { data: CaseDetail }) {
           )}
         </div>
         <aside className={layout.aside} aria-label="Informations du dossier">
-          <Carte title="Mandat" actionLabel="Voir le créancier" actionHref={`/creanciers/${data.creditorId}`}>
+          <Carte title="Mandat" actionLabel="Voir le créancier →" actionVariant="link" actionHref={`/creanciers/${data.creditorId}`}>
             <div className={layout.stack}>
-              <div className={layout.text}>
-                <strong>{data.creditor}</strong>
-                <span className={layout.muted}>{data.mandate.sector}</span>
+              <div className={layout.inline}>
+                <span aria-hidden className={layout.initials}>
+                  {initialsOf(data.creditor)}
+                </span>
+                <div className={layout.text}>
+                  <strong>{data.creditor}</strong>
+                  <span className={layout.muted}>{data.mandate.sector}</span>
+                </div>
               </div>
               <dl className={layout.facts}>
                 {data.mandate.terms.map((term) => (

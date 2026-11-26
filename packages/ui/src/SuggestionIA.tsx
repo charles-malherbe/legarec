@@ -13,6 +13,8 @@ export interface SuggestionIAProps extends LayoutProps {
   ignoredText?: string;
   note?: string;
   headerExtra?: ReactNode;
+  /** A line under the title (when it was written, from what); `headerExtra` stays on the line of the title. */
+  subtitle?: string;
   onApply?: () => void;
   onIgnore?: () => void;
   onUndo?: () => void;
@@ -29,6 +31,7 @@ export function SuggestionIA({
   ignoredText = 'Suggestion ignorée.',
   note = 'Proposé par l’IA, à vérifier',
   headerExtra,
+  subtitle,
   onApply,
   onIgnore,
   onUndo,
@@ -44,6 +47,7 @@ export function SuggestionIA({
         <strong className={css.title}>{title}</strong>
         {headerExtra}
       </div>
+      {subtitle && <p className={css.subtitle}>{subtitle}</p>}
       {status === 'ignored' ? (
         <p className={css.muted}>{ignoredText}</p>
       ) : (

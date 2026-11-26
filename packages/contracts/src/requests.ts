@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { absenceForm, passwordForm, profileForm, supportTicket } from './account';
 import { loginRequest, newPassword, PASSWORD_MAX } from './auth';
 import { callQualification } from './calls';
-import { addedInvoices, caseCheck, debtorCorrection, gdprRequestKind, newCase, newPayment, paymentStatus, renewedCode } from './cases';
+import { addedInvoices, caseCheck, caseNote, debtorCorrection, gdprRequestKind, newCase, newPayment, paymentStatus, renewedCode } from './cases';
 import { litigationOutcome, litigationStage, newReminder } from './collection';
 import { creditNoteDraftBody, creditNoteIssue } from './creditNotes';
 import { coordinate, coordinateKind, coordinateSource, emailCategory, outgoingMessage } from './communication';
@@ -227,6 +227,7 @@ export const REQUEST_BODIES = {
     'POST /cases/:id/invoices': addedInvoices,
     'POST /cases/:id/access-code/regenerate': renewedCode,
     'PUT /cases/:id/debtor': debtorCorrection,
+    'POST /cases/:id/notes': caseNote,
     'POST /cases/:id/coordinates': newCoordinateBody,
     'PUT /cases/:id/coordinates/:coordinateId': coordinateBody,
     'POST /cases/search': searchBody,

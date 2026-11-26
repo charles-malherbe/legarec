@@ -377,6 +377,16 @@ export class CasesService {
     return { id, reference };
   }
 
+  /** A note of the team, kept from the creditor; whoever acts on the case writes it, and the audit notes it without its text. */
+  async addNote(id: string, text: string): Promise<void> {
+    const { tx } = this.database;
+    const [row] = await this.rows(sql`AND c.id = ${id}::uuid`);
+    if (!row) throw notFound();
+    if (!row.can_act) throw forbidden();
+    await tx.$executeRaw`SELECT app.add_case_event(${id}::uuid, 'CASE_NOTE', 'Note', ${text}, 'info'::event_tone, false)`;
+    await this.audit.log({ action: 'CASE_NOTE_ADDED', entity: { type: 'case', id } });
+  }
+
   async addToCase(actor: StaffActor, id: string, { version, invoices }: z.infer<typeof addedInvoices>): Promise<void> {
     const { tx } = this.database;
     const [row] = await this.rows(sql`AND c.id = ${id}::uuid`);

@@ -1080,3 +1080,18 @@ describe('the debtor, corrected (question 138)', () => {
     }
   });
 });
+
+describe('a note of the team', () => {
+  it('is written by whoever acts on the case, kept from the creditor, audited without its text', async () => {
+    const { s } = test;
+    expect((await call('officerA', 'POST', `/${s.cases.ofA}/notes`, { text: 'Rappeler après le 5.' })).status).toBe(204);
+    expect(await rows("SELECT title, detail, visible_to_creditor FROM case_events WHERE case_id = $1 AND kind = 'CASE_NOTE'", [s.cases.ofA])).toEqual([
+      { title: 'Note', detail: 'Rappeler après le 5.', visible_to_creditor: false },
+    ]);
+    expect(await rows("SELECT params FROM audit_log WHERE action = 'CASE_NOTE_ADDED' AND entity_id = $1", [s.cases.ofA])).toEqual([{ params: {} }]);
+    expect((await call('officerB', 'POST', `/${s.cases.ofA}/notes`, { text: 'x' })).status).toBe(404);
+    expect((await call('director', 'POST', `/${s.cases.ofA}/notes`, { text: 'x' })).status).toBe(403);
+    expect((await call('officerA', 'POST', `/${s.cases.ofA}/notes`, { text: ' ' })).status).toBe(422);
+    expect((await call('officerA', 'POST', `/${s.cases.ofA}/notes`, { text: 'x'.repeat(5001) })).status).toBe(422);
+  });
+});
