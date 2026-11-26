@@ -568,6 +568,8 @@ describe('rights of the roles inside', () => {
       'documents UPDATE (original_name, purged_at, shared_by, shared_with_creditor_at, title, visible_to_debtor)',
       'gdpr_requests SELECT (debtor_id)',
       'gdpr_requests UPDATE (origin)',
+      'litigation_files DELETE (*)',
+      'litigation_files SELECT (case_id)',
       'payment_allocations DELETE (*)',
       'payment_allocations SELECT (payment_id)',
       'payment_plans SELECT (accepted_ip, case_id, document_id)',

@@ -327,6 +327,10 @@ describe('cases closed for more than five years', () => {
       "INSERT INTO debtor_links (debtor_id, case_id, creditor_id, token_hash, channel, expires_at) VALUES ($1, $2, $3, $4, 'LETTER', now() + interval '1 day')",
       [debtor, id, creditor, hash()],
     );
+    await rows(
+      "INSERT INTO litigation_files (case_id, creditor_id, consent, court, partner_name, created_by) VALUES ($1, $2, 'NOT_NEEDED', 'Tribunal de commerce de Lyon', 'Me Durieux', $3)",
+      [id, creditor, s.manager],
+    );
     return id;
   };
   const document = async (id: string, category: string) => {
@@ -388,7 +392,7 @@ describe('cases closed for more than five years', () => {
         anonymized: true,
       },
     ]);
-    for (const table of ['case_events', 'case_contacts', 'case_contact_events', 'portal_messages', 'planned_reminders', 'debtor_links'])
+    for (const table of ['case_events', 'case_contacts', 'case_contact_events', 'portal_messages', 'planned_reminders', 'debtor_links', 'litigation_files'])
       expect(await count(table, old), table).toBe(0);
     // The attachment: its line without its names, its file gone; the receipt untouched.
     expect(

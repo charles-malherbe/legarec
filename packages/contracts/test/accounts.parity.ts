@@ -14,6 +14,7 @@ import {
   creditorListItem,
   delegationsData,
   linkInfo,
+  litigationData,
   loginResponse,
   membersData,
   notificationItem,
@@ -264,6 +265,13 @@ export const ACCOUNT_PARITY: Parity[] = [
   ...each(['director', 'manager', 'officer'], () => ({ request: 'GET /reminders', status: 200, answer: agenda })),
   ...each(['director', 'manager', 'officer'], () => ({ request: 'GET /reminders/targets', status: 200, answer: reminderTargets })),
   { as: 'developer', request: 'GET /reminders', status: 403, answer: code('FORBIDDEN') },
+  // Litigation: read with the cases; a file nobody reads is unknown.
+  ...each(['director', 'manager', 'officer'], () => ({ request: 'GET /litigation', status: 200, answer: litigationData })),
+  { as: 'developer', request: 'GET /litigation', status: 403, answer: code('FORBIDDEN') },
+  { as: 'manager', request: `PUT /litigation/${UNKNOWN}`, body: { court: '', partnerName: '', version: 1 }, status: 404, answer: code('NOT_FOUND') },
+  { as: 'manager', request: `POST /litigation/${UNKNOWN}/stage`, body: { stage: 'PAYMENT_ORDER', version: 1 }, status: 404, answer: code('NOT_FOUND') },
+  { as: 'manager', request: `POST /litigation/${UNKNOWN}/consent`, body: { version: 1 }, status: 404, answer: code('NOT_FOUND') },
+  { as: 'officer', request: `POST /litigation/${UNKNOWN}/stage`, body: { stage: 'CLOSED', version: 1 }, status: 404, answer: code('NOT_FOUND') },
   { as: 'director', request: 'GET /gdpr/requests', status: 200, answer: gdprRegistry },
   // Credit notes: as all of the billing; the identity of the firm is between brackets on both sides.
   ...each(['director', 'manager'], () => ({ request: 'GET /credit-notes', status: 200, answer: creditNotesData })),

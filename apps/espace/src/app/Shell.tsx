@@ -230,7 +230,7 @@ export function Shell() {
       items: [
         { href: '/relances', label: 'Relances', icon: 'agenda', count: counts?.remindersToday, countTone: 'navy', countLabel: 'relances aujourd’hui' },
         { href: '/echeanciers', label: 'Échéanciers', icon: 'plan' },
-        { href: '/contentieux', label: 'Contentieux', icon: 'scale', count: counts?.litigationUrgent, countTone: 'rose', countLabel: 'délais urgents' },
+        { href: '/contentieux', label: 'Contentieux', icon: 'scale', count: counts?.litigationUrgent, countTone: 'rose', countLabel: 'accords de créancier attendus' },
       ],
     },
     {

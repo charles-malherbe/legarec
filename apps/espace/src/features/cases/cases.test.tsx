@@ -53,8 +53,14 @@ describe('case list', () => {
     const dialog = await screen.findByRole('alertdialog', { name: 'Passer 1 dossier en contentieux ?' });
     expect(within(dialog).getByText('Bâtiplus SAS')).toBeVisible();
     await userEvent.type(within(dialog).getByLabelText('Motif du passage en contentieux'), 'Promesses non tenues');
+    await userEvent.click(within(dialog).getByLabelText(/Accord écrit du créancier reçu/));
+    let sent: unknown;
+    server.events.on('request:start', ({ request }) => {
+      if (request.url.endsWith('/cases/litigation')) void request.clone().json().then((body) => (sent = body));
+    });
     await confirmWith('Passer en contentieux');
     expect(await screen.findByText(/transmis au contentieux/)).toBeVisible();
+    expect(sent).toMatchObject({ reason: 'Promesses non tenues', consentReceived: true });
   });
   it('covers no result and error states, without putting the search in the URL', async () => {
     const urls: string[] = [];

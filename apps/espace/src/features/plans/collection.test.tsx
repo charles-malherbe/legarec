@@ -46,19 +46,52 @@ describe('payment plans', () => {
 });
 
 describe('litigation', () => {
-  it('confirms a step with its summary', async () => {
+  it('confirms the next step with its summary', async () => {
     openAs('cl', '/contentieux');
-    await userEvent.click(await screen.findByRole('button', { name: 'Préparer la requête en injonction' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Passer à : Injonction de payer' }));
     const dialog = await inDialog();
-    expect(dialog.getByText('Me Durieux, avocat')).toBeVisible();
-    await userEvent.click(dialog.getByRole('button', { name: 'Confirmer et envoyer' }));
-    expect(await screen.findByRole('button', { name: 'Demande envoyée ✓' })).toBeDisabled();
+    expect(dialog.getByText('Charpentes Bellet · SIRET 607 529 179 00006')).toBeVisible();
+    expect(dialog.getByText('Injonction de payer')).toBeVisible();
+    await userEvent.click(dialog.getByRole('button', { name: 'Confirmer l’étape' }));
+    expect(await screen.findByText('Étape enregistrée : Injonction de payer.')).toBeVisible();
+    expect(await screen.findByRole('button', { name: 'Passer à : Titre exécutoire' })).toBeVisible();
+    expect(screen.getByText('Contentieux : Injonction de payer')).toBeVisible();
   });
-  it('is read-only for the Director and scoped for a Claims officer', async () => {
-    expect((await call('ad', '/litigation/bellet/action', {})).status).toBe(403);
+  it('asks for the agreement of the creditor before any step, with a box to tick', async () => {
+    openAs('cl', '/contentieux');
+    await userEvent.click(await screen.findByRole('button', { name: /Garage Valmont/ }));
+    expect(screen.queryByRole('button', { name: /^Passer à/ })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Noter l’accord du créancier' }));
+    const dialog = await inDialog();
+    expect(dialog.getByRole('button', { name: 'Noter l’accord' })).toBeDisabled();
+    await userEvent.click(dialog.getByLabelText('Accord écrit du créancier reçu'));
+    await userEvent.click(dialog.getByRole('button', { name: 'Noter l’accord' }));
+    expect(await screen.findByText('Accord du créancier noté.')).toBeVisible();
+    expect(await screen.findByRole('button', { name: 'Passer à : Injonction de payer' })).toBeVisible();
+  });
+  it('closes a procedure with its outcome and saves the court and the partner', async () => {
+    openAs('cl', '/contentieux');
+    const court = await screen.findByLabelText(/Juridiction/);
+    await userEvent.clear(court);
+    await userEvent.type(court, 'Tribunal de commerce de Paris');
+    await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(await screen.findByText('Juridiction et intervenant enregistrés.')).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Clore la procédure' }));
+    const dialog = await inDialog();
+    expect(dialog.getByText('Irrécouvrable')).toBeVisible();
+    await userEvent.click(dialog.getByRole('button', { name: 'Clore la procédure' }));
+    expect(await screen.findByText('Procédure close : irrécouvrable.')).toBeVisible();
+  });
+  it('is read-only for the Director, scoped for a Claims officer, and keeps the rules of the steps', async () => {
+    expect((await call('ad', '/litigation/bellet/stage', { stage: 'PAYMENT_ORDER', version: 1 })).status).toBe(403);
     const { cases } = (await (await call('hb', '/litigation')).json()) as { cases: { id: string }[] };
     expect(cases.map((item) => item.id)).toEqual(['fabre', 'pixelia']);
     expect((await call('dev', '/litigation')).status).toBe(403);
+    expect((await call('hb', '/litigation/bellet/consent', { version: 1 })).status).toBe(404);
+    expect((await call('cl', '/litigation/valmont/stage', { stage: 'PAYMENT_ORDER', version: 1 })).status).toBe(409);
+    expect((await call('cl', '/litigation/bellet/stage', { stage: 'ENFORCEMENT', version: 1 })).status).toBe(409);
+    expect((await call('cl', '/litigation/bellet/stage', { stage: 'PAYMENT_ORDER', version: 7 })).status).toBe(409);
+    expect((await call('cl', '/litigation/morin', { court: '', partnerName: '', version: 1 }, 'PUT')).status).toBe(409);
   });
 });
 

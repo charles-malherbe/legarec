@@ -109,6 +109,17 @@ const plannedReminder = async (test: TestApp) => {
   );
   return `/staff/reminders/${rows[0]!.id}`;
 };
+let litigationCase = '';
+/** A case held by nobody, already in litigation: its file, awaiting the agreement of the creditor or not. */
+const litigationFile = (consent: 'NOT_NEEDED' | 'WAITING', suffix: string) => async (test: TestApp) => {
+  const made = await newCase(test);
+  await test.database.admin.query("UPDATE cases SET status = 'LITIGATION' WHERE id = $1", [made.id]);
+  const { rows } = await test.database.admin.query<{ id: string }>(
+    'INSERT INTO litigation_files (case_id, creditor_id, consent, created_by) VALUES ($1, $2, $3::litigation_consent, $4) RETURNING id',
+    [made.id, made.creditorId, consent, test.s.manager],
+  );
+  return `/staff/litigation/${rows[0]!.id}${suffix}`;
+};
 const gdprRequest =
   (then: string, kind = 'ACCESS') =>
   async (test: TestApp) => {
@@ -566,6 +577,31 @@ export const MATRIX: Record<string, MatrixEntry> = {
     expect: withCases(404, { director: 403, manager: 204, managerAlone: 204 }),
   },
   'DELETE /staff/reminders/:id': { path: plannedReminder, expect: withCases(404, { director: 403, manager: 204, managerAlone: 204 }) },
+  // Litigation: read with the cases; opened and followed on a case one acts on (here held by nobody: the managers).
+  'GET /staff/litigation': { expect: withCases(200) },
+  'POST /staff/cases/litigation': {
+    path: async (test) => {
+      litigationCase = (await newCase(test)).id;
+      return '/staff/cases/litigation';
+    },
+    body: () => ({ ids: [litigationCase], reason: 'Promesses non tenues', consentReceived: false }),
+    expect: withCases(404, { director: 403, manager: 204, managerAlone: 204 }),
+  },
+  'PUT /staff/litigation/:id': {
+    path: litigationFile('NOT_NEEDED', ''),
+    body: () => ({ court: 'Tribunal de commerce de Lyon', partnerName: 'Me Durieux', version: 1 }),
+    expect: withCases(404, { director: 403, manager: 204, managerAlone: 204 }),
+  },
+  'POST /staff/litigation/:id/stage': {
+    path: litigationFile('NOT_NEEDED', '/stage'),
+    body: () => ({ stage: 'PAYMENT_ORDER', version: 1 }),
+    expect: withCases(404, { director: 403, manager: 204, managerAlone: 204 }),
+  },
+  'POST /staff/litigation/:id/consent': {
+    path: litigationFile('WAITING', '/consent'),
+    body: () => ({ version: 1 }),
+    expect: withCases(404, { director: 403, manager: 204, managerAlone: 204 }),
+  },
   // The summary of the assistant: whoever acts on the case; off in the tests (409), nothing to report yet (404).
   'POST /staff/cases/:id/ai-summary': {
     path: async (test) => `/staff/cases/${(await newCase(test)).id}/ai-summary`,

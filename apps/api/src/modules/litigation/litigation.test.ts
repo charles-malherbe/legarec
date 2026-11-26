@@ -24,7 +24,8 @@ const caseOf = async (officer: string | null, name: string, { cents = 120_000, c
         )[0]!.id;
   const [debtor] = await rows<{ id: string }>("INSERT INTO debtors (kind, name) VALUES ('COMPANY', $1) RETURNING id", [`Débiteur ${name}`]);
   const [made] = await rows<{ id: string }>(
-    'INSERT INTO cases (reference, creditor_id, debtor_id, officer_id, mandate_id, status) VALUES ($1, $2, $3, $4, $5, $6::case_status) RETURNING id',
+    `INSERT INTO cases (reference, creditor_id, debtor_id, officer_id, mandate_id, status, closed_on)
+     VALUES ($1, $2, $3, $4, $5, $6::case_status, CASE WHEN $6 IN ('SETTLED', 'LOST') THEN current_date END) RETURNING id`,
     [`LGR-2026-${(reference += 1)}`, creditor!.id, debtor!.id, officer, mandate, status],
   );
   if (cents)

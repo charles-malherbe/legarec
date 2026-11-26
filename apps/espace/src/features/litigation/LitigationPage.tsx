@@ -1,5 +1,5 @@
-import { formatCents, LITIGATION_STAGES, litigationData, type LitigationCase } from '@legarec/contracts';
-import { Badge, Bouton, Carte, EtatListe, PageHeader, Pagination, Tableau, Toolbar, useConfirm, useToast } from '@legarec/ui';
+import { formatCents, formatDate, LITIGATION_STAGES, litigationData, type LitigationCase } from '@legarec/contracts';
+import { Badge, Bouton, Carte, Champ, EtatListe, PageHeader, Pagination, Tableau, Toolbar, useConfirm, useToast } from '@legarec/ui';
 import { useState } from 'react';
 import { useCreditorScope } from '../../app/creditorScope';
 import { useApi, useChange } from '../../app/data';
@@ -8,8 +8,31 @@ import { pageOf } from '../../shared/paging';
 import { listState, matches } from '../../shared/listState';
 import css from './Litigation.module.css';
 
-const PARTNERS = ['Tous les partenaires', 'Me Durieux', 'Me Roche', 'Étude Garnier'];
-const day = (iso: string, options: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat('fr-FR', { timeZone: 'UTC', ...options }).format(new Date(iso));
+const ALL_PARTNERS = 'Tous les intervenants';
+const OUTCOMES = { SETTLED: 'Recouvré', LOST: 'Irrécouvrable' } as const;
+
+/** Court and partner, typed freely by whoever acts on the case; remounted when the file changes. */
+function FollowUp({ item, onSave }: { item: LitigationCase; onSave: (court: string, partnerName: string) => Promise<void> }) {
+  const [court, setCourt] = useState(item.court);
+  const [partnerName, setPartnerName] = useState(item.partnerName);
+  const [saving, setSaving] = useState(false);
+  const unchanged = court.trim() === item.court && partnerName.trim() === item.partnerName;
+  return (
+    <form
+      className={css.followUp}
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (unchanged || saving) return;
+        setSaving(true);
+        void onSave(court.trim(), partnerName.trim()).finally(() => setSaving(false));
+      }}
+    >
+      <Champ label="Juridiction" value={court} maxLength={200} optional onChange={setCourt} />
+      <Champ label="Intervenant" value={partnerName} maxLength={200} optional help="Avocat ou commissaire de justice" onChange={setPartnerName} />
+      <Bouton type="submit" variant="secondary" label="Enregistrer" loading={saving} disabled={unchanged} />
+    </form>
+  );
+}
 
 export function LitigationPage() {
   const scope = useCreditorScope();
@@ -20,16 +43,17 @@ export function LitigationPage() {
   const [query, setQuery] = useState('');
   const [stage, setStage] = useState(-1);
   const [view, setView] = useState<'board' | 'list'>('board');
-  const [partner, setPartner] = useState(PARTNERS[0] ?? '');
+  const [partner, setPartner] = useState(ALL_PARTNERS);
   const [selected, setSelected] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(25);
+  const partners = [ALL_PARTNERS, ...[...new Set((data?.cases ?? []).map((item) => item.partnerName).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr'))];
   const rows = (data?.cases ?? []).filter(
     (item) =>
       (stage < 0 || item.stage === stage) &&
       (scope.id === 'all' || item.creditorId === scope.id) &&
-      (partner === PARTNERS[0] || item.partner.startsWith(partner)) &&
-      matches(query, item.debtor, item.siret, item.court, item.creditor, item.procedure),
+      (partner === ALL_PARTNERS || item.partnerName === partner) &&
+      matches(query, item.debtor, item.identifier, item.court, item.creditor, item.partnerName),
   );
   const current = data?.cases.find((item) => item.id === selected) ?? rows[0];
   const paged = pageOf(rows, page, size);
@@ -44,22 +68,69 @@ export function LitigationPage() {
     onRetry: () => void refetch(),
     onClear: () => setQuery(''),
   });
-  const act = (item: LitigationCase) =>
+  const labelOf = (index: number) => LITIGATION_STAGES[index]?.label ?? '';
+  const summary = (item: LitigationCase) => [
+    { k: 'Débiteur', v: `${item.debtor} · ${item.identifier}` },
+    { k: 'Créancier', v: item.creditor },
+    { k: 'Montant', v: formatCents(item.amount) },
+  ];
+  const advance = (item: LitigationCase) => {
+    const next = LITIGATION_STAGES[item.stage + 1];
+    if (!next || next.code === 'CLOSED') return;
     confirm({
-      title: `${item.action} ?`,
-      body: `Cette étape engage des frais de procédure et sera visible par ${item.creditor} dans son espace. Vérifiez que l’accord du créancier couvre cette étape.`,
-      confirmLabel: 'Confirmer et envoyer',
-      details: [
-        { k: 'Débiteur', v: `${item.debtor} · SIRET ${item.siret}` },
-        { k: 'Montant', v: formatCents(item.amount) },
-        { k: 'Procédure', v: item.procedure },
-        { k: 'Partenaire', v: item.partner },
-      ],
+      title: `Passer à l’étape « ${next.label} » ?`,
+      body: `Cette étape peut engager des frais de procédure et sera visible par ${item.creditor} dans son espace. Elle ne peut pas être annulée.`,
+      confirmLabel: 'Confirmer l’étape',
+      details: [...summary(item), { k: 'Étape actuelle', v: labelOf(item.stage) }, { k: 'Nouvelle étape', v: next.label }],
       onConfirm: async () => {
-        await change(`/litigation/${item.id}/action`);
-        toast({ message: 'Demande envoyée.' });
+        await change(`/litigation/${item.id}/stage`, { body: { stage: next.code, version: item.version } });
+        toast({ message: `Étape enregistrée : ${next.label}.` });
       },
     });
+  };
+  const close = (item: LitigationCase) => {
+    const outcome = item.balance === 0 ? 'SETTLED' : 'LOST';
+    confirm({
+      tone: 'danger',
+      title: 'Clore la procédure ?',
+      body:
+        outcome === 'SETTLED'
+          ? `Plus rien n’est dû : le dossier est clos comme soldé. ${item.creditor} le verra dans son espace. La clôture ne peut pas être annulée.`
+          : `Il reste ${formatCents(item.balance)} à payer : le dossier est clos comme irrécouvrable. ${item.creditor} le verra dans son espace. La clôture ne peut pas être annulée.`,
+      confirmLabel: 'Clore la procédure',
+      details: [...summary(item), { k: 'Reste dû', v: formatCents(item.balance) }, { k: 'Issue', v: OUTCOMES[outcome] }],
+      onConfirm: async () => {
+        await change(`/litigation/${item.id}/stage`, { body: { stage: 'CLOSED', expectedOutcome: outcome, version: item.version } });
+        toast({ message: `Procédure close : ${OUTCOMES[outcome].toLowerCase()}.` });
+      },
+    });
+  };
+  const noteConsent = (item: LitigationCase) =>
+    confirm({
+      title: 'Noter l’accord du créancier ?',
+      body: `Le mandat de ${item.creditor} exige son accord écrit avant toute étape qui engage des frais. Une fois noté, l’accord ne peut plus être retiré ; votre nom et la date sont conservés.`,
+      confirmLabel: 'Noter l’accord',
+      details: summary(item),
+      check: { label: 'Accord écrit du créancier reçu', required: true },
+      onConfirm: async () => {
+        await change(`/litigation/${item.id}/consent`, { body: { version: item.version } });
+        toast({ message: 'Accord du créancier noté.' });
+      },
+    });
+  const describe = async (item: LitigationCase, court: string, partnerName: string) => {
+    const save = (values: { court: string; partnerName: string }, version: number) =>
+      change(`/litigation/${item.id}`, { method: 'PUT', body: { ...values, version } });
+    try {
+      await save({ court, partnerName }, item.version);
+      toast({
+        message: 'Juridiction et intervenant enregistrés.',
+        // Each save adds one to the version: undoing writes the former values on the next one.
+        undo: () => void save({ court: item.court, partnerName: item.partnerName }, item.version + 1),
+      });
+    } catch {
+      toast({ message: 'L’enregistrement n’a pas abouti : rechargez la page, puis réessayez.', tone: 'danger' });
+    }
+  };
   const s = data?.stats;
   const stages = LITIGATION_STAGES.map((item, index) => ({
     ...item,
@@ -76,15 +147,10 @@ export function LitigationPage() {
         description={s ? `${s.count} dossiers en phase judiciaire · ${formatCents(s.amount)} · tous créanciers` : ' '}
         stats={[
           { label: 'Montant en contentieux', value: s ? formatCents(s.amount) : '', sub: s ? `${s.count} dossiers` : ' ' },
-          { label: 'Frais de procédure avancés', value: s ? formatCents(s.advancedFees) : '', sub: 'à la charge du créancier sauf décision du juge' },
-          { label: 'Titres exécutoires (2026)', value: String(s?.titles ?? ''), sub: '▲ 4 sur un an', tone: 'success' },
+          { label: `Titres exécutoires (${new Date().getFullYear()})`, value: String(s?.titles ?? ''), sub: 'obtenus dans l’année', tone: 'success' },
           { label: 'En attente d’accord créancier', value: String(s?.waiting ?? ''), sub: 'avant engagement de frais', tone: 'warning' },
-          { label: 'Délais sous 15 jours', value: String(s?.soon ?? ''), sub: 'dont 2 urgents', tone: 'danger' },
         ]}
-        actions={[
-          { label: 'Partenaires (avocats, commissaires)', disabled: true },
-          { label: '+ Transférer un dossier', primary: true, kbd: 'N', href: '/debiteurs' },
-        ]}
+        actions={[{ label: '+ Transférer un dossier', primary: true, kbd: 'N', href: '/debiteurs' }]}
       />
       <Toolbar
         label="Filtrer les procédures"
@@ -105,14 +171,14 @@ export function LitigationPage() {
           name: scope.id === 'all' ? 'Tous les créanciers' : (rows[0]?.creditor ?? 'Créancier'),
           onReset: scope.id === 'all' ? undefined : () => scope.setId('all'),
         }}
-        filters={[{ label: 'Partenaire', value: partner, options: PARTNERS, onChange: setPartner }]}
+        filters={[{ label: 'Intervenant', value: partner, options: partners, onChange: setPartner }]}
         views={[
           { label: 'Tableau', selected: view === 'board', pick: () => setView('board') },
           { label: 'Liste', selected: view === 'list', pick: () => setView('list') },
         ]}
       />
       {view === 'board' ? (
-        <Carte title="Avancement des procédures" description="Sélectionnez un dossier pour afficher ses actes ci-dessous" padding="none">
+        <Carte title="Avancement des procédures" description="Sélectionnez un dossier pour afficher son suivi ci-dessous" padding="none">
           {state ? (
             <EtatListe {...state} />
           ) : (
@@ -138,13 +204,10 @@ export function LitigationPage() {
                             <strong className={layout.num}>{formatCents(row.amount)}</strong>
                           </span>
                           <span className={layout.hint}>{row.creditor}</span>
-                          <span>{row.step}</span>
-                          <Badge
-                            label={row.due}
-                            tone={row.urgent ? 'danger' : 'neutral'}
-                            icon="clock"
-                            layout={{ alignSelf: 'flex-start', whiteSpace: 'normal' }}
-                          />
+                          <span>depuis le {formatDate(row.stageSince)}</span>
+                          {row.consent === 'WAITING' && (
+                            <Badge label="Accord créancier attendu" tone="warning" icon="clock" layout={{ alignSelf: 'flex-start', whiteSpace: 'normal' }} />
+                          )}
                         </button>
                       ))}
                       {stage < 0 && item.count > cards.length && !query && (
@@ -182,14 +245,19 @@ export function LitigationPage() {
                   <button type="button" aria-pressed={row.id === current?.id} className={css.rowButton} onClick={() => setSelected(row.id)}>
                     <span className={layout.strong}>{row.debtor}</span>
                     <span className={layout.hint}>
-                      {row.creditor} · SIRET {row.siret}
+                      {row.creditor} · {row.identifier}
                     </span>
                   </button>
                 ),
               },
-              { key: 'procedure', label: 'Procédure', value: (row) => row.procedure },
-              { key: 'step', label: 'Étape actuelle', value: (row) => row.step },
-              { key: 'due', label: 'Échéance', render: (row) => <span className={row.urgent ? layout.danger : undefined}>{row.due}</span> },
+              { key: 'stage', label: 'Étape', sortValue: (row) => row.stage, value: (row) => labelOf(row.stage) },
+              { key: 'since', label: 'Depuis le', sortValue: (row) => row.stageSince, value: (row) => formatDate(row.stageSince) },
+              { key: 'partner', label: 'Intervenant', value: (row) => row.partnerName || '—' },
+              {
+                key: 'consent',
+                label: 'Accord créancier',
+                render: (row) => (row.consent === 'WAITING' ? <Badge label="Attendu" tone="warning" /> : row.consent === 'RECEIVED' ? 'Reçu' : 'Non exigé'),
+              },
               {
                 key: 'amount',
                 label: 'Montant',
@@ -213,82 +281,69 @@ export function LitigationPage() {
         </Carte>
       )}
       {current && data && (
-        <div className={layout.columns}>
-          <div className={layout.wide}>
-            <Carte
-              title={current.debtor}
-              description={`${current.procedure} · SIRET ${current.siret}`}
-              actionLabel="Ouvrir le dossier"
-              actionIcon="arrow-right"
-              actionHref={`/debiteurs/${current.id}`}
-            >
-              <div className={layout.stack}>
-                <dl className={css.facts}>
-                  <div>
-                    <dt>Créancier</dt>
-                    <dd>{current.creditor}</dd>
-                  </div>
-                  <div>
-                    <dt>Montant</dt>
-                    <dd>{formatCents(current.amount)}</dd>
-                  </div>
+        <Carte
+          title={current.debtor}
+          description={`${labelOf(current.stage)} depuis le ${formatDate(current.stageSince)} · ${current.identifier}`}
+          actionLabel="Ouvrir le dossier"
+          actionIcon="arrow-right"
+          actionHref={`/debiteurs/${current.caseId}`}
+        >
+          <div className={layout.stack}>
+            <dl className={css.facts}>
+              <div>
+                <dt>Créancier</dt>
+                <dd>{current.creditor}</dd>
+              </div>
+              <div>
+                <dt>Montant</dt>
+                <dd>{formatCents(current.amount)}</dd>
+              </div>
+              <div>
+                <dt>Accord du créancier</dt>
+                <dd>{current.consent === 'WAITING' ? 'Attendu' : current.consent === 'RECEIVED' ? 'Reçu' : 'Non exigé par le mandat'}</dd>
+              </div>
+              {!current.canAct && (
+                <>
                   <div>
                     <dt>Juridiction</dt>
-                    <dd>{current.court}</dd>
+                    <dd>{current.court || '—'}</dd>
                   </div>
                   <div>
-                    <dt>Partenaire</dt>
-                    <dd>{current.partner}</dd>
+                    <dt>Intervenant</dt>
+                    <dd>{current.partnerName || '—'}</dd>
                   </div>
-                </dl>
-                <h3 className={css.subtitle}>Actes de la procédure</h3>
-                <ol className={layout.timeline}>
-                  {current.acts.map((act_) => (
-                    <li key={act_.title}>
-                      <span aria-hidden className={layout.dot} data-tone={act_.state === 'DONE' ? 'success' : act_.state === 'NOW' ? 'info' : undefined} />
-                      <span className={layout.text}>
-                        <span className={layout.inline}>
-                          <strong className={layout.strong}>{act_.title}</strong>
-                          {act_.state === 'NOW' && <Badge label="En cours" tone="marine" />}
-                        </span>
-                        <span className={layout.hint}>{act_.date}</span>
-                      </span>
-                    </li>
-                  ))}
-                </ol>
-                {current.canAct && (
-                  <div className={layout.inline}>
-                    <Bouton label={current.actionSent ? 'Demande envoyée ✓' : current.action} disabled={current.actionSent} onPress={() => act(current)} />
-                    <Bouton variant="secondary" label="Ajouter un acte" disabled />
-                    <Bouton variant="secondary" label="Informer le créancier" disabled />
-                  </div>
-                )}
-              </div>
-            </Carte>
-          </div>
-          <aside className={layout.aside} aria-label="Délais">
-            <Carte title="Délais à surveiller" description="15 prochains jours · délais légaux et échéances" padding="none">
-              {data.deadlines.map((item) => (
-                <button
-                  key={item.caseId}
-                  type="button"
-                  className={layout.rowButton}
-                  aria-current={item.caseId === current.id}
-                  onClick={() => setSelected(item.caseId)}
-                >
-                  <span className={css.date} data-tone={item.tone}>
-                    <strong>{day(item.date, { day: '2-digit' })}</strong>
-                    <span>{day(item.date, { month: 'short' })}</span>
-                  </span>
+                </>
+              )}
+            </dl>
+            {current.canAct && (
+              <FollowUp key={`${current.id}:${current.version}`} item={current} onSave={(court, partnerName) => describe(current, court, partnerName)} />
+            )}
+            <h3 className={css.subtitle}>Historique de la procédure</h3>
+            <ol className={layout.timeline}>
+              {current.events.map((event, index) => (
+                <li key={`${event.title}:${event.date}:${index}`}>
+                  <span aria-hidden className={layout.dot} data-tone={index === current.events.length - 1 ? 'info' : 'success'} />
                   <span className={layout.text}>
-                    <strong className={layout.strong}>{item.title}</strong>
-                    <span className={layout.hint}>{item.who}</span>
+                    <strong className={layout.strong}>{event.title}</strong>
+                    <span className={layout.hint}>
+                      {formatDate(event.date)} · {event.who}
+                    </span>
                   </span>
-                </button>
+                </li>
               ))}
-            </Carte>
-          </aside>
-        </div>
+            </ol>
+            {current.canAct && (
+              <div className={layout.inline}>
+                {current.consent === 'WAITING' ? (
+                  <Bouton label="Noter l’accord du créancier" onPress={() => noteConsent(current)} />
+                ) : (
+                  current.stage < 3 && <Bouton label={`Passer à : ${labelOf(current.stage + 1)}`} onPress={() => advance(current)} />
+                )}
+                <Bouton variant="secondary" label="Clore la procédure" onPress={() => close(current)} />
+              </div>
+            )}
+          </div>
+        </Carte>
       )}
     </>
   );
