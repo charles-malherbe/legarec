@@ -25,6 +25,8 @@ import {
   settingsSection,
   session,
   ticketSent,
+  templatesData,
+  templateDetail,
   plansData,
   planSimulation,
   interestRates,
@@ -436,6 +438,12 @@ export const ACCOUNT_PARITY: Parity[] = [
     answer: code('FORBIDDEN'),
   },
   { as: 'director', request: 'PUT /interest-rates', body: { kind: 'ECB', validFrom: '2026-07-01', rateBp: 215, expected: null }, status: 204 },
+  // Templates (lot N).
+  ...each(['director', 'manager', 'officer', 'developer'], () => ({ request: 'GET /templates', status: 200, answer: templatesData })),
+  ...each(['director', 'officer'], () => ({ request: 'GET /templates/amiable', status: 200, answer: templateDetail })),
+  { as: 'officer', request: 'GET /templates/inconnu', status: 404, answer: code('NOT_FOUND') },
+  { as: 'officer', request: 'POST /templates/amiable/import', body: { source: '<p>x</p>', fileName: 'x.html' }, status: 403, answer: code('FORBIDDEN') },
+  { as: 'officer', request: 'POST /templates/amiable/review', body: { approved: true }, status: 403, answer: code('FORBIDDEN') },
 ];
 
 /** Sign-in of the creditors. */

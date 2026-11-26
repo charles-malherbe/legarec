@@ -43,7 +43,8 @@ function toApiError(error: unknown): ApiError | null {
     case 'P2007':
     case '22P02':
       return new ApiError(404, 'NOT_FOUND');
-    // A character PostgreSQL cannot hold.
+    // Refused by our own functions (app.refuse): what was asked does not hold together; or a character PostgreSQL cannot hold.
+    case '22023':
     case '22021':
     case '22P05':
       return new ApiError(422, 'INVALID');

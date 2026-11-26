@@ -18,6 +18,8 @@ import { CreditorsService } from './creditors/creditors.service';
 import { AccessCodes } from './debtor-access/access-codes';
 import { DocumentsController } from './documents/documents.controller';
 import { DocumentsService } from './documents/documents.service';
+import { TemplatesController } from './templates/templates.controller';
+import { TemplatesService } from './templates/templates.service';
 import { DelegationsController } from './delegations/delegations.controller';
 import { MembersController } from './members/members.controller';
 import { MembersService } from './members/members.service';
@@ -52,6 +54,7 @@ export const controllers: Type[] = [
   PlansController,
   InterestRatesController,
   DocumentsController,
+  TemplatesController,
   ShellController,
 ];
 export const providers: Provider[] = [
@@ -76,4 +79,5 @@ export const providers: Provider[] = [
   Ledgers,
   Plans,
   DocumentsService,
+  TemplatesService,
 ];

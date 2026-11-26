@@ -251,6 +251,8 @@ describe('rights of the roles inside', () => {
       'documents INSERT (author_id, case_id, category, contains_access_code, creditor_id, id, kind, original_name, scan_status, sha256, size_bytes, source, storage_key, title, visible_to_debtor)',
       'documents SELECT (author_id, case_id, category, contains_access_code, created_at, creditor_id, id, kind, original_name, scan_status, scanned_at, sha256, shared_by, shared_with_creditor_at, size_bytes, source, storage_key, title, visible_to_debtor)',
       'documents UPDATE (category, title)',
+      // Templates: every version read; written by their functions.
+      'template_versions SELECT (accepted, checks, created_at, file_name, has_warnings, id, imported_by, number, on_behalf_of_id, published_at, review_reason, reviewed_by, source, state, submitted_by, template_code, updated_at)',
       // Money: read only; written by the functions of the money.
       'installments SELECT (amount_cents, case_id, creditor_id, due_on, id, number, plan_id)',
       'interest_rates SELECT (entered_by, id, kind, on_behalf_of_id, rate_bp, updated_at, valid_from)',
@@ -297,6 +299,8 @@ describe('rights of the roles inside', () => {
       'documents INSERT (case_id, category, contains_access_code, creditor_id, id, kind, original_name, scan_status, scanned_at, sha256, size_bytes, source, storage_key, title, visible_to_debtor)',
       'documents SELECT (author_id, case_id, category, contains_access_code, created_at, creditor_id, id, kind, original_name, scan_status, scanned_at, sha256, shared_with_creditor_at, size_bytes, source, storage_key, title, visible_to_debtor)',
       'documents UPDATE (scan_status, scanned_at)',
+      // The templates in force, for the letters.
+      'template_versions SELECT (id, number, source, state, template_code)',
       // The PDF of a receipt (lot N).
       'receipts SELECT (case_id, creditor_id, document_id, id, issued_at, number, payment_id)',
       'receipts UPDATE (document_id)',
@@ -383,6 +387,10 @@ describe('rights of the roles inside', () => {
       'debtor_access_codes SELECT (code_cipher, debtor_id, version)',
       'debtor_access_codes UPDATE (code_cipher, generated_at, generated_by, version)',
       'debtors SELECT (id, kind, name, siren)',
+      // Templates: their steps, by their functions.
+      'template_versions INSERT (accepted, checks, file_name, has_warnings, id, imported_by, on_behalf_of_id, source, state, template_code)',
+      'template_versions SELECT (*)',
+      'template_versions UPDATE (number, on_behalf_of_id, published_at, review_reason, reviewed_by, state, submitted_by, updated_at)',
       // Documents: shared by its function.
       'documents SELECT (case_id, contains_access_code, id, scan_status, shared_with_creditor_at)',
       'documents UPDATE (shared_by, shared_with_creditor_at)',
@@ -498,6 +506,8 @@ describe('rights on the functions', () => {
     ...['save_interest_rate', 'decide_plan', 'record_payment', 'change_payment', 'ask_plan'].map((name) => [name, ['staff']] as [string, string[]]),
     // Called by the functions of the money, and its triggers.
     ['share_document', ['staff']],
+    ...['import_template', 'cancel_template', 'submit_template', 'review_template'].map((name) => [name, ['staff']] as [string, string[]]),
+    ['template_editor', []],
     ...['money_case', 'issue_receipt', 'follow_allocation', 'check_allocations', 'keep_receipt'].map((name) => [name, []] as [string, string[]]),
     // Tools of the migrations.
     ['secure', []],
@@ -523,6 +533,7 @@ describe('rights on the functions', () => {
       'portal_officer create_director ticket_reader close_account release_cases digests refuse tell_director end_technical_delegation take_with_substituted open_delegations require_for_developer plain_name keep_account_history',
       'uuid_v7 setting user_id creditor_id debtor_id only_identifiers audit_params',
       'save_interest_rate decide_plan follow_allocation check_allocations record_payment change_payment ask_plan money_case issue_receipt keep_receipt share_document',
+      'import_template cancel_template submit_template review_template template_editor',
     ].flatMap((names) => names.split(' '));
     const found = await rows<{ proname: string }>(
       "SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'app' ORDER BY 1",

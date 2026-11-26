@@ -73,6 +73,11 @@ Sans dépendance : Resend, MySendingBox, OVH (appels signés : le paquet `ovh` d
 - **Antivirus** : tâche `scan-document` (file `documents`), clamd par `INSTREAM` (`CLAMAV_URL`, conteneur du lot X) ; en développement et en test, un antivirus simulé qui reconnaît le fichier EICAR ; en production sans `CLAMAV_URL`, les fichiers attendent sans être lus. Infecté : le fichier est effacé, la ligne reste. Rien ne se lit ni ne se partage avant « propre ».
 - **Lecture** : `GET /staff/documents`, `GET /staff/documents/:id/file` (nom neutre `document.pdf`), `POST /staff/documents/:id/share` (dossier sur lequel on agit, propre, sans code d'accès : contrainte en base). Le créancier et le débiteur ne lisent que ce qui leur est partagé ou montré.
 
+### Modèles (lot N, deuxième partie)
+- **Catalogue** : `packages/contracts/src/templateCatalogue.ts` porte les textes validés de la maquette ; c'est la version 1 de chaque modèle, servie tant qu'aucune autre n'est publiée. La simulation lit le même catalogue.
+- **Versions** (`template_versions`) : un fichier importé est contrôlé par l'API (`checkTemplate` : champs inconnus, bloc imposé, script, ressource externe ; 413 au-delà de 500 Ko), puis soumis (avertissements lus), puis publié ou refusé par le Directeur ou le Responsable délégué ; la version précédente est archivée et reçoit un numéro. Une version en attente et une en service au plus par modèle. Chaque étape passe par une fonction `app.*_template`, qui revérifie le rôle ; l'équipe n'écrit rien directement. Restaurer une version reprend son texte comme un nouvel import, validé comme les autres. « Annuler » un import se rattrape dans l'heure.
+- **Essai d'un modèle** (`POST /templates/:id/test`) : avec les envois (lot Q) ; d'ici là, simulé.
+
 ### Règles de code
 Une requête = une transaction `Database.run(actor, fn)`, ouverte par la plateforme ; seul `modules/auth` en ouvre au nom d'un compte (ESLint) ; ESLint interdit Prisma ailleurs. Aucun appel externe dans une transaction : `outbox`, puis BullMQ. Une tâche de Valkey ne porte que son numéro : son nom, son auteur et ses identifiants sont relus dans `outbox`. SQL brut limité à : séquences, verrous consultatifs, recherche trigramme, agrégats ; `SET ROLE` et `set_config` dans `src/platform` seulement ; imports dynamiques de Prisma, `pg`, BullMQ ou ioredis interdits ailleurs (ESLint).
 
