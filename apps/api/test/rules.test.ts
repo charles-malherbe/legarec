@@ -120,7 +120,8 @@ describe('what a route receives', () => {
       'PUT /staff/delegations/:kind',
       'PUT /staff/members/:id/extension',
       'PUT /staff/notifications',
-      // Writes nothing: no scheduled report exists yet (question 203).
+      // Writes nothing: no scheduled report exists yet (question 203). Falls with the table of the scheduled reports: the
+      // route then takes `@Commits()`, an audit line, and an identifier checked as a UUID.
       'PUT /staff/reports/scheduled/:id',
     ]);
   });

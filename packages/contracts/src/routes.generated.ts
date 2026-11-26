@@ -5227,6 +5227,10 @@ export interface operations {
                         callsTotal: number;
                         alerts: string[];
                         telephony?: boolean;
+                        summary?: {
+                            promisesKept: number;
+                            averageDuration: string;
+                        };
                     };
                 };
             };

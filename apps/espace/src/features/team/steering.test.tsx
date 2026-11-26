@@ -9,6 +9,8 @@ import { call, mockApi, openAs } from '../../testing';
 
 const server = mockApi();
 beforeEach(resetSteering);
+/** What the telephony alone can say: never shown without an answer that says it is connected. */
+const INVENTED = [/tenues sur 30 jours/, '4 min 05', /en ligne sur/, /synchronisés avec 3CX/];
 const inDialog = async () => within(await screen.findByRole('alertdialog'));
 
 it('computes billing totals in cents and VAT numbers', () => {
@@ -164,6 +166,9 @@ describe('members', () => {
   it('refuses the team screen to a Claims officer', async () => {
     openAs('hb', '/equipe');
     expect(await screen.findByRole('heading', { name: 'Accès réservé' })).toBeVisible();
+    // Nothing of the screen is drawn for them, not even its frame.
+    for (const text of INVENTED) expect(screen.queryByText(text)).toBeNull();
+    expect(screen.queryByText('Appels passés')).toBeNull();
   });
 });
 
@@ -265,6 +270,55 @@ describe('what the API answers before the telephony', () => {
     expect(screen.getAllByText('avec la téléphonie (3CX)')).toHaveLength(4);
     expect(await axeViolations(container)).toEqual([]);
   });
+  it('shows the figures of the telephony only when the answer says it is connected, and takes them from it', async () => {
+    openAs('cl', '/equipe');
+    expect(await screen.findByText('78 % tenues sur 30 jours')).toBeVisible();
+    expect(screen.getByText('4 min 05')).toBeVisible();
+    expect(screen.getByText(/synchronisés avec 3CX/)).toBeVisible();
+  });
+  it('shows no figure of the telephony while the answer is awaited, nor after a refusal or a failure', async () => {
+    let answer = () => {};
+    const waiting = new Promise<void>((resolve) => (answer = resolve));
+    server.use(
+      http.get('/api/team', async () => {
+        await waiting;
+        return HttpResponse.json({ code: 'FORBIDDEN' }, { status: 403 });
+      }),
+    );
+    const first = openAs('cl', '/equipe');
+    // Loading: the frames of the five figures, and no word under them.
+    expect(await screen.findByRole('region', { name: "Activité de l'équipe" })).toBeVisible();
+    const shown = () => {
+      for (const text of INVENTED) expect(screen.queryByText(text)).toBeNull();
+      expect(screen.queryByRole('table', { name: 'Appels passés' })).toBeNull();
+      expect(screen.queryByText('Aucun appel')).toBeNull();
+    };
+    shown();
+    answer();
+    // Refused: the error of the screen, and still none of them.
+    const failed = () => screen.findAllByRole('button', { name: 'Réessayer' }, { timeout: 5000 });
+    await failed();
+    expect(screen.queryByRole('region', { name: "Activité de l'équipe" })).toBeNull();
+    shown();
+    first.unmount();
+    for (const failing of [
+      () => HttpResponse.json({ code: 'INTERNAL' }, { status: 500 }),
+      () => HttpResponse.error(),
+      // An answer the contract refuses.
+      () => HttpResponse.json({ agents: 'aucun' }),
+    ]) {
+      server.use(http.get('/api/team', failing));
+      const view = openAs('cl', '/equipe');
+      await failed();
+      shown();
+      view.unmount();
+    }
+    // An answer of before the field: not said connected, so not shown as connected.
+    server.use(http.get('/api/team', () => HttpResponse.json({ agents: [], calls: [], callsTotal: 0, alerts: [] })));
+    openAs('cl', '/equipe');
+    expect(await screen.findByText(/Téléphonie non connectée/)).toBeVisible();
+    shown();
+  }, 30_000);
   it('shows reports without calls, promises nor scheduled reports', async () => {
     const report = { text: 'Année 2026 (au 26/11)', kpis: [{ label: 'Recouvré', value: '600,00 €', delta: '2 paiements', tone: 'neutral' }], bars: [] };
     server.use(

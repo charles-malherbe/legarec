@@ -10,15 +10,17 @@ import { dayOf } from '../../platform/format';
 type Data = z.infer<typeof teamData>;
 interface Read {
   role: string | null;
-  agents: {
-    id: string;
-    name: string;
-    role: 'CLAIMS_OFFICER' | 'COLLECTION_MANAGER';
-    debtors: number;
-    outstanding: number;
-    cashed: number;
-    creditors: string[];
-  }[];
+  agents:
+    | null
+    | {
+        id: string;
+        name: string;
+        role: 'CLAIMS_OFFICER' | 'COLLECTION_MANAGER';
+        debtors: number;
+        outstanding: number;
+        cashed: number;
+        creditors: string[];
+      }[];
 }
 /** Today, the last 7 days, the last 30 days: today included. */
 const DAYS = { day: 0, week: 6, month: 29 } as const;
@@ -44,7 +46,8 @@ export class TeamController {
     const [{ data }] = (await this.database.tx.$queryRaw<{ data: Read }[]>`
       SELECT jsonb_build_object(
         'role', app.staff_role(),
-        'agents', (SELECT coalesce(jsonb_agg(jsonb_build_object('id', u.id, 'name', u.first_name || ' ' || u.last_name, 'role', u.role,
+        -- Nothing is computed for whoever will be refused.
+        'agents', CASE WHEN app.staff_role() IN ('DIRECTOR', 'COLLECTION_MANAGER') THEN (SELECT coalesce(jsonb_agg(jsonb_build_object('id', u.id, 'name', u.first_name || ' ' || u.last_name, 'role', u.role,
             'debtors', (SELECT count(DISTINCT c.debtor_id) FROM cases c WHERE c.officer_id = u.id AND c.closed_on IS NULL),
             'outstanding', (SELECT coalesce(sum(i.principal_cents - i.principal_paid_cents), 0) FROM case_invoices i JOIN cases c ON c.id = i.case_id
               WHERE c.officer_id = u.id AND c.closed_on IS NULL),
@@ -53,10 +56,10 @@ export class TeamController {
             'creditors', (SELECT coalesce(jsonb_agg(k.name ORDER BY k.name), '[]') FROM creditors k
               WHERE k.id IN (SELECT c.creditor_id FROM cases c WHERE c.officer_id = u.id AND c.closed_on IS NULL))
           ) ORDER BY u.last_name, u.first_name, u.id), '[]')
-          FROM users u WHERE u.status = 'ACTIVE' AND u.role IN ('CLAIMS_OFFICER', 'COLLECTION_MANAGER'))
+          FROM users u WHERE u.status = 'ACTIVE' AND u.role IN ('CLAIMS_OFFICER', 'COLLECTION_MANAGER')) END
       ) AS data`) as [{ data: Read }];
     // The role as PostgreSQL knows it: individual figures are for the Director and the manager alone.
-    if (data.role !== 'DIRECTOR' && data.role !== 'COLLECTION_MANAGER') throw forbidden();
+    if ((data.role !== 'DIRECTOR' && data.role !== 'COLLECTION_MANAGER') || !data.agents) throw forbidden();
     return {
       agents: data.agents.map((agent) => ({
         id: agent.id,

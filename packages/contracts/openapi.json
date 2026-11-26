@@ -6794,6 +6794,22 @@
                     },
                     "telephony": {
                       "type": "boolean"
+                    },
+                    "summary": {
+                      "type": "object",
+                      "properties": {
+                        "promisesKept": {
+                          "type": "number"
+                        },
+                        "averageDuration": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "promisesKept",
+                        "averageDuration"
+                      ],
+                      "additionalProperties": false
                     }
                   },
                   "required": [

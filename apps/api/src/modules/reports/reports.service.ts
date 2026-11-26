@@ -88,7 +88,8 @@ export class ReportsService {
             'partial', count(*) FILTER (WHERE s.status = 'LOST' AND coalesce(pay.recovered, 0) > 0),
             'lost', count(*) FILTER (WHERE s.status = 'LOST' AND coalesce(pay.recovered, 0) = 0))
           FROM seen s LEFT JOIN pay ON pay.case_id = s.id WHERE s.closed_on IS NOT NULL),
-        -- Whoever holds a case the person reads, and the active members who may hold some; an officer: themselves alone.
+        -- Whoever holds a case the person reads, and the active members who may hold some; an officer: themselves alone;
+        -- anyone else (the Developer, refused below): nobody.
         'team', (SELECT coalesce(jsonb_agg(jsonb_build_object('id', u.id, 'name', u.first_name || ' ' || u.last_name, 'cases', coalesce(t.open, 0),
             'entrusted', coalesce(t.entrusted, 0), 'recovered', coalesce(t.recovered, 0)) ORDER BY u.last_name, u.first_name, u.id), '[]')
           FROM users u LEFT JOIN (
@@ -96,8 +97,10 @@ export class ReportsService {
               coalesce(sum(pay.recovered), 0) AS recovered
             FROM seen s LEFT JOIN inv ON inv.case_id = s.id LEFT JOIN pay ON pay.case_id = s.id WHERE s.officer_id IS NOT NULL GROUP BY s.officer_id
           ) t ON t.officer_id = u.id
-          WHERE CASE app.staff_role() WHEN 'CLAIMS_OFFICER' THEN u.id = app.user_id()
-            ELSE t.officer_id IS NOT NULL OR (u.status = 'ACTIVE' AND u.role IN ('CLAIMS_OFFICER', 'COLLECTION_MANAGER')) END)
+          WHERE CASE WHEN app.staff_role() = 'CLAIMS_OFFICER' THEN u.id = app.user_id()
+            WHEN app.staff_role() IN ('DIRECTOR', 'COLLECTION_MANAGER')
+              THEN t.officer_id IS NOT NULL OR (u.status = 'ACTIVE' AND u.role IN ('CLAIMS_OFFICER', 'COLLECTION_MANAGER'))
+            ELSE false END)
       ) AS data`) as [{ data: Read }];
     // The role as PostgreSQL knows it: the one that decided what was read.
     const scope = data.role && data.role !== 'DEVELOPER' ? SCOPES[data.role] : null;

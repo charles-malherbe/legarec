@@ -43,6 +43,8 @@ beforeAll(async () => {
   await pay(first, 4_000, 20);
   await pay(first, 8_000, 45);
   await makeCase(test.s.officerB, 50_000);
+  // A case of the Director, paid today: the manager reads nothing of it, and it is nobody's line.
+  await pay(await makeCase(test.s.director, 300_000), 9_000, 0);
 });
 afterAll(() => test.stop());
 
@@ -62,8 +64,13 @@ describe('the activity of the team', () => {
       expect(await cashed('day')).toBe(1_000);
       expect(await cashed('week')).toBe(3_000);
       expect(await cashed('month')).toBe(7_000);
-      // An unknown period reads as the day.
-      expect(await cashed('siecle')).toBe(1_000);
+      // What the Director holds and cashed is in nobody's line, for the Director as for the manager.
+      const data = await read(as, 'month');
+      expect(data.agents.map((item) => item.id)).not.toContain(test.s.director);
+      expect(data.agents.find((item) => item.id === test.s.manager)).toMatchObject({ cashed: 0 });
+      expect((await test.call('GET', '/staff/team', { as })).body).toEqual(JSON.parse(JSON.stringify(await read(as, 'day'))));
+      // An unknown period is refused.
+      expect((await test.call('GET', '/staff/team?period=siecle', { as })).status).toBe(422);
       const agent = (await read(as)).agents.find((item) => item.id === test.s.officerB)!;
       expect(agent.book).toContain(formatCents(held));
       expect(agent.scope).toContain('Équipe Delta');

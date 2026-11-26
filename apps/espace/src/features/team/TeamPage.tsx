@@ -23,6 +23,8 @@ const PERIODS = [
   ['month', '30 jours', '30 derniers jours'],
 ] as const;
 
+const STATS = ['Appels passés', 'Taux de joignabilité', 'Promesses obtenues', 'Encaissé', 'Durée moyenne'];
+
 export function TeamPage() {
   const user = useCurrentUser();
   // The Developer supports accounts but sees neither activity nor calls.
@@ -67,8 +69,9 @@ function Activity() {
     onRetry: () => void refetch(),
     onClear: () => setQuery(''),
   });
-  // False while 3CX is not connected: presence, calls, goals, promises and durations are unknown, and none is shown.
-  const telephony = data?.telephony !== false;
+  // Connected only when the answer says so: while it loads, after an error, or before 3CX, presence, calls, goals,
+  // promises and durations are unknown, and none is shown.
+  const telephony = data?.telephony === true;
   const unknown = { value: '—', sub: 'avec la téléphonie (3CX)' };
   const span = period === 'day' ? `Aujourd’hui, ${today()}` : PERIODS.find(([id]) => id === period)?.[2];
   const online = agents.filter((item) => item.presence !== 'AWAY').length;
@@ -82,35 +85,40 @@ function Activity() {
         status={data && telephony ? { label: `${online} gestionnaires en ligne sur ${agents.length}`, tone: 'success' } : undefined}
         statsLabel="Activité de l'équipe"
         stats={
-          telephony
-            ? [
-                {
-                  label: 'Appels passés',
-                  value: data ? `${total('calls').toLocaleString('fr-FR')} / ${total('goal').toLocaleString('fr-FR')}` : '',
-                  bar: data ? (total('calls') / Math.max(1, total('goal'))) * 100 : 0,
-                  barTone: 'marine',
-                  sub: 'objectif de l’équipe',
-                },
-                {
-                  label: 'Taux de joignabilité',
-                  value: data ? `${Math.round((total('reached') / Math.max(1, total('calls'))) * 100)} %` : '',
-                  sub: `${total('reached')} débiteurs joints`,
-                },
-                {
-                  label: 'Promesses obtenues',
-                  value: data ? `${total('promises')} · ${formatCents(total('promisedAmount'))}` : '',
-                  sub: '78 % tenues sur 30 jours',
-                },
-                { label: 'Encaissé', value: data ? formatCents(total('cashed')) : '', sub: 'paiements reçus sur la période', tone: 'success' },
-                { label: 'Durée moyenne', value: '4 min 05', sub: 'par appel abouti' },
-              ]
-            : [
-                { label: 'Appels passés', ...unknown },
-                { label: 'Taux de joignabilité', ...unknown },
-                { label: 'Promesses obtenues', ...unknown },
-                { label: 'Encaissé', value: formatCents(total('cashed')), sub: 'paiements reçus sur la période', tone: 'success' },
-                { label: 'Durée moyenne', ...unknown },
-              ]
+          !data
+            ? // Loading: the frames of the figures, and no word under them. After an error: nothing.
+              isPending
+              ? STATS.map((label) => ({ label, value: '' }))
+              : []
+            : telephony
+              ? [
+                  {
+                    label: 'Appels passés',
+                    value: data ? `${total('calls').toLocaleString('fr-FR')} / ${total('goal').toLocaleString('fr-FR')}` : '',
+                    bar: data ? (total('calls') / Math.max(1, total('goal'))) * 100 : 0,
+                    barTone: 'marine',
+                    sub: 'objectif de l’équipe',
+                  },
+                  {
+                    label: 'Taux de joignabilité',
+                    value: data ? `${Math.round((total('reached') / Math.max(1, total('calls'))) * 100)} %` : '',
+                    sub: `${total('reached')} débiteurs joints`,
+                  },
+                  {
+                    label: 'Promesses obtenues',
+                    value: data ? `${total('promises')} · ${formatCents(total('promisedAmount'))}` : '',
+                    sub: data.summary ? `${data.summary.promisesKept} % tenues sur 30 jours` : '',
+                  },
+                  { label: 'Encaissé', value: data ? formatCents(total('cashed')) : '', sub: 'paiements reçus sur la période', tone: 'success' },
+                  { label: 'Durée moyenne', value: data.summary?.averageDuration ?? '—', sub: 'par appel abouti' },
+                ]
+              : [
+                  { label: 'Appels passés', ...unknown },
+                  { label: 'Taux de joignabilité', ...unknown },
+                  { label: 'Promesses obtenues', ...unknown },
+                  { label: 'Encaissé', value: formatCents(total('cashed')), sub: 'paiements reçus sur la période', tone: 'success' },
+                  { label: 'Durée moyenne', ...unknown },
+                ]
         }
         actions={[
           { label: 'Exporter le rapport', disabled: true },

@@ -67,6 +67,8 @@ beforeAll(async () => {
   const partial = await makeCase(test.s.officerB, 60_000);
   await pay(partial, 5_000);
   await close(partial, 'LOST', 40);
+  // A case of the Director, paid: the manager reads nothing of it.
+  await pay(await makeCase(test.s.director, 200_000), 50_000);
   // Another creditor, held by B alone.
   await pay(await makeCase(test.s.officerB, 900_000, other), 300_000, 'CASHED', other);
 });
@@ -102,9 +104,19 @@ describe('the reports', () => {
     ]);
     expect(manager.team.find((item) => item.id === test.s.officerB)).toMatchObject({ cases: 1, recovered: 15_000, rate: 11 });
     expect(manager.team.find((item) => item.id === test.s.manager)).toMatchObject({ cases: 0, recovered: 0, rate: 0 });
+    // The portfolio of the Director is theirs: not in the figures of the manager, nor a line of their team.
+    expect(manager.team.map((item) => item.id)).not.toContain(test.s.director);
+    expect(kpi(manager, 'year', 'Nouvelles créances confiées')?.value).toBe(formatCents(285_000));
     const director = await read('director');
     expect(director.scope).toBe('GLOBAL');
-    expect(kpi(director, 'year', 'Recouvré')?.value).toBe(formatCents(75_000));
+    expect(kpi(director, 'year', 'Recouvré')).toMatchObject({ value: formatCents(125_000), delta: '5 paiements' });
+    expect(kpi(director, 'year', 'Nouvelles créances confiées')?.value).toBe(formatCents(485_000));
+    expect(director.team.find((item) => item.id === test.s.director)).toMatchObject({ cases: 1, recovered: 50_000, rate: 25 });
+    // The same without naming the creditor: the manager still counts nothing of the Director.
+    const [all, whole] = [await read('manager', 'all'), await read('director', 'all')];
+    expect(all.team.map((item) => item.id)).not.toContain(test.s.director);
+    const amount = (data: typeof all) => data.periods.year.bars.reduce((sum, bar) => sum + bar.recovered, 0);
+    expect(amount(whole) - amount(all)).toBeGreaterThanOrEqual(50_000);
     expect((await test.call('GET', '/staff/reports', { as: 'developer' })).status).toBe(403);
   });
 
@@ -117,8 +129,10 @@ describe('the reports', () => {
     expect(kpi(hidden, 'year', 'DSO moyen')).toMatchObject({ value: '—', delta: 'aucun dossier réglé' });
     expect(hidden.team).toEqual([expect.objectContaining({ id: test.s.officerA, cases: 0, recovered: 0 })]);
     expect(kpi(await read('officerB', other), 'year', 'Recouvré')?.value).toBe(formatCents(300_000));
-    // Anything else than a creditor reads as all of them.
-    expect(await read('officerA', 'autre')).toEqual(await read('officerA', 'all'));
+    // Neither `all` nor an identifier: refused, never the figures of all under the name of one.
+    for (const value of ['autre', 'ALL', `${creditor}x`, ''])
+      expect((await test.call('GET', `/staff/reports?creditor=${value}`, { as: 'officerA' })).status, value).toBe(422);
+    expect((await test.call('GET', '/staff/reports', { as: 'officerA' })).body).toEqual(JSON.parse(JSON.stringify(await read('officerA', 'all'))));
   });
 
   it('believes the role PostgreSQL knows, not the one that is announced', async () => {
@@ -137,11 +151,16 @@ describe('the reports', () => {
   });
 
   it('finds no scheduled report to switch, and refuses whoever does not steer', async () => {
+    const written = async () =>
+      (await rows<{ audit: string; tasks: string }>('SELECT (SELECT count(*) FROM audit_log) AS audit, (SELECT count(*) FROM outbox) AS tasks'))[0];
+    const before = await written();
     const toggle = (as: string) =>
       test.call('PUT', '/staff/reports/scheduled/r1', { as, body: { active: false }, headers: { 'idempotency-key': randomUUID() } });
     expect((await toggle('director')).status).toBe(404);
     expect((await toggle('manager')).status).toBe(404);
     for (const as of ['officerA', 'developer', 'liar']) expect((await toggle(as)).status, as).toBe(403);
     expect((await test.call('PUT', '/staff/reports/scheduled/r1', { as: 'manager', body: {}, headers: { 'idempotency-key': randomUUID() } })).status).toBe(422);
+    // Nothing was done: no line in the audit, no task to run.
+    expect(await written()).toEqual(before);
   });
 });
