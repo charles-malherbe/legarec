@@ -34,8 +34,16 @@ GRANT SELECT (id, case_id, creditor_id, stage, stage_since, court, partner_name,
   created_by, on_behalf_of_id, created_at, version),
   INSERT (case_id, creditor_id, stage, consent, version), UPDATE (stage, court, partner_name, consent, version) ON litigation_files TO legarec_staff;
 
+-- As every table attached to a case (20261126180000_case_retention, whose loop ran before this table existed):
+-- nothing is added to an anonymized case nor changed in it.
+CREATE POLICY case_not_forgotten_add ON litigation_files AS RESTRICTIVE FOR INSERT TO legarec_staff, legarec_partner, legarec_debtor, legarec_worker
+  WITH CHECK (case_id IS NULL OR app.case_writable(case_id));
+CREATE POLICY case_not_forgotten_change ON litigation_files AS RESTRICTIVE FOR UPDATE TO legarec_staff, legarec_partner, legarec_debtor, legarec_worker
+  USING (case_id IS NULL OR app.case_writable(case_id));
+
 -- What the follow-up allows, whatever the caller: one step forward at a time, or closed from any step; nothing after closing;
--- no step that engages costs while the agreement of the creditor is awaited; an agreement noted stays noted.
+-- no step that engages costs while the agreement of the creditor is awaited; an agreement noted stays noted; each
+-- change adds one to the version. Whether the mandate asks for the agreement is decided by the API, at the opening.
 -- The dates and the author of the agreement come from the session, never from the request.
 CREATE FUNCTION app.litigation_rules() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE
@@ -55,6 +63,9 @@ BEGIN
   END IF;
   IF OLD.stage = 'CLOSED' THEN
     RAISE EXCEPTION 'litigation closed' USING ERRCODE = 'LG409';
+  END IF;
+  IF NEW.version IS DISTINCT FROM OLD.version + 1 THEN
+    RAISE EXCEPTION 'one version at a time' USING ERRCODE = 'LG409';
   END IF;
   IF NEW.consent IS DISTINCT FROM OLD.consent THEN
     IF OLD.consent <> 'WAITING' OR NEW.consent <> 'RECEIVED' THEN

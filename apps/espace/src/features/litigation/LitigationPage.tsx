@@ -2,6 +2,7 @@ import { formatCents, formatDate, LITIGATION_STAGES, litigationData, type Litiga
 import { Badge, Bouton, Carte, Champ, EtatListe, PageHeader, Pagination, Tableau, Toolbar, useConfirm, useToast } from '@legarec/ui';
 import { useState } from 'react';
 import { useCreditorScope } from '../../app/creditorScope';
+import { ApiError } from '../../app/api';
 import { useApi, useChange } from '../../app/data';
 import layout from '@legarec/ui/layout.module.css';
 import { pageOf } from '../../shared/paging';
@@ -100,7 +101,13 @@ export function LitigationPage() {
       confirmLabel: 'Clore la procédure',
       details: [...summary(item), { k: 'Reste dû', v: formatCents(item.balance) }, { k: 'Issue', v: OUTCOMES[outcome] }],
       onConfirm: async () => {
-        await change(`/litigation/${item.id}/stage`, { body: { stage: 'CLOSED', expectedOutcome: outcome, version: item.version } });
+        try {
+          await change(`/litigation/${item.id}/stage`, { body: { stage: 'CLOSED', expectedOutcome: outcome, version: item.version } });
+        } catch (error) {
+          if (error instanceof ApiError && (error.body as { code?: string } | null)?.code === 'PAYMENT_PENDING')
+            toast({ message: 'Un paiement attend d’être encaissé ou rapproché : la procédure se clôt ensuite.', tone: 'danger' });
+          throw error;
+        }
         toast({ message: `Procédure close : ${OUTCOMES[outcome].toLowerCase()}.` });
       },
     });
@@ -125,7 +132,10 @@ export function LitigationPage() {
       toast({
         message: 'Juridiction et intervenant enregistrés.',
         // Each save adds one to the version: undoing writes the former values on the next one.
-        undo: () => void save({ court: item.court, partnerName: item.partnerName }, item.version + 1),
+        undo: () =>
+          void save({ court: item.court, partnerName: item.partnerName }, item.version + 1).catch(() =>
+            toast({ message: 'L’annulation n’a pas abouti : la fiche a changé entre-temps.', tone: 'danger' }),
+          ),
       });
     } catch {
       toast({ message: 'L’enregistrement n’a pas abouti : rechargez la page, puis réessayez.', tone: 'danger' });

@@ -599,6 +599,17 @@ describe('rights of the roles inside', () => {
     expect((await rightsOf(role)).sort()).toEqual([...rights].sort());
   });
 
+  it('close every table attached to a case once the case is anonymized, whenever the table was added', async () => {
+    const open = await rows<{ table_name: string }>(
+      `SELECT c.table_name FROM information_schema.columns c JOIN information_schema.tables t USING (table_schema, table_name)
+       WHERE c.table_schema = 'public' AND c.column_name = 'case_id' AND t.table_type = 'BASE TABLE' AND c.table_name <> 'notifications'
+         AND (SELECT count(*) FROM pg_policies p WHERE p.schemaname = 'public' AND p.tablename = c.table_name
+           AND p.policyname IN ('case_not_forgotten_add', 'case_not_forgotten_change') AND p.permissive = 'RESTRICTIVE') <> 2
+       ORDER BY 1`,
+    );
+    expect(open).toEqual([]);
+  });
+
   it('let nobody create anything, not even for the time of a session', async () => {
     const creators = await rows(`
       SELECT r.rolname FROM pg_roles r

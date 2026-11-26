@@ -21,12 +21,14 @@ import { balanceOf, Ledgers } from '../payments/ledger';
 
 const CODES: readonly LitigationStage[] = LITIGATION_STAGES.map((stage) => stage.code);
 const labelOf = (stage: LitigationStage) => LITIGATION_STAGES[CODES.indexOf(stage)]!.label;
+/** A payment received and not yet cashed nor reconciled: it may still bounce. */
+const PENDING_PAYMENTS = ['RECEIVED', 'DEPOSITED', 'TO_RECONCILE'] as const;
 /** A plan still being decided or in force: the case is not sent to litigation behind it. */
 const OPEN_PLANS = ['PENDING_MANAGER', 'WAITING_CREDITOR', 'WAITING_DEBTOR', 'ACTIVE'] as const;
 /** The history lines that tell the procedure, shown on the screen. */
 const STEPS = ['LITIGATION_OPENED', 'LITIGATION_STAGE', 'LITIGATION_CONSENT', 'LITIGATION_CLOSED'];
 /** The cases shown at most: the screen reads them all at once. */
-const SHOWN = 2000;
+const SHOWN = 500;
 
 /**
  * Litigation in a minimal follow-up (question 163): the stage, the court and the partner. PostgreSQL decides which cases each
@@ -49,7 +51,8 @@ export class LitigationService {
   async list(actor: StaffActor): Promise<z.infer<typeof litigationData>> {
     const { tx } = this.database;
     const files = await tx.litigationFile.findMany({
-      orderBy: [{ stageSince: 'asc' }, { id: 'asc' }],
+      // The procedures still open first (the stages in their order, closed last): never cut off by the closed ones.
+      orderBy: [{ stage: 'asc' }, { stageSince: 'asc' }, { id: 'asc' }],
       take: SHOWN,
       select: {
         id: true,
@@ -138,7 +141,9 @@ export class LitigationService {
   /** All or nothing: each case read, acted on, open, without a plan being decided or in force. */
   async open(actor: StaffActor, body: z.infer<typeof litigationBody>): Promise<void> {
     const { tx } = this.database;
-    const ids = [...new Set(body.ids)];
+    const ids = [...new Set(body.ids)].sort();
+    // One change of money at a time per case: a plan asked for at the same moment waits, then is seen (same order for all).
+    for (const id of ids) await this.ledgers.lock(id);
     const found = await tx.case.findMany({
       where: { id: { in: ids } },
       select: {
@@ -149,6 +154,7 @@ export class LitigationService {
         version: true,
         mandate: { select: { litigationNeedsConsent: true } },
         plans: { where: { status: { in: [...OPEN_PLANS] } }, select: { id: true }, take: 1 },
+        litigation: { select: { id: true }, take: 1 },
       },
     });
     if (found.length !== ids.length) throw notFound();
@@ -156,6 +162,8 @@ export class LitigationService {
     if (found.some((row) => row.status === 'LITIGATION')) throw conflict('ALREADY_IN_LITIGATION');
     if (found.some((row) => row.status === 'SETTLED' || row.status === 'LOST')) throw conflict('CASE_CLOSED');
     if (found.some((row) => row.plans.length > 0)) throw conflict('PLAN_IN_PROGRESS');
+    // One follow-up per case, and a closed one stays closed: a case back from it is not sent again (question 183).
+    if (found.some((row) => row.litigation.length > 0)) throw conflict('LITIGATION_CLOSED');
     for (const row of found) {
       // Without a mandate, its rule is unknown: the agreement is asked for, as the strictest mandate would.
       const needed = row.mandate?.litigationNeedsConsent ?? true;
@@ -204,6 +212,10 @@ export class LitigationService {
     const { tx } = this.database;
     const file = await this.actOn(actor, id, body.version);
     if (body.stage === 'CLOSED') {
+      // The outcome cannot be undone: no payment typed at the same moment, none that may still bounce.
+      await this.ledgers.lock(file.caseId);
+      const pending = await tx.payment.count({ where: { caseId: file.caseId, status: { in: [...PENDING_PAYMENTS] } } });
+      if (pending > 0) throw conflict('PAYMENT_PENDING');
       const ledger = await this.ledgers.read(file.caseId, dayOf(new Date()));
       if (!ledger) throw notFound();
       const outcome = balanceOf(ledger) === 0 ? 'SETTLED' : 'LOST';

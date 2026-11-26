@@ -88,7 +88,9 @@ const litigationVersion = z.number().int().min(1).max(1_000_000);
 /** Court and partner, typed freely; empty clears them. */
 export const litigationFileBody = z.object({ court: z.string().trim().max(200), partnerName: z.string().trim().max(200), version: litigationVersion });
 /** The next stage, or closed; closing says what it expects for the case (settled or lost), refused if it changed (409). */
-export const litigationStageBody = z.object({ stage: litigationStage, expectedOutcome: litigationOutcome.optional(), version: litigationVersion });
+export const litigationStageBody = z
+  .object({ stage: litigationStage, expectedOutcome: litigationOutcome.optional(), version: litigationVersion })
+  .refine((body) => body.stage !== 'CLOSED' || body.expectedOutcome !== undefined, { path: ['expectedOutcome'] });
 export const litigationConsentBody = z.object({ version: litigationVersion });
 export const assignBody = z.object({ ids, officerId: id });
 export const portalMessageBody = z.object({ text: line(5000) });

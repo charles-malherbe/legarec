@@ -122,19 +122,34 @@ describe('litigation in a minimal follow-up', () => {
     expect((await call('officerB', 'PUT', `/litigation/${file.id}`, { court: 'x', partnerName: '', version: 1 })).status).toBe(404);
     expect((await call('developer', 'GET', '/litigation')).status).toBe(403);
     // The rules hold in PostgreSQL too, whoever writes.
-    await expect(rows("UPDATE litigation_files SET stage = 'ENFORCEMENT' WHERE id = $1", [file.id])).rejects.toThrow(/one step at a time/u);
+    await expect(rows("UPDATE litigation_files SET stage = 'ENFORCEMENT', version = version + 1 WHERE id = $1", [file.id])).rejects.toThrow(/one step at a time/u);
+    await expect(rows("UPDATE litigation_files SET court = 'x', version = 900000 WHERE id = $1", [file.id])).rejects.toThrow(/one version at a time/u);
   });
 
   it('closes as settled when nothing is left to pay, as lost otherwise, and nothing moves after', async () => {
     const owing = await caseOf(test.s.officerA, 'Contentieux Perdu', { consent: false });
     const paid = await caseOf(test.s.officerA, 'Contentieux Recouvré', { consent: false, cents: 0 });
-    expect((await open('officerA', [owing, paid])).status).toBe(204);
+    const waiting = await caseOf(test.s.officerA, 'Contentieux Chèque', { consent: false });
+    expect((await open('officerA', [owing, paid, waiting])).status).toBe(204);
     const lost = (await fileOf('officerA', owing))!;
     expect((await call('officerA', 'POST', `/litigation/${lost.id}/stage`, { stage: 'CLOSED', expectedOutcome: 'SETTLED', version: 1 })).body).toEqual({
       code: 'CHANGED',
     });
     expect((await call('officerA', 'POST', `/litigation/${lost.id}/stage`, { stage: 'CLOSED', expectedOutcome: 'LOST', version: 1 })).status).toBe(204);
     const settled = (await fileOf('officerA', paid))!;
+    // Closing says its outcome; a cheque that may still bounce makes it wait.
+    expect((await call('officerA', 'POST', `/litigation/${settled.id}/stage`, { stage: 'CLOSED', version: 1 })).status).toBe(422);
+    await rows(
+      `WITH p AS (INSERT INTO payments (case_id, creditor_id, method, amount_cents, status, received_on, cheque_number, bank, recorded_by)
+         SELECT id, creditor_id, 'CHEQUE', 100, 'RECEIVED', current_date, '7654321', 'Banque', $2 FROM cases WHERE id = $1 RETURNING id, case_id, creditor_id)
+       INSERT INTO payment_allocations (case_id, creditor_id, payment_id, component, amount_cents)
+       SELECT p.case_id, p.creditor_id, p.id, 'OVERPAYMENT', 100 FROM p RETURNING payment_id AS id`,
+      [waiting, test.s.officerA],
+    );
+    const held = (await fileOf('officerA', waiting))!;
+    expect((await call('officerA', 'POST', `/litigation/${held.id}/stage`, { stage: 'CLOSED', expectedOutcome: 'LOST', version: 1 })).body).toEqual({
+      code: 'PAYMENT_PENDING',
+    });
     expect((await call('officerA', 'POST', `/litigation/${settled.id}/stage`, { stage: 'CLOSED', expectedOutcome: 'SETTLED', version: 1 })).status).toBe(204);
     expect(await rows('SELECT status, closed_on IS NOT NULL AS closed FROM cases WHERE id = ANY($1::uuid[]) ORDER BY status', [[owing, paid]])).toEqual([
       { status: 'SETTLED', closed: true },
@@ -143,6 +158,9 @@ describe('litigation in a minimal follow-up', () => {
     expect((await fileOf('officerA', owing))!).toMatchObject({ stage: 4, canAct: false });
     expect((await call('officerA', 'PUT', `/litigation/${lost.id}`, { court: 'x', partnerName: '', version: 2 })).body).toEqual({ code: 'LITIGATION_CLOSED' });
     await expect(rows("UPDATE litigation_files SET court = 'x' WHERE id = $1", [lost.id])).rejects.toThrow(/litigation closed/u);
+    // A case that comes back from a closed procedure is not sent again: one follow-up per case.
+    await rows("UPDATE cases SET status = 'OVERDUE', closed_on = NULL WHERE id = $1", [owing]);
+    expect((await open('officerA', [owing])).body).toEqual({ code: 'LITIGATION_CLOSED' });
   });
 
   it('counts in the menu the agreements one may note', async () => {
