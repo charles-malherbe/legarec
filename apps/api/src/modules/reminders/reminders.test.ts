@@ -2,7 +2,7 @@ import { agenda, reminderPlanned } from '@legarec/contracts';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { startApp, type TestApp } from '../../../test/app';
-import { publicHolidays } from './contact-rules';
+import { publicHolidays } from '@legarec/contracts';
 
 let test: TestApp;
 let reference = 50_000;
@@ -36,6 +36,23 @@ beforeAll(async () => {
 afterAll(() => test.stop());
 
 describe('the agenda of the reminders', () => {
+  it('follows the hours set day by day in Paramètres › Relances (question 160): a longer Thursday, then none', async () => {
+    const [debtor] = await rows<{ id: string }>("INSERT INTO debtors (kind, name) VALUES ('COMPANY', 'Agenda Plages') RETURNING id");
+    const mine = await caseOf(debtor!.id, test.s.officerA, 'Agenda Plages');
+    const relances = async (body: Record<string, string>) => {
+      const [{ version }] = (await rows<{ version: number }>(
+        "SELECT coalesce(sum(version), 0)::int AS version FROM settings WHERE key LIKE 'firm.relances.%'",
+      )) as [{ version: number }];
+      expect((await call('director', 'PUT', `/settings/firm/relances?version=${version}`, body)).status).toBe(204);
+    };
+    expect((await call('director', 'PUT', '/settings/firm/relances?version=0', { 'call-thu': '21:00–09:00' })).status).toBe(422);
+    await relances({ 'call-thu': '09:00–21:00' });
+    expect(reminderPlanned.parse((await plan('officerA', mine, 'CALL', '20:00')).body).limit).toBeNull();
+    await relances({ 'call-thu': '' });
+    expect(reminderPlanned.parse((await plan('officerA', mine, 'CALL', '10:00')).body).limit).toBe('Jeudi : aucun contact ce jour-là');
+    await relances({ 'call-thu': '09:00–19:00' });
+  });
+
   it('warns over the cap of the debtor, counted whatever the creditor, and outside the hours', async () => {
     const [debtor] = await rows<{ id: string }>("INSERT INTO debtors (kind, name) VALUES ('COMPANY', 'Bâtiplus Agenda') RETURNING id");
     const mine = await caseOf(debtor!.id, test.s.officerA, 'Agenda Alpha');

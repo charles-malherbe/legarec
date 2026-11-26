@@ -330,6 +330,8 @@ export const ACCOUNT_PARITY: Parity[] = [
   ...each(['manager', 'officer'], () => ({ request: 'GET /settings/techniques/audit', status: 403, answer: code('FORBIDDEN') })),
   { as: 'director', request: 'GET /settings/autre', status: 404, answer: code('NOT_FOUND') },
   { as: 'director', request: 'GET /settings/firm/autre', status: 404, answer: code('NOT_FOUND') },
+  // The hours day by day (question 160): a range written wrong is refused alike.
+  { as: 'director', request: 'PUT /settings/firm/relances?version=0', body: { 'call-sat': '9h-17h' }, status: 422, answer: refused('INVALID') },
   { as: 'director', request: 'PUT /settings/firm/relances?version=0', body: { calls: '3' }, status: 204 },
   { as: 'manager', request: 'PUT /settings/firm/relances?version=0', body: { calls: '1' }, ...CHANGED },
   { as: 'manager', request: 'PUT /settings/firm/relances?version=1', body: { calls: '3' }, status: 204 },

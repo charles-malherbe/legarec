@@ -1,4 +1,4 @@
-import type { agenda, newReminder, Reminder, reminderBody, reminderPlanned, reminderTargets } from '@legarec/contracts';
+import { contactHours, type agenda, type newReminder, type Reminder, type reminderBody, type reminderPlanned, type reminderTargets } from '@legarec/contracts';
 import { Inject, Injectable } from '@nestjs/common';
 import type { z } from 'zod';
 import { Database } from '../../platform/database/database';
@@ -6,7 +6,7 @@ import { ApiError, notFound } from '../../platform/errors/api-error';
 import { dayOf } from '../../platform/format';
 import type { StaffActor } from '../account/account.service';
 import { SettingValues } from '../settings/values';
-import { capOf, capPeriod, outsideHours, type Channel } from './contact-rules';
+import { capOf, capPeriod, type Channel } from './contact-rules';
 
 const DAY_MS = 86_400_000;
 const shift = (day: string, days: number) => new Date(Date.parse(`${day}T12:00:00Z`) + days * DAY_MS).toISOString().slice(0, 10);
@@ -99,9 +99,10 @@ export class RemindersService {
   /** Over a cap of the debtor, whatever the creditor, or outside the hours: planned all the same, with the warning. */
   private async warning(caseId: string, channel: Channel, day: string, time: string | null): Promise<string | null> {
     const { tx } = this.database;
-    const hours = outsideHours(channel, day, time);
-    if (hours) return hours;
     const settings = await SettingValues.read(tx);
+    // The hours set day by day in Paramètres › Relances (question 160).
+    const hours = contactHours((field) => settings.text('firm', 'relances', field)).outsideHours(channel, day, time);
+    if (hours) return hours;
     const { cap, unit } = capOf(channel, (field) => settings.text('firm', 'relances', field));
     const [from, to] = capPeriod(channel, day);
     const [row] = await tx.$queryRaw<

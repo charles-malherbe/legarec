@@ -278,6 +278,7 @@ Les 161 routes simulées se répartissent ainsi :
 
 ## Lot Q — Envois (état au 26/11/2026)
 - [x] Agenda des relances sur l'API : planifier, déplacer, marquer faite, supprimer ; plafonds tous créanciers confondus, plages et jours fériés
+- [x] Question 160 : plages horaires réglables jour par jour dans Paramètres › Relances (appels ; e-mails et SMS), lues par l'API et les simulations (`contactHours`)
 - [ ] Envois (Resend, MySendingBox en test), scénarios, premier courrier, relances depuis un dossier
 
 ## Lot W — IA (état au 26/11/2026)
