@@ -269,7 +269,8 @@ Les 161 routes simulées se répartissent ainsi :
 ## Lot S — Facturation et reversements (état au 26/11/2026)
 - [x] API des reversements : calcul unique en SQL, validation avec valeurs attendues, créancier retenu avec motif, factures de commission, « marquer comme versés »
 - [x] Écran « Reversements » (`/facturation/reversements`) : lot à valider, créancier retenu avec motif, validation, virements à faire, « Marquer comme versés »
-- [ ] Écran « Avoir » et avoirs, détail des encaissements par créancier, relevés PDF et envois, reprises (questions 156 à 159)
+- [x] Avoirs `AV-AAAA-NNNN` (API et écran Facturation) : bouton « Avoir » sur chaque facture émise, onglet « Avoirs », type « Avoir » dans « + Créer depuis un modèle », brouillons, statuts dérivés « Avoir partiel » et « Annulée par avoir », avoir rendu au prochain reversement (questions 167 à 170)
+- [ ] PDF de la facture et de l'avoir (aucun gabarit de facture encore), envoi de l'avoir au créancier (V3, lot R), « Préparer l'avoir » depuis Reversements (reprises), détail des encaissements par créancier, relevés PDF et envois, reprises (questions 156 à 159)
 
 ## Lot Q — Envois (état au 26/11/2026)
 - [x] Agenda des relances sur l'API : planifier, déplacer, marquer faite, supprimer ; plafonds tous créanciers confondus, plages et jours fériés
