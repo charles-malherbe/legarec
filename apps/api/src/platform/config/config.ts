@@ -39,7 +39,10 @@ const workerSchema = z.object({
   /** Development only: folder where the simulated messages are written. */
   DEV_MAIL_DIR: z.string().startsWith('/').optional(),
   /** clamd of the server (`tcp://clamav:3310`). Absent in production: files wait, unread, for the antivirus. */
-  CLAMAV_URL: z.string().regex(/^tcp:\/\/[a-z0-9.-]+:\d{1,5}$/u).optional(),
+  CLAMAV_URL: z
+    .string()
+    .regex(/^tcp:\/\/[a-z0-9.-]+:\d{1,5}$/u)
+    .optional(),
 });
 
 export type Config = Readonly<z.infer<typeof apiSchema>>;

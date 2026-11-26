@@ -316,7 +316,9 @@ export const documentHandlers = [
     guarded<Info>(staffWithCases, ({ params }, session) => {
       const item = ITEMS.find((entry) => entry.id === params.id);
       if (!item || (item.caseId && !readable(session).some((entry) => entry.id === item.caseId))) return notFound();
-      return new HttpResponse('%PDF-1.4\n%%EOF\n', { headers: { 'content-type': 'application/pdf', 'content-disposition': 'attachment; filename="document.pdf"' } });
+      return new HttpResponse('%PDF-1.4\n%%EOF\n', {
+        headers: { 'content-type': 'application/pdf', 'content-disposition': 'attachment; filename="document.pdf"' },
+      });
     }),
   ),
   http.post('/api/documents/:id/send', onDocument),
