@@ -413,7 +413,7 @@ describe('rights of the roles inside', () => {
       'plan_approvals INSERT (case_id, creditor_id, plan_id, step)',
       'plan_approvals SELECT (decision, id, plan_id, step)',
       'plan_approvals UPDATE (decided_at, decided_by, decision, on_behalf_of_id, reason)',
-      'receipts INSERT (case_id, creditor_id, number, payment_id)',
+      'receipts INSERT (case_id, creditor_id, id, number, payment_id)',
       'receipts SELECT (document_id, id, payment_id)',
     ],
   };

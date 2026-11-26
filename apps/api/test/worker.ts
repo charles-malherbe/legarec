@@ -9,6 +9,9 @@ import { accountJobs } from '../src/modules/auth/auth.jobs';
 import { AuthKeys } from '../src/modules/auth/keys';
 import { accessCodeJobs } from '../src/modules/debtor-access/access-codes.jobs';
 import { documentJobs } from '../src/modules/documents/documents.jobs';
+import { receiptJobs } from '../src/modules/payments/receipts.jobs';
+import { PdfRenderer } from '../src/platform/pdf/pdf';
+import { fileURLToPath } from 'node:url';
 import { SimulatedScanner } from '../src/platform/scanner/scanner';
 import { storageFor } from '../src/platform/storage/storage';
 import { SettingValues } from '../src/modules/settings/values';
@@ -35,6 +38,7 @@ export function startMailWorker(test: TestApp) {
   const database = new Database(test.database.url('jobs'));
   const valkey = connectValkey(inject('valkeyUrl'), 'jobs');
   const mails: Mail[] = [];
+  const pdf = new PdfRenderer();
   let sending: Pick<Mail, 'name' | 'data'> | undefined;
   const settings = () => database.run({ kind: 'worker', job: 'email-settings' }, async (tx) => emailConfigOf(await SettingValues.read(tx), test.config));
   const emails = new EmailsService(
@@ -51,6 +55,7 @@ export function startMailWorker(test: TestApp) {
     email: accountJobs({ keys: new AuthKeys(test.config), portals: test.config, send }),
     maintenance: accessCodeJobs(new Vault(test.config)),
     documents: documentJobs(storageFor(test.config), new SimulatedScanner()),
+    pdf: receiptJobs(storageFor(test.config), pdf, fileURLToPath(new URL('../templates/pdf/', import.meta.url))),
   };
   const workers = startWorkers({ database, logger, connection: valkey, handlers, prefix });
   const publisher = new OutboxPublisher(database, logger, valkey, prefix);
@@ -69,6 +74,7 @@ export function startMailWorker(test: TestApp) {
     },
     stop: async () => {
       await Promise.all([publisher.stop(), workers.stop()]);
+      await pdf.close();
       await database.close();
       valkey.disconnect();
     },

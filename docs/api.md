@@ -78,6 +78,10 @@ Sans dépendance : Resend, MySendingBox, OVH (appels signés : le paquet `ovh` d
 - **Versions** (`template_versions`) : un fichier importé est contrôlé par l'API (`checkTemplate` : champs inconnus, bloc imposé, script, ressource externe ; 413 au-delà de 500 Ko), puis soumis (avertissements lus), puis publié ou refusé par le Directeur ou le Responsable délégué ; la version précédente est archivée et reçoit un numéro. Une version en attente et une en service au plus par modèle. Chaque étape passe par une fonction `app.*_template`, qui revérifie le rôle ; l'équipe n'écrit rien directement. Restaurer une version reprend son texte comme un nouvel import, validé comme les autres. « Annuler » un import se rattrape dans l'heure.
 - **Essai d'un modèle** (`POST /templates/:id/test`) : avec les envois (lot Q) ; d'ici là, simulé.
 
+### PDF (lot N, troisième partie)
+- `src/platform/pdf` : Chromium (Playwright) sans JavaScript, hors ligne, toute ressource refusée ; une valeur du cabinet encore entre crochets (`[SIREN]`…) dans le texte : rien n'est écrit (`FIRM_INCOMPLETE`), la tâche attend que le Directeur la saisisse. Le conteneur du worker doit porter Chromium (lot X).
+- Quittance : émise par `app.issue_receipt()`, qui met en file `receipt-pdf` ; le worker écrit le PDF (`templates/pdf/receipt.hbs`, hors maquette, question 153), le range en document du dossier (source `GENERATED`, propre) et le rattache une fois à la quittance.
+
 ### Règles de code
 Une requête = une transaction `Database.run(actor, fn)`, ouverte par la plateforme ; seul `modules/auth` en ouvre au nom d'un compte (ESLint) ; ESLint interdit Prisma ailleurs. Aucun appel externe dans une transaction : `outbox`, puis BullMQ. Une tâche de Valkey ne porte que son numéro : son nom, son auteur et ses identifiants sont relus dans `outbox`. SQL brut limité à : séquences, verrous consultatifs, recherche trigramme, agrégats ; `SET ROLE` et `set_config` dans `src/platform` seulement ; imports dynamiques de Prisma, `pg`, BullMQ ou ioredis interdits ailleurs (ESLint).
 

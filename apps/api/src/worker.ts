@@ -9,6 +9,8 @@ import { AuthKeys } from './modules/auth/keys';
 import { accessCodeJobs, reseal } from './modules/debtor-access/access-codes.jobs';
 import { SettingValues } from './modules/settings/values';
 import { documentJobs } from './modules/documents/documents.jobs';
+import { receiptJobs } from './modules/payments/receipts.jobs';
+import { PdfRenderer } from './platform/pdf/pdf';
 import { Vault } from './modules/vault/vault';
 import { ClamavScanner, SimulatedScanner } from './platform/scanner/scanner';
 import { storageFor } from './platform/storage/storage';
@@ -37,8 +39,11 @@ const vault = new Vault(config);
 const clamd = config.CLAMAV_URL ? new URL(config.CLAMAV_URL) : null;
 // Without an antivirus in production, received files wait unread; elsewhere, the simulated one.
 const scanner = clamd ? new ClamavScanner(clamd.hostname, Number(clamd.port)) : config.NODE_ENV === 'production' ? null : new SimulatedScanner();
+const storage = storageFor(config);
+const pdf = new PdfRenderer();
 const handlers: JobHandlers = {
-  documents: documentJobs(storageFor(config), scanner),
+  documents: documentJobs(storage, scanner),
+  pdf: receiptJobs(storage, pdf, fileURLToPath(new URL('../templates/pdf/', import.meta.url))),
   email: accountJobs({ keys: new AuthKeys(config), portals: config, send: (name, to, data) => emails.send(name, to, data) }),
   maintenance: accessCodeJobs(vault),
 };
@@ -57,6 +62,7 @@ async function stop(code = 0) {
   process.exitCode = code;
   clearInterval(hourly);
   await Promise.all([publisher.stop(), workers?.stop()]);
+  await pdf.close();
   await database.close();
   connection.disconnect();
   publishing.disconnect();
