@@ -1328,6 +1328,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/staff/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReportsController_read"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/reports/scheduled/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["ReportsController_toggle"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/team": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["TeamController_read"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/staff/secrets": {
         parameters: {
             query?: never;
@@ -5003,6 +5051,188 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    ReportsController_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        scope: "GLOBAL" | "TEAM" | "PERSONAL";
+                        periods: {
+                            month: {
+                                text: string;
+                                kpis: {
+                                    label: string;
+                                    value: string;
+                                    delta: string;
+                                    /** @enum {string} */
+                                    tone: "good" | "bad" | "neutral";
+                                }[];
+                                bars: {
+                                    label: string;
+                                    entrusted: number;
+                                    recovered: number;
+                                }[];
+                            };
+                            quarter: {
+                                text: string;
+                                kpis: {
+                                    label: string;
+                                    value: string;
+                                    delta: string;
+                                    /** @enum {string} */
+                                    tone: "good" | "bad" | "neutral";
+                                }[];
+                                bars: {
+                                    label: string;
+                                    entrusted: number;
+                                    recovered: number;
+                                }[];
+                            };
+                            year: {
+                                text: string;
+                                kpis: {
+                                    label: string;
+                                    value: string;
+                                    delta: string;
+                                    /** @enum {string} */
+                                    tone: "good" | "bad" | "neutral";
+                                }[];
+                                bars: {
+                                    label: string;
+                                    entrusted: number;
+                                    recovered: number;
+                                }[];
+                            };
+                        };
+                        outcomes: {
+                            label: string;
+                            percent: number;
+                            /** @enum {string} */
+                            tone: "success" | "teal" | "warning" | "neutral" | "danger";
+                        }[];
+                        promisesKept: number | null;
+                        team: {
+                            id: string;
+                            name: string;
+                            cases: number;
+                            calls: number | null;
+                            promises: number | null;
+                            recovered: number;
+                            rate: number;
+                        }[];
+                        scheduled: {
+                            id: string;
+                            title: string;
+                            meta: string;
+                            active: boolean;
+                        }[];
+                    };
+                };
+            };
+        };
+    };
+    ReportsController_toggle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    TeamController_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        agents: {
+                            id: string;
+                            name: string;
+                            roleLabel: string;
+                            scope: string;
+                            /** @enum {string} */
+                            presence: "CALL" | "AVAILABLE" | "PAUSE" | "AWAY";
+                            status: string;
+                            calls: number;
+                            goal: number;
+                            reached: number;
+                            promises: number;
+                            promisedAmount: number;
+                            cashed: number;
+                            average: string;
+                            book: string;
+                            kept: number;
+                            login: string;
+                            pause: string;
+                            live: string | null;
+                            hours: number[];
+                        }[];
+                        calls: {
+                            id: string;
+                            time: string;
+                            agentId: string;
+                            agent: string;
+                            caseId: string | null;
+                            debtor: string;
+                            creditor: string;
+                            siret: string;
+                            /** @enum {string} */
+                            direction: "OUT" | "IN";
+                            duration: string;
+                            result: string;
+                            /** @enum {string} */
+                            tone: "success" | "info" | "neutral" | "violet" | "warning" | "danger";
+                            /** @enum {string} */
+                            recording: "AVAILABLE" | "LIVE" | "NONE";
+                        }[];
+                        callsTotal: number;
+                        alerts: string[];
+                        telephony?: boolean;
+                        summary?: {
+                            promisesKept: number;
+                            averageDuration: string;
+                        };
+                    };
+                };
             };
         };
     };

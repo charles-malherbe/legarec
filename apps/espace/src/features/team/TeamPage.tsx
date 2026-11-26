@@ -16,11 +16,14 @@ const PRESENCE: Record<Agent['presence'], { avatar: AvatarProps['presence']; ton
   PAUSE: { avatar: 'pause', tone: 'warning' },
   AWAY: { avatar: 'off', tone: 'neutral' },
 };
+const today = () => new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Paris' }).format(new Date());
 const PERIODS = [
-  ['day', 'Aujourd’hui', 'Aujourd’hui, samedi 21 novembre'],
+  ['day', 'Aujourd’hui', ''],
   ['week', '7 jours', '7 derniers jours'],
   ['month', '30 jours', '30 derniers jours'],
 ] as const;
+
+const STATS = ['Appels passés', 'Taux de joignabilité', 'Promesses obtenues', 'Encaissé', 'Durée moyenne'];
 
 export function TeamPage() {
   const user = useCurrentUser();
@@ -66,6 +69,11 @@ function Activity() {
     onRetry: () => void refetch(),
     onClear: () => setQuery(''),
   });
+  // Connected only when the answer says so: while it loads, after an error, or before 3CX, presence, calls, goals,
+  // promises and durations are unknown, and none is shown.
+  const telephony = data?.telephony === true;
+  const unknown = { value: '—', sub: 'avec la téléphonie (3CX)' };
+  const span = period === 'day' ? `Aujourd’hui, ${today()}` : PERIODS.find(([id]) => id === period)?.[2];
   const online = agents.filter((item) => item.presence !== 'AWAY').length;
   const peak = Math.max(1, ...(current?.hours ?? [1]));
   return (
@@ -74,25 +82,44 @@ function Activity() {
         title="Équipe"
         loading={isPending}
         description="Activité des gestionnaires et appels passés · réservé aux responsables et à la direction"
-        status={data && { label: `${online} gestionnaires en ligne sur ${agents.length}`, tone: 'success' }}
+        status={data && telephony ? { label: `${online} gestionnaires en ligne sur ${agents.length}`, tone: 'success' } : undefined}
         statsLabel="Activité de l'équipe"
-        stats={[
-          {
-            label: 'Appels passés',
-            value: data ? `${total('calls').toLocaleString('fr-FR')} / ${total('goal').toLocaleString('fr-FR')}` : '',
-            bar: data ? (total('calls') / Math.max(1, total('goal'))) * 100 : 0,
-            barTone: 'marine',
-            sub: 'objectif de l’équipe',
-          },
-          {
-            label: 'Taux de joignabilité',
-            value: data ? `${Math.round((total('reached') / Math.max(1, total('calls'))) * 100)} %` : '',
-            sub: `${total('reached')} débiteurs joints`,
-          },
-          { label: 'Promesses obtenues', value: data ? `${total('promises')} · ${formatCents(total('promisedAmount'))}` : '', sub: '78 % tenues sur 30 jours' },
-          { label: 'Encaissé', value: data ? formatCents(total('cashed')) : '', sub: 'paiements reçus sur la période', tone: 'success' },
-          { label: 'Durée moyenne', value: '4 min 05', sub: 'par appel abouti' },
-        ]}
+        stats={
+          !data
+            ? // Loading: the frames of the figures, and no word under them. After an error: nothing.
+              isPending
+              ? STATS.map((label) => ({ label, value: '' }))
+              : []
+            : telephony
+              ? [
+                  {
+                    label: 'Appels passés',
+                    value: data ? `${total('calls').toLocaleString('fr-FR')} / ${total('goal').toLocaleString('fr-FR')}` : '',
+                    bar: data ? (total('calls') / Math.max(1, total('goal'))) * 100 : 0,
+                    barTone: 'marine',
+                    sub: 'objectif de l’équipe',
+                  },
+                  {
+                    label: 'Taux de joignabilité',
+                    value: data ? `${Math.round((total('reached') / Math.max(1, total('calls'))) * 100)} %` : '',
+                    sub: `${total('reached')} débiteurs joints`,
+                  },
+                  {
+                    label: 'Promesses obtenues',
+                    value: data ? `${total('promises')} · ${formatCents(total('promisedAmount'))}` : '',
+                    sub: data.summary ? `${data.summary.promisesKept} % tenues sur 30 jours` : '',
+                  },
+                  { label: 'Encaissé', value: data ? formatCents(total('cashed')) : '', sub: 'paiements reçus sur la période', tone: 'success' },
+                  { label: 'Durée moyenne', value: data.summary?.averageDuration ?? '—', sub: 'par appel abouti' },
+                ]
+              : [
+                  { label: 'Appels passés', ...unknown },
+                  { label: 'Taux de joignabilité', ...unknown },
+                  { label: 'Promesses obtenues', ...unknown },
+                  { label: 'Encaissé', value: formatCents(total('cashed')), sub: 'paiements reçus sur la période', tone: 'success' },
+                  { label: 'Durée moyenne', ...unknown },
+                ]
+        }
         actions={[
           { label: 'Exporter le rapport', disabled: true },
           { label: 'Objectifs de l’équipe', primary: true, kbd: 'N', href: '/parametres' },
@@ -126,9 +153,9 @@ function Activity() {
           <div className={layout.wide}>
             <Carte
               title="Gestionnaires"
-              description={`${PERIODS.find(([id]) => id === period)?.[2]} · cliquez sur une ligne pour le détail`}
+              description={`${span} · cliquez sur une ligne pour le détail`}
               padding="none"
-              footer="Statuts et appels synchronisés avec 3CX. Les gestionnaires sont informés de ce suivi (article L1222-4 du Code du travail) : il sert à organiser le travail et à former, sans classement ; le CSE est informé et consulté s’il existe. Chiffres individuels réservés au Directeur et au Responsable. Enregistrements d’appels : accès réservé aux responsables, conservation 6 mois. Droits d’accès et d’opposition : dpo@legarec.fr."
+              footer={`${telephony ? 'Statuts et appels synchronisés avec 3CX.' : 'Téléphonie non connectée : statuts, appels et promesses s’afficheront avec 3CX.'} Les gestionnaires sont informés de ce suivi (article L1222-4 du Code du travail) : il sert à organiser le travail et à former, sans classement ; le CSE est informé et consulté s’il existe. Chiffres individuels réservés au Directeur et au Responsable. Enregistrements d’appels : accès réservé aux responsables, conservation 6 mois. Droits d’accès et d’opposition : dpo@legarec.fr.`}
             >
               <Tableau
                 caption="Gestionnaires"
@@ -160,23 +187,30 @@ function Activity() {
                       </button>
                     ),
                   },
-                  { key: 'status', label: 'Statut', render: (row) => <Badge label={row.status} tone={PRESENCE[row.presence].tone} dot /> },
+                  {
+                    key: 'status',
+                    label: 'Statut',
+                    render: (row) => (telephony ? <Badge label={row.status} tone={PRESENCE[row.presence].tone} dot /> : <span className={layout.hint}>—</span>),
+                  },
                   {
                     key: 'calls',
                     label: 'Appels passés',
-                    render: (row) => (
-                      <span className={layout.tightStack}>
-                        <Progression
-                          value={row.goal ? (row.calls / row.goal) * 100 : 0}
-                          tone={row.goal && row.calls / row.goal >= 0.7 ? 'success' : 'or'}
-                          size="md"
-                          label={`Appels de ${row.name}`}
-                        />
-                        <span className={layout.hint}>
-                          {row.goal ? `${row.calls.toLocaleString('fr-FR')} / ${row.goal.toLocaleString('fr-FR')}` : 'Absent'}
+                    render: (row) =>
+                      !telephony ? (
+                        <span className={layout.hint}>—</span>
+                      ) : (
+                        <span className={layout.tightStack}>
+                          <Progression
+                            value={row.goal ? (row.calls / row.goal) * 100 : 0}
+                            tone={row.goal && row.calls / row.goal >= 0.7 ? 'success' : 'or'}
+                            size="md"
+                            label={`Appels de ${row.name}`}
+                          />
+                          <span className={layout.hint}>
+                            {row.goal ? `${row.calls.toLocaleString('fr-FR')} / ${row.goal.toLocaleString('fr-FR')}` : 'Absent'}
+                          </span>
                         </span>
-                      </span>
-                    ),
+                      ),
                   },
                   {
                     key: 'reached',
@@ -201,134 +235,146 @@ function Activity() {
               <Carte
                 title={current.name}
                 description={`${current.roleLabel} · ${current.scope}`}
-                badge={current.status}
+                badge={telephony ? current.status : undefined}
                 badgeTone={PRESENCE[current.presence].tone}
               >
                 <div className={layout.stack}>
                   {current.live && <p className={layout.body}>{current.live}</p>}
-                  <div className={layout.tightStack}>
-                    <span className={layout.between}>
-                      <span>Objectif d&apos;appels</span>
-                      <strong className={layout.num}>{current.goal ? `${current.calls} / ${current.goal}` : 'Absent'}</strong>
-                    </span>
-                    <Progression value={current.goal ? (current.calls / current.goal) * 100 : 0} tone="marine" size="md" label="Objectif d'appels" />
-                  </div>
-                  <div
-                    role="img"
-                    aria-label={`Appels par heure de ${current.name}, de 8 h à 18 h : ${current.hours.map((value, index) => `${8 + index} h ${value}`).join(', ')}`}
-                  >
-                    <span className={layout.muted}>Appels par heure</span>
-                    <div className={css.hours}>
-                      {current.hours.map((value, index) => (
-                        <span key={index}>
-                          <i style={{ height: `${(value / peak) * 100}%` }} />
-                          <small>{8 + index}</small>
+                  {telephony && (
+                    <>
+                      <div className={layout.tightStack}>
+                        <span className={layout.between}>
+                          <span>Objectif d&apos;appels</span>
+                          <strong className={layout.num}>{current.goal ? `${current.calls} / ${current.goal}` : 'Absent'}</strong>
                         </span>
-                      ))}
-                    </div>
-                  </div>
+                        <Progression value={current.goal ? (current.calls / current.goal) * 100 : 0} tone="marine" size="md" label="Objectif d'appels" />
+                      </div>
+                      <div
+                        role="img"
+                        aria-label={`Appels par heure de ${current.name}, de 8 h à 18 h : ${current.hours.map((value, index) => `${8 + index} h ${value}`).join(', ')}`}
+                      >
+                        <span className={layout.muted}>Appels par heure</span>
+                        <div className={css.hours}>
+                          {current.hours.map((value, index) => (
+                            <span key={index}>
+                              <i style={{ height: `${(value / peak) * 100}%` }} />
+                              <small>{8 + index}</small>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
                   <dl className={layout.facts}>
                     <div>
                       <dt>Portefeuille suivi</dt>
                       <dd>{current.book}</dd>
                     </div>
-                    <div>
-                      <dt>Promesses tenues (30 j)</dt>
-                      <dd>{current.kept} %</dd>
-                    </div>
-                    <div>
-                      <dt>Première connexion</dt>
-                      <dd>{current.login}</dd>
-                    </div>
-                    <div>
-                      <dt>Temps en pause</dt>
-                      <dd>{current.pause}</dd>
-                    </div>
+                    {telephony && (
+                      <>
+                        <div>
+                          <dt>Promesses tenues (30 j)</dt>
+                          <dd>{current.kept} %</dd>
+                        </div>
+                        <div>
+                          <dt>Première connexion</dt>
+                          <dd>{current.login}</dd>
+                        </div>
+                        <div>
+                          <dt>Temps en pause</dt>
+                          <dd>{current.pause}</dd>
+                        </div>
+                      </>
+                    )}
                   </dl>
                 </div>
               </Carte>
             )}
-            <Carte title="Points d'attention" padding="none">
-              <ul className={layout.list}>
-                {data.alerts.map((text) => (
-                  <li key={text}>
-                    <span aria-hidden className={layout.dot} data-tone="warning" />
-                    <span className={layout.grow}>{text}</span>
-                  </li>
-                ))}
-              </ul>
-            </Carte>
+            {data.alerts.length > 0 && (
+              <Carte title="Points d'attention" padding="none">
+                <ul className={layout.list}>
+                  {data.alerts.map((text) => (
+                    <li key={text}>
+                      <span aria-hidden className={layout.dot} data-tone="warning" />
+                      <span className={layout.grow}>{text}</span>
+                    </li>
+                  ))}
+                </ul>
+              </Carte>
+            )}
           </aside>
         </div>
       )}
-      <Carte
-        title="Appels passés"
-        description={`${calls.length} appel${calls.length > 1 ? 's' : ''} · ${who === 'all' ? 'toute l’équipe' : agents.find((item) => item.id === who)?.name} · aujourd’hui`}
-        padding="none"
-      >
-        <div role="group" aria-label="Gestionnaire affiché" className={layout.chips} style={{ padding: 'var(--sp-3) var(--sp-5)' }}>
-          {[{ id: 'all', name: 'Tous' }, ...agents.filter((item) => item.calls)].map((item) => (
-            <button key={item.id} type="button" className={layout.chip} aria-pressed={who === item.id} onClick={() => setWho(item.id)}>
-              {item.name.split(' ')[0]}
-            </button>
-          ))}
-        </div>
-        <Tableau
-          caption="Appels passés"
-          hideCaption
-          tight
-          bordered={false}
-          rows={paged.shown}
-          rowId={(row) => row.id}
-          state={state}
-          columns={[
-            { key: 'time', label: 'Heure', value: (row) => row.time },
-            { key: 'agent', label: 'Gestionnaire', value: (row) => row.agent },
-            {
-              key: 'debtor',
-              label: 'Débiteur',
-              render: (row) => (
-                <span className={layout.text}>
-                  {row.caseId ? (
-                    <Link to={`/debiteurs/${row.caseId}`} className={layout.strong}>
-                      {row.debtor}
-                    </Link>
-                  ) : (
-                    <strong className={layout.strong}>{row.debtor}</strong>
-                  )}
-                  <span className={layout.hint}>
-                    {row.creditor} · SIRET {row.siret}
+      {telephony && (
+        <Carte
+          title="Appels passés"
+          description={`${calls.length} appel${calls.length > 1 ? 's' : ''} · ${who === 'all' ? 'toute l’équipe' : agents.find((item) => item.id === who)?.name} · aujourd’hui`}
+          padding="none"
+        >
+          <div role="group" aria-label="Gestionnaire affiché" className={layout.chips} style={{ padding: 'var(--sp-3) var(--sp-5)' }}>
+            {[{ id: 'all', name: 'Tous' }, ...agents.filter((item) => item.calls)].map((item) => (
+              <button key={item.id} type="button" className={layout.chip} aria-pressed={who === item.id} onClick={() => setWho(item.id)}>
+                {item.name.split(' ')[0]}
+              </button>
+            ))}
+          </div>
+          <Tableau
+            caption="Appels passés"
+            hideCaption
+            tight
+            bordered={false}
+            rows={paged.shown}
+            rowId={(row) => row.id}
+            state={state}
+            columns={[
+              { key: 'time', label: 'Heure', value: (row) => row.time },
+              { key: 'agent', label: 'Gestionnaire', value: (row) => row.agent },
+              {
+                key: 'debtor',
+                label: 'Débiteur',
+                render: (row) => (
+                  <span className={layout.text}>
+                    {row.caseId ? (
+                      <Link to={`/debiteurs/${row.caseId}`} className={layout.strong}>
+                        {row.debtor}
+                      </Link>
+                    ) : (
+                      <strong className={layout.strong}>{row.debtor}</strong>
+                    )}
+                    <span className={layout.hint}>
+                      {row.creditor} · SIRET {row.siret}
+                    </span>
                   </span>
-                </span>
-              ),
-            },
-            { key: 'direction', label: 'Sens', value: (row) => (row.direction === 'OUT' ? 'Sortant' : 'Entrant') },
-            { key: 'duration', label: 'Durée', align: 'right', value: (row) => row.duration },
-            { key: 'result', label: 'Résultat', render: (row) => <Badge label={row.result} tone={row.tone} /> },
-            {
-              key: 'recording',
-              label: 'Enregistrement',
-              render: (row) =>
-                row.recording === 'AVAILABLE' ? (
-                  <Bouton
-                    variant="secondary"
-                    size="sm"
-                    icon={playing === row.id ? 'pause' : 'play'}
-                    label={playing === row.id ? 'Pause' : 'Écouter'}
-                    ariaLabel={`${playing === row.id ? 'Pause' : 'Écouter'} : appel ${row.time}, ${row.debtor}`}
-                    pressed={playing === row.id}
-                    onPress={() => setPlaying(playing === row.id ? null : row.id)}
-                  />
-                ) : (
-                  <span className={layout.hint}>{row.recording === 'LIVE' ? 'Disponible après l’appel' : 'Non enregistré (refus ou messagerie)'}</span>
                 ),
-            },
-          ]}
-        />
-        {!state && data && (
-          <Pagination total={paged.total} page={paged.current} size={size} unit="appels" label="Pagination des appels" onPage={setPage} onSize={setSize} />
-        )}
-      </Carte>
+              },
+              { key: 'direction', label: 'Sens', value: (row) => (row.direction === 'OUT' ? 'Sortant' : 'Entrant') },
+              { key: 'duration', label: 'Durée', align: 'right', value: (row) => row.duration },
+              { key: 'result', label: 'Résultat', render: (row) => <Badge label={row.result} tone={row.tone} /> },
+              {
+                key: 'recording',
+                label: 'Enregistrement',
+                render: (row) =>
+                  row.recording === 'AVAILABLE' ? (
+                    <Bouton
+                      variant="secondary"
+                      size="sm"
+                      icon={playing === row.id ? 'pause' : 'play'}
+                      label={playing === row.id ? 'Pause' : 'Écouter'}
+                      ariaLabel={`${playing === row.id ? 'Pause' : 'Écouter'} : appel ${row.time}, ${row.debtor}`}
+                      pressed={playing === row.id}
+                      onPress={() => setPlaying(playing === row.id ? null : row.id)}
+                    />
+                  ) : (
+                    <span className={layout.hint}>{row.recording === 'LIVE' ? 'Disponible après l’appel' : 'Non enregistré (refus ou messagerie)'}</span>
+                  ),
+              },
+            ]}
+          />
+          {!state && data && (
+            <Pagination total={paged.total} page={paged.current} size={size} unit="appels" label="Pagination des appels" onPage={setPage} onSize={setSize} />
+          )}
+        </Carte>
+      )}
       <MembersCard />
     </>
   );

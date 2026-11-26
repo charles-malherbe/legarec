@@ -521,6 +521,8 @@ export const steeringHandlers = [
         })),
         calls: CALLS,
         callsTotal: 75,
+        telephony: true,
+        summary: { promisesKept: 78, averageDuration: '4 min 05' },
         alerts: [
           'Sarah Morel est en pause depuis 9 min (41 min cumulées aujourd’hui).',
           'Camille Laurent : 18 appels sur 40, sous les 50 % de l’objectif à midi.',

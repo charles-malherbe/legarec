@@ -9,6 +9,8 @@ import { call, mockApi, openAs } from '../../testing';
 
 const server = mockApi();
 beforeEach(resetSteering);
+/** What the telephony alone can say: never shown without an answer that says it is connected. */
+const INVENTED = [/tenues sur 30 jours/, '4 min 05', /en ligne sur/, /synchronisés avec 3CX/];
 const inDialog = async () => within(await screen.findByRole('alertdialog'));
 
 it('computes billing totals in cents and VAT numbers', () => {
@@ -164,6 +166,9 @@ describe('members', () => {
   it('refuses the team screen to a Claims officer', async () => {
     openAs('hb', '/equipe');
     expect(await screen.findByRole('heading', { name: 'Accès réservé' })).toBeVisible();
+    // Nothing of the screen is drawn for them, not even its frame.
+    for (const text of INVENTED) expect(screen.queryByText(text)).toBeNull();
+    expect(screen.queryByText('Appels passés')).toBeNull();
   });
 });
 
@@ -218,4 +223,121 @@ it('limits reports to the officer’s own results', async () => {
   expect(data.scope).toBe('PERSONAL');
   expect(data.team.map((item) => item.id)).toEqual(['hb']);
   expect((await call('dev', '/reports?creditor=all')).status).toBe(403);
+});
+
+describe('what the API answers before the telephony', () => {
+  it('shows the team without presence, calls nor promises', async () => {
+    const agent = {
+      id: 'u1',
+      name: 'Hugo Benali',
+      roleLabel: 'Gestionnaire de créances',
+      scope: 'Médiatel',
+      book: '2 débiteurs · 1 500,00 €',
+      cashed: 123400,
+      presence: 'AWAY',
+      status: '—',
+      calls: 0,
+      goal: 0,
+      reached: 0,
+      promises: 0,
+      promisedAmount: 0,
+      average: '—',
+      kept: 0,
+      login: '—',
+      pause: '—',
+      live: null,
+      hours: [],
+    };
+    server.use(http.get('/api/team', () => HttpResponse.json({ agents: [agent], calls: [], callsTotal: 0, alerts: [], telephony: false })));
+    const { container } = openAs('cl', '/equipe');
+    expect(await screen.findByText(/Téléphonie non connectée : statuts, appels et promesses s’afficheront avec 3CX\./)).toBeVisible();
+    expect(screen.getAllByText('2 débiteurs · 1 500,00 €')).not.toHaveLength(0);
+    expect(screen.getAllByText(/^1\s234\s€$/u).length).toBeGreaterThan(0);
+    // Nothing the telephony alone knows: no presence, no goal, no promise kept, no duration, no call.
+    for (const text of [
+      /en ligne sur/,
+      'Absent',
+      '4 min 05',
+      /78 % tenues/,
+      'Promesses tenues (30 j)',
+      'Première connexion',
+      'Temps en pause',
+      'Appels par heure',
+    ])
+      expect(screen.queryByText(text)).toBeNull();
+    expect(screen.queryByRole('heading', { name: "Points d'attention" })).toBeNull();
+    expect(screen.queryByRole('table', { name: 'Appels passés' })).toBeNull();
+    expect(screen.getAllByText('avec la téléphonie (3CX)')).toHaveLength(4);
+    expect(await axeViolations(container)).toEqual([]);
+  });
+  it('shows the figures of the telephony only when the answer says it is connected, and takes them from it', async () => {
+    openAs('cl', '/equipe');
+    expect(await screen.findByText('78 % tenues sur 30 jours')).toBeVisible();
+    expect(screen.getByText('4 min 05')).toBeVisible();
+    expect(screen.getByText(/synchronisés avec 3CX/)).toBeVisible();
+  });
+  it('shows no figure of the telephony while the answer is awaited, nor after a refusal or a failure', async () => {
+    let answer = () => {};
+    const waiting = new Promise<void>((resolve) => (answer = resolve));
+    server.use(
+      http.get('/api/team', async () => {
+        await waiting;
+        return HttpResponse.json({ code: 'FORBIDDEN' }, { status: 403 });
+      }),
+    );
+    const first = openAs('cl', '/equipe');
+    // Loading: the frames of the five figures, and no word under them.
+    expect(await screen.findByRole('region', { name: "Activité de l'équipe" })).toBeVisible();
+    const shown = () => {
+      for (const text of INVENTED) expect(screen.queryByText(text)).toBeNull();
+      expect(screen.queryByRole('table', { name: 'Appels passés' })).toBeNull();
+      expect(screen.queryByText('Aucun appel')).toBeNull();
+    };
+    shown();
+    answer();
+    // Refused: the error of the screen, and still none of them.
+    const failed = () => screen.findAllByRole('button', { name: 'Réessayer' }, { timeout: 5000 });
+    await failed();
+    expect(screen.queryByRole('region', { name: "Activité de l'équipe" })).toBeNull();
+    shown();
+    first.unmount();
+    for (const failing of [
+      () => HttpResponse.json({ code: 'INTERNAL' }, { status: 500 }),
+      () => HttpResponse.error(),
+      // An answer the contract refuses.
+      () => HttpResponse.json({ agents: 'aucun' }),
+    ]) {
+      server.use(http.get('/api/team', failing));
+      const view = openAs('cl', '/equipe');
+      await failed();
+      shown();
+      view.unmount();
+    }
+    // An answer of before the field: not said connected, so not shown as connected.
+    server.use(http.get('/api/team', () => HttpResponse.json({ agents: [], calls: [], callsTotal: 0, alerts: [] })));
+    openAs('cl', '/equipe');
+    expect(await screen.findByText(/Téléphonie non connectée/)).toBeVisible();
+    shown();
+  }, 30_000);
+  it('shows reports without calls, promises nor scheduled reports', async () => {
+    const report = { text: 'Année 2026 (au 26/11)', kpis: [{ label: 'Recouvré', value: '600,00 €', delta: '2 paiements', tone: 'neutral' }], bars: [] };
+    server.use(
+      http.get('/api/reports', () =>
+        HttpResponse.json({
+          scope: 'TEAM',
+          periods: { month: report, quarter: report, year: report },
+          outcomes: [{ label: 'Recouvré intégralement', percent: 100, tone: 'success' }],
+          promisesKept: null,
+          team: [{ id: 'u1', name: 'Hugo Benali', cases: 3, calls: null, promises: null, recovered: 60000, rate: 50 }],
+          scheduled: [],
+        }),
+      ),
+    );
+    const { container } = openAs('cl', '/rapports');
+    const row = within((await screen.findByText('Hugo Benali')).closest('tr')!);
+    expect(row.getAllByText('—')).toHaveLength(2);
+    expect(screen.queryByText(/Promesses de paiement tenues/)).toBeNull();
+    expect(screen.queryByText('Rapports programmés')).toBeNull();
+    expect(await axeViolations(container)).toEqual([]);
+  });
 });

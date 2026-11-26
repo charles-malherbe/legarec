@@ -586,6 +586,15 @@ export const MATRIX: Record<string, MatrixEntry> = {
     body: () => ({ type: 'INVOICE', templateId: 'forfait', clientId: randomUUID(), lines: [], terms: [], draft: true }),
     expect: only({ director: 409, manager: 409 }),
   },
+  // Reports: whoever reads cases, each on the cases they read. No scheduled report exists yet: none is found, by those who steer.
+  'GET /staff/reports': { expect: withCases(200) },
+  'PUT /staff/reports/scheduled/:id': {
+    path: () => '/staff/reports/scheduled/r1',
+    body: () => ({ active: false }),
+    expect: only({ director: 404, manager: 404, managerAlone: 404, liar: 403 }),
+  },
+  // The activity of the team: those who steer, as PostgreSQL knows them.
+  'GET /staff/team': { expect: only({ director: 200, manager: 200, managerAlone: 200, liar: 403 }) },
   // Agenda of the reminders: read with the cases; planned on a case one acts on (here held by nobody: the managers).
   'GET /staff/reminders': { expect: withCases(200) },
   'GET /staff/reminders/targets': { expect: withCases(200) },

@@ -6165,6 +6165,677 @@
         }
       }
     },
+    "/staff/reports": {
+      "get": {
+        "operationId": "ReportsController_read",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "scope": {
+                      "type": "string",
+                      "enum": [
+                        "GLOBAL",
+                        "TEAM",
+                        "PERSONAL"
+                      ]
+                    },
+                    "periods": {
+                      "type": "object",
+                      "properties": {
+                        "month": {
+                          "type": "object",
+                          "properties": {
+                            "text": {
+                              "type": "string"
+                            },
+                            "kpis": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  },
+                                  "delta": {
+                                    "type": "string"
+                                  },
+                                  "tone": {
+                                    "type": "string",
+                                    "enum": [
+                                      "good",
+                                      "bad",
+                                      "neutral"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "label",
+                                  "value",
+                                  "delta",
+                                  "tone"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "bars": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "entrusted": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "recovered": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  }
+                                },
+                                "required": [
+                                  "label",
+                                  "entrusted",
+                                  "recovered"
+                                ],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": [
+                            "text",
+                            "kpis",
+                            "bars"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "quarter": {
+                          "type": "object",
+                          "properties": {
+                            "text": {
+                              "type": "string"
+                            },
+                            "kpis": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  },
+                                  "delta": {
+                                    "type": "string"
+                                  },
+                                  "tone": {
+                                    "type": "string",
+                                    "enum": [
+                                      "good",
+                                      "bad",
+                                      "neutral"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "label",
+                                  "value",
+                                  "delta",
+                                  "tone"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "bars": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "entrusted": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "recovered": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  }
+                                },
+                                "required": [
+                                  "label",
+                                  "entrusted",
+                                  "recovered"
+                                ],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": [
+                            "text",
+                            "kpis",
+                            "bars"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "year": {
+                          "type": "object",
+                          "properties": {
+                            "text": {
+                              "type": "string"
+                            },
+                            "kpis": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  },
+                                  "delta": {
+                                    "type": "string"
+                                  },
+                                  "tone": {
+                                    "type": "string",
+                                    "enum": [
+                                      "good",
+                                      "bad",
+                                      "neutral"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "label",
+                                  "value",
+                                  "delta",
+                                  "tone"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "bars": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "entrusted": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "recovered": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  }
+                                },
+                                "required": [
+                                  "label",
+                                  "entrusted",
+                                  "recovered"
+                                ],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": [
+                            "text",
+                            "kpis",
+                            "bars"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "month",
+                        "quarter",
+                        "year"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "outcomes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "percent": {
+                            "type": "number"
+                          },
+                          "tone": {
+                            "type": "string",
+                            "enum": [
+                              "success",
+                              "teal",
+                              "warning",
+                              "neutral",
+                              "danger"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "label",
+                          "percent",
+                          "tone"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "promisesKept": {
+                      "nullable": true,
+                      "type": "number"
+                    },
+                    "team": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "cases": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "calls": {
+                            "nullable": true,
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "promises": {
+                            "nullable": true,
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "recovered": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "rate": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "cases",
+                          "calls",
+                          "promises",
+                          "recovered",
+                          "rate"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "scheduled": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "meta": {
+                            "type": "string"
+                          },
+                          "active": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "meta",
+                          "active"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "scope",
+                    "periods",
+                    "outcomes",
+                    "promisesKept",
+                    "team",
+                    "scheduled"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "reports"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      }
+    },
+    "/staff/reports/scheduled/{id}": {
+      "put": {
+        "operationId": "ReportsController_toggle",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "tags": [
+          "reports"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER"
+          ]
+        }
+      }
+    },
+    "/staff/team": {
+      "get": {
+        "operationId": "TeamController_read",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "agents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "roleLabel": {
+                            "type": "string"
+                          },
+                          "scope": {
+                            "type": "string"
+                          },
+                          "presence": {
+                            "type": "string",
+                            "enum": [
+                              "CALL",
+                              "AVAILABLE",
+                              "PAUSE",
+                              "AWAY"
+                            ]
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "calls": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "goal": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "reached": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "promises": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "promisedAmount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "cashed": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "average": {
+                            "type": "string"
+                          },
+                          "book": {
+                            "type": "string"
+                          },
+                          "kept": {
+                            "type": "number"
+                          },
+                          "login": {
+                            "type": "string"
+                          },
+                          "pause": {
+                            "type": "string"
+                          },
+                          "live": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "hours": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "roleLabel",
+                          "scope",
+                          "presence",
+                          "status",
+                          "calls",
+                          "goal",
+                          "reached",
+                          "promises",
+                          "promisedAmount",
+                          "cashed",
+                          "average",
+                          "book",
+                          "kept",
+                          "login",
+                          "pause",
+                          "live",
+                          "hours"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "calls": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "time": {
+                            "type": "string"
+                          },
+                          "agentId": {
+                            "type": "string"
+                          },
+                          "agent": {
+                            "type": "string"
+                          },
+                          "caseId": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "debtor": {
+                            "type": "string"
+                          },
+                          "creditor": {
+                            "type": "string"
+                          },
+                          "siret": {
+                            "type": "string"
+                          },
+                          "direction": {
+                            "type": "string",
+                            "enum": [
+                              "OUT",
+                              "IN"
+                            ]
+                          },
+                          "duration": {
+                            "type": "string"
+                          },
+                          "result": {
+                            "type": "string"
+                          },
+                          "tone": {
+                            "type": "string",
+                            "enum": [
+                              "success",
+                              "info",
+                              "neutral",
+                              "violet",
+                              "warning",
+                              "danger"
+                            ]
+                          },
+                          "recording": {
+                            "type": "string",
+                            "enum": [
+                              "AVAILABLE",
+                              "LIVE",
+                              "NONE"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "time",
+                          "agentId",
+                          "agent",
+                          "caseId",
+                          "debtor",
+                          "creditor",
+                          "siret",
+                          "direction",
+                          "duration",
+                          "result",
+                          "tone",
+                          "recording"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "callsTotal": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "alerts": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "telephony": {
+                      "type": "boolean"
+                    },
+                    "summary": {
+                      "type": "object",
+                      "properties": {
+                        "promisesKept": {
+                          "type": "number"
+                        },
+                        "averageDuration": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "promisesKept",
+                        "averageDuration"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "agents",
+                    "calls",
+                    "callsTotal",
+                    "alerts"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "members"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER"
+          ]
+        }
+      }
+    },
     "/staff/secrets": {
       "get": {
         "operationId": "SecretsController_list",

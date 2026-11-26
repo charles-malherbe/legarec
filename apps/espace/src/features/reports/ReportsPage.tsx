@@ -1,9 +1,11 @@
-import { formatCents, reportsData } from '@legarec/contracts';
+import { formatCents, reportsData, shellData } from '@legarec/contracts';
 import { Avatar, Carte, EtatListe, Interrupteur, PageHeader, Progression, Tableau, Toolbar, useToast } from '@legarec/ui';
 import { BarChart } from '@mantine/charts';
 import '@mantine/charts/styles.css';
+import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useCreditorScope } from '../../app/creditorScope';
+import { api } from '../../app/api';
 import { useApi, useChange } from '../../app/data';
 import layout from '@legarec/ui/layout.module.css';
 
@@ -19,6 +21,8 @@ export function ReportsPage() {
   const change = useChange();
   const toast = useToast();
   const { data, isPending, error, refetch } = useApi(reportsData, `/reports?creditor=${scope.id}`);
+  // Already read by the shell: the name of the creditor that is picked.
+  const { data: shell } = useQuery({ queryKey: ['shell'], queryFn: () => api(shellData, '/shell'), enabled: false });
   const [period, setPeriod] = useState<(typeof PERIODS)[number][0]>('year');
   const current = data?.periods[period];
   const bars = current?.bars.filter((item) => item.entrusted > 0) ?? [];
@@ -54,7 +58,7 @@ export function ReportsPage() {
         noSearch
         tabs={PERIODS.map(([id, label]) => ({ label, selected: id === period, pick: () => setPeriod(id) }))}
         scope={{
-          name: scope.id === 'all' ? 'Tous les créanciers' : scope.id.toUpperCase(),
+          name: scope.id === 'all' ? 'Tous les créanciers' : (shell?.creditors.find((item) => item.id === scope.id)?.name ?? 'Créancier'),
           onReset: scope.id === 'all' ? undefined : () => scope.setId('all'),
         }}
       />
@@ -103,9 +107,11 @@ export function ReportsPage() {
                       <Progression value={item.percent} tone={OUTCOME[item.tone]} size="md" label={item.label} />
                     </div>
                   ))}
-                  <p className={layout.body}>
-                    Promesses de paiement tenues : <strong>{data.promisesKept} %</strong>
-                  </p>
+                  {data.promisesKept !== null && (
+                    <p className={layout.body}>
+                      Promesses de paiement tenues : <strong>{data.promisesKept} %</strong>
+                    </p>
+                  )}
                 </div>
               </Carte>
             </aside>
@@ -132,8 +138,15 @@ export function ReportsPage() {
                         ),
                       },
                       { key: 'cases', label: 'Dossiers', align: 'right', sortValue: (row) => row.cases, value: (row) => String(row.cases) },
-                      { key: 'calls', label: 'Appels', align: 'right', sortValue: (row) => row.calls, value: (row) => String(row.calls) },
-                      { key: 'promises', label: 'Promesses', align: 'right', value: (row) => String(row.promises) },
+                      // Unknown while the telephony is not connected: a dash, not a zero.
+                      {
+                        key: 'calls',
+                        label: 'Appels',
+                        align: 'right',
+                        sortValue: (row) => row.calls ?? -1,
+                        value: (row) => (row.calls === null ? '—' : String(row.calls)),
+                      },
+                      { key: 'promises', label: 'Promesses', align: 'right', value: (row) => (row.promises === null ? '—' : String(row.promises)) },
                       {
                         key: 'recovered',
                         label: 'Recouvré',

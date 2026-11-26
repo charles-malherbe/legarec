@@ -26,14 +26,16 @@ export const reportsData = z.object({
   scope: z.enum(['GLOBAL', 'TEAM', 'PERSONAL']),
   periods: z.object({ month: report, quarter: report, year: report }),
   outcomes: z.array(z.object({ label: z.string(), percent: z.number(), tone: z.enum(['success', 'teal', 'warning', 'neutral', 'danger']) })),
-  promisesKept: z.number(),
+  /** Null while nothing records a promise and what became of it (telephony, lot T). */
+  promisesKept: z.number().nullable(),
   team: z.array(
     z.object({
       id: z.string(),
       name: z.string(),
       cases: z.number().int(),
-      calls: z.number().int(),
-      promises: z.number().int(),
+      /** Null while the telephony is not connected: an unknown number is not zero. */
+      calls: z.number().int().nullable(),
+      promises: z.number().int().nullable(),
       recovered: cents,
       rate: z.number(),
     }),
@@ -79,7 +81,24 @@ export const teamCall = z.object({
   tone: z.enum(['success', 'info', 'neutral', 'violet', 'warning', 'danger']),
   recording: z.enum(['AVAILABLE', 'LIVE', 'NONE']),
 });
-export const teamData = z.object({ agents: z.array(agent), calls: z.array(teamCall), callsTotal: z.number().int(), alerts: z.array(z.string()) });
+export const teamData = z.object({
+  agents: z.array(agent),
+  calls: z.array(teamCall),
+  callsTotal: z.number().int(),
+  alerts: z.array(z.string()),
+  /**
+   * True once the telephony is connected. Absent or false: presence, calls, goals, promises and durations are unknown,
+   * whatever their fields hold, and the screen shows none of them.
+   */
+  telephony: z.boolean().optional(),
+  /** Figures of the whole team that the telephony alone gives; absent without it. */
+  summary: z.object({ promisesKept: z.number(), averageDuration: z.string() }).optional(),
+});
+/** `all`, or one creditor; absent reads as `all`, anything else is refused: never the figures of all under the name of one. */
+export const reportsQuery = z.object({ creditor: z.union([z.literal('all'), z.uuid()]).default('all') });
+export const teamPeriod = z.enum(['day', 'week', 'month']);
+/** Absent reads as the day; an unknown period is refused. */
+export const teamQuery = z.object({ period: teamPeriod.default('day') });
 export const member = z.object({
   id: z.string(),
   firstName: z.string(),
