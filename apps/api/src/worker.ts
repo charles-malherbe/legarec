@@ -8,6 +8,8 @@ import { accountJobs } from './modules/auth/auth.jobs';
 import { AuthKeys } from './modules/auth/keys';
 import { accessCodeJobs, reseal } from './modules/debtor-access/access-codes.jobs';
 import { SettingValues } from './modules/settings/values';
+import { aiJobs } from './ai/ai.jobs';
+import { aiSetup } from './ai/provider';
 import { documentJobs } from './modules/documents/documents.jobs';
 import { receiptJobs } from './modules/payments/receipts.jobs';
 import { PdfRenderer } from './platform/pdf/pdf';
@@ -46,6 +48,7 @@ const handlers: JobHandlers = {
   pdf: receiptJobs(storage, pdf, fileURLToPath(new URL('../templates/pdf/', import.meta.url))),
   email: accountJobs({ keys: new AuthKeys(config), portals: config, send: (name, to, data) => emails.send(name, to, data) }),
   maintenance: accessCodeJobs(vault),
+  ai: aiJobs(() => aiSetup(config), vault),
 };
 const resealAll = async () => {
   const { resealed, unreadable } = await reseal((work) => database.run({ kind: 'worker', job: 'reseal' }, work), vault);

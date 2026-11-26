@@ -537,6 +537,15 @@ export const MATRIX: Record<string, MatrixEntry> = {
     expect: withCases(404, { director: 403, manager: 204, managerAlone: 204 }),
   },
   'DELETE /staff/reminders/:id': { path: plannedReminder, expect: withCases(404, { director: 403, manager: 204, managerAlone: 204 }) },
+  // The summary of the assistant: whoever acts on the case; off in the tests (409), nothing to report yet (404).
+  'POST /staff/cases/:id/ai-summary': {
+    path: async (test) => `/staff/cases/${(await newCase(test)).id}/ai-summary`,
+    expect: withCases(404, { director: 403, manager: 409, managerAlone: 409 }),
+  },
+  'POST /staff/cases/:id/ai-summary/report': {
+    path: async (test) => `/staff/cases/${(await newCase(test)).id}/ai-summary/report`,
+    expect: withCases(404, { director: 403 }),
+  },
   'GET /staff/notifications': { expect: staffOf(200) },
   'PUT /staff/notifications': { body: () => ({ ids: [randomUUID()], unread: false }), expect: staffOf(204) },
   'POST /staff/notifications/read': { body: () => ({ ids: [] }), expect: staffOf(204) },

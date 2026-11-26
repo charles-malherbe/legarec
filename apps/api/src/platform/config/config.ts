@@ -19,6 +19,22 @@ const common = {
   MYSENDINGBOX_ENV: z.enum(['test', 'production']).default('test'),
   /** Absent: the AI is off, whatever the settings say. */
   AI_ENABLED: z.literal('true').optional(),
+  /** The two levels of model (docs/ia.md): absent, the AI is off. Never a name in the code. */
+  IA_MODELE_RAPIDE: z
+    .string()
+    .regex(/^[\w.:/-]{1,120}$/u)
+    .optional(),
+  IA_MODELE_AVANCE: z
+    .string()
+    .regex(/^[\w.:/-]{1,120}$/u)
+    .optional(),
+  /** The provider behind the single interface; `simulated` outside production only. */
+  AI_PROVIDER: z.enum(['anthropic', 'openai-compatible', 'simulated']).optional(),
+  /** Address of a provider compatible with OpenAI (Scaleway, OVH, or the server of the firm). */
+  AI_BASE_URL: z.url().optional(),
+  /** What a million tokens costs, in euros, sent and received: without it, no budget can be kept, and the AI stays off. */
+  AI_PRICE_INPUT: z.coerce.number().min(0).max(1000).optional(),
+  AI_PRICE_OUTPUT: z.coerce.number().min(0).max(1000).optional(),
   /** Folder of the documents (a volume in production, until the bucket of lot X). Required in production. */
   DOCUMENTS_DIR: z.string().startsWith('/').optional(),
 };
@@ -68,6 +84,7 @@ function read<T extends z.ZodType<Partial<Config> & Pick<Config, 'NODE_ENV' | 'M
     const plain = (['STAFF_PORTAL_URL', 'PARTNER_PORTAL_URL', 'DEBTOR_PORTAL_URL'] as const).filter((name) => !env[name]?.startsWith('https://'));
     if (plain.length) throw new ConfigError(`https:// expected in production: ${plain.join(', ')}`);
     if (!config.DOCUMENTS_DIR) throw new ConfigError('Missing or invalid startup values: DOCUMENTS_DIR');
+    if (config.AI_PROVIDER === 'simulated') throw new ConfigError('Missing or invalid startup values: AI_PROVIDER');
     return Object.freeze(config);
   }
   // Production runs on the development machine too, on the standard ports: they are never used outside of it.

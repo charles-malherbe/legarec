@@ -509,3 +509,55 @@ model PlannedReminder {
   @@index([caseId], map: "planned_reminders_case")
   @@map("planned_reminders")
 }
+
+enum AiFeature {
+  CASE_SUMMARY
+
+  @@map("ai_feature")
+}
+
+enum AiOutcome {
+  SUGGESTED
+  REFUSED_BY_GUARD
+  FAILED
+  OVER_BUDGET
+
+  @@map("ai_outcome")
+}
+
+enum AiDecision {
+  PENDING
+  ACCEPTED
+  MODIFIED
+  IGNORED
+  REPORTED
+
+  @@map("ai_decision")
+}
+
+/// The journal of the assistant: each suggestion, what it cost, and what a colleague decided (docs/ia.md).
+model AiSuggestion {
+  id            String     @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  feature       AiFeature
+  caseId        String     @map("case_id") @db.Uuid
+  creditorId    String     @map("creditor_id") @db.Uuid
+  outcome       AiOutcome
+  inputSummary  String     @map("input_summary")
+  output        Json?
+  model         String?
+  promptVersion String     @map("prompt_version")
+  inputTokens   Int        @default(0) @map("input_tokens")
+  outputTokens  Int        @default(0) @map("output_tokens")
+  costMicro     BigInt     @default(0) @map("cost_micro")
+  events        Int        @default(0)
+  decision      AiDecision @default(PENDING)
+  decidedBy     String?    @map("decided_by") @db.Uuid
+  decidedAt     DateTime?  @map("decided_at") @db.Timestamptz(3)
+  decidedFor    String?    @map("decided_for") @db.Uuid
+  askedBy       String?    @map("asked_by") @db.Uuid
+  createdAt     DateTime   @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
+
+  @@index([caseId, createdAt(sort: Desc)], map: "ai_suggestions_case")
+  @@index([createdAt], map: "ai_suggestions_month")
+  @@map("ai_suggestions")
+}

@@ -29,6 +29,8 @@ const STEPS: readonly [kind: string, remove: (tx: Transaction) => Promise<number
   // Messages without a code, unverified: 6 months.
   ['limited-messages', (tx) => tx.$executeRaw`DELETE FROM limited_messages WHERE created_at < now() - interval '6 months'`],
   ['task-marks', (tx) => tx.$executeRaw`DELETE FROM task_marks WHERE done_at < now() - interval '2 years'`],
+  // The journal of the assistant: 1 year.
+  ['ai-suggestions', (tx) => tx.$executeRaw`DELETE FROM ai_suggestions WHERE created_at < now() - interval '1 year'`],
   // The registry of the RGPD: 10 years (question 115).
   ['gdpr-requests', (tx) => tx.$executeRaw`DELETE FROM gdpr_requests WHERE received_on < (now() - interval '10 years')::date`],
 ];

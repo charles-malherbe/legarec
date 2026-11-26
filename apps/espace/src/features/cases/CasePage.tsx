@@ -58,7 +58,7 @@ function CaseView({ data }: { data: CaseDetail }) {
   ];
   const regenerate = async () => {
     await change(`/cases/${data.id}/ai-summary`);
-    toast({ message: 'Synthèse régénérée.' });
+    toast({ message: 'Synthèse demandée : elle s’affiche dans quelques instants, si le dossier a changé.' });
   };
   const [to, setTo] = useState<string | null>(null);
   const writeEmail = (address: string | null) => {

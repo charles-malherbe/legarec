@@ -267,6 +267,9 @@ describe('rights of the roles inside', () => {
       'documents SELECT (author_id, case_id, category, contains_access_code, created_at, creditor_id, id, kind, original_name, scan_status, scanned_at, sha256, shared_by, shared_with_creditor_at, size_bytes, source, storage_key, title, uploaded_by_creditor, uploaded_by_debtor, visible_to_debtor)',
       'documents UPDATE (category, title)',
       'claim_imports SELECT (confirmed_at, created_at, created_count, creditor_id, id, lines, status, total_cents, uploaded_by, valid)',
+      // The journal of the assistant: read with the case; the decision said by whoever acts on it.
+      'ai_suggestions SELECT (case_id, created_at, creditor_id, decision, events, feature, id, model, outcome, output, prompt_version)',
+      'ai_suggestions UPDATE (decision)',
       // Reminders planned in the agenda: those of the cases one reads; planned and changed on those one acts on.
       'planned_reminders DELETE (*)',
       'planned_reminders INSERT (case_id, creditor_id, due_on, due_time, kind, title, warning)',
@@ -335,6 +338,9 @@ describe('rights of the roles inside', () => {
       'portal_messages SELECT (author_id, case_id, created_at, creditor_id, id, read_by_debtor_at, read_by_staff_at, request_data, request_kind, side, text)',
       // The templates in force, for the letters.
       'template_versions SELECT (id, number, source, state, template_code)',
+      // The suggestions of the assistant it writes, and what the month has cost.
+      'ai_suggestions INSERT (asked_by, case_id, cost_micro, creditor_id, decision, events, feature, input_summary, input_tokens, model, outcome, output, output_tokens, prompt_version)',
+      'ai_suggestions SELECT (case_id, cost_micro, created_at, creditor_id, decision, events, feature, id, outcome)',
       // The reminders it will send (lot Q).
       'planned_reminders SELECT (case_id, creditor_id, done_at, due_on, due_time, id, kind, title)',
       // The links of the letters it sends (lot Q).
@@ -345,6 +351,9 @@ describe('rights of the roles inside', () => {
       'receipts UPDATE (document_id)',
     ],
     legarec_retention: [
+      // The journal of the assistant, after a year.
+      'ai_suggestions DELETE (*)',
+      'ai_suggestions SELECT (created_at, id)',
       // Imports never confirmed, after 30 days; messages without a code, after 6 months.
       'limited_messages DELETE (*)',
       'limited_messages SELECT (created_at, id)',
@@ -396,7 +405,7 @@ describe('rights of the roles inside', () => {
       'notification_preferences DELETE (*)',
       'notification_preferences SELECT (user_id)',
       'notifications DELETE (*)',
-      'notifications SELECT (user_id)',
+      'notifications SELECT (created_at, kind, user_id)',
       'number_sequences INSERT (*)',
       'number_sequences SELECT (*)',
       'number_sequences UPDATE (*)',
@@ -431,7 +440,7 @@ describe('rights of the roles inside', () => {
       'debtor_access_codes INSERT (code_cipher, debtor_id, generated_by)',
       'debtor_retired_codes INSERT (code_hmac, debtor_id)',
       'debtor_retired_codes SELECT (code_hmac, debtor_id)',
-      'vault_secrets SELECT (id, kind, name, rotated_at, status, value_cipher)',
+      'vault_secrets SELECT (created_at, id, kind, name, rotated_at, status, value_cipher)',
       'notifications INSERT (action, actor_id, case_count, case_id, creditor_id, kind, plan_decision, plan_id, target_id, ticket_id, user_id)',
       'users SELECT (absent_from, absent_until, anonymized_at, creditor_id, disabled_at, email, first_name, id, invited_at, invited_by, last_name, password_hash, role, status, substitute_id, two_factor_required)',
       'debtor_access_codes SELECT (code_cipher, code_hmac, debtor_id, version)',
@@ -456,6 +465,7 @@ describe('rights of the roles inside', () => {
       'documents SELECT (case_id, contains_access_code, created_at, creditor_id, id, scan_status, shared_with_creditor_at, source, uploaded_by_creditor, uploaded_by_debtor)',
       'documents UPDATE (case_id, creditor_id, shared_by, shared_with_creditor_at)',
       'debtor_links SELECT (case_id, debtor_id, expires_at, id, revoked_at, token_hash, uses)',
+      'ai_suggestions SELECT (cost_micro, created_at)',
       'planned_reminders SELECT (case_id, done_at, due_on, id, kind)',
       // Remittances and invoices of the firm: their functions only.
       'billing_documents INSERT (*)',
@@ -611,6 +621,8 @@ describe('rights on the functions', () => {
     ),
     ['creditor_payouts', ['partner']],
     ['planned_contacts', ['staff']],
+    ['note_ai_decision', []],
+    ...['ai_key', 'ai_spent', 'ai_budget_alert'].map((name) => [name, ['worker']] as [string, string[]]),
     ['keep_done_reminder', []],
     ...['remittance_core', 'remittance_sources', 'remittance_summary', 'note_settlement'].map((name) => [name, []] as [string, string[]]),
     ...['creditor_decide_plan', 'creditor_upload', 'creditor_deposit'].map((name) => [name, ['partner']] as [string, string[]]),
@@ -644,7 +656,7 @@ describe('rights on the functions', () => {
       'own_access_code debtor_upload debtor_message read_portal_messages staff_message creditor_decide_plan creditor_upload creditor_deposit',
       'debtor_link ask_code_by_sms firm_payment_settings limited_message',
       'gdpr_request gdpr_keeper gdpr_registry gdpr_answer gdpr_export',
-      'planned_contacts keep_done_reminder remittance_core creditor_payouts remittance_sources remittance_summary note_settlement remittance_draft validate_remittances mark_remittances_paid remittance_batches remittance_batch',
+      'note_ai_decision ai_key ai_spent ai_budget_alert planned_contacts keep_done_reminder remittance_core creditor_payouts remittance_sources remittance_summary note_settlement remittance_draft validate_remittances mark_remittances_paid remittance_batches remittance_batch',
     ].flatMap((names) => names.split(' '));
     const found = await rows<{ proname: string }>(
       "SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'app' ORDER BY 1",

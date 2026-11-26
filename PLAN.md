@@ -273,3 +273,8 @@ Les 161 routes simulées se répartissent ainsi :
 ## Lot Q — Envois (état au 26/11/2026)
 - [x] Agenda des relances sur l'API : planifier, déplacer, marquer faite, supprimer ; plafonds tous créanciers confondus, plages et jours fériés
 - [ ] Envois (Resend, MySendingBox en test), scénarios, premier courrier, relances depuis un dossier
+
+## Lot W — IA (état au 26/11/2026)
+- [x] Couche fournisseur, garde-fous, budget, journal ; synthèse du dossier (régénérer, signaler)
+- [x] Alerte à 80 % du budget au Directeur
+- [ ] Génération à l'arrivée d'un événement, appels, e-mails, journal dans Paramètres, essai mesuré (question 106)
