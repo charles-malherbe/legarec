@@ -794,10 +794,9 @@ export const caseHandlers = [
   ),
   http.get(
     '/api/cases/:id/access-code',
+    // As the API: read only once the case is closed (question 140).
     acting((item) =>
-      item.status === 'SETTLED'
-        ? HttpResponse.json({ code: 'CASE_CLOSED' }, { status: 409 })
-        : HttpResponse.json({ code: codes.get(item.id) ?? 'KXPM', version: codeVersions.get(item.id) ?? 1 }),
+      HttpResponse.json({ code: codes.get(item.id) ?? 'KXPM', version: codeVersions.get(item.id) ?? 1, closed: item.status === 'SETTLED' || item.status === 'LOST' }),
     ),
   ),
   http.post(

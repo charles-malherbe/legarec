@@ -117,13 +117,14 @@ describe('case file', () => {
     ] as const)
       expect((await call(account, '/cases/demo/access-code')).status).toBe(status);
   });
-  it('shows no access code once the case is closed', async () => {
+  it('shows the access code read only once the case is closed (question 140)', async () => {
     openAs('hb', '/debiteurs/castel');
-    expect(await screen.findByText(/Ce dossier est clos : le code d’accès/)).toBeVisible();
+    expect(await screen.findByText('Dossier clos : le code ne peut plus être régénéré d’ici.')).toBeVisible();
+    expect(screen.getByText('KXPM')).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Régénérer le code d’accès' })).toBeNull();
   });
   it('says that a code can no longer be read, and draws another one', async () => {
-    server.use(http.get('/api/cases/demo/access-code', () => HttpResponse.json({ code: null, version: 1 }), { once: true }));
+    server.use(http.get('/api/cases/demo/access-code', () => HttpResponse.json({ code: null, version: 1, closed: false }), { once: true }));
     openAs('cl', '/debiteurs/demo');
     expect(await screen.findByText('Illisible : régénérez-le')).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: 'Régénérer le code d’accès' }));

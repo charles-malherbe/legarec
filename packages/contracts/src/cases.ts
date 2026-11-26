@@ -147,7 +147,8 @@ export const caseDetail = caseListItem.extend({
 });
 export type CaseDetail = z.infer<typeof caseDetail>;
 /** No code when none of the keys opens it any more. */
-export const accessCodeResponse = z.object({ code: z.string().nullable(), version: z.number().int() });
+/** `closed`: shown read only, never renewed from a closed case (question 140). */
+export const accessCodeResponse = z.object({ code: z.string().nullable(), version: z.number().int(), closed: z.boolean() });
 /** The code that was on the screen when it was confirmed. */
 export const renewedCode = z.object({ version: z.number().int().positive().max(1_000_000) });
 export const gdprRequestKind = z.enum(['ACCESS', 'RECTIFICATION', 'OBJECTION', 'ERASURE']);

@@ -22,3 +22,18 @@ BEGIN
   RETURN NEW;
 END
 $$;
+
+-- ---------------------------------------------------------------- Question 140: the access code of a closed case, read only
+
+-- Of the debtor of a case, for whoever acts on that case, closed or not: the code opens all the cases of the debtor. It is
+-- drawn and renewed only from an open case (app.first_access_code, app.renew_access_code), and never for a forgotten debtor.
+GRANT CREATE ON SCHEMA app TO legarec_definer;
+SET LOCAL ROLE legarec_definer;
+CREATE OR REPLACE FUNCTION app.access_code(target uuid) RETURNS TABLE (debtor_id uuid, code_cipher bytea, version integer)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+  SELECT a.debtor_id, a.code_cipher, a.version FROM public.cases c JOIN public.debtor_access_codes a ON a.debtor_id = c.debtor_id
+    JOIN public.debtors d ON d.id = c.debtor_id
+  WHERE c.id = target AND d.anonymized_at IS NULL AND app.can_act_on_case(c.officer_id)
+$$;
+RESET ROLE;
+REVOKE CREATE ON SCHEMA app FROM legarec_definer;

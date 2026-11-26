@@ -37,21 +37,23 @@ export function AccessCodeCard({ caseId }: { caseId: string }) {
     });
   return (
     <Carte title="Espace débiteur">
-      {error instanceof ApiError && error.status === 409 ? (
-        <p className={layout.muted}>Ce dossier est clos : le code d’accès du débiteur ne s’affiche plus ici.</p>
-      ) : !data ? (
+      {!data ? (
         <EtatListe kind={error ? 'error' : 'loading'} compact onAction={() => void refetch()} />
       ) : (
         <div className={layout.stack}>
           <div className={layout.between}>
             <span className={layout.muted}>Code d’accès</span>
             <strong className={layout.num} aria-live="polite" aria-label={data.code ? `Code ${data.code.split('').join(' ')}` : 'Code illisible'} role="status">
-              {data.code ?? 'Illisible : régénérez-le'}
+              {data.code ?? (data.closed ? 'Illisible' : 'Illisible : régénérez-le')}
             </strong>
           </div>
-          <div>
-            <Bouton variant="danger-outline" size="sm" label="Régénérer" ariaLabel="Régénérer le code d’accès" onPress={regenerate} />
-          </div>
+          {data.closed ? (
+            <p className={layout.muted}>Dossier clos : le code ne peut plus être régénéré d’ici.</p>
+          ) : (
+            <div>
+              <Bouton variant="danger-outline" size="sm" label="Régénérer" ariaLabel="Régénérer le code d’accès" onPress={regenerate} />
+            </div>
+          )}
         </div>
       )}
     </Carte>
