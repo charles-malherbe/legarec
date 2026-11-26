@@ -17,6 +17,7 @@ import { TransactionInterceptor } from './platform/http/transaction.interceptor'
 import { RateLimits } from './platform/limits/rate-limits';
 import { LOGGER, type AppLogger } from './platform/logging/logger';
 import { Outbox } from './platform/queue/outbox';
+import { Storage, storageFor } from './platform/storage/storage';
 import { VALKEY, type Valkey } from './platform/queue/valkey';
 
 export interface AppParts {
@@ -52,6 +53,7 @@ export class AppModule implements OnApplicationBootstrap, OnApplicationShutdown 
         ...(parts.resolver ? [{ provide: ACTOR_RESOLVER, useValue: parts.resolver }] : [{ provide: ACTOR_RESOLVER, useExisting: SessionResolver }]),
         Audit,
         Outbox,
+        { provide: Storage, useFactory: (config: Config) => storageFor(config), inject: [CONFIG] },
         RateLimits,
         ...providers,
         { provide: APP_FILTER, useClass: ApiErrorFilter },

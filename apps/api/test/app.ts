@@ -41,7 +41,7 @@ export interface TestApp {
   call(
     method: string,
     path: string,
-    options?: { as?: string; body?: unknown; headers?: Record<string, string> },
+    options?: { as?: string; body?: unknown; headers?: Record<string, string>; file?: Uint8Array },
   ): Promise<{ status: number; body: unknown; headers: Headers }>;
   stop(): Promise<void>;
 }
@@ -120,9 +120,13 @@ export async function startApp(controllers: Type[] = [], { env = {}, next, sessi
           ...(options.body === undefined ? {} : { 'content-type': 'application/json' }),
           ...options.headers,
         },
-        body: options.body === undefined ? undefined : JSON.stringify(options.body),
+        body: options.file ?? (options.body === undefined ? undefined : JSON.stringify(options.body)),
       });
-      const text = await response.text();
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      const text = new TextDecoder().decode(bytes);
+      // A file is given as it came.
+      if (!(response.headers.get('content-type') ?? '').includes('json'))
+        return { status: response.status, body: text ? bytes : undefined, headers: response.headers };
       return { status: response.status, body: text ? (JSON.parse(text) as unknown) : undefined, headers: response.headers };
     },
     stop: async () => {

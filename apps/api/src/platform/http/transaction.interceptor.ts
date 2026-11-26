@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { Inject, Injectable, SetMetadata, type CallHandler, type ExecutionContext, type NestInterceptor } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { from, lastValueFrom, type Observable } from 'rxjs';
@@ -81,7 +82,9 @@ export class TransactionInterceptor implements NestInterceptor {
   /** Takes the key, or waits for the request that holds it and gives back its answer. A key older than two days is free again. */
   private async claim(tx: Transaction, key: string, request: AppRequest): Promise<{ result: unknown } | null> {
     const route = `${request.method} ${(request.route as { path: string }).path}`;
-    const asked = JSON.stringify([request.method, request.originalUrl, request.body ?? null]);
+    // A file counts by its fingerprint: never turned into a list of numbers in memory.
+    const body: unknown = request.body ?? null;
+    const asked = JSON.stringify([request.method, request.originalUrl, Buffer.isBuffer(body) ? { sha256: createHash('sha256').update(body).digest('hex') } : body]);
     const hash = digest(this.requestKeys[0], asked);
     const taken = await tx.$executeRaw`
       INSERT INTO idempotency_keys AS k (actor, key, route, request_hash) VALUES (app.actor_key(), ${key}::uuid, ${route}, ${hash})

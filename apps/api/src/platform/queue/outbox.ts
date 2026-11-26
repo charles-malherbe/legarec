@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Database } from '../database/database';
 
 /** One queue per channel, so that a slow provider never holds the others back. Same list in the table. */
-export const QUEUES = ['email', 'staff-email', 'sms', 'letter', 'pdf', 'imap', 'reminders', 'maintenance'] as const;
+export const QUEUES = ['email', 'staff-email', 'sms', 'letter', 'pdf', 'imap', 'reminders', 'maintenance', 'documents'] as const;
 export type QueueName = (typeof QUEUES)[number];
 
 /** Identifiers, dates, listed codes and short numbers; PostgreSQL refuses anything else. */

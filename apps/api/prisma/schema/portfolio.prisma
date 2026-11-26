@@ -247,6 +247,7 @@ model Case {
   plans    PaymentPlan[]
   approvals PlanApproval[]
   installments Installment[]
+  documents Document[]
 
   @@unique([id, creditorId], map: "cases_id_creditor")
   @@index([officerId, status], map: "cases_officer")

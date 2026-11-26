@@ -1376,6 +1376,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/staff/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DocumentsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/documents/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["DocumentsController_import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/documents/{id}/share": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["DocumentsController_share"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/documents/{id}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DocumentsController_file"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/staff/shell": {
         parameters: {
             query?: never;
@@ -4065,6 +4129,110 @@ export interface operations {
         requestBody?: never;
         responses: {
             204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DocumentsController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: {
+                            id: string;
+                            /** @enum {string} */
+                            category: "REMINDER_LETTER" | "FORMAL_NOTICE" | "PAYMENT_PLAN" | "INVOICE" | "EVIDENCE" | "COURT" | "REMITTANCE" | "RECEIPT";
+                            name: string;
+                            title: string;
+                            debtor: string;
+                            caseId: string | null;
+                            creditor: string;
+                            creditorId: string;
+                            /** Format: date */
+                            date: string;
+                            size: string;
+                            /** @enum {string} */
+                            kind: "PDF" | "DOCX" | "PNG" | "JPEG";
+                            status: string;
+                            /** @enum {string} */
+                            tone: "info" | "success" | "neutral" | "marine" | "warning";
+                            tracking: string;
+                            author: string;
+                        }[];
+                        total: number;
+                        size: string;
+                        counts: {
+                            [key: string]: number;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    DocumentsController_import: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        /** @enum {string} */
+                        status: "ATTACHED" | "TO_FILE";
+                    };
+                };
+            };
+        };
+    };
+    DocumentsController_share: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DocumentsController_file: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Le fichier, sous un nom neutre. */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -8,7 +8,10 @@ import { accountJobs } from './modules/auth/auth.jobs';
 import { AuthKeys } from './modules/auth/keys';
 import { accessCodeJobs, reseal } from './modules/debtor-access/access-codes.jobs';
 import { SettingValues } from './modules/settings/values';
+import { documentJobs } from './modules/documents/documents.jobs';
 import { Vault } from './modules/vault/vault';
+import { ClamavScanner, SimulatedScanner } from './platform/scanner/scanner';
+import { storageFor } from './platform/storage/storage';
 import { readWorkerConfig } from './platform/config/config';
 import { Database } from './platform/database/database';
 import { createLogger } from './platform/logging/logger';
@@ -31,7 +34,11 @@ const emailSettings = () => database.run({ kind: 'worker', job: 'email-settings'
 const templates = fileURLToPath(new URL('../templates/emails/', import.meta.url));
 const emails = new EmailsService(new EmailRenderer(templates), new SimulatedTransport(logger, config.DEV_MAIL_DIR), emailSettings);
 const vault = new Vault(config);
+const clamd = config.CLAMAV_URL ? new URL(config.CLAMAV_URL) : null;
+// Without an antivirus in production, received files wait unread; elsewhere, the simulated one.
+const scanner = clamd ? new ClamavScanner(clamd.hostname, Number(clamd.port)) : config.NODE_ENV === 'production' ? null : new SimulatedScanner();
 const handlers: JobHandlers = {
+  documents: documentJobs(storageFor(config), scanner),
   email: accountJobs({ keys: new AuthKeys(config), portals: config, send: (name, to, data) => emails.send(name, to, data) }),
   maintenance: accessCodeJobs(vault),
 };

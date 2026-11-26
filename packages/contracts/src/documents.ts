@@ -25,7 +25,7 @@ export const documentItem = z.object({
   creditorId: z.string(),
   date: z.iso.date(),
   size: z.string(),
-  kind: z.enum(['PDF', 'DOCX']),
+  kind: z.enum(['PDF', 'DOCX', 'PNG', 'JPEG']),
   status: z.string(),
   tone: z.enum(['info', 'success', 'neutral', 'marine', 'warning']),
   tracking: z.string(),

@@ -7,7 +7,7 @@ import {
   type DocumentCategory,
   type DocumentItem,
 } from '@legarec/contracts';
-import { upload } from '@legarec/platform';
+import { ApiError, download, saveFile, upload } from '@legarec/platform';
 import { Alerte, Badge, Bouton, DepotFichiers, EtatListe, PageHeader, Pagination, Tableau, Toolbar, useConfirm, useToast, type Tone } from '@legarec/ui';
 import { useState } from 'react';
 import { Link } from 'react-router';
@@ -93,10 +93,24 @@ export function DocumentsPage() {
       },
     });
   };
+  // Read once ClamAV found it clean: until then, the API says so.
+  const fetchFile = async (item: DocumentItem) => {
+    try {
+      const { blob, name } = await download(`/documents/${encodeURIComponent(item.id)}/file`);
+      saveFile(blob, name);
+    } catch (error) {
+      toast({
+        message:
+          error instanceof ApiError && error.status === 409
+            ? 'Ce document n’est pas encore disponible : l’analyse antivirus est en cours.'
+            : 'Le document n’a pas pu être téléchargé. Réessayez dans un instant.',
+      });
+    }
+  };
   const share = (item: DocumentItem) =>
     confirm({
       title: 'Partager ce document au créancier ?',
-      body: 'Le document devient visible dans l’espace créancier.',
+      body: 'Le document devient visible dans l’espace créancier. Vérifiez qu’il ne contient pas le code d’accès du débiteur : ce code ouvre les dossiers de tous ses créanciers.',
       confirmLabel: 'Partager',
       details: [
         { k: 'Document', v: item.name },
@@ -290,7 +304,7 @@ export function DocumentsPage() {
                 </div>
               </dl>
               <div className={layout.inline}>
-                <Bouton label="Télécharger" disabled title="URL présignée fournie par l’API" />
+                <Bouton label="Télécharger" onPress={() => void fetchFile(current)} />
                 <Bouton variant="secondary" label="Partager au créancier" onPress={() => share(current)} />
                 <Bouton variant="secondary" label="Envoyer" onPress={() => send(current)} />
                 <Bouton variant="secondary" label="Historique (2)" disabled />

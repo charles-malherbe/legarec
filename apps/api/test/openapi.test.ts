@@ -48,7 +48,13 @@ describe('access matrix', () => {
         // A change that commits asks for a key; a new one each time, or the second caller would read the answer of the first.
         ...(method === 'GET' ? {} : { 'idempotency-key': randomUUID() }),
       };
-      const answer = await test.call(method, target, { as: as === 'nobody' ? undefined : as, body: entry.body?.(), headers });
+      const file = entry.file?.();
+      const answer = await test.call(method, target, {
+        as: as === 'nobody' ? undefined : as,
+        body: entry.body?.(),
+        file,
+        headers: { ...headers, ...(file ? { 'content-type': 'application/pdf' } : {}) },
+      });
       expect(answer.status, `${id} for ${as}`).toBe(status);
     }
   });

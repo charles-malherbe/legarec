@@ -164,6 +164,7 @@ model User {
   mailboxesAsked       MailboxRequest[]         @relation("requestedBy")
   mailboxesDecided     MailboxRequest[]         @relation("decidedBy")
   plansRequested       PaymentPlan[]            @relation("planRequester")
+  documents            Document[]               @relation("documentAuthor")
 
   @@map("users")
 }

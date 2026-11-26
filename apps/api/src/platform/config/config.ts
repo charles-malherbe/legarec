@@ -19,6 +19,8 @@ const common = {
   MYSENDINGBOX_ENV: z.enum(['test', 'production']).default('test'),
   /** Absent: the AI is off, whatever the settings say. */
   AI_ENABLED: z.literal('true').optional(),
+  /** Folder of the documents (a volume in production, until the bucket of lot X). Required in production. */
+  DOCUMENTS_DIR: z.string().startsWith('/').optional(),
 };
 /** Each program has its own account, and needs no other. One that is there all the same is checked too. */
 const accounts = { DATABASE_URL: database.optional(), JOBS_DATABASE_URL: database.optional(), MIGRATION_DATABASE_URL: database.optional() };
@@ -36,6 +38,11 @@ const workerSchema = z.object({
   JOBS_DATABASE_URL: database,
   /** Development only: folder where the simulated messages are written. */
   DEV_MAIL_DIR: z.string().startsWith('/').optional(),
+  /** clamd of the server (`tcp://clamav:3310`). Absent in production: files wait, unread, for the antivirus. */
+  CLAMAV_URL: z
+    .string()
+    .regex(/^tcp:\/\/[a-z0-9.-]+:\d{1,5}$/u)
+    .optional(),
 });
 
 export type Config = Readonly<z.infer<typeof apiSchema>>;
@@ -58,6 +65,7 @@ function read<T extends z.ZodType<Partial<Config> & Pick<Config, 'NODE_ENV' | 'M
   if (config.NODE_ENV === 'production') {
     const plain = (['STAFF_PORTAL_URL', 'PARTNER_PORTAL_URL', 'DEBTOR_PORTAL_URL'] as const).filter((name) => !env[name]?.startsWith('https://'));
     if (plain.length) throw new ConfigError(`https:// expected in production: ${plain.join(', ')}`);
+    if (!config.DOCUMENTS_DIR) throw new ConfigError('Missing or invalid startup values: DOCUMENTS_DIR');
     return Object.freeze(config);
   }
   // Production runs on the development machine too, on the standard ports: they are never used outside of it.

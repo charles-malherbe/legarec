@@ -1,4 +1,4 @@
-import type { z } from 'zod';
+import { z } from 'zod';
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api';
 
@@ -112,12 +112,21 @@ export async function api<T extends z.ZodType>(schema: T, path: string, init: Ap
   }
 }
 
+/** A file given by the API (a document once ClamAV found it clean), under the neutral name it gives. */
+export async function download(path: string): Promise<{ blob: Blob; name: string }> {
+  const response = await fetch(BASE + path, { credentials: 'include' });
+  if (!response.ok) await read(z.unknown(), response, path);
+  const name = /filename="([^"]+)"/u.exec(response.headers.get('content-disposition') ?? '')?.[1] ?? 'document';
+  return { blob: await response.blob(), name };
+}
+
 /** Sends a file as is: the API checks and analyses it. Its name never goes into the URL nor a header. */
 export async function upload<T extends z.ZodType>(schema: T, path: string, file: File): Promise<z.infer<T>> {
   const response = await fetch(BASE + path, {
     method: 'POST',
     credentials: 'include',
-    headers: { 'content-type': file.type || 'application/octet-stream' },
+    // A key for each sending: the screen never sends again a file already received (DocumentsPage).
+    headers: { 'content-type': file.type || 'application/octet-stream', 'idempotency-key': crypto.randomUUID() },
     body: await file.arrayBuffer(),
   });
   return read(schema, response, path);

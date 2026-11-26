@@ -135,7 +135,8 @@ model Receipt {
   issuedAt   DateTime  @default(dbgenerated("now()")) @map("issued_at") @db.Timestamptz(3)
 
   case    Case    @relation(fields: [caseId, creditorId], references: [id, creditorId], onDelete: NoAction, onUpdate: NoAction)
-  payment Payment @relation(fields: [paymentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  payment  Payment   @relation(fields: [paymentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  document Document? @relation(fields: [documentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("receipts")
 }
