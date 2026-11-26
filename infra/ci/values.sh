@@ -19,6 +19,8 @@ value[MIGRATION_DATABASE_URL]="postgresql://legarec_owner:${value[LEGAREC_OWNER_
 value[VALKEY_URL]="redis://:${value[VALKEY_PASSWORD]}@valkey:6379/0"
 install -d -m 700 /etc/legarec
 install -d -o 10113 -g 10113 -m 700 /var/lib/legarec/journaux
+# Documents: the API and the worker, by their common group; what one writes, the other reads.
+install -d -o 10101 -g 10120 -m 2770 /var/lib/legarec/documents
 install -d -o 999 -g 999 -m 700 /var/lib/legarec-ci/depot
 chmod 755 /var/lib/legarec-ci
 # Groups: the same table as docs/deploiement.md.

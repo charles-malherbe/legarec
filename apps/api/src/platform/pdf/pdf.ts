@@ -16,9 +16,18 @@ export class FirmIncomplete extends Error {
 export class PdfRenderer {
   private browser: Promise<Browser> | undefined;
 
+  /** `installed`: the Chromium of the container (`CHROMIUM_PATH`); otherwise that of Playwright. */
+  constructor(private readonly installed?: string) {}
+
   async render(html: string): Promise<Buffer> {
     if (PLACEHOLDER.test(html.replace(/<[^>]+>/gu, ' '))) throw new FirmIncomplete();
-    this.browser ??= chromium.launch({ args: ['--disable-dev-shm-usage'] });
+    // In the container, the Chromium of Debian without its sandbox: the container is one, and the page runs no script and
+    // fetches nothing.
+    const { installed } = this;
+    this.browser ??= chromium.launch({
+      ...(installed ? { executablePath: installed } : {}),
+      args: ['--disable-dev-shm-usage', ...(installed ? ['--no-sandbox'] : [])],
+    });
     const context = await (await this.browser).newContext({ javaScriptEnabled: false, offline: true });
     try {
       const page = await context.newPage();

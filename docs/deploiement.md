@@ -11,7 +11,7 @@ Première partie du lot X. Fichiers préparés par Claude Code, vérifiés par G
 | `caddy` | Seul exposé (80, 443) : HTTPS, en-têtes, routage | 10110 | 192 Mo | oui |
 | `espace`, `partenaires`, `paiement` | Fichiers des portails | 10103 | 3 × 48 Mo | non |
 | `api` | API | 10101 | 768 Mo | non |
-| `worker` | Tâches (même image que l'API), arrêt en 90 s au plus | 10102 | 768 Mo | oui |
+| `worker` | Tâches (même image que l’API), PDF par Chromium, arrêt en 90 s au plus | 10102 | 1 Go | oui |
 | `migration` | Une exécution par déploiement | 10104 | 256 Mo | non |
 | `postgres` | Base, envoi continu du journal aux sauvegardes | 999 | 1,5 Go | oui (bucket) |
 | `sauvegarde`, `essai-restauration` | Une exécution par minuterie | 999 | 384 et 512 Mo | oui (bucket) |
@@ -40,7 +40,7 @@ Conteneurs permanents : 4,9 Go au plus. Réserver 2,5 Go pour ClamAV et n8n, à 
 - [ ] VPS réservé à Legarec (décision du cabinet) : rien d'autre dessus, ni développement, ni Claude Code ; 8 Go de mémoire au moins. Ports 80 et 443 libres.
 - [ ] Docker 28 ou plus récent, Compose 2.30 ou plus récent ; 40 Go de disque libres.
 - [ ] Aucun projet Compose nommé `legarec-app` (`docker compose ls`) ni réseau 10.213.0.0/24 sur ce serveur.
-- [ ] Comptes libres : `getent passwd 10001 10101 10102 10103 10104 10110 10111 10113 10114 10115` ne répond rien ; 999 (PostgreSQL) n'est celui d'aucune personne.
+- [ ] Comptes libres : `getent passwd 10001 10101 10102 10103 10104 10110 10111 10113 10114 10115` et `getent group 10120` ne répondent rien ; 999 (PostgreSQL) n'est celui d'aucune personne.
 - [ ] Connexion SSH par clé, réservée au cabinet ; aucun compte de ce serveur utilisé pour le développement.
 - [ ] Pare-feu : 80/tcp, 443/tcp, 443/udp ouverts ; rien d'autre pour Legarec. Refuser aux réseaux de Docker l'accès aux autres services du serveur.
 - [ ] Dépôt cloné dans `/opt/legarec`, propriété de root, hors de portée de Claude Code : `git clone`, branche `main`. Clé de déploiement GitHub en lecture seule.
@@ -244,10 +244,13 @@ Journaux : ni adresse IP, ni chemin, ni en-tête dans ceux de Caddy ; ni requêt
 - **Bucket injoignable** : le journal de PostgreSQL attend sur le disque, 8 Go au plus (près de 2 jours à plein débit), puis il est abandonné plutôt que de remplir le disque ; l'alerte arrive avant (26 heures sans sauvegarde).
 - **PostgreSQL** n'écrit plus ses lignes ERROR, qui citent souvent des données ; l'API note leur code.
 
+## Documents et PDF (lot N)
+- **Dossier des documents** : `/var/lib/legarec/documents`, propriétaire 10101, groupe 10120, droits 2770 (à créer avant le premier déploiement ; `deployer.sh` le vérifie). L'API et le worker y écrivent et y lisent par ce groupe commun ; aucun autre conteneur ne le voit. Monté sur `/documents` (`DOCUMENTS_DIR`). À sauvegarder avec la base (copie quotidienne du dossier) tant que le bucket n'existe pas.
+- **Chromium** : paquet Debian de l'image (`CHROMIUM_PATH=/usr/bin/chromium`), utilisé par le worker seul, sans son bac à sable (le conteneur en tient lieu, la page n'exécute aucun script et ne charge rien). Worker : 1 Go de mémoire, 400 processus, `/tmp` de 256 Mo.
+
 ## Reste à faire (fin du lot X)
 - **Bascule de MSW vers l'API**, portail par portail (`VITE_API`, `PLAN.md`) ; avant elle, aucun portail ne fonctionne en production.
-- ClamAV : avec le lot N (1,5 à 2 Go de mémoire) ; l'API et le worker auront alors besoin du bucket `legarec-documents`, donc d'un accès à Internet pour l'API.
-- Chromium (PDF) : avec le lot N ; image et mémoire du worker à revoir, fils d'exécution et polices compris.
+- ClamAV : conteneur à ajouter (1,5 à 2 Go de mémoire, image désignée par son empreinte), joint par le worker seul (`CLAMAV_URL=tcp://clamav:3310`) ; d'ici là, les fichiers reçus attendent sans être lus (rien ne se perd). Le bucket `legarec-documents` remplacera ensuite le dossier des documents.
 - Chemin des modèles d'e-mails une fois l'API construite (lot Q) : `apps/api/src/emails/renderer.ts` remonte de deux dossiers depuis le fichier source ; à vérifier depuis `dist/`.
 - n8n : avec les comptes de service ; conteneur et valeurs (`N8N_ENCRYPTION_KEY`) à ajouter, sur un réseau partagé avec l'API seule. Sa route existe déjà dans Caddy, réservée aux adresses du cabinet : elle répond 502 d'ici là.
 - Gatus : contrôle du bucket des documents (lot N).
