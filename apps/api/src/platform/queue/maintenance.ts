@@ -3,6 +3,7 @@ import type { Database, Transaction } from '../database/database';
 import type { AppLogger } from '../logging/logger';
 import type { Storage } from '../storage/storage';
 import type { ScheduledHandlers } from './jobs';
+import type { QueueName } from './outbox';
 import { QUEUE_PREFIX } from './publisher';
 
 const counted = (rows: { removed: number }[]) => rows[0]?.removed ?? 0;
@@ -121,15 +122,24 @@ export function maintenance(database: Database, logger: AppLogger, storage: Stor
 
 /** Every night, at a quiet hour in Paris; the same schedule whatever the number of workers. */
 export async function scheduleMaintenance(connection: ConnectionOptions, prefix = QUEUE_PREFIX): Promise<void> {
-  const queue = new Queue('maintenance', { connection, prefix });
+  await scheduleRepeated(connection, { queue: 'maintenance', name: 'purge', pattern: '30 3 * * *', attempts: 3 }, prefix);
+}
+
+/** A task of the clock (`ScheduledHandlers`), without author nor payload; the same schedule whatever the number of workers. */
+export async function scheduleRepeated(
+  connection: ConnectionOptions,
+  { queue: name, name: job, pattern, attempts }: { queue: QueueName; name: string; pattern: string; attempts: number },
+  prefix = QUEUE_PREFIX,
+): Promise<void> {
+  const queue = new Queue(name, { connection, prefix });
   queue.on('error', () => undefined);
   await queue.upsertJobScheduler(
-    'purge',
-    { pattern: '30 3 * * *', tz: 'Europe/Paris' },
+    job,
+    { pattern, tz: 'Europe/Paris' },
     {
-      name: 'purge',
+      name: job,
       data: {},
-      opts: { attempts: 3, backoff: { type: 'exponential', delay: 60_000 }, stackTraceLimit: 0, removeOnComplete: true, removeOnFail: true },
+      opts: { attempts, backoff: { type: 'exponential', delay: 60_000 }, stackTraceLimit: 0, removeOnComplete: true, removeOnFail: true },
     },
   );
   await queue.close();

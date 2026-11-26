@@ -575,6 +575,8 @@ export const MATRIX: Record<string, MatrixEntry> = {
     path: async (test) => `/staff/cases/${(await newCase(test)).id}/ai-summary/report`,
     expect: withCases(404, { director: 403 }),
   },
+  // The journal of the assistant: the Director and the Developer; PostgreSQL refuses the liar.
+  'GET /staff/ai/journal': { expect: only({ director: 200, developer: 200, liar: 403 }) },
   'GET /staff/notifications': { expect: staffOf(200) },
   'PUT /staff/notifications': { body: () => ({ ids: [randomUUID()], unread: false }), expect: staffOf(204) },
   'POST /staff/notifications/read': { body: () => ({ ids: [] }), expect: staffOf(204) },

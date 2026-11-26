@@ -259,6 +259,13 @@ export const firmGroups = (): SettingGroup[] => [
               sw('ia2', 'Tri et analyse des e-mails', 'Catégorie, dossier rattaché, montants et dates extraits (E-mails)'),
               sw('ia3', 'Brouillons de réponse', 'Proposés dans le ton du cabinet, à relire avant envoi (E-mails, SMS)'),
               sw('ia4', 'Synthèse des dossiers', 'Résumé en 5 lignes en tête de la fiche débiteur'),
+              // Not in the mockup (question 179): off until the firm chooses it.
+              sw(
+                'ia4-auto',
+                'Synthèse refaite automatiquement',
+                'À chaque nouvel événement, le dossier est envoyé au fournisseur sans qu’un collaborateur l’ait ouvert.',
+                false,
+              ),
               sw('ia5', 'Lecture des factures importées', 'Pré-remplissage des créances déposées en PDF par les créanciers', false),
               sw('ia6', 'Recherche en langage courant', 'Dans la recherche rapide (touche /)', false),
             ],
@@ -290,7 +297,7 @@ export const firmGroups = (): SettingGroup[] => [
               'Choisis par l’API',
             ),
             select('hosting', 'Hébergement des traitements', 'Où les données envoyées à l’IA sont traitées.', ['À choisir', 'Europe']),
-            text('budget', 'Budget mensuel', 'Au-delà, les fonctions passent en pause jusqu’au mois suivant ; alerte à 80 %.', '25 €'),
+            text('budget', 'Budget mensuel', 'Au-delà, les fonctions passent en pause jusqu’au mois suivant ; alerte à 80 %.', '40 €'),
           ]),
         ],
         [table('ai-log', 'Journal de l’IA', 'Chaque suggestion est conservée avec la décision prise.', ['Date', 'Fonction', 'Collaborateur', 'Décision'], [])],

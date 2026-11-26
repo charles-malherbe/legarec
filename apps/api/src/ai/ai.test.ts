@@ -1,10 +1,12 @@
-import { caseDetail } from '@legarec/contracts';
+import { aiJournal, caseDetail } from '@legarec/contracts';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { startApp, type TestApp } from '../../test/app';
 import { startMailWorker, type MailWorker } from '../../test/worker';
+import { SettingValues } from '../modules/settings/values';
 import { Vault } from '../modules/vault/vault';
-import { aiSettings } from './ai.jobs';
+import { Database } from '../platform/database/database';
+import { aiSettings, sweepCaseEvents } from './ai.jobs';
 import { minimize, refusedByGuard } from './guards';
 import { CASE_SUMMARY_KEYS } from './prompts/case-summary';
 import { aiSetup, SimulatedProvider, type CompletionRequest } from './provider';
@@ -166,5 +168,189 @@ describe('the summary of a case', () => {
   it('reads its switch and its budget in the settings', () => {
     const values = { section: () => ({ blocks: [{ fields: [{ id: 'ia4', checked: false }] }] }), text: () => '1 000,50 €' } as never;
     expect(aiSettings(values, 'ia4')).toEqual({ on: false, budgetMicro: 1_000_500_000 });
+  });
+
+  it('has a budget of 40 € a month until the firm changes it (question 166)', async () => {
+    const defaults = await SettingValues.read({ setting: { findMany: () => Promise.resolve([]) } } as never);
+    expect(aiSettings(defaults, 'ia4').budgetMicro).toBe(40_000_000);
+  });
+});
+
+describe('the summary made again when something new happens on a case', () => {
+  let jobs: Database;
+  const on = () => aiSetup({ ...ON, NODE_ENV: 'test', AI_PRICE_INPUT: 1, AI_PRICE_OUTPUT: 2 } as never, new SimulatedProvider((request) => (asked.push(request), answer(request))));
+  const sweep = (setup = on) => sweepCaseEvents(setup, (work) => jobs.run({ kind: 'worker', job: 'ai-case-events' }, work));
+  const newCase = async (reference: string) =>
+    (
+      await rows<{ id: string }>(
+        `WITH debtor AS (INSERT INTO debtors (kind, name) VALUES ('COMPANY', 'Débiteur ' || $1) RETURNING id)
+         INSERT INTO cases (reference, creditor_id, debtor_id, officer_id) SELECT $1, $2, debtor.id, $3 FROM debtor RETURNING id`,
+        [reference, creditorId, test.s.officerA],
+      )
+    )[0]!.id;
+  /** An event some minutes ago. */
+  const event = (id: string, minutesAgo: number) =>
+    rows(
+      `INSERT INTO case_events (case_id, creditor_id, kind, title, actor_kind, actor_label, occurred_at)
+       VALUES ($1, $2, 'NOTE', 'Appel', 'SYSTEM', 'Application', now() - make_interval(mins => $3))`,
+      [id, creditorId, minutesAgo],
+    );
+  const queued = async (id: string) =>
+    Number(
+      (await rows<{ n: string }>("SELECT count(*) AS n FROM outbox WHERE queue = 'ai' AND name = 'case-summary-event' AND payload ->> 'case' = $1", [id]))[0]!.n,
+    );
+  const journal = (id: string) =>
+    rows<{ outcome: string; asked_by: string | null; decision: string }>(
+      'SELECT outcome, asked_by, decision FROM ai_suggestions WHERE case_id = $1 ORDER BY created_at',
+      [id],
+    );
+
+  const set = (key: string, value: string) =>
+    rows('INSERT INTO settings (key, value, updated_by) VALUES ($1, $2::jsonb, $3) ON CONFLICT (key) DO UPDATE SET value = $2::jsonb', [
+      key,
+      value,
+      test.s.director,
+    ]);
+  const automatic = (on: boolean) => set('firm.ia.ia4-auto', on ? 'true' : 'false');
+
+  beforeAll(() => {
+    jobs = new Database(test.database.url('jobs'));
+    answer = () => JSON.stringify({ lines: CASE_SUMMARY_KEYS.map((k) => ({ k, v: `${k} : synthèse après un événement.` })) });
+  });
+  afterAll(() => jobs.close());
+
+  it('is off by default: nothing is sent without the Director having chosen it', async () => {
+    const left = await newCase('LGR-2026-77005');
+    await event(left, 10);
+    expect(await sweep()).toBe(0);
+    expect(await queued(left)).toBe(0);
+    await rows("UPDATE cases SET closed_on = current_date, status = 'SETTLED' WHERE id = $1", [left]);
+  });
+
+  it('waits until the case has been quiet for a few minutes, then makes a single call for a burst of events', async () => {
+    await automatic(true);
+    const busy = await newCase('LGR-2026-77002');
+    await event(busy, 1);
+    const burst = await newCase('LGR-2026-77003');
+    for (const minutes of [10, 9, 8, 7, 6]) await event(burst, minutes);
+    await sweep();
+    await sweep();
+    expect(await queued(busy)).toBe(0);
+    expect(await queued(burst)).toBe(1);
+    const calls = asked.length;
+    const events = await rows('SELECT id FROM case_events WHERE case_id = $1', [burst]);
+    await worker.run();
+    expect(asked.length).toBe(calls + 1);
+    // A suggestion, nobody asked it, nobody decided it, and nothing written on the case.
+    expect(await journal(burst)).toEqual([{ outcome: 'SUGGESTED', asked_by: null, decision: 'PENDING' }]);
+    expect(await rows('SELECT id FROM case_events WHERE case_id = $1', [burst])).toEqual(events);
+    // Nothing new: the summary already made stays, nothing is queued.
+    await sweep();
+    expect(await queued(burst)).toBe(1);
+    // Something new: made again.
+    await event(burst, 6);
+    await sweep();
+    expect(await queued(burst)).toBe(2);
+    await worker.run();
+    expect(asked.length).toBe(calls + 2);
+  });
+
+  it('queues nothing when the AI is off, the feature switched off, the budget spent, or the case closed', async () => {
+    const quiet = await newCase('LGR-2026-77004');
+    await event(quiet, 10);
+    expect(await sweep(() => null)).toBe(0);
+    await automatic(false);
+    await sweep();
+    expect(await queued(quiet)).toBe(0);
+    await automatic(true);
+    await set('firm.ia.ia4', 'false');
+    await sweep();
+    expect(await queued(quiet)).toBe(0);
+    await rows("DELETE FROM settings WHERE key = 'firm.ia.ia4'");
+    await set('firm.ia.budget', '"0 €"');
+    await sweep();
+    expect(await queued(quiet)).toBe(0);
+    await rows("DELETE FROM settings WHERE key = 'firm.ia.budget'");
+    // No valid key.
+    await rows("UPDATE vault_secrets SET status = 'REVOKE_PENDING' WHERE name = 'AI_API_KEY'");
+    await sweep();
+    expect(await queued(quiet)).toBe(0);
+    await rows("UPDATE vault_secrets SET status = 'VALID' WHERE name = 'AI_API_KEY'");
+    await rows("UPDATE cases SET closed_on = current_date, status = 'SETTLED' WHERE id = $1", [quiet]);
+    await sweep();
+    expect(await queued(quiet)).toBe(0);
+  });
+
+  it('sends nothing for a case closed, or a switch turned off, after the task was queued', async () => {
+    const closing = await newCase('LGR-2026-77006');
+    await event(closing, 10);
+    await sweep();
+    expect(await queued(closing)).toBe(1);
+    await rows("UPDATE cases SET closed_on = current_date, status = 'SETTLED' WHERE id = $1", [closing]);
+    const calls = asked.length;
+    await worker.run();
+    expect(asked.length).toBe(calls);
+    expect(await journal(closing)).toEqual([]);
+    expect(await rows("SELECT failure FROM outbox WHERE name = 'case-summary-event' AND payload ->> 'case' = $1", [closing])).toEqual([
+      { failure: 'CASE_CLOSED' },
+    ]);
+    const switched = await newCase('LGR-2026-77007');
+    await event(switched, 10);
+    await sweep();
+    await automatic(false);
+    await worker.run();
+    expect(asked.length).toBe(calls);
+    expect(await rows("SELECT failure FROM outbox WHERE name = 'case-summary-event' AND payload ->> 'case' = $1", [switched])).toEqual([
+      { failure: 'AI_FEATURE_OFF' },
+    ]);
+  });
+});
+
+describe('the journal of the assistant', () => {
+  const journal = async (as: string, query = '') => call(as, 'GET', `/ai/journal${query}`);
+
+  it('is read by the Director and the Developer only', async () => {
+    for (const as of ['manager', 'officerA']) expect((await journal(as)).status).toBe(403);
+    expect((await journal('director')).status).toBe(200);
+    expect((await journal('developer')).status).toBe(200);
+    expect((await journal('director', '?page=0')).status).toBe(422);
+    expect((await journal('director', '?size=1000')).status).toBe(422);
+    expect(aiJournal.parse((await journal('director', '?size=50')).body).pageSize).toBe(50);
+  });
+
+  it('says the feature, the case, the counts sent, the model, the prompt, the decision, the colleague and the cost, never the text', async () => {
+    const answer = await journal('director');
+    const body = aiJournal.parse(answer.body);
+    expect(body.total).toBeGreaterThan(0);
+    const reported = body.items.find((item) => item.decision === 'REPORTED')!;
+    expect(reported).toMatchObject({ feature: 'CASE_SUMMARY', caseReference: 'LGR-2026-77001', model: 'modele-avance', colleague: expect.any(String) });
+    expect(reported.input).toMatch(/^\d+ factures, \d+ événements, \d+ caractères$/u);
+    expect(reported.costMicro).toBeGreaterThan(0);
+    expect(body.items.some((item) => item.outcome === 'OVER_BUDGET')).toBe(true);
+    // Neither the suggestion, nor what was sent, nor the debtor.
+    const text = JSON.stringify(answer.body);
+    expect(text).not.toMatch(/synthèse|Bâtiplus|IA Delta|MASQUÉ|48 200/iu);
+    expect(body.last30Days.reported).toBeGreaterThanOrEqual(1);
+  });
+
+  it('gives no case to the Developer, who reads none', async () => {
+    const body = aiJournal.parse((await journal('developer')).body);
+    expect(body.items.length).toBeGreaterThan(0);
+    expect(body.items.every((item) => item.caseReference === null)).toBe(true);
+  });
+
+  it('is read a page at a time', async () => {
+    const [{ id: some }] = (await rows<{ id: string }>('SELECT id FROM cases WHERE reference = $1', ['LGR-2026-77001'])) as [{ id: string }];
+    await rows(
+      `INSERT INTO ai_suggestions (feature, case_id, creditor_id, outcome, input_summary, prompt_version)
+       SELECT 'CASE_SUMMARY', $1, $2, 'OVER_BUDGET', '0 factures, 0 événements, 0 caractères', 'synthese-dossier-v2' FROM generate_series(1, 30)`,
+      [some, creditorId],
+    );
+    const first = aiJournal.parse((await journal('director')).body);
+    const second = aiJournal.parse((await journal('director', '?page=2')).body);
+    expect(first.items).toHaveLength(first.pageSize);
+    expect(second.total).toBe(first.total);
+    expect(second.items).toHaveLength(first.total - first.pageSize);
+    expect(second.items.map((item) => item.id)).not.toContain(first.items[0]!.id);
   });
 });

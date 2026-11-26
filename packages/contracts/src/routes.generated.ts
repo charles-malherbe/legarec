@@ -912,6 +912,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/staff/ai/journal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AiJournalController_journal"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/staff/reminders": {
         parameters: {
             query?: never;
@@ -3732,6 +3748,53 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    AiJournalController_journal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: {
+                            id: string;
+                            at: string;
+                            /** @enum {string} */
+                            feature: "CASE_SUMMARY";
+                            caseReference: string | null;
+                            input: string;
+                            model: string | null;
+                            promptVersion: string;
+                            /** @enum {string} */
+                            outcome: "SUGGESTED" | "REFUSED_BY_GUARD" | "FAILED" | "OVER_BUDGET";
+                            /** @enum {string} */
+                            decision: "PENDING" | "ACCEPTED" | "MODIFIED" | "IGNORED" | "REPORTED";
+                            colleague: string | null;
+                            tokens: number;
+                            costMicro: number;
+                        }[];
+                        page: number;
+                        pageSize: number;
+                        total: number;
+                        last30Days: {
+                            suggested: number;
+                            accepted: number;
+                            modified: number;
+                            ignored: number;
+                            reported: number;
+                        };
+                    };
+                };
             };
         };
     };
