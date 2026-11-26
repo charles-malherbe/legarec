@@ -2,6 +2,9 @@ import { billingData, formatCents, remittanceDraft } from '@legarec/contracts';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { startApp, type TestApp } from '../../../test/app';
+import type { Actor } from '../../platform/database/actor';
+import { databaseCode } from '../../platform/database/codes';
+import { Database, type Transaction } from '../../platform/database/database';
 
 let test: TestApp;
 let reference = 80_000;
@@ -180,5 +183,40 @@ describe('the billing of the firm', () => {
           });
     expect((await call('director', 'POST', '/billing', { ...body, type: 'CREDIT_NOTE' })).status).toBe(422);
     expect(await written()).toEqual(before);
+  });
+
+  it('is refused by PostgreSQL itself, whatever the route let through', async () => {
+    const jobs = new Database(test.database.url('jobs'));
+    const staff = (userId: string, role: 'DIRECTOR' | 'COLLECTION_MANAGER' | 'CLAIMS_OFFICER' | 'DEVELOPER', delegations: ('TECHNICAL' | 'ADMINISTRATIVE')[] = []) =>
+      ({ kind: 'staff', userId, role, delegations }) satisfies Actor;
+    const callers: [string, Database, Actor, string][] = [
+      ['director', test.pool, staff(test.s.director, 'DIRECTOR'), 'object'],
+      ['manager acting for the Director', test.pool, { ...staff(test.s.manager, 'COLLECTION_MANAGER', ['ADMINISTRATIVE']), actingFor: 'ADMINISTRATIVE' }, 'object'],
+      // The delegation held, but not the one acted under.
+      ['manager not acting', test.pool, staff(test.s.manager, 'COLLECTION_MANAGER', ['ADMINISTRATIVE']), '42501'],
+      ['manager alone', test.pool, staff(test.s.manager, 'COLLECTION_MANAGER'), '42501'],
+      ['claims officer', test.pool, staff(test.s.officerA, 'CLAIMS_OFFICER'), '42501'],
+      ['developer', test.pool, staff(test.s.developer, 'DEVELOPER', ['TECHNICAL']), '42501'],
+      // A role and delegations the tables do not give.
+      ['liar', test.pool, { ...staff(test.s.officerA, 'CLAIMS_OFFICER', ['ADMINISTRATIVE']), actingFor: 'ADMINISTRATIVE' }, '42501'],
+      ['creditor', test.pool, { kind: 'partner', userId: test.s.partnerA, creditorId: test.s.creditorA }, '42501'],
+      ['debtor', test.pool, { kind: 'debtor', debtorId: test.s.debtorA }, '42501'],
+      ['worker', jobs, { kind: 'worker', job: 'email' }, '42501'],
+    ];
+    try {
+      const readings: [string, (tx: Transaction) => Promise<{ data: unknown }[]>][] = [
+        ['billing_overview', (tx) => tx.$queryRaw<{ data: unknown }[]>`SELECT app.billing_overview() AS data`],
+        ['credit_notes', (tx) => tx.$queryRaw<{ data: unknown }[]>`SELECT app.credit_notes() AS data`],
+      ];
+      for (const [name, reading] of readings)
+        for (const [who, pool, actor, expected] of callers) {
+          const answer = await pool
+            .run(actor, async (tx) => typeof (await reading(tx))[0]?.data)
+            .catch((error: unknown) => databaseCode(error) ?? String(error));
+          expect(answer, `${name} for ${who}`).toBe(expected);
+        }
+    } finally {
+      await jobs.close();
+    }
   });
 });

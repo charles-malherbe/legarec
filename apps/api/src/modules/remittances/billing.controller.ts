@@ -1,5 +1,5 @@
 import { billingData, formatCents, formatSiren, REQUEST_BODIES } from '@legarec/contracts';
-import { Body, Controller, Get, HttpCode, Inject, Post } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Post } from '@nestjs/common';
 import { ApiConflictResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import type { z } from 'zod';
 import { StaffOrDelegate } from '../../platform/access/access';
@@ -125,11 +125,11 @@ export class BillingController {
 
   /**
    * « Créer depuis un modèle »: refused for the three types, until the firm says how such a document is numbered, settled
-   * and kept (questions 195 and 196). An invoice is immutable and its number never reused: none is drawn on a guess.
+   * and kept (questions 195 and 196). An invoice is immutable and its number never reused: none is drawn on a guess. The
+   * refusal rolls the transaction back: nothing is kept under the Idempotency-Key, and a retry goes through the guard again.
    */
   @Post()
   @Commits()
-  @HttpCode(409)
   @ApiConflictResponse({ description: 'NOT_AVAILABLE' })
   async create(@Body({ schema: bodies['POST /billing'] }) body: In<'POST /billing'>): Promise<never> {
     // Who acts first, as PostgreSQL knows it: a delegation claimed and not held learns nothing, not even this refusal.
