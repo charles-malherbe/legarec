@@ -17,6 +17,7 @@ import {
   membersData,
   notificationItem,
   dashboard,
+  gdprRegistry,
   partnerSession,
   proofNeeded,
   searchHit,
@@ -255,6 +256,8 @@ export const ACCOUNT_PARITY: Parity[] = [
   ...each(STAFF, () => ({ request: 'GET /notifications', status: 200, answer: z.array(notificationItem) })),
   ...each(['director', 'manager', 'officer'], () => ({ request: 'GET /dashboard?creditor=all', status: 200, answer: dashboard })),
   { as: 'developer', request: 'GET /dashboard?creditor=all', status: 403, answer: code('FORBIDDEN') },
+  { as: 'director', request: 'GET /gdpr/requests', status: 200, answer: gdprRegistry },
+  ...each(['developer', 'officer'], () => ({ request: 'GET /gdpr/requests', status: 403, answer: code('FORBIDDEN') })),
   { as: 'officer', request: 'PUT /notifications', body: { ids: [UNKNOWN], unread: false }, status: 204 },
   { as: 'officer', request: 'POST /notifications/read', body: { ids: [UNKNOWN] }, status: 204 },
 

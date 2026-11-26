@@ -33,6 +33,7 @@ import { MembersController } from './members/members.controller';
 import { MembersService } from './members/members.service';
 import { DashboardController } from './dashboard/dashboard.controller';
 import { DashboardService } from './dashboard/dashboard.service';
+import { GdprController } from './gdpr/gdpr.controller';
 import { NotificationsController } from './notifications/notifications.controller';
 import { NotificationsService } from './notifications/notifications.service';
 import { Ledgers } from './payments/ledger';
@@ -56,6 +57,7 @@ export const controllers: Type[] = [
   DelegationsController,
   SupportController,
   NotificationsController,
+  GdprController,
   DashboardController,
   SecretsController,
   SettingsController,

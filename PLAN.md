@@ -259,3 +259,7 @@ Les 161 routes simulées se répartissent ainsi :
 ## Lot U — Pilotage (état au 26/11/2026)
 - [x] Tableau de bord de l'espace sur l'API (encours, recouvré, balance âgée, créanciers, débiteurs, fil, priorités marquées par personne), objectifs facultatifs
 - [ ] Contentieux, rapports, équipe (présence et appels avec T), score de risque
+
+## Lot V — RGPD (état au 26/11/2026)
+- [x] Registre des demandes, réponse motivée, export des données d'un débiteur (journalisé)
+- [ ] Anonymisation à la demande, purges planifiées (worker `legarec_retention`)

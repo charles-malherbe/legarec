@@ -99,6 +99,16 @@ const owingCase = async (test: TestApp) => {
   );
   return made;
 };
+let gdprCase = '';
+const gdprRequest = (then: string) => async (test: TestApp) => {
+  const made = await newCase(test);
+  const { rows } = await test.database.admin.query<{ id: string }>(
+    `INSERT INTO gdpr_requests (case_id, creditor_id, debtor_id, kind, origin, due_on, created_by)
+     SELECT c.id, c.creditor_id, c.debtor_id, 'ACCESS', 'Courrier', current_date + 30, $2 FROM cases c WHERE c.id = $1 RETURNING id`,
+    [made.id, test.s.manager],
+  );
+  return `/staff/gdpr/requests/${rows[0]!.id}${then}`;
+};
 const cheque = () => ({
   method: 'CHEQUE',
   amount: 1000,
@@ -470,6 +480,18 @@ export const MATRIX: Record<string, MatrixEntry> = {
     body: () => ({ done: true }),
     expect: withCases(404, { director: 204, manager: 204, managerAlone: 204 }),
   },
+  // Registry of the RGPD: written by whoever acts on the case, kept by the Director and their administrative delegate.
+  'POST /staff/gdpr/requests': {
+    path: async (test) => {
+      gdprCase = (await newCase(test)).id;
+      return '/staff/gdpr/requests';
+    },
+    body: () => ({ caseId: gdprCase, kind: 'ACCESS', origin: 'Courrier' }),
+    expect: withCases(403, { manager: 204, managerAlone: 204 }),
+  },
+  'GET /staff/gdpr/requests': { expect: only({ director: 200, manager: 200 }) },
+  'PUT /staff/gdpr/requests/:id': { path: gdprRequest(''), body: () => ({ status: 'ANSWERED', reason: 'Données envoyées' }), expect: administers },
+  'POST /staff/gdpr/requests/:id/export': { path: gdprRequest('/export'), expect: only({ director: 200, manager: 200 }) },
   'GET /staff/notifications': { expect: staffOf(200) },
   'PUT /staff/notifications': { body: () => ({ ids: [randomUUID()], unread: false }), expect: staffOf(204) },
   'POST /staff/notifications/read': { body: () => ({ ids: [] }), expect: staffOf(204) },
