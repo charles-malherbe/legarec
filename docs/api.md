@@ -114,6 +114,9 @@ Sans dépendance : Resend, MySendingBox, OVH (appels signés : le paquet `ovh` d
 - À la validation : une facture `FA-AAAA-NNNN` par créancier versé (lignes « Honoraires de recouvrement » et « Frais d'ouverture de dossier »), tables `billing_documents` et `billing_lines` en ajout seul ; chaque paiement et chaque frais d'ouverture ne sont pris qu'une fois (index uniques de `remittance_lines`).
 - Reste au lot S : écrans (proposition validée), avoirs `AV-AAAA-NNNN`, relevé PDF et envoi (`remittance-invoice`), reprises (questions 156 à 159).
 
+### Reversements dans l'espace du créancier (lot P, suite)
+- `GET /partner/portal/payouts` : par `app.creditor_payouts()`, les reversements du créancier seul (validés ou versés), son prochain reversement estimé par le même calcul que le lot (`app.remittance_core`, accordée à personne, sous deux portes qui vérifient qui appelle), le taux de son mandat et la date suivante selon Paramètres › Reversements.
+
 ### Règles de code
 Une requête = une transaction `Database.run(actor, fn)`, ouverte par la plateforme ; seul `modules/auth` en ouvre au nom d'un compte (ESLint) ; ESLint interdit Prisma ailleurs. Aucun appel externe dans une transaction : `outbox`, puis BullMQ. Une tâche de Valkey ne porte que son numéro : son nom, son auteur et ses identifiants sont relus dans `outbox`. SQL brut limité à : séquences, verrous consultatifs, recherche trigramme, agrégats ; `SET ROLE` et `set_config` dans `src/platform` seulement ; imports dynamiques de Prisma, `pg`, BullMQ ou ioredis interdits ailleurs (ESLint).
 

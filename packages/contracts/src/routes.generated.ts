@@ -1920,6 +1920,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/partner/portal/payouts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PortalController_payouts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/partner/portal/cases": {
         parameters: {
             query?: never;
@@ -5832,6 +5848,46 @@ export interface operations {
                             reason: string;
                             /** @enum {string} */
                             status: "PENDING" | "ACCEPTED" | "REFUSED";
+                        }[];
+                    };
+                };
+            };
+        };
+    };
+    PortalController_payouts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        rateLabel: string;
+                        next: {
+                            date: string;
+                            net: number;
+                            collected: number;
+                            fee: number;
+                        };
+                        year: {
+                            paid: number;
+                            recovered: number;
+                            fees: number;
+                        };
+                        items: {
+                            id: string;
+                            date: string;
+                            count: number;
+                            collected: number;
+                            fee: number;
+                            net: number;
                         }[];
                     };
                 };
