@@ -1696,6 +1696,134 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/partner/portal/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PortalController_dashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PortalController_cases"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/cases/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PortalController_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/plans/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PortalController_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/claims": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PortalController_deposit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/attachments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PortalController_attach"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PortalController_readImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/imports/{id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PortalController_confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/staff/shell": {
         parameters: {
             query?: never;
@@ -4976,6 +5104,239 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    PortalController_dashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        kpis: {
+                            label: string;
+                            value: string;
+                            hint: string;
+                        }[];
+                        statuses: {
+                            /** @enum {string} */
+                            status: "NEW" | "REMINDING" | "PLAN" | "LITIGATION" | "SETTLED" | "LOST";
+                            count: number;
+                        }[];
+                        months: {
+                            label: string;
+                            amount: number;
+                        }[];
+                        activity: {
+                            id: string;
+                            who: string;
+                            what: string;
+                            when: string;
+                            /** @enum {string} */
+                            tone: "success" | "warning" | "danger" | "info";
+                        }[];
+                        approvals: {
+                            id: string;
+                            caseId: string;
+                            debtor: string;
+                            reference: string;
+                            months: number;
+                            installment: number;
+                            total: number;
+                            firstOn: string;
+                            reason: string;
+                            /** @enum {string} */
+                            status: "PENDING" | "ACCEPTED" | "REFUSED";
+                        }[];
+                    };
+                };
+            };
+        };
+    };
+    PortalController_cases: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: {
+                            id: string;
+                            /** @enum {string} */
+                            status: "NEW" | "REMINDING" | "PLAN" | "LITIGATION" | "SETTLED" | "LOST";
+                            debtor: string;
+                            externalReference: string;
+                            reference: string;
+                            invoices: string;
+                            entrusted: number;
+                            recovered: number;
+                            last: string;
+                            steps: {
+                                title: string;
+                                date: string;
+                            }[];
+                        }[];
+                        counts: {
+                            [key: string]: number;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    PortalController_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        /** @enum {string} */
+                        status: "NEW" | "REMINDING" | "PLAN" | "LITIGATION" | "SETTLED" | "LOST";
+                        debtor: string;
+                        externalReference: string;
+                        reference: string;
+                        invoices: string;
+                        entrusted: number;
+                        recovered: number;
+                        last: string;
+                        steps: {
+                            title: string;
+                            date: string;
+                        }[];
+                    };
+                };
+            };
+        };
+    };
+    PortalController_decide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalController_deposit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalController_attach: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+        };
+    };
+    PortalController_readImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        lines: number;
+                        valid: number;
+                        total: number;
+                        errors: {
+                            line: number;
+                            message: string;
+                        }[];
+                    };
+                };
+            };
+        };
+    };
+    PortalController_confirm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        created: number;
+                        pending: number;
+                    };
+                };
             };
         };
     };

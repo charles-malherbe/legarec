@@ -60,6 +60,8 @@ model Document {
   scannedAt            DateTime?        @map("scanned_at") @db.Timestamptz(3)
   /// A file of a debtor, waiting for their message.
   uploadedByDebtor     String?          @map("uploaded_by_debtor") @db.Uuid
+  /// A file of a creditor, waiting for its claim.
+  uploadedByCreditor   String?          @map("uploaded_by_creditor") @db.Uuid
   createdAt            DateTime         @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
 
   case     Case?     @relation(fields: [caseId, creditorId], references: [id, creditorId], onDelete: NoAction, onUpdate: NoAction)
@@ -160,4 +162,31 @@ model PortalMessageAttachment {
   document Document      @relation(fields: [documentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("portal_message_attachments")
+}
+
+enum ImportStatus {
+  PENDING
+  CONFIRMED
+
+  @@map("import_status")
+}
+
+/// What the API understood of a file of claims; nothing is created before `confirmedAt`.
+model ClaimImport {
+  id           String       @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  creditorId   String       @map("creditor_id") @db.Uuid
+  uploadedBy   String       @map("uploaded_by") @db.Uuid
+  status       ImportStatus @default(PENDING)
+  lines        Int
+  valid        Int
+  totalCents   BigInt       @map("total_cents")
+  claims       Json
+  errors       Json
+  createdCount Int?         @map("created_count")
+  confirmedAt  DateTime?    @map("confirmed_at") @db.Timestamptz(3)
+  expiresAt    DateTime     @default(dbgenerated("(now() + '30 days'::interval)")) @map("expires_at") @db.Timestamptz(3)
+  createdAt    DateTime     @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
+
+  @@index([expiresAt], map: "claim_imports_expiry")
+  @@map("claim_imports")
 }

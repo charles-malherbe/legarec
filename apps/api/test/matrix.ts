@@ -169,6 +169,19 @@ const unknownSiren = (): string => {
     if (sum % 10 === 0) return digits;
   }
 };
+
+/** A long plan of a case of creditor A, approved by the manager, waiting for the creditor. */
+const creditorPlan = async (test: TestApp) => {
+  const { id, creditorId } = await owingCase(test);
+  const { rows } = await test.database.admin.query<{ id: string }>(
+    `WITH p AS (INSERT INTO payment_plans (case_id, creditor_id, total_cents, months, method, first_due_on, status, threshold_months, owned_by_director, requested_by)
+       VALUES ($1, $2, 10000, 8, 'TRANSFER', '2026-12-15', 'WAITING_CREDITOR', 6, false, $3) RETURNING id)
+     INSERT INTO plan_approvals (case_id, creditor_id, plan_id, step) SELECT $1, $2, p.id, 'CREDITOR' FROM p RETURNING plan_id AS id`,
+    [id, creditorId, test.s.officerA],
+  );
+  return `/partner/portal/plans/${rows[0]!.id}/decision`;
+};
+const INVOICE_OF_CLAIM = { number: 'F-1', issuedOn: '2026-09-01', dueOn: '2026-10-01', amount: 10000 };
 let assigned: unknown;
 let planned: unknown;
 let rateTurn = 0;
@@ -560,4 +573,26 @@ export const MATRIX: Record<string, MatrixEntry> = {
     body: () => ({ text: 'Bonjour' }),
     expect: only({ director: 403, manager: 204, managerAlone: 204, officerA: 404, officerB: 404, liar: 404 }),
   },
+  // Creditors: their own cases only; the cases of A are not those of B.
+  'GET /partner/portal/dashboard': { expect: only({ partnerA: 200, partnerB: 200 }) },
+  'GET /partner/portal/cases': { expect: only({ partnerA: 200, partnerB: 200 }) },
+  'GET /partner/portal/cases/:id': { path: (test) => `/partner/portal/cases/${test.s.cases.ofA}`, expect: only({ partnerA: 200, partnerB: 404 }) },
+  'POST /partner/portal/plans/:id/decision': { path: creditorPlan, body: () => ({ accepted: true }), expect: only({ partnerA: 204, partnerB: 404 }) },
+  // Without a mandate in force (the test set has none), a deposit is refused alike for both creditors.
+  'POST /partner/portal/claims': {
+    body: () => ({
+      debtor: 'Bâtiplus SAS',
+      siret: '',
+      email: '',
+      phone: '',
+      address: '14 rue des Forges, 69007 Lyon',
+      attachments: [],
+      invoices: [INVOICE_OF_CLAIM],
+    }),
+    expect: only({ partnerA: 409, partnerB: 409 }),
+  },
+  'POST /partner/portal/attachments': { file: PDF, expect: only({ partnerA: 200, partnerB: 200 }) },
+  // The file of the matrix is a PDF: unreadable as claims, alike for both creditors.
+  'POST /partner/portal/imports': { file: PDF, expect: only({ partnerA: 422, partnerB: 422 }) },
+  'POST /partner/portal/imports/:id/confirm': { path: () => `/partner/portal/imports/${randomUUID()}/confirm`, expect: only({ partnerA: 404, partnerB: 404 }) },
 };

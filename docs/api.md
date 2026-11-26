@@ -88,6 +88,12 @@ Sans dépendance : Resend, MySendingBox, OVH (appels signés : le paquet `ovh` d
 - **Lecture** : `GET /debtor/session`, `GET /debtor/cases/:id`, avec les droits du débiteur : ses dossiers annoncés, le solde calculé comme pour l'équipe (le débiteur lit le mode d'intérêt du mandat, jamais ses honoraires), le compte et les chèques du cabinet. Le nom du gestionnaire n'est pas montré (« Le service recouvrement de Legarec »).
 - **Reste (deuxième partie)** : messages et pièces, demandes guidées, accès limité, lien des courriers, code par SMS (avec R), acceptation de l'échéancier, alerte au-delà de 200 échecs par heure.
 
+### Portail des créanciers (lot P, première partie)
+- `GET /partner/portal/dashboard`, `GET /partner/portal/cases`, `GET /partner/portal/cases/:id` : ses dossiers seulement (politiques `partner_read`), l'historique marqué pour lui seulement ; montants confiés et recouvrés, délai moyen, six derniers mois.
+- `POST /partner/portal/plans/:id/decision` : accord ou refus motivé d'un échéancier long, après le Responsable (`app.creditor_decide_plan`) ; l'échéancier passe au débiteur ou est refusé ; dit à qui l'a proposé, écrit dans l'historique que le créancier lit.
+
+- `POST /partner/portal/claims` (`app.creditor_deposit`) : un dossier sans gestionnaire au mandat en vigueur, ses factures, les coordonnées données (non vérifiées, jamais utilisées pour le code d'accès) ; refus `NO_MANDATE`, `DEBTOR_MISMATCH`, `CASE_EXISTS`. `POST /partner/portal/attachments` : le fichier seul, type réel vérifié, analysé, invisible de l'équipe avant le dépôt qui le prend.
+
 ### Règles de code
 Une requête = une transaction `Database.run(actor, fn)`, ouverte par la plateforme ; seul `modules/auth` en ouvre au nom d'un compte (ESLint) ; ESLint interdit Prisma ailleurs. Aucun appel externe dans une transaction : `outbox`, puis BullMQ. Une tâche de Valkey ne porte que son numéro : son nom, son auteur et ses identifiants sont relus dans `outbox`. SQL brut limité à : séquences, verrous consultatifs, recherche trigramme, agrégats ; `SET ROLE` et `set_config` dans `src/platform` seulement ; imports dynamiques de Prisma, `pg`, BullMQ ou ioredis interdits ailleurs (ESLint).
 

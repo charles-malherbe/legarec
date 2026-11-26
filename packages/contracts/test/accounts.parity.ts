@@ -25,6 +25,8 @@ import {
   settingsSection,
   session,
   ticketSent,
+  portalCases,
+  portalDashboard,
   templatesData,
   templateDetail,
   plansData,
@@ -477,6 +479,12 @@ export const PARTNER_PARITY: Parity[] = [
   { as: 'nobody', request: 'GET /auth/invitation/expire', status: 410, answer: code('EXPIRED') },
   { as: 'nobody', request: 'GET /auth/invitation/{invitation}', status: 200, answer: linkInfo },
   { as: 'nobody', request: 'POST /auth/logout', status: 204 },
+  // Portal (lot P).
+  { as: 'partner', request: 'GET /portal/dashboard', status: 200, answer: portalDashboard },
+  { as: 'partner', request: 'GET /portal/cases', status: 200, answer: portalCases },
+  { as: 'partner', request: `GET /portal/cases/${UNKNOWN}`, status: 404, answer: code('NOT_FOUND') },
+  { as: 'nobody', request: 'GET /portal/cases', status: 401, answer: code('UNAUTHORIZED') },
+  { as: 'partner', request: `POST /portal/plans/${UNKNOWN}/decision`, body: { accepted: true }, status: 404, answer: code('NOT_FOUND') },
 ];
 
 /** Same request with the identifiers of one side. */

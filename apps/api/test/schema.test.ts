@@ -130,7 +130,7 @@ const IDEMPOTENCY = [
 ];
 const CASE_EVENTS =
   'case_events SELECT (actor_id, actor_kind, actor_label, case_id, creditor_id, detail, id, kind, occurred_at, on_behalf_of_id, title, tone, visible_to_creditor)';
-const DEBTORS = 'debtors SELECT (anonymized_at, created_at, id, kind, legal_form_checked_at, legal_form_code, legal_form_source, name, siren)';
+const DEBTORS = 'debtors SELECT (anonymized_at, created_at, id, kind, legal_form_checked_at, legal_form_code, legal_form_source, name, name_confirmed, siren)';
 
 const MONEY_OUTSIDE = [
   // Documents shared with them, clean and without the access code (policies).
@@ -171,15 +171,21 @@ describe('rights of the roles that face the outside', () => {
     legarec_service: IDEMPOTENCY,
     legarec_partner: [
       'case_events SELECT (actor_kind, actor_label, case_id, creditor_id, detail, id, kind, occurred_at, title, tone, visible_to_creditor)',
-      'cases SELECT (closed_on, creditor_id, debtor_id, external_reference, id, opened_on, reference, status)',
+      'cases SELECT (closed_on, creditor_id, debtor_id, deposited_name, external_reference, id, opened_on, reference, status)',
       'creditors SELECT (id, name, siren, status)',
       'debtors SELECT (id, kind, name, siren)',
       ...IDEMPOTENCY,
       'users SELECT (creditor_id, email, first_name, id, last_name, role, status)',
       'case_invoices SELECT (case_id, claimed_cents, creditor_id, due_on, external_ref, id, issued_on, number, principal_cents, principal_paid_cents, state)',
       // The creditor step of a plan, and the payments of its cases: date, amount, means.
-      ...MONEY_OUTSIDE,
+      ...MONEY_OUTSIDE.filter((entry) => !entry.startsWith('payment_plans')),
+      // When a plan was asked, and beyond which length it needs the creditor.
+      'payment_plans SELECT (accepted_at, case_id, created_at, creditor_id, first_due_on, id, method, months, status, threshold_months, total_cents)',
       'plan_approvals SELECT (case_id, creditor_id, decided_at, decision, id, plan_id, step)',
+      // Its imports of claims, until it confirms them.
+      'claim_imports INSERT (claims, creditor_id, errors, id, lines, status, total_cents, uploaded_by, valid)',
+      'claim_imports SELECT (claims, confirmed_at, created_at, created_count, creditor_id, errors, expires_at, id, lines, status, total_cents, uploaded_by, valid)',
+      'claim_imports UPDATE (claims, confirmed_at, created_count, errors, status)',
     ],
     legarec_debtor: [
       'cases SELECT (closed_on, creditor_id, debtor_id, formal_notice_on, id, mandate_id, opened_on, reference, status)',
@@ -254,12 +260,13 @@ describe('rights of the roles inside', () => {
       'case_invoices INSERT (case_id, claimed_cents, created_at, created_by, creditor_id, due_on, external_ref, id, issued_on, number, principal_cents, principal_paid_cents, state)',
       'case_invoices SELECT (case_id, claimed_cents, created_at, created_by, creditor_id, due_on, external_ref, id, issued_on, number, principal_cents, principal_paid_cents, state)',
       'cases INSERT (contact_name, contact_title, created_at, created_by, creditor_id, debtor_address, debtor_city, debtor_id, debtor_postal_code, debtor_siret, external_reference, id, mandate_id, officer_id, opened_on, reference, scenario, status, version)',
-      'cases SELECT (closed_on, contact_name, contact_title, created_at, created_by, creditor_id, debtor_address, debtor_city, debtor_id, debtor_postal_code, debtor_siret, external_reference, first_letter_on, first_letter_reference, formal_notice_on, id, mandate_id, officer_id, opened_on, reference, scenario, status, version)',
+      'cases SELECT (closed_on, contact_name, contact_title, created_at, created_by, creditor_id, debtor_address, debtor_city, debtor_id, debtor_postal_code, debtor_siret, deposited_name, external_reference, first_letter_on, first_letter_reference, formal_notice_on, id, mandate_id, officer_id, opened_on, reference, scenario, status, version)',
       'notifications SELECT (action, actor_id, case_count, case_id, created_at, creditor_id, id, kind, plan_decision, plan_id, read_at, target_id, ticket_id, user_id)',
       // Documents: received in one's own name, never scanned nor filed by hand.
       'documents INSERT (author_id, case_id, category, contains_access_code, creditor_id, id, kind, original_name, scan_status, sha256, size_bytes, source, storage_key, title, visible_to_debtor)',
-      'documents SELECT (author_id, case_id, category, contains_access_code, created_at, creditor_id, id, kind, original_name, scan_status, scanned_at, sha256, shared_by, shared_with_creditor_at, size_bytes, source, storage_key, title, uploaded_by_debtor, visible_to_debtor)',
+      'documents SELECT (author_id, case_id, category, contains_access_code, created_at, creditor_id, id, kind, original_name, scan_status, scanned_at, sha256, shared_by, shared_with_creditor_at, size_bytes, source, storage_key, title, uploaded_by_creditor, uploaded_by_debtor, visible_to_debtor)',
       'documents UPDATE (category, title)',
+      'claim_imports SELECT (confirmed_at, created_at, created_count, creditor_id, id, lines, status, total_cents, uploaded_by, valid)',
       // Messages of the space of the debtor: read; written by their functions.
       'portal_message_attachments SELECT (case_id, creditor_id, document_id, id, message_id)',
       'portal_messages SELECT (author_id, case_id, created_at, creditor_id, id, read_by_debtor_at, read_by_staff_at, request_data, request_kind, side, text)',
@@ -298,7 +305,7 @@ describe('rights of the roles inside', () => {
       'mandates SELECT (amends_id, amicable_rate_bp, contract_rate_bp, created_at, created_by, creditor_id, defer_small_remittances, discount_max_bp, ends_on, fixed_indemnity, id, interest_mode, litigation_needs_consent, litigation_rate_bp, opening_fee_cents, plan_months_without_consent, reporting_day, scenario, starts_on)',
       'case_contacts SELECT (case_id, creditor_id, id, is_primary, kind, label, status, value, value_normalized)',
       'case_invoices SELECT (case_id, claimed_cents, created_at, creditor_id, due_on, external_ref, id, issued_on, number, principal_cents, principal_paid_cents, state)',
-      'cases SELECT (closed_on, contact_name, contact_title, created_at, created_by, creditor_id, debtor_address, debtor_city, debtor_id, debtor_postal_code, debtor_siret, external_reference, first_letter_on, first_letter_reference, formal_notice_on, id, mandate_id, officer_id, opened_on, reference, scenario, status, version)',
+      'cases SELECT (closed_on, contact_name, contact_title, created_at, created_by, creditor_id, debtor_address, debtor_city, debtor_id, debtor_postal_code, debtor_siret, deposited_name, external_reference, first_letter_on, first_letter_reference, formal_notice_on, id, mandate_id, officer_id, opened_on, reference, scenario, status, version)',
       'debtor_access_codes SELECT (code_cipher, debtor_id)',
       'debtor_access_codes UPDATE (code_cipher)',
       'interest_rates SELECT (kind, rate_bp, valid_from)',
@@ -309,7 +316,7 @@ describe('rights of the roles inside', () => {
       'plan_approvals SELECT (case_id, creditor_id, decided_at, decision, id, plan_id, step)',
       // The verdict of ClamAV, and the documents it generates.
       'documents INSERT (case_id, category, contains_access_code, creditor_id, id, kind, original_name, scan_status, scanned_at, sha256, size_bytes, source, storage_key, title, visible_to_debtor)',
-      'documents SELECT (author_id, case_id, category, contains_access_code, created_at, creditor_id, id, kind, original_name, scan_status, scanned_at, sha256, shared_with_creditor_at, size_bytes, source, storage_key, title, uploaded_by_debtor, visible_to_debtor)',
+      'documents SELECT (author_id, case_id, category, contains_access_code, created_at, creditor_id, id, kind, original_name, scan_status, scanned_at, sha256, shared_with_creditor_at, size_bytes, source, storage_key, title, uploaded_by_creditor, uploaded_by_debtor, visible_to_debtor)',
       'documents UPDATE (scan_status, scanned_at)',
       'portal_message_attachments SELECT (case_id, creditor_id, document_id, id, message_id)',
       'portal_messages SELECT (author_id, case_id, created_at, creditor_id, id, read_by_debtor_at, read_by_staff_at, request_data, request_kind, side, text)',
@@ -320,6 +327,9 @@ describe('rights of the roles inside', () => {
       'receipts UPDATE (document_id)',
     ],
     legarec_retention: [
+      // Imports never confirmed, after 30 days.
+      'claim_imports DELETE (*)',
+      'claim_imports SELECT (expires_at, id, status)',
       'idempotency_keys DELETE (*)',
       'idempotency_keys SELECT (created_at)',
       'notifications DELETE (*)',
@@ -344,7 +354,7 @@ describe('rights of the roles inside', () => {
       'backup_codes DELETE (*)',
       'backup_codes SELECT (user_id)',
       'case_events INSERT (*)',
-      'case_events SELECT (actor_id, case_id, kind, occurred_at)',
+      'case_events SELECT (actor_id, case_id, creditor_id, kind, occurred_at)',
       'cases UPDATE (closed_on, officer_id, status, version)',
       'creditors SELECT (id, portal_enabled)',
       'delegations INSERT (granted_by, kind)',
@@ -390,7 +400,7 @@ describe('rights of the roles inside', () => {
       'creditor_bank_accounts SELECT (creditor_id, iban_cipher, id)',
       'case_contact_events INSERT (actor_id, actor_label, case_id, contact_id, creditor_id, what)',
       'case_contacts SELECT (case_id, creditor_id, id)',
-      'debtors INSERT (id, kind, legal_form_checked_at, legal_form_code, legal_form_source, name, siren)',
+      'debtors INSERT (id, kind, legal_form_checked_at, legal_form_code, legal_form_source, name, name_confirmed, siren)',
       'cases SELECT (closed_on, creditor_id, debtor_id, first_letter_on, id, mandate_id, officer_id, reference, status, version)',
       'debtor_access_codes INSERT (code_cipher, debtor_id, generated_by)',
       'debtor_retired_codes INSERT (code_hmac, debtor_id)',
@@ -400,7 +410,8 @@ describe('rights of the roles inside', () => {
       'users SELECT (absent_from, absent_until, anonymized_at, creditor_id, disabled_at, email, first_name, id, invited_at, invited_by, last_name, password_hash, role, status, substitute_id, two_factor_required)',
       'debtor_access_codes SELECT (code_cipher, code_hmac, debtor_id, version)',
       'debtor_access_codes UPDATE (code_cipher, code_hmac, generated_at, generated_by, version)',
-      'debtors SELECT (id, kind, name, siren)',
+      'debtors SELECT (id, kind, name, name_confirmed, siren)',
+      'debtors UPDATE (kind, name, name_confirmed)',
       // Access of the debtors: their sessions and the attempts counted on their identifiers.
       'debtor_sessions DELETE (*)',
       'debtor_sessions INSERT (*)',
@@ -415,9 +426,13 @@ describe('rights of the roles inside', () => {
       'template_versions SELECT (*)',
       'template_versions UPDATE (number, on_behalf_of_id, published_at, review_reason, reviewed_by, state, submitted_by, updated_at)',
       // Documents: shared by its function.
-      'documents INSERT (category, id, kind, original_name, sha256, size_bytes, source, storage_key, title, uploaded_by_debtor)',
-      'documents SELECT (case_id, contains_access_code, created_at, creditor_id, id, scan_status, shared_with_creditor_at, source, uploaded_by_debtor)',
+      'documents INSERT (category, id, kind, original_name, sha256, size_bytes, source, storage_key, title, uploaded_by_creditor, uploaded_by_debtor)',
+      'documents SELECT (case_id, contains_access_code, created_at, creditor_id, id, scan_status, shared_with_creditor_at, source, uploaded_by_creditor, uploaded_by_debtor)',
       'documents UPDATE (case_id, creditor_id, shared_by, shared_with_creditor_at)',
+      // Deposits of the creditors: a case held by nobody, its invoices and the coordinates it gives.
+      'case_contacts INSERT (case_id, creditor_id, is_primary, kind, label, source, status, value, value_normalized)',
+      'case_invoices INSERT (case_id, claimed_cents, creditor_id, due_on, issued_on, number, principal_cents)',
+      'cases INSERT (creditor_id, debtor_address, debtor_id, debtor_siret, deposited_name, id, mandate_id, reference, scenario, status)',
       'portal_message_attachments INSERT (*)',
       'portal_message_attachments SELECT (*)',
       'portal_messages INSERT (*)',
@@ -430,7 +445,7 @@ describe('rights of the roles inside', () => {
       'interest_rates INSERT (entered_by, kind, on_behalf_of_id, rate_bp, valid_from)',
       'interest_rates SELECT (entered_by, kind, on_behalf_of_id, rate_bp, valid_from)',
       'interest_rates UPDATE (entered_by, on_behalf_of_id, rate_bp, updated_at)',
-      'mandates SELECT (creditor_id, fixed_indemnity, id)',
+      'mandates SELECT (creditor_id, ends_on, fixed_indemnity, id, scenario, starts_on)',
       'payment_allocations INSERT (amount_cents, case_id, component, creditor_id, invoice_id, payment_id, reverses_id)',
       'payment_allocations SELECT (amount_cents, case_id, component, creditor_id, id, invoice_id, payment_id, reverses_id)',
       'payment_plans INSERT (case_id, creditor_id, first_due_on, id, method, months, on_behalf_of_id, owned_by_director, requested_by, status, threshold_months, total_cents)',
@@ -542,6 +557,7 @@ describe('rights on the functions', () => {
     ...['own_access_code', 'debtor_upload', 'debtor_message'].map((name) => [name, ['debtor']] as [string, string[]]),
     ['read_portal_messages', ['debtor', 'staff']],
     ['staff_message', ['staff']],
+    ...['creditor_decide_plan', 'creditor_upload', 'creditor_deposit'].map((name) => [name, ['partner']] as [string, string[]]),
     ...['money_case', 'issue_receipt', 'follow_allocation', 'check_allocations', 'keep_receipt'].map((name) => [name, []] as [string, string[]]),
     // Tools of the migrations.
     ['secure', []],
@@ -569,7 +585,7 @@ describe('rights on the functions', () => {
       'save_interest_rate decide_plan follow_allocation check_allocations record_payment change_payment ask_plan money_case issue_receipt keep_receipt share_document',
       'import_template cancel_template submit_template review_template template_editor',
       'debtor_sign_in resume_debtor_session close_debtor_session forget_debtor_access set_code_hmac',
-      'own_access_code debtor_upload debtor_message read_portal_messages staff_message',
+      'own_access_code debtor_upload debtor_message read_portal_messages staff_message creditor_decide_plan creditor_upload creditor_deposit',
     ].flatMap((names) => names.split(' '));
     const found = await rows<{ proname: string }>(
       "SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'app' ORDER BY 1",

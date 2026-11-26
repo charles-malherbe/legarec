@@ -50,6 +50,7 @@ export const AUDIT_ACTIONS = {
   // Cases
   CASE_OPENED: 'Dossier ouvert',
   CASES_ASSIGNED: 'Dossiers attribués : {count}',
+  CASE_DEPOSITED: 'Créance déposée par un créancier : {count} factures',
   CASE_INVOICES_ADDED: 'Factures ajoutées à un dossier : {count}',
   // Debtors
   DEBTOR_SIGNED_IN: 'Connexion d’un débiteur',
@@ -72,6 +73,8 @@ export const AUDIT_ACTIONS = {
   PAYMENT_BOUNCED: 'Chèque impayé enregistré',
   PLAN_ASKED: 'Échéancier demandé : {count} mensualités',
   PLAN_REFUSED: 'Échéancier de {months} mois refusé',
+  PLAN_CREDITOR_APPROVED: 'Échéancier de {months} mois accepté par le créancier',
+  PLAN_CREDITOR_REFUSED: 'Échéancier de {months} mois refusé par le créancier',
   ECB_RATE_SAVED: 'Taux de la BCE saisi pour le semestre du {day}',
   LEGAL_RATE_SAVED: 'Taux légal des particuliers saisi pour le semestre du {day}',
   CONTACT_ADDED: 'Coordonnée d’un débiteur ajoutée',

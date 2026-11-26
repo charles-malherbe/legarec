@@ -24,6 +24,9 @@ import { DebtorSignIn } from './auth/debtor-sign-in';
 import { DebtorController, StaffPortalController } from './debtor-access/debtor.controller';
 import { PortalMessages } from './debtor-access/portal-messages';
 import { DebtorViews } from './debtor-access/debtor-views';
+import { PortalController } from './partners/portal.controller';
+import { ClaimImports } from './partners/imports';
+import { PortalService } from './partners/portal.service';
 import { DelegationsController } from './delegations/delegations.controller';
 import { MembersController } from './members/members.controller';
 import { MembersService } from './members/members.service';
@@ -61,6 +64,7 @@ export const controllers: Type[] = [
   TemplatesController,
   DebtorController,
   StaffPortalController,
+  PortalController,
   ShellController,
 ];
 export const providers: Provider[] = [
@@ -89,4 +93,6 @@ export const providers: Provider[] = [
   DebtorSignIn,
   DebtorViews,
   PortalMessages,
+  PortalService,
+  ClaimImports,
 ];
