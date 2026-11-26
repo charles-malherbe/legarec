@@ -141,6 +141,21 @@ const documentPath = async (test: TestApp, then: string) => {
   );
   return `/staff/documents/${rows[0]!.id}${then}`;
 };
+
+/** A version of a template in the state asked for, alone of its kind. */
+const templateIn = (code: string, state: 'CANCELLED' | 'IMPORTED' | 'WAITING', then: string) => async (test: TestApp) => {
+  await test.database.admin.query(
+    "UPDATE template_versions SET state = 'REJECTED' WHERE template_code = $1 AND state IN ('IMPORTED', 'RESTORED', 'WAITING', 'CANCELLED')",
+    [code],
+  );
+  await test.database.admin.query(
+    `INSERT INTO template_versions (template_code, source, file_name, accepted, checks, has_warnings, state, imported_by) VALUES ($1, '<p>x</p>', 'x.html', true, '[]', false, $2, $3)`,
+    [code, state, test.s.manager],
+  );
+  return `/staff/templates/${code}${then}`;
+};
+const TEMPLATE_SOURCE =
+  '<!doctype html>\n<html lang="fr">\n<body>\n  {{> en_tete}}\n  <p>Bonjour {{debiteur.raison_sociale}}</p>\n  {{> mentions_recouvrement}}\n</body>\n</html>\n';
 let assigned: unknown;
 let planned: unknown;
 let rateTurn = 0;
@@ -470,5 +485,37 @@ export const MATRIX: Record<string, MatrixEntry> = {
   'GET /staff/documents/:id/file': {
     path: (test) => documentPath(test, '/file'),
     expect: only({ director: 500, manager: 500, managerAlone: 500, officerA: 404, officerB: 404, liar: 404 }),
+  },
+  // Templates: read by the team; imported, restored and submitted by the Director and the manager; published by the Director,
+  // or the manager on their behalf. The liar is let in by the guard, then refused by PostgreSQL.
+  'GET /staff/templates': { expect: staffOf(200) },
+  'GET /staff/templates/:id': { path: () => '/staff/templates/amiable', expect: staffOf(200) },
+  'POST /staff/templates/:id/import': {
+    path: () => '/staff/templates/amiable/import',
+    body: () => ({ source: TEMPLATE_SOURCE, fileName: 'amiable.html' }),
+    expect: only({ director: 204, manager: 204, managerAlone: 204, liar: 403 }),
+  },
+  'DELETE /staff/templates/:id/import': {
+    path: () => '/staff/templates/amiable/import',
+    expect: only({ director: 204, manager: 204, managerAlone: 204, liar: 403 }),
+  },
+  'POST /staff/templates/:id/import/undo': {
+    path: templateIn('ferme', 'CANCELLED', '/import/undo'),
+    expect: only({ director: 204, manager: 204, managerAlone: 204, liar: 403 }),
+  },
+  'POST /staff/templates/:id/restore': {
+    path: () => '/staff/templates/echeancier/restore',
+    body: () => ({}),
+    expect: only({ director: 204, manager: 204, managerAlone: 204, liar: 403 }),
+  },
+  'POST /staff/templates/:id/submit': {
+    path: templateIn('attestation', 'IMPORTED', '/submit'),
+    body: () => ({ acknowledged: true }),
+    expect: only({ director: 204, manager: 204, managerAlone: 204, liar: 403 }),
+  },
+  'POST /staff/templates/:id/review': {
+    path: templateIn('rappel', 'WAITING', '/review'),
+    body: () => ({ approved: true }),
+    expect: only({ director: 204, manager: 204, liar: 403 }),
   },
 };

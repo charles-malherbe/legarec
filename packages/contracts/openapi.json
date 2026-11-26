@@ -6818,6 +6818,485 @@
         }
       }
     },
+    "/staff/templates": {
+      "get": {
+        "operationId": "TemplatesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "channel": {
+                            "type": "string"
+                          },
+                          "category": {
+                            "type": "string",
+                            "enum": [
+                              "COLLECTION",
+                              "BILLING"
+                            ]
+                          },
+                          "date": {
+                            "type": "string"
+                          },
+                          "uses": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "channel",
+                          "category",
+                          "date",
+                          "uses"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "templates"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      }
+    },
+    "/staff/templates/{id}": {
+      "get": {
+        "operationId": "TemplatesController_detail",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "channel": {
+                      "type": "string"
+                    },
+                    "category": {
+                      "type": "string",
+                      "enum": [
+                        "COLLECTION",
+                        "BILLING"
+                      ]
+                    },
+                    "date": {
+                      "type": "string"
+                    },
+                    "uses": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "LETTER",
+                        "EMAIL",
+                        "SMS",
+                        "INVOICE",
+                        "CONTRACT"
+                      ]
+                    },
+                    "registered": {
+                      "type": "boolean"
+                    },
+                    "quote": {
+                      "type": "boolean"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "author": {
+                      "type": "string"
+                    },
+                    "usedBy": {
+                      "type": "string"
+                    },
+                    "subject": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "body": {
+                      "type": "string"
+                    },
+                    "lines": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": "string"
+                          },
+                          "amount": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "label",
+                          "detail",
+                          "amount"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "totals": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "fileName": {
+                      "type": "string"
+                    },
+                    "fileSize": {
+                      "type": "string"
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "block": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PUBLISHED",
+                        "IMPORTED",
+                        "RESTORED",
+                        "WAITING"
+                      ]
+                    },
+                    "canImport": {
+                      "type": "boolean"
+                    },
+                    "canValidate": {
+                      "type": "boolean"
+                    },
+                    "validator": {
+                      "type": "string"
+                    },
+                    "pending": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "fileName": {
+                          "type": "string"
+                        },
+                        "accepted": {
+                          "type": "boolean"
+                        },
+                        "checks": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "level": {
+                                "type": "string",
+                                "enum": [
+                                  "OK",
+                                  "WARNING",
+                                  "ERROR"
+                                ]
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "detail": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "level",
+                              "label",
+                              "detail"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "previewHtml": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "fileName",
+                        "accepted",
+                        "checks",
+                        "previewHtml"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "versions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "number": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "what": {
+                            "type": "string"
+                          },
+                          "who": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "PUBLISHED",
+                              "ARCHIVED"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "number",
+                          "what",
+                          "who",
+                          "state"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "samples": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "values": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "label",
+                          "values"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "channel",
+                    "category",
+                    "date",
+                    "uses",
+                    "kind",
+                    "registered",
+                    "quote",
+                    "version",
+                    "author",
+                    "usedBy",
+                    "subject",
+                    "body",
+                    "lines",
+                    "totals",
+                    "fileName",
+                    "fileSize",
+                    "source",
+                    "block",
+                    "status",
+                    "canImport",
+                    "canValidate",
+                    "validator",
+                    "pending",
+                    "versions",
+                    "samples"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "templates"
+        ],
+        "x-access": {
+          "portal": "staff"
+        }
+      }
+    },
+    "/staff/templates/{id}/import": {
+      "post": {
+        "operationId": "TemplatesController_import",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "templates"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER"
+          ]
+        }
+      },
+      "delete": {
+        "operationId": "TemplatesController_cancel",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "templates"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER"
+          ]
+        }
+      }
+    },
+    "/staff/templates/{id}/import/undo": {
+      "post": {
+        "operationId": "TemplatesController_undo",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "templates"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER"
+          ]
+        }
+      }
+    },
+    "/staff/templates/{id}/restore": {
+      "post": {
+        "operationId": "TemplatesController_restore",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "templates"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER"
+          ]
+        }
+      }
+    },
+    "/staff/templates/{id}/submit": {
+      "post": {
+        "operationId": "TemplatesController_submit",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "templates"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER"
+          ]
+        }
+      }
+    },
+    "/staff/templates/{id}/review": {
+      "post": {
+        "operationId": "TemplatesController_review",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "templates"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR"
+          ],
+          "delegations": [
+            "ADMINISTRATIVE"
+          ]
+        }
+      }
+    },
     "/staff/shell": {
       "get": {
         "operationId": "ShellController_shell",

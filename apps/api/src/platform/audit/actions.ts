@@ -56,6 +56,11 @@ export const AUDIT_ACTIONS = {
   DOCUMENT_TO_FILE: 'Document importé, à classer',
   DOCUMENT_SHARED: 'Document partagé au créancier',
   DOCUMENT_DOWNLOADED: 'Document téléchargé hors de ses dossiers',
+  // Templates
+  TEMPLATE_IMPORTED: 'Modèle importé',
+  TEMPLATE_RESTORED: 'Version d’un modèle restaurée',
+  TEMPLATE_PUBLISHED: 'Modèle publié',
+  TEMPLATE_REJECTED: 'Modèle refusé',
   // Money
   PAYMENT_RECORDED: 'Paiement enregistré',
   PAYMENT_SETTLED: 'Paiement définitif, quittance émise',

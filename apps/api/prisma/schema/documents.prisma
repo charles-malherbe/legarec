@@ -68,3 +68,41 @@ model Document {
   @@index([caseId, createdAt(sort: Desc)], map: "documents_case")
   @@map("documents")
 }
+
+enum TemplateState {
+  IMPORTED
+  RESTORED
+  WAITING
+  PUBLISHED
+  ARCHIVED
+  REJECTED
+  CANCELLED
+
+  @@map("template_state")
+}
+
+/// Versions after the first (the catalogue of the contracts); written by the functions `app.*_template`.
+model TemplateVersion {
+  id            String        @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  templateCode  String        @map("template_code")
+  number        Int?
+  source        String
+  fileName      String        @map("file_name")
+  accepted      Boolean
+  checks        Json
+  hasWarnings   Boolean       @map("has_warnings")
+  state         TemplateState
+  importedBy    String        @map("imported_by") @db.Uuid
+  submittedBy   String?       @map("submitted_by") @db.Uuid
+  reviewedBy    String?       @map("reviewed_by") @db.Uuid
+  onBehalfOfId  String?       @map("on_behalf_of_id") @db.Uuid
+  reviewReason  String?       @map("review_reason")
+  publishedAt   DateTime?     @map("published_at") @db.Timestamptz(3)
+  updatedAt     DateTime      @default(dbgenerated("now()")) @map("updated_at") @db.Timestamptz(3)
+  createdAt     DateTime      @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
+
+  importer User @relation("templateImporter", fields: [importedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([templateCode, createdAt(sort: Desc)], map: "template_versions_code")
+  @@map("template_versions")
+}

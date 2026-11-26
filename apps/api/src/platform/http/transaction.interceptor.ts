@@ -84,7 +84,11 @@ export class TransactionInterceptor implements NestInterceptor {
     const route = `${request.method} ${(request.route as { path: string }).path}`;
     // A file counts by its fingerprint: never turned into a list of numbers in memory.
     const body: unknown = request.body ?? null;
-    const asked = JSON.stringify([request.method, request.originalUrl, Buffer.isBuffer(body) ? { sha256: createHash('sha256').update(body).digest('hex') } : body]);
+    const asked = JSON.stringify([
+      request.method,
+      request.originalUrl,
+      Buffer.isBuffer(body) ? { sha256: createHash('sha256').update(body).digest('hex') } : body,
+    ]);
     const hash = digest(this.requestKeys[0], asked);
     const taken = await tx.$executeRaw`
       INSERT INTO idempotency_keys AS k (actor, key, route, request_hash) VALUES (app.actor_key(), ${key}::uuid, ${route}, ${hash})
