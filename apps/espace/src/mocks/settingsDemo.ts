@@ -10,7 +10,7 @@ const STATUS: Record<string, [string, Tone]> = {
   modeles: ['12 modèles', 'neutral'],
   sms: ['OVHcloud connecté · 1 196 SMS ce mois', 'success'],
   reversements: ['Prochain reversement le 1er décembre', 'info'],
-  ia: ['Désactivé en production · 6,40 € sur 25 € ce mois', 'info'],
+  ia: ['Désactivé en production · 6,40 € sur 40 € ce mois', 'info'],
   telephonie: ['3CX connecté · 4 postes', 'success'],
   emails: ['Resend et OVH connectés', 'success'],
   boites: ['1 boîte à reconnecter', 'warning'],

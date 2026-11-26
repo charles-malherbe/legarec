@@ -290,7 +290,7 @@ export const firmGroups = (): SettingGroup[] => [
               'Choisis par l’API',
             ),
             select('hosting', 'Hébergement des traitements', 'Où les données envoyées à l’IA sont traitées.', ['À choisir', 'Europe']),
-            text('budget', 'Budget mensuel', 'Au-delà, les fonctions passent en pause jusqu’au mois suivant ; alerte à 80 %.', '25 €'),
+            text('budget', 'Budget mensuel', 'Au-delà, les fonctions passent en pause jusqu’au mois suivant ; alerte à 80 %.', '40 €'),
           ]),
         ],
         [table('ai-log', 'Journal de l’IA', 'Chaque suggestion est conservée avec la décision prise.', ['Date', 'Fonction', 'Collaborateur', 'Décision'], [])],

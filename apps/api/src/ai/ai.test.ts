@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { startApp, type TestApp } from '../../test/app';
 import { startMailWorker, type MailWorker } from '../../test/worker';
+import { SettingValues } from '../modules/settings/values';
 import { Vault } from '../modules/vault/vault';
 import { aiSettings } from './ai.jobs';
 import { minimize, refusedByGuard } from './guards';
@@ -166,5 +167,10 @@ describe('the summary of a case', () => {
   it('reads its switch and its budget in the settings', () => {
     const values = { section: () => ({ blocks: [{ fields: [{ id: 'ia4', checked: false }] }] }), text: () => '1 000,50 €' } as never;
     expect(aiSettings(values, 'ia4')).toEqual({ on: false, budgetMicro: 1_000_500_000 });
+  });
+
+  it('has a budget of 40 € a month until the firm changes it (question 166)', async () => {
+    const defaults = await SettingValues.read({ setting: { findMany: () => Promise.resolve([]) } } as never);
+    expect(aiSettings(defaults, 'ia4').budgetMicro).toBe(40_000_000);
   });
 });
