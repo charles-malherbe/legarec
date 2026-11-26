@@ -40,7 +40,7 @@ Décisions du 24/11/2026, reprises de l'annexe « Architecture » de `PROMPT-FRO
 - Secrets : clés des services dans un coffre chiffré en base (Paramètres techniques > Secrets) ; valeurs de démarrage dans
   un fichier du serveur ; .env temporaire en développement (docs/api.md, « Clés et secrets »).
 - Antivirus : ClamAV ; tout fichier reçu reste en quarantaine jusqu'au résultat (question 87).
-- IA : auto-hébergée si l'essai mesuré du lot W convient, sinon nouveau choix (questions 72 et 106) ; transcription
+- IA : services hébergés en France, OVHcloud AI Endpoints par défaut, Scaleway en remplacement (option C, décision du 26/11/2026) ; transcription
   après l'appel seulement ; couche fournisseur (interface unique ; adaptateurs Anthropic et compatible OpenAI pour Scaleway et OVH).
   Les deux niveaux de docs/ia.md (IA_MODELE_RAPIDE, IA_MODELE_AVANCE) n'ont pas de valeur par défaut : variable absente =
   IA éteinte ; budget et journal de docs/ia.md conservés, avec le coût de chaque appel ;

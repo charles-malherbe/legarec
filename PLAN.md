@@ -141,7 +141,7 @@ Les 161 routes simulées se répartissent ainsi :
 | [ ] T | Téléphonie 3CX Call Control, enregistrements | 6 |
 | [ ] U | Contentieux, rapports, équipe, tableaux de bord, score de risque | 8 |
 | [ ] V | RGPD : registre, exports, anonymisation, purges | 3 |
-| [ ] W | IA : couche compatible OpenAI, essai mesuré, quatre fonctions | 3 |
+| [ ] W | IA : couche compatible OpenAI, essai de qualité (OVHcloud ou Scaleway), quatre fonctions | 3 |
 | [x] X1 | Exploitation, première partie : Dockerfiles, compose, `infra/caddy/Caddyfile`, pgBackRest, Gatus, Loki, `bootstrap.sql` exécuté dans la base de l'application, sonde de santé du worker et délai d'arrêt de 90 secondes ; rien n'est déployé (`docs/deploiement.md`) | — |
 | [ ] X | Exploitation, fin : bascule finale, ClamAV et Chromium (après N), n8n, purge à la demande après une restauration, tâches planifiées bloquées après une restauration ; liste complète dans `docs/deploiement.md` | — |
 
@@ -277,4 +277,4 @@ Les 161 routes simulées se répartissent ainsi :
 ## Lot W — IA (état au 26/11/2026)
 - [x] Couche fournisseur, garde-fous, budget, journal ; synthèse du dossier (régénérer, signaler)
 - [x] Alerte à 80 % du budget au Directeur
-- [ ] Génération à l'arrivée d'un événement, appels, e-mails, journal dans Paramètres, essai mesuré (question 106)
+- [ ] Génération à l'arrivée d'un événement, appels, e-mails, journal dans Paramètres, essai de qualité des modèles chez OVHcloud ou Scaleway (option C)
