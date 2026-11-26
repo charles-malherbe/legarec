@@ -263,13 +263,13 @@ Les 161 routes simulées se répartissent ainsi :
 ## Lot V — RGPD (état au 26/11/2026)
 - [x] Registre des demandes, réponse motivée, export des données d'un débiteur (journalisé)
 - [x] Purges planifiées des tables de la nuit (imports non confirmés, messages sans code, marques du tableau de bord, registre RGPD)
-- [x] Anonymisation à la demande d'un débiteur (API, questions 165 et 166), purge des dossiers 5 ans après clôture et de leurs fichiers
+- [x] Anonymisation à la demande d'un débiteur (API, questions 168 et 169), purge des dossiers 5 ans après clôture et de leurs fichiers
 - [ ] Écran de l'effacement à la demande (pas d'état dans la maquette) ; purge à 10 ans des pièces comptables (quittances, paiements, reversements) ; à la fusion avec `lot/u2`, `litigation_files` dans `app.forget_case()`
 
 ## Lot S — Facturation et reversements (état au 26/11/2026)
 - [x] API des reversements : calcul unique en SQL, validation avec valeurs attendues, créancier retenu avec motif, factures de commission, « marquer comme versés »
 - [x] Écran « Reversements » (`/facturation/reversements`) : lot à valider, créancier retenu avec motif, validation, virements à faire, « Marquer comme versés »
-- [x] Avoirs `AV-AAAA-NNNN` (API et écran Facturation) : bouton « Avoir » sur chaque facture émise, onglet « Avoirs », type « Avoir » dans « + Créer depuis un modèle », brouillons, statuts dérivés « Avoir partiel » et « Annulée par avoir », avoir rendu au prochain reversement (questions 167 à 170)
+- [x] Avoirs `AV-AAAA-NNNN` (API et écran Facturation) : bouton « Avoir » sur chaque facture émise, onglet « Avoirs », type « Avoir » dans « + Créer depuis un modèle », brouillons, statuts dérivés « Avoir partiel » et « Annulée par avoir », avoir rendu au prochain reversement (questions 170 à 174)
 - [ ] PDF de la facture et de l'avoir (aucun gabarit de facture encore), envoi de l'avoir au créancier (V3, lot R), « Préparer l'avoir » depuis Reversements (reprises), détail des encaissements par créancier, relevés PDF et envois, reprises (questions 156 à 159)
 
 ## Lot Q — Envois (état au 26/11/2026)
