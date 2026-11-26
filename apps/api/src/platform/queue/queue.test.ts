@@ -693,6 +693,7 @@ describe('purge', () => {
       notifications: 0,
       'support-tickets': 0,
       'claim-imports': 0,
+      'credit-note-drafts': 0,
       'limited-messages': 0,
       'task-marks': 0,
       'ai-suggestions': 0,
@@ -702,7 +703,7 @@ describe('purge', () => {
     };
     expect(await purge(jobs, logger, storage)).toEqual(counts);
     expect(await rows('SELECT action FROM audit_log')).toEqual([{ action: 'KEPT_ENTRY' }]);
-    const kept = await rows<{ kind: string; removed: number }>('SELECT kind, removed FROM retention_runs ORDER BY ran_at DESC LIMIT 16');
+    const kept = await rows<{ kind: string; removed: number }>('SELECT kind, removed FROM retention_runs ORDER BY ran_at DESC LIMIT 17');
     expect(Object.fromEntries(kept.map((row) => [row.kind, row.removed]))).toEqual(counts);
     // The key of a task still to come is kept, however old it is.
     expect(await rows('SELECT right(key, 1) AS key FROM task_keys ORDER BY key')).toEqual([{ key: '2' }, { key: '3' }]);
@@ -725,7 +726,7 @@ describe('purge', () => {
     await Promise.all([scheduleMaintenance(valkey, prefix), scheduleMaintenance(valkey, prefix)]);
     expect(await valkey.zcard(`${prefix}:maintenance:repeat`)).toBe(1);
     await queue().add('purge', {});
-    await until(() => logged('purge done') === 16);
+    await until(() => logged('purge done') === 17);
   });
 
   it('is out of reach of the HTTP API', async () => {

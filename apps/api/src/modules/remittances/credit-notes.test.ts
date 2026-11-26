@@ -151,6 +151,12 @@ describe('a credit note', () => {
     );
     // The tax of the line, in proportion: 20 % of 20,88 €.
     expect(made).toMatchObject({ net_cents: '2088', vat_cents: '418', gross_cents: '2506', corrected_id: invoice.id, scope: 'PARTIAL' });
+    // What it prints, as it was at its issuance.
+    const [{ snapshot }] = (await rows<{ snapshot: Record<string, Record<string, string>> }>('SELECT snapshot FROM billing_documents WHERE id = $1', [
+      (first.body as { id: string }).id,
+    ])) as [{ snapshot: Record<string, Record<string, string>> }];
+    expect(snapshot.firm).toMatchObject({ siren: '732829007', vat: 'FR44732829007' });
+    expect(snapshot.client).toMatchObject({ legalName: 'Matériaux Avoir SAS', postalCode: '69007', city: 'Lyon' });
     const after = await read();
     expect(after.invoices.find((item) => item.id === invoice.id)).toMatchObject({ left: 20_400 - 2_506, credited: 1 });
     expect(after.items.find((item) => item.number === made!.number)).toMatchObject({
@@ -263,8 +269,76 @@ describe('a credit note', () => {
     const other = (deleted.body as { id: string }).id;
     expect((await call('director', 'DELETE', `/credit-notes/drafts/${other}`)).status).toBe(204);
     expect((await call('director', 'DELETE', `/credit-notes/drafts/${other}`)).status).toBe(404);
+    // The draft of another invoice: what would be issued is not what was shown.
+    const elsewhere = await settledInvoice('Ailleurs Delta');
+    expect((await issue(elsewhere.invoice, { followUp: 'TRANSFER', lines: [{ lineId: elsewhere.invoice.lines[0]!.id, net: 100 }], draftId: id })).status).toBe(
+      409,
+    );
+    expect((await read()).drafts.find((item) => item.id === id)).toBeDefined();
+    // Created and deleted: in the audit, without what was typed.
+    expect(await rows('SELECT action, params FROM audit_log WHERE entity_id = $1 ORDER BY occurred_at', [other])).toEqual([
+      { action: 'CREDIT_NOTE_DRAFT_SAVED', params: {} },
+      { action: 'CREDIT_NOTE_DRAFT_DELETED', params: {} },
+    ]);
     expect((await issue(invoice, { followUp: 'TRANSFER', lines: body.lines, draftId: id })).status).toBe(200);
     expect((await read()).drafts.find((item) => item.id === id)).toBeUndefined();
+  });
+
+  it('takes the tax of a line in proportion, never more than is left of it', async () => {
+    await fillFirm();
+    const { creditor } = await creditorWith('Arrondi Delta');
+    const id = randomUUID();
+    await rows(
+      `INSERT INTO billing_documents (id, kind, number, creditor_id, issued_on, net_cents, vat_cents, gross_cents, created_by)
+       VALUES ($1, 'INVOICE', $2, $3, current_date, 10, 2, 12, $4)`,
+      [id, `FA-${year()}-${(manual += 1)}`, creditor, test.s.director],
+    );
+    await rows("INSERT INTO billing_lines (document_id, label, net_cents, vat_cents, gross_cents) VALUES ($1, 'Petite ligne', 10, 2, 12)", [id]);
+    for (const [round, vat] of [
+      [1, '1'],
+      [2, '1'],
+      [3, '0'],
+    ] as const) {
+      const invoice = (await read()).invoices.find((item) => item.id === id)!;
+      const answer = await issue(invoice, { lines: [{ lineId: invoice.lines[0]!.id, net: 3 }], followUp: 'DEDUCTED' });
+      expect(answer.status, `${round} ${JSON.stringify(answer.body)}`).toBe(200);
+      expect(await rows('SELECT vat_cents FROM billing_documents WHERE id = $1', [(answer.body as { id: string }).id])).toEqual([{ vat_cents: vat }]);
+    }
+  });
+
+  it('refuses a reason that names a debtor of a case the caller may read, and tells nothing of the others', async () => {
+    await fillFirm();
+    const { invoice, mandate, creditor } = await settledInvoice('Motif Delta');
+    // The cases of the invoice's creditor are those of « Débiteur », held by a claims officer.
+    const named = await issue(invoice, { reason: 'Chèque de la société Débiteur revenu impayé' });
+    expect(named.status).toBe(422);
+    expect(named.body).toEqual({ code: 'DEBTOR_NAME' });
+    expect((await issue(invoice, { reason: 'Chèque de la société Débiteur revenu impayé' }, 'manager')).status).toBe(422);
+    // A case of the Director's own: the manager cannot read it, so its debtor is not looked for.
+    const [debtor] = await rows<{ id: string }>("INSERT INTO debtors (kind, name, siren) VALUES ('COMPANY', 'Ouvrages Discrets', $1) RETURNING id", [
+      String(600_000_000 + reference),
+    ]);
+    await rows("INSERT INTO cases (reference, creditor_id, debtor_id, officer_id, mandate_id, status) VALUES ($1, $2, $3, $4, $5, 'OVERDUE')", [
+      `LGR-2026-${(reference += 1)}`,
+      creditor,
+      debtor!.id,
+      test.s.director,
+      mandate,
+    ]);
+    expect((await issue(invoice, { reason: 'Erreur pour Ouvrages Discrets' })).status).toBe(422);
+    expect((await issue(invoice, { reason: 'Erreur pour Ouvrages Discrets' }, 'manager')).status).toBe(200);
+  });
+
+  it('says which value of the firm is missing, even when it is empty', async () => {
+    const { invoice } = await settledInvoice('Vide Delta');
+    await rows("INSERT INTO settings (key, value, updated_by) VALUES ('firm.cabinet.phone', to_jsonb(''::text), $1)", [test.s.director]);
+    try {
+      const answer = await issue(invoice);
+      expect(answer.status).toBe(409);
+      expect(answer.body).toMatchObject({ code: 'FIRM_INCOMPLETE', missing: expect.arrayContaining(['phone']) });
+    } finally {
+      await rows("DELETE FROM settings WHERE key = 'firm.cabinet.phone'");
+    }
   });
 
   it('is for the Director and the manager acting for them only', async () => {

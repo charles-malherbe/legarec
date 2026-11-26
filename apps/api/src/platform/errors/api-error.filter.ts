@@ -36,6 +36,9 @@ function toApiError(error: unknown): ApiError | null {
     // Raised by our own functions (app.refuse): what was asked no longer holds.
     case 'LG409':
       return new ApiError(409, 'CHANGED');
+    // The reason of a credit note names a debtor (app.issue_credit_note).
+    case 'LG422':
+      return new ApiError(422, 'DEBTOR_NAME');
     // Nothing there; an identifier that is not one designates nothing either.
     case 'LG404':
     case 'P2025':

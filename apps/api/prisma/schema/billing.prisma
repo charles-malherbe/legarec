@@ -109,6 +109,7 @@ model BillingDocument {
   reason       String?
   scope        CreditNoteScope?
   followUp     CreditNoteFollowUp? @map("follow_up")
+  snapshot     Json?
   createdBy    String      @map("created_by") @db.Uuid
   onBehalfOfId String?     @map("on_behalf_of_id") @db.Uuid
   createdAt    DateTime    @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)

@@ -11,6 +11,8 @@ CREATE TYPE credit_note_follow_up AS ENUM ('NEXT_REMITTANCE', 'TRANSFER', 'DEDUC
 -- E6: the scope and the follow-up of a credit note; the line of the invoice that each of its lines corrects.
 ALTER TABLE billing_documents ADD COLUMN scope credit_note_scope;
 ALTER TABLE billing_documents ADD COLUMN follow_up credit_note_follow_up;
+-- What a credit note prints, as it was at its issuance: the identity of the firm and that of the client.
+ALTER TABLE billing_documents ADD COLUMN snapshot jsonb CHECK (snapshot IS NULL OR jsonb_typeof(snapshot) = 'object');
 ALTER TABLE billing_documents ADD CONSTRAINT billing_documents_credit_note_check
   CHECK ((kind = 'CREDIT_NOTE') = (scope IS NOT NULL AND follow_up IS NOT NULL AND reason IS NOT NULL));
 ALTER TABLE billing_documents ADD CONSTRAINT billing_documents_amounts_check CHECK (net_cents >= 0 AND vat_cents >= 0);
@@ -44,6 +46,8 @@ CREATE TABLE credit_note_drafts (
 GRANT CREATE ON SCHEMA app TO legarec_definer;
 GRANT SELECT, INSERT, UPDATE (remittance_id) ON credit_note_refunds TO legarec_definer;
 GRANT SELECT, INSERT, UPDATE (scope, lines, reason, follow_up, updated_at), DELETE ON credit_note_drafts TO legarec_definer;
+-- The identity of the client, printed on the credit note as it is on the day of its issuance.
+GRANT SELECT (legal_name, address, postal_code, city, siren, vat_number) ON creditors TO legarec_definer;
 SET LOCAL ROLE legarec_definer;
 
 -- The invoices of the firm as a credit note sees them: what each line still bills, and how much the invoice still bills.
@@ -90,8 +94,8 @@ BEGIN
           'lines', (SELECT coalesce(jsonb_agg(jsonb_build_object('id', l.id, 'label', l.label, 'net', l.net_cents, 'vat', l.vat_cents, 'leftNet', l.left_net_cents,
             'leftVat', l.left_vat_cents)), '[]') FROM app.invoice_lines_left(d.id) l))
         ORDER BY d.issued_on DESC, d.number DESC)
-      FROM (SELECT i.*, app.invoice_left(i.id) AS left_cents FROM public.billing_documents i WHERE i.kind = 'INVOICE' ORDER BY i.issued_on DESC, i.number DESC LIMIT 500) d
-      WHERE d.left_cents > 0), '[]'),
+      FROM (SELECT * FROM (SELECT i.*, app.invoice_left(i.id) AS left_cents FROM public.billing_documents i WHERE i.kind = 'INVOICE') o
+        WHERE o.left_cents > 0 ORDER BY o.issued_on DESC, o.number DESC LIMIT 500) d), '[]'),
     'items', coalesce((
       SELECT jsonb_agg(jsonb_build_object('id', c.id, 'number', c.number, 'issuedOn', c.issued_on, 'creditorId', c.creditor_id, 'invoiceId', i.id,
           'invoice', i.number, 'invoiceIssuedOn', i.issued_on, 'invoiceLeft', app.invoice_left(i.id), 'scope', c.scope, 'net', c.net_cents, 'vat', c.vat_cents,
@@ -146,6 +150,7 @@ BEGIN
   IF draft IS NULL THEN
     INSERT INTO public.credit_note_drafts (invoice_id, scope, lines, reason, follow_up, created_by, on_behalf_of_id)
     VALUES (invoice, wanted_scope, lines, btrim(reason), follow, app.user_id(), app.on_behalf_of()) RETURNING id INTO saved;
+    PERFORM app.log('CREDIT_NOTE_DRAFT_SAVED', 'credit_note_draft', saved, '{}'::jsonb);
   ELSE
     UPDATE public.credit_note_drafts d SET scope = wanted_scope, lines = save_credit_note_draft.lines, reason = btrim(save_credit_note_draft.reason),
       follow_up = follow, updated_at = now()
@@ -168,6 +173,7 @@ BEGIN
   IF NOT FOUND THEN
     PERFORM app.refuse('LG404');
   END IF;
+  PERFORM app.log('CREDIT_NOTE_DRAFT_DELETED', 'credit_note_draft', draft, '{}'::jsonb);
 END
 $$;
 
@@ -176,7 +182,7 @@ $$;
 -- that is left of it when the line is credited in full. A total credit note takes every line in full, whatever was typed.
 -- Under the lock of the remittances: a batch validated at the same time sees it, or not at all.
 CREATE FUNCTION app.issue_credit_note(invoice uuid, wanted_scope credit_note_scope, lines jsonb, reason text, follow credit_note_follow_up,
-  expected_left bigint, draft uuid) RETURNS TABLE (credit_note uuid, credit_number text)
+  expected_left bigint, draft uuid, firm jsonb) RETURNS TABLE (credit_note uuid, credit_number text)
 LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE
   made uuid := app.uuid_v7();
@@ -190,7 +196,7 @@ BEGIN
   IF app.actor_kind() IS DISTINCT FROM 'STAFF' OR NOT app.acts_as_director('ADMINISTRATIVE') THEN
     PERFORM app.refuse('42501');
   END IF;
-  IF reason IS NULL OR length(btrim(reason)) NOT BETWEEN 1 AND 1000 OR follow IS NULL OR wanted_scope IS NULL THEN
+  IF reason IS NULL OR length(btrim(reason)) NOT BETWEEN 1 AND 1000 OR follow IS NULL OR wanted_scope IS NULL OR jsonb_typeof(firm) IS DISTINCT FROM 'object' THEN
     PERFORM app.refuse('22023');
   END IF;
   PERFORM pg_advisory_xact_lock(hashtextextended('remittances', 0));
@@ -202,6 +208,17 @@ BEGIN
   IF left_cents IS DISTINCT FROM expected_left OR left_cents <= 0 THEN
     PERFORM app.refuse('LG409');
   END IF;
+  -- A draft of another invoice, or one deleted since: what was shown is no longer what would be issued.
+  IF draft IS NOT NULL AND NOT EXISTS (SELECT 1 FROM public.credit_note_drafts d WHERE d.id = draft AND d.invoice_id = invoice) THEN
+    PERFORM app.refuse('LG409');
+  END IF;
+  -- The reason is printed and kept 10 years: the reference of a case, never the name of a debtor. Only the debtors of the
+  -- cases the caller may read are looked for, so that the refusal tells nothing more.
+  IF EXISTS (SELECT 1 FROM public.cases c JOIN public.debtors d ON d.id = c.debtor_id
+    WHERE c.creditor_id = owner AND d.anonymized_at IS NULL AND app.can_read_case(c.officer_id) AND length(app.plain_name(d.name)) >= 4
+      AND position(app.plain_name(d.name) IN app.plain_name(reason)) > 0) THEN
+    PERFORM app.refuse('LG422');
+  END IF;
   -- Settled: given back with the next remittance or by a transfer; not settled: deducted from the invoice (V2).
   IF (app.invoice_settled_on(invoice) IS NOT NULL) <> (follow IN ('NEXT_REMITTANCE', 'TRANSFER')) THEN
     PERFORM app.refuse('22023');
@@ -209,7 +226,8 @@ BEGIN
   PERFORM app.check_credit_lines(invoice, lines);
   credited := (
     SELECT coalesce(jsonb_agg(jsonb_build_object('line_id', l.id, 'label', l.label, 'net_cents', w.net,
-      'vat_cents', CASE WHEN w.net = l.left_net_cents THEN l.left_vat_cents WHEN l.net_cents = 0 THEN 0 ELSE round(w.net::numeric * l.vat_cents / l.net_cents)::bigint END,
+      'vat_cents', CASE WHEN w.net = l.left_net_cents THEN l.left_vat_cents WHEN l.net_cents = 0 THEN 0
+        ELSE least(round(w.net::numeric * l.vat_cents / l.net_cents)::bigint, l.left_vat_cents) END,
       'left_net', l.left_net_cents, 'left_vat', l.left_vat_cents)), '[]')
     FROM app.invoice_lines_left(invoice) l
     CROSS JOIN LATERAL (
@@ -229,9 +247,11 @@ BEGIN
   credit_note := made;
   credit_number := 'AV-' || numbered.for_year || '-' || lpad(numbered.number::text, 4, '0');
   INSERT INTO public.billing_documents (id, kind, number, creditor_id, issued_on, net_cents, vat_cents, gross_cents, corrected_id, reason, scope, follow_up,
-    created_by, on_behalf_of_id)
+    snapshot, created_by, on_behalf_of_id)
   VALUES (made, 'CREDIT_NOTE', credit_number, owner, (now() AT TIME ZONE 'Europe/Paris')::date,
     net, vat, net + vat, invoice, btrim(reason), (CASE WHEN net + vat = left_cents THEN 'TOTAL' ELSE 'PARTIAL' END)::credit_note_scope, follow,
+    jsonb_build_object('firm', firm, 'client', (SELECT jsonb_build_object('name', c.name, 'legalName', coalesce(nullif(c.legal_name, ''), c.name),
+      'address', c.address, 'postalCode', c.postal_code, 'city', c.city, 'siren', c.siren, 'vatNumber', c.vat_number) FROM public.creditors c WHERE c.id = owner)),
     app.user_id(), app.on_behalf_of());
   INSERT INTO public.billing_lines (document_id, label, net_cents, vat_cents, gross_cents, corrected_line_id)
   SELECT made, c.label, c.net_cents, c.vat_cents, c.net_cents + c.vat_cents, c.line_id
@@ -420,7 +440,7 @@ END
 $$;
 
 GRANT EXECUTE ON FUNCTION app.credit_notes(), app.save_credit_note_draft(uuid, uuid, credit_note_scope, jsonb, text, credit_note_follow_up),
-  app.delete_credit_note_draft(uuid), app.issue_credit_note(uuid, credit_note_scope, jsonb, text, credit_note_follow_up, bigint, uuid),
+  app.delete_credit_note_draft(uuid), app.issue_credit_note(uuid, credit_note_scope, jsonb, text, credit_note_follow_up, bigint, uuid, jsonb),
   app.remittance_draft(date), app.remittance_batch(uuid) TO legarec_staff;
 RESET ROLE;
 REVOKE CREATE ON SCHEMA app FROM legarec_definer;
@@ -429,3 +449,8 @@ CALL app.secure('credit_note_refunds');
 CALL app.secure('credit_note_drafts');
 CREATE POLICY definer_all ON credit_note_refunds TO legarec_definer USING (true) WITH CHECK (true);
 CREATE POLICY definer_all ON credit_note_drafts TO legarec_definer USING (true) WITH CHECK (true);
+
+-- Drafts left aside: 30 days after their last change, as the imports never confirmed (counted in retention_runs).
+CREATE POLICY retention_purge ON credit_note_drafts FOR DELETE TO legarec_retention USING (updated_at < now() - interval '30 days');
+CREATE POLICY retention_read ON credit_note_drafts FOR SELECT TO legarec_retention USING (true);
+GRANT SELECT (id, updated_at), DELETE ON credit_note_drafts TO legarec_retention;

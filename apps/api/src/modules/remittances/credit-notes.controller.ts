@@ -98,11 +98,18 @@ export class CreditNotesController {
     const [{ allowed }] = (await tx.$queryRaw<{ allowed: boolean }[]>`SELECT app.acts_as_director('ADMINISTRATIVE') AS allowed`) as [{ allowed: boolean }];
     if (!allowed) throw forbidden();
     const values = await SettingValues.read(tx);
-    const missing = FIRM_FIELDS.map((field) => values.text('firm', 'cabinet', field)).filter((value) => !value.trim() || PLACEHOLDER.test(value));
-    if (missing.length) throw conflict('FIRM_INCOMPLETE', { missing: missing.map((value) => value.match(PLACEHOLDER)?.[0] ?? '').filter(Boolean) });
+    const firm = Object.fromEntries(FIRM_FIELDS.map((field) => [field, values.text('firm', 'cabinet', field)]));
+    // The value between brackets, or the name of the field left empty: never an empty list.
+    const missing = FIRM_FIELDS.flatMap((field) => {
+      const value = firm[field]!;
+      if (!value.trim()) return [field];
+      return PLACEHOLDER.test(value) ? [value.match(PLACEHOLDER)![0]] : [];
+    });
+    if (missing.length) throw conflict('FIRM_INCOMPLETE', { missing });
     const [made] = await tx.$queryRaw<{ id: string; number: string }[]>`
       SELECT credit_note AS id, credit_number AS number FROM app.issue_credit_note(${body.invoiceId}::uuid, ${body.scope}::credit_note_scope,
-        ${linesOf(body.lines)}::jsonb, ${body.reason}, ${body.followUp}::credit_note_follow_up, ${body.expectedLeft}::bigint, ${body.draftId}::uuid)`;
+        ${linesOf(body.lines)}::jsonb, ${body.reason}, ${body.followUp}::credit_note_follow_up, ${body.expectedLeft}::bigint, ${body.draftId}::uuid,
+        ${JSON.stringify(firm)}::jsonb)`;
     return made!;
   }
 

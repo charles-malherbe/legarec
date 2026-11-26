@@ -107,10 +107,10 @@ export const creditNoteIssue = creditNoteDraftBody.extend({
   draftId: z.string().min(1).max(ID_MAX).nullable(),
 });
 
-/** VAT of a line credited: that of the invoice line, in proportion; all that is left when the line is credited in full. */
+/** VAT of a line credited: that of the invoice line, in proportion, never more than is left of it; all that is left when the line is credited in full. */
 export function creditedVat(line: { net: number; vat: number; leftNet: number; leftVat: number }, net: number): number {
   if (net === line.leftNet) return line.leftVat;
-  return line.net === 0 ? 0 : Math.round((net * line.vat) / line.net);
+  return line.net === 0 ? 0 : Math.min(Math.round((net * line.vat) / line.net), line.leftVat);
 }
 
 export const CREDIT_NOTE_FOLLOW_UP_LABELS: Record<CreditNoteFollowUp, string> = {
