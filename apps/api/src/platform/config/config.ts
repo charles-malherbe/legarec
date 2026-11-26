@@ -30,7 +30,7 @@ const common = {
     .optional(),
   /** The provider behind the single interface; `simulated` outside production only. */
   AI_PROVIDER: z.enum(['anthropic', 'openai-compatible', 'simulated']).optional(),
-  /** Address of a provider compatible with OpenAI (Scaleway, OVH, or the server of the firm). */
+  /** Address of a provider compatible with OpenAI (OVHcloud, or the server of the firm). */
   AI_BASE_URL: z.url().optional(),
   /** What a million tokens costs, in euros, sent and received: without it, no budget can be kept, and the AI stays off. */
   AI_PRICE_INPUT: z.coerce.number().min(0).max(1000).optional(),
@@ -96,7 +96,7 @@ function read<T extends z.ZodType<Partial<Config> & Pick<Config, 'NODE_ENV' | 'M
   // No live key and no real bucket outside production, even by mistake.
   const live = Object.keys(env).filter((name) => env[name]?.startsWith('live_'));
   if (live.length) throw new ConfigError(`Live keys refused outside production: ${live.join(', ')}`);
-  if (env.SCW_DOCUMENTS_BUCKET === 'legarec-documents') throw new ConfigError('Production bucket refused outside production: SCW_DOCUMENTS_BUCKET');
+  if (env.S3_DOCUMENTS_BUCKET === 'legarec-documents') throw new ConfigError('Production bucket refused outside production: S3_DOCUMENTS_BUCKET');
   if (config.MYSENDINGBOX_ENV === 'production') throw new ConfigError('Real letters refused outside production: MYSENDINGBOX_ENV');
   return Object.freeze(config);
 }

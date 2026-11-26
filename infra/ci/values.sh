@@ -6,7 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 hex() { openssl rand -hex 24; }
 declare -A value=(
-  [ACME_EMAIL]=ci@example.com [AUTHORIZED_IPS]=192.0.2.1 [SCW_REGION]=ci
+  [ACME_EMAIL]=ci@example.com [AUTHORIZED_IPS]=192.0.2.1 [S3_REGION]=ci
   [VAULT_MASTER_KEY]="$(openssl rand -base64 32)" [SESSION_SIGNING_KEY]="$(openssl rand -base64 32)"
   [POSTGRES_PASSWORD]="$(hex)" [LEGAREC_OWNER_PASSWORD]="$(hex)" [LEGAREC_APP_PASSWORD]="$(hex)" [LEGAREC_JOBS_PASSWORD]="$(hex)"
   [VALKEY_PASSWORD]="$(hex)" [GATUS_WORKER_TOKEN]="$(hex)" [GATUS_BACKUP_TOKEN]="$(hex)" [GATUS_RESTORE_TOKEN]="$(hex)" [GATUS_ALERT_KEY]="$(hex)" [GATUS_ALERT_TO]=ci@example.com
@@ -35,7 +35,9 @@ for name in "${!group[@]}"; do
     if [[ "$line" =~ ^[A-Z0-9_]+=($|\[) ]]; then
       [ -n "${value[$key]:-}" ] || [[ "$key" == PGBACKREST_REPO1_S3_* ]] || { echo "No value for $key" >&2; exit 1; }
       if [ -n "${value[$key]:-}" ]; then printf '%s=%s\n' "$key" "${value[$key]}"; fi
-    elif [[ "$line" == *=* && "$line" != '#'* && "$line" != PGBACKREST_REPO1_S3_* ]]; then printf '%s\n' "$line"
+    # A value of this job wins over the one written in the example: the job never calls the real provider.
+    elif [[ "$line" == *=* && "$line" != '#'* && "$line" != PGBACKREST_REPO1_S3_* ]]; then
+      if [ -n "${value[$key]:-}" ]; then printf '%s=%s\n' "$key" "${value[$key]}"; else printf '%s\n' "$line"; fi
     fi
   done < "infra/valeurs/$name.env.exemple" > "$file"
 done
@@ -47,3 +49,5 @@ done
 # Certificates of the job: nothing is asked to Let's Encrypt.
 sed '0,/^{$/s//{\n\tlocal_certs\n\tskip_install_trust/' infra/caddy/Caddyfile > /var/lib/legarec-ci/Caddyfile
 grep -q local_certs /var/lib/legarec-ci/Caddyfile
+# The bucket of the firm is never called from here.
+grep -qx 'S3_REGION=ci' /etc/legarec/caddy.env

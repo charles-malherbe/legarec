@@ -463,7 +463,7 @@ export const technicalGroups = (): SettingGroup[] => [
               ['Resend', 'E-mails transactionnels : quittances, liens de paiement, relances automatiques, codes', off],
               ['OVH MX Plan', 'Messagerie de l’équipe en SMTP / IMAP', off],
               ['MySendingBox', 'Lettres recommandées et courriers postaux · comptes test et production', off],
-              ['Scaleway Object Storage', 'Stockage S3 des documents, pièces et courriers', off],
+              ['OVHcloud Object Storage', 'Stockage S3 des documents, pièces et courriers', off],
               ['Signature électronique', 'Signature des échéanciers par le débiteur', off],
               ['Données entreprises', 'Vérification SIREN, procédures collectives', off],
             ],

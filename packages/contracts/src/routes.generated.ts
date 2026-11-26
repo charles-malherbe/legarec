@@ -4912,7 +4912,7 @@ export interface operations {
                         items: {
                             id: string;
                             /** @enum {string} */
-                            name: "RESEND_API_KEY" | "RESEND_ACCOUNT_API_KEY" | "RESEND_WEBHOOK_SECRET" | "MYSENDINGBOX_API_KEY" | "MYSENDINGBOX_TEST_API_KEY" | "SCW_ACCESS_KEY" | "SCW_SECRET_KEY" | "OVH_API_APP_KEY" | "OVH_API_APP_SECRET" | "OVH_API_CONSUMER_KEY" | "OVH_SMS_APP_KEY" | "OVH_SMS_APP_SECRET" | "OVH_SMS_CONSUMER_KEY" | "OVH_SMS_SERVICE_NAME" | "COLLECTION_MAILBOX_PASSWORD" | "TCX_API_CLIENT_ID" | "TCX_API_CLIENT_SECRET" | "AI_API_KEY" | "MAILBOX_SECRETS_KEY" | "ACCESS_CODE_KEY" | "LOOKUP_KEY";
+                            name: "RESEND_API_KEY" | "RESEND_ACCOUNT_API_KEY" | "RESEND_WEBHOOK_SECRET" | "MYSENDINGBOX_API_KEY" | "MYSENDINGBOX_TEST_API_KEY" | "S3_ACCESS_KEY" | "S3_SECRET_KEY" | "OVH_API_APP_KEY" | "OVH_API_APP_SECRET" | "OVH_API_CONSUMER_KEY" | "OVH_SMS_APP_KEY" | "OVH_SMS_APP_SECRET" | "OVH_SMS_CONSUMER_KEY" | "OVH_SMS_SERVICE_NAME" | "COLLECTION_MAILBOX_PASSWORD" | "TCX_API_CLIENT_ID" | "TCX_API_CLIENT_SECRET" | "AI_API_KEY" | "MAILBOX_SECRETS_KEY" | "ACCESS_CODE_KEY" | "LOOKUP_KEY";
                             internal: boolean;
                             service: string;
                             environment: string;

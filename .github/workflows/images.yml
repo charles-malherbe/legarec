@@ -71,7 +71,7 @@ jobs:
           image="$(sudo cat /etc/legarec/version.env | cut -d= -f2)"
           docker run --rm "legarec/caddy:$image" caddy fmt --diff /etc/caddy/Caddyfile
           docker run --rm "legarec/espace:$image" caddy fmt --diff /etc/caddy/Caddyfile
-          docker run --rm --env ACME_EMAIL=ci@example.com --env AUTHORIZED_IPS=192.0.2.1 --env SCW_REGION=ci "legarec/caddy:$image" caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+          docker run --rm --env ACME_EMAIL=ci@example.com --env AUTHORIZED_IPS=192.0.2.1 --env S3_REGION=ci "legarec/caddy:$image" caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
           docker run --rm "legarec/loki:$image" -config.file=/etc/loki/loki.yaml -verify-config
           docker run --rm "legarec/journaux:$image" -c /fluent-bit/etc/legarec.yaml --dry-run
       - name: What it does, and never does

@@ -315,7 +315,7 @@ export const ACCOUNT_PARITY: Parity[] = [
   ...each(['manager', 'officer'], () => ({ request: 'GET /secrets', status: 403, answer: code('FORBIDDEN') })),
   { as: 'director', request: 'POST /secrets', body: { name: 'AI_API_KEY', value: 'valeur-fictive', rotation: '90' }, status: 204 },
   { as: 'developer', request: 'POST /secrets', body: { name: 'AI_API_KEY', value: 'autre', rotation: '90' }, status: 409, answer: code('SECRET_EXISTS') },
-  { as: 'developer', request: 'POST /secrets', body: { name: 'SCW_ACCESS_KEY', value: 'valeur-fictive', rotation: 'MANUAL' }, status: 204 },
+  { as: 'developer', request: 'POST /secrets', body: { name: 'S3_ACCESS_KEY', value: 'valeur-fictive', rotation: 'MANUAL' }, status: 204 },
   { as: 'manager', request: 'POST /secrets', body: { name: 'AI_API_KEY', value: 'valeur-fictive', rotation: '90' }, status: 403, answer: code('FORBIDDEN') },
   { as: 'director', request: 'POST /secrets', body: { name: 'INCONNU', value: 'valeur-fictive', rotation: '90' }, status: 422, answer: refused('INVALID') },
   { as: 'director', request: `POST /secrets/${UNKNOWN}/rotate`, body: { value: 'valeur-fictive' }, status: 404, answer: code('NOT_FOUND') },

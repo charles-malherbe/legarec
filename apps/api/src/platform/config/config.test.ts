@@ -43,7 +43,7 @@ describe('startup values', () => {
 
   it('refuses a live key, the real bucket and real letters outside production', () => {
     expect(() => readConfig({ ...base(), MYSENDINGBOX_API_KEY: 'live_x' })).toThrow('MYSENDINGBOX_API_KEY');
-    expect(() => readConfig({ ...base(), SCW_DOCUMENTS_BUCKET: 'legarec-documents' })).toThrow('SCW_DOCUMENTS_BUCKET');
+    expect(() => readConfig({ ...base(), S3_DOCUMENTS_BUCKET: 'legarec-documents' })).toThrow('S3_DOCUMENTS_BUCKET');
     expect(() => readConfig({ ...base(), MYSENDINGBOX_ENV: 'production' })).toThrow('MYSENDINGBOX_ENV');
   });
 

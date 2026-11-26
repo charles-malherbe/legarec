@@ -1,5 +1,5 @@
 # Reverse proxy of production, after kits/caddy/Caddyfile.exemple. No secret here: the values that depend on the server
-# come from /etc/legarec/caddy.env (ACME_EMAIL, AUTHORIZED_IPS, SCW_REGION). Without AUTHORIZED_IPS, nobody is authorised.
+# come from /etc/legarec/caddy.env (ACME_EMAIL, AUTHORIZED_IPS, S3_REGION). Without AUTHORIZED_IPS, nobody is authorised.
 {
 	email {$ACME_EMAIL}
 	# No remote control, and nothing written but the certificates.
@@ -185,8 +185,8 @@ media.legarec.fr {
 	respond @change 405
 	# Public bucket (its listing is off on the side of the bucket).
 	rewrite * ?
-	reverse_proxy https://legarec-media.s3.{$SCW_REGION}.scw.cloud {
-		header_up Host legarec-media.s3.{$SCW_REGION}.scw.cloud
+	reverse_proxy https://legarec-media.s3.{$S3_REGION}.io.cloud.ovh.net {
+		header_up Host legarec-media.s3.{$S3_REGION}.io.cloud.ovh.net
 		header_up -Authorization
 		header_up -Cookie
 		# Who looks at a logo, and where, stays with the firm.
@@ -195,6 +195,8 @@ media.legarec.fr {
 		header_up -Referer
 		header_up -User-Agent
 		header_down -Set-Cookie
+		# Nothing of the provider goes down to the visitor.
+		header_down -X-Amz-*
 		# Versioned paths, never replaced: kept for a year, but not an error.
 		@found status 200 206 304
 		handle_response @found {

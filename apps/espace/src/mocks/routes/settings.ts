@@ -58,7 +58,7 @@ const seedSecrets = (): SecretItem[] =>
       ['k-box', 'MAILBOX_SECRETS_KEY', 'Boîtes OVH (chiffrement des mots de passe)', 'il y a 1 min', '24/08/2026', 'EXPIRING'],
       ['k-ovh', 'OVH_API_APP_SECRET', 'API OVHcloud (boîtes e-mail)', 'il y a 1 h', '24/08/2026', 'VALID'],
       ['k-msb', 'MYSENDINGBOX_API_KEY', 'MySendingBox (lettres recommandées)', 'il y a 4 min', '15/09/2026', 'VALID'],
-      ['k-s3', 'SCW_SECRET_KEY', 'Scaleway Object Storage (fichiers)', 'il y a 3 min', '15/09/2026', 'VALID'],
+      ['k-s3', 'S3_SECRET_KEY', 'OVHcloud Object Storage (fichiers)', 'il y a 3 min', '15/09/2026', 'VALID'],
       ['k-sms', 'OVH_SMS_APP_SECRET', 'OVHcloud SMS', 'il y a 14 min', '30/09/2026', 'VALID'],
       ['k-3cx', 'TCX_API_CLIENT_SECRET', '3CX (API Call Control)', 'en continu', '01/09/2026', 'EXPIRING'],
       ['k-access', 'ACCESS_CODE_KEY', INTERNAL_SECRETS.ACCESS_CODE_KEY, 'en continu', '06/11/2026', 'VALID'],
