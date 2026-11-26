@@ -2,6 +2,7 @@
 -- * a counter by debtor as well as by identifier: an individual with many cases has as many references, and each of them
 --   gave ten more tries at the same code. Ten failures in all on the identifiers of one debtor now block them;
 -- * the alert beyond 200 failures an hour in all (question 114): told to the Director and the Developer, once an hour at most.
+-- The sign-in takes one argument more (the key of the counters of the debtors): dropped and made again.
 
 ALTER TYPE notification_kind ADD VALUE 'DEBTOR_ACCESS_ALERT';
 
@@ -9,12 +10,15 @@ GRANT CREATE ON SCHEMA app TO legarec_definer;
 SET LOCAL ROLE legarec_definer;
 
 -- As before (20261126040000_debtor_access), with a second counter: the one of the debtor the identifier names, kept in
--- `lockouts` under a fingerprint of their id (an unknown identifier has one of its own, under a fingerprint of the
--- identifier: the same work whatever the identifier). The answer stays the one of the identifier typed: answering by the
+-- `lockouts` under a fingerprint of their id keyed by `salt` (derived by the API from VAULT_MASTER_KEY, as the other keys
+-- of `lockouts`; an unknown identifier has one of its own, under a fingerprint of the identifier: the same work whatever
+-- the identifier). The answer stays the one of the identifier typed: answering by the
 -- counter of the debtor would tell that two references belong to the same person, and that an unknown one does not. Once
 -- the debtor counts ten failures, the code is no longer compared on any of their identifiers until it is renewed; the block
--- is told once, whichever counter reaches ten first.
-CREATE OR REPLACE FUNCTION app.debtor_sign_in(wanted_kind text, wanted_value text, attempt bytea, typed bytea, hash bytea, remembered boolean, address inet,
+-- is told once, whichever counter reaches ten first. A right code forgets the failures of the identifier typed only: the
+-- counter of the debtor goes back to what their other identifiers still count (question 177).
+DROP FUNCTION app.debtor_sign_in(text, text, bytea, bytea, bytea, boolean, inet);
+CREATE FUNCTION app.debtor_sign_in(wanted_kind text, wanted_value text, attempt bytea, typed bytea, hash bytea, remembered boolean, address inet, salt bytea,
   OUT outcome text, OUT attempts_left integer, OUT minutes integer, OUT debtor uuid)
 LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE
@@ -26,6 +30,8 @@ DECLARE
   counted integer;
   counted_whole integer;
   was_blocked boolean;
+  still integer;
+  latest timestamptz;
 BEGIN
   IF app.actor_kind() IS DISTINCT FROM 'ANONYMOUS' THEN
     PERFORM app.refuse('42501');
@@ -52,7 +58,11 @@ BEGIN
     minutes := ceil(extract(epoch FROM known.locked_until - now()) / 60)::integer;
     RETURN;
   END IF;
-  whole_key := sha256(convert_to('debtor-access:' || coalesce(named::text, encode(attempt, 'hex')), 'UTF8'));
+  IF octet_length(salt) IS DISTINCT FROM 32 THEN
+    PERFORM app.refuse('22023');
+  END IF;
+  -- The key first, the debtor (or the identifier) last: a fixed-length key, a message nobody but the API chooses.
+  whole_key := sha256(salt || convert_to('debtor-access:' || coalesce(named::text, encode(attempt, 'hex')), 'UTF8'));
   INSERT INTO public.lockouts (key_hash, scope, failures) VALUES (whole_key, 'DEBTOR'::text::public.attempt_scope, 0) ON CONFLICT (key_hash) DO NOTHING;
   SELECT * INTO whole FROM public.lockouts l WHERE l.key_hash = whole_key FOR UPDATE;
   IF named IS NOT NULL AND whole.debtor_id IS DISTINCT FROM named THEN
@@ -60,7 +70,15 @@ BEGIN
   END IF;
   was_blocked := whole.blocked_at IS NOT NULL;
   IF announced AND NOT was_blocked AND EXISTS (SELECT 1 FROM public.debtor_access_codes a WHERE a.debtor_id = named AND a.code_hmac = typed) THEN
-    DELETE FROM public.lockouts l WHERE l.key_hash IN (attempt, whole_key);
+    DELETE FROM public.lockouts l WHERE l.key_hash = attempt;
+    SELECT coalesce(sum(CASE WHEN l.failures < 5 AND l.last_failure_at < now() - interval '24 hours' THEN 0 ELSE l.failures END), 0), max(l.last_failure_at)
+      INTO still, latest
+    FROM public.lockouts l WHERE l.debtor_id = named AND l.scope::text = 'DEBTOR' AND l.key_hash <> whole_key;
+    IF still = 0 THEN
+      DELETE FROM public.lockouts l WHERE l.key_hash = whole_key;
+    ELSE
+      UPDATE public.lockouts l SET failures = still, last_failure_at = latest WHERE l.key_hash = whole_key;
+    END IF;
     INSERT INTO public.debtor_sessions (debtor_id, token_hash, ip, persistent, expires_at) VALUES (named, hash, address, remembered, now() + interval '12 hours');
     PERFORM app.log('DEBTOR_SIGNED_IN', NULL, NULL, '{}');
     outcome := 'OPEN';
@@ -119,7 +137,7 @@ BEGIN
   RETURN true;
 END
 $$;
-GRANT EXECUTE ON FUNCTION app.debtor_access_alert() TO legarec_auth;
+GRANT EXECUTE ON FUNCTION app.debtor_access_alert(), app.debtor_sign_in(text, text, bytea, bytea, bytea, boolean, inet, bytea) TO legarec_auth;
 RESET ROLE;
 REVOKE CREATE ON SCHEMA app FROM legarec_definer;
 CREATE POLICY definer_read_debtor_access_alert ON notifications FOR SELECT TO legarec_definer USING (kind::text = 'DEBTOR_ACCESS_ALERT');

@@ -36,6 +36,8 @@ export interface FailureWatch {
   max: number;
   seconds: number;
   suspendSeconds: number;
+  /** Failures of one network over the last `seconds` for it to be in cause. */
+  least: number;
 }
 
 /** What tries the last `span` milliseconds kept, and the one that comes when there is room for it. */
@@ -48,18 +50,26 @@ redis.call('PEXPIRE', KEYS[1], span)
 return count`;
 
 /**
- * One failure more. Beyond the limit, an episode starts when none ran during the last `span`: every network that failed
- * in that time is suspended; during an episode, the network that fails again is. 1 when an episode starts, 0 otherwise.
- * The members are `<digest of the network>:<random>`: no address is written. The list stops growing at ten times the
- * limit; the episode goes on all the same.
+ * One failure more, of this network (`''`: a request without an address, never suspended: it would be everybody at once).
+ * Beyond the limit, an episode starts when none ran during the last `span`; at its start, every network with at least
+ * `least` failures in that time is suspended, and during it, each network that reaches them. 1 while the episode has not
+ * been told (`told` says it was), 0 otherwise. The members are `<digest of the network>:<random>` (`!` without an address):
+ * no address is written. The list of all stops growing at ten times the limit; the episode goes on all the same. Keys
+ * written but not declared: one Valkey, not a cluster.
  */
 const FAILED = `
-local now, span, max, suspend = tonumber(ARGV[1]), tonumber(ARGV[2]), tonumber(ARGV[3]), tonumber(ARGV[4])
-local network, prefix = ARGV[5], ARGV[6]
-redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', now - span)
+local now, span, max, suspend, least = tonumber(ARGV[1]), tonumber(ARGV[2]), tonumber(ARGV[3]), tonumber(ARGV[4]), tonumber(ARGV[9])
+local network, off, random, per = ARGV[5], ARGV[6], ARGV[7], ARGV[8]
+local cutoff = now - span
+if network ~= '' then
+  redis.call('ZREMRANGEBYSCORE', per .. network, '-inf', cutoff)
+  redis.call('ZADD', per .. network, now, random)
+  redis.call('PEXPIRE', per .. network, span)
+end
+redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', cutoff)
 local count = redis.call('ZCARD', KEYS[1])
 if count < max * 10 then
-  redis.call('ZADD', KEYS[1], now, network .. ':' .. ARGV[7])
+  redis.call('ZADD', KEYS[1], now, (network ~= '' and network or '!') .. ':' .. random)
   count = count + 1
 end
 redis.call('PEXPIRE', KEYS[1], span)
@@ -67,15 +77,21 @@ if count <= max then return 0 end
 local last = tonumber(redis.call('GET', KEYS[2]) or '-1')
 redis.call('SET', KEYS[2], now, 'PX', span)
 local starts = last < 0 or now - last >= span
-local suspended = { [network] = true }
+if starts then redis.call('DEL', KEYS[3]) else redis.call('PEXPIRE', KEYS[3], span) end
+local candidates = {}
+if network ~= '' then candidates[network] = true end
 if starts then
   for _, member in ipairs(redis.call('ZRANGE', KEYS[1], 0, -1)) do
-    suspended[string.match(member, '^[^:]+')] = true
+    local each = string.match(member, '^[^:]+')
+    if each ~= '!' then candidates[each] = true end
   end
 end
-for each in pairs(suspended) do redis.call('SET', prefix .. each, now + suspend, 'PX', suspend) end
-if starts then return 1 end
-return 0`;
+for each in pairs(candidates) do
+  redis.call('ZREMRANGEBYSCORE', per .. each, '-inf', cutoff)
+  if redis.call('ZCARD', per .. each) >= least then redis.call('SET', off .. each, now + suspend, 'PX', suspend) end
+end
+if redis.call('EXISTS', KEYS[3]) == 1 then return 0 end
+return 1`;
 
 /** Counts by network and by window of time. No address is written in Valkey: its digest is keyed. */
 @Injectable()
@@ -116,31 +132,37 @@ export class RateLimits {
     if (until > Date.now()) throw new ApiError(429, 'TOO_MANY');
   }
 
-  /** Notes a failure of this network; true when it starts an episode beyond the limit, to be told once. */
-  async failed({ name, max, seconds, suspendSeconds }: FailureWatch, of: string = networkOf(requestFacts().ip)): Promise<boolean> {
+  /**
+   * Notes a failure of this network; true while an episode beyond the limit has not been told. The time is the one of the
+   * API (`Date.now()`), not of Valkey: one server, and the tests move it.
+   */
+  async failed({ name, max, seconds, suspendSeconds, least }: FailureWatch, of: string = networkOf(requestFacts().ip)): Promise<boolean> {
     // The keys of all networks are kept apart from those of another deployment (or another test) by the keyed digest.
     const all = this.digest(`all:${name}`);
     const answer = await this.ask(() =>
       this.valkey.eval(
         FAILED,
-        2,
+        3,
         `limit:${name}:all:${all}`,
         `limit:${name}:episode:${all}`,
+        `limit:${name}:told:${all}`,
         Date.now(),
         seconds * 1000,
         max,
         suspendSeconds * 1000,
-        this.digest(of),
+        of === 'unknown' ? '' : this.digest(of),
         `limit:${name}:off:`,
         randomBytes(8).toString('hex'),
+        `limit:${name}:by:`,
+        least,
       ),
     );
     return answer === 1;
   }
 
-  /** The episode was not told after all (the alert could not be written): the next failure beyond the limit starts it again. */
-  async untold({ name }: FailureWatch): Promise<void> {
-    await this.valkey.del(`limit:${name}:episode:${this.digest(`all:${name}`)}`);
+  /** The episode under way was told: nobody is told again before it ends. */
+  async told({ name, seconds }: FailureWatch): Promise<void> {
+    await this.valkey.set(`limit:${name}:told:${this.digest(`all:${name}`)}`, '1', 'PX', seconds * 1000);
   }
 
   private digest(of: string): string {

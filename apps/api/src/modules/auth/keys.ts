@@ -13,6 +13,8 @@ export class AuthKeys {
   private readonly links: Buffer[];
   private readonly devices: Buffer;
   private readonly lookups: Buffer;
+  /** Key of the counters of the debtors, whatever their identifier (the sign-in of a debtor hashes their id with it). */
+  readonly debtorCounters: Buffer;
   /** Secrets of the authentication applications. */
   readonly vault: Keyring;
 
@@ -24,6 +26,7 @@ export class AuthKeys {
     this.devices = deriveKey(signing[0]!, 'device');
     // Not from the signing key: renewing it must not forget a lock.
     this.lookups = deriveKey(master, 'lookup');
+    this.debtorCounters = deriveKey(master, 'debtor-counter');
     this.vault = new Keyring(
       deriveKey(master, 'second-factor'),
       older.map((key) => deriveKey(key, 'second-factor')),

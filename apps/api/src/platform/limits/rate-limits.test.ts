@@ -110,40 +110,43 @@ describe('sliding limit', () => {
 
 describe('failures in all', () => {
   afterEach(() => vi.useRealTimers());
-  const watch = { name: 'watched', max: 3, seconds: 3600, suspendSeconds: 900 };
+  const watch = { name: 'watched', max: 3, seconds: 3600, suspendSeconds: 900, least: 3 };
 
-  it('starts an episode beyond the limit, once, and suspends 15 minutes the networks in cause only', async () => {
+  it('tells an episode beyond the limit until it is told, and suspends 15 minutes the networks of three failures only', async () => {
     vi.useFakeTimers({ toFake: ['Date'], now: Date.now() });
     const limits = new RateLimits(valkey, config());
-    expect(await limits.failed(watch, 'a')).toBe(false);
-    expect(await limits.failed(watch, 'a')).toBe(false);
-    expect(await limits.failed(watch, 'b')).toBe(false);
+    for (let i = 0; i < 3; i += 1) expect(await limits.failed(watch, 'a')).toBe(false);
     await limits.refuseSuspended(watch, 'a');
-    // The fourth: an episode, told once.
+    // The fourth: an episode, to be told; the network of three failures is suspended, the one of one is not.
+    expect(await limits.failed(watch, 'b')).toBe(true);
+    await expect(limits.refuseSuspended(watch, 'a')).rejects.toMatchObject({ status: 429, code: 'TOO_MANY' });
+    await limits.refuseSuspended(watch, 'b');
+    // Not told yet (the alert could not be written): the next failure says it again.
     expect(await limits.failed(watch, 'c')).toBe(true);
-    for (const of of ['a', 'b', 'c']) await expect(limits.refuseSuspended(watch, of)).rejects.toMatchObject({ status: 429, code: 'TOO_MANY' });
-    await limits.refuseSuspended(watch, 'd');
-    // The same episode: the network that fails is suspended, nobody told again.
-    expect(await limits.failed(watch, 'd')).toBe(false);
-    await expect(limits.refuseSuspended(watch, 'd')).rejects.toMatchObject({ status: 429 });
+    await limits.told(watch);
+    // The same episode: a network is suspended at its third failure, nobody told again.
+    expect(await limits.failed(watch, 'b')).toBe(false);
+    await limits.refuseSuspended(watch, 'b');
+    expect(await limits.failed(watch, 'b')).toBe(false);
+    await expect(limits.refuseSuspended(watch, 'b')).rejects.toMatchObject({ status: 429 });
+    await limits.refuseSuspended(watch, 'c');
+    // A request without an address is everybody at once: counted, never suspended.
+    for (let i = 0; i < 5; i += 1) await limits.failed(watch, 'unknown');
+    await limits.refuseSuspended(watch, 'unknown');
     vi.setSystemTime(Date.now() + 900_000 + 1);
-    for (const of of ['a', 'b', 'c', 'd']) await limits.refuseSuspended(watch, of);
-    // An hour without a failure beyond the limit: the next one is a new episode.
+    for (const of of ['a', 'b']) await limits.refuseSuspended(watch, of);
+    // An hour without a failure beyond the limit: the next one is a new episode, to be told again.
     vi.setSystemTime(Date.now() + 3_600_000);
     for (const of of ['a', 'b', 'c']) expect(await limits.failed(watch, of)).toBe(false);
-    expect(await limits.failed(watch, 'e')).toBe(true);
-    // Not told after all: the next failure starts it again.
-    await limits.untold(watch);
-    expect(await limits.failed(watch, 'f')).toBe(true);
-    expect(await limits.failed(watch, 'g')).toBe(false);
+    expect(await limits.failed(watch, 'd')).toBe(true);
   });
 
   it('keeps no address, and every key ends', async () => {
     const limits = new RateLimits(valkey, config());
     const name = `kept-${randomBytes(4).toString('hex')}`;
-    for (let i = 0; i < 3; i += 1) await limits.failed({ ...watch, name, max: 1 }, '203.0.113.98');
+    for (let i = 0; i < 3; i += 1) await limits.failed({ ...watch, name, max: 1, least: 1 }, '203.0.113.98');
     const keys = await valkey.keys(`limit:${name}:*`);
-    expect(keys.length).toBeGreaterThan(2);
+    expect(keys.length).toBeGreaterThan(3);
     for (const key of keys) {
       expect(key).not.toContain('203.0.113.98');
       expect(await valkey.ttl(key)).toBeGreaterThan(0);
