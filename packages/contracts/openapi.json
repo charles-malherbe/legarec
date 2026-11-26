@@ -7297,6 +7297,683 @@
         }
       }
     },
+    "/debtor/session": {
+      "get": {
+        "operationId": "DebtorController_session",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "greeting": {
+                      "type": "string"
+                    },
+                    "debtor": {
+                      "type": "string"
+                    },
+                    "cases": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": "string"
+                          },
+                          "creditor": {
+                            "type": "string"
+                          },
+                          "balance": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "statusLabel": {
+                            "type": "string"
+                          },
+                          "statusTone": {
+                            "type": "string",
+                            "enum": [
+                              "neutral",
+                              "info",
+                              "success",
+                              "warning",
+                              "danger",
+                              "violet"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "reference",
+                          "creditor",
+                          "balance",
+                          "statusLabel",
+                          "statusTone"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "greeting",
+                    "debtor",
+                    "cases"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "debtor"
+        ],
+        "x-access": {
+          "portal": "debtor"
+        }
+      }
+    },
+    "/debtor/access": {
+      "post": {
+        "operationId": "DebtorController_access",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "greeting": {
+                      "type": "string"
+                    },
+                    "debtor": {
+                      "type": "string"
+                    },
+                    "cases": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": "string"
+                          },
+                          "creditor": {
+                            "type": "string"
+                          },
+                          "balance": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "statusLabel": {
+                            "type": "string"
+                          },
+                          "statusTone": {
+                            "type": "string",
+                            "enum": [
+                              "neutral",
+                              "info",
+                              "success",
+                              "warning",
+                              "danger",
+                              "violet"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "reference",
+                          "creditor",
+                          "balance",
+                          "statusLabel",
+                          "statusTone"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "greeting",
+                    "debtor",
+                    "cases"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "debtor"
+        ],
+        "x-access": {
+          "portal": "debtor",
+          "anonymous": true
+        }
+      }
+    },
+    "/debtor/logout": {
+      "post": {
+        "operationId": "DebtorController_logout",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "debtor"
+        ],
+        "x-access": {
+          "portal": "debtor",
+          "anonymous": true
+        }
+      }
+    },
+    "/debtor/cases/{id}": {
+      "get": {
+        "operationId": "DebtorController_detail",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "creditor": {
+                      "type": "string"
+                    },
+                    "balance": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "statusLabel": {
+                      "type": "string"
+                    },
+                    "statusTone": {
+                      "type": "string",
+                      "enum": [
+                        "neutral",
+                        "info",
+                        "success",
+                        "warning",
+                        "danger",
+                        "violet"
+                      ]
+                    },
+                    "debtor": {
+                      "type": "string"
+                    },
+                    "officer": {
+                      "type": "string"
+                    },
+                    "isIndividual": {
+                      "type": "boolean"
+                    },
+                    "principal": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "interest": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "indemnity": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "paid": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "invoices": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "number": {
+                            "type": "string"
+                          },
+                          "dueOn": {
+                            "type": "string"
+                          },
+                          "amount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "number",
+                          "dueOn",
+                          "amount"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "payments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "amount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "date": {
+                            "type": "string"
+                          },
+                          "method": {
+                            "type": "string",
+                            "enum": [
+                              "TRANSFER",
+                              "CHEQUE"
+                            ]
+                          },
+                          "receiptId": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "amount",
+                          "date",
+                          "method",
+                          "receiptId"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "next": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "date": {
+                          "type": "string"
+                        },
+                        "amount": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "date",
+                        "amount"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "lastMessage": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "who": {
+                          "type": "string"
+                        },
+                        "when": {
+                          "type": "string"
+                        },
+                        "text": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "who",
+                        "when",
+                        "text"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "unread": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "plan": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "acceptedOn": {
+                          "type": "string"
+                        },
+                        "installments": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "number": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "dueOn": {
+                                "type": "string"
+                              },
+                              "amount": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "PAID",
+                                  "DUE",
+                                  "UPCOMING",
+                                  "LATE"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "number",
+                              "dueOn",
+                              "amount",
+                              "status"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "acceptedOn",
+                        "installments"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "payment": {
+                      "type": "object",
+                      "properties": {
+                        "beneficiary": {
+                          "type": "string"
+                        },
+                        "iban": {
+                          "type": "string"
+                        },
+                        "bic": {
+                          "type": "string"
+                        },
+                        "reference": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "chequeOrder": {
+                          "type": "string"
+                        },
+                        "chequeAddress": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "beneficiary",
+                        "iban",
+                        "bic",
+                        "reference",
+                        "chequeOrder",
+                        "chequeAddress"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "reference",
+                    "creditor",
+                    "balance",
+                    "statusLabel",
+                    "statusTone",
+                    "debtor",
+                    "officer",
+                    "isIndividual",
+                    "principal",
+                    "interest",
+                    "indemnity",
+                    "paid",
+                    "invoices",
+                    "payments",
+                    "next",
+                    "lastMessage",
+                    "unread",
+                    "plan",
+                    "payment"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "debtor"
+        ],
+        "x-access": {
+          "portal": "debtor"
+        }
+      }
+    },
+    "/debtor/cases/{id}/messages": {
+      "get": {
+        "operationId": "DebtorController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "mine": {
+                            "type": "boolean"
+                          },
+                          "who": {
+                            "type": "string"
+                          },
+                          "when": {
+                            "type": "string"
+                          },
+                          "text": {
+                            "type": "string"
+                          },
+                          "attachments": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "receipt": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "mine",
+                          "who",
+                          "when",
+                          "text",
+                          "attachments",
+                          "receipt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "debtor"
+        ],
+        "x-access": {
+          "portal": "debtor"
+        }
+      },
+      "post": {
+        "operationId": "DebtorController_write",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "debtor"
+        ],
+        "x-access": {
+          "portal": "debtor"
+        }
+      }
+    },
+    "/debtor/cases/{id}/messages/read": {
+      "post": {
+        "operationId": "DebtorController_read",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "debtor"
+        ],
+        "x-access": {
+          "portal": "debtor"
+        }
+      }
+    },
+    "/debtor/cases/{id}/requests": {
+      "post": {
+        "operationId": "DebtorController_request",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "debtor"
+        ],
+        "x-access": {
+          "portal": "debtor"
+        }
+      }
+    },
+    "/debtor/attachments": {
+      "post": {
+        "operationId": "DebtorController_attach",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "debtor"
+        ],
+        "x-access": {
+          "portal": "debtor"
+        }
+      }
+    },
+    "/staff/cases/{id}/portal-messages": {
+      "post": {
+        "operationId": "StaffPortalController_answer",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "cases"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      }
+    },
     "/staff/shell": {
       "get": {
         "operationId": "ShellController_shell",

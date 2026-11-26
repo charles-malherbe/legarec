@@ -156,6 +156,19 @@ const templateIn = (code: string, state: 'CANCELLED' | 'IMPORTED' | 'WAITING', t
 };
 const TEMPLATE_SOURCE =
   '<!doctype html>\n<html lang="fr">\n<body>\n  {{> en_tete}}\n  <p>Bonjour {{debiteur.raison_sociale}}</p>\n  {{> mentions_recouvrement}}\n</body>\n</html>\n';
+let sirens = 900_000_000;
+/** A valid SIREN (Luhn) that names nobody, another one each time. */
+const unknownSiren = (): string => {
+  for (;;) {
+    sirens += 1;
+    const digits = String(sirens);
+    const sum = [...digits].reverse().reduce((total, char, index) => {
+      const value = Number(char) * (index % 2 === 1 ? 2 : 1);
+      return total + (value > 9 ? value - 9 : value);
+    }, 0);
+    if (sum % 10 === 0) return digits;
+  }
+};
 let assigned: unknown;
 let planned: unknown;
 let rateTurn = 0;
@@ -517,5 +530,34 @@ export const MATRIX: Record<string, MatrixEntry> = {
     path: templateIn('rappel', 'WAITING', '/review'),
     body: () => ({ approved: true }),
     expect: only({ director: 204, manager: 204, liar: 403 }),
+  },
+  // Debtors: no account; the sign-in answers the same to whoever is there.
+  'POST /debtor/access': {
+    // A SIREN known of nobody: refused alike, and counted on a key of its own each time.
+    body: () => ({ identifier: { kind: 'SIREN', value: unknownSiren() }, code: 'ABCD', remember: false }),
+    expect: everyone(401),
+  },
+  'POST /debtor/logout': { expect: everyone(204) },
+  'GET /debtor/session': { expect: only({ debtorA: 200, debtorB: 200 }) },
+  // A case announced to debtor A only.
+  'GET /debtor/cases/:id': { path: (test) => `/debtor/cases/${test.s.cases.ofA}`, expect: only({ debtorA: 200, debtorB: 404 }) },
+  'GET /debtor/cases/:id/messages': { path: (test) => `/debtor/cases/${test.s.cases.ofA}/messages`, expect: only({ debtorA: 200, debtorB: 404 }) },
+  'POST /debtor/cases/:id/messages': {
+    path: (test) => `/debtor/cases/${test.s.cases.ofA}/messages`,
+    body: () => ({ text: 'Bonjour', attachmentKind: 'OTHER', attachments: [] }),
+    expect: only({ debtorA: 204, debtorB: 404 }),
+  },
+  'POST /debtor/cases/:id/messages/read': { path: (test) => `/debtor/cases/${test.s.cases.ofA}/messages/read`, expect: only({ debtorA: 204, debtorB: 404 }) },
+  'POST /debtor/cases/:id/requests': {
+    path: (test) => `/debtor/cases/${test.s.cases.ofA}/requests`,
+    body: () => ({ kind: 'CALLBACK', phone: '06 12 34 56 78', slot: 'MORNING' }),
+    expect: only({ debtorA: 204, debtorB: 404 }),
+  },
+  'POST /debtor/attachments': { file: PDF, expect: only({ debtorA: 200, debtorB: 200 }) },
+  // Held by nobody: the manager answers; the Director reads it without acting.
+  'POST /staff/cases/:id/portal-messages': {
+    path: async (test) => `/staff/cases/${(await newCase(test)).id}/portal-messages`,
+    body: () => ({ text: 'Bonjour' }),
+    expect: only({ director: 403, manager: 204, managerAlone: 204, officerA: 404, officerB: 404, liar: 404 }),
   },
 };

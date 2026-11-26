@@ -51,6 +51,9 @@ export const AUDIT_ACTIONS = {
   CASE_OPENED: 'Dossier ouvert',
   CASES_ASSIGNED: 'Dossiers attribués : {count}',
   CASE_INVOICES_ADDED: 'Factures ajoutées à un dossier : {count}',
+  // Debtors
+  DEBTOR_SIGNED_IN: 'Connexion d’un débiteur',
+  DEBTOR_ACCESS_BLOCKED: 'Accès d’un débiteur bloqué après dix codes faux',
   // Documents
   DOCUMENT_ATTACHED: 'Document importé et rattaché à un dossier',
   DOCUMENT_TO_FILE: 'Document importé, à classer',

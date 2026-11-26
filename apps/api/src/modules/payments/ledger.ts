@@ -52,7 +52,7 @@ export class Ledgers {
   ) {}
 
   /** Null when the case is not shown to this person. */
-  async read(caseId: string, today: Day = dayOf(new Date()), director = false): Promise<Ledger | null> {
+  async read(caseId: string, today: Day = dayOf(new Date()), director = false, debtor = false): Promise<Ledger | null> {
     const { tx } = this.database;
     const found = await tx.case.findUnique({
       where: { id: caseId },
@@ -64,7 +64,21 @@ export class Ledgers {
         debtor: { select: { kind: true } },
         mandate: { select: { interestMode: true, contractRateBp: true, fixedIndemnity: true } },
         invoices: { select: { id: true, number: true, dueOn: true, principalCents: true, principalPaidCents: true } },
-        payments: { orderBy: [{ receivedOn: 'asc' }, { createdAt: 'asc' }], include: { allocations: true, receipt: { select: { id: true } } } },
+        payments: {
+          // Identifiers in the order of their creation (UUID v7): what a debtor may read.
+          orderBy: [{ receivedOn: 'asc' }, { id: 'asc' }],
+          select: {
+            id: true,
+            method: true,
+            amountCents: true,
+            status: true,
+            receivedOn: true,
+            // What a debtor does not read: the details of the cheque, the label of the transfer.
+            ...(debtor ? {} : { depositedOn: true, chequeNumber: true, bank: true, label: true, version: true }),
+            allocations: { select: { id: true, component: true, amountCents: true, invoiceId: true, reversesId: true } },
+            receipt: { select: { id: true } },
+          },
+        },
       },
     });
     if (!found) return null;
@@ -134,13 +148,13 @@ export class Ledgers {
           amount: payment.amountCents,
           status: payment.status,
           receivedOn: dayText(payment.receivedOn),
-          depositedOn: payment.depositedOn ? dayText(payment.depositedOn) : null,
-          chequeNumber: payment.chequeNumber,
-          bank: payment.bank,
-          label: payment.label === null ? null : maskedLabel(payment.label, director),
+          depositedOn: 'depositedOn' in payment && payment.depositedOn ? dayText(payment.depositedOn) : null,
+          chequeNumber: 'chequeNumber' in payment ? (payment.chequeNumber ?? null) : null,
+          bank: 'bank' in payment ? (payment.bank ?? null) : null,
+          label: 'label' in payment && payment.label ? maskedLabel(payment.label, director) : null,
           receiptId: payment.receipt?.id ?? null,
           allocation: { interest: first('INTEREST'), principal: first('PRINCIPAL'), fees: first('FEES') },
-          version: payment.version,
+          version: 'version' in payment ? (payment.version ?? 1) : 1,
         };
       }),
       counted: live.map((payment) => ({ on: dayText(payment.receivedOn), amount: payment.amountCents })),

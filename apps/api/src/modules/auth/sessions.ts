@@ -1,5 +1,6 @@
 import type { Delegation, Role } from '@legarec/contracts';
 import { Inject, Injectable } from '@nestjs/common';
+import { DebtorSignIn } from './debtor-sign-in';
 import type { ActorResolver, Portal } from '../../platform/access/access';
 import { newToken } from '../../platform/crypto/keyring';
 import type { Actor } from '../../platform/database/actor';
@@ -160,10 +161,14 @@ export function actorOf(session: CurrentSession): Actor | null {
 /** Who is calling: the holder of the cookie of that portal, with the rights of their account as it is now. */
 @Injectable()
 export class SessionResolver implements ActorResolver {
-  constructor(@Inject(Sessions) private readonly sessions: Sessions) {}
+  constructor(
+    @Inject(Sessions) private readonly sessions: Sessions,
+    @Inject(DebtorSignIn) private readonly debtors: DebtorSignIn,
+  ) {}
 
   async resolve(portal: Portal): Promise<Actor | null> {
-    // The debtors and the service accounts have their own proofs, not written yet: nobody.
+    if (portal === 'debtor') return this.debtors.current();
+    // The service accounts have their own proofs, not written yet: nobody.
     if (portal !== 'staff' && portal !== 'partner') return null;
     const session = await this.sessions.current(portal);
     return session && actorOf(session);

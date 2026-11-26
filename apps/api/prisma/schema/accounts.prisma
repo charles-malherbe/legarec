@@ -64,6 +64,7 @@ enum AttemptScope {
   SIGN_IN
   SECOND_FACTOR
   PASSWORD
+  DEBTOR
 
   @@map("attempt_scope")
 }
@@ -92,6 +93,7 @@ enum NotificationKind {
   CASE_ASSIGNED
   SUBSTITUTE_NOTICE
   PLAN_DECIDED
+  DEBTOR_BLOCKED
 
   @@map("notification_kind")
 }
@@ -166,6 +168,7 @@ model User {
   plansRequested       PaymentPlan[]            @relation("planRequester")
   documents            Document[]               @relation("documentAuthor")
   templateVersions     TemplateVersion[]        @relation("templateImporter")
+  portalMessages       PortalMessage[]          @relation("portalAuthor")
 
   @@map("users")
 }
@@ -271,6 +274,9 @@ model Lockout {
   failures      Int
   lastFailureAt DateTime     @default(dbgenerated("now()")) @map("last_failure_at") @db.Timestamptz(3)
   lockedUntil   DateTime?    @map("locked_until") @db.Timestamptz(3)
+  /// Debtors: ten failures, until the code is renewed.
+  blockedAt     DateTime?    @map("blocked_at") @db.Timestamptz(3)
+  debtorId      String?      @map("debtor_id") @db.Uuid
 
   @@map("lockouts")
 }

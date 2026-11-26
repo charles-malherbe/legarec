@@ -177,6 +177,7 @@ model Debtor {
 
   cases      Case[]
   accessCode DebtorAccessCode?
+  sessions   DebtorSession[]
 
   @@map("debtors")
 }
@@ -185,6 +186,8 @@ model Debtor {
 model DebtorAccessCode {
   debtorId    String   @id @map("debtor_id") @db.Uuid
   codeCipher  Bytes    @map("code_cipher")
+  /// Keyed fingerprint of the code in force: what the sign-in of the debtor compares.
+  codeHmac    Bytes?   @map("code_hmac")
   version     Int      @default(1)
   generatedBy String?  @map("generated_by") @db.Uuid
   generatedAt DateTime @default(now()) @map("generated_at") @db.Timestamptz(3)
@@ -248,6 +251,7 @@ model Case {
   approvals PlanApproval[]
   installments Installment[]
   documents Document[]
+  portalMessages PortalMessage[]
 
   @@unique([id, creditorId], map: "cases_id_creditor")
   @@index([officerId, status], map: "cases_officer")
@@ -382,4 +386,21 @@ model CaseEvent {
 
   @@index([caseId, occurredAt(sort: Desc)], map: "case_events_case")
   @@map("case_events")
+}
+
+/// Opened by the sign-in of a debtor (`app.open_debtor_session()`), read again at each request.
+model DebtorSession {
+  id         String    @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  debtorId   String    @map("debtor_id") @db.Uuid
+  tokenHash  Bytes     @unique @map("token_hash")
+  ip         String?   @db.Inet
+  persistent Boolean   @default(false)
+  lastSeenAt DateTime  @default(dbgenerated("now()")) @map("last_seen_at") @db.Timestamptz(3)
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(3)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(3)
+  createdAt  DateTime  @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
+
+  debtor Debtor @relation(fields: [debtorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("debtor_sessions")
 }
