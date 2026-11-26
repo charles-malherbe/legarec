@@ -88,9 +88,11 @@ async function main() {
   publisher.start();
   const schedule = () =>
     Promise.all([
-      scheduleMaintenance(connection),
-      scheduleRepeated(connection, { queue: 'ai', name: 'case-events', pattern: '*/5 * * * *', attempts: 1 }),
-    ]).catch(() => logger.warn('maintenance not scheduled'));
+      scheduleMaintenance(connection).catch(() => logger.warn('maintenance not scheduled')),
+      scheduleRepeated(connection, { queue: 'ai', name: 'case-events', pattern: '*/5 * * * *', attempts: 1 }).catch(() =>
+        logger.warn('case events of the assistant not scheduled'),
+      ),
+    ]);
   // Again every hour: the schedule lives in Valkey, and would be lost with it.
   hourly = setInterval(() => void schedule(), 3_600_000);
   await schedule();

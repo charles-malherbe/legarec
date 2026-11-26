@@ -293,7 +293,7 @@ export const ACCOUNT_PARITY: Parity[] = [
   { as: 'officer', request: 'PUT /notifications', body: { ids: [UNKNOWN], unread: false }, status: 204 },
   { as: 'officer', request: 'POST /notifications/read', body: { ids: [UNKNOWN] }, status: 204 },
 
-  // The journal of the assistant: the Director and the Developer (question W-1).
+  // The journal of the assistant: the Director and the Developer (question 178).
   ...each(['director', 'developer'], () => ({ request: 'GET /ai/journal', status: 200, answer: aiJournal })),
   ...each(['manager', 'officer'], () => ({ request: 'GET /ai/journal', status: 403, answer: code('FORBIDDEN') })),
   ...each(['director', 'developer'], () => ({ request: 'GET /secrets', status: 200, answer: secretsData })),

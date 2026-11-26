@@ -281,6 +281,6 @@ Les 161 routes simulées se répartissent ainsi :
 - [x] Couche fournisseur, garde-fous, budget, journal ; synthèse du dossier (régénérer, signaler)
 - [x] Alerte à 80 % du budget au Directeur
 - [x] Budget par défaut de 40 € dans le catalogue des paramètres (question 166)
-- [x] Synthèse du dossier refaite à l'arrivée d'un événement : tâche d'horloge toutes les 5 minutes, regroupée (5 minutes de calme), une fois par état du dossier, budget et interrupteurs vérifiés avant la mise en file (question W-2)
-- [x] Journal de l'IA dans Paramètres › Assistant IA sur l'API (`GET /staff/ai/journal`, paginé), Directeur et Développeur, sans référence de dossier pour le Développeur (question W-1)
-- [ ] Résumé des appels (avec le lot T), tri et brouillons des e-mails (avec le lot R), essai de qualité des modèles chez OVHcloud (option C, cabinet), export du journal de l'IA (question W-1)
+- [x] Synthèse du dossier refaite à l'arrivée d'un événement : tâche d'horloge toutes les 5 minutes, regroupée (5 minutes de calme), une fois par état du dossier, budget, clé et interrupteurs vérifiés avant la mise en file, « Synthèse refaite automatiquement » désactivée par défaut (question 179)
+- [x] Journal de l'IA dans Paramètres › Assistant IA sur l'API (`GET /staff/ai/journal`, paginé), Directeur et Développeur, sans référence de dossier pour le Développeur (question 178)
+- [ ] Résumé des appels (avec le lot T), tri et brouillons des e-mails (avec le lot R), essai de qualité des modèles chez OVHcloud (option C, cabinet), export du journal de l'IA (question 178)

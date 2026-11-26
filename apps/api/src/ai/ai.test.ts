@@ -205,13 +205,30 @@ describe('the summary made again when something new happens on a case', () => {
       [id],
     );
 
+  const set = (key: string, value: string) =>
+    rows('INSERT INTO settings (key, value, updated_by) VALUES ($1, $2::jsonb, $3) ON CONFLICT (key) DO UPDATE SET value = $2::jsonb', [
+      key,
+      value,
+      test.s.director,
+    ]);
+  const automatic = (on: boolean) => set('firm.ia.ia4-auto', on ? 'true' : 'false');
+
   beforeAll(() => {
     jobs = new Database(test.database.url('jobs'));
     answer = () => JSON.stringify({ lines: CASE_SUMMARY_KEYS.map((k) => ({ k, v: `${k} : synthèse après un événement.` })) });
   });
   afterAll(() => jobs.close());
 
+  it('is off by default: nothing is sent without the Director having chosen it', async () => {
+    const left = await newCase('LGR-2026-77005');
+    await event(left, 10);
+    expect(await sweep()).toBe(0);
+    expect(await queued(left)).toBe(0);
+    await rows("UPDATE cases SET closed_on = current_date, status = 'SETTLED' WHERE id = $1", [left]);
+  });
+
   it('waits until the case has been quiet for a few minutes, then makes a single call for a burst of events', async () => {
+    await automatic(true);
     const busy = await newCase('LGR-2026-77002');
     await event(busy, 1);
     const burst = await newCase('LGR-2026-77003');
@@ -242,12 +259,10 @@ describe('the summary made again when something new happens on a case', () => {
     const quiet = await newCase('LGR-2026-77004');
     await event(quiet, 10);
     expect(await sweep(() => null)).toBe(0);
-    const set = (key: string, value: string) =>
-      rows('INSERT INTO settings (key, value, updated_by) VALUES ($1, $2::jsonb, $3) ON CONFLICT (key) DO UPDATE SET value = $2::jsonb', [
-        key,
-        value,
-        test.s.director,
-      ]);
+    await automatic(false);
+    await sweep();
+    expect(await queued(quiet)).toBe(0);
+    await automatic(true);
     await set('firm.ia.ia4', 'false');
     await sweep();
     expect(await queued(quiet)).toBe(0);
@@ -256,9 +271,38 @@ describe('the summary made again when something new happens on a case', () => {
     await sweep();
     expect(await queued(quiet)).toBe(0);
     await rows("DELETE FROM settings WHERE key = 'firm.ia.budget'");
+    // No valid key.
+    await rows("UPDATE vault_secrets SET status = 'REVOKE_PENDING' WHERE name = 'AI_API_KEY'");
+    await sweep();
+    expect(await queued(quiet)).toBe(0);
+    await rows("UPDATE vault_secrets SET status = 'VALID' WHERE name = 'AI_API_KEY'");
     await rows("UPDATE cases SET closed_on = current_date, status = 'SETTLED' WHERE id = $1", [quiet]);
     await sweep();
     expect(await queued(quiet)).toBe(0);
+  });
+
+  it('sends nothing for a case closed, or a switch turned off, after the task was queued', async () => {
+    const closing = await newCase('LGR-2026-77006');
+    await event(closing, 10);
+    await sweep();
+    expect(await queued(closing)).toBe(1);
+    await rows("UPDATE cases SET closed_on = current_date, status = 'SETTLED' WHERE id = $1", [closing]);
+    const calls = asked.length;
+    await worker.run();
+    expect(asked.length).toBe(calls);
+    expect(await journal(closing)).toEqual([]);
+    expect(await rows("SELECT failure FROM outbox WHERE name = 'case-summary-event' AND payload ->> 'case' = $1", [closing])).toEqual([
+      { failure: 'CASE_CLOSED' },
+    ]);
+    const switched = await newCase('LGR-2026-77007');
+    await event(switched, 10);
+    await sweep();
+    await automatic(false);
+    await worker.run();
+    expect(asked.length).toBe(calls);
+    expect(await rows("SELECT failure FROM outbox WHERE name = 'case-summary-event' AND payload ->> 'case' = $1", [switched])).toEqual([
+      { failure: 'AI_FEATURE_OFF' },
+    ]);
   });
 });
 

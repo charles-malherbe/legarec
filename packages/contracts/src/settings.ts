@@ -175,7 +175,7 @@ export const gdprErasure = z.object({
   warning: z.string().nullable(),
 });
 
-/** The journal of the assistant (Paramètres › Assistant IA): Director and Developer only (question W-1). */
+/** The journal of the assistant (Paramètres › Assistant IA): Director and Developer only (question 178). */
 export const AI_JOURNAL_PAGE = 25;
 export const aiJournalQuery = z.object({
   page: z

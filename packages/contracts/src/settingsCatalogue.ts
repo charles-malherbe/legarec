@@ -259,6 +259,13 @@ export const firmGroups = (): SettingGroup[] => [
               sw('ia2', 'Tri et analyse des e-mails', 'Catégorie, dossier rattaché, montants et dates extraits (E-mails)'),
               sw('ia3', 'Brouillons de réponse', 'Proposés dans le ton du cabinet, à relire avant envoi (E-mails, SMS)'),
               sw('ia4', 'Synthèse des dossiers', 'Résumé en 5 lignes en tête de la fiche débiteur'),
+              // Not in the mockup (question 179): off until the firm chooses it.
+              sw(
+                'ia4-auto',
+                'Synthèse refaite automatiquement',
+                'À chaque nouvel événement, le dossier est envoyé au fournisseur sans qu’un collaborateur l’ait ouvert.',
+                false,
+              ),
               sw('ia5', 'Lecture des factures importées', 'Pré-remplissage des créances déposées en PDF par les créanciers', false),
               sw('ia6', 'Recherche en langage courant', 'Dans la recherche rapide (touche /)', false),
             ],

@@ -32,7 +32,7 @@ interface Totals {
 /**
  * The journal of the assistant (docs/ia.md), in Paramètres › Assistant IA: every try, with what was sent in short, the
  * model, the version of the prompt, the decision and the cost; never the suggestion nor the text sent. The Director and
- * the Developer only (question W-1); PostgreSQL checks it again, and gives the reference of a case to whoever may read it.
+ * the Developer only (question 178); PostgreSQL checks it again, and gives the reference of a case to whoever may read it.
  */
 @ApiTags('ai')
 @Controller('staff/ai')

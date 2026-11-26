@@ -107,12 +107,21 @@ export const aiJobs = (setup: () => AiSetup | null, vault: Pick<Vault, 'open'>):
       if (!ai) throw new GiveUp('AI_OFF');
       // No author: the rights of the application, which reads every case; the same facts and the same masks.
       const asApplication = await authorize(() => Promise.resolve(true));
+      const now = await asApplication(async (tx) => ({
+        automatic: aiSettings(await SettingValues.read(tx), AUTOMATIC).on,
+        open: (await tx.case.findFirst({ where: { id, closedOn: null, anonymizedAt: null }, select: { id: true } })) !== null,
+      }));
+      // Switched off, closed or anonymized since it was queued: nothing leaves.
+      if (!now.automatic) throw new GiveUp('AI_FEATURE_OFF');
+      if (!now.open) throw new GiveUp('CASE_CLOSED');
       await summarize({ ai, vault, id, author: null, read: asApplication, asApplication });
     },
   },
 });
 
 type Run = <T>(work: (tx: Transaction) => Promise<T>) => Promise<T>;
+/** Paramètres › Assistant IA: the summary made again on each new event, off by default (question 179), with `ia4`. */
+const AUTOMATIC = 'ia4-auto';
 
 /** One summary: read, cached, checked against the budget, asked, checked against the guards, written in the journal. */
 async function summarize({
@@ -224,7 +233,8 @@ const AT_ONCE = 20;
 /**
  * Run by the clock in the queue `ai` (docs/ia.md, « Nouvel événement sur le dossier »): queues a summary for each open
  * case where something has happened since its last summary, once nothing more has happened for a few minutes. Nothing is
- * queued when the AI is off, the feature switched off or the budget of the month spent; a summary is only ever shown,
+ * queued when the AI is off, either switch off (`ia4`, and `ia4-auto`, off by default), no key, or the budget of the
+ * month spent; a summary is only ever shown,
  * never applied. Returns how many were queued.
  */
 export async function sweepCaseEvents(setup: () => AiSetup | null, run: Run): Promise<number> {
@@ -232,10 +242,14 @@ export async function sweepCaseEvents(setup: () => AiSetup | null, run: Run): Pr
   return run(async (tx) => {
     // Two workers at once queue nothing twice.
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended('ai-case-events', 0))`;
-    const settings = aiSettings(await SettingValues.read(tx), 'ia4');
-    if (!settings.on) return 0;
+    const values = await SettingValues.read(tx);
+    const settings = aiSettings(values, 'ia4');
+    if (!settings.on || !aiSettings(values, AUTOMATIC).on) return 0;
     const [spent] = await tx.$queryRaw<{ micro: bigint }[]>`SELECT app.ai_spent() AS micro`;
     if (Number(spent?.micro ?? 0n) >= settings.budgetMicro) return 0;
+    // Without a key, every task would end without a call.
+    const [key] = await tx.$queryRaw<{ id: string | null }[]>`SELECT id FROM app.ai_key()`;
+    if (!key?.id) return 0;
     const due = await tx.$queryRaw<{ id: string; events: number }[]>`
       SELECT r.case_id::text AS id, r.events
       FROM (
