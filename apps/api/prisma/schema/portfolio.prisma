@@ -408,3 +408,33 @@ model DebtorSession {
 
   @@map("debtor_sessions")
 }
+
+/// A link of a letter or a text message: it fills the identifier in, never the code; read by `app.debtor_link()`.
+model DebtorLink {
+  id         String    @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  debtorId   String    @map("debtor_id") @db.Uuid
+  caseId     String    @map("case_id") @db.Uuid
+  creditorId String    @map("creditor_id") @db.Uuid
+  tokenHash  Bytes     @unique @map("token_hash")
+  channel    String
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(3)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(3)
+  uses       Int       @default(0)
+  createdAt  DateTime  @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
+
+  @@map("debtor_links")
+}
+
+/// A message from someone without a code: unverified, read by the manager only, kept 6 months.
+model LimitedMessage {
+  id               String    @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  senderName       String    @map("sender_name")
+  senderEmail      String?   @map("sender_email")
+  claimedReference String?   @map("claimed_reference")
+  text             String
+  readAt           DateTime? @map("read_at") @db.Timestamptz(3)
+  createdAt        DateTime  @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
+
+  @@index([createdAt(sort: Desc)], map: "limited_messages_created")
+  @@map("limited_messages")
+}

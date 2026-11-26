@@ -7784,6 +7784,167 @@
         }
       }
     },
+    "/debtor/links/{token}": {
+      "get": {
+        "operationId": "DebtorController_link",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "identifier": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "SIREN",
+                            "REFERENCE"
+                          ]
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "value"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "identifier"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "debtor"
+        ],
+        "x-access": {
+          "portal": "debtor",
+          "anonymous": true
+        }
+      }
+    },
+    "/debtor/code-by-sms": {
+      "post": {
+        "operationId": "DebtorController_codeBySms",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requested": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  },
+                  "required": [
+                    "requested"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "debtor"
+        ],
+        "x-access": {
+          "portal": "debtor",
+          "anonymous": true
+        }
+      }
+    },
+    "/debtor/limited/payment": {
+      "get": {
+        "operationId": "DebtorController_limitedPayment",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "beneficiary": {
+                      "type": "string"
+                    },
+                    "iban": {
+                      "type": "string"
+                    },
+                    "bic": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "chequeOrder": {
+                      "type": "string"
+                    },
+                    "chequeAddress": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "beneficiary",
+                    "iban",
+                    "bic",
+                    "reference",
+                    "chequeOrder",
+                    "chequeAddress"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "debtor"
+        ],
+        "x-access": {
+          "portal": "debtor",
+          "anonymous": true
+        }
+      }
+    },
+    "/debtor/limited/messages": {
+      "post": {
+        "operationId": "DebtorController_limitedMessage",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "debtor"
+        ],
+        "x-access": {
+          "portal": "debtor",
+          "anonymous": true
+        }
+      }
+    },
     "/debtor/cases/{id}/messages": {
       "get": {
         "operationId": "DebtorController_list",

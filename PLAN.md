@@ -197,7 +197,8 @@ Les 161 routes simulées se répartissent ainsi :
 - [x] Connexion par identifiant et code, compteurs et blocage, levée par la régénération, sessions, lecture des dossiers et du solde (4 routes) ; relecture sécurité : connexion en une seule fonction SQL sur une empreinte du code, même travail pour un identifiant inconnu, blocage rattaché au débiteur même avant l'annonce, dixième essai juste sans blocage, échecs espacés comptés, Responsable prévenu sans gestionnaire, purge des sessions, compteurs des débiteurs protégés des autres fonctions, audit
 - [x] Messages du portail, pièces du débiteur (analysées, invisibles de l'équipe avant leur message), demandes guidées, réponse de l'équipe, code d'accès retiré du texte reçu (6 routes)
 - Reportés (relecture) : compteur aussi par débiteur pour un particulier aux nombreux dossiers, fenêtre glissante de la limite par réseau, alerte au-delà de 200 échecs par heure
-- [ ] Accès limité, liens des courriers, code par SMS (R), acceptation de l'échéancier (écran hors maquette à montrer), bascule du portail paiement
+- [x] Accès limité, liens des courriers, code par SMS (mis en file, envoi au lot R), bascule du portail paiement en développement (4 routes)
+- [ ] Acceptation de l'échéancier par le débiteur (écran hors maquette à montrer au cabinet), alerte au-delà de 200 échecs par heure
 
 ## Lot P — Portail des créanciers (état au 26/11/2026)
 - [x] Tableau de bord, dossiers, accord sur un échéancier long (4 routes)
