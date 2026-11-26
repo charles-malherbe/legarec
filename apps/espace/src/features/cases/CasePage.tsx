@@ -99,6 +99,9 @@ function CaseView({ data }: { data: CaseDetail }) {
             <span className={layout.inline}>
               <h1 className={layout.ficheTitle}>{data.name}</h1>
               <Badge label={data.daysLate === null ? data.statusLabel : `${data.statusLabel} · ${data.daysLate} j`} tone={STATUS_TONE[data.status]} />
+              {data.correctable && (
+                <Bouton variant="link" size="xs" label="Corriger le débiteur" onPress={() => setPanel('debtor')} expanded={panel === 'debtor'} />
+              )}
             </span>
             <p className={layout.body}>
               Créancier :{' '}
@@ -110,7 +113,6 @@ function CaseView({ data }: { data: CaseDetail }) {
           </div>
           {data.canAct && (
             <div className={layout.inline}>
-              {data.correctable && <Bouton variant="secondary" label="Corriger le débiteur" onPress={() => setPanel('debtor')} expanded={panel === 'debtor'} />}
               <Bouton variant="secondary" label="Proposer un échéancier" href={`/echeanciers?dossier=${data.id}`} />
               <Bouton variant="secondary" label="Enregistrer un paiement" onPress={() => setPanel('payment')} expanded={panel === 'payment'} />
               <Bouton variant="secondary" label="Envoyer une relance" onPress={() => setPanel('reminder')} expanded={panel === 'reminder'} />
