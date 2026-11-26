@@ -9,6 +9,7 @@
     "build": "pnpm -s generate && vite build",
     "dev": "node ../../infra/dev/api.mjs",
     "account": "node ../../infra/dev/api.mjs account",
+    "purge-now": "node ../../infra/dev/api.mjs purge",
     "seed": "node prisma/seed/seed.mjs",
     "migrate": "node dist/migrate.js"
   },

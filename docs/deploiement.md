@@ -184,7 +184,11 @@ Retour en arrière : `sudo git -C /opt/legarec checkout <version précédente>`,
    legarec exec postgres legarec-hold-tasks
    ```
 
-6. Rejouer la purge avant d'ouvrir l'accès (des données effacées sont revenues) ; **la commande n'existe pas encore : condition de mise en service**, voir « Reste à faire ». Puis tout démarrer.
+6. Rejouer la purge avant d'ouvrir l'accès (des données effacées sont revenues). Elle affiche le nombre de lignes retirées par type ; si elle dit « Purge incomplète », la relancer avant d'aller plus loin. Puis tout démarrer.
+
+   ```bash
+   legarec run --rm --no-deps worker node --env-file=/run/secrets/worker dist/purge.js
+   ```
 
    ```bash
    legarec up -d --wait
@@ -254,7 +258,7 @@ Journaux : ni adresse IP, ni chemin, ni en-tête dans ceux de Caddy ; ni requêt
 - Chemin des modèles d'e-mails une fois l'API construite (lot Q) : `apps/api/src/emails/renderer.ts` remonte de deux dossiers depuis le fichier source ; à vérifier depuis `dist/`.
 - n8n : avec les comptes de service ; conteneur et valeurs (`N8N_ENCRYPTION_KEY`) à ajouter, sur un réseau partagé avec l'API seule. Sa route existe déjà dans Caddy, réservée aux adresses du cabinet : elle répond 502 d'ici là.
 - Gatus : contrôle du bucket des documents (lot N).
-- **Condition de mise en service** : purge à la demande après une restauration. Aujourd'hui, seule la tâche quotidienne du worker la lance ; sans elle, des données effacées redeviennent visibles jusqu'à son passage. Une commande est à écrire dans l'API.
+- Purge à la demande après une restauration : faite (`dist/purge.js`, étape 6 de « Restaurer la base »).
 - **Condition de mise en service** : `legarec-hold-tasks` ne bloque que les tâches en file (`outbox`). Chaque lot qui ajoute un planning dans PostgreSQL (relances, envois groupés, notifications) l'étend à ses tables, avec un test : sinon une relance déjà partie redeviendrait due.
 - `pgbackrest verify` chaque semaine (trou ancien dans le journal) et essai automatique d'une restauration à un instant précis.
 - Versions du bucket `legarec-documents` : 70 jours (question 115), à revoir au lot N.

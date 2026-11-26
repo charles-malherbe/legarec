@@ -189,6 +189,9 @@ docker compose exec -T worker node --env-file=/run/secrets/worker dist/account.j
 link="$(grep -oE 'https://espace\.legarec\.fr/[^[:space:]]+' /tmp/link | head -n 1)"
 [ -n "$link" ] || fail 'no link for the first Director'
 if docker compose exec -T worker node --env-file=/run/secrets/worker dist/account.js director ci2@example.com Ada Essai > /tmp/said 2>&1; then fail 'a second Director'; fi
+# The purge at once, after a restoration (docs/deploiement.md).
+docker compose exec -T worker node --env-file=/run/secrets/worker dist/purge.js > /tmp/purged 2>&1 || fail 'the purge at once'
+grep -q '^Purge faite' /tmp/purged || fail 'what the purge says'
 get --output /dev/null "$link"
 absent 'the link of the Director in the logs' -F "${link##*/}" -- docker compose logs --no-color worker caddy api
 ok 'first Director'

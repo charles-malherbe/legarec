@@ -27,6 +27,7 @@ const NEEDS = {
   main: [...COMMON, 'DATABASE_URL'],
   worker: [...COMMON, 'JOBS_DATABASE_URL'],
   account: [...COMMON, 'JOBS_DATABASE_URL'],
+  purge: [...COMMON, 'JOBS_DATABASE_URL'],
 };
 const envOf = (name) => ({
   ...pick(process.env, ['PATH', 'HOME', 'LANG', 'TZ', 'LOG_LEVEL', 'STAFF_PORTAL_URL', 'PARTNER_PORTAL_URL', 'DEBTOR_PORTAL_URL']),
@@ -43,6 +44,7 @@ const wait = (child) =>
   new Promise((resolve) => (child.exitCode === null && child.signalCode === null ? child.once('exit', resolve) : resolve(child.exitCode)));
 
 if (process.argv[2] === 'account') process.exit(await wait(run('account', ...process.argv.slice(3))));
+if (process.argv[2] === 'purge') process.exit(await wait(run('purge')));
 
 const { build } = await import(createRequire(join(API, 'package.json')).resolve('vite'));
 
