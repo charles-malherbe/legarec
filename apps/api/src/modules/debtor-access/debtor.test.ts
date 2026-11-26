@@ -1,6 +1,6 @@
 import { debtorCase, debtorSession } from '@legarec/contracts';
 import { randomBytes, randomUUID } from 'node:crypto';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { startApp, type TestApp } from '../../../test/app';
 import { Database } from '../../platform/database/database';
 import { AuthKeys } from '../auth/keys';
@@ -280,6 +280,118 @@ describe('what the review of the access found', () => {
     expect(renewed.status).toBe(204);
     const { code: next } = (await staff.call('GET', `/staff/cases/${found.caseId}/access-code`, { as: 'officerA' })).body as { code: string };
     expect((await access(found.siren!, next)).status).toBe(200);
+  });
+});
+
+describe('the counter of a debtor, whatever the identifier', () => {
+  /** One more case of the same individual, announced, held by the same officer: one more reference. */
+  const anotherCase = async (debtorId: string) => {
+    reference += 1;
+    const ref = `LGR-2026-${String(reference).padStart(5, '0')}`;
+    const [creditor] = await rows<{ id: string }>("INSERT INTO creditors (name) VALUES ('Matériaux Delta') RETURNING id");
+    const [made] = await rows<{ id: string }>(
+      "INSERT INTO cases (reference, creditor_id, debtor_id, officer_id, first_letter_reference, first_letter_on) VALUES ($1, $2, $3, $4, 'LR-2026-0001', '2026-11-02') RETURNING id",
+      [ref, creditor!.id, debtorId, test.s.officerA],
+    );
+    return { caseId: made!.id, reference: ref };
+  };
+
+  it('ten failures in all on the references of one individual block them, with the answer of the reference typed', async () => {
+    network = `10.${randomBytes(3).join('.')}`;
+    const person = await debtorWithCode('INDIVIDUAL');
+    const second = await anotherCase(person.debtorId);
+    const third = await anotherCase(person.debtorId);
+    const fourth = await anotherCase(person.debtorId);
+    const tryAs = (ref: string, code = wrong(person.code)) => access(ref, code, 'REFERENCE');
+    for (let attempt = 1; attempt <= 4; attempt += 1) expect((await tryAs(person.reference)).body).toEqual({ code: 'INVALID', attemptsLeft: 5 - attempt });
+    for (let attempt = 1; attempt <= 4; attempt += 1) expect((await tryAs(second.reference)).body).toEqual({ code: 'INVALID', attemptsLeft: 5 - attempt });
+    expect((await tryAs(third.reference)).body).toEqual({ code: 'INVALID', attemptsLeft: 4 });
+    expect(await rows("SELECT 1 FROM notifications WHERE kind = 'DEBTOR_BLOCKED' AND case_id = $1", [person.caseId])).toEqual([]);
+    // The tenth failure of the debtor: blocked, told once for each of their cases.
+    expect((await tryAs(third.reference)).body).toEqual({ code: 'INVALID', attemptsLeft: 3 });
+    for (const caseId of [person.caseId, second.caseId, third.caseId, fourth.caseId])
+      expect(await rows("SELECT 1 FROM notifications WHERE kind = 'DEBTOR_BLOCKED' AND case_id = $1", [caseId])).toHaveLength(1);
+    // The right code opens nothing more, by any of the references; a reference never tried answers as an unknown one.
+    expect((await tryAs(third.reference, person.code)).body).toEqual({ code: 'INVALID', attemptsLeft: 2 });
+    expect((await tryAs(fourth.reference, person.code)).body).toEqual({ code: 'INVALID', attemptsLeft: 4 });
+    expect((await access('LGR-2026-99999', person.code, 'REFERENCE')).body).toEqual({ code: 'INVALID', attemptsLeft: 4 });
+    // Told once, however many failures follow.
+    await tryAs(fourth.reference);
+    expect(await rows("SELECT 1 FROM notifications WHERE kind = 'DEBTOR_BLOCKED' AND case_id = $1", [person.caseId])).toHaveLength(1);
+    expect(await rows("SELECT 1 FROM case_events WHERE kind = 'DEBTOR_ACCESS_BLOCKED' AND case_id = $1", [person.caseId])).toHaveLength(1);
+    // Said in the notifications of the officer, with the case.
+    const told = (await staff.call('GET', '/staff/notifications', { as: 'officerA' })).body as { text: string; href: string }[];
+    expect(told.find((item) => item.href === `/debiteurs/${person.caseId}`)?.text).toMatch(/bloqué après dix codes faux/u);
+    // A new code lifts it all.
+    const renewed = await staff.call('POST', `/staff/cases/${person.caseId}/access-code/regenerate`, {
+      as: 'officerA',
+      body: { version: person.version },
+      headers: { 'idempotency-key': randomUUID() },
+    });
+    expect(renewed.status).toBe(204);
+    const { code: next } = (await staff.call('GET', `/staff/cases/${person.caseId}/access-code`, { as: 'officerA' })).body as { code: string };
+    expect((await tryAs(second.reference, next)).status).toBe(200);
+    expect(await rows('SELECT 1 FROM lockouts WHERE debtor_id = $1', [person.debtorId])).toEqual([]);
+  });
+
+  it('a right try clears the counter of the debtor as well', async () => {
+    network = `10.${randomBytes(3).join('.')}`;
+    const person = await debtorWithCode('INDIVIDUAL');
+    const second = await anotherCase(person.debtorId);
+    for (let attempt = 1; attempt <= 4; attempt += 1) await access(person.reference, wrong(person.code), 'REFERENCE');
+    expect((await access(person.reference, person.code, 'REFERENCE')).status).toBe(200);
+    for (let attempt = 1; attempt <= 4; attempt += 1) await access(second.reference, wrong(person.code), 'REFERENCE');
+    for (let attempt = 1; attempt <= 4; attempt += 1) await access(person.reference, wrong(person.code), 'REFERENCE');
+    expect((await access(second.reference, person.code, 'REFERENCE')).status).toBe(200);
+  });
+});
+
+describe('beyond 200 failures an hour in all', () => {
+  /** An application of its own, with its own keys for the limits: what the other tests count is not counted here. */
+  let watched: TestApp;
+  beforeAll(async () => {
+    watched = await startApp([], { sessions: true, next: test, env: { VAULT_MASTER_KEY: test.config.VAULT_MASTER_KEY } });
+  });
+  afterAll(async () => {
+    vi.useRealTimers();
+    await watched.stop().catch(() => undefined);
+  });
+  const tryFrom = (from: string, value: string, code: string) =>
+    watched.call('POST', '/debtor/access', { body: { identifier: { kind: 'SIREN', value }, code, remember: false }, headers: { 'x-forwarded-for': from } });
+  const alerts = async () => (await rows<{ user_id: string }>("SELECT user_id FROM notifications WHERE kind = 'DEBTOR_ACCESS_ALERT' ORDER BY 1")).map((row) => row.user_id);
+
+  it('tells the Director and the Developer once, and suspends 15 minutes the networks in cause only', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: Date.now() });
+    const prefix = `10.${randomBytes(2).join('.')}`;
+    const networks = Array.from({ length: 13 }, (_, index) => `${prefix}.${index + 1}`);
+    const { siren: known, code } = await debtorWithCode();
+    // 200 failures from ten networks, twenty each, on known (fewer than five) and unknown identifiers alike.
+    for (const [index, from] of networks.slice(0, 10).entries())
+      for (let attempt = 0; attempt < 20; attempt += 1)
+        expect((await tryFrom(from, attempt === 0 && index < 4 ? known! : siren(), wrong(code))).status).toBe(401);
+    expect(await alerts()).toEqual([]);
+    // The 201st: counted and answered as any other, then told.
+    expect(await tryFrom(networks[10]!, siren(), 'ABCD')).toMatchObject({ status: 401, body: { code: 'INVALID', attemptsLeft: 4 } });
+    expect(await alerts()).toEqual([test.s.director, test.s.developer].sort());
+    expect(await rows("SELECT 1 FROM audit_log WHERE action = 'DEBTOR_ACCESS_ALERT'")).toHaveLength(1);
+    const told = (await staff.call('GET', '/staff/notifications', { as: 'director' })).body as { text: string }[];
+    expect(told.some((item) => /plus de 200 codes faux/u.test(item.text))).toBe(true);
+    // The networks that failed are suspended, even with the right code; another one is not.
+    for (const from of [networks[0]!, networks[9]!, networks[10]!])
+      expect(await tryFrom(from, known!, code)).toMatchObject({ status: 429, body: { code: 'TOO_MANY' } });
+    expect((await tryFrom(networks[11]!, known!, code)).status).toBe(200);
+    // During the episode, a network that fails is suspended too, and nobody is told again.
+    expect((await tryFrom(networks[12]!, siren(), 'ABCD')).status).toBe(401);
+    expect((await tryFrom(networks[12]!, known!, code)).status).toBe(429);
+    expect(await alerts()).toHaveLength(2);
+    // Fifteen minutes later, lifted (the networks that used their twenty tries of the hour wait for them as before).
+    vi.setSystemTime(Date.now() + 15 * 60_000 + 1_000);
+    expect((await tryFrom(networks[0]!, known!, code)).status).toBe(429);
+    expect((await tryFrom(networks[10]!, known!, code)).status).toBe(200);
+    expect((await tryFrom(networks[12]!, known!, code)).status).toBe(200);
+    // Without Valkey, nobody signs in.
+    watched.valkey.disconnect();
+    expect(await tryFrom(networks[11]!, known!, code)).toMatchObject({ status: 503, body: { code: 'UNAVAILABLE' } });
   });
 });
 

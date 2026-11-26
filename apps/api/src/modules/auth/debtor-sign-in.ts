@@ -11,8 +11,13 @@ import { AuthKeys } from './keys';
 const COOKIE = 'debtor';
 /** Sessions: 12 hours at most, 30 minutes without a request (both in the database); « Se souvenir de moi » keeps the cookie 30 days. */
 const REMEMBERED_S = 30 * 24 * 3600;
-/** Twenty tries an hour from one network (bloc /64 in IPv6), whatever the identifier. */
-const TRIES = { name: 'debtor-access', max: 20, seconds: 3600 };
+/** Twenty tries over the last hour from one network (bloc /64 in IPv6), whatever the identifier. */
+const TRIES = { name: 'debtor-access', max: 20, seconds: 3600, sliding: true };
+/**
+ * Beyond 200 failures over the last hour, from all networks (question 114): the Director and the Developer are told, once
+ * an episode, and the networks in cause are suspended 15 minutes.
+ */
+const FAILURES = { name: 'debtor-access-failures', max: 200, seconds: 3600, suspendSeconds: 15 * 60 };
 
 type Outcome =
   { kind: 'open'; token: string; debtorId: string } | { kind: 'invalid'; left: number } | { kind: 'locked'; minutes: number } | { kind: 'blocked' };
@@ -47,6 +52,7 @@ export class DebtorSignIn {
   }
 
   async access(identifier: DebtorIdentifier, code: string, remember: boolean): Promise<string> {
+    await this.limits.refuseSuspended(FAILURES);
     await this.limits.take(TRIES);
     const value = normalized(identifier);
     const attempt = this.keys.attempt('debtor', `${identifier.kind}:${value}`);
@@ -68,6 +74,9 @@ export class DebtorSignIn {
           : row!.outcome === 'LOCKED'
             ? { kind: 'locked', minutes: row!.minutes ?? 15 }
             : { kind: 'invalid', left: row!.attempts_left ?? 0 };
+    // Counted whatever the identifier, known or not: only the right code is not a failure.
+    if (outcome.kind !== 'open' && (await this.limits.failed(FAILURES)))
+      await this.database.run({ kind: 'anonymous' }, (tx) => tx.$queryRaw`SELECT app.debtor_access_alert()`);
     switch (outcome.kind) {
       case 'open':
         cookies().set(COOKIE, outcome.token, remember ? REMEMBERED_S : undefined);
