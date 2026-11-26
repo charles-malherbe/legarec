@@ -14,6 +14,7 @@ import {
 } from '@legarec/contracts';
 import { Badge, Bouton, Carte, Champ, EtatListe, PageHeader, Tableau, Toolbar, useConfirm, useToast } from '@legarec/ui';
 import { useState } from 'react';
+import { ApiError } from '../../app/api';
 import { useApi, useChange } from '../../app/data';
 import layout from '@legarec/ui/layout.module.css';
 import { listState, matches } from '../../shared/listState';
@@ -33,6 +34,12 @@ const CHOICES: [Kind, string, string][] = [
   ...TABS.map(([id]): [Kind, string, string] => [id, TYPES[id].label, TYPES[id].hint]),
   ['CREDIT_NOTE', 'Avoir', 'Corrige une facture émise'],
 ];
+
+/** No creditor recorded yet: the preview stays empty rather than failing. */
+const NO_CLIENT: BillingData['clients'][number] = { id: '', name: '', legal: '', siren: '', address: '', signer: '' };
+/** The API creates no invoice, quote nor contract from a template yet (questions 195 and 196): said as it is. */
+const NOT_AVAILABLE = 'La création depuis un modèle n’est pas encore disponible : aucun document n’a été créé.';
+const notAvailable = (problem: unknown) => problem instanceof ApiError && (problem.body as { code?: string } | null)?.code === 'NOT_AVAILABLE';
 
 type Copy = { client: string; subject: string; amount: number | null };
 type Seed = { key: number; type: Kind; copy?: Copy; invoice?: string; draft?: CreditNoteDraft };
@@ -263,7 +270,7 @@ function DocumentCreator({
     copy?.amount ? [{ label: copy.subject, quantity: '1', unitPrice: (Math.round(copy.amount / 1.2) / 100).toFixed(2).replace('.', ',') }] : template.lines,
   );
   const [terms, setTerms] = useState(CONTRACT_TERMS);
-  const client = data.clients.find((item) => item.id === clientId) ?? data.clients[0]!;
+  const client = data.clients.find((item) => item.id === clientId) ?? data.clients[0] ?? NO_CLIENT;
   const contract = type === 'CONTRACT';
   const parsed = lines.map((line) => ({ quantity: Number(line.quantity.replace(',', '.')) || 0, unitPrice: parseCents(line.unitPrice) ?? 0 }));
   const totals = billingTotals(parsed);
@@ -315,7 +322,13 @@ function DocumentCreator({
             { k: 'Total TTC', v: money(totals.gross) },
           ],
       onConfirm: async () => {
-        await save(false);
+        try {
+          await save(false);
+        } catch (problem) {
+          if (!notAvailable(problem)) throw problem;
+          toast({ message: NOT_AVAILABLE, tone: 'danger' });
+          return;
+        }
         toast({ message: type === 'INVOICE' ? `Facture ${number} émise.` : 'Document envoyé.' });
         onClose();
       },
@@ -414,7 +427,13 @@ function DocumentCreator({
             <Bouton
               variant="secondary"
               label="Enregistrer le brouillon"
-              onPress={() => void save(true).then(() => toast({ message: `${definition.label} enregistré en brouillon pour ${client.name}.` }))}
+              onPress={() =>
+                void save(true).then(
+                  () => toast({ message: `${definition.label} enregistré en brouillon pour ${client.name}.` }),
+                  (problem: unknown) =>
+                    toast({ message: notAvailable(problem) ? NOT_AVAILABLE : 'L’enregistrement a échoué. Réessayez.', tone: 'danger' }),
+                )
+              }
             />
             <Bouton label={definition.issue} disabled={!contract && (lines.length === 0 || totals.net <= 0)} onPress={issue} />
           </div>
@@ -434,7 +453,7 @@ function DocumentCreator({
               </span>
               <span className={`${layout.text} ${css.right}`}>
                 <strong className={css.kind}>{definition.label}</strong>
-                <span>{number} (provisoire)</span>
+                {number && <span>{number} (provisoire)</span>}
                 <span>Paris, le {formatLongDate(new Date())}</span>
               </span>
             </header>

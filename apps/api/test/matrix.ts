@@ -580,6 +580,12 @@ export const MATRIX: Record<string, MatrixEntry> = {
     path: () => `/staff/credit-notes/drafts/${randomUUID()}`,
     expect: only({ director: 404, manager: 404 }),
   },
+  // The Facturation screen: as the credit notes. Nothing is created from a template yet (questions 195 and 196).
+  'GET /staff/billing': { expect: only({ director: 200, manager: 200 }) },
+  'POST /staff/billing': {
+    body: () => ({ type: 'INVOICE', templateId: 'forfait', clientId: randomUUID(), lines: [], terms: [], draft: true }),
+    expect: only({ director: 409, manager: 409 }),
+  },
   // Agenda of the reminders: read with the cases; planned on a case one acts on (here held by nobody: the managers).
   'GET /staff/reminders': { expect: withCases(200) },
   'GET /staff/reminders/targets': { expect: withCases(200) },
@@ -753,6 +759,7 @@ export const MATRIX: Record<string, MatrixEntry> = {
   // Creditors: their own cases only; the cases of A are not those of B.
   'GET /partner/portal/dashboard': { expect: only({ partnerA: 200, partnerB: 200 }) },
   'GET /partner/portal/payouts': { expect: only({ partnerA: 200, partnerB: 200 }) },
+  'GET /partner/portal/documents': { expect: only({ partnerA: 200, partnerB: 200 }) },
   'GET /partner/portal/cases': { expect: only({ partnerA: 200, partnerB: 200 }) },
   'GET /partner/portal/cases/:id': { path: (test) => `/partner/portal/cases/${test.s.cases.ofA}`, expect: only({ partnerA: 200, partnerB: 404 }) },
   'POST /partner/portal/plans/:id/decision': { path: creditorPlan, body: () => ({ accepted: true }), expect: only({ partnerA: 204, partnerB: 404 }) },

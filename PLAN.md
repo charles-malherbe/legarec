@@ -206,7 +206,8 @@ Les 161 routes simulées se répartissent ainsi :
 - [x] Question 155 : le dépôt attend le Directeur ou le Responsable (onglet « Dépôts à valider » de Débiteurs, alerte du tableau de bord), qui ouvre le dossier ou refuse avec un motif ; 3 routes, table `claim_deposits` purgée 30 jours après la décision
 - [x] Imports CSV et Excel (rapport ligne par ligne, confirmation) (2 routes)
 - [x] Relecture sécurité : dépôt sans fuite de l'existence d'un SIREN, nom donné gardé sur le dossier et vérifié par l'équipe, nom d'un débiteur nommé par un créancier remplacé par celui de l'équipe, pièces rattachées sous verrou, politiques limitées au créancier, limite de 500 dépôts par jour. Reportés : doublons probables des particuliers, `note_contact` des coordonnées déposées, notification du Responsable, purge des pièces sans dossier (X), même règle de mandat en vigueur pour l'équipe
-- [ ] Relevés (avec S) ; portail sans messagerie : onglet « Messages », sa page, ses 3 routes simulées et le badge retirés, aide du portail réécrite (question 162)
+- [x] Documents (`GET /partner/portal/documents`) : documents partagés par l'équipe sur les dossiers du créancier, sans téléchargement (questions 197 à 199)
+- [ ] Relevés (avec S), convention signée, téléchargement (questions 197 à 199) ; portail sans messagerie : onglet « Messages », sa page, ses 3 routes simulées et le badge retirés, aide du portail réécrite (question 162)
 
 ## Points à reprendre du front
 
@@ -276,6 +277,8 @@ Les 161 routes simulées se répartissent ainsi :
 - [x] Écran « Reversements » (`/facturation/reversements`) : lot à valider, créancier retenu avec motif, validation, virements à faire, « Marquer comme versés »
 - [x] Avoirs `AV-AAAA-NNNN` (API et écran Facturation) : bouton « Avoir » sur chaque facture émise, onglet « Avoirs », type « Avoir » dans « + Créer depuis un modèle », brouillons, statuts dérivés « Avoir partiel » et « Annulée par avoir », avoir rendu au prochain reversement (questions 170 à 174)
 - [x] Question 172 : un brouillon d'avoir est à son auteur seul (politique `definer_own` de `credit_note_drafts`), qui seul le lit, le modifie, le supprime ou émet l'avoir
+- [x] Écran Facturation sur l'API (`GET` et `POST /staff/billing`) : factures de commission réelles, statuts déduits, prochain numéro, chiffres calculés ; création depuis un modèle refusée (409 `NOT_AVAILABLE`), devis et contrats vides (questions 195 et 196)
+- [ ] Factures saisies à la main, devis, contrats (questions 195 et 196, à trancher)
 - [ ] PDF de la facture et de l'avoir (aucun gabarit de facture encore), envoi de l'avoir au créancier (V3, lot R), « Préparer l'avoir » depuis Reversements (reprises), détail des encaissements par créancier, relevés PDF et envois, reprises (questions 156 à 159)
 
 ## Lot Q — Envois (état au 26/11/2026)

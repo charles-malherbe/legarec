@@ -11,7 +11,7 @@ import { checkFile, CONTENT_TYPES, readableText, type FileKind } from './file-ty
 
 const SHOWN = 500;
 const EXTENSIONS: Record<FileKind, string> = { PDF: 'pdf', DOCX: 'docx', PNG: 'png', JPEG: 'jpg' };
-const sizeText = (bytes: number) =>
+export const sizeText = (bytes: number) =>
   bytes >= 1024 * 1024 * 1024
     ? `${(bytes / 1024 ** 3).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} Go`
     : bytes >= 1024 * 1024

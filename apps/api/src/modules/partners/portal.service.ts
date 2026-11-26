@@ -1,10 +1,19 @@
-import { formatCents, type PlanApproval, type PortalCase, type portalCases, type portalDashboard, type PortalStatus } from '@legarec/contracts';
+import {
+  formatCents,
+  type PlanApproval,
+  type PortalCase,
+  type portalCases,
+  type portalDashboard,
+  type portalDocuments,
+  type PortalStatus,
+} from '@legarec/contracts';
 import { Inject, Injectable } from '@nestjs/common';
 import type { z } from 'zod';
 import { randomUUID } from 'node:crypto';
 import { Database } from '../../platform/database/database';
 import { Outbox } from '../../platform/queue/outbox';
 import { Storage } from '../../platform/storage/storage';
+import { sizeText } from '../documents/documents.service';
 import { checkFile } from '../documents/file-type';
 import { ApiError, conflict, notFound } from '../../platform/errors/api-error';
 import { dayOf } from '../../platform/format';
@@ -185,6 +194,33 @@ export class PortalService {
       months,
       activity,
       approvals: await this.approvals(),
+    };
+  }
+
+  /**
+   * « Relevés et rapports »: the files that exist and that the team shared with this creditor, on its own cases (policy
+   * `partner_read` of `documents`; a file it sent itself and that waits for its claim has no case and is not one of them).
+   * Statements, monthly reports and the signed mandate have no file yet (questions 197 and 198): none is made up.
+   */
+  async documents(): Promise<z.infer<typeof portalDocuments>> {
+    const rows = await this.database.tx.document.findMany({
+      where: { caseId: { not: null } },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: 200,
+      select: { id: true, kind: true, title: true, sizeBytes: true, case: { select: { reference: true } } },
+    });
+    return {
+      items: rows.map((row) => {
+        const extension = row.kind === 'JPEG' ? 'JPG' : row.kind;
+        return {
+          id: row.id,
+          name: row.title,
+          meta: [extension, sizeText(row.sizeBytes), row.case ? `dossier ${row.case.reference}` : null].filter(Boolean).join(' · '),
+          extension,
+          // No route gives the file to a creditor yet (question 199): the button stays disabled.
+          available: false,
+        };
+      }),
     };
   }
 

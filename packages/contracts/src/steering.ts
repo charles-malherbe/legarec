@@ -128,7 +128,8 @@ export const billingData = z.object({
   firm: z.object({ name: z.string(), address: z.string(), phone: z.string(), siren: z.string(), vat: z.string(), signer: z.string() }),
   clients: z.array(z.object({ id: z.string(), name: z.string(), legal: z.string(), siren: z.string(), address: z.string(), signer: z.string() })),
   documents: z.array(billingDocument),
-  nextNumbers: z.record(billingType, z.string()),
+  /** Provisional, for the types that have a series: drawn at the issuance only. */
+  nextNumbers: z.partialRecord(billingType, z.string()),
   stats: z.array(z.object({ label: z.string(), value: z.string(), sub: z.string(), tone: z.enum(['default', 'danger', 'warning']).optional() })),
 });
 export type BillingData = z.infer<typeof billingData>;

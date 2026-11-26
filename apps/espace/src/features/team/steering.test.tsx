@@ -184,6 +184,23 @@ describe('billing', () => {
     expect((await call('hb', '/billing')).status).toBe(403);
     expect((await call('dev', '/billing')).status).toBe(403);
   });
+  it('says so when the API creates nothing from a template, and stands without any creditor', async () => {
+    const firm = { name: 'LEGAREC', address: '[ADRESSE DU CABINET]', phone: '01 87 88 02 98', siren: '[SIREN]', vat: '[N° TVA]', signer: '' };
+    server.use(
+      http.get('/api/billing', () => HttpResponse.json({ firm, clients: [], documents: [], nextNumbers: { INVOICE: 'FA-2026-0001' }, stats: [] })),
+      http.post('/api/billing', () => HttpResponse.json({ code: 'NOT_AVAILABLE', type: 'INVOICE' }, { status: 409 })),
+    );
+    openAs('ad', '/facturation');
+    await userEvent.click(await screen.findByRole('button', { name: 'Émettre la facture' }));
+    await userEvent.click((await inDialog()).getByRole('button', { name: 'Émettre la facture' }));
+    expect(await screen.findByText(/n’est pas encore disponible : aucun document n’a été créé/)).toBeVisible();
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    // A type without a series shows no provisional number.
+    await userEvent.click(screen.getByRole('button', { name: /^Devis/ }));
+    expect(screen.queryByText(/\(provisoire\)/)).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Enregistrer le brouillon' }));
+    expect(await screen.findAllByText(/n’est pas encore disponible/)).not.toHaveLength(0);
+  });
 });
 
 it('marks notifications as read and undoes it', async () => {

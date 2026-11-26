@@ -1,4 +1,14 @@
-import { importDone, importReport, portalCase, portalCases, portalDashboard, portalPayouts, REQUEST_BODIES, uploadedFile } from '@legarec/contracts';
+import {
+  importDone,
+  importReport,
+  portalCase,
+  portalCases,
+  portalDashboard,
+  portalDocuments,
+  portalPayouts,
+  REQUEST_BODIES,
+  uploadedFile,
+} from '@legarec/contracts';
 import { Body, Controller, Get, HttpCode, Inject, Param, Post } from '@nestjs/common';
 import { ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import type { z } from 'zod';
@@ -36,6 +46,14 @@ export class PortalController {
   @ApiOkResponse({ standardSchema: portalPayouts })
   payouts() {
     return payouts(this.database.tx);
+  }
+
+  /** The files shared with this creditor, on its own cases. */
+  @Get('documents')
+  @Partner()
+  @ApiOkResponse({ standardSchema: portalDocuments })
+  documents() {
+    return this.portal.documents();
   }
 
   @Get('cases')
