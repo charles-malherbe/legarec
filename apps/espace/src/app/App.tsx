@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/reac
 import { lazy, Suspense, useState } from 'react';
 import { Navigate, Outlet, Route, Routes } from 'react-router';
 import { BillingPage } from '../features/billing/BillingPage';
+import { RemittancesPage } from '../features/billing/RemittancesPage';
 import { NotificationsPage } from '../features/notifications/NotificationsPage';
 import { TeamPage } from '../features/team/TeamPage';
 import { AccountPage } from '../features/account/AccountPage';
@@ -113,6 +114,7 @@ export function App() {
               />
               <Route path="equipe" element={<TeamPage />} />
               <Route path="facturation" element={<BillingPage />} />
+              <Route path="facturation/reversements" element={<RemittancesPage />} />
               <Route path="documents" element={<DocumentsPage />} />
               <Route path="documents/rediger" element={<ComposePage />} />
               <Route path="contentieux" element={<LitigationPage />} />

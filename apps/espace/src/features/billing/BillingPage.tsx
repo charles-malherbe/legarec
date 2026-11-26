@@ -64,6 +64,7 @@ export function BillingPage() {
         stats={data?.stats ?? []}
         actions={[
           { label: 'Modèles', href: '/parametres/modeles' },
+          { label: 'Reversements', href: '/facturation/reversements' },
           {
             label: creating ? 'Fermer la création' : '+ Créer depuis un modèle',
             primary: !creating,

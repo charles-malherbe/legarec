@@ -4,6 +4,7 @@ import { ACCOUNTS, DEMO_PASSWORD } from './accounts';
 import dashboardData from './dashboard.json';
 import { documentHandlers } from './routes/documents';
 import { memberOf, steeringHandlers } from './routes/steering';
+import { remittanceHandlers } from './routes/remittances';
 import { accountHandlers, BACKUP_CODES } from './routes/account';
 import { settingsHandlers } from './routes/settings';
 import { templateHandlers } from './routes/templates';
@@ -164,6 +165,7 @@ export const handlers: HttpHandler[] = [
   ...templateHandlers,
   ...accountHandlers,
   ...steeringHandlers,
+  ...remittanceHandlers,
   ...callHandlers,
   ...messageHandlers,
   ...caseHandlers,
