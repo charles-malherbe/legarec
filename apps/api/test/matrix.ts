@@ -478,7 +478,7 @@ export const MATRIX: Record<string, MatrixEntry> = {
   'PUT /staff/dashboard/priorities/:id': {
     path: async (test) => `/staff/dashboard/priorities/call:${(await newCase(test)).id}`,
     body: () => ({ done: true }),
-    expect: withCases(404, { director: 204, manager: 204, managerAlone: 204 }),
+    expect: withCases(404, { manager: 204, managerAlone: 204 }),
   },
   // Registry of the RGPD: written by whoever acts on the case, kept by the Director and their administrative delegate.
   'POST /staff/gdpr/requests': {
