@@ -185,7 +185,7 @@ describe('rights of the roles that face the outside', () => {
       // Its imports of claims, until it confirms them.
       'claim_imports INSERT (claims, creditor_id, errors, id, lines, status, total_cents, uploaded_by, valid)',
       'claim_imports SELECT (claims, confirmed_at, created_at, created_count, creditor_id, errors, expires_at, id, lines, status, total_cents, uploaded_by, valid)',
-      'claim_imports UPDATE (confirmed_at, created_count, status)',
+      'claim_imports UPDATE (claims, confirmed_at, created_count, errors, status)',
     ],
     legarec_debtor: [
       'cases SELECT (closed_on, creditor_id, debtor_id, formal_notice_on, id, mandate_id, opened_on, reference, status)',
