@@ -45,7 +45,14 @@ export class DebtorViews {
         cases.map(async (item) => {
           const ledger = await this.ledgers.read(item.id, dayOf(new Date()), false, true);
           const [label, tone] = STATUS[item.status] ?? STATUS.OVERDUE!;
-          return { id: item.id, reference: item.reference, creditor: item.creditor.name, balance: ledger ? balanceOf(ledger) : 0, statusLabel: label, statusTone: tone };
+          return {
+            id: item.id,
+            reference: item.reference,
+            creditor: item.creditor.name,
+            balance: ledger ? balanceOf(ledger) : 0,
+            statusLabel: label,
+            statusTone: tone,
+          };
         }),
       ),
     };
@@ -63,7 +70,12 @@ export class DebtorViews {
     const owed = owedOf(ledger);
     const plan = await tx.paymentPlan.findFirst({
       where: { caseId: id, status: { in: ['WAITING_DEBTOR', 'ACTIVE', 'DEFAULT'] } },
-      select: { status: true, acceptedAt: true, createdAt: true, installments: { orderBy: { number: 'asc' }, select: { number: true, dueOn: true, amountCents: true } } },
+      select: {
+        status: true,
+        acceptedAt: true,
+        createdAt: true,
+        installments: { orderBy: { number: 'asc' }, select: { number: true, dueOn: true, amountCents: true } },
+      },
     });
     const states = plan
       ? installmentStates(
@@ -90,7 +102,9 @@ export class DebtorViews {
       interest: owed.interest,
       indemnity: owed.fees,
       paid: ledger.payments.filter((payment) => payment.status !== 'BOUNCED').reduce((sum, payment) => sum + payment.amount, 0),
-      invoices: ledger.invoices.filter((invoice) => invoice.principalLeft > 0).map((invoice) => ({ id: invoice.id, number: invoice.number, dueOn: invoice.dueOn, amount: invoice.principalLeft })),
+      invoices: ledger.invoices
+        .filter((invoice) => invoice.principalLeft > 0)
+        .map((invoice) => ({ id: invoice.id, number: invoice.number, dueOn: invoice.dueOn, amount: invoice.principalLeft })),
       payments: ledger.payments
         .filter((payment) => payment.status !== 'BOUNCED')
         .map((payment) => ({ id: payment.id, amount: payment.amount, date: payment.receivedOn, method: payment.method, receiptId: payment.receiptId })),

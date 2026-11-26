@@ -521,9 +521,15 @@ describe('rights on the functions', () => {
     ['share_document', ['staff']],
     ...['import_template', 'cancel_template', 'submit_template', 'review_template'].map((name) => [name, ['staff']] as [string, string[]]),
     ['template_editor', []],
-    ...['debtor_for_access', 'debtor_attempt', 'open_debtor_session', 'resume_debtor_session', 'close_debtor_session', 'note_debtor_blocked', 'mark_debtor_attempt'].map(
-      (name) => [name, ['auth']] as [string, string[]],
-    ),
+    ...[
+      'debtor_for_access',
+      'debtor_attempt',
+      'open_debtor_session',
+      'resume_debtor_session',
+      'close_debtor_session',
+      'note_debtor_blocked',
+      'mark_debtor_attempt',
+    ].map((name) => [name, ['auth']] as [string, string[]]),
     ['forget_debtor_access', ['staff']],
     ...['money_case', 'issue_receipt', 'follow_allocation', 'check_allocations', 'keep_receipt'].map((name) => [name, []] as [string, string[]]),
     // Tools of the migrations.
