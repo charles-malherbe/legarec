@@ -310,6 +310,15 @@ export const documentHandlers = [
     }),
   ),
   http.post('/api/documents/:id/share', onDocument),
+  // A clean file under a neutral name; the demonstration gives the same one for each document.
+  http.get(
+    '/api/documents/:id/file',
+    guarded<Info>(staffWithCases, ({ params }, session) => {
+      const item = ITEMS.find((entry) => entry.id === params.id);
+      if (!item || (item.caseId && !readable(session).some((entry) => entry.id === item.caseId))) return notFound();
+      return new HttpResponse('%PDF-1.4\n%%EOF\n', { headers: { 'content-type': 'application/pdf', 'content-disposition': 'attachment; filename="document.pdf"' } });
+    }),
+  ),
   http.post('/api/documents/:id/send', onDocument),
   http.get(
     '/api/documents/compose',

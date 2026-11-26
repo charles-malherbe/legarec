@@ -82,6 +82,11 @@ export const gdprRequestBody = z.object({ caseId: id, kind: gdprRequestKind, ori
 export const gdprAnswerBody = z.object({ status: z.enum(['OPEN', 'ANSWERED', 'REFUSED']), reason });
 
 export const reminderBody = z.object({ date: z.iso.date(), time: newReminder.shape.time, done: z.boolean() }).partial();
+/** A file sent as the whole body (`POST /documents/import`), up to 15 Mo: its real type is checked by the API. */
+export const FILE_MAX_BYTES = 15 * 1024 * 1024;
+export const fileBody = z.custom<Uint8Array>((value) => value instanceof Uint8Array && value.byteLength > 0 && value.byteLength <= FILE_MAX_BYTES, {
+  error: 'Ce fichier est vide ou dépasse 15 Mo.',
+});
 /** `expected`: the balance shown in the confirmation; the API refuses the plan if it changed since. */
 export const paymentPlanBody = z.object({
   caseId: id,
@@ -203,6 +208,7 @@ export const REQUEST_BODIES = {
     'POST /cases/litigation': litigationBody,
     'POST /cases/assign': assignBody,
     'POST /cases/:id/portal-messages': portalMessageBody,
+    'POST /documents/import': fileBody,
     'POST /cases/:id/payments': newPayment,
     'PUT /cases/:id/payments/:paymentId': paymentStatusBody,
     'POST /cases/:id/reminders': caseReminderBody,

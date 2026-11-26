@@ -15,6 +15,8 @@ interface RequestScope extends RequestFacts {
   agent: string;
   /** Asked by the screen itself, not by the person in front of it. */
   background: boolean;
+  /** Announced type of that body. */
+  contentType: string;
   actor?: Actor;
 }
 
@@ -33,6 +35,7 @@ export const requestFacts = (): RequestFacts => {
 export const cookies = (): CookieJar => scope().cookies;
 export const userAgent = (): string => scope().agent;
 export const isBackground = (): boolean => scope().background;
+export const uploadedType = (): string => scope().contentType;
 
 /** Who was allowed in by the access guard. */
 export function currentActor(): Actor {
@@ -61,6 +64,7 @@ export const openRequest: RequestHandler = (request, response, next) => {
       cookies: new CookieJar(headers.cookie, response),
       agent: headers['user-agent'] ?? '',
       background: headers['x-background'] === '1',
+      contentType: headers['content-type'] ?? '',
     },
     next,
   );

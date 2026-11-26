@@ -7,7 +7,7 @@ import {
   type DocumentCategory,
   type DocumentItem,
 } from '@legarec/contracts';
-import { upload } from '@legarec/platform';
+import { download, saveFile, upload } from '@legarec/platform';
 import { Alerte, Badge, Bouton, DepotFichiers, EtatListe, PageHeader, Pagination, Tableau, Toolbar, useConfirm, useToast, type Tone } from '@legarec/ui';
 import { useState } from 'react';
 import { Link } from 'react-router';
@@ -92,6 +92,15 @@ export function DocumentsPage() {
         await refetch();
       },
     });
+  };
+  // Read once ClamAV found it clean: until then, the API says so.
+  const fetchFile = async (item: DocumentItem) => {
+    try {
+      const { blob, name } = await download(`/documents/${encodeURIComponent(item.id)}/file`);
+      saveFile(blob, name);
+    } catch {
+      toast({ message: 'Ce document n’est pas encore disponible : l’analyse antivirus est en cours.' });
+    }
   };
   const share = (item: DocumentItem) =>
     confirm({
@@ -290,7 +299,7 @@ export function DocumentsPage() {
                 </div>
               </dl>
               <div className={layout.inline}>
-                <Bouton label="Télécharger" disabled title="URL présignée fournie par l’API" />
+                <Bouton label="Télécharger" onPress={() => void fetchFile(current)} />
                 <Bouton variant="secondary" label="Partager au créancier" onPress={() => share(current)} />
                 <Bouton variant="secondary" label="Envoyer" onPress={() => send(current)} />
                 <Bouton variant="secondary" label="Historique (2)" disabled />

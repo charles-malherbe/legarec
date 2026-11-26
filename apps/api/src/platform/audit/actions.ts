@@ -51,7 +51,13 @@ export const AUDIT_ACTIONS = {
   CASE_OPENED: 'Dossier ouvert',
   CASES_ASSIGNED: 'Dossiers attribués : {count}',
   CASE_INVOICES_ADDED: 'Factures ajoutées à un dossier : {count}',
+  // Documents
+  DOCUMENT_ATTACHED: 'Document importé et rattaché à un dossier',
+  DOCUMENT_TO_FILE: 'Document importé, à classer',
+  DOCUMENT_SHARED: 'Document partagé au créancier',
   // Money
+  PAYMENT_RECORDED: 'Paiement enregistré',
+  PAYMENT_SETTLED: 'Paiement définitif, quittance émise',
   PAYMENT_BOUNCED: 'Chèque impayé enregistré',
   PLAN_ASKED: 'Échéancier demandé : {count} mensualités',
   PLAN_REFUSED: 'Échéancier de {months} mois refusé',

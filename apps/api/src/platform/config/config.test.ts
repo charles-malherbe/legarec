@@ -10,7 +10,9 @@ const base = () => ({
   VAULT_MASTER_KEY: randomBytes(32).toString('base64'),
   SESSION_SIGNING_KEY: randomBytes(32).toString('base64'),
 });
+/** What production needs beyond the accounts: its portals, and the folder of the documents. */
 const portals = {
+  DOCUMENTS_DIR: '/var/lib/legarec/documents',
   STAFF_PORTAL_URL: 'https://espace.legarec.fr',
   PARTNER_PORTAL_URL: 'https://partenaires.legarec.fr',
   DEBTOR_PORTAL_URL: 'https://paiement.legarec.fr',
@@ -73,6 +75,23 @@ describe('startup values', () => {
     expect(() => readWorkerConfig({ ...deployed, DEV_MAIL_DIR: '/home/x/mails' })).toThrow('Refused in production: DEV_MAIL_DIR');
     // The API sends nothing: it does not know that folder.
     expect(readConfig({ ...base(), DEV_MAIL_DIR: '/home/x/mails' })).not.toHaveProperty('DEV_MAIL_DIR');
+  });
+
+  it('requires the folder of the documents in production, and an antivirus address that is one', () => {
+    const { DOCUMENTS_DIR: _folder, ...without } = portals;
+    const production = {
+      ...base(),
+      ...without,
+      NODE_ENV: 'production',
+      DATABASE_URL: 'postgresql://app:pw@postgres:5432/legarec',
+      VALKEY_URL: 'redis://:pw@valkey:6379/0',
+    };
+    expect(() => readConfig(production)).toThrow('DOCUMENTS_DIR');
+    expect(() => readConfig({ ...production, DOCUMENTS_DIR: 'documents' })).toThrow('DOCUMENTS_DIR');
+    const { DATABASE_URL: _api, ...rest } = base();
+    const worker = { ...rest, JOBS_DATABASE_URL: 'postgresql://jobs:pw@127.0.0.1:55432/legarec_dev' };
+    expect(readWorkerConfig({ ...worker, CLAMAV_URL: 'tcp://clamav:3310' }).CLAMAV_URL).toBe('tcp://clamav:3310');
+    expect(() => readWorkerConfig({ ...worker, CLAMAV_URL: 'http://clamav' })).toThrow('CLAMAV_URL');
   });
 
   it('keeps the AI off unless it is explicitly on', () => {

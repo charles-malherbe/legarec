@@ -185,6 +185,11 @@ Les 161 routes simulées se répartissent ainsi :
 - [x] Matrice d'accès, parité simulations et API, tests métier
 - Reporté : promesses (lot T, résultat d'appel), litiges (lots O et R), relance d'un échéancier (Q), accord du créancier (P), acceptation du débiteur (O), PDF de la quittance (N)
 
+## Lot N — Documents (état au 26/11/2026)
+- [x] Stockage sur disque (volume en production), dépôt avec contrôle du type réel, antivirus en tâche de fond (simulé en développement), liste, téléchargement sous un nom neutre, partage au créancier
+- [ ] Modèles (import contrôlé, soumission, validation, restauration, essai), PDF par Playwright (quittances, courriers), valeurs entre crochets (`FIRM_INCOMPLETE`), logos
+- Reporté : bucket Scaleway (X), conteneur ClamAV (X), envoi d'un document (Q), composition des courriers (Q)
+
 ## Points à reprendre du front
 
 | Point | Lot |

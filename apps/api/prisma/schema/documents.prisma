@@ -1,0 +1,70 @@
+enum DocumentCategory {
+  REMINDER_LETTER
+  FORMAL_NOTICE
+  PAYMENT_PLAN
+  INVOICE
+  EVIDENCE
+  COURT
+  REMITTANCE
+  RECEIPT
+
+  @@map("document_category")
+}
+
+enum DocumentKind {
+  PDF
+  DOCX
+  PNG
+  JPEG
+
+  @@map("document_kind")
+}
+
+enum DocumentSource {
+  UPLOAD
+  GENERATED
+  CREDITOR
+  DEBTOR
+
+  @@map("document_source")
+}
+
+enum ScanStatus {
+  PENDING
+  CLEAN
+  INFECTED
+  FAILED
+
+  @@map("scan_status")
+}
+
+/// A file kept by `Storage` under `storageKey`; read only once `scanStatus` is CLEAN.
+model Document {
+  id                   String           @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  caseId               String?          @map("case_id") @db.Uuid
+  creditorId           String?          @map("creditor_id") @db.Uuid
+  category             DocumentCategory
+  kind                 DocumentKind
+  title                String
+  originalName         String           @map("original_name")
+  storageKey           String           @unique @map("storage_key")
+  sizeBytes            Int              @map("size_bytes")
+  sha256               String
+  source               DocumentSource
+  authorId             String?          @map("author_id") @db.Uuid
+  sharedWithCreditorAt DateTime?        @map("shared_with_creditor_at") @db.Timestamptz(3)
+  sharedBy             String?          @map("shared_by") @db.Uuid
+  visibleToDebtor      Boolean          @default(false) @map("visible_to_debtor")
+  containsAccessCode   Boolean          @default(false) @map("contains_access_code")
+  scanStatus           ScanStatus       @default(PENDING) @map("scan_status")
+  scannedAt            DateTime?        @map("scanned_at") @db.Timestamptz(3)
+  createdAt            DateTime         @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
+
+  case     Case?     @relation(fields: [caseId, creditorId], references: [id, creditorId], onDelete: NoAction, onUpdate: NoAction)
+  author   User?     @relation("documentAuthor", fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  receipts Receipt[]
+
+  @@unique([id, caseId], map: "documents_id_case_id_key")
+  @@index([caseId, createdAt(sort: Desc)], map: "documents_case")
+  @@map("documents")
+}

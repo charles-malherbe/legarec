@@ -22,6 +22,8 @@ const CACHE = join(HOME, 'valkey');
 const VALUES = join(HOME, 'values.env');
 /** Simulated e-mails of the development worker: their links can be followed. */
 export const MAILS = join(HOME, 'mails');
+/** Documents received or generated in development: `DOCUMENTS_DIR`. */
+export const DOCUMENTS = join(HOME, 'documents');
 const PACKAGES = ['postgresql-17', 'postgresql-client-17', 'libpq5', 'libxslt1.1', 'libgcrypt20', 'libgpg-error0', 'valkey-server', 'valkey-tools', 'liblzf1'];
 const BOOTSTRAP = fileURLToPath(new URL('../../apps/api/prisma/bootstrap.sql', import.meta.url));
 const apiRequire = createRequire(new URL('../../apps/api/package.json', import.meta.url));

@@ -133,6 +133,8 @@ const CASE_EVENTS =
 const DEBTORS = 'debtors SELECT (anonymized_at, created_at, id, kind, legal_form_checked_at, legal_form_code, legal_form_source, name, siren)';
 
 const MONEY_OUTSIDE = [
+  // Documents shared with them, clean and without the access code (policies).
+  'documents SELECT (case_id, category, created_at, creditor_id, id, kind, original_name, size_bytes, storage_key, title)',
   'installments SELECT (amount_cents, case_id, creditor_id, due_on, id, number, plan_id)',
   'payment_allocations SELECT (amount_cents, case_id, component, creditor_id, id, invoice_id, payment_id, reverses_id)',
   'payment_plans SELECT (accepted_at, case_id, creditor_id, first_due_on, id, method, months, status, total_cents)',
@@ -245,6 +247,10 @@ describe('rights of the roles inside', () => {
       'cases INSERT (contact_name, contact_title, created_at, created_by, creditor_id, debtor_address, debtor_city, debtor_id, debtor_postal_code, debtor_siret, external_reference, id, mandate_id, officer_id, opened_on, reference, scenario, status, version)',
       'cases SELECT (closed_on, contact_name, contact_title, created_at, created_by, creditor_id, debtor_address, debtor_city, debtor_id, debtor_postal_code, debtor_siret, external_reference, first_letter_on, first_letter_reference, formal_notice_on, id, mandate_id, officer_id, opened_on, reference, scenario, status, version)',
       'notifications SELECT (action, actor_id, case_count, case_id, created_at, creditor_id, id, kind, plan_decision, plan_id, read_at, target_id, ticket_id, user_id)',
+      // Documents: received in one's own name, never scanned nor filed by hand.
+      'documents INSERT (author_id, case_id, category, contains_access_code, creditor_id, id, kind, original_name, scan_status, sha256, size_bytes, source, storage_key, title, visible_to_debtor)',
+      'documents SELECT (author_id, case_id, category, contains_access_code, created_at, creditor_id, id, kind, original_name, scan_status, scanned_at, sha256, shared_by, shared_with_creditor_at, size_bytes, source, storage_key, title, visible_to_debtor)',
+      'documents UPDATE (category, shared_by, shared_with_creditor_at, title)',
       // Money: read only; written by the functions of the money.
       'installments SELECT (amount_cents, case_id, creditor_id, due_on, id, number, plan_id)',
       'interest_rates SELECT (entered_by, id, kind, on_behalf_of_id, rate_bp, updated_at, valid_from)',
@@ -287,6 +293,10 @@ describe('rights of the roles inside', () => {
       'payment_plans SELECT (accepted_at, case_id, creditor_id, first_due_on, id, method, months, status, total_cents, version)',
       'payments SELECT (amount_cents, bounced_at, case_id, creditor_id, deposited_on, id, method, received_on, settled_at, status)',
       'plan_approvals SELECT (case_id, creditor_id, decided_at, decision, id, plan_id, step)',
+      // The verdict of ClamAV, and the documents it generates.
+      'documents INSERT (case_id, category, contains_access_code, creditor_id, id, kind, original_name, scan_status, scanned_at, sha256, size_bytes, source, storage_key, title, visible_to_debtor)',
+      'documents SELECT (author_id, case_id, category, contains_access_code, created_at, creditor_id, id, kind, original_name, scan_status, scanned_at, sha256, shared_with_creditor_at, size_bytes, source, storage_key, title, visible_to_debtor)',
+      'documents UPDATE (scan_status, scanned_at)',
       // The PDF of a receipt (lot N).
       'receipts SELECT (case_id, creditor_id, document_id, id, issued_at, number, payment_id)',
       'receipts UPDATE (document_id)',

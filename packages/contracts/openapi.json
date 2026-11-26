@@ -6567,6 +6567,257 @@
         }
       }
     },
+    "/staff/documents": {
+      "get": {
+        "operationId": "DocumentsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "category": {
+                            "type": "string",
+                            "enum": [
+                              "REMINDER_LETTER",
+                              "FORMAL_NOTICE",
+                              "PAYMENT_PLAN",
+                              "INVOICE",
+                              "EVIDENCE",
+                              "COURT",
+                              "REMITTANCE",
+                              "RECEIPT"
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "debtor": {
+                            "type": "string"
+                          },
+                          "caseId": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "creditor": {
+                            "type": "string"
+                          },
+                          "creditorId": {
+                            "type": "string"
+                          },
+                          "date": {
+                            "type": "string",
+                            "format": "date",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                          },
+                          "size": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "PDF",
+                              "DOCX",
+                              "PNG",
+                              "JPEG"
+                            ]
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "tone": {
+                            "type": "string",
+                            "enum": [
+                              "info",
+                              "success",
+                              "neutral",
+                              "marine",
+                              "warning"
+                            ]
+                          },
+                          "tracking": {
+                            "type": "string"
+                          },
+                          "author": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "category",
+                          "name",
+                          "title",
+                          "debtor",
+                          "caseId",
+                          "creditor",
+                          "creditorId",
+                          "date",
+                          "size",
+                          "kind",
+                          "status",
+                          "tone",
+                          "tracking",
+                          "author"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "total": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "size": {
+                      "type": "string"
+                    },
+                    "counts": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "required": [
+                        "REMINDER_LETTER",
+                        "FORMAL_NOTICE",
+                        "PAYMENT_PLAN",
+                        "INVOICE",
+                        "EVIDENCE",
+                        "COURT",
+                        "REMITTANCE",
+                        "RECEIPT"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "total",
+                    "size",
+                    "counts"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "documents"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      }
+    },
+    "/staff/documents/import": {
+      "post": {
+        "operationId": "DocumentsController_import",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ATTACHED",
+                        "TO_FILE"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "documents"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      }
+    },
+    "/staff/documents/{id}/share": {
+      "post": {
+        "operationId": "DocumentsController_share",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "documents"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      }
+    },
+    "/staff/documents/{id}/file": {
+      "get": {
+        "operationId": "DocumentsController_file",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Le fichier, sous un nom neutre."
+          }
+        },
+        "tags": [
+          "documents"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      }
+    },
     "/staff/shell": {
       "get": {
         "operationId": "ShellController_shell",

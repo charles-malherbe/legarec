@@ -8,7 +8,7 @@ import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseEnv } from 'node:util';
-import { MAILS, start, values } from './services.mjs';
+import { DOCUMENTS, MAILS, start, values } from './services.mjs';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const API = join(ROOT, 'apps', 'api');
@@ -34,6 +34,7 @@ const envOf = (name) => ({
   PORT: process.env.PORT ?? '3000',
   ...(name === 'migrate' ? {} : pick(own, TEST_KEYS)),
   ...(name === 'worker' ? { DEV_MAIL_DIR: MAILS } : {}),
+  ...(name === 'main' || name === 'worker' ? { DOCUMENTS_DIR: DOCUMENTS } : {}),
   ...pick(services, NEEDS[name]),
 });
 const run = (name, ...args) => spawn(process.execPath, ['--enable-source-maps', `dist/${name}.js`, ...args], { cwd: API, env: envOf(name), stdio: 'inherit' });

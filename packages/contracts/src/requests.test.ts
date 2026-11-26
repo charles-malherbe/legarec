@@ -225,6 +225,7 @@ const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly
       { decision: 'APPROVED', version: 2 },
     ],
     'PUT /interest-rates': [{ kind: 'ECB', validFrom: '2026-07-01', rateBp: 215, expected: null }],
+    'POST /documents/import': [new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d])],
     'POST /documents/compose': [
       { ...letter, template: 'FORMAL_NOTICE', caseIds: ['demo'], filters: null, expected: 1 },
       { ...letter, template: 'FRIENDLY', caseIds: null, filters: { creditor: 'md', age: '31-60' }, expected: 13 },
@@ -337,13 +338,17 @@ const MAY_BE_EMPTY = [
 ];
 /** Answers of the browser, fields of a setting, terms of a contract: their content is checked further by the API. */
 const OPEN = ['POST /account/two-factor/webauthn/verify', 'PUT /settings/:scope/:id'];
+/** Their body is a file, not JSON: tested on their own below. */
+const FILES = ['POST /documents/import'];
 const ROUTES = (Object.keys(BODIES) as Portal[]).flatMap((portal) =>
-  Object.entries(BODIES[portal] as Record<string, readonly unknown[]>).map(([route, bodies]) => ({
-    portal,
-    route,
-    bodies,
-    schema: (REQUEST_BODIES[portal] as Record<string, z.ZodType>)[route]!,
-  })),
+  Object.entries(BODIES[portal] as Record<string, readonly unknown[]>)
+    .filter(([route]) => !FILES.includes(route))
+    .map(([route, bodies]) => ({
+      portal,
+      route,
+      bodies,
+      schema: (REQUEST_BODIES[portal] as Record<string, z.ZodType>)[route]!,
+    })),
 );
 const real = (route: string) => route.split(' ') as [string, string];
 const concrete = (path: string) => path.replace(/:\w+/gu, 'x1');
@@ -365,6 +370,13 @@ describe('every body of the portals', () => {
     const [method, path] = real(route);
     expect(acceptsBody(portal, method, concrete(path), '{}')).toBe(MAY_BE_EMPTY.includes(route));
     expect(acceptsBody(portal, method, concrete(path), '[]')).toBe(false);
+  });
+
+  it('takes a file as a whole body, neither empty nor beyond 15 Mo', () => {
+    const schema = REQUEST_BODIES.staff['POST /documents/import'];
+    expect(schema.safeParse(new Uint8Array([1])).success).toBe(true);
+    for (const wrong of [new Uint8Array(0), new Uint8Array(15 * 1024 * 1024 + 1), 'texte', { file: 'x' }, undefined])
+      expect(schema.safeParse(wrong).success).toBe(false);
   });
 
   it('checks the type of each field, and drops the fields it does not know', () => {

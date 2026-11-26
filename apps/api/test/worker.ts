@@ -8,6 +8,9 @@ import { EmailRenderer, TEMPLATES_DIR } from '../src/emails/renderer';
 import { accountJobs } from '../src/modules/auth/auth.jobs';
 import { AuthKeys } from '../src/modules/auth/keys';
 import { accessCodeJobs } from '../src/modules/debtor-access/access-codes.jobs';
+import { documentJobs } from '../src/modules/documents/documents.jobs';
+import { SimulatedScanner } from '../src/platform/scanner/scanner';
+import { storageFor } from '../src/platform/storage/storage';
 import { SettingValues } from '../src/modules/settings/values';
 import { Vault } from '../src/modules/vault/vault';
 import { Database } from '../src/platform/database/database';
@@ -47,6 +50,7 @@ export function startMailWorker(test: TestApp) {
   const handlers = {
     email: accountJobs({ keys: new AuthKeys(test.config), portals: test.config, send }),
     maintenance: accessCodeJobs(new Vault(test.config)),
+    documents: documentJobs(storageFor(test.config), new SimulatedScanner()),
   };
   const workers = startWorkers({ database, logger, connection: valkey, handlers, prefix });
   const publisher = new OutboxPublisher(database, logger, valkey, prefix);

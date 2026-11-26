@@ -10,6 +10,8 @@ export interface MatrixEntry {
   /** Real path, for a route with parameters. Computed for each caller: what one of them does changes nothing for the next. */
   path?: (test: TestApp) => string | Promise<string>;
   body?: () => unknown;
+  /** A body that is a file (PDF). */
+  file?: () => Uint8Array;
   expect: Record<Caller, number>;
 }
 
@@ -125,6 +127,19 @@ const pendingPlan = async (test: TestApp) => {
     [id, creditorId, test.s.officerA],
   );
   return `/staff/payment-plans/requests/${rows[0]!.id}`;
+};
+
+/** A PDF of nothing, which ClamAV finds clean. */
+const PDF = () => new TextEncoder().encode('%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n');
+/** A document of a case held by nobody, scanned and clean. */
+const documentPath = async (test: TestApp, then: string) => {
+  const { id, creditorId } = await newCase(test);
+  const { rows } = await test.database.admin.query<{ id: string }>(
+    `INSERT INTO documents (case_id, creditor_id, category, kind, title, original_name, storage_key, size_bytes, sha256, source, author_id, scan_status, scanned_at)
+     VALUES ($1, $2, 'EVIDENCE', 'PDF', 'Pièce', 'piece.pdf', gen_random_uuid()::text, 10, repeat('0', 64), 'UPLOAD', $3, 'CLEAN', now()) RETURNING id`,
+    [id, creditorId, test.s.manager],
+  );
+  return `/staff/documents/${rows[0]!.id}${then}`;
 };
 let assigned: unknown;
 let planned: unknown;
@@ -444,5 +459,16 @@ export const MATRIX: Record<string, MatrixEntry> = {
     // Each caller writes a semester of its own: the value shown is that of nobody.
     body: () => ({ kind: 'ECB', validFrom: `${2030 + (rateTurn++ % 40)}-01-01`, rateBp: 215, expected: null }),
     expect: only({ director: 204, manager: 204, liar: 403 }),
+  },
+  // Documents: the cases one reads; a file is read from the disk, which the test does not fill: 500 for whoever gets that far.
+  'GET /staff/documents': { expect: withCases(200) },
+  'POST /staff/documents/import': { file: PDF, expect: withCases(200) },
+  'POST /staff/documents/:id/share': {
+    path: (test) => documentPath(test, '/share'),
+    expect: only({ director: 403, manager: 204, managerAlone: 204, officerA: 404, officerB: 404, liar: 404 }),
+  },
+  'GET /staff/documents/:id/file': {
+    path: (test) => documentPath(test, '/file'),
+    expect: only({ director: 500, manager: 500, managerAlone: 500, officerA: 404, officerB: 404, liar: 404 }),
   },
 };
