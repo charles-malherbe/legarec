@@ -39,18 +39,25 @@ const STEPS: readonly [kind: string, remove: (tx: Transaction) => Promise<number
   ['cases', async (tx) => counted(await tx.$queryRaw`SELECT app.anonymize_case() AS removed`)],
 ];
 
+const FILES_AT_ONCE = 1000;
 /**
- * The files of the erased documents, all of them each time: a restored disk brings some back. Read in one transaction,
- * erased outside of it, counted in another.
+ * The files of the erased documents, all of them each time: a restored disk brings some back. Read a thousand at a time,
+ * each in its own transaction, erased outside of it, counted in another. Those of an erasure asked by a debtor go with
+ * the next night.
  */
 async function eraseFiles(database: Database, storage: Storage): Promise<number> {
-  const files = await database.run(
-    { kind: 'retention' },
-    (tx) => tx.$queryRaw<{ key: string }[]>`SELECT storage_key AS key FROM documents WHERE purged_at IS NOT NULL`,
-  );
   let removed = 0;
-  for (const { key } of files) if (await storage.erase(key)) removed += 1;
-  return removed;
+  let after = '00000000-0000-0000-0000-000000000000';
+  for (;;) {
+    const files = await database.run(
+      { kind: 'retention' },
+      (tx) => tx.$queryRaw<{ id: string; key: string }[]>`
+        SELECT id, storage_key AS key FROM documents WHERE purged_at IS NOT NULL AND id > ${after}::uuid ORDER BY id LIMIT ${FILES_AT_ONCE}`,
+    );
+    for (const { key } of files) if (await storage.erase(key)) removed += 1;
+    if (files.length < FILES_AT_ONCE) return removed;
+    after = files.at(-1)!.id;
+  }
 }
 
 /** Each step stands alone: one that fails neither undoes nor prevents the others. Counts are kept, never what was removed. */
