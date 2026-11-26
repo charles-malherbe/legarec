@@ -22,6 +22,7 @@ wrong=0
 tell() { echo "$1" >&2; wrong=1; }
 [ "$(stat -c %u:%a /etc/legarec 2>/dev/null)" = 0:700 ] || tell 'Dossier /etc/legarec absent ou mal protégé (root, 700).'
 [ "$(stat -c %u:%a /var/lib/legarec/journaux 2>/dev/null)" = 10113:700 ] || tell 'Dossier /var/lib/legarec/journaux absent ou mal protégé (10113, 700).'
+[ "$(stat -c %u:%g:%a /var/lib/legarec/documents 2>/dev/null)" = 10101:10120:2770 ] || tell 'Dossier /var/lib/legarec/documents absent ou mal protégé (10101, groupe 10120, 2770).'
 for name in "${!group[@]}"; do
   file="/etc/legarec/$name.env"
   [ -f "$file" ] || { tell "Fichier absent : $file"; continue; }
