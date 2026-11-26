@@ -495,7 +495,7 @@ export const MATRIX: Record<string, MatrixEntry> = {
   // Remittances: the Director, or the manager acting for them; an empty batch is not validated.
   'GET /staff/remittances/draft': { expect: only({ director: 200, manager: 200 }) },
   'POST /staff/remittances': {
-    body: () => ({ until: '2026-01-01', expectedTotal: 0, expectedTransfers: 0, retained: [] }),
+    body: () => ({ until: '2026-01-01', expected: [], retained: [] }),
     expect: only({ director: 409, manager: 409 }),
   },
   'GET /staff/remittances': { expect: only({ director: 200, manager: 200 }) },

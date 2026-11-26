@@ -29,13 +29,13 @@ const creditorWith = async (name: string, account = true) => {
   return { creditor: creditor!.id, mandate: mandate!.id };
 };
 /** A case paid by cheques, cashed yesterday. */
-const paidCase = async ({ creditor, mandate }: { creditor: string; mandate: string }, amounts: number[]) => {
+const paidCase = async ({ creditor, mandate }: { creditor: string; mandate: string }, amounts: number[], status = 'OVERDUE') => {
   const [debtor] = await rows<{ id: string }>("INSERT INTO debtors (kind, name, siren) VALUES ('COMPANY', 'Débiteur', $1) RETURNING id", [
     String(300_000_000 + reference),
   ]);
   const [made] = await rows<{ id: string }>(
-    "INSERT INTO cases (reference, creditor_id, debtor_id, officer_id, mandate_id, status) VALUES ($1, $2, $3, $4, $5, 'OVERDUE') RETURNING id",
-    [`LGR-2026-${(reference += 1)}`, creditor, debtor!.id, test.s.officerA, mandate],
+    'INSERT INTO cases (reference, creditor_id, debtor_id, officer_id, mandate_id, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+    [`LGR-2026-${(reference += 1)}`, creditor, debtor!.id, test.s.officerA, mandate, status],
   );
   await rows(
     "INSERT INTO case_invoices (case_id, creditor_id, number, issued_on, due_on, claimed_cents, principal_cents) VALUES ($1, $2, 'F-1', '2026-06-01', '2026-07-01', $3, $3)",
@@ -66,6 +66,15 @@ describe('a batch of remittances', () => {
     expect(row.account).toBe('FR76 •••• •••• 1234');
   });
 
+  it('computes a large cheque in litigation without overflowing, at the rate of the day it was settled', async () => {
+    const large = await creditorWith('Grand Delta');
+    const id = await paidCase(large, [2_000_000], 'LITIGATION');
+    // Settled in litigation: 12 %, even once the case is settled.
+    await rows("UPDATE cases SET status = 'SETTLED', closed_on = current_date WHERE id = $1", [id]);
+    const row = (await draft()).rows.find((item) => item.creditorId === large.creditor)!;
+    expect(row).toMatchObject({ collected: 2_000_000, feesNet: 245_000, feesVat: 49_000, toPay: 1_706_000 });
+  });
+
   it('keeps out a creditor without a confirmed account, and one retained with its reason', async () => {
     const without = await creditorWith('Sans Compte', false);
     await paidCase(without, [20_000]);
@@ -76,16 +85,16 @@ describe('a batch of remittances', () => {
     const keptRow = shown.rows.find((item) => item.creditorId === kept.creditor)!;
     const ready = shown.rows.filter((item) => item.state === 'READY' && item.creditorId !== kept.creditor);
     const expectedTotal = ready.reduce((sum, item) => sum + item.toPay, 0);
-    const validate = (total: number) =>
+    const validate = (change = 0, until = shown.until) =>
       call('manager', 'POST', '/remittances', {
-        until: shown.until,
-        expectedTotal: total,
-        expectedTransfers: ready.length,
+        until,
+        expected: ready.map((item, index) => ({ creditorId: item.creditorId, toPay: item.toPay + (index === 0 ? change : 0), accountId: item.accountId! })),
         retained: [{ creditorId: kept.creditor, reason: 'Mandat en cours de renégociation' }],
       });
-    // A batch changed since it was shown is refused.
-    expect((await validate(expectedTotal + 1)).status).toBe(409);
-    const done = await validate(expectedTotal);
+    // A batch changed since it was shown is refused, creditor by creditor; and it ends the day before.
+    expect((await validate(1)).status).toBe(409);
+    expect((await validate(0, '2026-01-01')).status).toBe(409);
+    const done = await validate();
     expect(done.status, JSON.stringify(done.body)).toBe(200);
     const { id } = done.body as { id: string };
     const batch = remittanceBatch.parse((await call('director', 'GET', `/remittances/${id}`)).body);

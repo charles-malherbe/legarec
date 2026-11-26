@@ -28,8 +28,8 @@ const TOTAL_MAX = 100_000_000_000;
 /** The batch as it was shown: totals expected, creditors kept out with their reason (R7). */
 export const remittanceValidation = z.object({
   until: day,
-  expectedTotal: cents.min(0).max(TOTAL_MAX),
-  expectedTransfers: z.number().int().min(0).max(5000),
+  /** Each transfer as it was shown: creditor, amount and account; any difference and nothing is validated. */
+  expected: z.array(z.object({ creditorId: id, toPay: cents.min(0).max(TOTAL_MAX), accountId: id })).max(500),
   retained: z.array(z.object({ creditorId: id, reason: line(500) })).max(500),
 });
 export const remittancePaid = z.object({ paidOn: day, expectedTotal: cents.min(0).max(TOTAL_MAX) });

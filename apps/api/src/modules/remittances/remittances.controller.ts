@@ -19,6 +19,7 @@ interface Row {
   fee_net_cents: bigint;
   fee_vat_cents: bigint;
   to_pay_cents: bigint;
+  bank_account_id: string | null;
   account: string | null;
   invoice?: string | null;
   reason?: string | null;
@@ -33,6 +34,7 @@ const rowOf = (row: Row): RemittanceRow => ({
   feesVat: Number(row.fee_vat_cents),
   feesGross: Number(row.fee_net_cents + row.fee_vat_cents),
   toPay: Number(row.to_pay_cents),
+  accountId: row.bank_account_id,
   account: row.account,
   invoice: row.invoice ?? null,
   reason: row.reason ?? null,
@@ -68,14 +70,19 @@ export class RemittancesController {
   @ApiOkResponse({ standardSchema: z.object({ id: z.string() }) })
   async validate(@Body({ schema: bodies['POST /remittances'] }) body: In<'POST /remittances'>): Promise<{ id: string }> {
     const [row] = await this.database.tx.$queryRaw<{ id: string }[]>`
-      SELECT app.validate_remittances(${body.until}::date, ${body.expectedTotal}::bigint, ${body.expectedTransfers}::integer,
+      SELECT app.validate_remittances(${body.until}::date,
+        ${JSON.stringify(body.expected.map((item) => ({ creditor_id: item.creditorId, to_pay_cents: item.toPay, bank_account_id: item.accountId })))}::jsonb,
         ${body.retained.map((item) => item.creditorId)}::uuid[], ${body.retained.map((item) => item.reason)}::text[]) AS id`;
     return { id: row!.id };
   }
 
   @Get()
   @ApiOkResponse({ standardSchema: remittanceBatches })
-  async list(): Promise<z.infer<typeof remittanceBatches>> {
+  list(): Promise<z.infer<typeof remittanceBatches>> {
+    return this.batches(null);
+  }
+
+  private async batches(wanted: string | null): Promise<z.infer<typeof remittanceBatches>> {
     const rows = await this.database.tx.$queryRaw<
       {
         id: string;
@@ -87,7 +94,7 @@ export class RemittancesController {
         validated_by: string;
         paid_on: Date | null;
       }[]
-    >`SELECT * FROM app.remittance_batches()`;
+    >`SELECT * FROM app.remittance_batches(${wanted}::uuid)`;
     return {
       items: rows.map((row) => ({
         id: row.id,
@@ -105,8 +112,7 @@ export class RemittancesController {
   @Get(':id')
   @ApiOkResponse({ standardSchema: remittanceBatch })
   async detail(@Param('id') id: string): Promise<z.infer<typeof remittanceBatch>> {
-    const { items } = await this.list();
-    const batch = items.find((item) => item.id === id);
+    const [batch] = (await this.batches(id)).items;
     if (!batch) throw notFound();
     const rows = await this.database.tx.$queryRaw<Row[]>`SELECT * FROM app.remittance_batch(${id}::uuid)`;
     return { ...batch, rows: rows.map(rowOf) };
