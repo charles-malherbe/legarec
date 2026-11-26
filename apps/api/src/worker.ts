@@ -8,7 +8,7 @@ import { accountJobs } from './modules/auth/auth.jobs';
 import { AuthKeys } from './modules/auth/keys';
 import { accessCodeJobs, reseal } from './modules/debtor-access/access-codes.jobs';
 import { SettingValues } from './modules/settings/values';
-import { aiJobs } from './ai/ai.jobs';
+import { aiJobs, sweepCaseEvents } from './ai/ai.jobs';
 import { aiSetup } from './ai/provider';
 import { documentJobs } from './modules/documents/documents.jobs';
 import { receiptJobs } from './modules/payments/receipts.jobs';
@@ -19,8 +19,8 @@ import { storageFor } from './platform/storage/storage';
 import { readWorkerConfig } from './platform/config/config';
 import { Database } from './platform/database/database';
 import { createLogger } from './platform/logging/logger';
-import { startWorkers, type JobHandlers, type Workers } from './platform/queue/jobs';
-import { maintenance, scheduleMaintenance } from './platform/queue/maintenance';
+import { startWorkers, type JobHandlers, type ScheduledHandlers, type Workers } from './platform/queue/jobs';
+import { maintenance, scheduleMaintenance, scheduleRepeated } from './platform/queue/maintenance';
 import { OutboxPublisher } from './platform/queue/publisher';
 import { connectValkey, whenReady } from './platform/queue/valkey';
 
@@ -79,9 +79,18 @@ async function main() {
   if (stopping) return;
   // Started again by its container, in a clean state.
   const onDead = () => void stop(1);
-  workers = startWorkers({ database, logger, connection, handlers, scheduled: maintenance(database, logger, storage, resealAll), onDead });
+  const scheduled: ScheduledHandlers = {
+    ...maintenance(database, logger, storage, resealAll),
+    // Something new on a case: its summary, once the case has been quiet for a few minutes (docs/ia.md).
+    ai: { 'case-events': async () => void (await sweepCaseEvents(() => aiSetup(config), (work) => database.run({ kind: 'worker', job: 'ai-case-events' }, work))) },
+  };
+  workers = startWorkers({ database, logger, connection, handlers, scheduled, onDead });
   publisher.start();
-  const schedule = () => scheduleMaintenance(connection).catch(() => logger.warn('maintenance not scheduled'));
+  const schedule = () =>
+    Promise.all([
+      scheduleMaintenance(connection),
+      scheduleRepeated(connection, { queue: 'ai', name: 'case-events', pattern: '*/5 * * * *', attempts: 1 }),
+    ]).catch(() => logger.warn('maintenance not scheduled'));
   // Again every hour: the schedule lives in Valkey, and would be lost with it.
   hourly = setInterval(() => void schedule(), 3_600_000);
   await schedule();

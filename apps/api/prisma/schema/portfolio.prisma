@@ -394,6 +394,7 @@ model CaseEvent {
   onBehalfOf User? @relation(fields: [onBehalfOfId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([caseId, occurredAt(sort: Desc)], map: "case_events_case")
+  @@index([occurredAt], map: "case_events_recent")
   @@map("case_events")
 }
 

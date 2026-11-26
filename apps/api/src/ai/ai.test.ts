@@ -5,7 +5,8 @@ import { startApp, type TestApp } from '../../test/app';
 import { startMailWorker, type MailWorker } from '../../test/worker';
 import { SettingValues } from '../modules/settings/values';
 import { Vault } from '../modules/vault/vault';
-import { aiSettings } from './ai.jobs';
+import { Database } from '../platform/database/database';
+import { aiSettings, sweepCaseEvents } from './ai.jobs';
 import { minimize, refusedByGuard } from './guards';
 import { CASE_SUMMARY_KEYS } from './prompts/case-summary';
 import { aiSetup, SimulatedProvider, type CompletionRequest } from './provider';
@@ -172,5 +173,91 @@ describe('the summary of a case', () => {
   it('has a budget of 40 € a month until the firm changes it (question 166)', async () => {
     const defaults = await SettingValues.read({ setting: { findMany: () => Promise.resolve([]) } } as never);
     expect(aiSettings(defaults, 'ia4').budgetMicro).toBe(40_000_000);
+  });
+});
+
+describe('the summary made again when something new happens on a case', () => {
+  let jobs: Database;
+  const on = () => aiSetup({ ...ON, NODE_ENV: 'test', AI_PRICE_INPUT: 1, AI_PRICE_OUTPUT: 2 } as never, new SimulatedProvider((request) => (asked.push(request), answer(request))));
+  const sweep = (setup = on) => sweepCaseEvents(setup, (work) => jobs.run({ kind: 'worker', job: 'ai-case-events' }, work));
+  const newCase = async (reference: string) =>
+    (
+      await rows<{ id: string }>(
+        `WITH debtor AS (INSERT INTO debtors (kind, name) VALUES ('COMPANY', 'Débiteur ' || $1) RETURNING id)
+         INSERT INTO cases (reference, creditor_id, debtor_id, officer_id) SELECT $1, $2, debtor.id, $3 FROM debtor RETURNING id`,
+        [reference, creditorId, test.s.officerA],
+      )
+    )[0]!.id;
+  /** An event some minutes ago. */
+  const event = (id: string, minutesAgo: number) =>
+    rows(
+      `INSERT INTO case_events (case_id, creditor_id, kind, title, actor_kind, actor_label, occurred_at)
+       VALUES ($1, $2, 'NOTE', 'Appel', 'SYSTEM', 'Application', now() - make_interval(mins => $3))`,
+      [id, creditorId, minutesAgo],
+    );
+  const queued = async (id: string) =>
+    Number(
+      (await rows<{ n: string }>("SELECT count(*) AS n FROM outbox WHERE queue = 'ai' AND name = 'case-summary-event' AND payload ->> 'case' = $1", [id]))[0]!.n,
+    );
+  const journal = (id: string) =>
+    rows<{ outcome: string; asked_by: string | null; decision: string }>(
+      'SELECT outcome, asked_by, decision FROM ai_suggestions WHERE case_id = $1 ORDER BY created_at',
+      [id],
+    );
+
+  beforeAll(() => {
+    jobs = new Database(test.database.url('jobs'));
+    answer = () => JSON.stringify({ lines: CASE_SUMMARY_KEYS.map((k) => ({ k, v: `${k} : synthèse après un événement.` })) });
+  });
+  afterAll(() => jobs.close());
+
+  it('waits until the case has been quiet for a few minutes, then makes a single call for a burst of events', async () => {
+    const busy = await newCase('LGR-2026-77002');
+    await event(busy, 1);
+    const burst = await newCase('LGR-2026-77003');
+    for (const minutes of [10, 9, 8, 7, 6]) await event(burst, minutes);
+    await sweep();
+    await sweep();
+    expect(await queued(busy)).toBe(0);
+    expect(await queued(burst)).toBe(1);
+    const calls = asked.length;
+    const events = await rows('SELECT id FROM case_events WHERE case_id = $1', [burst]);
+    await worker.run();
+    expect(asked.length).toBe(calls + 1);
+    // A suggestion, nobody asked it, nobody decided it, and nothing written on the case.
+    expect(await journal(burst)).toEqual([{ outcome: 'SUGGESTED', asked_by: null, decision: 'PENDING' }]);
+    expect(await rows('SELECT id FROM case_events WHERE case_id = $1', [burst])).toEqual(events);
+    // Nothing new: the summary already made stays, nothing is queued.
+    await sweep();
+    expect(await queued(burst)).toBe(1);
+    // Something new: made again.
+    await event(burst, 6);
+    await sweep();
+    expect(await queued(burst)).toBe(2);
+    await worker.run();
+    expect(asked.length).toBe(calls + 2);
+  });
+
+  it('queues nothing when the AI is off, the feature switched off, the budget spent, or the case closed', async () => {
+    const quiet = await newCase('LGR-2026-77004');
+    await event(quiet, 10);
+    expect(await sweep(() => null)).toBe(0);
+    const set = (key: string, value: string) =>
+      rows('INSERT INTO settings (key, value, updated_by) VALUES ($1, $2::jsonb, $3) ON CONFLICT (key) DO UPDATE SET value = $2::jsonb', [
+        key,
+        value,
+        test.s.director,
+      ]);
+    await set('firm.ia.ia4', 'false');
+    await sweep();
+    expect(await queued(quiet)).toBe(0);
+    await rows("DELETE FROM settings WHERE key = 'firm.ia.ia4'");
+    await set('firm.ia.budget', '"0 €"');
+    await sweep();
+    expect(await queued(quiet)).toBe(0);
+    await rows("DELETE FROM settings WHERE key = 'firm.ia.budget'");
+    await rows("UPDATE cases SET closed_on = current_date, status = 'SETTLED' WHERE id = $1", [quiet]);
+    await sweep();
+    expect(await queued(quiet)).toBe(0);
   });
 });
