@@ -4,6 +4,7 @@ import { digest, type Binding } from '../../platform/crypto/keyring';
 import { Database } from '../../platform/database/database';
 import { conflict, forbidden, notFound } from '../../platform/errors/api-error';
 import { LOGGER, type AppLogger } from '../../platform/logging/logger';
+import { AuthKeys } from '../auth/keys';
 import { InternalKeys } from '../vault/internal-keys';
 import { drawCode } from './codes';
 
@@ -25,6 +26,7 @@ export class AccessCodes {
     @Inject(InternalKeys) private readonly keys: InternalKeys,
     @Inject(Audit) private readonly audit: Audit,
     @Inject(LOGGER) private readonly logger: AppLogger,
+    @Inject(AuthKeys) private readonly authKeys: AuthKeys,
   ) {}
 
   /** In clear for whoever acts on the case, without a trace of it (question 21). */
@@ -38,12 +40,12 @@ export class AccessCodes {
   async ensure(caseId: string): Promise<Found> {
     const { tx } = this.database;
     const known = await this.find(caseId);
-    if (known) return known;
+    if (known) return this.fingerprinted(known);
     const owner = await tx.case.findUnique({ where: { id: caseId }, select: { debtorId: true } });
     if (!owner) throw notFound();
     const ring = await this.keys.ring('ACCESS_CODE_KEY');
     await tx.$executeRaw`SELECT app.first_access_code(${caseId}::uuid, ${ring.encrypt(drawCode(), bindingOf(owner.debtorId))})`;
-    return (await this.find(caseId))!;
+    return this.fingerprinted((await this.find(caseId))!);
   }
 
   /** `seen`: the code that was on the screen. */
@@ -62,10 +64,17 @@ export class AccessCodes {
       if (!row!.done) continue;
       // The old code opens nothing more: its sessions close, and a block on any of its identifiers is lifted.
       await this.database.tx.$executeRaw`SELECT app.forget_debtor_access(${debtorId}::uuid)`;
+      await this.database.tx.$executeRaw`SELECT app.set_code_hmac(${debtorId}::uuid, ${this.authKeys.accessCode(code)})`;
       await this.audit.log({ action: 'ACCESS_CODE_RENEWED', entity: { type: 'case', id: caseId } });
       return;
     }
     throw conflict('CHANGED');
+  }
+
+  /** What the sign-in of the debtor compares: written again each time, the same. */
+  private async fingerprinted(found: Found): Promise<Found> {
+    if (found.code) await this.database.tx.$executeRaw`SELECT app.set_code_hmac(${found.debtorId}::uuid, ${this.authKeys.accessCode(found.code)})`;
+    return found;
   }
 
   private async find(caseId: string): Promise<Found | null> {

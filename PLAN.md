@@ -194,8 +194,10 @@ Les 161 routes simulées se répartissent ainsi :
 - Reporté : bucket Scaleway (X), conteneur ClamAV (X), envoi d'un document (Q), composition des courriers (Q), purge des fichiers sans ligne (X), corps lus avant la session sur l'import (limite Caddy, X), tests de cloisonnement des documents pour les rôles externes (O, P), boutons d'action masqués au Directeur dans Documents (contrat sans `canAct`)
 
 ## Lot O — Espace débiteur (état au 26/11/2026)
-- [x] Connexion par identifiant et code, compteurs et blocage, levée par la régénération, sessions, lecture des dossiers et du solde (4 routes)
-- [ ] Messages et pièces, demandes, accès limité, liens, code par SMS, acceptation de l'échéancier, alerte globale
+- [x] Connexion par identifiant et code, compteurs et blocage, levée par la régénération, sessions, lecture des dossiers et du solde (4 routes) ; relecture sécurité : connexion en une seule fonction SQL sur une empreinte du code, même travail pour un identifiant inconnu, blocage rattaché au débiteur même avant l'annonce, dixième essai juste sans blocage, échecs espacés comptés, Responsable prévenu sans gestionnaire, purge des sessions, compteurs des débiteurs protégés des autres fonctions, audit
+- [x] Messages du portail, pièces du débiteur (analysées, invisibles de l'équipe avant leur message), demandes guidées, réponse de l'équipe, code d'accès retiré du texte reçu (6 routes)
+- Reportés (relecture) : compteur aussi par débiteur pour un particulier aux nombreux dossiers, fenêtre glissante de la limite par réseau, alerte au-delà de 200 échecs par heure
+- [ ] Accès limité, liens des courriers, code par SMS (R), acceptation de l'échéancier (écran hors maquette à montrer), bascule du portail paiement
 
 ## Points à reprendre du front
 

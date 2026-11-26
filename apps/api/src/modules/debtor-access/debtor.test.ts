@@ -233,3 +233,50 @@ describe('the messages of the space of the debtor', () => {
     expect((await post(cookie, '/attachments', undefined, new TextEncoder().encode('MZ programme'))).status).toBe(415);
   });
 });
+
+describe('what the review of the access found', () => {
+  it('a right tenth try opens, and leaves nothing blocked', async () => {
+    network = `10.${randomBytes(3).join('.')}`;
+    const { siren: value, code, debtorId } = await debtorWithCode();
+    for (let attempt = 1; attempt <= 4; attempt += 1) await access(value!, wrong(code));
+    await access(value!, wrong(code));
+    await rows("UPDATE lockouts SET locked_until = now() - interval '1 second' WHERE debtor_id = $1", [debtorId]);
+    for (let attempt = 6; attempt <= 9; attempt += 1) await access(value!, wrong(code));
+    expect((await access(value!, code)).status).toBe(200);
+    expect(await rows('SELECT 1 FROM lockouts WHERE debtor_id = $1', [debtorId])).toEqual([]);
+    expect(await rows("SELECT 1 FROM audit_log WHERE action = 'DEBTOR_SIGNED_IN'")).not.toHaveLength(0);
+  });
+
+  it('failures spread over days still block at ten', async () => {
+    network = `10.${randomBytes(3).join('.')}`;
+    const { siren: value, code, debtorId } = await debtorWithCode();
+    for (let attempt = 1; attempt <= 5; attempt += 1) await access(value!, wrong(code));
+    await rows("UPDATE lockouts SET locked_until = NULL, last_failure_at = now() - interval '3 days' WHERE debtor_id = $1", [debtorId]);
+    expect((await access(value!, wrong(code))).body).toEqual({ code: 'INVALID', attemptsLeft: 4 });
+  });
+
+  it('a block made before the first letter is lifted by a new code, and told to the manager when nobody holds the case', async () => {
+    network = `10.${randomBytes(3).join('.')}`;
+    const found = await debtorWithCode('COMPANY', false);
+    await rows('UPDATE cases SET officer_id = NULL WHERE id = $1', [found.caseId]);
+    for (let attempt = 1; attempt <= 5; attempt += 1) await access(found.siren!, wrong(found.code));
+    await rows("UPDATE lockouts SET locked_until = now() - interval '1 second' WHERE debtor_id = $1", [found.debtorId]);
+    for (let attempt = 6; attempt <= 10; attempt += 1) await access(found.siren!, wrong(found.code));
+    expect(await rows("SELECT user_id FROM notifications WHERE kind = 'DEBTOR_BLOCKED' AND case_id = $1", [found.caseId])).toEqual([
+      { user_id: test.s.manager },
+    ]);
+    await rows("UPDATE cases SET first_letter_reference = 'LR-2026-0002', first_letter_on = '2026-11-03', officer_id = $2 WHERE id = $1", [
+      found.caseId,
+      test.s.officerA,
+    ]);
+    expect((await access(found.siren!, found.code)).body).toEqual({ code: 'BLOCKED' });
+    const renewed = await staff.call('POST', `/staff/cases/${found.caseId}/access-code/regenerate`, {
+      as: 'officerA',
+      body: { version: found.version },
+      headers: { 'idempotency-key': randomUUID() },
+    });
+    expect(renewed.status).toBe(204);
+    const { code: next } = (await staff.call('GET', `/staff/cases/${found.caseId}/access-code`, { as: 'officerA' })).body as { code: string };
+    expect((await access(found.siren!, next)).status).toBe(200);
+  });
+});

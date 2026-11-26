@@ -35,6 +35,8 @@ export class AuthKeys {
   linkHash = (token: string): Buffer => digest(this.links[0]!, token);
   linkHashes = (token: string): string[] => this.links.map((key) => digest(key, token).toString('hex'));
   deviceHash = (token: string): Buffer => digest(this.devices, token);
+  /** Keyed fingerprint of an access code: what the sign-in of a debtor compares, without the code being opened. */
+  accessCode = (code: string): Buffer => digest(this.lookups, `access-code:${code.trim().toUpperCase()}`);
   /** Counter of the failures of an address or of an account, known or not. */
   attempt = (what: 'sign-in' | 'second-factor' | 'password' | 'debtor', of: string): Buffer => digest(this.lookups, `${what}:${of.trim().toLowerCase()}`);
 }
