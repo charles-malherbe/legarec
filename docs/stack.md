@@ -3,7 +3,7 @@
 ## Interface (apps/espace, apps/partenaires, apps/paiement)
 - **React 19.2+** (exigé par Mantine 9) et **Vite**.
 - **Mantine 9.8** : `@mantine/core`, `@mantine/hooks`, `@mantine/form`, `@mantine/dates`, `@mantine/notifications`, `@mantine/modals`, `@mantine/dropzone`, `@mantine/charts`.
-  - Thème (`createTheme`) construit à partir de `packages/tokens/tokens.css` : palette marine en 10 nuances comme couleur principale, or en accent, Inter (interface) et Lora (titres des écrans de marque), rayons, espacements, tailles. `cssVariablesResolver` pour exposer les mêmes variables CSS.
+  - Thème (`createTheme`) construit à partir de `packages/tokens/tokens.css` : palette marine en 10 nuances comme couleur principale, or en accent, Roboto (interface, titres et écrans de marque, décision du 27/11/2026), rayons, espacements, tailles. `cssVariablesResolver` pour exposer les mêmes variables CSS.
   - Styles : CSS modules + `postcss-preset-mantine`. **Pas de Tailwind.**
   - Formulaires : `@mantine/form` + Zod. Depuis Mantine 9, `zodResolver` n'est plus exporté par `@mantine/form` : utiliser un résolveur Zod séparé.
 - **TanStack Table 9** (`@tanstack/react-table`) en direct, sans surcouche, affiché avec le `Table` de Mantine. Code v9 : `useTable` (pas `useReactTable`), fonctionnalités et modèles de lignes déclarés explicitement (`tableFeatures`), pas d'export `legacy`. Tout le câblage dans le composant `Tableau` de `packages/ui`.
@@ -12,12 +12,12 @@
 - **cmdk** pour la recherche rapide (« / ») et la palette de commandes, dans une `Modal` Mantine.
 - TanStack Query (appels API), React Router, MSW (données simulées tant que l'API n'existe pas).
 - Types : `packages/contracts` (schémas Zod) est la seule source ; MSW, formulaires et API s'appuient dessus.
-- Polices Inter et Lora hébergées dans `packages/tokens` (woff2), jamais chargées depuis un service externe.
+- Police Roboto hébergée dans `packages/tokens` (woff2), jamais chargée depuis un service externe ; Lora y reste pour les courriers.
 
 ## Aspect
 Deux ambiances sur les mêmes composants, en deux thèmes dérivés du thème de base :
 - `espace` : sobre et dense (outil de production), lignes de tableau serrées, préférence « Densité » du compte.
-- `partenaires` et `paiement` : plus aérés et rassurants, titres Lora (`data-brand` dans la maquette).
+- `partenaires` et `paiement` : plus aérés et rassurants (`data-brand` dans la maquette), titres en Roboto comme le reste.
 
 ## API (apps/api → api.legarec.fr)
 - **NestJS 12** sur **Node 26 LTS** (TypeScript), API REST : entrées validées par les schémas Zod de `packages/contracts`, OpenAPI produit par `@nestjs/swagger` (`nestjs-zod` abandonné). Versions et dépendances par lot : `docs/api.md`.

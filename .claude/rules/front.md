@@ -20,7 +20,7 @@ paths:
 - Aucun secret côté front, jamais de jeton dans localStorage ; aucune donnée personnelle ni code d'accès dans une URL.
 - Clavier : tout est atteignable au clavier, focus visible, raccourcis de la maquette (`HANDOFF.md`, section raccourcis) inactifs pendant la saisie. La page Appels se pilote entièrement au clavier.
 - Responsive : 390, 768, 1024, 1440 px sans défilement horizontal de la page ; tableaux défilants dans leur conteneur ; menu en tiroir sous 1024 px.
-- Deux ambiances : `espace` dense ; `partenaires` et `paiement` aérés, titres en Lora. Mode malvoyant : bouton dans la Topbar de l'espace en plus du menu du compte.
+- Deux ambiances : `espace` dense ; `partenaires` et `paiement` aérés ; titres en Roboto comme le reste (décision du 27/11/2026, plus de Lora à l'écran). Mode malvoyant : bouton dans la Topbar de l'espace en plus du menu du compte.
 - Aucune carte, aucun prélèvement SEPA, aucun badge PCI-DSS : paiement par chèque et virement uniquement.
 - Textes : reprendre ceux de la maquette mot pour mot. Montants `48 200 €` (espace fine insécable), dates `05/12/2026`, SIRET groupé `512 384 920 00027`.
 - Après un écran : `/comparer <Ecran>` et corriger jusqu'à un écart faible ; vérifier avec axe.

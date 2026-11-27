@@ -14,7 +14,7 @@ Décisions du 24/11/2026, reprises de l'annexe « Architecture » de `PROMPT-FRO
   nouvelles tentatives espacées, flows pour les envois groupés ; clé d'idempotence Resend ;
   aucune nouvelle tentative automatique d'un LRAR au statut incertain : vérification manuelle.
 - PDF : file dédiée à faible concurrence, un seul Chromium réutilisé, conteneur à mémoire plafonnée ;
-  polices Inter et Lora locales.
+  polices Roboto et Lora locales.
 - E-mails entrants : synchronisation IMAP par interrogation toutes les 1 à 2 minutes, une seule à la fois par boîte
   (ImapFlow) ; état de synchronisation (UIDVALIDITY, dernier UID) en base ; pièces jointes dans S3 ;
   réponses des collaborateurs par SMTP OVH de leur propre boîte (MX Plan, un mot de passe par boîte, chiffré) ;
