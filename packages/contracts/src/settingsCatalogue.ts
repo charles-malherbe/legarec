@@ -141,7 +141,7 @@ export const firmGroups = (): SettingGroup[] => [
         ],
         ['Les créanciers se connectent sur partenaires.legarec.fr et ne voient que leurs propres dossiers.'],
       ),
-      section('kit', 'Kit média', 'Logos, couleurs et typographie à télécharger ou à partager par URL', 'image', '4 logos, 4 couleurs, 2 polices', 'neutral'),
+      section('kit', 'Kit média', 'Logos, couleurs et typographie à télécharger ou à partager par URL', 'image', '12 logos, 4 couleurs, 2 polices', 'neutral'),
     ],
   },
   {

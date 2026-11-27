@@ -2,7 +2,7 @@ import { checkTemplate } from '@legarec/contracts/templateCheck';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { axeViolations } from '../../../../../packages/ui/src/testing';
 import { resetAccounts } from '../../mocks/routes/account';
 import { resetSettings } from '../../mocks/routes/settings';
@@ -146,6 +146,25 @@ describe('settings', () => {
     await userEvent.selectOptions(field, '3');
     await userEvent.click(screen.getByRole('button', { name: /Enregistrer/ }));
     expect(await screen.findByText(/vient d’être modifiée par quelqu’un d’autre/)).toBeVisible();
+  });
+});
+
+describe('media kit', () => {
+  it('offers the files of the kit of the firm, each one kept with Caddy for media.legarec.fr', async () => {
+    const opened = vi.spyOn(window, 'open').mockReturnValue(null);
+    openAs('cl', '/parametres/kit');
+    const previews = await screen.findAllByRole('img', { name: /, (couleur|négatif)$/ });
+    for (const button of screen.getAllByRole('button', { name: /^PNG / })) await userEvent.click(button);
+    await userEvent.click(screen.getByRole('button', { name: 'Télécharger le kit (.zip)' }));
+    // The folder of the copy, listed without loading it.
+    const kept = Object.keys(import.meta.glob('../../../../../infra/media/marque/*')).map((path) => `https://media.legarec.fr/marque/${path.split('/').pop()}`);
+    expect(kept).toHaveLength(13);
+    expect(opened.mock.calls.map(([url]) => url).sort()).toEqual(kept.sort());
+    expect(previews.map((image) => image.getAttribute('src')).every((src) => kept.includes(src ?? ''))).toBe(true);
+    expect(screen.queryByRole('button', { name: /^(SVG|PDF)/ })).toBeNull();
+    expect(document.body.textContent).not.toMatch(/Inter ·|Bleu nuit/);
+    expect(await axeViolations(screen.getByRole('main'))).toEqual([]);
+    opened.mockRestore();
   });
 });
 
