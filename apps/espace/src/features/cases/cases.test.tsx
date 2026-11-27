@@ -1,3 +1,4 @@
+import { formatCents } from '@legarec/contracts';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -120,7 +121,10 @@ describe('case file', () => {
           .then((body) => sent.push(body));
     });
     // A text is not open yet: the API refuses it, and the form says why; nothing has left.
-    await userEvent.selectOptions(await screen.findByLabelText('Canal'), 'SMS');
+    expect(await screen.findByLabelText('Canal')).toHaveValue('EMAIL');
+    expect(screen.queryByLabelText('Message')).toBeNull();
+    await userEvent.selectOptions(screen.getByLabelText('Canal'), 'SMS');
+    expect(screen.getByLabelText('Message')).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: 'Envoyer la relance' }));
     await confirmWith('Envoyer la relance');
     expect(await screen.findByText('La relance n’est pas partie : ce mode d’envoi n’est pas encore disponible.')).toBeVisible();
@@ -130,10 +134,17 @@ describe('case file', () => {
     const dialog = await screen.findByRole('alertdialog', { name: 'Envoyer cette relance ?' });
     expect(within(dialog).getByText('Relance ferme (niveau 3)')).toBeVisible();
     expect(within(dialog).getByText('E-mail')).toBeVisible();
+    // What the e-mail of this level announces: the principal and the indemnities, without the interest of a formal notice.
+    const shown = (await (await call('cl', '/cases/demo')).json()) as { principal: number; fees: number; interest: number };
+    expect(shown.interest).toBeGreaterThan(0);
+    expect(within(dialog).getByText('Montant').parentElement?.textContent).toBe(`Montant${formatCents(shown.principal + shown.fees)}`);
     await confirmWith('Envoyer la relance');
     expect(await screen.findByText('Relance envoyée.')).toBeVisible();
     expect(sent.map((body) => (body as { channel: string; template: string }).channel)).toEqual(['SMS', 'EMAIL']);
     expect(sent[1]).toMatchObject({ channel: 'EMAIL', template: 'FIRM', recipient: expect.stringContaining('@') as string });
+    // A typed text goes with the channels that take one; an e-mail carries none.
+    expect(sent[0]).toHaveProperty('message');
+    expect(sent[1]).not.toHaveProperty('message');
   });
   it('shows the access code in clear to those who act on the case, and to nobody else', async () => {
     openAs('cl', '/debiteurs/demo');
