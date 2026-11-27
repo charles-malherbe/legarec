@@ -110,6 +110,7 @@ const plannedReminder = async (test: TestApp) => {
   return `/staff/reminders/${rows[0]!.id}`;
 };
 let litigationCase = '';
+let remindedCase = '';
 /** A case held by nobody, already in litigation: its file, awaiting the agreement of the creditor or not. */
 const litigationFile = (consent: 'NOT_NEEDED' | 'WAITING', suffix: string) => async (test: TestApp) => {
   const made = await newCase(test);
@@ -623,6 +624,15 @@ export const MATRIX: Record<string, MatrixEntry> = {
     path: async (test) => `/staff/cases/${(await newCase(test)).id}/reminders`,
     body: () => ({ channel: 'EMAIL', template: 'FRIENDLY', recipient: 'compta@exemple.test', message: 'Bonjour' }),
     expect: withCases(404, { director: 403, manager: 409, managerAlone: 409 }),
+  },
+  // Reminders from the list: all or nothing on the rights; then the individual is left out with its reason (200).
+  'POST /staff/cases/reminders': {
+    path: async (test) => {
+      remindedCase = (await newCase(test)).id;
+      return '/staff/cases/reminders';
+    },
+    body: () => ({ ids: [remindedCase] }),
+    expect: withCases(404, { director: 403, manager: 200, managerAlone: 200 }),
   },
   // Litigation: read with the cases; opened and followed on a case one acts on (here held by nobody: the managers).
   'GET /staff/litigation': { expect: withCases(200) },

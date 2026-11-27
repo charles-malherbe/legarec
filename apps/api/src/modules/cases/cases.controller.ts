@@ -1,4 +1,14 @@
-import { accessCodeResponse, caseCheckResult, caseChoices, caseDetail, caseList, caseOpened, caseSearchQuery, REQUEST_BODIES } from '@legarec/contracts';
+import {
+  accessCodeResponse,
+  caseCheckResult,
+  caseChoices,
+  caseDetail,
+  caseList,
+  caseOpened,
+  caseSearchQuery,
+  REQUEST_BODIES,
+  sendingOutcome,
+} from '@legarec/contracts';
 import { Body, Controller, Get, HttpCode, Inject, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import type { z } from 'zod';
@@ -64,6 +74,22 @@ export class CasesController {
   @ApiNoContentResponse()
   assign(@Body({ schema: bodies['POST /cases/assign'] }) { ids, officerId }: In<'POST /cases/assign'>) {
     return this.cases.assign(ids, officerId);
+  }
+
+  /**
+   * The next e-mail reminder of each case chosen in the list (question 220). All the cases are read and acted on by the
+   * caller, or nothing is done; then each one follows the rules of a single reminder: what they refuse is left out, with
+   * its reason (`sendingOutcome`).
+   */
+  @Post('reminders')
+  @WithCases()
+  @Commits()
+  @HttpCode(200)
+  @ApiOkResponse({ standardSchema: sendingOutcome })
+  async remindMany(@Body({ schema: bodies['POST /cases/reminders'] }) { ids }: In<'POST /cases/reminders'>) {
+    // One request of the same count as a single reminder: the caps of each debtor stay the rule.
+    await this.limits.take(REMINDERS, me().userId);
+    return this.sendings.remindMany(ids);
   }
 
   @Post()

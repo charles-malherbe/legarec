@@ -28,6 +28,7 @@ import {
   partnerSession,
   proofNeeded,
   searchHit,
+  sendingOutcome,
   secretsData,
   shellData,
   settingsHub,
@@ -452,15 +453,13 @@ export const ACCOUNT_PARITY: Parity[] = [
   { as: 'manager', request: `POST /deposits/${UNKNOWN}/refuse`, body: { reason: 'Motif du refus' }, status: 404, answer: code('NOT_FOUND') },
   { as: 'officer', request: `POST /deposits/${UNKNOWN}/refuse`, body: { reason: 'Motif du refus' }, status: 403, answer: code('FORBIDDEN') },
   // A reminder from a case: texts and registered letters are not open yet (lot R, question 210); refused before anything is read.
-  ...(['SMS', 'REGISTERED_LETTER'] as const).map(
-    (channel): Parity => ({
-      as: 'manager',
-      request: 'POST /cases/{caseOfManager}/reminders',
-      body: { channel, template: 'FRIENDLY', recipient: 'compta@exemple.test', message: 'Bonjour' },
-      status: 409,
-      answer: code('NOT_AVAILABLE'),
-    }),
-  ),
+  ...(['SMS', 'REGISTERED_LETTER'] as const).map((channel): Parity => ({
+    as: 'manager',
+    request: 'POST /cases/{caseOfManager}/reminders',
+    body: { channel, template: 'FRIENDLY', recipient: 'compta@exemple.test', message: 'Bonjour' },
+    status: 409,
+    answer: code('NOT_AVAILABLE'),
+  })),
   {
     as: 'manager',
     request: 'POST /cases/{caseOfManager}/reminders',
@@ -482,6 +481,13 @@ export const ACCOUNT_PARITY: Parity[] = [
     status: 404,
     answer: code('NOT_FOUND'),
   },
+  // Reminders from the list: every case read and acted on, or nothing; then what left and what was left out.
+  { as: 'manager', request: 'POST /cases/reminders', body: { ids: ['{caseOfManager}'] }, status: 200, answer: sendingOutcome },
+  { as: 'director', request: 'POST /cases/reminders', body: { ids: ['{caseOfManager}'] }, status: 403, answer: code('FORBIDDEN') },
+  { as: 'manager', request: 'POST /cases/reminders', body: { ids: ['{caseOfManager}', '{caseOfDirector}'] }, status: 404, answer: code('NOT_FOUND') },
+  { as: 'manager', request: 'POST /cases/reminders', body: { ids: [UNKNOWN] }, status: 404, answer: code('NOT_FOUND') },
+  { as: 'developer', request: 'POST /cases/reminders', body: { ids: ['{caseOfManager}'] }, status: 403, answer: code('FORBIDDEN') },
+  { as: 'manager', request: 'POST /cases/reminders', body: { ids: [] }, status: 422, answer: refused('INVALID') },
   { as: 'manager', request: 'POST /cases/{caseOfManager}/notes', body: { text: 'Rappeler après le 5.' }, status: 204 },
   { as: 'director', request: 'POST /cases/{caseOfManager}/notes', body: { text: 'Rappeler après le 5.' }, status: 403, answer: code('FORBIDDEN') },
   { as: 'manager', request: 'POST /cases/{caseOfDirector}/notes', body: { text: 'Rappeler après le 5.' }, status: 404, answer: code('NOT_FOUND') },

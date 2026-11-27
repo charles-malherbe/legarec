@@ -31,7 +31,9 @@ describe('case access', () => {
     ] as const)
       expect((await call('ad', path, body)).status).toBe(403);
     expect((await call('ad', '/cases/reminders', { ids: ['demo'] })).status).toBe(403);
-    expect((await call('ad', '/cases/reminders', { ids: ['lagarde'] })).status).toBe(204);
+    expect((await call('ad', '/cases/reminders', { ids: ['lagarde'] })).status).toBe(200);
+    // A case of someone else answers as one that does not exist, and stops the whole.
+    expect((await call('hb', '/cases/reminders', { ids: ['helio', 'demo'] })).status).toBe(404);
     // Refused, unlike a case that does not exist (question 141).
     expect((await call('hb', '/cases/demo')).status).toBe(403);
     expect((await call('hb', '/cases/inconnu')).status).toBe(404);
@@ -67,6 +69,29 @@ describe('case list', () => {
     await confirmWith('Passer en contentieux');
     expect(await screen.findByText(/transmis au contentieux/)).toBeVisible();
     expect(sent).toMatchObject({ reason: 'Promesses non tenues', consentReceived: true });
+  });
+  it('confirms grouped reminders, then says how many left and why the others did not', async () => {
+    openAs('cl', '/debiteurs');
+    await userEvent.click(await screen.findByLabelText('Sélectionner Bâtiplus SAS'));
+    await userEvent.click(screen.getByLabelText('Sélectionner Paul Meunier'));
+    await userEvent.click(screen.getByRole('button', { name: 'Envoyer une relance' }));
+    const dialog = await screen.findByRole('alertdialog', { name: 'Envoyer une relance à 2 débiteurs ?' });
+    expect(within(dialog).getByText('Bâtiplus SAS, Paul Meunier')).toBeVisible();
+    expect(within(dialog).getByText(/par e-mail la relance suivante de son dossier/)).toBeVisible();
+    await confirmWith('Envoyer les relances');
+    expect(
+      await screen.findByText(
+        '1 relance(s) programmée(s) pour envoi immédiat. 1 non envoyé : les relances par e-mail ne s’adressent pas à un particulier (1).',
+      ),
+    ).toBeVisible();
+    expect(screen.queryByLabelText('Sélectionner Bâtiplus SAS')).not.toBeChecked();
+    // Nothing left: said as a failure, with the reason.
+    await userEvent.click(screen.getByLabelText('Sélectionner Paul Meunier'));
+    await userEvent.click(screen.getByRole('button', { name: 'Envoyer une relance' }));
+    await confirmWith('Envoyer les relances');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Aucune relance n’est partie. 1 non envoyé : les relances par e-mail ne s’adressent pas à un particulier (1).',
+    );
   });
   it('covers no result and error states, without putting the search in the URL', async () => {
     const urls: string[] = [];

@@ -67,6 +67,7 @@ export const sendingRefusal = z.enum([
   'CASE_DISPUTED',
   'PLAN_RESPECTED',
   'SERVICE_NOT_READY',
+  'NO_NEXT_REMINDER',
 ]);
 export type SendingRefusal = z.infer<typeof sendingRefusal>;
 export const SENDING_REFUSALS: Record<SendingRefusal, string> = {
@@ -84,6 +85,8 @@ export const SENDING_REFUSALS: Record<SendingRefusal, string> = {
   CASE_DISPUTED: 'le dossier est en litige ou au contentieux',
   PLAN_RESPECTED: 'l’échéancier du dossier est respecté',
   SERVICE_NOT_READY: 'le service d’envoi des e-mails n’est pas encore configuré',
+  // A grouped reminder never sends the formal notice (question 220).
+  NO_NEXT_REMINDER: 'le rappel amiable et la relance ferme sont déjà partis, la suite se décide sur la fiche du dossier',
 };
 /** The code of a channel from the label shown in the list « Envoi ». */
 export const composeChannelOf = (label: string): ComposeChannel =>

@@ -297,17 +297,17 @@ Gatus tourne sur le serveur qu'il surveille : si le serveur, son réseau ou Cadd
 ## Reste à faire (fin du lot X)
 
 ### Avant la mise en service : écrans encore sans API
-Une page construite pour la production n'a aucune simulation : elle appelle l'API. État au 27/11/2026, après `lot/q3` (comparaison des routes simulées et de `packages/contracts/openapi.json`) :
+Une page construite pour la production n'a aucune simulation : elle appelle l'API. État au 27/11/2026, après `lot/q4` (comparaison des routes simulées et de `packages/contracts/openapi.json`) :
 
 | Portail | Routes appelées | Sur l'API | Manquent |
 |---|---|---|---|
 | `paiement` | 13 | 13 | — |
 | `partenaires` | 19 | 19 | — |
-| `espace` | 167 | 132 | 35, ci-dessous |
+| `espace` | 167 | 133 | 34, ci-dessous |
 
 | Écran de l'espace | Ce qui manque | Attend |
 |---|---|---|
-| Relances envoyées depuis un échéancier ou la liste ; envoi et composition d'un document ; essai d'un modèle (la relance par e-mail depuis un dossier est sur l'API depuis `lot/q3`) | 7 routes | Composition des courriers et clé de test MySendingBox (lot Q, question 210) |
+| Relances envoyées depuis un échéancier ; envoi et composition d'un document ; essai d'un modèle (la relance par e-mail est sur l'API : depuis un dossier, `lot/q3` ; depuis la liste, `lot/q4`) | 6 routes | Composition des courriers et clé de test MySendingBox (lot Q, question 210) |
 | Messagerie (e-mails, SMS), boîtes OVH dans Paramètres | 21 routes | Compte SMS et boîtes OVH (lot R) |
 | Appels | 7 routes | Licence et identifiants 3CX (lot T) |
 

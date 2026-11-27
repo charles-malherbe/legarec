@@ -1,4 +1,4 @@
-import { canAccessBilling, caseList, depositsData, formatCents, type CaseFilter } from '@legarec/contracts';
+import { canAccessBilling, caseList, depositsData, formatCents, sendingOutcome, skippedText, type CaseFilter } from '@legarec/contracts';
 import { Avatar, Badge, Bouton, Champ, PageHeader, Pagination, Tableau, Toolbar, useConfirm, useToast } from '@legarec/ui';
 import { useDebouncedValue } from '@mantine/hooks';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
@@ -85,12 +85,15 @@ export function CasesPage() {
   const sendReminders = () =>
     confirm({
       title: `Envoyer une relance à ${chosen.length} débiteur${plural} ?`,
-      body: 'Chaque débiteur reçoit la prochaine relance de son scénario (e-mail via Resend ou SMS), avec le lien de son espace débiteur.',
+      // What really leaves (question 220): the e-mail of the kit, never a text, never the formal notice.
+      body: 'Chaque débiteur reçoit par e-mail la relance suivante de son dossier (rappel amiable, puis relance ferme), à son adresse principale. Un dossier que les règles du cabinet ne permettent pas de relancer est laissé de côté, avec le motif.',
       details: [{ k: 'Débiteurs', v: names }],
       confirmLabel: 'Envoyer les relances',
       onConfirm: async () => {
-        await change('/cases/reminders', { body: { ids } });
-        toast({ message: `${chosen.length} relance(s) programmée(s) pour envoi immédiat.` });
+        const outcome = await change('/cases/reminders', { body: { ids }, schema: sendingOutcome });
+        const left = skippedText(outcome);
+        const queued = outcome.queued > 0 ? `${outcome.queued} relance(s) programmée(s) pour envoi immédiat.` : 'Aucune relance n’est partie.';
+        toast({ message: left ? `${queued} ${left}.` : queued, ...(outcome.queued > 0 ? {} : { tone: 'danger' as const }) });
         setSelected([]);
       },
     });

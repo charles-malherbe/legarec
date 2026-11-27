@@ -8940,6 +8940,83 @@
         }
       }
     },
+    "/staff/cases/reminders": {
+      "post": {
+        "operationId": "CasesController_remindMany",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "queued": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "skipped": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "enum": [
+                              "NO_FIRST_LETTER",
+                              "CONTACT_CAP",
+                              "OUTSIDE_HOURS",
+                              "NO_EMAIL",
+                              "NO_ADDRESS",
+                              "INDIVIDUAL",
+                              "NOT_SETTLED",
+                              "CASE_CLOSED",
+                              "FIRM_INCOMPLETE",
+                              "NOT_AVAILABLE",
+                              "UNKNOWN_RECIPIENT",
+                              "CASE_DISPUTED",
+                              "PLAN_RESPECTED",
+                              "SERVICE_NOT_READY",
+                              "NO_NEXT_REMINDER"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "reason"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "queued",
+                    "skipped"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "cases"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      }
+    },
     "/staff/cases": {
       "post": {
         "operationId": "CasesController_open",

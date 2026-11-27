@@ -1664,6 +1664,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/staff/cases/reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CasesController_remindMany"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/staff/cases": {
         parameters: {
             query?: never;
@@ -5959,6 +5975,32 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    CasesController_remindMany: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        queued: number;
+                        skipped: {
+                            id: string;
+                            /** @enum {string} */
+                            reason: "NO_FIRST_LETTER" | "CONTACT_CAP" | "OUTSIDE_HOURS" | "NO_EMAIL" | "NO_ADDRESS" | "INDIVIDUAL" | "NOT_SETTLED" | "CASE_CLOSED" | "FIRM_INCOMPLETE" | "NOT_AVAILABLE" | "UNKNOWN_RECIPIENT" | "CASE_DISPUTED" | "PLAN_RESPECTED" | "SERVICE_NOT_READY" | "NO_NEXT_REMINDER";
+                        }[];
+                    };
+                };
             };
         };
     };
