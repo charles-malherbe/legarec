@@ -4,6 +4,8 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE, DiscoveryModule, Modu
 import { HealthController } from './health/health.controller';
 import { controllers, providers } from './modules';
 import { SessionResolver } from './modules/auth/sessions';
+import { storageKeys } from './modules/vault/storage-keys';
+import { Vault } from './modules/vault/vault';
 import { ACTOR_RESOLVER, type ActorResolver } from './platform/access/access';
 import { AccessGuard } from './platform/access/access.guard';
 import { checkRoutes, routesOf } from './platform/access/routes';
@@ -17,7 +19,7 @@ import { TransactionInterceptor } from './platform/http/transaction.interceptor'
 import { RateLimits } from './platform/limits/rate-limits';
 import { LOGGER, type AppLogger } from './platform/logging/logger';
 import { Outbox } from './platform/queue/outbox';
-import { Storage, storageFor } from './platform/storage/storage';
+import { fileLeft, Storage, storageFor } from './platform/storage/storage';
 import { VALKEY, type Valkey } from './platform/queue/valkey';
 
 export interface AppParts {
@@ -53,7 +55,13 @@ export class AppModule implements OnApplicationBootstrap, OnApplicationShutdown 
         ...(parts.resolver ? [{ provide: ACTOR_RESOLVER, useValue: parts.resolver }] : [{ provide: ACTOR_RESOLVER, useExisting: SessionResolver }]),
         Audit,
         Outbox,
-        { provide: Storage, useFactory: (config: Config) => storageFor(config), inject: [CONFIG] },
+        {
+          provide: Storage,
+          // The keys of the bucket are read in the transaction of the request that handles a file, with its rights.
+          useFactory: (config: Config, database: Database, vault: Vault, logger: AppLogger) =>
+            storageFor(config, { keys: storageKeys(vault, (work) => work(database.tx)), left: fileLeft(logger) }),
+          inject: [CONFIG, Database, Vault, LOGGER],
+        },
         RateLimits,
         ...providers,
         { provide: APP_FILTER, useClass: ApiErrorFilter },

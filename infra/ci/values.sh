@@ -51,3 +51,4 @@ sed '0,/^{$/s//{\n\tlocal_certs\n\tskip_install_trust/' infra/caddy/Caddyfile > 
 grep -q local_certs /var/lib/legarec-ci/Caddyfile
 # The bucket of the firm is never called from here.
 grep -qx 'S3_REGION=ci' /etc/legarec/caddy.env
+grep -qx 'S3_REGION=ci' /etc/legarec/gatus.env

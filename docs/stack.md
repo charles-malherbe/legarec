@@ -25,7 +25,7 @@ Deux ambiances sur les mêmes composants, en deux thèmes dérivés du thème de
 - **Valkey 8.1 + BullMQ 6** (`VALKEY_URL`) : scénarios de relance, envois groupés, synchronisation IMAP, reversements ; workers dans un conteneur séparé ; persistance AOF, `maxmemory-policy noeviction`.
 - **Documents** : modèles HTML Handlebars, PDF générés par **Playwright** (Chromium) ; fichiers reçus contrôlés par **ClamAV**.
 - **E-mails** : kit `kits/emails-handlebars` (25 modèles) et ajout `staff-message`, rendus par handlebars 4.x dans `apps/api/templates/emails/` ; envoi par Resend (automatiques) ou par SMTP OVH de la boîte du collaborateur (nodemailer).
-- **Fichiers** : **OVHcloud Object Storage** (API S3, région Paris ; décision du 26/11/2026).
+- **Fichiers** : **OVHcloud Object Storage** (API S3 par `@aws-sdk/client-s3`, région Paris ; décision du 26/11/2026) ; disque du serveur tant que le bucket des documents n'est pas en service (`docs/deploiement.md`, « Bucket des documents »).
 - **IA** : OVHcloud AI Endpoints, services hébergés en France (option C, décision du 26/11/2026) ; couche fournisseur (adaptateurs Anthropic et compatible OpenAI pour Scaleway et OVH), deux niveaux de modèle configurables ; voir `docs/ia.md`.
 - **OVH** : API OVHcloud (gestion des boîtes MX Plan, SMS), appels signés sans le paquet `ovh`, clés aux droits limités.
 - **Développement** : PostgreSQL et Valkey des paquets Debian, lancés par `infra/dev/services.mjs` (utilisateur courant, 127.0.0.1) ; Node 26 par nvm.
@@ -34,7 +34,7 @@ Deux ambiances sur les mêmes composants, en deux thèmes dérivés du thème de
 Voir `docs/domaines-et-services.md`.
 
 ## Hébergement, code, qualité
-- Conteneurs **Docker** sur un **VPS** : réservé à Legarec : un `docker-compose.yml` (api, worker, trois fronts, PostgreSQL, Valkey, Gatus, Loki, Grafana, **Caddy** ; ClamAV et n8n à venir). Caddy est le seul service exposé (HTTPS automatique) ; `infra/caddy/Caddyfile`, d'après `kits/caddy/Caddyfile.exemple`. Guide : `docs/deploiement.md`.
+- Conteneurs **Docker** sur un **VPS** : réservé à Legarec : un `docker-compose.yml` (api, worker, trois fronts, PostgreSQL, Valkey, Gatus, Loki, Grafana, ClamAV, **Caddy** ; n8n à venir). Caddy est le seul service exposé (HTTPS automatique) ; `infra/caddy/Caddyfile`, d'après `kits/caddy/Caddyfile.exemple`. Guide : `docs/deploiement.md`.
 - Code sur **GitHub, avec GitHub Actions** pour les vérifications : `.github/workflows/` lance `pnpm verifier` sur chaque pull request. Aucun secret de production ni déploiement dans GitHub Actions ; le déploiement reste `pnpm deployer`, lancé par le cabinet.
 - Mises à jour : versions exactes figées ; Renovate propose les mises à jour, vérifiées par GitHub Actions avant fusion.
 - Tests : **Vitest** (logique), **Playwright** (parcours + comparaison visuelle avec `maquette/captures/`), **axe** (accessibilité).
