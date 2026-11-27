@@ -1,5 +1,5 @@
 import { DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import type { Files } from './storage';
+import type { Entry, Files } from './storage';
 
 export interface BucketKeys {
   accessKeyId: string;
@@ -12,7 +12,9 @@ export interface BucketPlace {
 type Command = PutObjectCommand | GetObjectCommand | ListObjectsV2Command | DeleteObjectCommand;
 interface Answer {
   Body?: { transformToByteArray(): Promise<Uint8Array> } | undefined;
-  Contents?: { Key?: string | undefined }[] | undefined;
+  Contents?: { Key?: string | undefined; LastModified?: Date | undefined }[] | undefined;
+  IsTruncated?: boolean | undefined;
+  NextContinuationToken?: string | undefined;
 }
 /** What is used of the client of S3: a test gives its own, and nothing leaves the machine. */
 export interface BucketClient {
@@ -26,6 +28,8 @@ export function checkedKey(key: string): string {
   if (!KEY.test(key)) throw new Error('invalid storage key');
   return key;
 }
+/** Whether a name found in the storage is such a key: the sweep touches nothing else. */
+export const isKey = (name: string): boolean => KEY.test(name);
 
 /** The same place in the bucket as under the folder of the disk: the first two characters, then the key. */
 export const pathOf = (key: string): string => `${checkedKey(key).slice(0, 2)}/${key}`;
@@ -59,7 +63,7 @@ export class BucketError extends Error {
   override readonly name = 'BucketError';
 
   constructor(
-    readonly operation: 'write' | 'read' | 'erase' | 'remove',
+    readonly operation: 'write' | 'read' | 'erase' | 'remove' | 'list',
     readonly code: string,
   ) {
     super(`bucket ${operation} failed: ${code}`);
@@ -134,6 +138,17 @@ export class Bucket {
       remove: async (key) => {
         const Key = pathOf(key);
         await ask('remove', (abortSignal) => client.send(new DeleteObjectCommand({ Bucket, Key }), { abortSignal }));
+      },
+      // Page after page, each with its own deadline. A page cut short without the mark of the next one is a failure:
+      // taken for the end, it would hide the rest of the bucket.
+      list: async function* (): AsyncGenerator<Entry> {
+        let ContinuationToken: string | undefined;
+        do {
+          const page = await ask('list', (abortSignal) => client.send(new ListObjectsV2Command({ Bucket, ContinuationToken }), { abortSignal }));
+          for (const object of page?.Contents ?? []) yield { name: object.Key ?? '', modifiedAt: object.LastModified ?? null };
+          ContinuationToken = page?.IsTruncated ? page.NextContinuationToken : undefined;
+          if (page?.IsTruncated && !ContinuationToken) throw new BucketError('list', 'Truncated');
+        } while (ContinuationToken);
       },
     };
   }
