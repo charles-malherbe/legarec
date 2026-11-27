@@ -22,6 +22,7 @@ import { Link } from 'react-router';
 import { z } from 'zod';
 import { api } from '../../app/api';
 import { useCreditorScope } from '../../app/creditorScope';
+import { opens } from '../../app/features';
 import { useCurrentUser } from '../../app/session';
 import css from './Dashboard.module.css';
 
@@ -113,7 +114,7 @@ export function DashboardPage() {
         ]}
         actions={[
           { label: 'Exporter', disabled: true },
-          { label: 'Démarrer ma session d’appels', href: '/appels' },
+          ...(opens('/appels') ? [{ label: 'Démarrer ma session d’appels', href: '/appels' }] : []),
           ...(user.role === 'CLAIMS_OFFICER' ? [] : [{ label: '+ Nouveau dossier', primary: true, kbd: 'N', href: '/debiteurs/nouveau' }]),
         ]}
       />
