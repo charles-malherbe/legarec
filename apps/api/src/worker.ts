@@ -13,6 +13,7 @@ import { aiSetup } from './ai/provider';
 import { documentJobs } from './modules/documents/documents.jobs';
 import { receiptJobs } from './modules/payments/receipts.jobs';
 import { PdfRenderer } from './platform/pdf/pdf';
+import { storageKeys } from './modules/vault/storage-keys';
 import { Vault } from './modules/vault/vault';
 import { ClamavScanner, SimulatedScanner } from './platform/scanner/scanner';
 import { storageFor } from './platform/storage/storage';
@@ -41,7 +42,11 @@ const vault = new Vault(config);
 const clamd = config.CLAMAV_URL ? new URL(config.CLAMAV_URL) : null;
 // Without an antivirus in production, received files wait unread; elsewhere, the simulated one.
 const scanner = clamd ? new ClamavScanner(clamd.hostname, Number(clamd.port)) : config.NODE_ENV === 'production' ? null : new SimulatedScanner();
-const storage = storageFor(config);
+// The keys of the bucket, read with the rights of the worker, outside of any task.
+const storage = storageFor(
+  config,
+  storageKeys(vault, (work) => database.run({ kind: 'worker', job: 'storage-keys' }, work)),
+);
 const pdf = new PdfRenderer(config.CHROMIUM_PATH);
 const handlers: JobHandlers = {
   documents: documentJobs(storage, scanner),
@@ -82,7 +87,13 @@ async function main() {
   const scheduled: ScheduledHandlers = {
     ...maintenance(database, logger, storage, resealAll),
     // Something new on a case: its summary, once the case has been quiet for a few minutes (docs/ia.md).
-    ai: { 'case-events': async () => void (await sweepCaseEvents(() => aiSetup(config), (work) => database.run({ kind: 'worker', job: 'ai-case-events' }, work))) },
+    ai: {
+      'case-events': async () =>
+        void (await sweepCaseEvents(
+          () => aiSetup(config),
+          (work) => database.run({ kind: 'worker', job: 'ai-case-events' }, work),
+        )),
+    },
   };
   workers = startWorkers({ database, logger, connection, handlers, scheduled, onDead });
   publisher.start();

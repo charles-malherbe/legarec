@@ -4,6 +4,8 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE, DiscoveryModule, Modu
 import { HealthController } from './health/health.controller';
 import { controllers, providers } from './modules';
 import { SessionResolver } from './modules/auth/sessions';
+import { storageKeys } from './modules/vault/storage-keys';
+import { Vault } from './modules/vault/vault';
 import { ACTOR_RESOLVER, type ActorResolver } from './platform/access/access';
 import { AccessGuard } from './platform/access/access.guard';
 import { checkRoutes, routesOf } from './platform/access/routes';
@@ -53,7 +55,16 @@ export class AppModule implements OnApplicationBootstrap, OnApplicationShutdown 
         ...(parts.resolver ? [{ provide: ACTOR_RESOLVER, useValue: parts.resolver }] : [{ provide: ACTOR_RESOLVER, useExisting: SessionResolver }]),
         Audit,
         Outbox,
-        { provide: Storage, useFactory: (config: Config) => storageFor(config), inject: [CONFIG] },
+        {
+          provide: Storage,
+          // The keys of the bucket are read in the transaction of the request that handles a file, with its rights.
+          useFactory: (config: Config, database: Database, vault: Vault) =>
+            storageFor(
+              config,
+              storageKeys(vault, (work) => work(database.tx)),
+            ),
+          inject: [CONFIG, Database, Vault],
+        },
         RateLimits,
         ...providers,
         { provide: APP_FILTER, useClass: ApiErrorFilter },

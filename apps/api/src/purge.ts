@@ -3,6 +3,8 @@ import { readWorkerConfig } from './platform/config/config';
 import { Database } from './platform/database/database';
 import { createLogger } from './platform/logging/logger';
 import { purge } from './platform/queue/maintenance';
+import { storageKeys } from './modules/vault/storage-keys';
+import { Vault } from './modules/vault/vault';
 import { storageFor } from './platform/storage/storage';
 
 /**
@@ -14,7 +16,8 @@ const config = readWorkerConfig(process.env);
 const logger = createLogger(config.LOG_LEVEL);
 const database = new Database(config.JOBS_DATABASE_URL, { poolSize: 1 });
 try {
-  const counts = await purge(database, logger, storageFor(config));
+  const keys = storageKeys(new Vault(config), (work) => database.run({ kind: 'worker', job: 'storage-keys' }, work));
+  const counts = await purge(database, logger, storageFor(config, keys));
   process.stdout.write(
     `Purge faite : ${Object.entries(counts)
       .map(([kind, removed]) => `${kind} ${removed}`)
