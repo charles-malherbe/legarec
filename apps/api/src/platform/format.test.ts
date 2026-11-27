@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ago, capitalized, dayOf, daysAgo, longMoment, timeOf } from './format';
+import { ago, capitalized, dayOf, daysAgo, longMoment, startOfDay, timeOf } from './format';
 
 const at = (text: string) => new Date(text);
 // In Paris: 2 pm, winter time.
@@ -23,6 +23,21 @@ describe('dates, as one reads them in Paris', () => {
     expect(dayOf(at('2026-07-01T22:30:00Z'))).toBe('2026-07-02');
     expect(daysAgo(at('2026-03-28T22:30:00Z'), at('2026-03-29T10:00:00Z'))).toBe('YESTERDAY');
     expect(daysAgo(at('2026-10-24T21:00:00Z'), at('2026-10-25T22:00:00Z'))).toBe('YESTERDAY');
+  });
+
+  it('starts a day at midnight in Paris, in winter as in summer', () => {
+    // Winter: one hour ahead of UTC. Summer: two.
+    expect(startOfDay('2026-11-23').toISOString()).toBe('2026-11-22T23:00:00.000Z');
+    expect(startOfDay('2026-07-06').toISOString()).toBe('2026-07-05T22:00:00.000Z');
+    // The days the hour changes start before it does.
+    expect(startOfDay('2026-03-29').toISOString()).toBe('2026-03-28T23:00:00.000Z');
+    expect(startOfDay('2026-10-25').toISOString()).toBe('2026-10-24T22:00:00.000Z');
+    expect(startOfDay('2026-03-30').toISOString()).toBe('2026-03-29T22:00:00.000Z');
+    for (const day of ['2026-11-23', '2026-07-06', '2026-03-29', '2026-10-25']) {
+      expect(dayOf(startOfDay(day))).toBe(day);
+      expect(timeOf(startOfDay(day))).toBe('00:00');
+      expect(dayOf(new Date(startOfDay(day).getTime() - 1))).not.toBe(day);
+    }
   });
 
   it('writes a full date', () => {

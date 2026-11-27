@@ -3,7 +3,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { z } from 'zod';
 import { Database } from '../../platform/database/database';
 import { ApiError, notFound } from '../../platform/errors/api-error';
-import { dayOf } from '../../platform/format';
+import { dayOf, startOfDay } from '../../platform/format';
 import type { StaffActor } from '../account/account.service';
 import { SettingValues } from '../settings/values';
 import { capOf, capPeriod, type Channel } from './contact-rules';
@@ -12,8 +12,6 @@ const DAY_MS = 86_400_000;
 const shift = (day: string, days: number) => new Date(Date.parse(`${day}T12:00:00Z`) + days * DAY_MS).toISOString().slice(0, 10);
 const asTime = (time: string) => time || null;
 const LABELS: Record<Channel, string> = { EMAIL: 'e-mail', SMS: 'SMS', CALL: 'appel', LETTER: 'courrier' };
-/** Midnight in Paris at the start of that day, in winter as in summer. */
-const startOf = (day: string) => [1, 2].map((hours) => new Date(Date.parse(`${day}T00:00:00Z`) - hours * 3_600_000)).find((time) => dayOf(time) === day)!;
 /** Two years ahead at most. */
 const FURTHEST_DAYS = 730;
 /** What the agenda shows: a month back, three months ahead. */
@@ -87,7 +85,7 @@ export class RemindersService {
     const [monday] = capPeriod('EMAIL', today);
     const left = await tx.sending.groupBy({
       by: ['channel'],
-      where: { draft: false, status: { not: 'FAILED' }, createdAt: { gte: startOf(monday) } },
+      where: { status: { not: 'FAILED' }, createdAt: { gte: startOfDay(monday) } },
       _count: { _all: true },
     });
     const sent = (...channels: string[]) => left.filter((row) => channels.includes(row.channel)).reduce((sum, row) => sum + row._count._all, 0);
