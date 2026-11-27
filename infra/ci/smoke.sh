@@ -133,6 +133,13 @@ probe="import('node:net').then(({ connect }) => connect({ host: process.argv[1],
 docker compose exec -T worker node -e "$probe" "$clamd" || fail 'witness of the antivirus'
 if docker compose exec -T api node -e "$probe" "$clamd"; then fail 'the API reaches the antivirus'; fi
 if docker compose exec -T espace nc -z -w 2 "$clamd" 3310; then fail 'a portal reaches the antivirus'; fi
+# clamd reads hostile files: on the network of the worker alone, with no way out; the update of the signatures is apart.
+networks() { docker inspect --format '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}} {{end}}' "$(docker compose ps --quiet "$1")"; }
+[ "$(networks clamav)" = 'legarec-app_antivirus ' ] || fail 'clamd is on another network than that of the worker'
+[ "$(networks freshclam)" = 'legarec-app_sortie-antivirus ' ] || fail 'freshclam is on another network than its way out'
+[ "$(docker compose exec -T clamav sh -c 'echo "$CLAMAV_NO_FRESHCLAMD"')" = true ] || fail 'clamd updates its signatures itself'
+[ "$(docker compose exec -T freshclam sh -c 'echo "$CLAMAV_NO_CLAMD"')" = true ] || fail 'a second clamd beside freshclam'
+if docker compose exec -T freshclam sh -c 'test -S /tmp/clamd.sock'; then fail 'clamd runs beside freshclam'; fi
 ok antivirus
 
 # PostgreSQL: rights, then a second run of everything that can be run again

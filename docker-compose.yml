@@ -144,6 +144,7 @@ services:
       test: [CMD, node, --env-file=/run/secrets/worker, worker-health.mjs]
 
   # Antivirus, reached by the worker alone: every file received waits for its answer (docs/deploiement.md, « Antivirus »).
+  # It reads hostile files: no way out, and nobody else on its network. Its signatures come from `freshclam`, below.
   clamav:
     <<: *container
     image: legarec/clamav:${LEGAREC_VERSION:?}
@@ -151,6 +152,8 @@ services:
     # The image has its own init.
     init: false
     user: '10116:10116'
+    # clamd alone: the start script of the image starts no update here.
+    environment: { CLAMAV_NO_FRESHCLAMD: 'true' }
     volumes: ['clamav-data:/var/lib/clamav']
     # clamd writes each file it reads here: 15 MB at most, four at a time.
     tmpfs: ['/tmp:size=128m,mode=1777']
@@ -158,12 +161,29 @@ services:
     mem_limit: 2g
     memswap_limit: 2g
     stop_grace_period: 30s
-    networks: [antivirus, sortie-antivirus]
+    networks: [antivirus]
     healthcheck:
       <<: *health
       # Loading the signatures takes minutes on a busy server.
       start_period: 6m
       test: [CMD, clamdcheck.sh]
+
+  # Update of the signatures, once a day: the only one of the two with a way out, and it listens to nothing. It writes in
+  # the volume that clamd reads; clamd loads what has changed by itself (SelfCheck).
+  freshclam:
+    <<: *container
+    image: legarec/clamav:${LEGAREC_VERSION:?}
+    init: false
+    user: '10116:10116'
+    # freshclam alone: no clamd here, hence nothing that reads a file.
+    environment: { CLAMAV_NO_CLAMD: 'true' }
+    volumes: ['clamav-data:/var/lib/clamav']
+    mem_limit: 384m
+    memswap_limit: 384m
+    stop_grace_period: 30s
+    networks: [sortie-antivirus]
+    # The check of the image asks clamd, which is not here: nothing to ask.
+    healthcheck: { disable: true }
 
   # One run before each deployment, with the only account that may change the tables.
   migration:
@@ -368,7 +388,7 @@ networks:
   surveillance: *closed
   antivirus: *closed
   sortie-worker: {}
-  # The signatures of the antivirus, and nothing else.
+  # The signatures of the antivirus, for `freshclam` alone: clamd is not on it.
   sortie-antivirus: {}
   sortie-base: {}
   sortie-alertes: {}
