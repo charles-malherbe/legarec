@@ -312,7 +312,8 @@ services:
     healthcheck: *gatus-health
 
   # Automations: n8n.legarec.fr, from the addresses of the firm only (Caddy). It meets Caddy, the API and the internal checks,
-  # nothing else, and has no way out to the Internet (QUESTIONS.md, 232). Its data stay in its volume, never in PostgreSQL.
+  # and has a way out to the Internet of its own, for the services its automations call (DECISIONS.md, 27/11/2026). Its data
+  # stay in its volume, never in PostgreSQL.
   n8n:
     <<: *container
     image: legarec/n8n:${LEGAREC_VERSION:?}
@@ -337,7 +338,7 @@ services:
       N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: 'true'
       # A Code node reads neither the key nor anything else of the environment.
       N8N_BLOCK_ENV_ACCESS_IN_NODE: 'true'
-      # Nothing asked of n8n.io: no way out, and nothing to tell it.
+      # Nothing told to n8n.io, nothing taken from it.
       N8N_DIAGNOSTICS_ENABLED: 'false'
       N8N_VERSION_NOTIFICATIONS_ENABLED: 'false'
       N8N_TEMPLATES_ENABLED: 'false'
@@ -355,7 +356,7 @@ services:
     mem_limit: 512m
     memswap_limit: 512m
     stop_grace_period: 30s
-    networks: [automatisations]
+    networks: [automatisations, sortie-n8n]
     healthcheck:
       <<: *health
       test: [CMD, node, -e, "fetch('http://127.0.0.1:5678/healthz').then((answer) => process.exit(answer.ok ? 0 : 1), () => process.exit(1))"]
@@ -445,6 +446,8 @@ networks:
   sortie-antivirus: {}
   sortie-base: {}
   sortie-alertes: {}
+  # The automations of the firm, for n8n alone.
+  sortie-n8n: {}
 
 volumes:
   caddy-data:

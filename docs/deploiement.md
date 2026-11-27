@@ -22,9 +22,9 @@ Première partie du lot X. Fichiers préparés par Claude Code, vérifiés par G
 | `gatus` | Page d'état publique | 10111 | 96 Mo | non |
 | `gatus-interne` | Contrôles internes et alertes | 10111 | 96 Mo | oui (alertes, contrôle du bucket des documents) |
 | `journaux`, `loki`, `grafana` | Journaux techniques, 60 jours | 10113, 10001, 10114 | 96, 384 et 320 Mo | non |
-| `n8n` | Automatisations (`n8n.legarec.fr`, adresses du cabinet seulement), joint Caddy, l'API et les contrôles internes | 10117 | 512 Mo | non (question 232) |
+| `n8n` | Automatisations (`n8n.legarec.fr`, adresses du cabinet seulement), joint Caddy, l'API et les contrôles internes | 10117 | 512 Mo | oui (services appelés par les automatisations) |
 
-Conteneurs permanents : 7,8 Go au plus, dont 2,4 Go pour ClamAV et 0,5 Go pour n8n. Aucun conteneur ne tourne en root, ni sous le compte 1000 (premier compte du serveur). Systèmes de fichiers en lecture seule, aucun droit Linux, réseaux séparés et fermés au serveur lui-même : un portail ne joint pas la base, n8n ne joint que l'API, et un autre compte du serveur ne joint ni l'API, ni Loki, ni la base.
+Conteneurs permanents : 7,8 Go au plus, dont 2,4 Go pour ClamAV et 0,5 Go pour n8n. Aucun conteneur ne tourne en root, ni sous le compte 1000 (premier compte du serveur). Systèmes de fichiers en lecture seule, aucun droit Linux, réseaux séparés et fermés au serveur lui-même : un portail ne joint pas la base, n8n ne joint de Legarec que l'API, et un autre compte du serveur ne joint ni l'API, ni Loki, ni la base.
 
 | Fichiers | Contenu |
 |---|---|
@@ -295,7 +295,7 @@ Gatus tourne sur le serveur qu'il surveille : si le serveur, son réseau ou Cadd
 
 ## n8n (automatisations)
 
-`n8n.legarec.fr`, réservé aux adresses du cabinet par Caddy. Même version (2.48.7) que le n8n déjà installé sur le serveur (`legarec-n8n-1`, projet Compose `legarec`, servi par l'ancien Caddy `legarec-caddy-1`) : ses données se reprennent telles quelles. Base SQLite dans le volume `legarec-app_n8n-data`, jamais dans PostgreSQL. Réseau `automatisations` (Caddy, l'API, `gatus-interne`), **sans sortie vers Internet** tant que la question 232 n'est pas tranchée : une automatisation qui appelle un service extérieur échoue, et un webhook appelé de l'extérieur reçoit 403. Exécutions effacées après 14 jours. Contrôle « n8n » dans les contrôles internes.
+`n8n.legarec.fr`, réservé aux adresses du cabinet par Caddy. Même version (2.48.7) que le n8n déjà installé sur le serveur (`legarec-n8n-1`, projet Compose `legarec`, servi par l'ancien Caddy `legarec-caddy-1`) : ses données se reprennent telles quelles. Base SQLite dans le volume `legarec-app_n8n-data`, jamais dans PostgreSQL. Réseau `automatisations` (Caddy, l'API, `gatus-interne`) et sortie vers Internet à lui seul (`sortie-n8n`), pour les services qu'appellent ses automatisations. Il ne joint ni la base, ni Valkey, ni les journaux. Un webhook appelé de l'extérieur reçoit 403 tant que la question 232 n'est pas tranchée : tout `n8n.legarec.fr` est réservé aux adresses du cabinet. Exécutions effacées après 14 jours. Contrôle « n8n » dans les contrôles internes.
 
 ### Reprise de l'ancien n8n
 À faire au premier déploiement, par le cabinet. La clé doit être **celle de l'ancien n8n** : avec une autre, n8n refuse de démarrer, ou ne lit plus les identifiants enregistrés dans les automatisations.
@@ -395,7 +395,7 @@ Tant qu'une route manque, son écran affiche son état d'erreur (« Réessayer �
 - **Stockage chez OVHcloud** : fait pour Caddy (`media.legarec.fr`), pgBackRest et les noms des clés (`S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_REGION`, `S3_DOCUMENTS_BUCKET`). pgBackRest reste en adresses « chemin » (`repo1-s3-uri-style=path`), qu'OVHcloud accepte ; **jamais essayé contre un vrai bucket** : le premier `legarec run --rm sauvegarde full` de la mise en service le dira, avant toute donnée. La migration `storage_secret_names` renomme deux noms de clés : sans effet au premier déploiement ; elle interdit seulement de revenir à une version antérieure une fois une clé de stockage saisie. Le bucket `legarec-documents` est branché dans le code, éteint en production (« Bucket des documents », question 205).
 - ClamAV : fait (« Antivirus », ci-dessus). Reste une alerte quand clamd ne répond plus : Gatus ne joint pas le réseau `antivirus` (réservé au worker), et le contrôle de santé du conteneur ne prévient personne.
 - Chemin des modèles d'e-mails et de PDF : vérifié. Le worker les lit dans `templates/`, à côté de `dist/` (`apps/api/src/worker.ts`), et l'image copie ce dossier ; `TEMPLATES_DIR` de `renderer.ts` ne sert qu'aux tests.
-- n8n : conteneur en place (« n8n », plus haut). Restent les comptes de service, pour qu'il appelle l'API (`/service`), et la question 232 (accès à Internet, durée des exécutions).
+- n8n : conteneur en place (« n8n », plus haut). Restent les comptes de service, pour qu'il appelle l'API (`/service`), et la question 232 (webhooks appelés de l'extérieur, durée des exécutions).
 - Bucket des documents : ouvrir à l'API un chemin vers le bucket (question 205), puis première vérification réelle. Contrôle Gatus : fait, sans clé (question 206). Copie vers le bucket des fichiers restés sur le disque : non prévue.
 - Purge à la demande après une restauration : faite (`dist/purge.js`, étape 6 de « Restaurer la base »).
 - Fichiers sans ligne : balayage fait, chaque nuit, suspendu par la purge d'après restauration, et commande `dist/sweep-files.js` (« Documents et PDF », questions 230 et 231). Bucket couvert dans le code, jamais essayé contre un vrai bucket. Reste à décider : une alerte (Gatus ou notification au Développeur) quand la tâche refuse ou trouve un fichier sans ligne.

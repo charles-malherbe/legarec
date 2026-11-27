@@ -138,8 +138,8 @@ if docker compose exec -T espace nc -z -w 2 "$clamd" 3310; then fail 'a portal r
 networks() { docker inspect --format '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}} {{end}}' "$(docker compose ps --quiet "$1")"; }
 [ "$(networks clamav)" = 'legarec-app_antivirus ' ] || fail 'clamd is on another network than that of the worker'
 [ "$(networks freshclam)" = 'legarec-app_sortie-antivirus ' ] || fail 'freshclam is on another network than its way out'
-# n8n: Caddy, the API and the internal checks, no way out.
-[ "$(networks n8n)" = 'legarec-app_automatisations ' ] || fail 'n8n is on another network than its own'
+# n8n: Caddy, the API and the internal checks, and its own way out.
+[ "$(networks n8n)" = 'legarec-app_automatisations legarec-app_sortie-n8n ' ] || fail 'n8n is on other networks than its own'
 [ "$(docker compose exec -T clamav sh -c 'echo "$CLAMAV_NO_FRESHCLAMD"')" = true ] || fail 'clamd updates its signatures itself'
 [ "$(docker compose exec -T freshclam sh -c 'echo "$CLAMAV_NO_CLAMD"')" = true ] || fail 'a second clamd beside freshclam'
 if docker compose exec -T freshclam sh -c 'test -S /tmp/clamd.sock'; then fail 'clamd runs beside freshclam'; fi
