@@ -9,7 +9,7 @@
 | `paiement.legarec.fr` | Espace débiteur : d'abord échanges avec les collaborateurs (messages, pièces), puis solde, échéancier, RIB et consignes pour les chèques ; liens des courriers et SMS |
 | `api.legarec.fr` | API back-end (NestJS), seule porte d'accès aux données |
 | `mail.legarec.fr` | Envoi des e-mails automatiques (Resend) ; pas de réception |
-| `media.legarec.fr` | Fichiers publics (bucket legarec-media) : `e-mails/v1/`, `marque/`, `documents-publics/` |
+| `media.legarec.fr` | Fichiers publics (bucket legarec-media, sinon copie de `infra/media` servie par Caddy) : `e-mails/v1/`, `marque/`, `documents-publics/` |
 | `n8n.legarec.fr` | Automatisations (accès restreint) |
 | `status.legarec.fr` | Page d'état (Gatus) |
 | `legarec.on3cx.fr` | Standard téléphonique 3CX (hébergé par 3CX) |

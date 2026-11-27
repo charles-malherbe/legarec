@@ -45,10 +45,12 @@
   box-shadow: var(--shadow-md);
   font-size: var(--fs-sm);
 }
+/* --swatch: a colour of the media kit, given by the screen. */
 .swatch {
   height: 72px;
   border-radius: var(--r-md);
   border: 1px solid var(--border);
+  background: var(--swatch);
 }
 .logo {
   display: flex;
@@ -58,8 +60,20 @@
   border-radius: var(--r-md);
   border: 1px solid var(--border);
   background: var(--surface-2);
-  color: var(--text-3);
-  font-size: var(--fs-sm);
+}
+.logo img {
+  max-width: 80%;
+  max-height: 64px;
+}
+/* The colour version on a light surface, the negative one in dark mode (rules of the kit). */
+.onDark {
+  display: none;
+}
+:global(:root[data-theme='dark']) .onLight {
+  display: none;
+}
+:global(:root[data-theme='dark']) .onDark {
+  display: block;
 }
 .password {
   font-family: var(--font-mono);

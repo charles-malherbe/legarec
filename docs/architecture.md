@@ -80,7 +80,8 @@ Décisions du 24/11/2026, reprises de l'annexe « Architecture » de `PROMPT-FRO
 - n8n passe par l'API avec un compte de service aux droits limités, jamais directement par PostgreSQL.
 - Mises à jour : versions exactes figées ; Renovate (application GitHub) propose les mises à jour regroupées,
   vérifiées par pnpm verifier dans GitHub Actions avant fusion.
-- Fichiers publics : bucket legarec-media (media.legarec.fr), chemins versionnés, jamais de remplacement ;
+- Fichiers publics : bucket legarec-media (media.legarec.fr), chemins versionnés, jamais de remplacement ; copie dans
+  l'image de Caddy (`infra/media`), servie quand le bucket n'existe pas, refuse, n'a pas le fichier ou ne répond pas ;
   documents des dossiers dans legarec-documents (privé), sauvegardes dans legarec-sauvegardes : une clé d'accès par bucket.
 - Claude Code : environnement de développement séparé, données fictives, aucun accès aux secrets ni à la production ;
   utilisateur système dédié, sans accès aux fichiers de production ni au groupe docker de la production ;
