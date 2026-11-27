@@ -75,12 +75,13 @@ const workingHour = () => {
   }
   throw new Error('no working day this week');
 };
-type State = 'QUEUED' | 'UNCERTAIN' | 'SENT' | 'FAILED' | 'EXPIRED' | 'SIMULATED';
+type State = 'QUEUED' | 'UNCERTAIN' | 'SENT' | 'FAILED' | 'REPORTED' | 'EXPIRED' | 'SIMULATED';
 /** The template of each level of the validated e-mail reminders. */
 const TEMPLATES = { 1: 'FRIENDLY', 2: 'FIRM', 3: 'FORMAL_NOTICE' } as const;
 /**
  * A reminder of the case in that state, asked `minutes` ago; `ref`: the message at the provider, for a line that was sent.
- * `FAILED`: taken, then refused by the provider; `EXPIRED`: failed before it was ever taken. `level`: 1 unless said.
+ * `FAILED`: taken, then refused by Resend at the call (no message there); `REPORTED`: taken, then said failed by Resend
+ * itself (`email.failed`); `EXPIRED`: failed before it was ever taken. `level`: 1 unless said.
  */
 const line = async (
   made: Made,
@@ -98,6 +99,11 @@ const line = async (
     await rows("UPDATE sendings SET status = 'SENT', sent_at = created_at + interval '1 second', provider_ref = $2 WHERE id = $1", [id, ref]);
   if (state === 'SIMULATED') await rows("UPDATE sendings SET status = 'SENT', sent_at = created_at, simulated = true WHERE id = $1", [id]);
   if (state === 'FAILED') await rows("UPDATE sendings SET status = 'FAILED', failure = 'PROVIDER_REFUSED' WHERE id = $1", [id]);
+  if (state === 'REPORTED')
+    await rows(
+      "UPDATE sendings SET status = 'FAILED', failure = 'PROVIDER_FAILED', undelivered_at = created_at + interval '1 second', undelivered_reason = 'PROVIDER_FAILED' WHERE id = $1",
+      [id],
+    );
   return { id, ref };
 };
 interface Sending {
@@ -313,21 +319,31 @@ describe('an event of Resend', () => {
     const simulated = await line(made, 'SIMULATED');
     const sent = await line(made, 'SENT');
     const expired = await line(made, 'EXPIRED');
+    const refused = await line(made, 'FAILED');
+    const from = test.logs.length;
     await happen({ type: 'email.delivered', sending: randomUUID() });
     await happen({ type: 'email.delivered', ref: randomUUID() });
     await happen({ type: 'email.delivered', sending: queued.id });
     // Failed before it was taken: nothing of it ever left, whatever message names it (a copy of this database elsewhere).
     await happen({ type: 'email.delivered', sending: expired.id });
     await happen({ type: 'email.bounced', sending: expired.id, data: { bounce: { type: 'Permanent' } } });
+    // Refused by Resend at the call: it never had a message of it.
+    await happen({ type: 'email.delivered', sending: refused.id });
+    await happen({ type: 'email.complained', sending: refused.id });
     await happen({ type: 'email.bounced', sending: simulated.id, data: { bounce: { type: 'Permanent' } } });
     // The line is named, but the message is not the one that left for it.
     await happen({ type: 'email.bounced', sending: sent.id, ref: randomUUID(), data: { bounce: { type: 'Permanent' } } });
     // A name unknown here is never looked for by its message: it belongs to another environment.
     await happen({ type: 'email.delivered', sending: randomUUID(), ref: sent.ref });
-    expect((await stored()).map((row) => row.status)).toEqual(Array.from({ length: 8 }, () => 'IGNORED'));
+    expect((await stored()).map((row) => row.status)).toEqual(Array.from({ length: 10 }, () => 'IGNORED'));
+    // Each one that names a line of ours, and yet another message, is said in the logs, without a name.
+    const said = test.logs.slice(from).filter((text) => text.includes('resend event about another message'));
+    expect(said).toHaveLength(7);
+    for (const text of said) for (const id of [queued.id, simulated.id, sent.id, expired.id, refused.id]) expect(text).not.toContain(id);
     expect(await sending(queued.id)).toMatchObject({ status: 'QUEUED', confirmed_at: null });
     expect(await sending(expired.id)).toMatchObject({ status: 'FAILED', failure: 'EXPIRED', confirmed_at: null, delivered_at: null, undelivered_at: null });
     expect(await sending(sent.id)).toMatchObject({ status: 'SENT', confirmed_at: null, delivered_at: null, undelivered_at: null });
+    expect(await sending(refused.id)).toMatchObject({ status: 'FAILED', failure: 'PROVIDER_REFUSED', confirmed_at: null, complained_at: null });
     expect(await contactOf(made)).toEqual({ status: 'VERIFIED', is_primary: true });
     expect(await history(made)).toEqual([]);
   });
@@ -670,9 +686,9 @@ describe('a line that was sent', () => {
     ]);
     const settled = await eligible();
     const uncertain = await line(settled, 'UNCERTAIN', { level: 2 });
-    const refused = await line(settled, 'FAILED', { level: 3 });
+    const reported = await line(settled, 'REPORTED', { level: 3 });
     await happen({ type: 'email.sent', sending: uncertain.id, ago: 20 });
-    await happen({ type: 'email.sent', sending: refused.id, ago: 10 });
+    await happen({ type: 'email.sent', sending: reported.id, ago: 10 });
     expect(await events(settled)).toEqual([
       { title: 'Relance envoyée', detail: 'E-mail · niveau 2', tone: 'info' },
       { title: 'Relance partie malgré un échec signalé', detail: 'E-mail · niveau 3', tone: 'warning' },
@@ -792,14 +808,14 @@ describe('a line that had failed and yet has left', () => {
         async (tx) =>
           (await tx.$queryRaw<{ count: number }[]>`SELECT app.sent_contacts(${made.id}::uuid, 'EMAIL', current_date - 7, current_date + 7) AS count`)[0]!.count,
       );
-    const { id } = await line(made, 'FAILED');
+    const { id } = await line(made, 'REPORTED');
     // The line that failed does not count: the same level would be asked again.
     expect(await preview()).toEqual([{ id: made.id, template: 'FRIENDLY', reason: null }]);
     expect(await counted()).toBe(0);
     const ref = randomUUID();
     await happen({ type: 'email.delivered', sending: id, ref, ago: 15 });
     const after = await sending(id);
-    expect(after).toMatchObject({ status: 'FAILED', failure: 'PROVIDER_REFUSED', sent_at: null, provider_ref: null });
+    expect(after).toMatchObject({ status: 'FAILED', failure: 'PROVIDER_FAILED', sent_at: null, provider_ref: null });
     expect(after.confirmed_at).not.toBeNull();
     expect(after.delivered_at).toEqual(after.confirmed_at);
     expect(await history(made)).toEqual(['Relance partie malgré un échec signalé', 'Relance distribuée']);
@@ -812,17 +828,19 @@ describe('a line that had failed and yet has left', () => {
     expect(await history(made)).toHaveLength(2);
     // Known late, of a message that left twenty days ago: the list goes on to the next level, never the same one.
     const late = await eligible();
-    const old = await line(late, 'FAILED', { minutes: 25 * 1440 });
+    const old = await line(late, 'REPORTED', { minutes: 25 * 1440 });
     await happen({ type: 'email.sent', sending: old.id, ago: 20 * 86_400 });
     const clock = vi.spyOn(test.app.get(Clock), 'now').mockReturnValue(workingHour());
     const next = await test.call('POST', '/staff/cases/reminders/preview', { as: 'officerA', body: { ids: [late.id] } });
     clock.mockRestore();
     expect(next.body).toEqual({ items: [{ id: late.id, template: 'FIRM', reason: null }] });
-    // And Resend saying that nothing has left teaches nothing to a line that had failed.
+    // And a line that Resend refused at the call is never shown to have left: it has no message there, and whatever
+    // names it speaks of another one.
     const other = await eligible();
-    const failed = await line(other, 'FAILED');
-    await happen({ type: 'email.suppressed', sending: failed.id });
-    expect(await sending(failed.id)).toMatchObject({ status: 'FAILED', confirmed_at: null, undelivered_at: null });
+    const refused = await line(other, 'FAILED');
+    await happen({ type: 'email.delivered', sending: refused.id });
+    await happen({ type: 'email.suppressed', sending: refused.id });
+    expect(await sending(refused.id)).toMatchObject({ status: 'FAILED', confirmed_at: null, delivered_at: null, undelivered_at: null });
     expect(await contactOf(other)).toMatchObject({ status: 'VERIFIED' });
     expect(await history(other)).toEqual([]);
   });
@@ -833,7 +851,7 @@ describe('a line that had failed and yet has left', () => {
     const week = async () => ((await test.call('GET', '/staff/reminders', { as: 'officerA' })).body as { weekly: { emails: number } }).weekly.emails;
     const before = await week();
     const made = await eligible();
-    const { id } = await line(made, 'FAILED');
+    const { id } = await line(made, 'REPORTED');
     // Failed, and nothing known since: neither the sheet nor the week counts it.
     expect(await sheet(made)).toBe(0);
     expect(await week()).toBe(before);
@@ -842,7 +860,7 @@ describe('a line that had failed and yet has left', () => {
     expect(await week()).toBe(before + 1);
     // Known to have left five weeks ago: on the sheet of its case, not in this week.
     const late = await eligible();
-    const old = await line(late, 'FAILED', { minutes: 40 * 1440 });
+    const old = await line(late, 'REPORTED', { minutes: 40 * 1440 });
     await happen({ type: 'email.sent', sending: old.id, ago: 35 * 86_400 });
     expect(await sheet(late)).toBe(1);
     expect(await week()).toBe(before + 1);
@@ -863,8 +881,8 @@ describe('a line that had failed and yet has left', () => {
         async (tx) =>
           (await tx.$queryRaw<{ count: number }[]>`SELECT app.sent_contacts(${made.id}::uuid, 'EMAIL', ${from}::date, ${to}::date) AS count`)[0]!.count,
       );
-    const notice = await line(made, 'FAILED', { level: 3, minutes: 25 * 1440 });
-    // Refused by the provider, the formal notice is as if it had never been asked: the list starts again from the first level.
+    const notice = await line(made, 'REPORTED', { level: 3, minutes: 25 * 1440 });
+    // Failed at Resend, the formal notice is as if it had never been asked: the list starts again from the first level.
     expect(await preview()).toEqual([{ id: made.id, template: 'FRIENDLY', reason: null }]);
     await happen({ type: 'email.delivered', sending: notice.id, ago: 20 * 86_400 });
     expect(await preview()).toEqual([{ id: made.id, template: null, reason: 'NO_NEXT_REMINDER' }]);

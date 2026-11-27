@@ -149,8 +149,9 @@ BEGIN
     RETURN false;
   END IF;
   -- A colleague who is changing the coordinate goes first: its row is held here, and the guards below, read by the next
-  -- statement, see what was committed meanwhile.
-  PERFORM 1 FROM public.case_contacts k WHERE k.id = contact AND k.case_id = about FOR UPDATE;
+  -- statement, see what was committed meanwhile. The lock of the update that follows, no stronger: what merely names the
+  -- coordinate (a new sending, its events) is not held up.
+  PERFORM 1 FROM public.case_contacts k WHERE k.id = contact AND k.case_id = about FOR NO KEY UPDATE;
   UPDATE public.case_contacts k SET status = 'INVALID', is_primary = false, invalidated_at = now()
   WHERE k.id = contact AND k.case_id = about AND k.kind = 'EMAIL' AND k.status <> 'INVALID'
     AND NOT EXISTS (SELECT 1 FROM public.case_contact_events e WHERE e.contact_id = k.id AND e.occurred_at > since)

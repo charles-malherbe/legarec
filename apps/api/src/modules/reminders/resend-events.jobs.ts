@@ -3,7 +3,7 @@ import type { Transaction } from '../../platform/database/database';
 import type { AppLogger } from '../../platform/logging/logger';
 import { GiveUp } from '../../platform/queue/errors';
 import type { JobDefinition } from '../../platform/queue/jobs';
-import { markFailed, PROVIDER_FAILURE, sentNote } from './sendings.jobs';
+import { markFailed, sentNote } from './sendings.jobs';
 
 interface Stored {
   kind: EventKind | null;
@@ -42,6 +42,11 @@ const UNREACHABLE: ReadonlySet<EventKind> = new Set(['BOUNCED', 'SUPPRESSED', 'C
 /** Reasons that leave the address alone, and those that condemn it: the first may become the second, never the reverse. */
 const MILD: readonly string[] = ['BOUNCE', 'PROVIDER_FAILED'];
 const FINAL: readonly string[] = ['HARD_BOUNCE', 'SUPPRESSED'];
+/**
+ * The failures that Resend itself reported, of a message it had taken: the only failed lines it may speak of again. One
+ * that failed before it was taken, or that Resend refused at the call, has no message there.
+ */
+const REPORTED: readonly string[] = ['PROVIDER_FAILED', 'PROVIDER_SUPPRESSED'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
 
 const note = (tx: Transaction, caseId: string, kind: string, title: string, detail: string, tone: Tone) =>
@@ -50,8 +55,8 @@ const note = (tx: Transaction, caseId: string, kind: string, title: string, deta
 /**
  * What an event changes, in one transaction with the event itself: the event and the line are held until the end, so that
  * two events of the same message, or an event and the task that sent it, pass one after the other. False: nothing to do
- * with it (a line of another environment, a simulated one, one that has not been taken or failed before it was, a
- * message that is not the one of the line).
+ * with it (a line of another environment, a simulated one, one that has not been taken, failed before it was or was
+ * refused by Resend at the call, a message that is not the one of the line): said in the logs, without a name.
  *
  * - A line whose fate was unknown (`UNCERTAIN`) is settled: sent, on the date of the event, when the event proves that the
  *   message has left; failed when Resend says that it has not.
@@ -74,11 +79,19 @@ export async function applyResendEvent(tx: Transaction, event: Stored, logger: A
     WHERE s.channel = 'EMAIL' AND CASE WHEN ${event.sending_id}::uuid IS NOT NULL THEN s.id = ${event.sending_id}::uuid
       ELSE ${event.provider_ref}::text IS NOT NULL AND s.provider_ref = ${event.provider_ref}::text END
     ORDER BY s.created_at LIMIT 1 FOR UPDATE OF s`;
-  if (!line || line.simulated || line.status === 'QUEUED') return false;
-  // Failed before it was taken: nothing of it ever left, and an event that names it speaks of another message.
-  if (line.status === 'FAILED' && !line.failure?.startsWith(PROVIDER_FAILURE)) return false;
-  // The line knows its message: an event about another one says nothing of it.
-  if (line.provider_ref && UUID.test(line.provider_ref) && event.provider_ref && line.provider_ref !== event.provider_ref) return false;
+  if (!line) return false;
+  if (
+    // Never given to Resend: simulated, not taken yet, failed before it was taken, or refused by Resend at the call.
+    line.simulated ||
+    line.status === 'QUEUED' ||
+    (line.status === 'FAILED' && !REPORTED.includes(line.failure ?? '')) ||
+    // The line knows its message: an event about another one says nothing of it.
+    (line.provider_ref && UUID.test(line.provider_ref) && event.provider_ref && line.provider_ref !== event.provider_ref)
+  ) {
+    // Another message under the name of one of ours: a copy of this database writing with the key of this team?
+    logger.warn({ kind: 'resend' }, 'resend event about another message');
+    return false;
+  }
   const { id, case_id: caseId } = line;
   const about = `E-mail · niveau ${line.level ?? 1}`;
   // The date of Resend, between the request and now: never before the line existed, never ahead of this clock.
