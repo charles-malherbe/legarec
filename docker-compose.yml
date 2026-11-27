@@ -354,7 +354,9 @@ services:
       N8N_LOG_OUTPUT: console
     secrets: [n8n]
     volumes: ['n8n-data:/home/node/.n8n']
-    tmpfs: ['/tmp:size=128m,mode=1777']
+    # At each start, n8n writes the files of its editor to the .cache folder beside its user folder (about 27 MB in
+    # 2.48.7): on a read-only root it stops at once (mkdir /home/node/.cache). Rewritten at each start, so never kept.
+    tmpfs: ['/tmp:size=128m,mode=1777', '/home/node/.cache:size=64m,mode=1777']
     mem_limit: 512m
     memswap_limit: 512m
     stop_grace_period: 30s
