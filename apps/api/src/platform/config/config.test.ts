@@ -58,6 +58,58 @@ describe('startup values', () => {
     expect(readConfig({ ...production, ...portals })).toMatchObject({ STAFF_PORTAL_URL: 'https://espace.legarec.fr', MYSENDINGBOX_ENV: 'test' });
   });
 
+  it('lists the addresses a test key of the provider may write to, never in production', () => {
+    const { DATABASE_URL: _api, ...rest } = base();
+    const worker = { ...rest, JOBS_DATABASE_URL: 'postgresql://jobs:pw@127.0.0.1:55432/legarec_dev' };
+    expect(readWorkerConfig(worker).DEV_RECIPIENTS).toBeUndefined();
+    // Separated by commas, whatever the spaces and the case; an empty item is nothing.
+    expect(readWorkerConfig({ ...worker, DEV_RECIPIENTS: ' Recette@Legarec.Test , compta@legarec.test,, ' }).DEV_RECIPIENTS).toEqual([
+      'recette@legarec.test',
+      'compta@legarec.test',
+    ]);
+    for (const wrong of [
+      'recette',
+      'a@legarec.test;b@legarec.test',
+      '@legarec.test',
+      Array.from({ length: 21 }, (_, index) => `a${index}@legarec.test`).join(','),
+    ])
+      expect(() => readWorkerConfig({ ...worker, DEV_RECIPIENTS: wrong }), wrong).toThrow('Missing or invalid startup values: DEV_RECIPIENTS');
+    const deployed = {
+      ...worker,
+      ...portals,
+      NODE_ENV: 'production',
+      JOBS_DATABASE_URL: 'postgresql://jobs:pw@postgres:5432/legarec',
+      VALKEY_URL: 'redis://:pw@valkey:6379/0',
+    };
+    expect(readWorkerConfig(deployed).DEV_RECIPIENTS).toBeUndefined();
+    expect(() => readWorkerConfig({ ...deployed, DEV_RECIPIENTS: 'recette@legarec.test' })).toThrow('Refused in production: DEV_RECIPIENTS');
+    // An error never shows the addresses.
+    try {
+      readWorkerConfig({ ...deployed, DEV_RECIPIENTS: 'recette@legarec.test' });
+      expect.unreachable();
+    } catch (error) {
+      expect((error as Error).message).not.toContain('recette');
+    }
+  });
+
+  it('sends real e-mails only when RESEND_ENV says production, which only production may say', () => {
+    const { DATABASE_URL: _api, ...rest } = base();
+    const worker = { ...rest, JOBS_DATABASE_URL: 'postgresql://jobs:pw@127.0.0.1:55432/legarec_dev' };
+    expect(readWorkerConfig(worker).RESEND_ENV).toBe('test');
+    for (const NODE_ENV of ['development', 'test']) expect(() => readWorkerConfig({ ...worker, NODE_ENV, RESEND_ENV: 'production' })).toThrow('RESEND_ENV');
+    expect(() => readWorkerConfig({ ...worker, RESEND_ENV: 'live' })).toThrow('Missing or invalid startup values: RESEND_ENV');
+    const deployed = {
+      ...worker,
+      ...portals,
+      NODE_ENV: 'production',
+      JOBS_DATABASE_URL: 'postgresql://jobs:pw@postgres:5432/legarec',
+      VALKEY_URL: 'redis://:pw@valkey:6379/0',
+    };
+    // Production alone is not enough: the guard of the recipients holds until it is said.
+    expect(readWorkerConfig(deployed).RESEND_ENV).toBe('test');
+    expect(readWorkerConfig({ ...deployed, RESEND_ENV: 'production' }).RESEND_ENV).toBe('production');
+  });
+
   it('writes the simulated messages in a folder of this machine, never in production', () => {
     const { DATABASE_URL: _api, ...rest } = base();
     const worker = { ...rest, JOBS_DATABASE_URL: 'postgresql://jobs:pw@127.0.0.1:55432/legarec_dev' };
