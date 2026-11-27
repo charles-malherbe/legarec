@@ -95,7 +95,19 @@ sudo install -d -m 700 /etc/legarec
 sudo install -d -o 10113 -g 10113 -m 700 /var/lib/legarec/journaux
 ```
 
-Pour chaque fichier (exemple : `api`, groupe 10101) :
+```bash
+sudo install -d -o 10101 -g 10120 -m 2770 /var/lib/legarec/documents
+```
+
+Fichiers et valeurs internes, en une fois : `infra/tirer-valeurs.sh` crée les fichiers absents depuis leurs modèles (propriétaire et groupe du tableau), puis tire les mots de passe, les jetons, les clés du coffre et des sessions et la phrase des sauvegardes, et les recopie là où ils reviennent (adresses de la base et de Valkey, `GATUS_PUSH_TOKEN`, même clé pour l'API et le worker, même phrase pour la sauvegarde et la restauration). Il ne remplit qu'une ligne vide : une valeur déjà écrite est gardée, et ce qui en dépend la suit ; deux valeurs qui devraient être identiques et ne le sont pas l'arrêtent. Il n'affiche que des noms, jamais une valeur, et peut être relancé sans risque.
+
+```bash
+sudo /opt/legarec/infra/tirer-valeurs.sh
+```
+
+Il liste à la fin ce qui reste à écrire à la main (`sudo nano /etc/legarec/<nom>.env`), les valeurs venues de l'extérieur : `ACME_EMAIL` et `AUTHORIZED_IPS` (`caddy.env`), `GATUS_ALERT_KEY` et `GATUS_ALERT_TO` (`gatus.env`), les clés S3 de `pgbackrest.env` et de `restauration.env`, et `N8N_ENCRYPTION_KEY`, reprise de l'ancien n8n (« n8n », plus bas) ; sans ancien n8n à reprendre, `--n8n-neuf` la tire aussi. Puis copie de toutes les valeurs dans le gestionnaire de mots de passe : `VAULT_MASTER_KEY` perdue, les secrets saisis dans l'application le sont aussi.
+
+À la main, pour un seul fichier (exemple : `api`, groupe 10101) :
 
 ```bash
 sudo install -o root -g 10101 -m 640 /opt/legarec/infra/valeurs/api.env.exemple /etc/legarec/api.env
