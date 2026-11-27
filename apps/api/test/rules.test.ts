@@ -2,7 +2,7 @@ import { Body, Controller, Post, Query, RequestMethod } from '@nestjs/common';
 import { METHOD_METADATA, PATH_METADATA, ROUTE_ARGS_METADATA } from '@nestjs/common/constants.js';
 import { DiscoveryModule, DiscoveryService, MetadataScanner } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { REQUEST_BODIES } from '@legarec/contracts';
+import { HOOK_BODIES, REQUEST_BODIES } from '@legarec/contracts';
 import { ESLint } from 'eslint';
 import { fileURLToPath } from 'node:url';
 import type { INestApplicationContext } from '@nestjs/common';
@@ -53,7 +53,8 @@ const QUERY = 4;
 function contractOf(route: string): unknown {
   const [method = '', path = ''] = route.split(' ');
   const portal = (['staff', 'partner', 'debtor'] as const).find((name) => path.startsWith(`${PREFIX[name as Portal]}/`));
-  if (!portal) return undefined;
+  // What a provider sends has its own list.
+  if (!portal) return (HOOK_BODIES as Record<string, unknown>)[route];
   const bodies = REQUEST_BODIES[portal] as Record<string, unknown>;
   // The paths of the debtors' portal already begin with their prefix.
   return bodies[`${method} ${portal === 'debtor' ? path : path.slice(PREFIX[portal].length)}`];

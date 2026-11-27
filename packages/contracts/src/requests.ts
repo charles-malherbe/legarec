@@ -141,6 +141,8 @@ export const fileBody = z.custom<Uint8Array>((value) => value instanceof Uint8Ar
  */
 export const HOOK_MAX_BYTES = 64 * 1024;
 export const signedBody = z.unknown().transform((value) => (value instanceof Uint8Array && value.byteLength <= HOOK_MAX_BYTES ? value : new Uint8Array()));
+/** Bodies of the routes the providers call: no portal ever sends them. */
+export const HOOK_BODIES = { 'POST /hooks/resend': signedBody } as const;
 /** `expected`: the balance shown in the confirmation; the API refuses the plan if it changed since. */
 export const paymentPlanBody = z.object({
   caseId: id,

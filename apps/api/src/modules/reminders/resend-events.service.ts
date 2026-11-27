@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { randomBytes } from 'node:crypto';
 import { PROVIDER, readResendEvent, signedByResend } from '../../emails/resend-webhook';
 import { Clock } from '../../platform/clock';
 import { Database } from '../../platform/database/database';
@@ -22,6 +23,9 @@ const EVENTS: RateLimit = { name: 'hook-resend', max: 600, seconds: 60 };
  */
 @Injectable()
 export class ResendEventsService {
+  /** Drawn at each start and told to nobody: what the signature is compared with when the vault holds no secret. */
+  private readonly nobody = `whsec_${randomBytes(32).toString('base64')}`;
+
   constructor(
     @Inject(Database) private readonly database: Database,
     @Inject(Outbox) private readonly outbox: Outbox,
@@ -35,8 +39,10 @@ export class ResendEventsService {
     await this.limits.take(EVENTS);
     const { tx } = this.database;
     const delivery = signedDelivery();
-    // The same answer whatever is wrong: no secret, no header, an old date, another body, another secret.
-    if (!signedByResend(await this.secret(), delivery, body, this.clock.now())) {
+    // The same answer, after the same work, whatever is wrong: no secret, no header, an old date, another body, another
+    // secret. Without a secret the signature is still computed, under a key nobody holds, and refused all the same.
+    const secret = await this.secret();
+    if (!signedByResend(secret || this.nobody, delivery, body, this.clock.now()) || !secret) {
       this.logger.warn({ kind: 'resend' }, 'webhook refused');
       throw unauthorized();
     }

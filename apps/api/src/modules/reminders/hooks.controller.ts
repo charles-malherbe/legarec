@@ -1,4 +1,4 @@
-import { signedBody } from '@legarec/contracts';
+import { HOOK_BODIES } from '@legarec/contracts';
 import { Body, Controller, HttpCode, Inject, Post } from '@nestjs/common';
 import { ApiNoContentResponse, ApiTags } from '@nestjs/swagger';
 import { Hook } from '../../platform/access/access';
@@ -15,7 +15,7 @@ export class HooksController {
   @Hook()
   @HttpCode(204)
   @ApiNoContentResponse()
-  resendEvent(@Body({ schema: signedBody }) body: Uint8Array) {
+  resendEvent(@Body({ schema: HOOK_BODIES['POST /hooks/resend'] }) body: Uint8Array) {
     return this.resend.receive(body);
   }
 }
