@@ -19,7 +19,7 @@ Première partie du lot X. Fichiers préparés par Claude Code, vérifiés par G
 | `valkey` | Files d'attente | 10115 | 512 Mo | non |
 | `clamav` | Antivirus des fichiers reçus, joint par le worker seul | 10116 | 2 Go | oui (signatures) |
 | `gatus` | Page d'état publique | 10111 | 96 Mo | non |
-| `gatus-interne` | Contrôles internes et alertes | 10111 | 96 Mo | oui (alertes) |
+| `gatus-interne` | Contrôles internes et alertes | 10111 | 96 Mo | oui (alertes, contrôle du bucket des documents) |
 | `journaux`, `loki`, `grafana` | Journaux techniques, 60 jours | 10113, 10001, 10114 | 96, 384 et 320 Mo | non |
 
 Conteneurs permanents : 6,9 Go au plus, dont 2 Go pour ClamAV. Réserver 0,5 Go pour n8n, à venir. Aucun conteneur ne tourne en root, ni sous le compte 1000 (premier compte du serveur). Systèmes de fichiers en lecture seule, aucun droit Linux, réseaux séparés et fermés au serveur lui-même : un portail ne joint pas la base, n8n ne joindra que l'API, et un autre compte du serveur ne joint ni l'API, ni Loki, ni la base.
@@ -56,6 +56,7 @@ Conteneurs permanents : 6,9 Go au plus, dont 2 Go pour ClamAV. Réserver 0,5 Go 
 Décision du 26/11/2026, au lieu de Scaleway. Adresse du service : `s3.eu-west-par.io.cloud.ovh.net` (déjà écrite dans les modèles de `infra/valeurs/`, avec la région). Sauvegardes chez le même fournisseur que le serveur, sans seconde copie : risque accepté par le cabinet (question 167).
 - [ ] Bucket `legarec-sauvegardes`, privé, versions activées, **clé propre à ce bucket**. Politique du bucket : cette clé ne peut ni effacer une version, ni couper les versions, ni changer le cycle de vie ; seconde clé, en lecture seule, pour l'essai de restauration.
 - [ ] Règle de cycle de vie : versions remplacées ou supprimées effacées après 7 jours.
+- [ ] Bucket `legarec-documents`, privé, multi-zones (décision du 26/11/2026), liste du contenu fermée au public, versions activées, règle de cycle de vie : versions remplacées ou supprimées effacées après 70 jours (question 115). **Clé propre à ce bucket** : lire, écrire et supprimer un objet, et lister le bucket (sans ce dernier droit, S3 répond « refusé » au lieu de « absent » pour un fichier qui n'y est pas, et l'application ne lirait plus les fichiers restés sur le disque). À créer dès maintenant, même vide : Gatus le surveille (« Bucket des documents », plus bas).
 - [ ] Bucket `legarec-media`, public en lecture, liste du contenu désactivée, logos déposés.
 - [ ] Bucket `legarec-enregistrements` (lot T), privé, liste du contenu désactivée, versions activées (question 165), règles de cycle de vie : versions remplacées ou supprimées effacées après 7 jours, suppression après 190 jours ; **clé propre à ce bucket**, qui ne peut ni effacer une version ni changer les règles.
 
@@ -69,14 +70,14 @@ Un fichier par conteneur dans `/etc/legarec/`, d'après `infra/valeurs/*.exemple
 | Fichier | Groupe | Valeurs |
 |---|---|---|
 | `caddy.env` | 10110 | `ACME_EMAIL`, `AUTHORIZED_IPS` (adresses du cabinet, séparées par une espace), `S3_REGION` (`eu-west-par`, déjà écrite) |
-| `api.env` | 10101 | `DATABASE_URL`, `VALKEY_URL`, `VAULT_MASTER_KEY`, `SESSION_SIGNING_KEY`, adresses des portails, `MYSENDINGBOX_ENV` |
-| `worker.env` | 10102 | `JOBS_DATABASE_URL`, les mêmes `VALKEY_URL`, `VAULT_MASTER_KEY` et `SESSION_SIGNING_KEY`, `GATUS_PUSH_URL`, `GATUS_PUSH_TOKEN` |
+| `api.env` | 10101 | `DATABASE_URL`, `VALKEY_URL`, `VAULT_MASTER_KEY`, `SESSION_SIGNING_KEY`, adresses des portails, `MYSENDINGBOX_ENV` ; plus tard `S3_DOCUMENTS_BUCKET` et `S3_REGION` (« Bucket des documents ») |
+| `worker.env` | 10102 | `JOBS_DATABASE_URL`, les mêmes `VALKEY_URL`, `VAULT_MASTER_KEY` et `SESSION_SIGNING_KEY`, `GATUS_PUSH_URL`, `GATUS_PUSH_TOKEN` ; plus tard les mêmes `S3_DOCUMENTS_BUCKET` et `S3_REGION` que `api.env` |
 | `migration.env` | 10104 | `MIGRATION_DATABASE_URL` |
 | `postgres.env` | 999 | `POSTGRES_PASSWORD`, `LEGAREC_OWNER_PASSWORD`, `LEGAREC_APP_PASSWORD`, `LEGAREC_JOBS_PASSWORD` |
 | `pgbackrest.env` | 999 | `PGBACKREST_REPO1_S3_REGION`, `PGBACKREST_REPO1_S3_ENDPOINT`, `PGBACKREST_REPO1_S3_KEY`, `PGBACKREST_REPO1_S3_KEY_SECRET`, `PGBACKREST_REPO1_CIPHER_PASS`, `GATUS_PUSH_TOKEN` |
 | `restauration.env` | 999 | Les mêmes noms que `pgbackrest.env`, avec la clé en lecture seule |
 | `valkey.env` | 10115 | `VALKEY_PASSWORD` |
-| `gatus.env` | 10111 | `GATUS_ALERT_KEY`, `GATUS_ALERT_TO`, `GATUS_WORKER_TOKEN`, `GATUS_BACKUP_TOKEN`, `GATUS_RESTORE_TOKEN` |
+| `gatus.env` | 10111 | `GATUS_ALERT_KEY`, `GATUS_ALERT_TO`, `GATUS_WORKER_TOKEN`, `GATUS_BACKUP_TOKEN`, `GATUS_RESTORE_TOKEN`, `S3_REGION` (`eu-west-par`, déjà écrite) |
 | `grafana.env` | 10114 | `GF_SECURITY_ADMIN_PASSWORD`, `GF_SECURITY_SECRET_KEY` |
 
 Dossiers et droits :
@@ -222,6 +223,7 @@ Après le premier déploiement, puis après chaque changement de ces fichiers.
 
 **Surveillance**
 - [ ] `legarec stop worker` : alerte reçue en moins de 10 minutes ; `legarec start worker` : message de rétablissement.
+- [ ] Contrôle « Documents » en vert dans les contrôles internes (le bucket `legarec-documents` répond 403 à un inconnu). En rouge : bucket pas encore créé, autre région, ou réponse d'OVHcloud différente de celle attendue (jamais essayé, « Bucket des documents »).
 - [ ] Journaux visibles dans Grafana ; chercher un nom, un e-mail, une référence et un lien de courrier connus : aucun résultat.
 
 **Serveur**
@@ -253,7 +255,7 @@ Journaux : ni adresse IP, ni chemin, ni en-tête dans ceux de Caddy ; ni requêt
 - **PostgreSQL** n'écrit plus ses lignes ERROR, qui citent souvent des données ; l'API note leur code.
 
 ## Documents et PDF (lot N)
-- **Dossier des documents** : `/var/lib/legarec/documents`, propriétaire 10101, groupe 10120, droits 2770 (à créer avant le premier déploiement ; `deployer.sh` le vérifie). L'API et le worker y écrivent et y lisent par ce groupe commun ; aucun autre conteneur ne le voit. Monté sur `/documents` (`DOCUMENTS_DIR`). À sauvegarder avec la base (copie quotidienne du dossier) tant que le bucket n'existe pas.
+- **Dossier des documents** : `/var/lib/legarec/documents`, propriétaire 10101, groupe 10120, droits 2770 (à créer avant le premier déploiement ; `deployer.sh` le vérifie). L'API et le worker y écrivent et y lisent par ce groupe commun ; aucun autre conteneur ne le voit. Monté sur `/documents` (`DOCUMENTS_DIR`). À sauvegarder avec la base (copie quotidienne du dossier) tant que le bucket n'est pas en service, puis tant qu'il reste des fichiers dans ce dossier (« Bucket des documents »).
 - **Chromium** : paquet Debian de l'image (`CHROMIUM_PATH=/usr/bin/chromium`), utilisé par le worker seul, sans son bac à sable (le conteneur en tient lieu, la page n'exécute aucun script et ne charge rien). Worker : 1 Go de mémoire, 400 processus, `/tmp` de 256 Mo.
 
 ## Antivirus (ClamAV)
@@ -262,6 +264,16 @@ Journaux : ni adresse IP, ni chemin, ni en-tête dans ceux de Caddy ; ni requêt
 - **Signatures** : celles du jour de publication de l'image sont dans l'image, donc clamd démarre sans Internet ; `freshclam` les met à jour ensuite une fois par jour dans le volume `clamav-data`. Démarrage : une à plusieurs minutes (chargement des signatures), pendant lesquelles les fichiers reçus attendent.
 - **Antivirus arrêté ou injoignable** : rien ne se perd et rien ne se lit ; la tâche d'analyse est retentée, le document reste « analyse antivirus en cours ». Aucune alerte Gatus ne le signale encore (ci-dessous, « Le reste »).
 - **Jamais essayé sur un serveur** : la composition n'a pas pu être lancée par Claude Code (Docker interdit). GitHub Actions la construit et vérifie (`infra/ci/smoke.sh`) que le worker obtient « OK » pour un fichier sain et « FOUND » pour le fichier d'essai EICAR, et que ni l'API, ni un portail, ni le serveur ne joignent clamd. À regarder à la première mise en service : mémoire réellement prise (`docker stats`), et mise à jour des signatures dans le journal du conteneur.
+
+## Bucket des documents (`legarec-documents`)
+- **État : prêt dans le code, éteint en production.** L'API n'a aucun accès à Internet (réseaux fermés), donc aucun accès au bucket, alors que c'est elle qui reçoit et remet les fichiers. Tant que la **question 205** n'est pas tranchée, ne pas écrire `S3_DOCUMENTS_BUCKET` : les fichiers restent dans `/var/lib/legarec/documents`, comme au lot N. Écrire la variable sans ouvrir de sortie ferait échouer chaque dépôt et chaque lecture de fichier après 12 secondes.
+- **Fonctionnement** : avec `S3_DOCUMENTS_BUCKET` et `S3_REGION` (`eu-west-par`) dans `api.env` **et** `worker.env`, et les deux clés `S3_ACCESS_KEY` et `S3_SECRET_KEY` saisies dans Paramètres techniques > Secrets, tout nouveau fichier va dans le bucket (adresse `s3.eu-west-par.io.cloud.ovh.net`), sous la même clé tirée au hasard que sur le disque. Sans les deux variables, ou tant qu'une des deux clés manque, est en attente de révocation ou révoquée : disque du serveur. Les clés sont relues dans le coffre toutes les 5 minutes (30 secondes tant qu'elles manquent) : une clé renouvelée dans l'écran est prise sans redémarrage.
+- **Fichiers déjà sur le disque** : ils y restent et sont toujours lus (le bucket d'abord ; s'il répond que l'objet n'existe pas, le disque). Aucune copie automatique vers le bucket : le dossier reste à sauvegarder tant qu'il n'est pas vide. La purge efface aux deux endroits.
+- **Panne** : un bucket injoignable, une clé refusée ou un bucket absent font échouer la requête ou la tâche (erreur `BucketError`, avec le seul nom donné par S3 : `AccessDenied`, `NoSuchBucket`, `TimeoutError`…) ; jamais de repli silencieux sur le disque, qui cacherait la panne et disperserait les fichiers. Une tâche du worker est retentée. Une révocation de clé demandée (en attente du Directeur) renvoie les nouveaux fichiers sur le disque et rend illisibles ceux du bucket jusqu'à la décision : à éviter en journée.
+- **Jamais dans un seul des deux fichiers** : l'API et le worker doivent avoir les mêmes deux valeurs, sinon l'un écrit là où l'autre ne lit pas (analyse antivirus, quittances).
+- **Surveillance** : contrôle « Documents » de Gatus, sans aucune clé : toutes les 10 minutes, `https://legarec-documents.s3.<région>.io.cloud.ovh.net/` doit répondre 403 (bucket présent, privé, OVHcloud joignable) ; 404 : bucket absent ; 200 : il est devenu public. Il ne dit pas si les clés du coffre fonctionnent : une clé refusée se voit aux dépôts qui échouent (question 206).
+- **Jamais essayé contre un vrai bucket**, ni l'application ni le contrôle Gatus : aucune clé, et jamais depuis le serveur de développement. Les tests jouent contre un faux client S3, en mémoire. Première vérification réelle, à la mise en service du bucket, avant tout dossier : déposer un PDF dans Documents, le rouvrir, le voir dans le bucket sous `xx/<clé>` (illisible par une adresse publique), puis vérifier qu'un fichier déposé avant la bascule s'ouvre encore. À surveiller ce jour-là : la réponse d'OVHcloud pour un objet absent (`NoSuchKey` attendu ; un « refusé » bloquerait la lecture des fichiers du disque), les sommes de contrôle des envois, et la forme d'adresse (le client utilise `legarec-documents.s3.<région>…`).
+- En développement et dans les tests : toujours le disque ; `infra/dev/api.mjs` ne transmet pas ces variables, et le nom `legarec-documents` est refusé hors production.
 
 ## Reste à faire (fin du lot X)
 
@@ -287,13 +299,13 @@ Sur l'API depuis `lot/s5`, mais incomplets faute de décision : Facturation list
 Tant qu'une route manque, son écran affiche son état d'erreur (« Réessayer ») : rien ne se perd, mais l'écran ne sert pas. **À décider par le cabinet (question 194)** : attendre tous les lots, ou mettre en service avec les écrans prêts et masquer les autres.
 
 ### Le reste
-- **Stockage chez OVHcloud** : fait pour Caddy (`media.legarec.fr`), pgBackRest et les noms des clés (`S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_REGION`, `S3_DOCUMENTS_BUCKET`). pgBackRest reste en adresses « chemin » (`repo1-s3-uri-style=path`), qu'OVHcloud accepte ; **jamais essayé contre un vrai bucket** : le premier `legarec run --rm sauvegarde full` de la mise en service le dira, avant toute donnée. La migration `storage_secret_names` renomme deux noms de clés : sans effet au premier déploiement ; elle interdit seulement de revenir à une version antérieure une fois une clé de stockage saisie. Le bucket `legarec-documents` n'est pas encore branché (ci-dessous).
+- **Stockage chez OVHcloud** : fait pour Caddy (`media.legarec.fr`), pgBackRest et les noms des clés (`S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_REGION`, `S3_DOCUMENTS_BUCKET`). pgBackRest reste en adresses « chemin » (`repo1-s3-uri-style=path`), qu'OVHcloud accepte ; **jamais essayé contre un vrai bucket** : le premier `legarec run --rm sauvegarde full` de la mise en service le dira, avant toute donnée. La migration `storage_secret_names` renomme deux noms de clés : sans effet au premier déploiement ; elle interdit seulement de revenir à une version antérieure une fois une clé de stockage saisie. Le bucket `legarec-documents` est branché dans le code, éteint en production (« Bucket des documents », question 205).
 - ClamAV : fait (« Antivirus », ci-dessus). Reste une alerte quand clamd ne répond plus : Gatus ne joint pas le réseau `antivirus` (réservé au worker), et le contrôle de santé du conteneur ne prévient personne.
 - Chemin des modèles d'e-mails et de PDF : vérifié. Le worker les lit dans `templates/`, à côté de `dist/` (`apps/api/src/worker.ts`), et l'image copie ce dossier ; `TEMPLATES_DIR` de `renderer.ts` ne sert qu'aux tests.
 - n8n : avec les comptes de service ; conteneur et valeurs (`N8N_ENCRYPTION_KEY`) à ajouter, sur un réseau partagé avec l'API seule. Sa route existe déjà dans Caddy, réservée aux adresses du cabinet : elle répond 502 d'ici là.
-- Gatus : contrôle du bucket des documents (lot N).
+- Bucket des documents : ouvrir à l'API un chemin vers le bucket (question 205), puis première vérification réelle. Contrôle Gatus : fait, sans clé (question 206). Copie vers le bucket des fichiers restés sur le disque : non prévue.
 - Purge à la demande après une restauration : faite (`dist/purge.js`, étape 6 de « Restaurer la base »).
 - **Condition de mise en service** : `legarec-hold-tasks` ne bloque que les tâches en file (`outbox`). Chaque lot qui ajoute un planning dans PostgreSQL (relances, envois groupés, notifications) l'étend à ses tables, avec un test : sinon une relance déjà partie redeviendrait due. L'agenda des relances (`planned_reminders`, lot Q) n'envoie encore rien de lui-même : à étendre avec l'envoi automatique.
 - `pgbackrest verify` chaque semaine : fait (minuterie `legarec-verification-sauvegardes`, dimanche 6 h, surveillée par Gatus). Reste l'essai automatique d'une restauration à un instant précis.
-- Versions du bucket `legarec-documents` : 70 jours (question 115), à revoir au lot N.
+- Versions du bucket `legarec-documents` : 70 jours (question 115), règle à poser sur le bucket par le cabinet (« À préparer »).
 - Contrôle de plusieurs copies de l'API : non prévu, une seule à la fois.
