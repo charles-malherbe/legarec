@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { BucketError, type BucketKeys } from './bucket';
-import { Storage, storageFor, type Files } from './storage';
+import { fileLeft, Storage, storageFor, type Files } from './storage';
 
 const KEYS: BucketKeys = { accessKeyId: 'identifiant-fictif-QZKX', secretAccessKey: 'valeur-fictive-zz-KXPM' };
 const bytes = (text: string) => new TextEncoder().encode(text);
@@ -27,7 +27,7 @@ class Memory implements Files {
   readonly asked: string[] = [];
   down = false;
 
-  private ask(operation: 'write' | 'read' | 'erase', key: string) {
+  private ask(operation: 'write' | 'read' | 'erase' | 'remove', key: string) {
     this.asked.push(`${operation} ${key}`);
     if (this.down) throw new BucketError(operation, 'TimeoutError');
   }
@@ -47,6 +47,12 @@ class Memory implements Files {
     return Promise.resolve().then(() => {
       this.ask('erase', key);
       return this.objects.delete(key);
+    });
+  }
+  remove(key: string) {
+    return Promise.resolve().then(() => {
+      this.ask('remove', key);
+      this.objects.delete(key);
     });
   }
 }
@@ -70,7 +76,7 @@ describe('the files of the documents', () => {
 
   it('go to the bucket when there is one, and nothing is left on the disk', async () => {
     const [root, bucket] = [await folder(), new Memory()];
-    const storage = new Storage(root, () => Promise.resolve(bucket));
+    const storage = new Storage(root, { bucket: () => Promise.resolve(bucket) });
     const stored = await storage.put(bytes('essai'));
     expect([...bucket.objects.keys()]).toEqual([stored.key]);
     expect(await filesOf(root)).toEqual([]);
@@ -84,7 +90,7 @@ describe('the files of the documents', () => {
   it('written to the disk before the keys were typed are still read there, and erased there', async () => {
     const [root, bucket] = [await folder(), new Memory()];
     let keysTyped = false;
-    const storage = new Storage(root, () => Promise.resolve(keysTyped ? bucket : null));
+    const storage = new Storage(root, { bucket: () => Promise.resolve(keysTyped ? bucket : null) });
     const before = await storage.put(bytes('avant'));
     keysTyped = true;
     const after = await storage.put(bytes('après'));
@@ -102,7 +108,7 @@ describe('the files of the documents', () => {
     const alone = new Storage(root);
     const stored = await alone.put(bytes('essai'));
     bucket.objects.set(stored.key, Buffer.from('essai'));
-    const storage = new Storage(root, () => Promise.resolve(bucket));
+    const storage = new Storage(root, { bucket: () => Promise.resolve(bucket) });
     expect(await storage.erase(stored.key)).toBe(true);
     expect([await filesOf(root), bucket.objects.size]).toEqual([[], 0]);
   });
@@ -110,21 +116,84 @@ describe('the files of the documents', () => {
   it('fail when the bucket fails: the disk is never asked instead, nor written to', async () => {
     const [root, bucket] = [await folder(), new Memory()];
     const onDisk = await new Storage(root).put(bytes('sur le disque'));
-    const storage = new Storage(root, () => Promise.resolve(bucket));
+    const storage = new Storage(root, { bucket: () => Promise.resolve(bucket) });
     const stored = await storage.put(bytes('essai'));
     bucket.down = true;
     // Even for a file that the disk holds: nobody knows where the newest one is.
     for (const key of [stored.key, onDisk.key]) await expect(storage.read(key)).rejects.toBeInstanceOf(BucketError);
     await expect(storage.put(bytes('autre'))).rejects.toBeInstanceOf(BucketError);
     await expect(storage.erase(onDisk.key)).rejects.toBeInstanceOf(BucketError);
-    await expect(storage.remove(onDisk.key)).rejects.toBeInstanceOf(BucketError);
     expect(await filesOf(root)).toEqual([onDisk.key]);
     bucket.down = false;
     expect((await storage.read(onDisk.key)).toString()).toBe('sur le disque');
   });
 
+  it('with a bucket whose keys are missing: read from the disk, and out of reach, not absent, for what the disk does not hold', async () => {
+    const [root, bucket] = [await folder(), new Memory()];
+    let keysTyped = true;
+    const storage = new Storage(root, { bucket: () => Promise.resolve(keysTyped ? bucket : null) });
+    const inBucket = await storage.put(bytes('dans le bucket'));
+    keysTyped = false;
+    // Revoked, or waiting for the Director: a new file goes to the disk, and is read there.
+    const onDisk = await storage.put(bytes('sur le disque'));
+    expect((await storage.read(onDisk.key)).toString()).toBe('sur le disque');
+    const error = await storage.read(inBucket.key).catch((thrown: unknown) => thrown);
+    expect(error).toBeInstanceOf(BucketError);
+    expect(error).toMatchObject({ operation: 'read', code: 'NoKeys' });
+    await expect(storage.read(randomUUID())).rejects.toMatchObject({ code: 'NoKeys' });
+    // Without any bucket in the configuration, a file that is nowhere is absent.
+    await expect(new Storage(root).read(inBucket.key)).rejects.toThrow('file not found');
+  });
+
+  it('with a bucket whose keys are missing: an erasure fails, after the disk, instead of answering that nothing was there', async () => {
+    const [root, bucket] = [await folder(), new Memory()];
+    let keysTyped = true;
+    const storage = new Storage(root, { bucket: () => Promise.resolve(keysTyped ? bucket : null) });
+    const inBucket = await storage.put(bytes('dans le bucket'));
+    keysTyped = false;
+    const onDisk = await storage.put(bytes('sur le disque'));
+    for (const key of [inBucket.key, onDisk.key, randomUUID()]) await expect(storage.erase(key)).rejects.toMatchObject({ operation: 'erase', code: 'NoKeys' });
+    // What the disk held is gone all the same; the bucket was not touched.
+    expect([await filesOf(root), [...bucket.objects.keys()], bucket.asked.filter((asked) => asked.startsWith('erase'))]).toEqual([[], [inBucket.key], []]);
+    // The next night, with the keys: erased, and counted.
+    keysTyped = true;
+    expect(await storage.erase(inBucket.key)).toBe(true);
+  });
+
+  it('remove what was just written without ever failing, and tell what was left by the name of the failure alone', async () => {
+    const [root, bucket] = [await folder(), new Memory()];
+    const left: string[] = [];
+    let keysTyped = true;
+    const storage = new Storage(root, { bucket: () => Promise.resolve(keysTyped ? bucket : null), left: (code) => left.push(code) });
+    const stored = await storage.put(bytes('essai'));
+    await storage.remove(stored.key);
+    expect([bucket.objects.size, left]).toEqual([0, []]);
+    // In one request to the bucket, without asking what is there.
+    expect(bucket.asked.filter((asked) => !asked.startsWith('write'))).toEqual([`remove ${stored.key}`]);
+    const kept = await storage.put(bytes('essai'));
+    bucket.down = true;
+    await expect(storage.remove(kept.key)).resolves.toBeUndefined();
+    expect(left).toEqual(['TimeoutError']);
+    bucket.down = false;
+    keysTyped = false;
+    const onDisk = await storage.put(bytes('sur le disque'));
+    await expect(storage.remove(onDisk.key)).resolves.toBeUndefined();
+    expect([await filesOf(root), left]).toEqual([[], ['TimeoutError', 'NoKeys']]);
+    // The keys cannot even be read: the same.
+    const blind = new Storage(root, { bucket: () => Promise.reject(new Error(`vault ${stored.key}`)), left: (code) => left.push(code) });
+    await expect(blind.remove(stored.key)).resolves.toBeUndefined();
+    expect(left.at(-1)).toBe('Error');
+    expect(bucket.objects.has(kept.key)).toBe(true);
+  });
+
+  it('write in the journal the name of the failure, and nothing of the file', () => {
+    const written: unknown[] = [];
+    fileLeft({ warn: (fields, message) => written.push([fields, message]) })('AccessDenied');
+    expect(written).toEqual([[{ kind: 'storage', errorType: 'AccessDenied' }, 'file left in the storage']]);
+  });
+
   it('fail when the keys cannot be read', async () => {
-    const storage = new Storage(await folder(), () => Promise.reject(new Error('vault')));
+    const storage = new Storage(await folder(), { bucket: () => Promise.reject(new Error('vault')) });
     await expect(storage.put(bytes('essai'))).rejects.toThrow('vault');
     await expect(storage.read(randomUUID())).rejects.toThrow('vault');
   });
@@ -133,7 +202,11 @@ describe('the files of the documents', () => {
     'are never looked for under a key that is not one, with or without a bucket: %j',
     async (key) => {
       const [root, bucket] = [await folder(), new Memory()];
-      for (const storage of [new Storage(root), new Storage(root, () => Promise.resolve(bucket)), new Storage(root, () => Promise.reject(new Error('vault')))])
+      for (const storage of [
+        new Storage(root),
+        new Storage(root, { bucket: () => Promise.resolve(bucket) }),
+        new Storage(root, { bucket: () => Promise.reject(new Error('vault')) }),
+      ])
         for (const work of [() => storage.read(key), () => storage.erase(key), () => storage.remove(key)])
           await expect(work()).rejects.toThrow('invalid storage key');
       expect(bucket.asked).toEqual([]);
@@ -171,7 +244,7 @@ describe('the storage of the configuration', () => {
     let asked = 0;
     const read = () => Promise.resolve((asked += 1)).then(() => keys);
     const config = { NODE_ENV: 'production', DOCUMENTS_DIR: root, S3_DOCUMENTS_BUCKET: 'legarec-essai', S3_REGION: 'eu-west-par' };
-    const storage = storageFor(config, read, connect as never);
+    const storage = storageFor(config, { keys: read, connect: connect as never });
     const onDisk = await storage.put(bytes('avant'));
     expect([await filesOf(root), connected, asked]).toEqual([[onDisk.key], [], 1]);
     keys = KEYS;
@@ -189,7 +262,10 @@ describe('the storage of the configuration', () => {
     async (place) => {
       const root = await folder();
       let asked = 0;
-      const storage = storageFor({ NODE_ENV: 'test', DOCUMENTS_DIR: root, ...place }, () => Promise.resolve((asked += 1)).then(() => KEYS), connect as never);
+      const storage = storageFor(
+        { NODE_ENV: 'test', DOCUMENTS_DIR: root, ...place },
+        { keys: () => Promise.resolve((asked += 1)).then(() => KEYS), connect: connect as never },
+      );
       const stored = await storage.put(bytes('essai'));
       expect([await filesOf(root), asked]).toEqual([[stored.key], 0]);
     },

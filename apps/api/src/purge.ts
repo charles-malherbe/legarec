@@ -17,7 +17,7 @@ const logger = createLogger(config.LOG_LEVEL);
 const database = new Database(config.JOBS_DATABASE_URL, { poolSize: 1 });
 try {
   const keys = storageKeys(new Vault(config), (work) => database.run({ kind: 'worker', job: 'storage-keys' }, work));
-  const counts = await purge(database, logger, storageFor(config, keys));
+  const counts = await purge(database, logger, storageFor(config, { keys }));
   process.stdout.write(
     `Purge faite : ${Object.entries(counts)
       .map(([kind, removed]) => `${kind} ${removed}`)

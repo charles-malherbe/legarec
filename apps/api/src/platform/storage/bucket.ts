@@ -1,4 +1,4 @@
-import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import type { Files } from './storage';
 
 export interface BucketKeys {
@@ -9,10 +9,14 @@ export interface BucketPlace {
   bucket: string;
   region: string;
 }
-type Command = PutObjectCommand | GetObjectCommand | HeadObjectCommand | DeleteObjectCommand;
+type Command = PutObjectCommand | GetObjectCommand | ListObjectsV2Command | DeleteObjectCommand;
+interface Answer {
+  Body?: { transformToByteArray(): Promise<Uint8Array> } | undefined;
+  Contents?: { Key?: string | undefined }[] | undefined;
+}
 /** What is used of the client of S3: a test gives its own, and nothing leaves the machine. */
 export interface BucketClient {
-  send(command: Command, options?: { abortSignal?: AbortSignal }): Promise<{ Body?: { transformToByteArray(): Promise<Uint8Array> } | undefined }>;
+  send(command: Command, options?: { abortSignal?: AbortSignal }): Promise<Answer>;
 }
 export type Connect = (place: BucketPlace, keys: BucketKeys) => BucketClient;
 
@@ -55,7 +59,7 @@ export class BucketError extends Error {
   override readonly name = 'BucketError';
 
   constructor(
-    readonly operation: 'write' | 'read' | 'erase',
+    readonly operation: 'write' | 'read' | 'erase' | 'remove',
     readonly code: string,
   ) {
     super(`bucket ${operation} failed: ${code}`);
@@ -68,10 +72,9 @@ const nameOf = (error: unknown): string => {
 
 /**
  * An object that is not there, and that alone. A bucket that is not there (`NoSuchBucket`), a refusal or a silence are
- * failures: taken for an absence, they would send the reader to the disk and hide the outage. The answer to a HEAD has no
- * body, hence no name of its own: the client calls any 404 `NotFound`.
+ * failures: taken for an absence, they would send the reader to the disk and hide the outage.
  */
-const absent = (error: unknown): boolean => ['NoSuchKey', 'NotFound'].includes(nameOf(error));
+const absent = (error: unknown): boolean => nameOf(error) === 'NoSuchKey';
 
 /** The private bucket of the documents. Its client is kept as long as the keys of the vault do not change. */
 export class Bucket {
@@ -97,7 +100,7 @@ export class Bucket {
       try {
         return await work(AbortSignal.timeout(DEADLINE_MS));
       } catch (error) {
-        if (operation !== 'write' && absent(error)) return null;
+        if (operation === 'read' && absent(error)) return null;
         throw new BucketError(operation, nameOf(error));
       }
     };
@@ -118,13 +121,19 @@ export class Bucket {
           return Buffer.from(await Body.transformToByteArray());
         });
       },
-      // S3 erases without saying whether there was anything: asked first, for the count of the purge.
+      // S3 erases without saying whether there was anything: asked first, for the count of the purge. By the list, whose
+      // answer names a bucket that is not there; the answer to a HEAD has no body, and cannot tell it from a missing object.
       erase: async (key) => {
         const Key = pathOf(key);
-        const there = await ask('erase', (abortSignal) => client.send(new HeadObjectCommand({ Bucket, Key }), { abortSignal }));
-        if (!there) return false;
+        const listed = await ask('erase', (abortSignal) => client.send(new ListObjectsV2Command({ Bucket, Prefix: Key, MaxKeys: 1 }), { abortSignal }));
+        if (!listed?.Contents?.some((object) => object.Key === Key)) return false;
         await ask('erase', (abortSignal) => client.send(new DeleteObjectCommand({ Bucket, Key }), { abortSignal }));
         return true;
+      },
+      // One request, whatever was there: this one runs while a request is failing.
+      remove: async (key) => {
+        const Key = pathOf(key);
+        await ask('remove', (abortSignal) => client.send(new DeleteObjectCommand({ Bucket, Key }), { abortSignal }));
       },
     };
   }

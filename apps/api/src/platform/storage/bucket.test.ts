@@ -1,4 +1,4 @@
-import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand } from '@aws-sdk/client-s3';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { Bucket, BucketError, DEADLINE_MS, endpointOf, pathOf, type BucketClient, type BucketKeys, type BucketPlace } from './bucket';
@@ -25,7 +25,8 @@ class FakeBucket implements BucketClient {
   failure: Error | undefined;
 
   send(command: Parameters<BucketClient['send']>[0], options?: { abortSignal?: AbortSignal }) {
-    const { Bucket: bucket, Key: key } = command.input;
+    const { Bucket: bucket } = command.input;
+    const key = command instanceof ListObjectsV2Command ? command.input.Prefix : command.input.Key;
     this.heard.push({ command: command.constructor.name, bucket, key, signal: options?.abortSignal });
     if (this.failure) return Promise.reject(this.failure);
     if (bucket !== PLACE.bucket) return Promise.reject(refusal('NoSuchBucket', 404));
@@ -36,7 +37,9 @@ class FakeBucket implements BucketClient {
     }
     if (command instanceof GetObjectCommand)
       return found ? Promise.resolve({ Body: { transformToByteArray: () => Promise.resolve(found) } }) : Promise.reject(refusal('NoSuchKey', 404));
-    if (command instanceof HeadObjectCommand) return found ? Promise.resolve({}) : Promise.reject(refusal('NotFound', 404));
+    // Everything that starts with the prefix, as S3 does.
+    if (command instanceof ListObjectsV2Command)
+      return Promise.resolve({ Contents: [...this.objects.keys()].filter((name) => name.startsWith(key!)).map((Key) => ({ Key })) });
     if (command instanceof DeleteObjectCommand) this.objects.delete(key!);
     return Promise.resolve({});
   }
@@ -67,7 +70,7 @@ describe('the bucket of the documents', () => {
     expect(objects.size).toBe(0);
     const [{ client, place, keys }] = clients as [(typeof clients)[0]];
     expect([place, keys]).toEqual([PLACE, KEYS]);
-    expect(client.heard.map((heard) => heard.command)).toEqual(['PutObjectCommand', 'GetObjectCommand', 'HeadObjectCommand', 'DeleteObjectCommand']);
+    expect(client.heard.map((heard) => heard.command)).toEqual(['PutObjectCommand', 'GetObjectCommand', 'ListObjectsV2Command', 'DeleteObjectCommand']);
     // Each request, in the one bucket, and with a deadline.
     for (const heard of client.heard) {
       expect(heard.bucket).toBe(PLACE.bucket);
@@ -82,7 +85,7 @@ describe('the bucket of the documents', () => {
     const key = randomUUID();
     expect(await files.read(key)).toBeNull();
     expect(await files.erase(key)).toBe(false);
-    expect(clients[0]!.client.heard.map((heard) => heard.command)).toEqual(['GetObjectCommand', 'HeadObjectCommand']);
+    expect(clients[0]!.client.heard.map((heard) => heard.command)).toEqual(['GetObjectCommand', 'ListObjectsV2Command']);
   });
 
   it.each([
@@ -103,6 +106,7 @@ describe('the bucket of the documents', () => {
       ['write', () => files.write(key, bytes('autre'))],
       ['read', () => files.read(key)],
       ['erase', () => files.erase(key)],
+      ['remove', () => files.remove(key)],
     ] as const) {
       const error = await work().then(
         () => null,
@@ -117,6 +121,35 @@ describe('the bucket of the documents', () => {
     const { bucket } = start({ ...PLACE, bucket: 'legarec-ailleurs' });
     await expect(bucket.with(KEYS).read(randomUUID())).rejects.toMatchObject({ code: 'NoSuchBucket' });
     await expect(bucket.with(KEYS).write(randomUUID(), bytes('essai'))).rejects.toMatchObject({ code: 'NoSuchBucket' });
+    // On an erasure too: « nothing there » would leave the purge believe that it has erased everything.
+    await expect(bucket.with(KEYS).erase(randomUUID())).rejects.toMatchObject({ operation: 'erase', code: 'NoSuchBucket' });
+    await expect(bucket.with(KEYS).remove(randomUUID())).rejects.toMatchObject({ operation: 'remove', code: 'NoSuchBucket' });
+  });
+
+  it('takes for absent, on a read, nothing but the answer that names a missing object', async () => {
+    const { bucket, clients } = start();
+    const files = bucket.with(KEYS);
+    // What the client calls any 404 without a body.
+    clients[0]!.client.failure = refusal('NotFound', 404);
+    await expect(files.read(randomUUID())).rejects.toMatchObject({ code: 'NotFound' });
+    clients[0]!.client.failure = refusal('NoSuchKey', 404);
+    expect(await files.read(randomUUID())).toBeNull();
+    await expect(files.erase(randomUUID())).rejects.toMatchObject({ code: 'NoSuchKey' });
+  });
+
+  it('erases the very object, not another one that starts like it, and removes in one request whatever is there', async () => {
+    const { bucket, clients, objects } = start();
+    const files = bucket.with(KEYS);
+    const key = randomUUID();
+    objects.set(`${pathOf(key)}.autre`, bytes('autre'));
+    expect(await files.erase(key)).toBe(false);
+    expect(objects.size).toBe(1);
+    await files.write(key, bytes('essai'));
+    clients[0]!.client.heard.length = 0;
+    await files.remove(key);
+    await files.remove(key);
+    expect(clients[0]!.client.heard.map((heard) => heard.command)).toEqual(['DeleteObjectCommand', 'DeleteObjectCommand']);
+    expect([...objects.keys()]).toEqual([`${pathOf(key)}.autre`]);
   });
 
   it('tells a failure by its name alone: nothing of the keys, of the request nor of the answer', async () => {
@@ -159,7 +192,7 @@ describe('the bucket of the documents', () => {
       const { bucket, clients } = start();
       const files = bucket.with(KEYS);
       expect(() => pathOf(key)).toThrow('invalid storage key');
-      for (const work of [() => files.write(key, bytes('essai')), () => files.read(key), () => files.erase(key)])
+      for (const work of [() => files.write(key, bytes('essai')), () => files.read(key), () => files.erase(key), () => files.remove(key)])
         await expect(work()).rejects.toThrow('invalid storage key');
       expect(clients[0]!.client.heard).toEqual([]);
     },

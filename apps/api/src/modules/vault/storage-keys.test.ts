@@ -7,6 +7,7 @@ import { startApp, type TestApp } from '../../../test/app';
 import type { Actor } from '../../platform/database/actor';
 import { databaseCode } from '../../platform/database/codes';
 import { Database, type Transaction } from '../../platform/database/database';
+import { storageFor } from '../../platform/storage/storage';
 import { storageKeys } from './storage-keys';
 import { Vault } from './vault';
 
@@ -185,29 +186,49 @@ describe('PostgreSQL itself', () => {
   });
 });
 
-describe('the API with a bucket in its configuration', () => {
+describe('the storage with a bucket in its configuration', () => {
   let folder: string;
-  let withBucket: TestApp;
-  beforeAll(async () => {
-    folder = await mkdtemp(join(tmpdir(), 'legarec-storage-keys-'));
-    // A name that exists nowhere: without keys, nothing is ever asked to it.
-    withBucket = await startApp([], { next: test, env: { DOCUMENTS_DIR: folder, S3_DOCUMENTS_BUCKET: 'legarec-essai-absent', S3_REGION: 'eu-west-par' } });
-  });
-  afterAll(async () => {
-    await withBucket.stop();
-    await rm(folder, { recursive: true, force: true });
-  });
+  beforeAll(async () => void (folder = await mkdtemp(join(tmpdir(), 'legarec-storage-keys-'))));
+  afterAll(() => rm(folder, { recursive: true, force: true }));
 
-  it('reads the keys in the request, with the rights of who sends a file, and keeps the file on the disk as long as they are not typed', async () => {
-    const file = new TextEncoder().encode('%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n');
-    const answer = await withBucket.call('POST', '/staff/documents/import', {
-      as: 'officerA',
-      file,
-      headers: { 'content-type': 'application/pdf', 'idempotency-key': randomUUID() },
-    });
-    expect(answer.status, JSON.stringify(answer.body)).toBe(200);
-    const [stored] = await rows<{ storage_key: string }>('SELECT storage_key FROM documents WHERE id = $1', [(answer.body as { id: string }).id]);
-    const written = (await readdir(folder, { recursive: true, withFileTypes: true })).filter((entry) => entry.isFile()).map((entry) => entry.name);
-    expect(written).toEqual([stored!.storage_key]);
+  it('reads the keys with the rights of who handles the file, keeps it on the disk until they are typed, then gives them to the client of the bucket', async () => {
+    const connected: unknown[] = [];
+    const sent: string[] = [];
+    /** A client of this test: nothing leaves the machine. */
+    const connect = (place: unknown, keys: unknown) => {
+      connected.push([place, keys]);
+      return { send: (command: { constructor: { name: string } }) => Promise.resolve(void sent.push(command.constructor.name)).then(() => ({})) };
+    };
+    const officer: Actor = { kind: 'staff', userId: test.s.officerA, role: 'CLAIMS_OFFICER', delegations: [] };
+    for (const [database, actor] of [
+      [test.pool, officer],
+      [test.pool, { kind: 'partner', userId: test.s.partnerA, creditorId: test.s.creditorA }],
+      [test.pool, { kind: 'debtor', debtorId: test.s.debtorA }],
+      [jobs, { kind: 'worker', job: 'storage-keys' }],
+    ] as [Database, Actor][]) {
+      await rows('DELETE FROM vault_secrets');
+      connected.length = sent.length = 0;
+      // As production has it: the tests and development never have a bucket in their configuration.
+      const storage = storageFor(
+        { NODE_ENV: 'production', DOCUMENTS_DIR: folder, S3_DOCUMENTS_BUCKET: 'legarec-essai-absent', S3_REGION: 'eu-west-par' },
+        { keys: storageKeys(vault, (work) => database.run(actor, work)), connect: connect as never },
+      );
+      const onDisk = await storage.put(new TextEncoder().encode('avant'));
+      expect((await readdir(folder, { recursive: true })).filter((name) => name.endsWith(onDisk.key))).toHaveLength(1);
+      expect(connected).toEqual([]);
+      await type('S3_ACCESS_KEY', ACCESS);
+      await type('S3_SECRET_KEY', SECRET);
+      // The absence is remembered for thirty seconds.
+      vi.useFakeTimers({ toFake: ['Date'], now: Date.now() + 31_000 });
+      await storage.put(new TextEncoder().encode('après'));
+      vi.useRealTimers();
+      expect(connected).toEqual([
+        [
+          { bucket: 'legarec-essai-absent', region: 'eu-west-par' },
+          { accessKeyId: ACCESS, secretAccessKey: SECRET },
+        ],
+      ]);
+      expect(sent).toEqual(['PutObjectCommand']);
+    }
   });
 });

@@ -19,7 +19,7 @@ import { TransactionInterceptor } from './platform/http/transaction.interceptor'
 import { RateLimits } from './platform/limits/rate-limits';
 import { LOGGER, type AppLogger } from './platform/logging/logger';
 import { Outbox } from './platform/queue/outbox';
-import { Storage, storageFor } from './platform/storage/storage';
+import { fileLeft, Storage, storageFor } from './platform/storage/storage';
 import { VALKEY, type Valkey } from './platform/queue/valkey';
 
 export interface AppParts {
@@ -58,12 +58,9 @@ export class AppModule implements OnApplicationBootstrap, OnApplicationShutdown 
         {
           provide: Storage,
           // The keys of the bucket are read in the transaction of the request that handles a file, with its rights.
-          useFactory: (config: Config, database: Database, vault: Vault) =>
-            storageFor(
-              config,
-              storageKeys(vault, (work) => work(database.tx)),
-            ),
-          inject: [CONFIG, Database, Vault],
+          useFactory: (config: Config, database: Database, vault: Vault, logger: AppLogger) =>
+            storageFor(config, { keys: storageKeys(vault, (work) => work(database.tx)), left: fileLeft(logger) }),
+          inject: [CONFIG, Database, Vault, LOGGER],
         },
         RateLimits,
         ...providers,
