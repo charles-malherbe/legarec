@@ -296,7 +296,8 @@ Les 161 routes simulées se répartissent ainsi :
 - [x] Après un échec ou une expiration, notification dans l'application à qui a demandé la relance (`SENDING_FAILED`, migration `20261127210000_sending_notices`, écrite par le worker avec l'échec) ; l'historique du dossier dit toujours « Relance non envoyée ». Pas d'e-mail ni de préférence dédiée dans « Mon compte » (libellé à valider)
 - [ ] Envoi « incertain » (`UNCERTAIN`) : aucun moyen de le trancher (ni écran, ni route) ; il compte dans le plafond du débiteur tant qu'il n'est pas tranché
 - [ ] Courriers : composition des PDF, premier courrier `LR-AAAA-NNNN`, MySendingBox (compte de test), relance « Courrier recommandé » de la fiche, « Rédiger un courrier » et envoi groupé (`GET` et `POST /staff/documents/compose`, brouillon), envoi d'un document, essai d'un modèle (question 210)
-- [ ] Scénarios automatiques : règles à spécifier (question 216) ; relance d'un échéancier
+- [ ] Scénarios automatiques : règles à spécifier (question 216)
+- [ ] Rappel d'échéance d'un échéancier (`POST /staff/payment-plans/:id/reminder`, simulé) : le modèle `installment-reminder` existe, mais l'adresse, le particulier, les plafonds, le SMS annoncé par l'écran et le lien restent à décider (question 221) ; rien n'est codé
 - [ ] Dérogation motivée aux plafonds (question 214) ; e-mails de compte sur leur domaine (question 217) ; webhooks Resend (distribution, rebond, ouverture) et suivi ; file des envois « incertains » à trancher par une personne (aucun écran)
 
 ## Lot W — IA (état au 26/11/2026)
