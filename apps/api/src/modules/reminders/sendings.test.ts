@@ -634,6 +634,91 @@ describe('a reminder that has waited too long', () => {
   });
 });
 
+describe('a reminder that has not left is told to the colleague who asked for it', () => {
+  const notices = (caseId: string) =>
+    rows<{ user_id: string; kind: string }>("SELECT user_id, kind::text FROM notifications WHERE case_id = $1 AND kind = 'SENDING_FAILED'", [caseId]);
+  const shown = async (as: string) =>
+    ((await call(as, 'GET', '/notifications')).body as { text: string; meta: string; href: string; cta: string; unread: boolean }[]).filter((item) =>
+      item.text.includes('relance par e-mail'),
+    );
+
+  it('once, in the application, with the case and nothing of the address nor the reason', async () => {
+    // What the tests above have left.
+    await rows("DELETE FROM notifications WHERE kind = 'SENDING_FAILED'");
+    const made = await eligible(test.s.officerB);
+    expect((await remind('officerB', made)).status).toBe(204);
+    // Nothing is told while it waits, nor when it leaves.
+    expect(await notices(made.id)).toEqual([]);
+    await rows("UPDATE cases SET status = 'DISPUTE' WHERE id = $1", [made.id]);
+    await worker.run().catch(() => undefined);
+    expect(await sendings(made.id)).toMatchObject([{ status: 'FAILED', failure: 'CASE_DISPUTED' }]);
+    expect(await notices(made.id)).toEqual([{ user_id: test.s.officerB, kind: 'SENDING_FAILED' }]);
+    const [{ name, reference }] = (await rows<{ name: string; reference: string }>(
+      'SELECT d.name, c.reference FROM cases c JOIN debtors d ON d.id = c.debtor_id WHERE c.id = $1',
+      [made.id],
+    )) as [{ name: string; reference: string }];
+    expect(await shown('officerB')).toEqual([
+      expect.objectContaining({
+        text: `La relance par e-mail de ${name} n’est pas partie`,
+        meta: `Dossier ${reference}`,
+        href: `/debiteurs/${made.id}`,
+        cta: 'Ouvrir le dossier',
+        unread: true,
+      }),
+    ]);
+    expect(JSON.stringify(await shown('officerB'))).not.toContain(made.email);
+    // Nobody else is told; a second sweep or delivery adds nothing.
+    expect(await shown('officerA')).toEqual([]);
+    await sweepSendings(worker.asWorker, new Date(Date.now() + 30 * 86_400_000));
+    expect(await notices(made.id)).toHaveLength(1);
+    // The case given to someone else since: the notification stays, without the name of the debtor.
+    await rows('UPDATE cases SET officer_id = $2 WHERE id = $1', [made.id, test.s.officerA]);
+    expect(await shown('officerB')).toEqual([expect.objectContaining({ text: 'Une relance par e-mail n’est pas partie', meta: 'Relances' })]);
+    await rows("UPDATE notifications SET read_at = now() WHERE kind = 'SENDING_FAILED'");
+  });
+
+  it('after an expiry too, and when the provider refuses; never for one that has left', async () => {
+    const expired = await eligible(test.s.officerA);
+    const left = await eligible(test.s.officerA);
+    expect((await remind('officerA', left)).status).toBe(204);
+    await worker.run();
+    asked.splice(0);
+    worker.simulated.splice(0);
+    expect((await remind('officerA', expired)).status).toBe(204);
+    await rows("UPDATE outbox SET done_at = now() WHERE name = 'case-reminder' AND payload ->> 'case' = $1", [expired.id]);
+    expect(await sweepSendings(worker.asWorker, new Date(Date.now() + 30 * 86_400_000))).toBeGreaterThanOrEqual(1);
+    expect(await sendings(expired.id)).toMatchObject([{ status: 'FAILED', failure: 'EXPIRED' }]);
+    expect(await notices(expired.id)).toEqual([{ user_id: test.s.officerA, kind: 'SENDING_FAILED' }]);
+    expect(await notices(left.id)).toEqual([]);
+  });
+
+  it('is written by the worker alone, and for nobody who has left the firm', async () => {
+    const made = await eligible(test.s.officerA);
+    expect((await remind('officerA', made)).status).toBe(204);
+    const [{ id }] = (await rows<{ id: string }>('SELECT id FROM sendings WHERE case_id = $1', [made.id])) as [{ id: string }];
+    // A colleague cannot write one, even about their own line.
+    expect(await asStaff(test.s.officerA, (tx) => tx.$executeRaw`SELECT app.tell_sending_failed(${id}::uuid)`)).toBe('42501');
+    // A line that has not failed tells nothing.
+    await asWorker((tx) => tx.$executeRaw`SELECT app.tell_sending_failed(${id}::uuid)`);
+    expect(await notices(made.id)).toEqual([]);
+    const [gone] = await rows<{ id: string }>(
+      "INSERT INTO users (role, status, first_name, last_name, email, disabled_at) VALUES ('CLAIMS_OFFICER', 'DISABLED', 'Nora', 'Partie', $1, now()) RETURNING id",
+      [`${randomUUID()}@exemple.test`],
+    );
+    const other = await eligible(test.s.officerA);
+    await rows(
+      `INSERT INTO sendings (case_id, creditor_id, channel, template, level, contact_id, created_by)
+       SELECT c.id, c.creditor_id, 'EMAIL', 'FRIENDLY', 1, (SELECT id FROM case_contacts WHERE case_id = c.id), $2 FROM cases c WHERE c.id = $1`,
+      [other.id, gone!.id],
+    );
+    await rows("UPDATE outbox SET done_at = now() WHERE name = 'case-reminder' AND payload ->> 'case' = $1", [made.id]);
+    await sweepSendings(worker.asWorker, new Date(Date.now() + 30 * 86_400_000));
+    expect(await sendings(other.id)).toMatchObject([{ status: 'FAILED' }]);
+    expect(await notices(other.id)).toEqual([]);
+    expect(await notices(made.id)).toEqual([{ user_id: test.s.officerA, kind: 'SENDING_FAILED' }]);
+  });
+});
+
 describe('the rules the database holds by itself', () => {
   it('a line goes forward only: queued, taken, then sent or failed; a settled one never changes', async () => {
     const made = await eligible(test.s.officerA);

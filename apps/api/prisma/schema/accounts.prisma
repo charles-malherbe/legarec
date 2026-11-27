@@ -96,6 +96,7 @@ enum NotificationKind {
   DEBTOR_BLOCKED
   AI_BUDGET
   DEBTOR_ACCESS_ALERT
+  SENDING_FAILED
 
   @@map("notification_kind")
 }

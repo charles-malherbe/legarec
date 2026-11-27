@@ -114,6 +114,15 @@ export class NotificationsService {
                   cta: 'Ouvrir le dossier',
                 }
               : { text: 'Accès d’un débiteur au portail de paiement bloqué après dix codes faux', meta: 'Accès débiteur', ...HERE };
+          case 'SENDING_FAILED':
+            return about
+              ? {
+                  text: `La relance par e-mail de ${about.debtor.name} n’est pas partie`,
+                  meta: `Dossier ${about.reference}`,
+                  href: `/debiteurs/${about.id}`,
+                  cta: 'Ouvrir le dossier',
+                }
+              : { text: 'Une relance par e-mail n’est pas partie', meta: 'Relances', ...HERE };
           case 'DEBTOR_ACCESS_ALERT':
             return {
               text: 'Accès débiteur : plus de 200 codes faux en une heure. Les adresses en cause sont suspendues 15 minutes.',
