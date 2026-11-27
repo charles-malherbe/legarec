@@ -126,10 +126,10 @@ shared hex grafana:GF_SECURITY_SECRET_KEY
 unset RESULT owner app jobs valkey
 
 if [ "${#filled[@]}" -gt 0 ]; then
-  echo 'Valeurs tirées ou recopiées (aucune n’est affichée) :'
+  echo "Valeurs tirées ou recopiées (aucune n’est affichée) :"
   printf '  %s\n' "${filled[@]}"
 else
-  echo 'Aucune ligne vide à remplir : rien n’a changé.'
+  echo "Aucune ligne vide à remplir : rien n’a changé."
 fi
 missing=()
 for name in "${!group[@]}"; do
@@ -138,7 +138,7 @@ for name in "${!group[@]}"; do
   done < <(sed -n 's/^\([A-Z0-9_]*\)=.*/\1/p' "$dir/$name.env")
 done
 if [ "${#missing[@]}" -gt 0 ]; then
-  echo 'À remplir à la main (valeurs venues de l’extérieur, docs/deploiement.md) :'
+  echo "À remplir à la main (valeurs venues de l’extérieur, docs/deploiement.md) :"
   printf '  %s\n' "${missing[@]}" | sort
   exit 3
 fi
