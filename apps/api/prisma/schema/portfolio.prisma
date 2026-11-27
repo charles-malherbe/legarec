@@ -354,6 +354,8 @@ model CaseContact {
   replaces   CaseContact[]      @relation("Replacement")
   events     CaseContactEvent[]
 
+  sendings   Sending[]
+
   @@unique([id, caseId])
   @@index([valueNormalized], map: "case_contacts_lookup")
   @@map("case_contacts")
@@ -517,7 +519,7 @@ model PlannedReminder {
   @@map("planned_reminders")
 }
 
-/// What leaves for a debtor (lot Q): an e-mail reminder or a letter, written with the request and sent by the worker.
+/// What leaves for a debtor (lot Q): an e-mail reminder, written with the request and sent by the worker.
 model Sending {
   id            String         @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
   caseId        String         @map("case_id") @db.Uuid
@@ -525,11 +527,7 @@ model Sending {
   channel       SendingChannel
   template      String
   level         Int?
-  draft         Boolean        @default(false)
-  options       Json           @default("{}")
-  message       String?
   contactId     String?        @map("contact_id") @db.Uuid
-  installmentId String?        @map("installment_id") @db.Uuid
   documentId    String?        @map("document_id") @db.Uuid
   /// Written by the worker alone: never sent with the line.
   status        SendingStatus  @default(dbgenerated("'QUEUED'::sending_status"))
@@ -542,7 +540,8 @@ model Sending {
   sentAt        DateTime?      @map("sent_at") @db.Timestamptz(3)
 
   case     Case      @relation(fields: [caseId, creditorId], references: [id, creditorId], onDelete: NoAction, onUpdate: NoAction)
-  document Document? @relation(fields: [documentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  contact  CaseContact? @relation(fields: [contactId, caseId], references: [id, caseId], onDelete: NoAction, onUpdate: NoAction)
+  document Document?    @relation(fields: [documentId, caseId], references: [id, caseId], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([caseId, createdAt], map: "sendings_case")
   @@index([status], map: "sendings_waiting")
@@ -553,7 +552,6 @@ enum SendingChannel {
   EMAIL
   LETTER
   REGISTERED_LETTER
-  DOWNLOAD
 
   @@map("sending_channel")
 }

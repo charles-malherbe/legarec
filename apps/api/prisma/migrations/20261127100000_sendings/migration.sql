@@ -1,8 +1,9 @@
--- What leaves for a debtor (lot Q): reminders by e-mail (Resend) and letters (MySendingBox), one line each. The line is
--- written with the request, in its transaction; the worker sends, then says what happened. A line never holds an address:
--- the coordinate is read again when the message leaves.
+-- What leaves for a debtor (lot Q): reminders by e-mail (Resend), one line each. The line is written with the request, in
+-- its transaction; the worker sends, then says what happened. A line never holds an address: the coordinate is read again
+-- when the message leaves. The letters (MySendingBox) come with their own migration: their two channels are named here
+-- because the caps of app.sent_contacts() already count them.
 
-CREATE TYPE sending_channel AS ENUM ('EMAIL', 'LETTER', 'REGISTERED_LETTER', 'DOWNLOAD');
+CREATE TYPE sending_channel AS ENUM ('EMAIL', 'LETTER', 'REGISTERED_LETTER');
 CREATE TYPE sending_status AS ENUM ('QUEUED', 'SENT', 'FAILED', 'UNCERTAIN');
 
 CREATE TABLE sendings (
@@ -13,16 +14,9 @@ CREATE TABLE sendings (
   template text NOT NULL CHECK (template IN ('FRIENDLY', 'FIRM', 'FORMAL_NOTICE', 'PAYMENT_PLAN', 'CLEARANCE', 'INSTALLMENT')),
   -- Level of the validated e-mail reminder (reminder-1 to reminder-3).
   level integer CHECK (level BETWEEN 1 AND 3),
-  -- A letter kept as a draft: generated, marked as such, never posted.
-  draft boolean NOT NULL DEFAULT false,
-  -- Choices of the screen « Rédiger un courrier »: booleans and short numbers only.
-  options jsonb NOT NULL DEFAULT '{}' CHECK (jsonb_typeof(options) = 'object' AND length(options::text) <= 200),
-  -- Text typed in the form of the case, for a registered letter.
-  message text CHECK (length(message) <= 10000),
-  -- The coordinate an e-mail leaves for, the installment it recalls: read again by the worker, gone with the case.
+  -- The coordinate an e-mail leaves for: read again by the worker, gone with the case. Never that of another case.
   contact_id uuid,
-  installment_id uuid,
-  document_id uuid REFERENCES documents (id),
+  document_id uuid,
   status sending_status NOT NULL DEFAULT 'QUEUED',
   -- Without the key of the service outside production: nothing left this machine.
   simulated boolean NOT NULL DEFAULT false,
@@ -33,19 +27,44 @@ CREATE TABLE sendings (
   created_at timestamptz(3) NOT NULL DEFAULT now(),
   sent_at timestamptz(3),
   FOREIGN KEY (case_id, creditor_id) REFERENCES cases (id, creditor_id),
+  FOREIGN KEY (contact_id, case_id) REFERENCES case_contacts (id, case_id),
+  FOREIGN KEY (document_id, case_id) REFERENCES documents (id, case_id),
   CHECK ((channel = 'EMAIL') = (contact_id IS NOT NULL)),
-  CHECK (level IS NULL OR channel = 'EMAIL'),
-  CHECK (NOT draft OR channel = 'DOWNLOAD')
+  CHECK (level IS NULL OR channel = 'EMAIL')
 );
 CREATE INDEX sendings_case ON sendings (case_id, created_at);
 CREATE INDEX sendings_waiting ON sendings (status) WHERE status = 'QUEUED';
 
+-- Once only, as a rule of the database: a line is born queued, is taken (uncertain) before anything leaves, then is sent or
+-- failed; one that never left may fail from the queue. Never back, and a settled line never changes again.
+CREATE FUNCTION app.keep_sending() RETURNS trigger
+LANGUAGE plpgsql SET search_path = pg_catalog, public, pg_temp AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    IF NEW.status <> 'QUEUED' OR NEW.simulated OR NEW.sent_at IS NOT NULL OR NEW.provider_ref IS NOT NULL OR NEW.failure IS NOT NULL THEN
+      RAISE EXCEPTION 'a sending starts queued' USING ERRCODE = 'insufficient_privilege';
+    END IF;
+    RETURN NEW;
+  END IF;
+  IF (NEW.id, NEW.case_id, NEW.creditor_id, NEW.channel, NEW.template, NEW.level, NEW.contact_id, NEW.created_by, NEW.on_behalf_of_id, NEW.created_at)
+      IS DISTINCT FROM (OLD.id, OLD.case_id, OLD.creditor_id, OLD.channel, OLD.template, OLD.level, OLD.contact_id, OLD.created_by, OLD.on_behalf_of_id, OLD.created_at)
+    OR NOT ((OLD.status = 'QUEUED' AND NEW.status IN ('QUEUED', 'UNCERTAIN', 'FAILED'))
+      OR (OLD.status = 'UNCERTAIN' AND NEW.status IN ('UNCERTAIN', 'SENT', 'FAILED')))
+    OR (NEW.status <> 'SENT' AND (NEW.simulated OR NEW.sent_at IS NOT NULL OR NEW.provider_ref IS NOT NULL))
+    OR (NEW.status <> 'FAILED' AND NEW.failure IS NOT NULL) THEN
+    RAISE EXCEPTION 'a sending never goes back' USING ERRCODE = 'insufficient_privilege';
+  END IF;
+  RETURN NEW;
+END
+$$;
+CREATE TRIGGER keep_sending BEFORE INSERT OR UPDATE ON sendings FOR EACH ROW EXECUTE FUNCTION app.keep_sending();
+
 -- Read by whoever reads the case; started by whoever acts on it (policies of the case tables). Only the worker says what left.
 CALL app.secure_case_table('sendings');
-GRANT SELECT (id, case_id, creditor_id, channel, template, level, draft, options, contact_id, installment_id, document_id, status, simulated, failure,
+GRANT SELECT (id, case_id, creditor_id, channel, template, level, contact_id, document_id, status, simulated, failure,
   created_by, on_behalf_of_id, created_at, sent_at),
-  INSERT (case_id, creditor_id, channel, template, level, draft, options, message, contact_id, installment_id) ON sendings TO legarec_staff;
-GRANT SELECT (id, case_id, creditor_id, channel, template, level, draft, options, message, contact_id, installment_id, document_id, status, simulated,
+  INSERT (case_id, creditor_id, channel, template, level, contact_id) ON sendings TO legarec_staff;
+GRANT SELECT (id, case_id, creditor_id, channel, template, level, contact_id, document_id, status, simulated,
   provider_ref, failure, created_by, created_at, sent_at),
   UPDATE (document_id, status, simulated, provider_ref, failure, sent_at) ON sendings TO legarec_worker;
 DROP POLICY staff_update ON sendings;
@@ -58,13 +77,14 @@ CREATE POLICY case_not_forgotten_change ON sendings AS RESTRICTIVE FOR UPDATE TO
   USING (app.case_writable(case_id));
 
 GRANT CREATE ON SCHEMA app TO legarec_definer;
-GRANT SELECT (id, case_id, channel, draft, status, created_at) ON sendings TO legarec_definer;
+GRANT SELECT (id, case_id, channel, status, created_at, sent_at) ON sendings TO legarec_definer;
 CREATE POLICY definer_read ON sendings FOR SELECT TO legarec_definer USING (true);
 SET LOCAL ROLE legarec_definer;
 -- The caps count every contact of the debtor, whatever the creditor: cases another reads included. Only a number
 -- leaves; the caller must act on the case. Whoever counts holds the debtor until the end of the transaction: two
 -- colleagues who send at the same moment are counted one after the other, never both under the cap.
--- `wanted`: 'EMAIL', or 'LETTER' for every letter, registered or not. What failed before leaving does not count.
+-- `wanted`: 'EMAIL', or 'LETTER' for every letter, registered or not. What failed before leaving does not count. A
+-- sending counts on the day it left; one that still waits, on the day it was asked.
 CREATE FUNCTION app.sent_contacts(target uuid, wanted text, from_day date, to_day date) RETURNS integer
 LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE
@@ -79,9 +99,9 @@ BEGIN
   END IF;
   PERFORM pg_advisory_xact_lock(hashtextextended('contacts:' || person::text, 0));
   RETURN (SELECT count(*)::integer FROM public.sendings s JOIN public.cases c ON c.id = s.case_id
-    WHERE c.debtor_id = person AND NOT s.draft AND s.status <> 'FAILED'
+    WHERE c.debtor_id = person AND s.status <> 'FAILED'
       AND ((wanted = 'EMAIL' AND s.channel = 'EMAIL') OR (wanted = 'LETTER' AND s.channel IN ('LETTER', 'REGISTERED_LETTER')))
-      AND (s.created_at AT TIME ZONE 'Europe/Paris')::date BETWEEN from_day AND to_day);
+      AND (coalesce(s.sent_at, s.created_at) AT TIME ZONE 'Europe/Paris')::date BETWEEN from_day AND to_day);
 END
 $$;
 -- The key of a sending service, for the worker alone, when it is valid.
@@ -95,7 +115,19 @@ BEGIN
   WHERE s.name::text = wanted AND s.status = 'VALID' AND s.value_cipher IS NOT NULL ORDER BY s.created_at DESC LIMIT 1;
 END
 $$;
+-- Whether a sending service has its key, for the team: yes or no, nothing of the key. Asked before a request is taken
+-- in production, where nothing is simulated.
+CREATE FUNCTION app.service_ready(wanted text) RETURNS boolean
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+BEGIN
+  IF app.actor_kind() IS DISTINCT FROM 'STAFF' OR wanted NOT IN ('RESEND_API_KEY', 'MYSENDINGBOX_API_KEY', 'MYSENDINGBOX_TEST_API_KEY') THEN
+    PERFORM app.refuse('42501');
+  END IF;
+  RETURN EXISTS (SELECT 1 FROM public.vault_secrets s WHERE s.name::text = wanted AND s.status = 'VALID' AND s.value_cipher IS NOT NULL);
+END
+$$;
 GRANT EXECUTE ON FUNCTION app.sent_contacts(uuid, text, date, date) TO legarec_staff;
+GRANT EXECUTE ON FUNCTION app.service_ready(text) TO legarec_staff;
 GRANT EXECUTE ON FUNCTION app.service_key(text) TO legarec_worker;
 RESET ROLE;
 REVOKE CREATE ON SCHEMA app FROM legarec_definer;
@@ -124,12 +156,12 @@ BEGIN
     title = CASE WHEN EXISTS (SELECT 1 FROM unnest(ARRAY[debtor_name, given_name, contact]) AS n(value)
         WHERE length(app.plain_name(n.value)) >= 3 AND strpos(app.plain_name(e.title), app.plain_name(n.value)) > 0) THEN 'Événement du dossier' ELSE e.title END
   WHERE e.case_id = target;
+  -- What left for the debtor (lot Q), before the coordinates it points at: whom it reached goes.
+  DELETE FROM public.sendings WHERE case_id = target;
   DELETE FROM public.case_contacts WHERE case_id = target;
   DELETE FROM public.portal_message_attachments WHERE case_id = target;
   DELETE FROM public.portal_messages WHERE case_id = target;
   DELETE FROM public.planned_reminders WHERE case_id = target;
-  -- What left for the debtor (lot Q): the text typed and whom it reached go; the letters are documents, purged below.
-  DELETE FROM public.sendings WHERE case_id = target;
   DELETE FROM public.debtor_links WHERE case_id = target;
   DELETE FROM public.ai_suggestions WHERE case_id = target;
   DELETE FROM public.litigation_files WHERE case_id = target;
