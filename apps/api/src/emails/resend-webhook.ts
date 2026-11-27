@@ -27,7 +27,8 @@ export function signedByResend(secret: string, delivery: Delivery, body: Uint8Ar
   const { id, timestamp, signature } = delivery;
   const key = SECRET.exec(secret)?.[1];
   if (!key || !id || !timestamp || !signature || !ID.test(id) || !TIMESTAMP.test(timestamp) || signature.length > 1000) return false;
-  if (Math.abs(now.getTime() / 1000 - Number(timestamp)) > TOLERANCE_SECONDS) return false;
+  // To the second, as Svix does: the clock is cut to its second before the comparison.
+  if (Math.abs(Math.floor(now.getTime() / 1000) - Number(timestamp)) > TOLERANCE_SECONDS) return false;
   const expected = createHmac('sha256', Buffer.from(key, 'base64')).update(`${id}.${timestamp}.`).update(body).digest();
   let found = false;
   for (const part of signature.split(' ')) {
@@ -65,7 +66,8 @@ const KINDS: Record<string, EventKind> = {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
 /** The tag that names the line of `sendings` a message was sent for. */
 export const SENDING_TAG = 'sending_id';
-const record = (value: unknown): Record<string, unknown> => (typeof value === 'object' && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>) : {});
+const record = (value: unknown): Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 const uuid = (value: unknown) => (typeof value === 'string' && UUID.test(value) ? value : null);
 
 /**

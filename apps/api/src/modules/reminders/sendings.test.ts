@@ -1270,6 +1270,17 @@ describe('the sweep and a line a task has taken', () => {
     expect(await sendings(other.id)).toMatchObject([{ status: 'FAILED', failure: 'AUTHOR_GONE' }]);
   });
 
+  it('fails a line never taken with no code of the provider, whatever its task says, and goes on with the next ones', async () => {
+    const said = await abandoned();
+    await rows("UPDATE outbox SET failure = 'PROVIDER_REFUSED' WHERE payload ->> 'case' = $1", [said.id]);
+    const next = await abandoned();
+    await sweepSendings(worker.asWorker, workerNow);
+    // Nothing of it ever left this machine: the line says so, and the database would refuse it otherwise.
+    expect(await sendings(said.id)).toMatchObject([{ status: 'FAILED', failure: 'SENDING_FAILED' }]);
+    expect(await events(said.id, 'REMINDER_FAILED')).toMatchObject([{ title: 'Relance non envoyée', actor_label: 'Application' }]);
+    expect(await sendings(next.id)).toMatchObject([{ status: 'FAILED', failure: 'AUTHOR_GONE' }]);
+  });
+
   it('says « Relance envoyée » for a line sent whose task was cut before the history said so, once', async () => {
     const made = await eligible(test.s.officerA);
     expect((await remind('officerA', made, { template: 'FIRM' })).status).toBe(204);

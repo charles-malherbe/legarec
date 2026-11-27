@@ -8,7 +8,9 @@ const now = new Date('2026-11-27T10:00:00Z');
 const seconds = (date: Date) => String(Math.floor(date.getTime() / 1000));
 /** Signed as Svix documents it, written apart from the code under test. */
 const sign = (key: string, id: string, timestamp: string, body: string) =>
-  `v1,${createHmac('sha256', Buffer.from(key.slice('whsec_'.length), 'base64')).update(`${id}.${timestamp}.${body}`).digest('base64')}`;
+  `v1,${createHmac('sha256', Buffer.from(key.slice('whsec_'.length), 'base64'))
+    .update(`${id}.${timestamp}.${body}`)
+    .digest('base64')}`;
 const body = JSON.stringify({ type: 'email.delivered', created_at: '2026-11-27T09:59:58.000Z', data: { email_id: randomUUID() } });
 const delivery = (change: Partial<Delivery> = {}): Delivery => {
   const id = `msg_${randomBytes(9).toString('hex')}`;
@@ -57,6 +59,34 @@ describe('the signature of an event of Resend', () => {
     expect(accepted(signedAt(shifted(TOLERANCE_SECONDS + 5)))).toBe(false);
   });
 
+  it('holds the five minutes to the second, in both directions', () => {
+    const signedAt = (offset: number) => {
+      const id = 'msg_edge';
+      const timestamp = String(Number(seconds(now)) + offset);
+      return { id, timestamp, signature: sign(secret, id, timestamp, body) };
+    };
+    expect(TOLERANCE_SECONDS).toBe(300);
+    expect(accepted(signedAt(-TOLERANCE_SECONDS))).toBe(true);
+    expect(accepted(signedAt(TOLERANCE_SECONDS))).toBe(true);
+    expect(accepted(signedAt(-TOLERANCE_SECONDS - 1))).toBe(false);
+    expect(accepted(signedAt(TOLERANCE_SECONDS + 1))).toBe(false);
+    // The clock is read to its second, as Svix reads it: later in the same second changes nothing.
+    const later = new Date(now.getTime() + 999);
+    expect(accepted(signedAt(-TOLERANCE_SECONDS), body, secret, later)).toBe(true);
+    expect(accepted(signedAt(TOLERANCE_SECONDS), body, secret, later)).toBe(true);
+    expect(accepted(signedAt(-TOLERANCE_SECONDS - 1), body, secret, later)).toBe(false);
+  });
+
+  it('takes a date in seconds only: in milliseconds, with a sign or a decimal part, it is refused however well signed', () => {
+    const dated = (timestamp: string) => {
+      const id = 'msg_dated';
+      return { id, timestamp, signature: sign(secret, id, timestamp, body) };
+    };
+    expect(accepted(dated(seconds(now)))).toBe(true);
+    for (const timestamp of [String(now.getTime()), `+${seconds(now)}`, `-${seconds(now)}`, `${seconds(now)}.0`, `${seconds(now)}.5`, '0x6927e4a0'])
+      expect(accepted(dated(timestamp)), timestamp).toBe(false);
+  });
+
   it('is accepted among several, while a secret is being renewed, and only in the version that is known', () => {
     const given = delivery();
     const other = sign(`whsec_${randomBytes(24).toString('base64')}`, given.id!, given.timestamp!, body);
@@ -80,7 +110,14 @@ describe('what is read of an event', () => {
         JSON.stringify({
           type,
           created_at: '2026-11-22T23:41:12.126Z',
-          data: { email_id: email, from: 'Cabinet <relances@exemple.test>', to: ['compta@exemple.test'], subject: 'Relance', tags: { sending_id: sending }, ...data },
+          data: {
+            email_id: email,
+            from: 'Cabinet <relances@exemple.test>',
+            to: ['compta@exemple.test'],
+            subject: 'Relance',
+            tags: { sending_id: sending },
+            ...data,
+          },
         }),
       ),
     );
@@ -115,7 +152,14 @@ describe('what is read of an event', () => {
   });
 
   it('reads the tag as Resend gives it back, and as it was sent', () => {
-    expect(event('email.sent', { tags: [{ name: 'category', value: 'x' }, { name: 'sending_id', value: sending }] }).sendingId).toBe(sending);
+    expect(
+      event('email.sent', {
+        tags: [
+          { name: 'category', value: 'x' },
+          { name: 'sending_id', value: sending },
+        ],
+      }).sendingId,
+    ).toBe(sending);
     for (const tags of [undefined, null, {}, { sending_id: 'compta@exemple.test' }, { sending_id: 12 }, { other: sending }, 'sending_id'])
       expect(event('email.sent', { tags }).sendingId, JSON.stringify(tags)).toBeNull();
     expect(event('email.sent', { email_id: 'compta@exemple.test' }).providerRef).toBeNull();
@@ -129,5 +173,15 @@ describe('what is read of an event', () => {
       expect(read.occurredAt, text).toBeNull();
     }
     expect(readResendEvent(Buffer.from('{')).kind).toBe('OTHER');
+  });
+
+  it('keeps the kind and the identifiers of an event whose date cannot be read: it is then dated when it is handled', () => {
+    const long = 'Sun Nov 22 2026 23:41:12 GMT+0100 (heure normale d’Europe centrale)';
+    for (const created_at of [1_795_390_872, '2026-13-45T25:61:00Z', long, null, ['2026-11-22T23:41:12.126Z'], { at: '2026-11-22T23:41:12.126Z' }]) {
+      const read = readResendEvent(
+        Buffer.from(JSON.stringify({ type: 'email.delivered', created_at, data: { email_id: email, tags: { sending_id: sending } } })),
+      );
+      expect(read, JSON.stringify(created_at)).toEqual({ kind: 'DELIVERED', occurredAt: null, providerRef: email, sendingId: sending });
+    }
   });
 });

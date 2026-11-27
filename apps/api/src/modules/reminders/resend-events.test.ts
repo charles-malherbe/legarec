@@ -14,6 +14,7 @@ import { RateLimits } from '../../platform/limits/rate-limits';
 import { createLogger } from '../../platform/logging/logger';
 import { Vault } from '../vault/vault';
 import { applyResendEvent } from './resend-events.jobs';
+import { markFailed } from './sendings.jobs';
 
 let test: TestApp;
 let worker: MailWorker;
@@ -75,15 +76,21 @@ const workingHour = () => {
   throw new Error('no working day this week');
 };
 type State = 'QUEUED' | 'UNCERTAIN' | 'SENT' | 'FAILED' | 'EXPIRED' | 'SIMULATED';
+/** The template of each level of the validated e-mail reminders. */
+const TEMPLATES = { 1: 'FRIENDLY', 2: 'FIRM', 3: 'FORMAL_NOTICE' } as const;
 /**
  * A reminder of the case in that state, asked `minutes` ago; `ref`: the message at the provider, for a line that was sent.
- * `FAILED`: taken, then refused by the provider; `EXPIRED`: failed before it was ever taken.
+ * `FAILED`: taken, then refused by the provider; `EXPIRED`: failed before it was ever taken. `level`: 1 unless said.
  */
-const line = async (made: Made, state: State, { ref = randomUUID(), minutes = 10 }: { ref?: string; minutes?: number } = {}) => {
+const line = async (
+  made: Made,
+  state: State,
+  { ref = randomUUID(), minutes = 10, level = 1 }: { ref?: string; minutes?: number; level?: keyof typeof TEMPLATES } = {},
+) => {
   const [{ id }] = (await rows<{ id: string }>(
     `INSERT INTO sendings (case_id, creditor_id, channel, template, level, contact_id, created_by, created_at)
-     SELECT c.id, c.creditor_id, 'EMAIL', 'FRIENDLY', 1, $2, $3, now() - $4::float8 * interval '1 minute' FROM cases c WHERE c.id = $1 RETURNING id`,
-    [made.id, made.contact, test.s.officerA, minutes],
+     SELECT c.id, c.creditor_id, 'EMAIL', $5::text, $6::int, $2, $3, now() - $4::float8 * interval '1 minute' FROM cases c WHERE c.id = $1 RETURNING id`,
+    [made.id, made.contact, test.s.officerA, minutes, TEMPLATES[level], level],
   )) as [{ id: string }];
   if (state === 'EXPIRED') await rows("UPDATE sendings SET status = 'FAILED', failure = 'EXPIRED' WHERE id = $1", [id]);
   else if (state !== 'QUEUED') await rows("UPDATE sendings SET status = 'UNCERTAIN' WHERE id = $1", [id]);
@@ -324,6 +331,81 @@ describe('an event of Resend', () => {
     expect(await contactOf(made)).toEqual({ status: 'VERIFIED', is_primary: true });
     expect(await history(made)).toEqual([]);
   });
+
+  it('is taken up to 64 Ko exactly, and refused one byte beyond, before it is read', async () => {
+    const made = await eligible();
+    const { id, ref } = await line(made, 'SENT');
+    /** A delivery of the line, well signed, of exactly that many bytes. */
+    const sized = (bytes: number) => {
+      const bare = Buffer.byteLength(bodyOf({ type: 'email.delivered', sending: id, ref, data: { padding: '' } }));
+      return bodyOf({ type: 'email.delivered', sending: id, ref, data: { padding: 'x'.repeat(bytes - bare) } });
+    };
+    const exact = sized(HOOK_MAX_BYTES);
+    expect(Buffer.byteLength(exact)).toBe(HOOK_MAX_BYTES);
+    expect(await post(sized(HOOK_MAX_BYTES + 1))).toMatchObject({ status: 413, body: { code: 'TOO_LARGE' } });
+    expect(await stored()).toEqual([]);
+    expect((await post(exact)).status).toBe(204);
+    await worker.run();
+    expect(await stored()).toEqual([{ status: 'PROCESSED', kind: 'DELIVERED' }]);
+    expect((await sending(id)).delivered_at).not.toBeNull();
+  });
+
+  it('is read on its bytes, whatever type it announces', async () => {
+    const made = await eligible();
+    const { id, ref } = await line(made, 'SENT');
+    for (const type of ['text/plain', 'application/json; charset=utf-8', 'application/x-www-form-urlencoded', undefined])
+      expect((await post(bodyOf({ type: 'email.delivery_delayed', sending: id, ref }), { headers: { 'content-type': type } })).status, String(type)).toBe(204);
+    expect((await stored()).map((row) => row.kind)).toEqual(['DELAYED', 'DELAYED', 'DELAYED', 'DELAYED']);
+    await worker.run();
+    expect((await sending(id)).confirmed_at).not.toBeNull();
+  });
+
+  it('refused, is logged as « webhook refused » and nothing more, the same whatever is wrong, a secret the vault cannot open included', async () => {
+    const body = bodyOf({ type: 'email.delivered', sending: randomUUID() });
+    const delivery = `msg_${randomBytes(12).toString('hex')}`;
+    /** What the API logged of one refused request, without what changes from one request to the next. */
+    const logged = async (request: () => Promise<{ status: number }>) => {
+      const from = test.logs.length;
+      expect((await request()).status).toBe(401);
+      // The line of the request is written once its answer has gone.
+      await vi.waitFor(() => expect(test.logs.slice(from).some((text) => text.includes('"msg":"request"'))).toBe(true));
+      const lines = test.logs.slice(from);
+      for (const word of [delivery, secret.slice('whsec_'.length), 'exemple.test', 'F-2026-0712', 'svix', 'v1,'])
+        expect(lines.join(''), word).not.toContain(word);
+      return lines
+        .map((text) => JSON.parse(text) as Record<string, unknown>)
+        .filter((entry) => entry.queue === undefined)
+        .map(({ time: _time, requestId: _request, ms: _ms, ...entry }) => entry);
+    };
+    const refusals = [
+      await logged(() => post(body, { id: delivery, sent: `${body} ` })),
+      await logged(() => post(body, { id: delivery, key: `whsec_${randomBytes(24).toString('base64')}` })),
+      await logged(() => post(body, { id: delivery, ago: TOLERANCE_SECONDS + 60 })),
+      await logged(() => post(body, { id: delivery, headers: { 'svix-signature': undefined } })),
+      await logged(() => test.call('POST', '/hooks/resend')),
+    ];
+    // Sealed under another master key, as after a change of it that forgot the previous one: as if there were no secret.
+    const [kept] = await rows<{ id: string; value_cipher: Buffer }>(
+      "SELECT id, value_cipher FROM vault_secrets WHERE name = 'RESEND_WEBHOOK_SECRET' AND status = 'VALID'",
+    );
+    const other = new Vault({ VAULT_MASTER_KEY: randomBytes(32).toString('base64') });
+    await rows('UPDATE vault_secrets SET value_cipher = $2 WHERE id = $1', [kept!.id, other.seal(kept!.id, secret)]);
+    try {
+      refusals.push(await logged(() => post(body, { id: delivery })));
+    } finally {
+      await rows('UPDATE vault_secrets SET value_cipher = $2 WHERE id = $1', [kept!.id, kept!.value_cipher]);
+    }
+    expect(refusals[0]).toEqual([
+      { level: 40, kind: 'resend', msg: 'webhook refused' },
+      { level: 30, method: 'POST', route: '/hooks/resend', status: 401, actor: 'hook', msg: 'request' },
+    ]);
+    for (const [index, refusal] of refusals.entries()) expect(refusal, String(index)).toEqual(refusals[0]);
+    expect(await stored()).toEqual([]);
+    // The secret opened again, the same delivery is taken: nothing of the refusals was kept.
+    expect((await post(body, { id: delivery })).status).toBe(204);
+    await worker.run();
+    expect(await stored()).toEqual([{ status: 'IGNORED', kind: 'DELIVERED' }]);
+  });
 });
 
 describe('a line whose fate was unknown', () => {
@@ -383,6 +465,47 @@ describe('a line whose fate was unknown', () => {
     expect(await history(made)).toEqual(['Relance non envoyée']);
     expect(await rows('SELECT kind::text FROM notifications WHERE sending_id = $1', [id])).toEqual([{ kind: 'SENDING_FAILED' }]);
     expect(await contactOf(made)).toMatchObject({ status: 'VERIFIED' });
+  });
+
+  it('fails when Resend has suppressed the address, which is marked as wrong; the colleague is told once, even when it has left after all', async () => {
+    // Five notices an hour are named to a colleague: those of the tests before do not count here.
+    await rows("DELETE FROM notifications WHERE kind = 'SENDING_FAILED'");
+    const made = await eligible();
+    const { id } = await line(made, 'UNCERTAIN');
+    const ref = randomUUID();
+    await happen({ type: 'email.suppressed', sending: id, ref, ago: 40, data: { suppressed: { type: 'OnAccountSuppressionList' } } });
+    expect(await sending(id)).toMatchObject({
+      status: 'FAILED',
+      failure: 'PROVIDER_SUPPRESSED',
+      sent_at: null,
+      provider_ref: null,
+      confirmed_at: null,
+      undelivered_reason: 'SUPPRESSED',
+    });
+    expect(await contactOf(made)).toEqual({ status: 'INVALID', is_primary: false });
+    expect(await rows('SELECT title, detail FROM case_events WHERE case_id = $1 ORDER BY occurred_at, id', [made.id])).toEqual([
+      { title: 'Relance non envoyée', detail: null },
+      { title: 'Adresse e-mail marquée invalide', detail: 'Adresse écartée par Resend' },
+    ]);
+    const notices = () => rows<{ sending_id: string | null }>("SELECT sending_id FROM notifications WHERE kind = 'SENDING_FAILED'");
+    expect(await notices()).toEqual([{ sending_id: id }]);
+    // Said again, then proved to have left (question 223): the line keeps its failure, and nobody is told a second time.
+    await happen({ type: 'email.suppressed', sending: id, ref, ago: 30 });
+    await happen({ type: 'email.failed', sending: id, ref, ago: 20 });
+    await happen({ type: 'email.delivered', sending: id, ref, ago: 10 });
+    const after = await sending(id);
+    expect(after).toMatchObject({ status: 'FAILED', failure: 'PROVIDER_SUPPRESSED', sent_at: null, undelivered_reason: 'SUPPRESSED' });
+    expect(after.delivered_at).toEqual(after.confirmed_at);
+    expect(after.confirmed_at).not.toBeNull();
+    expect(await history(made)).toEqual([
+      'Relance non envoyée',
+      'Adresse e-mail marquée invalide',
+      'Relance partie malgré un échec signalé',
+      'Relance distribuée',
+    ]);
+    expect(await notices()).toEqual([{ sending_id: id }]);
+    expect((await stored()).map((row) => row.status)).toEqual(['PROCESSED', 'IGNORED', 'IGNORED', 'PROCESSED']);
+    expect(await rows('SELECT what FROM case_contact_events WHERE contact_id = $1', [made.contact])).toEqual([{ what: 'INVALIDATED' }]);
   });
 
   it('is settled once when two events are handled at the same moment', async () => {
@@ -516,6 +639,90 @@ describe('a line that was sent', () => {
     expect(await history(suppressed)).toEqual(['Relance non distribuée', 'Adresse e-mail marquée invalide']);
   });
 
+  it('is told in the words of question 226, with its level, by the application, and never to the creditor', async () => {
+    const events = (made: Made) =>
+      rows<{ title: string; detail: string | null; tone: string }>(
+        'SELECT title, detail, tone::text FROM case_events WHERE case_id = $1 ORDER BY occurred_at, id',
+        [made.id],
+      );
+    const complained = await eligible();
+    const firm = await line(complained, 'SENT', { level: 2 });
+    await happen({ type: 'email.delivered', sending: firm.id, ref: firm.ref, ago: 30 });
+    await happen({ type: 'email.complained', sending: firm.id, ref: firm.ref, ago: 10 });
+    expect(await events(complained)).toEqual([
+      { title: 'Relance distribuée', detail: 'E-mail · niveau 2', tone: 'success' },
+      { title: 'Relance signalée comme indésirable', detail: 'E-mail · niveau 2', tone: 'danger' },
+      { title: 'Adresse e-mail marquée invalide', detail: 'Signalement comme indésirable', tone: 'warning' },
+    ]);
+    // Accepted by Resend, then failed there: the reminder did not arrive, and the address is not in cause.
+    const failed = await eligible();
+    const accepted = await line(failed, 'SENT', { level: 2 });
+    await happen({ type: 'email.failed', sending: accepted.id, ref: accepted.ref });
+    expect(await sending(accepted.id)).toMatchObject({ status: 'SENT', undelivered_reason: 'PROVIDER_FAILED' });
+    expect(await contactOf(failed)).toEqual({ status: 'VERIFIED', is_primary: true });
+    expect(await events(failed)).toEqual([{ title: 'Relance non distribuée', detail: 'E-mail · niveau 2 · échec chez Resend', tone: 'danger' }]);
+    const suppressed = await eligible();
+    const notice = await line(suppressed, 'SENT', { level: 3 });
+    await happen({ type: 'email.suppressed', sending: notice.id, ref: notice.ref });
+    expect(await events(suppressed)).toEqual([
+      { title: 'Relance non distribuée', detail: 'E-mail · niveau 3 · adresse écartée par Resend', tone: 'danger' },
+      { title: 'Adresse e-mail marquée invalide', detail: 'Adresse écartée par Resend', tone: 'warning' },
+    ]);
+    const settled = await eligible();
+    const uncertain = await line(settled, 'UNCERTAIN', { level: 2 });
+    const refused = await line(settled, 'FAILED', { level: 3 });
+    await happen({ type: 'email.sent', sending: uncertain.id, ago: 20 });
+    await happen({ type: 'email.sent', sending: refused.id, ago: 10 });
+    expect(await events(settled)).toEqual([
+      { title: 'Relance envoyée', detail: 'E-mail · niveau 2', tone: 'info' },
+      { title: 'Relance partie malgré un échec signalé', detail: 'E-mail · niveau 3', tone: 'warning' },
+    ]);
+    // Neither an address nor a name; written by the application; never shown to the creditor.
+    expect(
+      await rows(
+        'SELECT DISTINCT actor_kind::text, actor_id, actor_label, on_behalf_of_id, visible_to_creditor FROM case_events WHERE case_id = ANY($1::uuid[])',
+        [[complained.id, failed.id, suppressed.id, settled.id]],
+      ),
+    ).toEqual([{ actor_kind: 'SYSTEM', actor_id: null, actor_label: 'Application', on_behalf_of_id: null, visible_to_creditor: false }]);
+    // Nobody is told of what became of a reminder that has left (no text validated).
+    expect(await rows('SELECT 1 FROM notifications WHERE case_id = ANY($1::uuid[])', [[complained.id, failed.id, suppressed.id, settled.id]])).toEqual([]);
+  });
+
+  it('marks an address as wrong once, however many of its messages bounce for good', async () => {
+    const made = await eligible();
+    const older = await line(made, 'SENT', { minutes: 120 });
+    const newer = await line(made, 'SENT', { minutes: 30 });
+    await happen({ type: 'email.bounced', sending: newer.id, ref: newer.ref, ago: 60, data: { bounce: { type: 'Permanent' } } });
+    await happen({ type: 'email.bounced', sending: older.id, ref: older.ref, ago: 30, data: { bounce: { type: 'Permanent' } } });
+    // Each line learns its own bounce; the address, once.
+    expect(await sending(older.id)).toMatchObject({ undelivered_reason: 'HARD_BOUNCE' });
+    expect(await sending(newer.id)).toMatchObject({ undelivered_reason: 'HARD_BOUNCE' });
+    expect(await contactOf(made)).toEqual({ status: 'INVALID', is_primary: false });
+    expect(await rows('SELECT what FROM case_contact_events WHERE contact_id = $1', [made.contact])).toEqual([{ what: 'INVALIDATED' }]);
+    expect(await history(made)).toEqual(['Relance non distribuée', 'Adresse e-mail marquée invalide', 'Relance non distribuée']);
+    expect(await rows("SELECT 1 FROM audit_log WHERE entity_id = $1 AND action = 'CONTACT_CHANGED'", [made.id])).toHaveLength(1);
+  });
+
+  it('whose case has been anonymized is no longer there: nothing is written, by its line nor by its message', async () => {
+    const made = await eligible();
+    const { id, ref } = await line(made, 'SENT');
+    // As the anonymization does: the lines go with the case.
+    await rows('DELETE FROM sendings WHERE case_id = $1', [made.id]);
+    await rows('UPDATE cases SET anonymized_at = now() WHERE id = $1', [made.id]);
+    await happen({ type: 'email.bounced', sending: id, ref, data: { bounce: { type: 'Permanent' } } });
+    await happen({ type: 'email.complained', ref });
+    // And one whose case is being anonymized while its line is still there.
+    const other = await eligible();
+    const kept = await line(other, 'SENT');
+    await rows('UPDATE cases SET anonymized_at = now() WHERE id = $1', [other.id]);
+    await happen({ type: 'email.bounced', sending: kept.id, ref: kept.ref, data: { bounce: { type: 'Permanent' } } });
+    expect((await stored()).map((row) => row.status)).toEqual(['IGNORED', 'IGNORED', 'IGNORED']);
+    expect(await sending(kept.id)).toMatchObject({ status: 'SENT', confirmed_at: null, undelivered_at: null });
+    expect(await contactOf(other)).toEqual({ status: 'VERIFIED', is_primary: true });
+    expect(await rows('SELECT 1 FROM case_events WHERE case_id = ANY($1::uuid[])', [[made.id, other.id]])).toEqual([]);
+    expect(await rows('SELECT 1 FROM audit_log WHERE entity_id = ANY($1::uuid[])', [[made.id, other.id]])).toEqual([]);
+  });
+
   it('leaves alone an address a colleague has touched since the bounce, or that a later message has reached', async () => {
     const touched = await eligible();
     const old = await line(touched, 'SENT', { minutes: 600 });
@@ -619,6 +826,59 @@ describe('a line that had failed and yet has left', () => {
     expect(await contactOf(other)).toMatchObject({ status: 'VERIFIED' });
     expect(await history(other)).toEqual([]);
   });
+
+  it('counts on the sheet of the case and in the week of the agenda as the caps count it, on the day it is known to have left', async () => {
+    const sheet = async (made: Made) =>
+      ((await test.call('GET', `/staff/cases/${made.id}`, { as: 'officerA' })).body as { remindersSent: number }).remindersSent;
+    const week = async () => ((await test.call('GET', '/staff/reminders', { as: 'officerA' })).body as { weekly: { emails: number } }).weekly.emails;
+    const before = await week();
+    const made = await eligible();
+    const { id } = await line(made, 'FAILED');
+    // Failed, and nothing known since: neither the sheet nor the week counts it.
+    expect(await sheet(made)).toBe(0);
+    expect(await week()).toBe(before);
+    await happen({ type: 'email.delivered', sending: id, ago: 15 });
+    expect(await sheet(made)).toBe(1);
+    expect(await week()).toBe(before + 1);
+    // Known to have left five weeks ago: on the sheet of its case, not in this week.
+    const late = await eligible();
+    const old = await line(late, 'FAILED', { minutes: 40 * 1440 });
+    await happen({ type: 'email.sent', sending: old.id, ago: 35 * 86_400 });
+    expect(await sheet(late)).toBe(1);
+    expect(await week()).toBe(before + 1);
+  });
+
+  it('as a formal notice, ends the reminders of the list, and counts for the cap on the day Resend dates it', async () => {
+    const made = await eligible();
+    await fillFirm();
+    const preview = async () => {
+      const clock = vi.spyOn(test.app.get(Clock), 'now').mockReturnValue(workingHour());
+      const answer = await test.call('POST', '/staff/cases/reminders/preview', { as: 'officerA', body: { ids: [made.id] } });
+      clock.mockRestore();
+      return (answer.body as { items: unknown[] }).items;
+    };
+    const counted = (from: string, to: string) =>
+      as(
+        officer(),
+        async (tx) =>
+          (await tx.$queryRaw<{ count: number }[]>`SELECT app.sent_contacts(${made.id}::uuid, 'EMAIL', ${from}::date, ${to}::date) AS count`)[0]!.count,
+      );
+    const notice = await line(made, 'FAILED', { level: 3, minutes: 25 * 1440 });
+    // Refused by the provider, the formal notice is as if it had never been asked: the list starts again from the first level.
+    expect(await preview()).toEqual([{ id: made.id, template: 'FRIENDLY', reason: null }]);
+    await happen({ type: 'email.delivered', sending: notice.id, ago: 20 * 86_400 });
+    expect(await preview()).toEqual([{ id: made.id, template: null, reason: 'NO_NEXT_REMINDER' }]);
+    const [days] = await rows<{ asked: string; confirmed: string }>(
+      `SELECT to_char(created_at AT TIME ZONE 'Europe/Paris', 'YYYY-MM-DD') AS asked, to_char(confirmed_at AT TIME ZONE 'Europe/Paris', 'YYYY-MM-DD') AS confirmed
+       FROM sendings WHERE id = $1`,
+      [notice.id],
+    );
+    expect(await counted(days!.confirmed, days!.confirmed)).toBe(1);
+    // Neither on the day it was asked, nor in the days it was found out.
+    expect(await counted(days!.asked, days!.asked)).toBe(0);
+    const around = (offset: number) => new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10);
+    expect(await counted(around(-3), around(3))).toBe(0);
+  });
 });
 
 describe('in the database', () => {
@@ -701,6 +961,22 @@ describe('in the database', () => {
     expect(await change(taken.id, "status = 'FAILED', failure = 'PROVIDER_BUSY'")).toBe('done');
   });
 
+  it('a line is born without anything the provider said, whoever writes it', async () => {
+    const made = await eligible();
+    const born = (column: string, value = 'now()') =>
+      rows(
+        `INSERT INTO sendings (case_id, creditor_id, channel, template, level, contact_id, created_by, ${column})
+         SELECT c.id, c.creditor_id, 'EMAIL', 'FRIENDLY', 1, $2, $3, ${value} FROM cases c WHERE c.id = $1`,
+        [made.id, made.contact, test.s.officerA],
+      ).then(
+        () => 'done',
+        (error: { code?: string }) => String(error.code),
+      );
+    for (const column of ['confirmed_at', 'delivered_at', 'undelivered_at', 'complained_at']) expect(await born(column), column).toBe('42501');
+    expect(await born('undelivered_reason', "'BOUNCE'")).not.toBe('done');
+    expect(await rows('SELECT 1 FROM sendings WHERE case_id = $1', [made.id])).toEqual([]);
+  });
+
   it('the secret of the events is read by their route alone, and by its name alone', async () => {
     const read = (actor: Actor, name = 'RESEND_WEBHOOK_SECRET') =>
       as(actor, async (tx) => (await tx.$queryRaw<{ id: string | null }[]>`SELECT id FROM app.hook_secret(${name})`)[0]?.id != null);
@@ -763,5 +1039,43 @@ describe('in the database', () => {
         .asWorker((tx) => tx.$executeRaw`UPDATE case_contacts SET status = 'INVALID', invalidated_at = now() WHERE id = ${made.contact}::uuid`)
         .catch(databaseCode),
     ).toBe('42501');
+  });
+});
+
+describe('the code a line fails with', () => {
+  it('says whether the line was ever taken, whatever code it is given, and leaves alone a line taken meanwhile', async () => {
+    // Five notices an hour are named to a colleague: those of the tests before do not count here.
+    await rows("DELETE FROM notifications WHERE kind = 'SENDING_FAILED'");
+    const made = await eligible();
+    const fail = (id: string, failure: string, from: 'QUEUED' | 'UNCERTAIN') => markFailed(worker.asWorker, id, made.id, failure, from);
+    const queued = await line(made, 'QUEUED');
+    const unreadable = await line(made, 'QUEUED');
+    const taken = await line(made, 'UNCERTAIN');
+    const busy = await line(made, 'UNCERTAIN');
+    // A code of the provider for a line never taken, a code of ours for one taken, or no code at all: the one that says
+    // what is known. A code that fits is kept.
+    expect(await fail(queued.id, 'PROVIDER_REFUSED', 'QUEUED')).toEqual({ code: 'SENDING_FAILED', failed: true });
+    expect(await fail(unreadable.id, 'refused by mx.exemple.test', 'QUEUED')).toEqual({ code: 'SENDING_FAILED', failed: true });
+    expect(await fail(taken.id, 'EXPIRED', 'UNCERTAIN')).toEqual({ code: 'PROVIDER_FAILED', failed: true });
+    expect(await fail(busy.id, 'PROVIDER_BUSY', 'UNCERTAIN')).toEqual({ code: 'PROVIDER_BUSY', failed: true });
+    for (const [{ id }, failure] of [
+      [queued, 'SENDING_FAILED'],
+      [unreadable, 'SENDING_FAILED'],
+      [taken, 'PROVIDER_FAILED'],
+      [busy, 'PROVIDER_BUSY'],
+    ] as const)
+      expect(await sending(id)).toMatchObject({ status: 'FAILED', failure });
+    // Taken meanwhile, or already failed: nobody here knows what has left, nothing is written.
+    const moved = await line(made, 'UNCERTAIN');
+    expect(await fail(moved.id, 'EXPIRED', 'QUEUED')).toEqual({ code: 'EXPIRED', failed: false });
+    expect(await fail(queued.id, 'EXPIRED', 'QUEUED')).toEqual({ code: 'EXPIRED', failed: false });
+    expect(await fail(taken.id, 'PROVIDER_REFUSED', 'UNCERTAIN')).toEqual({ code: 'PROVIDER_REFUSED', failed: false });
+    expect(await sending(moved.id)).toMatchObject({ status: 'UNCERTAIN', failure: null });
+    expect(await sending(taken.id)).toMatchObject({ status: 'FAILED', failure: 'PROVIDER_FAILED' });
+    // Said once for each line that failed, in the history and to the colleague who asked for it; never with the code.
+    expect(await history(made)).toEqual(Array.from({ length: 4 }, () => 'Relance non envoyée'));
+    expect(await rows('SELECT 1 FROM case_events WHERE case_id = $1 AND detail IS NOT NULL', [made.id])).toEqual([]);
+    const told = await rows<{ sending_id: string }>("SELECT sending_id FROM notifications WHERE kind = 'SENDING_FAILED' AND case_id = $1", [made.id]);
+    expect(told.map((row) => row.sending_id).sort()).toEqual([queued.id, unreadable.id, taken.id, busy.id].sort());
   });
 });
