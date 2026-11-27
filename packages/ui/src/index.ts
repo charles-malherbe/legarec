@@ -36,6 +36,7 @@ export * from './FormulaireConnexion';
 export * from './PagesMotDePasse';
 export * from './EntetePublique';
 export * from './Embleme';
+export * from './Marque';
 export * from './DepotFichiers';
 export * from './FilMessages';
 export * from './PageLegale';

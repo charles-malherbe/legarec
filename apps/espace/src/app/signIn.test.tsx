@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
+import { axeViolations } from '../../../../packages/ui/src/testing';
 import { mockApi } from '../testing';
 import { App } from './App';
 
@@ -104,4 +105,23 @@ it('asks for an address that is one', async () => {
   await userEvent.type(await screen.findByLabelText(/Adresse e-mail/), 'jean@legarec');
   await userEvent.click(screen.getByRole('button', { name: 'Envoyer le lien' }));
   expect(await screen.findByText('Saisissez une adresse e-mail valide.')).toBeVisible();
+});
+
+describe('help before signing in', () => {
+  it('opens without an account, from the sign-in page, and leads back to it', async () => {
+    open('/connexion');
+    await userEvent.click(await screen.findByRole('link', { name: 'Aide à la connexion' }));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Aide à la connexion' })).toBeVisible();
+    for (const topic of ['Mot de passe oublié', 'Compte bloqué', 'Invitation', 'Double authentification', 'Toujours bloqué ?'])
+      expect(screen.getByRole('heading', { level: 2, name: topic })).toBeVisible();
+    expect(screen.queryByRole('link', { name: 'Aide à la connexion' })).toBeNull();
+    expect(await axeViolations(document.body)).toEqual([]);
+    await userEvent.click(screen.getByRole('link', { name: 'Retour à la connexion' }));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Connexion à l’espace Legarec' })).toBeVisible();
+  });
+
+  it('is the same page typed by hand, signed in or not', async () => {
+    open('/aide-connexion');
+    expect(await screen.findByRole('heading', { level: 1, name: 'Aide à la connexion' })).toBeVisible();
+  });
 });

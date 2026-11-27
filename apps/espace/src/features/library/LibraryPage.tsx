@@ -13,6 +13,7 @@ import {
   Icone,
   Indicateur,
   Interrupteur,
+  Marque,
   Onglets,
   PageHeader,
   Pagination,
@@ -114,6 +115,11 @@ export function LibraryPage() {
       <Group title="Emblème">
         <Embleme />
         <Embleme size={48} />
+      </Group>
+      <Group title="Marque">
+        <Marque />
+        <Marque subtitle="Espace créancier" />
+        <Marque size="lg" />
       </Group>
       <Carte title="Champ">
         <div className={layout.form}>

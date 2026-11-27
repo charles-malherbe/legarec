@@ -371,8 +371,9 @@ describe('links received by e-mail', () => {
 });
 
 describe('accessibility of the sign-in', () => {
+  // The title of each step is the title of the page.
   const clean = async (heading: string | RegExp) => {
-    expect(await screen.findByRole('heading', { name: heading, level: 2 })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: heading, level: 1 })).toBeVisible();
     expect(await axeViolations(document.body)).toEqual([]);
   };
   it('has no axe violation, from the refused password to the code', async () => {

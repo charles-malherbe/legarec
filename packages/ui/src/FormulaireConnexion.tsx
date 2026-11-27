@@ -126,7 +126,7 @@ export function FormulaireConnexion({ onSession }: { onSession: (session: OpenSe
       <PageConnexion>
         <div className={css.step}>
           <div className={css.heading}>
-            <h2>Codes de secours</h2>
+            <h1>Codes de secours</h1>
             <p>Ils vous permettent de vous connecter si vous perdez votre téléphone.</p>
           </div>
           <CodesSecours codes={opened.codes} />
@@ -140,7 +140,7 @@ export function FormulaireConnexion({ onSession }: { onSession: (session: OpenSe
         <div className={css.step}>
           {goBack}
           <div className={css.heading}>
-            <h2>Double authentification</h2>
+            <h1>Double authentification</h1>
             <p>Ajoutez une seconde vérification à la connexion. Obligatoire pour le rôle Développeur.</p>
           </div>
           <SaisieApplication totpKey={setupKey} error={codeError ?? undefined} busy={busy} onVerify={(code) => void setUp(code)} />
@@ -153,7 +153,7 @@ export function FormulaireConnexion({ onSession }: { onSession: (session: OpenSe
         <div className={css.step}>
           {goBack}
           <div className={css.heading}>
-            <h2>Vérification en deux étapes</h2>
+            <h1>Vérification en deux étapes</h1>
             <p>Saisissez le code à 6 chiffres affiché dans votre application d&apos;authentification.</p>
             <p>Obligatoire pour le rôle Développeur, recommandée pour les autres.</p>
           </div>
@@ -201,7 +201,7 @@ export function FormulaireConnexion({ onSession }: { onSession: (session: OpenSe
             <Icone icon="lock" size={12} />
             {portal.domain}
           </span>
-          <h2>{portal.title}</h2>
+          <h1>{portal.title}</h1>
           <p>{portal.text}</p>
         </div>
         {wrongPortal && (
@@ -232,6 +232,7 @@ export function FormulaireConnexion({ onSession }: { onSession: (session: OpenSe
             size="lg"
             autocomplete="current-password"
             spellCheck={false}
+            capsLockWarning
             value={form.values.password}
             error={form.errors.password as string | undefined}
             onChange={(value) => form.setFieldValue('password', value)}

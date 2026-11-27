@@ -1,26 +1,31 @@
+/* The box is centred on the label, whatever the size of either: larger box on touch screens and in low-vision mode,
+   larger text, other line height. The description goes under the label. */
 .root {
-  display: inline-flex;
-  align-items: flex-start;
-  gap: var(--sp-2h);
+  display: inline-grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--sp-2h);
+  row-gap: var(--sp-0h);
   cursor: pointer;
 }
 .input {
+  grid-column: 1;
+  grid-row: 1;
   width: 18px;
   height: 18px;
-  margin: 2px 0 0;
+  margin: 0;
   accent-color: var(--marine);
-  flex-shrink: 0;
 }
 .text {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-0h);
+  display: contents;
 }
 .label {
+  grid-column: 2;
   font-size: var(--fs-base);
   color: var(--text);
 }
 .description {
+  grid-column: 2;
   font-size: var(--fs-sm);
   line-height: 1.45;
   color: var(--text-3);

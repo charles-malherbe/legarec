@@ -4,7 +4,8 @@
   flex-shrink: 0;
   background: url('./marque/legarec-embleme-couleur.png') center / contain no-repeat;
 }
-/* The kit: colour on a light background, negative on navy or dark. */
-:global(:root[data-theme='dark']) .root {
+/* The kit: colour on a light background, negative on navy (a surface marked data-dark) or in dark mode. */
+:global(:root[data-theme='dark']) .root,
+:global([data-dark]) .root {
   background-image: url('./marque/legarec-embleme-negatif.png');
 }

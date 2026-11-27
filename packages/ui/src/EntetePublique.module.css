@@ -25,23 +25,7 @@
 }
 .brand {
   display: flex;
-  align-items: center;
-  gap: var(--sp-2h);
   text-decoration: none;
-}
-.name {
-  display: flex;
-  flex-direction: column;
-}
-.title {
-  font-size: var(--fs-lg);
-  font-weight: 700;
-  line-height: 1.15;
-  color: var(--marine-text);
-}
-.subtitle {
-  font-size: var(--fs-xs);
-  color: var(--text-3);
 }
 .nav {
   position: relative;
