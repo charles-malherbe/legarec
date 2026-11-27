@@ -40,7 +40,8 @@ const common = {
   DOCUMENTS_DIR: z.string().startsWith('/').optional(),
   /**
    * Bucket of the documents at OVHcloud, and its region (`eu-west-par`): with both, and the two keys in the vault, the
-   * files go to the bucket; otherwise they stay in `DOCUMENTS_DIR`. A line left empty counts as absent.
+   * files go to the bucket; otherwise they stay in `DOCUMENTS_DIR`. A line left empty counts as absent. In production
+   * only: development and the tests keep their files on the disk.
    */
   S3_DOCUMENTS_BUCKET: z.preprocess(
     emptyAsAbsent,
@@ -99,9 +100,9 @@ function read<T extends z.ZodType<Partial<Config> & Pick<Config, 'NODE_ENV' | 'M
     throw new ConfigError(`Missing or invalid startup values: ${names.join(', ')}`);
   }
   const config = parsed.data;
-  // The real bucket outside production is refused first, whatever else is wrong with it: even by mistake, it is never called.
-  if (config.NODE_ENV !== 'production' && config.S3_DOCUMENTS_BUCKET === 'legarec-documents')
-    throw new ConfigError('Production bucket refused outside production: S3_DOCUMENTS_BUCKET');
+  // No bucket at all outside production, whatever its name: with keys in the vault, the real provider would be called.
+  // Refused first, whatever else is wrong with it.
+  if (config.NODE_ENV !== 'production' && config.S3_DOCUMENTS_BUCKET) throw new ConfigError('Bucket refused outside production: S3_DOCUMENTS_BUCKET');
   if (config.S3_DOCUMENTS_BUCKET && !config.S3_REGION) throw new ConfigError('Missing or invalid startup values: S3_REGION');
   if (config.NODE_ENV === 'production') {
     const plain = (['STAFF_PORTAL_URL', 'PARTNER_PORTAL_URL', 'DEBTOR_PORTAL_URL'] as const).filter((name) => !env[name]?.startsWith('https://'));
