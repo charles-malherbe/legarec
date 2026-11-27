@@ -819,6 +819,8 @@ export const caseHandlers = [
       const { channel, template } = (await request.json()) as { channel: string; template: 'FRIENDLY' | 'FIRM' | 'FORMAL_NOTICE' };
       // As the API: texts come with lot R, the registered letter with the letters (question 210).
       if (channel !== 'EMAIL') return HttpResponse.json({ code: 'NOT_AVAILABLE' }, { status: 409 });
+      // Nothing leaves during a dispute or a litigation (question 218).
+      if (item.status === 'DISPUTE' || item.status === 'LITIGATION') return HttpResponse.json({ code: 'CASE_DISPUTED' }, { status: 409 });
       log(item.id, session, 'Relance envoyée', `E-mail · niveau ${{ FRIENDLY: 1, FIRM: 2, FORMAL_NOTICE: 3 }[template]}`);
       return done();
     }),
