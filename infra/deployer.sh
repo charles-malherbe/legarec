@@ -14,7 +14,7 @@ cd "$root"
 git merge-base --is-ancestor HEAD refs/remotes/origin/main || stop 'Cette version ne vient pas de main : rien ne sera déployé.'
 
 # Group of each file of values: the same table as docs/deploiement.md.
-declare -A group=([caddy]=10110 [api]=10101 [worker]=10102 [migration]=10104 [postgres]=999 [pgbackrest]=999 [restauration]=999 [valkey]=10115 [gatus]=10111 [grafana]=10114)
+declare -A group=([caddy]=10110 [api]=10101 [worker]=10102 [migration]=10104 [postgres]=999 [pgbackrest]=999 [restauration]=999 [valkey]=10115 [gatus]=10111 [grafana]=10114 [n8n]=10117)
 # The job of GitHub Actions is told apart by its folder too, which the server does not have.
 ci=false
 if [ "${GITHUB_ACTIONS:-}" = true ] && [ -d /var/lib/legarec-ci ]; then ci=true; fi

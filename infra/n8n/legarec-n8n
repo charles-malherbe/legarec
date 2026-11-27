@@ -1,0 +1,8 @@
+#!/bin/sh
+# Gives its key to n8n, and to no other program. The file is read, never run. The key must be that of the data in the
+# volume: n8n refuses to start with another one (docs/deploiement.md, « n8n »).
+set -eu
+value="$(sed -n 's/^N8N_ENCRYPTION_KEY=//p' /run/secrets/n8n | head -n 1)"
+[ -n "$value" ] || { echo 'Missing value: N8N_ENCRYPTION_KEY' >&2; exit 1; }
+export N8N_ENCRYPTION_KEY="$value"
+exec /docker-entrypoint.sh "$@"

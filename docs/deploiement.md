@@ -22,8 +22,9 @@ Première partie du lot X. Fichiers préparés par Claude Code, vérifiés par G
 | `gatus` | Page d'état publique | 10111 | 96 Mo | non |
 | `gatus-interne` | Contrôles internes et alertes | 10111 | 96 Mo | oui (alertes, contrôle du bucket des documents) |
 | `journaux`, `loki`, `grafana` | Journaux techniques, 60 jours | 10113, 10001, 10114 | 96, 384 et 320 Mo | non |
+| `n8n` | Automatisations (`n8n.legarec.fr`, adresses du cabinet seulement), joint Caddy, l'API et les contrôles internes | 10117 | 512 Mo | oui (services appelés par les automatisations) |
 
-Conteneurs permanents : 7,3 Go au plus, dont 2,4 Go pour ClamAV. Réserver 0,5 Go pour n8n, à venir. Aucun conteneur ne tourne en root, ni sous le compte 1000 (premier compte du serveur). Systèmes de fichiers en lecture seule, aucun droit Linux, réseaux séparés et fermés au serveur lui-même : un portail ne joint pas la base, n8n ne joindra que l'API, et un autre compte du serveur ne joint ni l'API, ni Loki, ni la base.
+Conteneurs permanents : 7,8 Go au plus, dont 2,4 Go pour ClamAV et 0,5 Go pour n8n. Aucun conteneur ne tourne en root, ni sous le compte 1000 (premier compte du serveur). Systèmes de fichiers en lecture seule, aucun droit Linux, réseaux séparés et fermés au serveur lui-même : un portail ne joint pas la base, n8n ne joint de Legarec que l'API, et un autre compte du serveur ne joint ni l'API, ni Loki, ni la base.
 
 | Fichiers | Contenu |
 |---|---|
@@ -43,7 +44,7 @@ Conteneurs permanents : 7,3 Go au plus, dont 2,4 Go pour ClamAV. Réserver 0,5 G
 - [ ] VPS réservé à Legarec (décision du cabinet) : rien d'autre dessus, ni développement, ni Claude Code ; 8 Go de mémoire au moins. Ports 80 et 443 libres.
 - [ ] Docker 28 ou plus récent, Compose 2.30 ou plus récent ; 40 Go de disque libres.
 - [ ] Aucun projet Compose nommé `legarec-app` (`docker compose ls`) ni réseau 10.213.0.0/24 sur ce serveur.
-- [ ] Comptes libres : `getent passwd 10001 10101 10102 10103 10104 10110 10111 10113 10114 10115 10116` et `getent group 10120` ne répondent rien ; 999 (PostgreSQL) n'est celui d'aucune personne.
+- [ ] Comptes libres : `getent passwd 10001 10101 10102 10103 10104 10110 10111 10113 10114 10115 10116 10117` et `getent group 10120` ne répondent rien ; 999 (PostgreSQL) n'est celui d'aucune personne.
 - [ ] Connexion SSH par clé, réservée au cabinet ; aucun compte de ce serveur utilisé pour le développement.
 - [ ] Pare-feu : 80/tcp, 443/tcp, 443/udp ouverts ; rien d'autre pour Legarec. Refuser aux réseaux de Docker l'accès aux autres services du serveur.
 - [ ] Dépôt cloné dans `/opt/legarec`, propriété de root, hors de portée de Claude Code : `git clone`, branche `main`. Clé de déploiement GitHub en lecture seule.
@@ -81,6 +82,7 @@ Un fichier par conteneur dans `/etc/legarec/`, d'après `infra/valeurs/*.exemple
 | `valkey.env` | 10115 | `VALKEY_PASSWORD` |
 | `gatus.env` | 10111 | `GATUS_ALERT_KEY`, `GATUS_ALERT_TO`, `GATUS_WORKER_TOKEN`, `GATUS_BACKUP_TOKEN`, `GATUS_RESTORE_TOKEN`, `S3_REGION` (`eu-west-par`, déjà écrite) |
 | `grafana.env` | 10114 | `GF_SECURITY_ADMIN_PASSWORD`, `GF_SECURITY_SECRET_KEY` |
+| `n8n.env` | 10117 | `N8N_ENCRYPTION_KEY` : celle de l'ancien n8n s'il est repris (« n8n », plus bas), sinon `openssl rand -hex 32` |
 | `hyperping.env` (facultatif) | root, 600 | `HYPERPING_PING_SAUVEGARDE`, `HYPERPING_PING_RESTAURATION` (« Healthchecks », plus bas) |
 
 Dossiers et droits :
@@ -235,6 +237,7 @@ Après le premier déploiement, puis après chaque changement de ces fichiers.
 - [ ] Antivirus : un PDF sain déposé dans Documents devient lisible en moins d'une minute ; le fichier d'essai EICAR (eicar.org) renommé en `.pdf` est refusé ou affiché « Bloqué par l’antivirus », jamais lisible.
 - [ ] `docker inspect` d'un conteneur : aucune valeur de `/etc/legarec/`.
 - [ ] Redémarrage du serveur : tout revient seul.
+- [ ] n8n : depuis le cabinet, automatisations et identifiants de l'ancien n8n présents ; contrôle « n8n » au vert dans les contrôles internes.
 - [ ] Depuis un compte sans `sudo` : `/etc/legarec` illisible.
 
 ## Conservation
@@ -245,6 +248,7 @@ Après le premier déploiement, puis après chaque changement de ces fichiers.
 | Versions du bucket effacées ou remplacées | 7 jours de plus, soit 70 jours au plus pour une donnée effacée | Règle du bucket |
 | Journaux techniques | 60 jours | `infra/loki/loki.yaml` |
 | Copie locale de Docker (`docker compose logs`) | 2 Mo par conteneur, effacée à chaque déploiement | `docker-compose.yml` |
+| Exécutions de n8n | 14 jours, 10 000 au plus | `docker-compose.yml` (`EXECUTIONS_DATA_*`) |
 
 Journaux : ni adresse IP, ni chemin, ni en-tête dans ceux de Caddy ; ni requête, ni valeur dans ceux de PostgreSQL ; ceux de l'API et du worker sont déjà limités (`docs/api.md`).
 
@@ -323,6 +327,71 @@ Le fichier est facultatif : sans lui, ou avec une ligne vide, rien ne part et la
 - **Antivirus arrêté ou injoignable** : rien ne se perd et rien ne se lit ; la tâche d'analyse est retentée (`ANTIVIRUS_UNAVAILABLE` ; `STORAGE_UNAVAILABLE` quand c'est le fichier qui ne se lit ou ne s'efface pas), le document reste « analyse antivirus en cours ». Un fichier trouvé infecté est effacé par la même tâche, retentée jusqu'à ce que l'effacement réussisse. Aucune alerte Gatus ne signale clamd arrêté (ci-dessous, « Le reste »).
 - **Jamais essayé sur un serveur, ni même lancé** : Claude Code n'a pas le droit d'utiliser Docker, et GitHub Actions est à l'arrêt. La séparation en deux conteneurs repose sur la documentation de l'image (variables `CLAMAV_NO_CLAMD` et `CLAMAV_NO_FRESHCLAMD`, premier téléchargement si `main.cvd` manque). `infra/ci/smoke.sh` est écrit pour vérifier que le worker obtient « OK » pour un fichier sain et « FOUND » pour le fichier d'essai EICAR, que ni l'API, ni un portail, ni le serveur ne joignent clamd, que `clamav` n'est que sur `antivirus` et `freshclam` que sur `sortie-antivirus`. À regarder à la première mise en service : démarrage des deux conteneurs, mémoire réellement prise (`docker stats` ; 384 Mo prévus pour `freshclam`, sans mesure), première mise à jour dans le journal de `freshclam`, puis rechargement dans celui de `clamav` dans les 10 minutes.
 
+## n8n (automatisations)
+
+`n8n.legarec.fr`, réservé aux adresses du cabinet par Caddy. Même version (2.48.7) que le n8n déjà installé sur le serveur (`legarec-n8n-1`, projet Compose `legarec`, servi par l'ancien Caddy `legarec-caddy-1`) : ses données se reprennent telles quelles. Base SQLite dans le volume `legarec-app_n8n-data`, jamais dans PostgreSQL. Réseau `automatisations` (Caddy, l'API, `gatus-interne`) et sortie vers Internet à lui seul (`sortie-n8n`), pour les services qu'appellent ses automatisations. Il ne joint ni la base, ni Valkey, ni les journaux. Aucun service extérieur n'appelle ses webhooks : tout `n8n.legarec.fr`, webhooks compris, est réservé aux adresses du cabinet. Exécutions effacées après 14 jours. Contrôle « n8n » dans les contrôles internes.
+
+### Reprise de l'ancien n8n
+À faire au premier déploiement, par le cabinet. La clé doit être **celle de l'ancien n8n** : avec une autre, n8n refuse de démarrer, ou ne lit plus les identifiants enregistrés dans les automatisations.
+
+1. Volume et base de l'ancien n8n. Si `DB_TYPE` vaut `postgresdb`, la reprise est autre : s'arrêter et demander.
+
+   ```bash
+   sudo docker inspect legarec-n8n-1 --format '{{range .Mounts}}{{.Name}} {{.Destination}}{{println}}{{end}}'
+   ```
+
+   ```bash
+   sudo docker inspect legarec-n8n-1 --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -E '^DB_TYPE=' || echo 'SQLite'
+   ```
+
+   Le volume est celui monté sur `/home/node/.n8n` ; dans la suite, `ANCIEN` est son nom.
+
+2. Sa clé, écrite dans `/etc/legarec/n8n.env` sans passer par l'écran. Elle est dans le fichier `config` du volume, ou dans la variable `N8N_ENCRYPTION_KEY` du conteneur si elle y a été donnée.
+
+   ```bash
+   sudo install -o root -g 10117 -m 640 /dev/null /etc/legarec/n8n.env
+   ```
+
+   ```bash
+   sudo docker run --rm --network none --volume ANCIEN:/ancien:ro alpine:3.24.4@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf sed -n 's/.*"encryptionKey": *"\([^"]*\)".*/N8N_ENCRYPTION_KEY=\1/p' /ancien/config | sudo tee /etc/legarec/n8n.env > /dev/null
+   ```
+
+   ```bash
+   sudo grep -c '^N8N_ENCRYPTION_KEY=.' /etc/legarec/n8n.env
+   ```
+
+   `1` : la clé est en place. `0` : la prendre dans la variable du conteneur (`sudo docker inspect legarec-n8n-1 --format '{{range .Config.Env}}{{println .}}{{end}}' | grep '^N8N_ENCRYPTION_KEY='`) et l'écrire dans le fichier. Copie dans le gestionnaire de mots de passe.
+
+3. Arrêter l'ancien Caddy et l'ancien n8n, juste avant le déploiement (les ports 80 et 443 doivent être libres) ; ils ne repartent pas d'eux-mêmes :
+
+   ```bash
+   sudo docker update --restart=no legarec-caddy-1 legarec-n8n-1
+   ```
+
+   ```bash
+   sudo docker stop legarec-caddy-1 legarec-n8n-1
+   ```
+
+4. Déploiement (« Ordre de mise en service », étape 2). Le nouveau n8n démarre vide, avec la clé reprise.
+
+5. Copie des données dans son volume, n8n arrêté, puis redémarrage :
+
+   ```bash
+   legarec stop n8n
+   ```
+
+   ```bash
+   sudo docker run --rm --network none --volume ANCIEN:/ancien:ro --volume legarec-app_n8n-data:/nouveau alpine:3.24.4@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf sh -c 'rm -rf /nouveau/* /nouveau/.[!.]* && cp -a /ancien/. /nouveau/ && chown -R 10117:10117 /nouveau && chmod 700 /nouveau'
+   ```
+
+   ```bash
+   legarec start n8n
+   ```
+
+6. Depuis le cabinet : `https://n8n.legarec.fr` montre les automatisations et les comptes de l'ancien n8n, et un identifiant enregistré s'ouvre. Alors seulement, supprimer l'ancien conteneur (`sudo docker rm legarec-n8n-1`) ; garder son volume quelques semaines.
+
+Sans ancien n8n à reprendre : `N8N_ENCRYPTION_KEY` tirée par `openssl rand -hex 32`, et seules les étapes 3 (pour l'ancien Caddy) et 4.
+
 ## Bucket des documents (`legarec-documents`)
 - **État : prêt dans le code, éteint en production.** L'API n'a aucun accès à Internet (réseaux fermés), donc aucun accès au bucket, alors que c'est elle qui reçoit et remet les fichiers. Tant que la **question 205** n'est pas tranchée, ne pas écrire `S3_DOCUMENTS_BUCKET` : les fichiers restent dans `/var/lib/legarec/documents`, comme au lot N. Écrire la variable sans ouvrir de sortie ferait échouer chaque dépôt et chaque lecture de fichier après 12 secondes.
 - **Fonctionnement** : avec `S3_DOCUMENTS_BUCKET` et `S3_REGION` (`eu-west-par`) dans `api.env` **et** `worker.env`, et les deux clés `S3_ACCESS_KEY` et `S3_SECRET_KEY` saisies dans Paramètres techniques > Secrets, tout nouveau fichier va dans le bucket (adresse `s3.eu-west-par.io.cloud.ovh.net`), sous la même clé tirée au hasard que sur le disque. Sans les deux variables : disque du serveur, comme avant. Avec les variables mais sans les deux clés (pas encore saisies, en attente de révocation, révoquées) : les nouveaux fichiers vont sur le disque, un fichier se lit s'il est sur le disque et sinon la lecture échoue (`BucketError`, `NoKeys` : hors d'atteinte, pas absent), et **la purge échoue** (« Purge incomplète », relancée la nuit suivante) plutôt que de compter zéro en laissant dans le bucket des fichiers à effacer. Saisir les deux clés avant d'écrire les variables. Les clés sont relues dans le coffre toutes les 5 minutes (30 secondes tant qu'elles manquent) : une clé renouvelée dans l'écran est prise sans redémarrage.
@@ -360,7 +429,7 @@ Tant qu'une route manque, son écran affiche son état d'erreur (« Réessayer �
 - **Stockage chez OVHcloud** : fait pour Caddy (`media.legarec.fr`), pgBackRest et les noms des clés (`S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_REGION`, `S3_DOCUMENTS_BUCKET`). pgBackRest reste en adresses « chemin » (`repo1-s3-uri-style=path`), qu'OVHcloud accepte ; **jamais essayé contre un vrai bucket** : le premier `legarec run --rm sauvegarde full` de la mise en service le dira, avant toute donnée. La migration `storage_secret_names` renomme deux noms de clés : sans effet au premier déploiement ; elle interdit seulement de revenir à une version antérieure une fois une clé de stockage saisie. Le bucket `legarec-documents` est branché dans le code, éteint en production (« Bucket des documents », question 205).
 - ClamAV : fait (« Antivirus », ci-dessus). Reste une alerte quand clamd ne répond plus : Gatus ne joint pas le réseau `antivirus` (réservé au worker), et le contrôle de santé du conteneur ne prévient personne.
 - Chemin des modèles d'e-mails et de PDF : vérifié. Le worker les lit dans `templates/`, à côté de `dist/` (`apps/api/src/worker.ts`), et l'image copie ce dossier ; `TEMPLATES_DIR` de `renderer.ts` ne sert qu'aux tests.
-- n8n : avec les comptes de service ; conteneur et valeurs (`N8N_ENCRYPTION_KEY`) à ajouter, sur un réseau partagé avec l'API seule. Sa route existe déjà dans Caddy, réservée aux adresses du cabinet : elle répond 502 d'ici là.
+- n8n : conteneur en place (« n8n », plus haut). Restent les comptes de service, pour qu'il appelle l'API (`/service`), rien d'autre (questions tranchées : sortie vers Internet, webhooks réservés au cabinet, exécutions gardées 14 jours).
 - Bucket des documents : ouvrir à l'API un chemin vers le bucket (question 205), puis première vérification réelle. Contrôle Gatus : fait, sans clé (question 206). Copie vers le bucket des fichiers restés sur le disque : non prévue.
 - Purge à la demande après une restauration : faite (`dist/purge.js`, étape 6 de « Restaurer la base »).
 - Fichiers sans ligne : balayage fait, chaque nuit, suspendu par la purge d'après restauration, et commande `dist/sweep-files.js` (« Documents et PDF », questions 230 et 231). Bucket couvert dans le code, jamais essayé contre un vrai bucket. Reste à décider : une alerte (Gatus ou notification au Développeur) quand la tâche refuse ou trouve un fichier sans ligne.

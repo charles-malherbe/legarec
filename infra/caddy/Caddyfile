@@ -170,7 +170,7 @@ n8n.legarec.fr {
 	import security
 	import access_log
 	import firm_only
-	# Its container comes with the service accounts (end of lot X): 502 until then.
+	# Its data stay in its own volume; it reaches the API by the network `automatisations`, never by this address.
 	reverse_proxy n8n:5678
 }
 
