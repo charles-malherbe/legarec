@@ -17,6 +17,8 @@ interface RequestScope extends RequestFacts {
   background: boolean;
   /** Announced type of that body. */
   contentType: string;
+  /** What a provider writes beside the body of an event it signs. */
+  signed: { id: string | undefined; timestamp: string | undefined; signature: string | undefined };
   actor?: Actor;
 }
 
@@ -36,6 +38,8 @@ export const cookies = (): CookieJar => scope().cookies;
 export const userAgent = (): string => scope().agent;
 export const isBackground = (): boolean => scope().background;
 export const uploadedType = (): string => scope().contentType;
+/** Identifier, date and signature of a signed event (Svix): to be checked against the body, never trusted. */
+export const signedDelivery = () => scope().signed;
 
 /** Who was allowed in by the access guard. */
 export function currentActor(): Actor {
@@ -48,6 +52,7 @@ export function setCurrentActor(actor: Actor): void {
   if (current) current.actor = actor;
 }
 
+const one = (header: string | string[] | undefined) => (typeof header === 'string' ? header : undefined);
 const addressOf = ({ ip }: Request) => (ip && isIP(ip) && !ip.includes('%') ? { ip } : {});
 
 /** Number of the request, for the log, the audit and the answer. Never taken from the caller. */
@@ -65,6 +70,7 @@ export const openRequest: RequestHandler = (request, response, next) => {
       agent: headers['user-agent'] ?? '',
       background: headers['x-background'] === '1',
       contentType: headers['content-type'] ?? '',
+      signed: { id: one(headers['svix-id']), timestamp: one(headers['svix-timestamp']), signature: one(headers['svix-signature']) },
     },
     next,
   );

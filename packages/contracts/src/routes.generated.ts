@@ -976,6 +976,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/hooks/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["HooksController_resendEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/staff/cases/litigation": {
         parameters: {
             query?: never;
@@ -4196,6 +4212,23 @@ export interface operations {
         };
     };
     RemindersController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    HooksController_resendEvent: {
         parameters: {
             query?: never;
             header?: never;
