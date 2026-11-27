@@ -11,7 +11,7 @@ CREATE FUNCTION app.referenced_files(keys text[]) RETURNS SETOF text
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
 BEGIN
   -- The purge alone; and never a question larger than a batch of the sweep.
-  IF current_setting('role') <> 'legarec_retention' OR cardinality(keys) > 1000 THEN
+  IF current_setting('role') <> 'legarec_retention' OR keys IS NULL OR cardinality(keys) > 1000 THEN
     PERFORM app.refuse('42501');
   END IF;
   RETURN QUERY SELECT d.storage_key FROM public.documents d WHERE d.storage_key = ANY (keys);
@@ -21,3 +21,8 @@ REVOKE ALL ON FUNCTION app.referenced_files(text[]) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION app.referenced_files(text[]) TO legarec_retention;
 RESET ROLE;
 REVOKE CREATE ON SCHEMA app FROM legarec_definer;
+
+-- The purge reads its own journal (kinds, counts and dates, nothing else is there): whether the sweep of the night is
+-- suspended since a restoration (« orphan-files-held », lifted by « orphan-files-resumed »). The journal stays append-only.
+CREATE POLICY retention_read ON retention_runs FOR SELECT TO legarec_retention USING (true);
+GRANT SELECT (id, kind, ran_at) ON retention_runs TO legarec_retention;

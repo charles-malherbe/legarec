@@ -2,7 +2,7 @@ import { Queue, type ConnectionOptions } from 'bullmq';
 import type { Database, Transaction } from '../database/database';
 import type { AppLogger } from '../logging/logger';
 import type { Storage } from '../storage/storage';
-import { sweep, TooManyOrphans, type SweepMode, type Swept } from '../storage/sweep';
+import { sweep, SweepInterrupted, SweepRefused, type SweepMode, type Swept } from '../storage/sweep';
 import type { ScheduledHandlers } from './jobs';
 import type { QueueName } from './outbox';
 import { QUEUE_PREFIX } from './publisher';
@@ -83,39 +83,68 @@ async function eraseFiles(database: Database, storage: Storage): Promise<number>
   }
 }
 
+const HELD = 'orphan-files-held';
+const RESUMED = 'orphan-files-resumed';
+const noted = (database: Database, kind: string, removed: number) =>
+  database.run({ kind: 'retention' }, (tx) => tx.$executeRaw`INSERT INTO retention_runs (kind, removed) VALUES (${kind}, ${removed})`);
+/**
+ * After a restoration the files received since the instant restored have lost their row: the night no longer erases any
+ * file without a row, until a person has looked. Written by the purge asked at once (purge.ts), which the procedure of
+ * the restoration runs, and by nothing else. The mark is a line of the journal of the purge: durable, never rewritten.
+ */
+export const holdSweep = (database: Database) => noted(database, HELD, 0);
+/** Lifted by a person, with `dist/sweep-files.js --resume`, and by nothing else (test/schema.test.ts). */
+export const resumeSweep = (database: Database) => noted(database, RESUMED, 0);
+export async function sweepHeld(database: Database): Promise<boolean> {
+  const [last] = await database.run(
+    { kind: 'retention' },
+    (tx) => tx.$queryRaw<{ kind: string }[]>`SELECT kind FROM retention_runs WHERE kind IN (${HELD}, ${RESUMED}) ORDER BY ran_at DESC, id DESC LIMIT 1`,
+  );
+  return last?.kind === HELD;
+}
+
 /**
  * The files of the storage that no row points at (sweep.ts): an upload whose row was never written and whose removal
  * failed, a program stopped between the two. The purge asks which keys a row holds, and reads no table for that.
- * Counts in the journal, never a key.
+ * Counts in the journal, never a key. What was erased is kept in `retention_runs`, even when the run stopped halfway:
+ * `orphan-files` for the night, `orphan-files-forced` when a person asked.
  */
-export async function sweepFiles(database: Database, logger: AppLogger, storage: Storage, mode: SweepMode): Promise<Swept> {
+export async function sweepFiles(database: Database, logger: AppLogger, storage: Storage, mode: SweepMode, expected?: number): Promise<Swept> {
   const referenced = (keys: string[]) =>
     database.run({ kind: 'retention' }, async (tx) =>
       (await tx.$queryRaw<{ key: string }[]>`SELECT key FROM app.referenced_files(${keys}::text[]) AS key`).map((row) => row.key),
     );
-  const told = (found: Swept) => {
-    logger.info({ kind: 'orphan-files', count: found.orphans + found.parts }, 'files without a row found');
+  const told = async (found: Swept) => {
+    const without = found.orphans + found.parts;
+    // One is enough to be worth a look: it should not happen often.
+    logger[without ? 'warn' : 'info']({ kind: 'orphan-files', count: without }, 'files without a row found');
     if (found.unknown) logger.warn({ kind: 'orphan-files', count: found.unknown }, 'names that are no storage key, left untouched');
+    if (mode === 'count') return found;
+    await noted(database, mode === 'force' ? 'orphan-files-forced' : 'orphan-files', found.erased);
+    logger.info({ kind: 'orphan-files', removed: found.erased }, mode === 'force' ? 'files without a row erased, forced' : 'files without a row erased');
+    if (without > found.erased) logger.warn({ kind: 'orphan-files', count: without - found.erased }, 'files without a row left');
     return found;
   };
-  let found: Swept;
   try {
-    found = told(await sweep(storage, referenced, mode));
+    return await told(await sweep(storage, referenced, mode, expected === undefined ? {} : { expected }));
   } catch (error) {
-    if (error instanceof TooManyOrphans) told(error.found);
+    if (error instanceof SweepRefused || error instanceof SweepInterrupted) {
+      await told(error.found);
+      logger.error({ kind: 'orphan-files', errorType: error instanceof SweepRefused ? error.code : error.name }, 'sweep of the files without a row stopped');
+    }
     throw error;
   }
-  const left = found.orphans + found.parts - found.erased;
-  if (mode !== 'count' && left) logger.warn({ kind: 'orphan-files', count: left }, 'files without a row left for the next run');
-  return found;
 }
 
-/**
- * Each step stands alone: one that fails neither undoes nor prevents the others. Counts are kept, never what was removed.
- * `orphans`: what the last step does with the files without a row. They are erased by the night alone; the purge asked
- * at once, after a restoration, only counts them (docs/deploiement.md, « Restaurer la base »).
- */
-export async function purge(database: Database, logger: AppLogger, storage: Storage, orphans: SweepMode = 'count'): Promise<Record<string, number>> {
+/** The sweep of the night: only a count as long as it is held since a restoration. */
+export async function nightSweep(database: Database, logger: AppLogger, storage: Storage): Promise<void> {
+  if (!(await sweepHeld(database))) return void (await sweepFiles(database, logger, storage, 'erase'));
+  await sweepFiles(database, logger, storage, 'count');
+  logger.warn({ kind: 'orphan-files' }, 'sweep of the files without a row held since a restoration: nothing erased');
+}
+
+/** Each step stands alone: one that fails neither undoes nor prevents the others. Counts are kept, never what was removed. */
+export async function purge(database: Database, logger: AppLogger, storage: Storage): Promise<Record<string, number>> {
   const counts: Record<string, number> = {};
   const failures: string[] = [];
   const count = (kind: string, removed: number) => async (tx: Transaction) => {
@@ -129,14 +158,6 @@ export async function purge(database: Database, logger: AppLogger, storage: Stor
       () => database.run({ kind: 'retention' }, async (tx) => count(kind, await remove(tx))(tx)),
     ]),
     ['document-files', async () => database.run({ kind: 'retention' }, count('document-files', await eraseFiles(database, storage)))],
-    // After the files of the erased documents: their rows still hold their keys, the sweep leaves them to the step above.
-    [
-      'orphan-files',
-      async () => {
-        const { erased } = await sweepFiles(database, logger, storage, orphans);
-        return database.run({ kind: 'retention' }, count('orphan-files', erased));
-      },
-    ],
   ];
   for (const [kind, run] of steps) {
     try {
@@ -156,12 +177,14 @@ export function maintenance(database: Database, logger: AppLogger, storage: Stor
   return {
     maintenance: {
       purge: async () => {
-        const outcomes = await Promise.allSettled([purge(database, logger, storage, 'erase'), after()]);
+        const outcomes = await Promise.allSettled([purge(database, logger, storage), after()]);
         // The purge has already said which of its steps failed.
         if (outcomes[1].status === 'rejected') logger.error({ errorType: (outcomes[1].reason as Error).name }, 'night task failed');
         const failed = outcomes.find((outcome) => outcome.status === 'rejected');
         if (failed) throw failed.reason;
       },
+      // On its own, tried once a night: a purge that is retried must never erase three times the cap of the sweep.
+      'sweep-files': () => nightSweep(database, logger, storage),
     },
   };
 }
@@ -169,6 +192,8 @@ export function maintenance(database: Database, logger: AppLogger, storage: Stor
 /** Every night, at a quiet hour in Paris; the same schedule whatever the number of workers. */
 export async function scheduleMaintenance(connection: ConnectionOptions, prefix = QUEUE_PREFIX): Promise<void> {
   await scheduleRepeated(connection, { queue: 'maintenance', name: 'purge', pattern: '30 3 * * *', attempts: 3 }, prefix);
+  // After the purge, which erases the files of the erased documents; one try, whatever happens.
+  await scheduleRepeated(connection, { queue: 'maintenance', name: 'sweep-files', pattern: '30 4 * * *', attempts: 1 }, prefix);
 }
 
 /** A task of the clock (`ScheduledHandlers`), without author nor payload; the same schedule whatever the number of workers. */

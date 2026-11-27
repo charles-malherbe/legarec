@@ -388,6 +388,8 @@ describe('rights of the roles inside', () => {
       'outbox DELETE (*)',
       'outbox SELECT (done_at, failed_at, id)',
       'retention_runs INSERT (kind, removed)',
+      // Its own journal: whether the sweep of the files without a row is held since a restoration.
+      'retention_runs SELECT (id, kind, ran_at)',
       'support_tickets DELETE (*)',
       'support_tickets SELECT (created_at)',
       'task_keys DELETE (*)',
@@ -877,7 +879,7 @@ describe('files of the storage', () => {
     const read = [...source.matchAll(/SELECT \w+\.(\w+) FROM public\.(\w+) \w+ WHERE \w+\.(\w+) = ANY \(keys\)/gu)];
     expect(read.every(([, selected, , compared]) => selected === compared)).toBe(true);
     expect(read.map(([, column, table]) => `${table}.${column}`).sort()).toEqual(HOLDING);
-    // And the function can read them, whatever the row.
+    // And the function can read them, whatever the row: nothing narrows what it sees, which would answer « held by no row ».
     for (const entry of HOLDING) {
       const [table, column] = entry.split('.') as [string, string];
       expect(await rows('SELECT has_column_privilege($1, $2, $3, $4) AS granted', ['legarec_definer', table, column, 'SELECT']), entry).toEqual([
@@ -890,7 +892,53 @@ describe('files of the storage', () => {
         ),
         entry,
       ).not.toEqual([]);
+      expect(
+        await rows(
+          "SELECT p.polname FROM pg_policy p JOIN pg_class c ON c.oid = p.polrelid WHERE c.relname = $1 AND NOT p.polpermissive AND p.polcmd IN ('*', 'r') AND (p.polroles = '{0}' OR 'legarec_definer'::regrole = ANY (p.polroles))",
+          [table],
+        ),
+        entry,
+      ).toEqual([]);
     }
+  });
+
+  /** The programs of the API that call something, by their path from `src`. */
+  const calling = (call: RegExp) =>
+    readdirSync(fileURLToPath(new URL('../src', import.meta.url)), { recursive: true, encoding: 'utf8' })
+      .filter((name) => name.endsWith('.ts') && !name.endsWith('.test.ts') && !name.startsWith('generated/'))
+      .filter((name) => call.test(readFileSync(fileURLToPath(new URL(`../src/${name}`, import.meta.url)), 'utf8')))
+      .sort();
+
+  it('are written by callers that are all known, each one with a row in a column of the list above', () => {
+    // A new caller of `Storage.put` keeps its key in a row of HOLDING, or adds its column to HOLDING and to the function.
+    expect(calling(/\bstorage\.put\(/u)).toEqual([
+      // documents.storage_key, by app.debtor_upload
+      'modules/debtor-access/portal-messages.ts',
+      // documents.storage_key
+      'modules/documents/documents.service.ts',
+      // documents.storage_key, by app.creditor_upload
+      'modules/partners/portal.service.ts',
+      // documents.storage_key
+      'modules/payments/receipts.jobs.ts',
+    ]);
+    // Nobody writes to the storage by another way.
+    expect(calling(/\.put\(|\bnew (Storage|Folder|Bucket)\(|\.write\(key/u)).toEqual([
+      'modules/debtor-access/portal-messages.ts',
+      'modules/documents/documents.service.ts',
+      'modules/partners/portal.service.ts',
+      'modules/payments/receipts.jobs.ts',
+      'platform/storage/storage.ts',
+    ]);
+  });
+
+  it('are kept after a restoration by a hold that the purge at once alone sets, and that the command of the sweep alone lifts', () => {
+    const DEFINED = 'platform/queue/maintenance.ts';
+    expect(calling(/\bholdSweep\(/u)).toEqual(['purge.ts']);
+    expect(calling(/\bresumeSweep\(/u)).toEqual(['sweep-files.ts']);
+    expect(calling(/orphan-files-(held|resumed)/u)).toEqual([DEFINED]);
+    // Erased by the night alone, or by the command with the number that the person was shown.
+    expect(calling(/\bsweepFiles\(/u)).toEqual([DEFINED, 'purge.ts', 'sweep-files.ts'].sort());
+    expect(calling(/'erase'\)|: 'force'/u)).toEqual([DEFINED, 'sweep-files.ts'].sort());
   });
 });
 
