@@ -63,6 +63,18 @@ expect 405 https://media.legarec.fr/marque/x.svg --request POST
 [ "$(curl --silent --output /dev/null --write-out '%{http_code}' --header 'Host: espace.legarec.fr' http://127.0.0.1/)" = 308 ] || fail 'http to https'
 ok redirections
 
+# Public files: the bucket cannot be reached from here, the copy kept in the image answers (DECISIONS.md, 27/11/2026)
+expect 200 https://media.legarec.fr/e-mails/v1/legarec-logo-en-tete.png
+expect 200 https://media.legarec.fr/marque/legarec-kit-media.zip
+headers="$(get --head https://media.legarec.fr/e-mails/v1/legarec-logo-en-tete-negatif.png | tr -d '\r')"
+for header in 'content-type: image/png' 'cache-control: public, max-age=31536000, immutable' "content-security-policy: default-src 'none'" 'strict-transport-security: ' 'x-content-type-options: nosniff'; do
+  [ "$(grep -ci "^$header" <<< "$headers")" = 1 ] || fail "media copy: $header, once"
+done
+# Neither copy nor bucket: the error of the proxy, never an empty page; never the listing of a folder.
+expect 502 https://media.legarec.fr/marque/absent.png
+expect 404 https://media.legarec.fr/marque/
+ok 'media copy'
+
 # Addresses of the firm only
 expect 403 https://n8n.legarec.fr/
 expect 403 https://status.legarec.fr/journaux/

@@ -58,9 +58,10 @@ endpoints:
     interval: 1m
     conditions: ['[STATUS] == 200', '[BODY].status == ok', '[CERTIFICATE_EXPIRATION] > 240h']
     alerts: [{ type: custom, description: 'API, PostgreSQL ou Valkey injoignable' }]
+  # The logo of the e-mails: from the bucket, or from the copy kept with Caddy while the bucket cannot give it.
   - name: Fichiers publics
     group: fichiers
-    url: https://media.legarec.fr/marque/legarec-logo-negatif.svg
+    url: https://media.legarec.fr/e-mails/v1/legarec-logo-en-tete.png
     interval: 10m
     conditions: ['[STATUS] == 200']
     alerts: [{ type: custom, description: media.legarec.fr ne répond plus }]
