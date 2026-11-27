@@ -22,9 +22,9 @@ Première partie du lot X. Fichiers préparés par Claude Code, vérifiés par G
 | `gatus` | Page d'état publique | 10111 | 96 Mo | non |
 | `gatus-interne` | Contrôles internes et alertes | 10111 | 96 Mo | oui (alertes, contrôle du bucket des documents) |
 | `journaux`, `loki`, `grafana` | Journaux techniques, 60 jours | 10113, 10001, 10114 | 96, 384 et 320 Mo | non |
-| `n8n` | Automatisations (`n8n.legarec.fr`, adresses du cabinet seulement), joint Caddy, l'API et les contrôles internes | 10117 | 512 Mo | oui (services appelés par les automatisations) |
+| `n8n` | Automatisations (`n8n.legarec.fr`, adresses du cabinet seulement), joint Caddy, l'API et les contrôles internes | 10117 | 1 Go | oui (services appelés par les automatisations) |
 
-Conteneurs permanents : 7,8 Go au plus, dont 2,4 Go pour ClamAV et 0,5 Go pour n8n. Aucun conteneur ne tourne en root, ni sous le compte 1000 (premier compte du serveur). Systèmes de fichiers en lecture seule, aucun droit Linux, réseaux séparés et fermés au serveur lui-même : un portail ne joint pas la base, n8n ne joint de Legarec que l'API, et un autre compte du serveur ne joint ni l'API, ni Loki, ni la base.
+Conteneurs permanents : 8,3 Go au plus, dont 2,4 Go pour ClamAV et 1 Go pour n8n. Aucun conteneur ne tourne en root, ni sous le compte 1000 (premier compte du serveur). Systèmes de fichiers en lecture seule, aucun droit Linux, réseaux séparés et fermés au serveur lui-même : un portail ne joint pas la base, n8n ne joint de Legarec que l'API, et un autre compte du serveur ne joint ni l'API, ni Loki, ni la base.
 
 | Fichiers | Contenu |
 |---|---|
