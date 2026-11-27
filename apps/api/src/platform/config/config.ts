@@ -5,6 +5,7 @@ const key = z.string().refine((value) => Buffer.from(value, 'base64').length ===
 const origin = z.url().transform((value) => new URL(value).origin);
 /** A malformed address is refused here, without being quoted anywhere. */
 const database = z.string().refine(isDatabaseUrl, { error: 'address expected' });
+const emptyAsAbsent = (value: unknown) => (value === '' ? undefined : value);
 const common = {
   NODE_ENV: z.enum(['production', 'development', 'test']).default('development'),
   VALKEY_URL: z.string().refine(isValkeyUrl, { error: 'address expected' }),
@@ -35,8 +36,26 @@ const common = {
   /** What a million tokens costs, in euros, sent and received: without it, no budget can be kept, and the AI stays off. */
   AI_PRICE_INPUT: z.coerce.number().min(0).max(1000).optional(),
   AI_PRICE_OUTPUT: z.coerce.number().min(0).max(1000).optional(),
-  /** Folder of the documents (a volume in production, until the bucket of lot X). Required in production. */
+  /** Folder of the documents (a volume in production): all of them without a bucket, those written before it otherwise. Required in production. */
   DOCUMENTS_DIR: z.string().startsWith('/').optional(),
+  /**
+   * Bucket of the documents at OVHcloud, and its region (`eu-west-par`): with both, and the two keys in the vault, the
+   * files go to the bucket; otherwise they stay in `DOCUMENTS_DIR`. A line left empty counts as absent.
+   */
+  S3_DOCUMENTS_BUCKET: z.preprocess(
+    emptyAsAbsent,
+    z
+      .string()
+      .regex(/^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/u)
+      .optional(),
+  ),
+  S3_REGION: z.preprocess(
+    emptyAsAbsent,
+    z
+      .string()
+      .regex(/^[a-z0-9-]{2,40}$/u)
+      .optional(),
+  ),
 };
 /** Each program has its own account, and needs no other. One that is there all the same is checked too. */
 const accounts = { DATABASE_URL: database.optional(), JOBS_DATABASE_URL: database.optional(), MIGRATION_DATABASE_URL: database.optional() };
@@ -80,6 +99,10 @@ function read<T extends z.ZodType<Partial<Config> & Pick<Config, 'NODE_ENV' | 'M
     throw new ConfigError(`Missing or invalid startup values: ${names.join(', ')}`);
   }
   const config = parsed.data;
+  // The real bucket outside production is refused first, whatever else is wrong with it: even by mistake, it is never called.
+  if (config.NODE_ENV !== 'production' && config.S3_DOCUMENTS_BUCKET === 'legarec-documents')
+    throw new ConfigError('Production bucket refused outside production: S3_DOCUMENTS_BUCKET');
+  if (config.S3_DOCUMENTS_BUCKET && !config.S3_REGION) throw new ConfigError('Missing or invalid startup values: S3_REGION');
   if (config.NODE_ENV === 'production') {
     const plain = (['STAFF_PORTAL_URL', 'PARTNER_PORTAL_URL', 'DEBTOR_PORTAL_URL'] as const).filter((name) => !env[name]?.startsWith('https://'));
     if (plain.length) throw new ConfigError(`https:// expected in production: ${plain.join(', ')}`);
@@ -93,10 +116,9 @@ function read<T extends z.ZodType<Partial<Config> & Pick<Config, 'NODE_ENV' | 'M
     return value !== undefined && !isOwnService(value);
   });
   if (foreign.length) throw new ConfigError(`Outside production, only 127.0.0.1 and never port 5432 or 6379: ${foreign.join(', ')}`);
-  // No live key and no real bucket outside production, even by mistake.
+  // No live key outside production, even by mistake.
   const live = Object.keys(env).filter((name) => env[name]?.startsWith('live_'));
   if (live.length) throw new ConfigError(`Live keys refused outside production: ${live.join(', ')}`);
-  if (env.S3_DOCUMENTS_BUCKET === 'legarec-documents') throw new ConfigError('Production bucket refused outside production: S3_DOCUMENTS_BUCKET');
   if (config.MYSENDINGBOX_ENV === 'production') throw new ConfigError('Real letters refused outside production: MYSENDINGBOX_ENV');
   return Object.freeze(config);
 }

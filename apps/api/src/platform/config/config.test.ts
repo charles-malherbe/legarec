@@ -94,6 +94,51 @@ describe('startup values', () => {
     expect(() => readWorkerConfig({ ...worker, CLAMAV_URL: 'http://clamav' })).toThrow('CLAMAV_URL');
   });
 
+  it('takes the bucket of the documents with its region, and a line left empty for no bucket', () => {
+    for (const env of [base(), { ...base(), S3_DOCUMENTS_BUCKET: '', S3_REGION: '' }]) {
+      const { S3_DOCUMENTS_BUCKET: bucket, S3_REGION: region } = readConfig(env);
+      expect([bucket, region]).toEqual([undefined, undefined]);
+    }
+    // The region alone: the files stay on the disk.
+    const alone = readConfig({ ...base(), S3_DOCUMENTS_BUCKET: '', S3_REGION: 'eu-west-par' });
+    expect([alone.S3_DOCUMENTS_BUCKET, alone.S3_REGION]).toEqual([undefined, 'eu-west-par']);
+    const both = { S3_DOCUMENTS_BUCKET: 'legarec-essai', S3_REGION: 'eu-west-par' };
+    expect(readConfig({ ...base(), ...both })).toMatchObject(both);
+    for (const region of [undefined, '']) {
+      const read = () => readConfig({ ...base(), S3_DOCUMENTS_BUCKET: 'legarec-essai', ...(region === undefined ? {} : { S3_REGION: region }) });
+      expect(read).toThrow('Missing or invalid startup values: S3_REGION');
+    }
+    for (const bucket of ['Legarec', 'ab', '-legarec', 'legarec-', 'legarec.essai', 'legarec/essai', 'legarec essai', 'x'.repeat(64)]) {
+      const read = () => readConfig({ ...base(), ...both, S3_DOCUMENTS_BUCKET: bucket });
+      expect(read).toThrow('S3_DOCUMENTS_BUCKET');
+      expect(read).not.toThrow(bucket);
+    }
+    for (const region of ['eu-west-par.example.com', 'eu/west', 'EU-WEST-PAR', 'a', 'eu west'])
+      expect(() => readConfig({ ...base(), ...both, S3_REGION: region })).toThrow('S3_REGION');
+    // The worker and the purge read the same two values.
+    const { DATABASE_URL: _api, ...rest } = base();
+    const worker = { ...rest, JOBS_DATABASE_URL: 'postgresql://jobs:pw@127.0.0.1:55432/legarec_dev' };
+    expect(readWorkerConfig({ ...worker, ...both })).toMatchObject(both);
+    expect(() => readWorkerConfig({ ...worker, S3_DOCUMENTS_BUCKET: 'legarec-essai' })).toThrow('S3_REGION');
+  });
+
+  it('refuses the bucket of production outside production, and takes it there', () => {
+    const real = { S3_DOCUMENTS_BUCKET: 'legarec-documents', S3_REGION: 'eu-west-par' };
+    for (const NODE_ENV of ['development', 'test'])
+      expect(() => readConfig({ ...base(), NODE_ENV, ...real })).toThrow('Production bucket refused outside production: S3_DOCUMENTS_BUCKET');
+    const { NODE_ENV: _none, ...unsaid } = base();
+    expect(() => readConfig({ ...unsaid, ...real })).toThrow('Production bucket refused outside production');
+    const production = {
+      ...base(),
+      ...portals,
+      NODE_ENV: 'production',
+      DATABASE_URL: 'postgresql://app:pw@postgres:5432/legarec',
+      VALKEY_URL: 'redis://:pw@valkey:6379/0',
+    };
+    expect(readConfig({ ...production, ...real })).toMatchObject(real);
+    expect(() => readConfig({ ...production, S3_DOCUMENTS_BUCKET: 'legarec-documents' })).toThrow('S3_REGION');
+  });
+
   it('keeps the AI off unless it is explicitly on', () => {
     expect(readConfig(base()).AI_ENABLED).toBeUndefined();
     expect(() => readConfig({ ...base(), AI_ENABLED: '1' })).toThrow('AI_ENABLED');
