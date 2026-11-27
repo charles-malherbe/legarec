@@ -64,6 +64,9 @@ export const sendingRefusal = z.enum([
   'FIRM_INCOMPLETE',
   'NOT_AVAILABLE',
   'UNKNOWN_RECIPIENT',
+  'CASE_DISPUTED',
+  'PLAN_RESPECTED',
+  'SERVICE_NOT_READY',
 ]);
 export type SendingRefusal = z.infer<typeof sendingRefusal>;
 export const SENDING_REFUSALS: Record<SendingRefusal, string> = {
@@ -78,6 +81,9 @@ export const SENDING_REFUSALS: Record<SendingRefusal, string> = {
   FIRM_INCOMPLETE: 'des valeurs du cabinet sont encore entre crochets dans Paramètres',
   NOT_AVAILABLE: 'ce mode d’envoi n’est pas encore disponible',
   UNKNOWN_RECIPIENT: 'le destinataire n’est pas une adresse e-mail du dossier',
+  CASE_DISPUTED: 'le dossier est en litige ou au contentieux',
+  PLAN_RESPECTED: 'l’échéancier du dossier est respecté',
+  SERVICE_NOT_READY: 'le service d’envoi des e-mails n’est pas encore configuré',
 };
 /** The code of a channel from the label shown in the list « Envoi ». */
 export const composeChannelOf = (label: string): ComposeChannel =>
@@ -104,7 +110,13 @@ export const LETTER_TEMPLATES: Record<LetterTemplate, { label: string; hint: str
     channel: COMPOSE_CHANNELS.EMAIL_PDF,
     slug: 'amiable',
   },
-  FIRM: { label: 'Relance ferme', hint: 'Avec indemnités de retard', subject: 'Relance – factures impayées', channel: COMPOSE_CHANNELS.EMAIL_PDF, slug: 'ferme' },
+  FIRM: {
+    label: 'Relance ferme',
+    hint: 'Avec indemnités de retard',
+    subject: 'Relance – factures impayées',
+    channel: COMPOSE_CHANNELS.EMAIL_PDF,
+    slug: 'ferme',
+  },
   FORMAL_NOTICE: {
     label: 'Mise en demeure',
     hint: 'Dernier avertissement avant procédure',
@@ -174,5 +186,11 @@ export function letterAmount(template: LetterTemplate, recipient: LetterRecipien
   const { principal, indemnity, total } = letterTotals(recipient, withIndemnity && (template === 'FIRM' || template === 'FORMAL_NOTICE'));
   return template === 'FORMAL_NOTICE' ? total : principal + indemnity;
 }
+/**
+ * The amount an e-mail reminder announces (question 213), as the letters of the same name: the principal left, the
+ * indemnities from the firm reminder on (level 2), interest in the formal notice only (level 3).
+ */
+export const reminderAmount = (level: number, owed: { principal: number; fees: number; interest: number }) =>
+  owed.principal + (level >= 2 ? owed.fees : 0) + (level >= 3 ? owed.interest : 0);
 export const letterSchedule = (total: number, months: number) =>
   splitPlan(total, months).map((amount, index) => ({ date: new Date(Date.UTC(2026, 11 + index, 15)).toISOString().slice(0, 10), amount }));

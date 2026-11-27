@@ -1,7 +1,11 @@
 import { emailConfig, type EmailConfig } from '@legarec/contracts';
 import type { Config } from '../platform/config/config';
 import type { SettingValues } from '../modules/settings/values';
+import { PLACEHOLDER } from '../platform/pdf/pdf';
 import { formatPhone } from './phone';
+
+/** Whether the firm still has a value to type: its messages would leave with brackets. What a message says of a debtor is never looked at. */
+export const firmIncomplete = (config: EmailConfig) => Object.values(config).some((value) => typeof value === 'string' && PLACEHOLDER.test(value));
 
 const MEDIA = 'https://media.legarec.fr';
 const label = (url: string) => url.replace(/^https?:\/\//u, '').replace(/\/$/u, '');

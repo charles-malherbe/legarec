@@ -1,26 +1,33 @@
-import { contactHours, formatCents, type AutomaticEmail } from '@legarec/contracts';
+import { contactHours, formatCents, reminderAmount, type AutomaticEmail } from '@legarec/contracts';
 import type { AutomaticMessage, EmailsService } from '../../emails/emails.service';
 import { allowedOutsideProduction, ProviderRefused, type ResendClient } from '../../emails/resend';
 import { Audit } from '../../platform/audit/audit';
 import { Keyring } from '../../platform/crypto/keyring';
 import type { Database, Transaction } from '../../platform/database/database';
 import { dayOf, timeOf } from '../../platform/format';
-import { PLACEHOLDER } from '../../platform/pdf/pdf';
 import { GiveUp, TryLater } from '../../platform/queue/errors';
 import { mayActOn, type JobDefinition, type Run } from '../../platform/queue/jobs';
 import { bindingOf } from '../debtor-access/access-codes';
 import { Ledgers, owedOf } from '../payments/ledger';
 import { SettingValues } from '../settings/values';
+import { sendingDeadline, suspensionOf } from './contact-rules';
 import { keysIn } from '../vault/internal-keys';
 import type { Vault } from '../vault/vault';
 
 interface Parts {
   database: Database;
   vault: Vault;
-  emails: Pick<EmailsService, 'compose'>;
+  emails: Pick<EmailsService, 'compose' | 'firmIncomplete'>;
   resend: ResendClient;
+  /** The rights of the worker, for what fails before the author has passed the check of the task. */
+  asWorker: Run;
   /** In production, a missing key makes the sending wait; elsewhere it is simulated and nothing leaves the machine. */
   production: boolean;
+  /**
+   * `RESEND_ENV=production`, said in so many words: the reminders leave for the debtors. Without it, whatever NODE_ENV says,
+   * a key only writes to the test addresses.
+   */
+  real: boolean;
   /** Addresses of the firm a test key may write to, outside production. */
   devRecipients: readonly string[];
   /** What a simulated sending does with the message (a private folder in development, nothing in the tests). */
@@ -45,6 +52,8 @@ async function factsOf(database: Database, vault: Vault, tx: Transaction, caseId
     where: { id: caseId, closedOn: null, anonymizedAt: null },
     select: {
       reference: true,
+      status: true,
+      _count: { select: { plans: { where: { status: 'ACTIVE' } } } },
       contactName: true,
       creditor: { select: { name: true } },
       debtor: { select: { name: true, siren: true, kind: true } },
@@ -55,12 +64,15 @@ async function factsOf(database: Database, vault: Vault, tx: Transaction, caseId
   const contact = found?.contacts[0];
   if (!found || !contact) return { refusal: found ? 'NO_EMAIL' : 'CASE_CLOSED' } as const;
   if (found.debtor.kind === 'INDIVIDUAL' || !found.debtor.siren) return { refusal: 'INDIVIDUAL' } as const;
+  // What has changed since the request stops it as it would have then (question 218).
+  const suspended = suspensionOf(found.status, found._count.plans);
+  if (suspended) return { refusal: suspended } as const;
   const ledger = await new Ledgers(database, new Audit(database)).read(caseId, dayOf(new Date()));
   const unpaid = ledger?.invoices.filter((invoice) => invoice.principalLeft > 0) ?? [];
   if (!ledger || unpaid.length === 0) return { refusal: 'NOTHING_DUE' } as const;
   const owed = owedOf(ledger);
   // As the letters of the same name (`letterAmount`): the indemnities from the firm reminder on, interest in the last one only (question 213).
-  const total = owed.principal + (level >= 2 ? owed.fees : 0) + (level >= 3 ? owed.interest : 0);
+  const total = reminderAmount(level, owed);
   // The code only goes to an address a colleague has confirmed (question 112); otherwise the message leaves without it.
   let code: string | undefined;
   if (contact.status === 'VERIFIED') {
@@ -93,29 +105,93 @@ async function factsOf(database: Database, vault: Vault, tx: Transaction, caseId
   };
 }
 
+/** A line that has not left fails, once: said in the history of the case, without a word of why beyond a code. */
+async function markFailed(asApplication: Run, sending: string, caseId: string, failure: string): Promise<string> {
+  const code = CODE.test(failure) ? failure : 'SENDING_FAILED';
+  await asApplication(async (tx) => {
+    const { count } = await tx.sending.updateMany({
+      where: { id: sending, status: { in: ['QUEUED', 'UNCERTAIN'] } },
+      data: { status: 'FAILED', failure: code },
+    });
+    // An anonymized case takes no more history.
+    if (count)
+      await tx.$executeRaw`SELECT app.add_case_event(${caseId}::uuid, 'REMINDER_FAILED', 'Relance non envoyée', NULL, 'danger'::event_tone, false) WHERE app.case_writable(${caseId}::uuid)`;
+  });
+  return code;
+}
+
+/**
+ * No line stays queued for ever. Every few minutes: those whose task was abandoned before anything left (the author gone,
+ * a task refused or interrupted before the line was taken) fail with its code; those that have waited beyond their time
+ * (`sendingDeadline`) fail as `EXPIRED`. A line already taken is never touched: nobody knows what has left.
+ */
+export async function sweepSendings(asApplication: Run, now: Date = new Date()): Promise<number> {
+  const [settings, waiting] = await asApplication(
+    async (tx) =>
+      [
+        await SettingValues.read(tx),
+        await tx.$queryRaw<{ id: string; case_id: string; created_at: Date; abandoned: boolean; failure: string | null }[]>`
+      SELECT s.id, s.case_id, s.created_at, coalesce(bool_or(o.failed_at IS NOT NULL), false) AS abandoned, max(o.failure) AS failure
+      FROM sendings s LEFT JOIN outbox o ON o.queue = 'reminders' AND o.name = 'case-reminder' AND o.payload->>'sending' = s.id::text
+      WHERE s.status = 'QUEUED' GROUP BY s.id ORDER BY s.id LIMIT 1000`,
+      ] as const,
+  );
+  const hours = contactHours((field) => settings.text('firm', 'relances', field));
+  let failed = 0;
+  for (const line of waiting) {
+    // Started and never ended, but the line was never taken: nothing has left.
+    const code = line.abandoned
+      ? line.failure === 'UNCERTAIN'
+        ? 'INTERRUPTED'
+        : (line.failure ?? 'TASK_FAILED')
+      : now >= sendingDeadline(line.created_at, hours)
+        ? 'EXPIRED'
+        : null;
+    if (!code) continue;
+    await markFailed(asApplication, line.id, line.case_id, code);
+    failed += 1;
+  }
+  return failed;
+}
+
 /**
  * Sends what a request has written in `sendings`. Before anything leaves, the line passes from « queued » to « uncertain »,
  * once: a task delivered twice, or started again after a cut, finds it taken and sends nothing. Then the provider says what
  * happened: sent, refused (nothing left), or nothing clear, and the line stays uncertain until a person decides.
  */
-export function sendingJobs({ database, vault, emails, resend, production, devRecipients, simulate, now = () => new Date() }: Parts): Record<string, JobDefinition> {
-  const settle = (asApplication: Run, sending: string, data: { status: 'SENT' | 'FAILED'; simulated?: boolean; providerRef?: string; failure?: string }) =>
-    asApplication((tx) =>
-      tx.sending.updateMany({
-        where: { id: sending, status: { in: ['QUEUED', 'UNCERTAIN'] } },
-        data: { ...data, ...(data.status === 'SENT' ? { sentAt: new Date() } : {}) },
-      }),
+export function sendingJobs({
+  database,
+  asWorker,
+  vault,
+  emails,
+  resend,
+  production,
+  real,
+  devRecipients,
+  simulate,
+  now = () => new Date(),
+}: Parts): Record<string, JobDefinition> {
+  /** What the provider said, then the history: « Relance envoyée » once it has left, not before (question 219). */
+  const sent = async (
+    asApplication: Run,
+    asAuthor: Run,
+    sending: string,
+    caseId: string,
+    level: number,
+    data: { simulated?: boolean; providerRef?: string },
+  ) => {
+    const { count } = await asApplication((tx) =>
+      tx.sending.updateMany({ where: { id: sending, status: 'UNCERTAIN' }, data: { status: 'SENT', sentAt: new Date(), ...data } }),
     );
-  /** Refused before anything left: said in the history of the case, without a word of why beyond a code. */
+    if (!count) return;
+    // Neither the address nor the text: the channel and the level. In the name of the colleague who asked, as long as
+    // the case is still theirs; of the application otherwise.
+    const note = (tx: Transaction) =>
+      tx.$executeRaw`SELECT app.add_case_event(${caseId}::uuid, 'REMINDER_SENT', 'Relance envoyée', ${`E-mail · niveau ${level}`}, 'info'::event_tone, false) WHERE app.case_writable(${caseId}::uuid)`;
+    await asAuthor(note).catch(() => asApplication(note));
+  };
   const fail = async (asApplication: Run, sending: string, caseId: string, failure: string): Promise<never> => {
-    const code = CODE.test(failure) ? failure : 'SENDING_FAILED';
-    await asApplication(async (tx) => {
-      const { count } = await tx.sending.updateMany({ where: { id: sending, status: { in: ['QUEUED', 'UNCERTAIN'] } }, data: { status: 'FAILED', failure: code } });
-      // An anonymized case takes no more history.
-      if (count)
-        await tx.$executeRaw`SELECT app.add_case_event(${caseId}::uuid, 'REMINDER_FAILED', 'Relance non envoyée', NULL, 'danger'::event_tone, false) WHERE app.case_writable(${caseId}::uuid)`;
-    });
-    throw new GiveUp(code);
+    throw new GiveUp(await markFailed(asApplication, sending, caseId, failure));
   };
 
   return {
@@ -126,17 +202,32 @@ export function sendingJobs({ database, vault, emails, resend, production, devRe
       run: async ({ payload, asAuthor, authorize }) => {
         const sending = id(payload.sending);
         const caseId = id(payload.case);
-        const asApplication = await authorize(mayActOn(caseId));
+        let asApplication: Run;
+        try {
+          asApplication = await authorize(mayActOn(caseId));
+        } catch (error) {
+          // The right to act on the case was lost meanwhile: the line fails, under the rights of the worker.
+          if (error instanceof GiveUp) return fail(asWorker, sending, caseId, error.code);
+          throw error;
+        }
         const line = await asApplication((tx) =>
-          tx.sending.findFirst({ where: { id: sending, caseId }, select: { status: true, channel: true, level: true, contactId: true } }),
+          tx.sending.findFirst({ where: { id: sending, caseId }, select: { status: true, channel: true, level: true, contactId: true, createdAt: true } }),
         );
         if (!line) throw new GiveUp('UNKNOWN_SENDING');
         // Already taken by another delivery: whatever happened to it, nothing more leaves from here.
         if (line.status !== 'QUEUED') return;
         if (line.channel !== 'EMAIL' || !line.level || !line.contactId) return fail(asApplication, sending, caseId, 'NOT_AVAILABLE');
         const { level, contactId } = line;
+        const settings = await asApplication((tx) => SettingValues.read(tx));
+        const hours = contactHours((field) => settings.text('firm', 'relances', field));
+        const moment = now();
+        // One that has waited too long never leaves (a key, a value of the firm, the hours).
+        if (moment >= sendingDeadline(line.createdAt, hours)) return fail(asApplication, sending, caseId, 'EXPIRED');
         const facts = await asAuthor((tx) => factsOf(database, vault, tx, caseId, contactId, level));
         if (facts.refusal !== undefined) return fail(asApplication, sending, caseId, facts.refusal);
+        // A value of the firm still between brackets: it waits until the Director has typed it. Asked of the settings,
+        // never of the message: a debtor whose name holds brackets waits for nothing.
+        if (await emails.firmIncomplete()) throw new TryLater('FIRM_INCOMPLETE');
         let message: AutomaticMessage;
         try {
           message = await emails.compose(`reminder-${level}` as AutomaticEmail, facts.to, facts.data);
@@ -144,25 +235,20 @@ export function sendingJobs({ database, vault, emails, resend, production, devRe
           // What the template refuses may quote the debtor: only a code stays.
           return fail(asApplication, sending, caseId, 'UNREADABLE_MESSAGE');
         }
-        // One that has waited (a key, a value of the firm) never leaves at night, on a Sunday nor on a public holiday (question 161).
-        const settings = await asApplication((tx) => SettingValues.read(tx));
-        const moment = now();
-        if (contactHours((field) => settings.text('firm', 'relances', field)).outsideHours('EMAIL', dayOf(moment), timeOf(moment)))
-          throw new TryLater('OUTSIDE_HOURS');
-        // A value of the firm still between brackets: it waits until the Director has typed it.
-        if (PLACEHOLDER.test(message.html.replace(/<[^>]+>/gu, ' '))) throw new TryLater('FIRM_INCOMPLETE');
+        // One that has waited never leaves at night, on a Sunday nor on a public holiday (question 161).
+        if (hours.outsideHours('EMAIL', dayOf(moment), timeOf(moment))) throw new TryLater('OUTSIDE_HOURS');
         const [stored] = await asApplication(
           (tx) => tx.$queryRaw<{ id: string | null; value_cipher: Uint8Array | null }[]>`SELECT * FROM app.service_key('RESEND_API_KEY')`,
         );
         const key = stored?.id && stored.value_cipher ? vault.open(stored.id, stored.value_cipher) : null;
         if (!key && production) throw new TryLater('NO_KEY');
-        if (key && !production && !allowedOutsideProduction(facts.to, devRecipients)) return fail(asApplication, sending, caseId, 'DEV_RECIPIENT');
+        if (key && !real && !allowedOutsideProduction(facts.to, devRecipients)) return fail(asApplication, sending, caseId, 'DEV_RECIPIENT');
         // From here on, a second run sends nothing.
         const taken = await asApplication((tx) => tx.sending.updateMany({ where: { id: sending, status: 'QUEUED' }, data: { status: 'UNCERTAIN' } }));
         if (taken.count !== 1) return;
         if (!key) {
           await simulate(message);
-          await settle(asApplication, sending, { status: 'SENT', simulated: true });
+          await sent(asApplication, asAuthor, sending, caseId, level, { simulated: true });
           return;
         }
         let ref: string;
@@ -173,7 +259,7 @@ export function sendingJobs({ database, vault, emails, resend, production, devRe
           // Nothing clear came back: the line stays uncertain, and so does its task.
           throw new GiveUp('UNCERTAIN');
         }
-        await settle(asApplication, sending, { status: 'SENT', providerRef: ref });
+        await sent(asApplication, asAuthor, sending, caseId, level, { providerRef: ref });
       },
     },
   };

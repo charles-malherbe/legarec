@@ -20,7 +20,7 @@ import { SimulatedScanner } from '../src/platform/scanner/scanner';
 import { storageFor } from '../src/platform/storage/storage';
 import { SettingValues } from '../src/modules/settings/values';
 import { Vault } from '../src/modules/vault/vault';
-import { Database } from '../src/platform/database/database';
+import { Database, type Transaction } from '../src/platform/database/database';
 import { createLogger } from '../src/platform/logging/logger';
 import { startWorkers } from '../src/platform/queue/jobs';
 import { OutboxPublisher } from '../src/platform/queue/publisher';
@@ -41,7 +41,7 @@ export interface Mail {
  */
 export function startMailWorker(
   test: TestApp,
-  { ai, http, production = false, now }: { ai?: AiSetup; http?: HttpClient; production?: boolean; now?: () => Date } = {},
+  { ai, http, production = false, real = false, now }: { ai?: AiSetup; http?: HttpClient; production?: boolean; real?: boolean; now?: () => Date } = {},
 ) {
   const prefix = `test-${randomBytes(5).toString('hex')}`;
   const logger = createLogger('debug', new Writable({ write: (chunk: Buffer, _encoding, done) => (test.logs.push(chunk.toString()), done()) }));
@@ -67,17 +67,19 @@ export function startMailWorker(
   const handlers = {
     email: {
       ...accountJobs({ keys: new AuthKeys(test.config), portals: test.config, send }),
-      ...sendingJobs({
-        database,
-        vault,
-        emails,
-        resend: new ResendClient(http ?? (() => Promise.reject(new Error('a test never reaches a provider')))),
-        production,
-        devRecipients: ['recette@legarec.test'],
-        simulate: (message) => Promise.resolve(void simulated.push(message)),
-        ...(now ? { now } : {}),
-      }),
     },
+    reminders: sendingJobs({
+      database,
+      asWorker: (work) => database.run({ kind: 'worker', job: 'case-reminder' }, work),
+      vault,
+      emails,
+      resend: new ResendClient(http ?? (() => Promise.reject(new Error('a test never reaches a provider')))),
+      production,
+      real,
+      devRecipients: ['recette@legarec.test'],
+      simulate: (message) => Promise.resolve(void simulated.push(message)),
+      ...(now ? { now } : {}),
+    }),
     maintenance: accessCodeJobs(vault),
     documents: documentJobs(storageFor(test.config), new SimulatedScanner()),
     pdf: receiptJobs(storageFor(test.config), pdf, fileURLToPath(new URL('../templates/pdf/', import.meta.url))),
@@ -89,8 +91,12 @@ export function startMailWorker(
     prefix,
     valkey,
     simulated,
+    /** With the rights of the worker, for what the clock runs (`sweepSendings`) and what a test asks as the worker. */
+    asWorker: <T>(work: (tx: Transaction) => Promise<T>): Promise<T> => database.run({ kind: 'worker', job: 'test' }, work),
     /** Runs everything queued so far, and gives what was sent. */
     run: async (): Promise<Mail[]> => {
+      // A worker just started has not reached Valkey yet: publishing then would say nothing of the tasks.
+      for (let i = 0; i < 300 && valkey.status !== 'ready'; i += 1) await new Promise((resolve) => setTimeout(resolve, 10));
       await publisher.publish();
       for (let i = 0; i < 400; i += 1) {
         const { rows } = await test.database.admin.query('SELECT 1 FROM outbox WHERE published_at IS NOT NULL AND done_at IS NULL AND failed_at IS NULL');

@@ -1,4 +1,5 @@
-import type { ContactChannel } from '@legarec/contracts';
+import type { ContactChannel, contactHours, SendingRefusal } from '@legarec/contracts';
+import { dayOf, startOfDay } from '../../platform/format';
 
 /**
  * The caps of contacts by debtor (Paramètres › Relances, « Plafonds »). The hours, day by day, and the public holidays are
@@ -30,4 +31,27 @@ export function capOf(channel: Channel, setting: (field: string) => string): { c
   const [field, unit, strict] = CAP_FIELDS[channel];
   const value = Number(setting(field));
   return { cap: Number.isInteger(value) && value > 0 ? value : strict, unit };
+}
+
+/**
+ * Until when a sending that waits (a key, a value of the firm, the hours) may still leave: the end of the next day the
+ * firm writes on, after the day it was asked. Beyond, it has failed (`EXPIRED`): a reminder never leaves days late.
+ */
+export function sendingDeadline(asked: Date, hours: ReturnType<typeof contactHours>): Date {
+  let day = dayOf(asked);
+  // Two weeks never go without a day the firm writes on; the loop ends whatever the settings say.
+  for (let tries = 0; tries < 14; tries += 1) {
+    day = iso(Date.parse(`${day}T12:00:00Z`) + DAY_MS);
+    if (!hours.outsideHours('EMAIL', day, null)) break;
+  }
+  return startOfDay(iso(Date.parse(`${day}T12:00:00Z`) + DAY_MS));
+}
+
+/**
+ * Why no reminder leaves on a case in that state (question 218): a dispute or a litigation, a plan that is respected
+ * (maquette/HANDOFF.md: « Les relances sont suspendues tant que le plan est respecté »). A promise suspends nothing.
+ */
+export function suspensionOf(status: string, activePlans: number): Extract<SendingRefusal, 'CASE_DISPUTED' | 'PLAN_RESPECTED'> | null {
+  if (status === 'DISPUTE' || status === 'LITIGATION') return 'CASE_DISPUTED';
+  return activePlans > 0 ? 'PLAN_RESPECTED' : null;
 }

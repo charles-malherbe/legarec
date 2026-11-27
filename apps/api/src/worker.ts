@@ -13,7 +13,7 @@ import { aiJobs, sweepCaseEvents } from './ai/ai.jobs';
 import { aiSetup } from './ai/provider';
 import { documentJobs } from './modules/documents/documents.jobs';
 import { receiptJobs } from './modules/payments/receipts.jobs';
-import { sendingJobs } from './modules/reminders/sendings.jobs';
+import { sendingJobs, sweepSendings } from './modules/reminders/sendings.jobs';
 import { PdfRenderer } from './platform/pdf/pdf';
 import { Vault } from './modules/vault/vault';
 import { ClamavScanner, SimulatedScanner } from './platform/scanner/scanner';
@@ -52,17 +52,21 @@ const handlers: JobHandlers = {
   email: {
     // The e-mails of the accounts stay simulated until their own domain exists (question 84).
     ...accountJobs({ keys: new AuthKeys(config), portals: config, send: (name, to, data) => emails.send(name, to, data) }),
-    // The reminders leave by Resend when its key is in the vault; without it outside production, they are simulated.
-    ...sendingJobs({
-      database,
-      vault,
-      emails,
-      resend: new ResendClient((url, init) => fetch(url, init)),
-      production: config.NODE_ENV === 'production',
-      devRecipients: config.DEV_RECIPIENTS ?? [],
-      simulate: (message) => simulated.send(message),
-    }),
   },
+  // The reminders leave by Resend when its key is in the vault; without it outside production, they are simulated. Their
+  // own queue, where nothing is ever tried twice.
+  reminders: sendingJobs({
+    database,
+    asWorker: (work) => database.run({ kind: 'worker', job: 'case-reminder' }, work),
+    vault,
+    emails,
+    // Resend never redirects: a redirection would carry the key and the message elsewhere.
+    resend: new ResendClient((url, init) => fetch(url, { ...init, redirect: 'error' })),
+    production: config.NODE_ENV === 'production',
+    real: config.RESEND_ENV === 'production',
+    devRecipients: config.DEV_RECIPIENTS ?? [],
+    simulate: (message) => simulated.send(message),
+  }),
   maintenance: accessCodeJobs(vault),
   ai: aiJobs(() => aiSetup(config), vault),
 };
@@ -98,13 +102,24 @@ async function main() {
   const scheduled: ScheduledHandlers = {
     ...maintenance(database, logger, storage, resealAll),
     // Something new on a case: its summary, once the case has been quiet for a few minutes (docs/ia.md).
-    ai: { 'case-events': async () => void (await sweepCaseEvents(() => aiSetup(config), (work) => database.run({ kind: 'worker', job: 'ai-case-events' }, work))) },
+    // No reminder stays queued for ever: abandoned or too old, it fails and the case says so.
+    reminders: { 'sendings-sweep': async () => void (await sweepSendings((work) => database.run({ kind: 'worker', job: 'sendings-sweep' }, work))) },
+    ai: {
+      'case-events': async () =>
+        void (await sweepCaseEvents(
+          () => aiSetup(config),
+          (work) => database.run({ kind: 'worker', job: 'ai-case-events' }, work),
+        )),
+    },
   };
   workers = startWorkers({ database, logger, connection, handlers, scheduled, onDead });
   publisher.start();
   const schedule = () =>
     Promise.all([
       scheduleMaintenance(connection).catch(() => logger.warn('maintenance not scheduled')),
+      scheduleRepeated(connection, { queue: 'reminders', name: 'sendings-sweep', pattern: '*/5 * * * *', attempts: 1 }).catch(() =>
+        logger.warn('sweep of the sendings not scheduled'),
+      ),
       scheduleRepeated(connection, { queue: 'ai', name: 'case-events', pattern: '*/5 * * * *', attempts: 1 }).catch(() =>
         logger.warn('case events of the assistant not scheduled'),
       ),

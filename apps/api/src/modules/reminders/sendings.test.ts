@@ -1,12 +1,20 @@
 import { firmGroups, publicHolidays } from '@legarec/contracts';
 import { randomUUID } from 'node:crypto';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { startApp, type TestApp } from '../../../test/app';
 import { startMailWorker, type MailWorker } from '../../../test/worker';
 import type { HttpClient } from '../../emails/resend';
+import { Clock } from '../../platform/clock';
+import { CONFIG } from '../../platform/config/config';
+import { databaseCode } from '../../platform/database/codes';
+import type { Transaction } from '../../platform/database/database';
 import { PLACEHOLDER } from '../../platform/pdf/pdf';
+import { Outbox } from '../../platform/queue/outbox';
 import { Vault } from '../vault/vault';
+import { sendingDeadline } from './contact-rules';
+import { sweepSendings } from './sendings.jobs';
 import { SendingsService } from './sendings.service';
+import { contactHours } from '@legarec/contracts';
 
 let test: TestApp;
 let worker: MailWorker;
@@ -43,8 +51,17 @@ const at = (day: string, time: string) => {
 /** The hour it is for the worker: a working one, unless a test says otherwise. */
 let workerNow = at(WORKING, '10:30');
 const clock = (now: Date) => {
-  test.app.get(SendingsService).now = () => now;
+  vi.spyOn(test.app.get(Clock), 'now').mockReturnValue(now);
 };
+/** As a colleague, straight in the database: what PostgreSQL itself answers, or its code when it refuses. */
+const asStaff = <T>(userId: string, work: (tx: Transaction) => Promise<T>) =>
+  test.pool.run({ kind: 'staff', userId, role: 'CLAIMS_OFFICER', delegations: [] }, work).catch((error: unknown) => databaseCode(error) ?? String(error));
+const asWorker = <T>(work: (tx: Transaction) => Promise<T>) => worker.asWorker(work).catch((error: unknown) => databaseCode(error) ?? String(error));
+const events = (caseId: string, kind: string) =>
+  rows<{ title: string; detail: string | null; actor_label: string }>(
+    'SELECT title, detail, actor_label FROM case_events WHERE case_id = $1 AND kind = $2 ORDER BY occurred_at',
+    [caseId, kind],
+  );
 
 interface Made {
   id: string;
@@ -52,7 +69,10 @@ interface Made {
   email: string;
 }
 /** A company with a first letter and an address to write to, held by `officer`. */
-const eligible = async (officer: string, options: { debtor?: string; email?: string; verified?: boolean; kind?: string; firstLetter?: boolean } = {}): Promise<Made> => {
+const eligible = async (
+  officer: string,
+  options: { debtor?: string; email?: string; verified?: boolean; kind?: string; firstLetter?: boolean } = {},
+): Promise<Made> => {
   const { email = `compta-${randomUUID().slice(0, 8)}@resend.dev`, verified = true, kind = 'COMPANY', firstLetter = true } = options;
   const [creditor] = await rows<{ id: string }>('INSERT INTO creditors (name) VALUES ($1) RETURNING id', [`Créancier ${(reference += 1)}`]);
   const debtor =
@@ -129,11 +149,15 @@ describe('a reminder from a case', () => {
     const { code } = (await call('officerA', 'GET', `/cases/${made.id}/access-code`)).body as { code: string };
     expect((await remind('officerA', made, { template: 'FIRM' })).status).toBe(204);
     expect(await sendings(made.id)).toEqual([{ status: 'QUEUED', simulated: false, provider_ref: null, failure: null, level: 2 }]);
-    expect(await rows("SELECT title, detail FROM case_events WHERE case_id = $1 AND kind = 'REMINDER_SENT'", [made.id])).toEqual([
-      { title: 'Relance envoyée', detail: 'E-mail · niveau 2' },
-    ]);
+    // The history says nothing before it has left (question 219).
+    expect(await events(made.id, 'REMINDER_SENT')).toEqual([]);
     await worker.run();
     expect(await sendings(made.id)).toEqual([{ status: 'SENT', simulated: true, provider_ref: null, failure: null, level: 2 }]);
+    // In the name of the colleague who asked.
+    const [{ name }] = (await rows<{ name: string }>("SELECT first_name || ' ' || last_name AS name FROM users WHERE id = $1", [test.s.officerA])) as [
+      { name: string },
+    ];
+    expect(await events(made.id, 'REMINDER_SENT')).toEqual([{ title: 'Relance envoyée', detail: 'E-mail · niveau 2', actor_label: name }]);
     expect(asked).toEqual([]);
     const [message] = worker.simulated.splice(0);
     expect(message).toMatchObject({ to: made.email, from: 'LEGAREC <ne-pas-repondre@mail.legarec.fr>', replyTo: 'recouvrement@legarec.fr' });
@@ -145,7 +169,8 @@ describe('a reminder from a case', () => {
     // Neither the address, nor the code in what the API and the worker wrote down.
     for (const line of test.logs) {
       expect(line).not.toContain(made.email);
-      expect(line).not.toContain(`"${code}"`);
+      // The bare code, wherever it would stand: quoted or not, alone or in a sentence.
+      expect(line).not.toMatch(new RegExp(`\\b${code}\\b`, 'u'));
     }
     expect(await rows('SELECT payload FROM outbox WHERE name = $1 AND payload ->> $2 = $3', ['case-reminder', 'case', made.id])).toEqual([
       { payload: { case: made.id, sending: expect.any(String) as string } },
@@ -200,7 +225,9 @@ describe('a reminder from a case', () => {
     const made = await eligible(test.s.officerA);
     clock(at(WORKING, '21:30'));
     expect((await remind('officerA', made)).body).toEqual({ code: 'OUTSIDE_HOURS' });
-    const sunday = new Date(Date.parse(`${WORKING}T12:00:00Z`) + ((7 - new Date(`${WORKING}T12:00:00Z`).getUTCDay()) % 7) * 86_400_000).toISOString().slice(0, 10);
+    const sunday = new Date(Date.parse(`${WORKING}T12:00:00Z`) + ((7 - new Date(`${WORKING}T12:00:00Z`).getUTCDay()) % 7) * 86_400_000)
+      .toISOString()
+      .slice(0, 10);
     clock(at(sunday, '10:30'));
     expect((await remind('officerA', made)).body).toEqual({ code: 'OUTSIDE_HOURS' });
     clock(at('2027-05-01', '10:30'));
@@ -310,6 +337,330 @@ describe('a reminder that had to wait', () => {
   });
 });
 
+describe('the state of the case (question 218)', () => {
+  it('refuses a reminder during a dispute or a litigation and while a plan is respected; a promise suspends nothing', async () => {
+    for (const status of ['DISPUTE', 'LITIGATION']) {
+      const made = await eligible(test.s.officerA);
+      await rows('UPDATE cases SET status = $2::case_status WHERE id = $1', [made.id, status]);
+      const refusal = await remind('officerA', made, { template: 'FORMAL_NOTICE' });
+      expect([refusal.status, refusal.body]).toEqual([409, { code: 'CASE_DISPUTED' }]);
+      expect(await sendings(made.id)).toEqual([]);
+    }
+    const plan = await eligible(test.s.officerA);
+    const [{ creditor_id: creditor }] = (await rows<{ creditor_id: string }>('SELECT creditor_id FROM cases WHERE id = $1', [plan.id])) as [
+      { creditor_id: string },
+    ];
+    const [{ id: planId }] = (await rows<{ id: string }>(
+      `INSERT INTO payment_plans (case_id, creditor_id, total_cents, months, method, first_due_on, status, threshold_months, owned_by_director, requested_by)
+       VALUES ($1, $2, 1860000, 6, 'TRANSFER', '2026-12-05', 'ACTIVE', 6, false, $3) RETURNING id`,
+      [plan.id, creditor, test.s.officerA],
+    )) as [{ id: string }];
+    expect((await remind('officerA', plan)).body).toEqual({ code: 'PLAN_RESPECTED' });
+    // A plan that is no longer respected suspends nothing.
+    await rows("UPDATE payment_plans SET status = 'DEFAULT' WHERE id = $1", [planId]);
+    expect((await remind('officerA', plan)).status).toBe(204);
+    const promise = await eligible(test.s.officerA);
+    await rows("UPDATE cases SET status = 'PROMISE' WHERE id = $1", [promise.id]);
+    expect((await remind('officerA', promise)).status).toBe(204);
+    await worker.run();
+    expect(await sendings(promise.id)).toMatchObject([{ status: 'SENT' }]);
+    worker.simulated.splice(0);
+    asked.splice(0);
+  });
+});
+
+describe('what has changed between the request and the departure', () => {
+  /** Asked, then changed before the worker runs: the line fails with this code, and the case says so. */
+  const changed = async (change: (made: Made) => Promise<unknown>, failure: string, officer: 'officerA' | 'officerB' = 'officerA') => {
+    const made = await eligible(test.s[officer]);
+    expect((await remind(officer, made)).status).toBe(204);
+    await change(made);
+    await worker.run().catch(() => undefined);
+    expect(await sendings(made.id)).toMatchObject([{ status: 'FAILED', failure, simulated: false, provider_ref: null }]);
+    expect(await events(made.id, 'REMINDER_FAILED')).toMatchObject([{ title: 'Relance non envoyée', detail: null }]);
+    expect(await events(made.id, 'REMINDER_SENT')).toEqual([]);
+    return made;
+  };
+
+  it('stops it: closed case, address invalidated, individual, nothing due, dispute', async () => {
+    await changed((made) => rows("UPDATE cases SET status = 'LOST', closed_on = current_date WHERE id = $1", [made.id]), 'CASE_CLOSED');
+    await changed(
+      (made) => rows("UPDATE case_contacts SET status = 'INVALID', is_primary = false, invalidated_at = now() WHERE case_id = $1", [made.id]),
+      'NO_EMAIL',
+    );
+    await changed((made) => rows("UPDATE debtors SET kind = 'INDIVIDUAL', siren = NULL WHERE id = $1", [made.debtor]), 'INDIVIDUAL');
+    await changed((made) => rows('DELETE FROM case_invoices WHERE case_id = $1', [made.id]), 'NOTHING_DUE');
+    await changed((made) => rows("UPDATE cases SET status = 'DISPUTE' WHERE id = $1", [made.id]), 'CASE_DISPUTED');
+    expect(asked).toEqual([]);
+    expect(worker.simulated).toEqual([]);
+  });
+
+  it('fails, under the rights of the worker, when the colleague may no longer act on the case', async () => {
+    const made = await changed((item) => rows('UPDATE cases SET officer_id = $2 WHERE id = $1', [item.id, test.s.officerB]), 'NOT_ALLOWED');
+    expect(await rows("SELECT failure FROM outbox WHERE payload ->> 'case' = $1", [made.id])).toEqual([{ failure: 'NOT_ALLOWED' }]);
+  });
+
+  it('fails at the next sweep when its task was abandoned before the line was taken: no line stays queued', async () => {
+    const made = await eligible(test.s.officerB);
+    expect((await remind('officerB', made)).status).toBe(204);
+    await rows("UPDATE users SET status = 'DISABLED', disabled_at = now() WHERE id = $1", [test.s.officerB]);
+    await worker.run().catch(() => undefined);
+    await rows("UPDATE users SET status = 'ACTIVE', disabled_at = NULL WHERE id = $1", [test.s.officerB]);
+    expect(await rows("SELECT failure FROM outbox WHERE payload ->> 'case' = $1", [made.id])).toEqual([{ failure: 'AUTHOR_GONE' }]);
+    expect(await sendings(made.id)).toMatchObject([{ status: 'QUEUED' }]);
+    expect(await sweepSendings(worker.asWorker, workerNow)).toBe(1);
+    expect(await sendings(made.id)).toMatchObject([{ status: 'FAILED', failure: 'AUTHOR_GONE' }]);
+    expect(await events(made.id, 'REMINDER_FAILED')).toMatchObject([{ title: 'Relance non envoyée', actor_label: 'Application' }]);
+    // Once: a second sweep finds nothing.
+    expect(await sweepSendings(worker.asWorker, workerNow)).toBe(0);
+    expect((await events(made.id, 'REMINDER_FAILED')).length).toBe(1);
+  });
+
+  it('waits while a value of the firm is between brackets, whatever the name of the debtor', async () => {
+    const made = await eligible(test.s.officerA);
+    await rows('UPDATE debtors SET name = $2 WHERE id = $1', [made.debtor, '[ABC Industrie] SARL']);
+    expect((await remind('officerA', made)).status).toBe(204);
+    const [kept] = await rows<{ key: string; value: unknown; updated_by: string }>(
+      "DELETE FROM settings WHERE key = 'firm.cabinet.siren' RETURNING key, value, updated_by",
+    );
+    await worker.run().catch(() => undefined);
+    expect(await sendings(made.id)).toMatchObject([{ status: 'QUEUED' }]);
+    expect(await rows("SELECT started_at, failed_at FROM outbox WHERE payload ->> 'case' = $1", [made.id])).toEqual([{ started_at: null, failed_at: null }]);
+    await rows('INSERT INTO settings (key, value, updated_by) VALUES ($1, $2::jsonb, $3)', [kept!.key, JSON.stringify(kept!.value), kept!.updated_by]);
+    await rows("UPDATE outbox SET published_at = NULL, claimed_at = NULL WHERE payload ->> 'case' = $1", [made.id]);
+    await worker.run();
+    // The brackets of the debtor are its name, not a value to type: it leaves.
+    expect(await sendings(made.id)).toMatchObject([{ status: 'SENT' }]);
+    const { html } = JSON.parse(asked.splice(0)[0]!.body) as { html: string };
+    expect(html.includes('<strong>[ABC Industrie] SARL</strong>')).toBe(true);
+  });
+});
+
+describe('a reminder that has waited too long', () => {
+  const hours = contactHours(() => '09:00–19:00');
+  it('may leave until the end of the next day the firm writes on, in Paris', () => {
+    // A Friday of winter: until the end of Saturday. A Saturday: Sunday is skipped, until the end of Monday.
+    expect(sendingDeadline(new Date('2026-11-27T09:30:00Z'), hours).toISOString()).toBe('2026-11-28T23:00:00.000Z');
+    expect(sendingDeadline(new Date('2026-11-28T09:30:00Z'), hours).toISOString()).toBe('2026-11-30T23:00:00.000Z');
+    // Summer, the eve of a public holiday (14 July 2027 is a Wednesday): until the end of Thursday.
+    expect(sendingDeadline(new Date('2027-07-13T08:00:00Z'), hours).toISOString()).toBe('2027-07-15T22:00:00.000Z');
+    // Asked just after midnight in Paris: it is already the next day.
+    expect(sendingDeadline(new Date('2026-11-26T23:30:00Z'), hours).toISOString()).toBe('2026-11-28T23:00:00.000Z');
+  });
+
+  it('fails as expired when its task runs too late, and at the sweep when it never runs', async () => {
+    const late = await eligible(test.s.officerA);
+    const never = await eligible(test.s.officerA);
+    expect((await remind('officerA', late)).status).toBe(204);
+    expect((await remind('officerA', never)).status).toBe(204);
+    const kept = workerNow;
+    // Two weeks later, at a working hour.
+    workerNow = new Date(at(WORKING, '10:30').getTime() + 14 * 86_400_000);
+    await rows("UPDATE outbox SET run_at = now() + interval '1 hour' WHERE payload ->> 'case' = $1", [never.id]);
+    await worker.run().catch(() => undefined);
+    expect(await sendings(late.id)).toMatchObject([{ status: 'FAILED', failure: 'EXPIRED' }]);
+    expect(await sendings(never.id)).toMatchObject([{ status: 'QUEUED' }]);
+    // Before its time, the sweep leaves it; after, it fails and the case says so.
+    expect(await sweepSendings(worker.asWorker, kept)).toBe(0);
+    expect(await sweepSendings(worker.asWorker, workerNow)).toBeGreaterThanOrEqual(1);
+    expect(await sendings(never.id)).toMatchObject([{ status: 'FAILED', failure: 'EXPIRED' }]);
+    expect(await events(never.id, 'REMINDER_FAILED')).toMatchObject([{ title: 'Relance non envoyée' }]);
+    workerNow = kept;
+    // Its task, when it comes, sends nothing.
+    await rows("UPDATE outbox SET run_at = NULL WHERE payload ->> 'case' = $1", [never.id]);
+    await worker.run();
+    expect(asked).toEqual([]);
+    expect(await rows("SELECT done_at IS NOT NULL AS done FROM outbox WHERE payload ->> 'case' = $1", [never.id])).toEqual([{ done: true }]);
+  });
+});
+
+describe('the rules the database holds by itself', () => {
+  it('a line goes forward only: queued, taken, then sent or failed; a settled one never changes', async () => {
+    const made = await eligible(test.s.officerA);
+    const [{ creditor_id: creditor, contact }] = (await rows<{ creditor_id: string; contact: string }>(
+      'SELECT c.creditor_id, k.id AS contact FROM cases c JOIN case_contacts k ON k.case_id = c.id WHERE c.id = $1',
+      [made.id],
+    )) as [{ creditor_id: string; contact: string }];
+    const insert = (status: string) =>
+      rows<{ id: string }>(
+        "INSERT INTO sendings (case_id, creditor_id, channel, template, level, contact_id, status, created_by) VALUES ($1, $2, 'EMAIL', 'FRIENDLY', 1, $3, $4::sending_status, $5) RETURNING id",
+        [made.id, creditor, contact, status, test.s.officerA],
+      ).then(
+        ([row]) => row!.id,
+        (error: { code?: string }) => String(error.code),
+      );
+    const move = (id: string, set: string) =>
+      rows(`UPDATE sendings SET ${set} WHERE id = $1`, [id]).then(
+        () => 'done',
+        (error: { code?: string }) => String(error.code),
+      );
+    for (const status of ['SENT', 'FAILED', 'UNCERTAIN']) expect(await insert(status)).toBe('42501');
+    const first = await insert('QUEUED');
+    // Never sent without having been taken.
+    expect(await move(first, "status = 'SENT', sent_at = now()")).toBe('42501');
+    expect(await move(first, "status = 'UNCERTAIN'")).toBe('done');
+    expect(await move(first, "status = 'QUEUED'")).toBe('42501');
+    expect(await move(first, "status = 'SENT', sent_at = now(), provider_ref = 'ref-9'")).toBe('done');
+    for (const set of ["status = 'QUEUED'", "status = 'UNCERTAIN'", "status = 'FAILED', failure = 'LATE'", "provider_ref = 'other'", "status = 'SENT'"])
+      expect(await move(first, set), set).toBe('42501');
+    const second = await insert('QUEUED');
+    expect(await move(second, "status = 'FAILED', failure = 'EXPIRED'")).toBe('done');
+    for (const set of ["status = 'QUEUED', failure = NULL", "status = 'UNCERTAIN', failure = NULL", "status = 'SENT', failure = NULL"])
+      expect(await move(second, set), set).toBe('42501');
+    // Whom it is for and who asked never change.
+    const third = await insert('QUEUED');
+    expect(await move(third, 'level = 3')).toBe('42501');
+    expect(await move(third, 'created_by = (SELECT id FROM users WHERE id <> created_by LIMIT 1)')).toBe('42501');
+    await rows('DELETE FROM sendings WHERE id = ANY($1::uuid[])', [[first, second, third]]);
+  });
+
+  it('a line never points at the coordinate nor the document of another case', async () => {
+    const mine = await eligible(test.s.officerA);
+    const other = await eligible(test.s.officerA);
+    const [{ creditor_id: creditor }] = (await rows<{ creditor_id: string }>('SELECT creditor_id FROM cases WHERE id = $1', [mine.id])) as [
+      { creditor_id: string },
+    ];
+    const [{ id: theirs }] = (await rows<{ id: string }>('SELECT id FROM case_contacts WHERE case_id = $1', [other.id])) as [{ id: string }];
+    const refusedBy = (sql: string, values: unknown[]) =>
+      rows(sql, values).then(
+        () => 'done',
+        (error: { code?: string; constraint?: string }) => `${error.code} ${error.constraint}`,
+      );
+    expect(
+      await refusedBy(
+        "INSERT INTO sendings (case_id, creditor_id, channel, template, level, contact_id, created_by) VALUES ($1, $2, 'EMAIL', 'FRIENDLY', 1, $3, $4)",
+        [mine.id, creditor, theirs, test.s.officerA],
+      ),
+    ).toBe('23503 sendings_contact_id_case_id_fkey');
+    // As a colleague too, whatever the case they act on.
+    expect(
+      await asStaff(test.s.officerA, (tx) =>
+        tx.sending.create({
+          data: { caseId: mine.id, creditorId: creditor, channel: 'EMAIL', template: 'FRIENDLY', level: 1, contactId: theirs },
+          select: { id: true },
+        }),
+      ),
+    ).toBe('23503');
+    const [{ id: document }] = (await rows<{ id: string }>('SELECT gen_random_uuid() AS id')) as [{ id: string }];
+    const [{ id: mineContact }] = (await rows<{ id: string }>('SELECT id FROM case_contacts WHERE case_id = $1', [mine.id])) as [{ id: string }];
+    expect(
+      await refusedBy(
+        "INSERT INTO sendings (case_id, creditor_id, channel, template, level, contact_id, document_id, created_by) VALUES ($1, $2, 'EMAIL', 'FRIENDLY', 1, $3, $4, $5)",
+        [mine.id, creditor, mineContact, document, test.s.officerA],
+      ),
+    ).toBe('23503 sendings_document_id_case_id_fkey');
+  });
+
+  it('nothing is added to an anonymized case, and a colleague never says what has left', async () => {
+    const made = await eligible(test.s.officerA);
+    const [{ creditor_id: creditor, contact }] = (await rows<{ creditor_id: string; contact: string }>(
+      'SELECT c.creditor_id, k.id AS contact FROM cases c JOIN case_contacts k ON k.case_id = c.id WHERE c.id = $1',
+      [made.id],
+    )) as [{ creditor_id: string; contact: string }];
+    const data = { caseId: made.id, creditorId: creditor, channel: 'EMAIL', template: 'FRIENDLY', level: 1, contactId: contact } as const;
+    // The status, the reference and the failure are the worker's.
+    expect(await asStaff(test.s.officerA, (tx) => tx.sending.create({ data: { ...data, status: 'SENT' }, select: { id: true } }))).toBe('42501');
+    const made1 = await asStaff(test.s.officerA, (tx) => tx.sending.create({ data, select: { id: true } }));
+    expect(made1).toEqual({ id: expect.any(String) as string });
+    expect(await asStaff(test.s.officerA, (tx) => tx.sending.updateMany({ where: { caseId: made.id }, data: { status: 'FAILED' } }))).toBe('42501');
+    expect(await asStaff(test.s.officerA, (tx) => tx.sending.deleteMany({ where: { caseId: made.id } }))).toBe('42501');
+    await rows("UPDATE cases SET status = 'LOST', closed_on = current_date - 2000, anonymized_at = now() WHERE id = $1", [made.id]);
+    expect(await asStaff(test.s.officerA, (tx) => tx.sending.create({ data, select: { id: true } }))).toBe('42501');
+    // Nor changed, even by the worker.
+    expect(await asWorker((tx) => tx.sending.updateMany({ where: { caseId: made.id }, data: { status: 'FAILED', failure: 'EXPIRED' } }))).toEqual({ count: 0 });
+  });
+
+  it('the contacts of a debtor are only counted by whoever acts on the case', async () => {
+    const made = await eligible(test.s.officerA);
+    const count = (userId: string, wanted = 'EMAIL') =>
+      asStaff(
+        userId,
+        (tx) => tx.$queryRaw<{ count: number }[]>`SELECT app.sent_contacts(${made.id}::uuid, ${wanted}, '2026-01-01'::date, '2099-01-01'::date) AS count`,
+      );
+    expect(await count(test.s.officerA)).toEqual([{ count: 0 }]);
+    expect(await count(test.s.officerA, 'LETTER')).toEqual([{ count: 0 }]);
+    // Another officer does not read the case; the Director reads it without acting on it.
+    expect(await count(test.s.officerB)).toBe('42501');
+    expect(
+      await test.pool
+        .run(
+          { kind: 'staff', userId: test.s.director, role: 'DIRECTOR', delegations: [] },
+          (tx) => tx.$queryRaw`SELECT app.sent_contacts(${made.id}::uuid, 'EMAIL', '2026-01-01'::date, '2099-01-01'::date)`,
+        )
+        .catch(databaseCode),
+    ).toBe('42501');
+    expect(await count(test.s.officerA, 'SMS')).toBe('42501');
+    expect(await asWorker((tx) => tx.$queryRaw`SELECT app.sent_contacts(${made.id}::uuid, 'EMAIL', '2026-01-01'::date, '2099-01-01'::date)`)).toBe('42501');
+  });
+
+  it('a sending counts on the day it left, not on the day it was asked', async () => {
+    const made = await eligible(test.s.officerA);
+    expect((await remind('officerA', made)).status).toBe(204);
+    const count = (from: string, to: string) =>
+      asStaff(
+        test.s.officerA,
+        (tx) => tx.$queryRaw<{ count: number }[]>`SELECT app.sent_contacts(${made.id}::uuid, 'EMAIL', ${from}::date, ${to}::date) AS count`,
+      );
+    // It still waits: counted on the day it was asked.
+    const [{ day }] = (await rows<{ day: string }>(
+      "SELECT to_char(created_at AT TIME ZONE 'Europe/Paris', 'YYYY-MM-DD') AS day FROM sendings WHERE case_id = $1",
+      [made.id],
+    )) as [{ day: string }];
+    expect(await count(day, day)).toEqual([{ count: 1 }]);
+    await rows("UPDATE sendings SET status = 'UNCERTAIN' WHERE case_id = $1", [made.id]);
+    await rows("UPDATE sendings SET status = 'SENT', sent_at = '2031-06-03 10:00+02' WHERE case_id = $1", [made.id]);
+    expect(await count(day, day)).toEqual([{ count: 0 }]);
+    expect(await count('2031-06-03', '2031-06-03')).toEqual([{ count: 1 }]);
+    await rows("UPDATE outbox SET done_at = now() WHERE payload ->> 'case' = $1", [made.id]);
+  });
+
+  it('the key of a service is for the worker alone, by its name, and only while it is valid', async () => {
+    await rows("DELETE FROM vault_secrets WHERE name = 'RESEND_API_KEY'");
+    const key = (wanted: string) => (tx: Transaction) => tx.$queryRaw<{ id: string | null }[]>`SELECT id FROM app.service_key(${wanted})`;
+    const ready = (wanted: string) => (tx: Transaction) => tx.$queryRaw<{ ready: boolean }[]>`SELECT app.service_ready(${wanted}) AS ready`;
+    expect(await asWorker(key('RESEND_API_KEY'))).toEqual([{ id: null }]);
+    expect(await asStaff(test.s.officerA, ready('RESEND_API_KEY'))).toEqual([{ ready: false }]);
+    await storeKey('re_test_abcdefgh');
+    const [{ id }] = (await rows<{ id: string }>("SELECT id FROM vault_secrets WHERE name = 'RESEND_API_KEY'")) as [{ id: string }];
+    expect(await asWorker(key('RESEND_API_KEY'))).toEqual([{ id }]);
+    expect(await asStaff(test.s.officerA, ready('RESEND_API_KEY'))).toEqual([{ ready: true }]);
+    // Nobody else reads it, and no other secret is read through it.
+    expect(await asStaff(test.s.officerA, key('RESEND_API_KEY'))).toBe('42501');
+    expect(await test.pool.run({ kind: 'staff', userId: test.s.director, role: 'DIRECTOR', delegations: [] }, key('RESEND_API_KEY')).catch(databaseCode)).toBe(
+      '42501',
+    );
+    for (const name of ['ACCESS_CODE_KEY', 'LOOKUP_KEY', 'OVH_SMS_KEY', '']) {
+      expect(await asWorker(key(name)), name).toBe('42501');
+      expect(await asStaff(test.s.officerA, ready(name)), name).toBe('42501');
+    }
+    // The yes or no is for the team: the worker has the key itself.
+    expect(await asWorker(ready('RESEND_API_KEY'))).toBe('42501');
+    // A key being revoked no longer serves.
+    for (const status of ['REVOKE_PENDING', 'REVOKED']) {
+      await rows("UPDATE vault_secrets SET status = $2::secret_status, value_cipher = CASE WHEN $2 = 'REVOKED' THEN NULL ELSE value_cipher END WHERE id = $1", [
+        id,
+        status,
+      ]);
+      expect(await asWorker(key('RESEND_API_KEY')), status).toEqual([{ id: null }]);
+      expect(await asStaff(test.s.officerA, ready('RESEND_API_KEY')), status).toEqual([{ ready: false }]);
+    }
+    await rows("DELETE FROM vault_secrets WHERE name = 'RESEND_API_KEY'");
+  });
+});
+
+describe('the agenda', () => {
+  it('counts what left this week on the cases one reads only', async () => {
+    const weekly = async (as: string) => ((await call(as, 'GET', '/reminders')).body as { weekly: { emails: number } }).weekly.emails;
+    const before = { a: await weekly('officerA'), b: await weekly('officerB'), manager: await weekly('manager') };
+    const made = await eligible(test.s.officerA);
+    expect((await remind('officerA', made)).status).toBe(204);
+    expect(await weekly('officerA')).toBe(before.a + 1);
+    expect(await weekly('manager')).toBe(before.manager + 1);
+    expect(await weekly('officerB')).toBe(before.b);
+    await rows("UPDATE outbox SET done_at = now() WHERE payload ->> 'case' = $1", [made.id]);
+  });
+});
+
 describe('in production', () => {
   it('a reminder waits for the key of the provider: nothing is simulated', async () => {
     await rows("DELETE FROM vault_secrets WHERE name = 'RESEND_API_KEY'");
@@ -321,5 +672,45 @@ describe('in production', () => {
     expect(await sendings(made.id)).toMatchObject([{ status: 'QUEUED', simulated: false }]);
     expect(worker.simulated).toEqual([]);
     expect(asked).toEqual([]);
+    await rows("UPDATE outbox SET done_at = now() WHERE payload ->> 'case' = $1", [made.id]);
+  });
+});
+
+describe('with a key, the guard of the recipients', () => {
+  it('holds under NODE_ENV=production as long as RESEND_ENV does not say production', async () => {
+    await storeKey('re_test_guard');
+    const real = await eligible(test.s.officerA, { email: 'compta@entreprise-reelle.example' });
+    expect((await remind('officerA', real)).status).toBe(204);
+    // The worker of the last test: production, without RESEND_ENV.
+    await worker.run().catch(() => undefined);
+    expect(await sendings(real.id)).toMatchObject([{ status: 'FAILED', failure: 'DEV_RECIPIENT' }]);
+    expect(asked).toEqual([]);
+    const again = await eligible(test.s.officerA, { email: 'compta@entreprise-reelle.example' });
+    expect((await remind('officerA', again)).status).toBe(204);
+    await worker.stop();
+    worker = startMailWorker(test, { http, production: true, real: true, now: () => workerNow });
+    await worker.run();
+    expect(await sendings(again.id)).toMatchObject([{ status: 'SENT', simulated: false }]);
+    expect(asked.splice(0).map((request) => (JSON.parse(request.body) as { to: string[] }).to)).toEqual([['compta@entreprise-reelle.example']]);
+  });
+
+  it('in production, a request is refused while the service has no valid key: nothing would be simulated', async () => {
+    const made = await eligible(test.s.officerA);
+    const production = new SendingsService(test.pool, test.app.get(Outbox), { ...test.app.get(CONFIG), NODE_ENV: 'production' }, test.app.get(Clock));
+    const ask = () =>
+      test.pool
+        .run({ kind: 'staff', userId: test.s.officerA, role: 'CLAIMS_OFFICER', delegations: [] }, () =>
+          production.remind(made.id, { channel: 'EMAIL', template: 'FRIENDLY', recipient: made.email }),
+        )
+        .then(
+          () => 'queued',
+          (error: { status?: number; code?: string }) => `${error.status} ${error.code}`,
+        );
+    await rows("UPDATE vault_secrets SET status = 'REVOKE_PENDING' WHERE name = 'RESEND_API_KEY'");
+    expect(await ask()).toBe('409 SERVICE_NOT_READY');
+    expect(await sendings(made.id)).toEqual([]);
+    await rows("UPDATE vault_secrets SET status = 'VALID' WHERE name = 'RESEND_API_KEY'");
+    expect(await ask()).toBe('queued');
+    await rows("UPDATE outbox SET done_at = now() WHERE payload ->> 'case' = $1", [made.id]);
   });
 });

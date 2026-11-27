@@ -108,7 +108,13 @@ export const paymentStatusBody = z.object({
 export const reminderChannel = z.enum(['EMAIL', 'REGISTERED_LETTER', 'SMS']);
 export type ReminderChannel = z.infer<typeof reminderChannel>;
 export const reminderTemplate = letterTemplate.extract(['FRIENDLY', 'FIRM', 'FORMAL_NOTICE']);
-export const caseReminderBody = z.object({ channel: reminderChannel, template: reminderTemplate, recipient: line(300), message: line(10_000) });
+/** `message`: for the channels that take a typed text; an e-mail leaves with the validated text of its template, and takes none. */
+export const caseReminderBody = z.object({
+  channel: reminderChannel,
+  template: reminderTemplate,
+  recipient: line(300),
+  message: line(10_000).optional(),
+});
 export const gdprRequestBody = z.object({ caseId: id, kind: gdprRequestKind, origin: line(200) });
 export const gdprAnswerBody = z.object({ status: z.enum(['OPEN', 'ANSWERED', 'REFUSED']), reason });
 /** As many cases as were shown (`GET …/erasure`): any difference and nothing is erased (409). */
