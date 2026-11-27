@@ -612,8 +612,10 @@ describe('the reminder leaves by the provider', () => {
     expect(request!.headers.authorization).toBe(`Bearer ${KEY}`);
     const [{ id }] = (await rows<{ id: string }>('SELECT id FROM sendings WHERE case_id = $1', [made.id])) as [{ id: string }];
     expect(request!.headers['idempotency-key']).toBe(`sending/${id}`);
-    const sent = JSON.parse(request!.body) as { to: string[]; subject: string; reply_to: string };
+    const sent = JSON.parse(request!.body) as { to: string[]; subject: string; reply_to: string; tags: unknown };
     expect(sent).toMatchObject({ to: [made.email], reply_to: 'recouvrement@legarec.fr', subject: 'DERNIER AVIS avant procédure : facture F-2026-0712' });
+    // The line is named to Resend, which gives the name back with each event of the message: an identifier, nothing else.
+    expect(sent.tags).toEqual([{ name: 'sending_id', value: id }]);
     // Delivered again, the task sends nothing more.
     await rows("UPDATE outbox SET done_at = NULL, published_at = NULL, started_at = NULL, claimed_at = NULL WHERE payload ->> 'sending' = $1", [id]);
     await worker.run();
@@ -1005,7 +1007,8 @@ describe('the rules the database holds by itself', () => {
     expect(await move(first, "status = 'UNCERTAIN'")).toBe('done');
     expect(await move(first, "status = 'QUEUED'")).toBe('42501');
     expect(await move(first, "status = 'SENT', sent_at = now(), provider_ref = 'ref-9'")).toBe('done');
-    for (const set of ["status = 'QUEUED'", "status = 'UNCERTAIN'", "status = 'FAILED', failure = 'LATE'", "provider_ref = 'other'", "status = 'SENT'"])
+    // What the provider says of it later is written beside (`resend-events.test.ts`): the line itself no longer changes.
+    for (const set of ["status = 'QUEUED'", "status = 'UNCERTAIN'", "status = 'FAILED', failure = 'LATE'", "provider_ref = 'other'", 'sent_at = now()'])
       expect(await move(first, set), set).toBe('42501');
     const second = await insert('QUEUED');
     expect(await move(second, "status = 'FAILED', failure = 'EXPIRED'")).toBe('done');

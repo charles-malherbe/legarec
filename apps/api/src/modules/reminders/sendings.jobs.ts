@@ -112,7 +112,7 @@ async function factsOf(database: Database, vault: Vault, tx: Transaction, caseId
  * state the caller knows it in: `QUEUED` for whatever stops it before it is taken (a line taken meanwhile is left alone:
  * nobody here knows what has left), `UNCERTAIN` for the one task that took it and heard the provider refuse.
  */
-async function markFailed(
+export async function markFailed(
   asApplication: Run,
   sending: string,
   caseId: string,
@@ -132,7 +132,7 @@ async function markFailed(
   });
   return { code, failed };
 }
-const sentNote = (caseId: string, level: number | null) => (tx: Transaction) =>
+export const sentNote = (caseId: string, level: number | null) => (tx: Transaction) =>
   tx.$executeRaw`SELECT app.add_case_event(${caseId}::uuid, 'REMINDER_SENT', 'Relance envoyée', ${`E-mail · niveau ${level ?? 1}`}, 'info'::event_tone, false) WHERE app.case_writable(${caseId}::uuid)`;
 /** How long a sent line may stay without its event before the sweep writes it: far more than the two writes of a task take. */
 const UNSAID_MS = 2 * 60_000;
@@ -284,7 +284,7 @@ export function sendingJobs({
         }
         let ref: string;
         try {
-          ({ ref } = await resend.send(key, message, `sending/${sending}`));
+          ({ ref } = await resend.send(key, message, `sending/${sending}`, sending));
         } catch (error) {
           if (error instanceof ProviderRefused) return fail(asApplication, sending, caseId, error.code, 'UNCERTAIN');
           // Nothing clear came back: the line stays uncertain, and so does its task.
