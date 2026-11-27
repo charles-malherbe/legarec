@@ -279,13 +279,13 @@ describe('reminders from the list of cases', () => {
   const earlier = async (made: Made, template: string, level: number, state: 'SENT' | 'QUEUED' | 'UNCERTAIN' | 'FAILED' = 'SENT', days = 30) => {
     const [{ id }] = (await rows<{ id: string }>(
       `INSERT INTO sendings (case_id, creditor_id, channel, template, level, contact_id, created_by, created_at)
-       SELECT c.id, c.creditor_id, 'EMAIL', $2, $3, (SELECT id FROM case_contacts WHERE case_id = c.id AND is_primary), $4, now() - make_interval(days => $5)
+       SELECT c.id, c.creditor_id, 'EMAIL', $2, $3, (SELECT id FROM case_contacts WHERE case_id = c.id AND is_primary), $4, now() - $5::float8 * interval '1 day'
        FROM cases c WHERE c.id = $1 RETURNING id`,
       [made.id, template, level, test.s.officerA, days],
     )) as [{ id: string }];
     if (state === 'FAILED') await rows("UPDATE sendings SET status = 'FAILED', failure = 'PROVIDER_REFUSED' WHERE id = $1", [id]);
     if (state === 'UNCERTAIN' || state === 'SENT') await rows("UPDATE sendings SET status = 'UNCERTAIN' WHERE id = $1", [id]);
-    if (state === 'SENT') await rows("UPDATE sendings SET status = 'SENT', sent_at = now() - make_interval(days => $2) WHERE id = $1", [id, days]);
+    if (state === 'SENT') await rows("UPDATE sendings SET status = 'SENT', sent_at = now() - $2::float8 * interval '1 day' WHERE id = $1", [id, days]);
   };
   /** Nothing of these tests stays in the queue for the next ones. */
   const settle = async (ids: string[]) => {
@@ -307,6 +307,9 @@ describe('reminders from the list of cases', () => {
     // Nor a friendly reminder after a formal notice: the status of the case, or a formal notice by letter.
     const noticed = await eligible(test.s.officerA);
     await rows("UPDATE cases SET status = 'FORMAL_NOTICE' WHERE id = $1", [noticed.id]);
+    // A formal notice sent by post outside the application: the date on the case says it, whatever its status since.
+    const dated = await eligible(test.s.officerA);
+    await rows("UPDATE cases SET formal_notice_on = current_date - 40, status = 'PROMISE' WHERE id = $1", [dated.id]);
     const byLetter = await eligible(test.s.officerA);
     await rows(
       `INSERT INTO sendings (case_id, creditor_id, channel, template, created_by, created_at)
@@ -333,8 +336,9 @@ describe('reminders from the list of cases', () => {
        SELECT id, creditor_id, 'EMAIL', 'Accueil', 'accueil@resend.dev', 'accueil@resend.dev', 'CREDITOR', now() - interval '1 day' FROM cases WHERE id = $1`,
       [fresh.id],
     );
-    const out = [notice, noticed, byLetter, individual, noLetter, disputed, noEmail, closed, plan];
+    const out = [notice, noticed, dated, byLetter, individual, noLetter, disputed, noEmail, closed, plan];
     const reasons = [
+      'NO_NEXT_REMINDER',
       'NO_NEXT_REMINDER',
       'NO_NEXT_REMINDER',
       'NO_NEXT_REMINDER',
@@ -393,7 +397,7 @@ describe('reminders from the list of cases', () => {
     expect(await lines([made.id])).toMatchObject([{ level: 1, status: 'QUEUED' }]);
     // Nobody knows whether an uncertain line has left: nothing more until a person decides.
     const uncertain = await eligible(test.s.officerA);
-    await earlier(uncertain, 'FRIENDLY', 1, 'UNCERTAIN', 20);
+    await earlier(uncertain, 'FRIENDLY', 1, 'UNCERTAIN', 0);
     expect((await batch('officerA', [...friendly(uncertain)])).body).toEqual({ queued: 0, skipped: [{ id: uncertain.id, reason: 'REMINDER_PENDING' }] });
     expect((await batch('officerA', [...firm(uncertain)])).body).toMatchObject({ queued: 0 });
     expect((await remind('officerA', uncertain)).body).toEqual({ code: 'REMINDER_PENDING' });
@@ -402,6 +406,27 @@ describe('reminders from the list of cases', () => {
     worker.simulated.splice(0);
     expect((await batch('officerA', firm(made))).body).toEqual({ queued: 0, skipped: [{ id: made.id, reason: 'TOO_SOON' }] });
     expect(await lines([made.id])).toMatchObject([{ level: 1, status: 'SENT' }]);
+  });
+
+  it('holds a case two days for an uncertain line, then counts it as one that has left', async () => {
+    const hours = (count: number) => (Date.now() - at(WORKING, '10:30').getTime()) / 86_400_000 + count / 24;
+    const recent = await eligible(test.s.officerA);
+    await earlier(recent, 'FRIENDLY', 1, 'UNCERTAIN', hours(47));
+    expect((await batch('officerA', firm(recent))).body).toEqual({ queued: 0, skipped: [{ id: recent.id, reason: 'REMINDER_PENDING' }] });
+    expect((await remind('officerA', recent, { template: 'FIRM' })).body).toEqual({ code: 'REMINDER_PENDING' });
+    // Two days later it no longer holds the case; from the list it has left, on the day it was asked: no second friendly
+    // reminder, and the firm one a week after it.
+    const old = await eligible(test.s.officerA);
+    await earlier(old, 'FRIENDLY', 1, 'UNCERTAIN', hours(49));
+    expect(await preview('officerA', [old])).toEqual([{ id: old.id, template: null, reason: 'TOO_SOON' }]);
+    expect((await batch('officerA', friendly(old))).body).toEqual({ queued: 0, skipped: [{ id: old.id, reason: 'TOO_SOON' }] });
+    const older = await eligible(test.s.officerA);
+    await earlier(older, 'FRIENDLY', 1, 'UNCERTAIN', hours(8 * 24));
+    expect((await batch('officerA', friendly(older))).body).toEqual({ queued: 0, skipped: [{ id: older.id, reason: 'LEVEL_CHANGED' }] });
+    expect((await batch('officerA', firm(older))).body).toEqual({ queued: 1, skipped: [] });
+    // From the case, the colleague chooses: the reminder passes.
+    expect((await remind('officerA', old, { template: 'FIRM' })).status).toBe(204);
+    await settle([old.id, older.id]);
   });
 
   it('writes one line when two batches ask for the same case at the same moment', async () => {

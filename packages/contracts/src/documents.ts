@@ -53,6 +53,8 @@ export const COMPOSE_CHANNELS: Record<ComposeChannel, string> = {
 };
 /** Days between two levels of reminder sent from the list (question 220). */
 export const REMINDER_GAP_DAYS = 7;
+/** An e-mail whose fate is unknown holds its case that long; after that it counts as one that has left (question 220). */
+export const UNCERTAIN_BLOCK_HOURS = 48;
 /** Cases in one grouped reminder: a page of the list at most. */
 export const REMINDER_BATCH_MAX = 100;
 /** Why nothing left for a case; the same codes when the API refuses a single sending (409). */

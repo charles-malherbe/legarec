@@ -119,7 +119,7 @@ export function CasesPage() {
     confirm({
       title: `Envoyer une relance à ${items.length} débiteur${items.length > 1 ? 's' : ''} ?`,
       // What really leaves (question 220): the e-mail of the kit, never a text, never the formal notice.
-      body: 'Chaque débiteur reçoit par e-mail la relance indiquée ci-dessous, à l’adresse e-mail principale de son dossier (à défaut, sa première adresse valide). Si un dossier a changé entre-temps, sa relance ne part pas et le motif est donné.',
+      body: 'Chaque débiteur reçoit par e-mail la relance indiquée ci-dessous, à l’adresse e-mail principale de son dossier (à défaut, sa première adresse non invalidée). Si un dossier a changé entre-temps, sa relance ne part pas et le motif est donné.',
       details: [
         { k: 'Débiteurs', v: receiving.map((row) => row.name).join(', ') },
         { k: 'Relances', v: levels },

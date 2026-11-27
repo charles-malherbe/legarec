@@ -1,6 +1,7 @@
 import {
   contactHours,
   REMINDER_GAP_DAYS,
+  UNCERTAIN_BLOCK_HOURS,
   type BatchTemplate,
   type ReminderPreview,
   type REQUEST_BODIES,
@@ -33,6 +34,7 @@ export const REMINDER_LEVELS = { FRIENDLY: 1, FIRM: 2, FORMAL_NOTICE: 3 } as con
  */
 const NEXT_IN_BATCH: readonly (BatchTemplate | undefined)[] = ['FRIENDLY', 'FIRM'];
 const GAP_MS = REMINDER_GAP_DAYS * 86_400_000;
+const UNCERTAIN_MS = UNCERTAIN_BLOCK_HOURS * 3_600_000;
 const refused = (reason: SendingRefusal) => conflict(reason);
 
 /** What the rules read of a case; the main address first, as the form of the case proposes it. */
@@ -45,6 +47,7 @@ const CASE = {
   anonymizedAt: true,
   firstLetterReference: true,
   firstLetterOn: true,
+  formalNoticeOn: true,
   debtor: { select: { kind: true, siren: true } },
   contacts: {
     where: { kind: 'EMAIL' as const, status: { not: 'INVALID' as const } },
@@ -62,6 +65,7 @@ interface Found {
   anonymizedAt: Date | null;
   firstLetterReference: string | null;
   firstLetterOn: Date | null;
+  formalNoticeOn: Date | null;
   debtor: { kind: string; siren: string | null };
   contacts: { id: string; valueNormalized: string }[];
   _count: { plans: number };
@@ -73,6 +77,7 @@ interface Line {
   level: number | null;
   status: string;
   sentAt: Date | null;
+  createdAt: Date;
 }
 type Chosen = { contactId: string; template: Template } | SendingRefusal;
 /** What does not depend on the case: read once for a request. */
@@ -85,19 +90,24 @@ interface Rules {
   cap: number;
 }
 
-/** A line that waits or whose fate is unknown: nothing more is asked for the case until it is settled. */
-const pending = (lines: readonly Line[]) => lines.some((line) => line.channel === 'EMAIL' && (line.status === 'QUEUED' || line.status === 'UNCERTAIN'));
+/** Nobody knows whether it has left, and nothing tells it later: it holds the case for a time only (question 220). */
+const stillUncertain = (line: Line, now: Date) => line.status === 'UNCERTAIN' && now.getTime() - line.createdAt.getTime() < UNCERTAIN_MS;
+/** A line that waits, or whose fate is unknown since less than two days: nothing more is asked for the case meanwhile. */
+const pending = (lines: readonly Line[], now: Date) =>
+  lines.some((line) => line.channel === 'EMAIL' && (line.status === 'QUEUED' || stillUncertain(line, now)));
 /**
- * The reminder a case receives from the list now (question 220): the level after the highest that has really left by
- * e-mail, at least a week after it. Nothing once a formal notice is in the story of the case, whatever its channel.
+ * The reminder a case receives from the list now (question 220): the level after the highest that has left by e-mail, at
+ * least a week after it. An uncertain line counts as one that has left, on the day it was asked: the cautious reading.
+ * Nothing once a formal notice is in the story of the case, whatever its channel, in the lines or on the case itself.
  */
 function nextInBatch(found: Found, lines: readonly Line[], now: Date): BatchTemplate | SendingRefusal {
-  if (found.status === 'FORMAL_NOTICE' || lines.some((line) => line.template === 'FORMAL_NOTICE' && line.status !== 'FAILED')) return 'NO_NEXT_REMINDER';
-  const left = lines.filter((line) => line.channel === 'EMAIL' && line.status === 'SENT');
+  if (found.status === 'FORMAL_NOTICE' || found.formalNoticeOn || lines.some((line) => line.template === 'FORMAL_NOTICE' && line.status !== 'FAILED'))
+    return 'NO_NEXT_REMINDER';
+  const left = lines.filter((line) => line.channel === 'EMAIL' && (line.status === 'SENT' || line.status === 'UNCERTAIN'));
   const highest = Math.max(0, ...left.map((line) => line.level ?? 0));
   const template = NEXT_IN_BATCH[highest];
   if (!template) return 'NO_NEXT_REMINDER';
-  const last = Math.max(0, ...left.map((line) => line.sentAt?.getTime() ?? 0));
+  const last = Math.max(0, ...left.map((line) => (line.sentAt ?? line.createdAt).getTime()));
   return now.getTime() - last < GAP_MS ? 'TOO_SOON' : template;
 }
 
@@ -157,7 +167,7 @@ export class SendingsService {
     const lines = new Map<string, Line[]>();
     for (const line of await tx.sending.findMany({
       where: { caseId: { in: wanted } },
-      select: { caseId: true, channel: true, template: true, level: true, status: true, sentAt: true },
+      select: { caseId: true, channel: true, template: true, level: true, status: true, sentAt: true, createdAt: true },
     }))
       lines.set(line.caseId, [...(lines.get(line.caseId) ?? []), line]);
     return {
@@ -198,7 +208,7 @@ export class SendingsService {
   }
 
   private chosenInBatch(found: Found, lines: readonly Line[], now: Date): Chosen {
-    if (pending(lines)) return 'REMINDER_PENDING';
+    if (pending(lines, now)) return 'REMINDER_PENDING';
     const template = nextInBatch(found, lines, now);
     return template === 'FRIENDLY' || template === 'FIRM' ? { contactId: found.contacts[0]!.id, template } : template;
   }
@@ -274,14 +284,14 @@ export class SendingsService {
     const lines = new Map<string, Line[]>();
     for (const line of await tx.sending.findMany({
       where: { caseId: { in: open.map((found) => found.id) } },
-      select: { caseId: true, channel: true, template: true, level: true, status: true, sentAt: true },
+      select: { caseId: true, channel: true, template: true, level: true, status: true, sentAt: true, createdAt: true },
     }))
       lines.set(line.caseId, [...(lines.get(line.caseId) ?? []), line]);
     const data: { caseId: string; creditorId: string; channel: 'EMAIL'; template: Template; level: number; contactId: string }[] = [];
     for (const found of open) {
       const asked = lines.get(found.id) ?? [];
       // One at a time per case: a second click, a second tab or a colleague adds nothing while a reminder is on its way.
-      const chosen = pending(asked) ? 'REMINDER_PENDING' : choose(found, asked);
+      const chosen = pending(asked, rules.now) ? 'REMINDER_PENDING' : choose(found, asked);
       const count = sent.get(found.debtorId) ?? 0;
       const refusal = typeof chosen === 'string' ? chosen : count >= rules.cap ? 'CONTACT_CAP' : null;
       if (refusal ?? typeof chosen === 'string') {
