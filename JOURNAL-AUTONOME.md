@@ -105,8 +105,21 @@ Consigne de l'utilisateur : « Continuer le développement sans interruption, fu
   - `pnpm verifier` relancé par cette session sur l'arbre final fusionné avec `main` : 101 fichiers, 3 711 tests au vert.
   - **Jamais essayé** : Docker (interdit à Claude Code) et la CI, donc ni les deux conteneurs de l'antivirus, ni `infra/ci/smoke.sh` ; aucun appel à un vrai bucket, ni le contrôle Gatus (403 attendu).
 
+- **PR #71 fusionnée** (`lot/x6`).
+- **`lot/q3` — relance par e-mail depuis un dossier** : 13 commits. Table `sendings`, plafond de contacts par débiteur tous créanciers confondus (sous verrou), `POST /staff/cases/:id/reminders`, envoi par le worker chez Resend, formulaire du dossier.
+  - **Aucun message réel n'est parti et aucun ne peut partir d'ici** : client HTTP simulé dans les tests, envoi simulé sans clé hors production. En production, il faut la clé Resend dans le coffre **et** `RESEND_ENV=production` dans `worker.env` ; sans cette ligne, une clé n'écrit qu'aux adresses de test.
+  - Non faits : courriers postaux et MySendingBox, « Rédiger un courrier », envois groupés, scénarios automatiques, SMS (lot R). Tous attendent une règle (questions 210 et 216) ; l'API répond « ce mode d'envoi n'est pas encore disponible ».
+  - Relecture sécurité indépendante en deux passes : aucun bloquant. Corrigés : relance qui restait en file pour toujours ; relance en attente qui n'expirait jamais (expire à la fin du jour ouvré suivant) ; relance qui partait sur un dossier en litige, en contentieux ou dont l'échéancier est respecté (refusée, question 218) ; statuts à sens unique imposés par la base ; balayage qui pouvait noter « non envoyée » une relance partie (risque de double envoi avec deux workers).
+  - **Écarts à l'écran validé « Relancer »**, à confirmer : « Destinataire » devient une liste des adresses e-mail du dossier ; le champ « Message » disparaît pour un e-mail (le texte validé du modèle part tel quel) ; phrases nouvelles pour un refus ; SMS et courrier recommandé refusés depuis le dossier, simulation comprise ; « Relance envoyée » n'entre dans l'historique qu'au départ réel, alors que le message à l'écran s'affiche dès la mise en file (question 219).
+  - `pnpm verifier` relancé par cette session sur l'arbre final fusionné avec `main` : 103 fichiers, 3 780 tests au vert.
+  - Jamais essayé : le vrai service Resend ; le formulaire dans un navigateur contre l'API ; `/comparer` sur l'écran modifié.
+  - Une base de développement qui avait appliqué la première version de la migration `20261127100000_sendings` (worktree `envois` seulement) doit être recréée.
+
 ## À faire par l'utilisateur ou le cabinet
 - Question **205**, à trancher avant d'allumer le bucket : comment l'API atteint le bucket. Proposé : l'API reste fermée, écrit sur le disque, le worker copie vers le bucket après l'antivirus, lecture par adresses signées (demande un autre lot).
 - Question **206** : Gatus ne voit pas une clé du bucket refusée ou expirée (contrôle sans clé seulement), à confirmer.
 - À la mise en service : premier démarrage de `clamav` et `freshclam` à surveiller (`docs/deploiement.md`, « Antivirus ») ; `S3_REGION` obligatoire dans `gatus.env` ; le contrôle « Documents » de Gatus alertera tant que le bucket n'existe pas.
 - `freshclam` n'a pas de contrôle de santé : des signatures périmées ne lèvent aucune alerte.
+- Questions **210 à 219** (envois) à confirmer, en place par défaut. À trancher pour avancer : **210** (quel texte part par courrier postal : bloque tous les courriers), **216** (scénarios automatiques), **217** (les e-mails de compte restent simulés tant que le domaine d'envoi et sa clé n'existent pas : **bloque les invitations en production**), **218** (une promesse de paiement ne suspend pas les relances), **212** (une mise en demeure par simple e-mail est-elle voulue ; « Relance ferme (niveau 3) » envoie le modèle de niveau 2).
+- Plafond des relances : limite de 120 par heure et par collaborateur, valeur choisie par défaut (`docs/api.md`).
+- Reste ouvert sur les envois : aucun avis au collaborateur après un échec ou une expiration ; aucun moyen de trancher un envoi « incertain » (panne de Resend), qui compte au plafond.
