@@ -63,6 +63,7 @@ services:
       entree:
       portails:
       api:
+      automatisations:
       # The public addresses, as the monitoring reaches them without leaving the server.
       etat:
         aliases: [espace.legarec.fr, partenaires.legarec.fr, paiement.legarec.fr, api.legarec.fr, media.legarec.fr]
@@ -111,7 +112,8 @@ services:
     memswap_limit: 768m
     stop_grace_period: 40s
     # No way out: the bucket of the documents cannot be reached from here, and stays off (QUESTIONS.md, 205).
-    networks: [api, donnees]
+    # n8n reaches it by `automatisations`, with a service account (/service, closed to the Internet by Caddy).
+    networks: [api, donnees, automatisations]
     depends_on: &services
       postgres: { condition: service_healthy }
       valkey: { condition: service_healthy }
@@ -211,7 +213,9 @@ services:
       # The same collation as in development; checksums find a damaged page.
       POSTGRES_INITDB_ARGS: --auth-local=peer --auth-host=scram-sha-256 --encoding=UTF8 --locale=C.UTF-8 --locale-provider=icu --icu-locale=fr-FR --data-checksums
     secrets: [postgres, pgbackrest]
-    volumes: ['postgres-data:/var/lib/postgresql/data', 'postgres-socket:/var/run/postgresql']
+    # /depot: the backups on the disk of the server, while they wait for their bucket (docs/deploiement.md, « Sauvegardes
+    # locales »); unused once pgbackrest.env names the bucket.
+    volumes: ['postgres-data:/var/lib/postgresql/data', 'postgres-socket:/var/run/postgresql', 'sauvegardes-locales:/depot']
     shm_size: 256m
     mem_limit: 1536m
     memswap_limit: 1536m
@@ -234,7 +238,7 @@ services:
     command: [incr]
     secrets: [pgbackrest]
     # Reads the data folder, and nothing of it changes; talks to the server by its local socket.
-    volumes: ['postgres-data:/var/lib/postgresql/data:ro', 'postgres-socket:/var/run/postgresql']
+    volumes: ['postgres-data:/var/lib/postgresql/data:ro', 'postgres-socket:/var/run/postgresql', 'sauvegardes-locales:/depot']
     mem_limit: 384m
     memswap_limit: 384m
     networks: [surveillance, sortie-base]
@@ -248,7 +252,7 @@ services:
     command: []
     # A key of its own, that only reads.
     secrets: [{ source: restauration, target: pgbackrest }]
-    volumes: ['/restauration']
+    volumes: ['/restauration', 'sauvegardes-locales:/depot']
     mem_limit: 512m
     memswap_limit: 512m
     depends_on: []
@@ -260,7 +264,7 @@ services:
     entrypoint: [legarec-restore, /var/lib/postgresql/data]
     command: []
     secrets: [{ source: restauration, target: pgbackrest }]
-    volumes: ['postgres-data:/var/lib/postgresql/data']
+    volumes: ['postgres-data:/var/lib/postgresql/data', 'sauvegardes-locales:/depot']
     networks: [sortie-base]
     depends_on: []
 
@@ -306,8 +310,58 @@ services:
     volumes: ['gatus-interne-data:/data']
     mem_limit: 96m
     memswap_limit: 96m
-    networks: [etat, journaux, surveillance, sortie-alertes]
+    networks: [etat, journaux, surveillance, sortie-alertes, automatisations]
     healthcheck: *gatus-health
+
+  # Automations: n8n.legarec.fr, from the addresses of the firm only (Caddy). It meets Caddy, the API and the internal checks,
+  # and has a way out to the Internet of its own, for the services its automations call (DECISIONS.md, 27/11/2026). Its data
+  # stay in its volume, never in PostgreSQL.
+  n8n:
+    <<: *container
+    image: legarec/n8n:${LEGAREC_VERSION:?}
+    build: { context: ., dockerfile: infra/docker/n8n.Dockerfile }
+    # The image has its own init.
+    init: false
+    user: '10117:10117'
+    environment:
+      N8N_HOST: n8n.legarec.fr
+      N8N_PROTOCOL: https
+      N8N_PORT: '5678'
+      N8N_EDITOR_BASE_URL: https://n8n.legarec.fr/
+      WEBHOOK_URL: https://n8n.legarec.fr/
+      # Caddy only: the address of the caller is the one it gives.
+      N8N_PROXY_HOPS: '1'
+      N8N_SECURE_COOKIE: 'true'
+      N8N_USER_FOLDER: /home/node
+      HOME: /tmp
+      GENERIC_TIMEZONE: Europe/Paris
+      TZ: Europe/Paris
+      NODE_OPTIONS: --max-old-space-size=384
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: 'true'
+      # A Code node reads neither the key nor anything else of the environment.
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: 'true'
+      # Nothing told to n8n.io, nothing taken from it.
+      N8N_DIAGNOSTICS_ENABLED: 'false'
+      N8N_VERSION_NOTIFICATIONS_ENABLED: 'false'
+      N8N_TEMPLATES_ENABLED: 'false'
+      N8N_HIRING_BANNER_ENABLED: 'false'
+      N8N_COMMUNITY_PACKAGES_ENABLED: 'false'
+      # The executions may carry personal data: 14 days, then gone (DECISIONS.md, question 232).
+      EXECUTIONS_DATA_PRUNE: 'true'
+      EXECUTIONS_DATA_MAX_AGE: '336'
+      EXECUTIONS_DATA_PRUNE_MAX_COUNT: '10000'
+      N8N_LOG_LEVEL: warn
+      N8N_LOG_OUTPUT: console
+    secrets: [n8n]
+    volumes: ['n8n-data:/home/node/.n8n']
+    tmpfs: ['/tmp:size=128m,mode=1777']
+    mem_limit: 512m
+    memswap_limit: 512m
+    stop_grace_period: 30s
+    networks: [automatisations, sortie-n8n]
+    healthcheck:
+      <<: *health
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:5678/healthz').then((answer) => process.exit(answer.ok ? 0 : 1), () => process.exit(1))"]
 
   # Collector of the technical logs. Neither shell nor health check in its image: checked by gatus-interne.
   journaux:
@@ -387,23 +441,29 @@ networks:
   journaux: *closed
   surveillance: *closed
   antivirus: *closed
+  # n8n, Caddy, the API and the internal checks.
+  automatisations: *closed
   sortie-worker: {}
   # The signatures of the antivirus, for `freshclam` alone: clamd is not on it.
   sortie-antivirus: {}
   sortie-base: {}
   sortie-alertes: {}
+  # The automations of the firm, for n8n alone.
+  sortie-n8n: {}
 
 volumes:
   caddy-data:
   caddy-config:
   postgres-data:
   postgres-socket:
+  sauvegardes-locales:
   valkey-data:
   clamav-data:
   gatus-data:
   gatus-interne-data:
   loki-data:
   grafana-data:
+  n8n-data:
 
 # One file per container, owned by root, readable by the group of its container only (docs/deploiement.md).
 secrets:
@@ -417,3 +477,4 @@ secrets:
   valkey: { file: /etc/legarec/valkey.env }
   gatus: { file: /etc/legarec/gatus.env }
   grafana: { file: /etc/legarec/grafana.env }
+  n8n: { file: /etc/legarec/n8n.env }

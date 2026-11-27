@@ -83,6 +83,12 @@ endpoints:
     interval: 2m
     conditions: ['[STATUS] == 200']
     alerts: [{ type: custom, description: journaux techniques non collectés }]
+  - name: n8n
+    group: automatisations
+    url: http://n8n:5678/healthz
+    interval: 2m
+    conditions: ['[STATUS] == 200']
+    alerts: [{ type: custom, description: automatisations arrêtées }]
 # Told by the programs themselves. Nothing heard in time is a failure.
 external-endpoints:
   - name: worker

@@ -74,6 +74,7 @@ expect 403 https://n8n.legarec.fr/ --header 'X-Forwarded-For: 192.0.2.1' --heade
 sed -i 's/^AUTHORIZED_IPS=.*/AUTHORIZED_IPS=172.16.0.0\/12 192.168.0.0\/16 10.0.0.0\/8 fd00::\/8/' /etc/legarec/caddy.env
 docker compose up --detach --wait --force-recreate caddy
 expect 200 https://status.legarec.fr/journaux/login
+expect 200 https://n8n.legarec.fr/healthz
 get https://status.legarec.fr/api/v1/endpoints/statuses | grep -q 'Loki' || fail 'internal checks for the firm'
 expect 404 'https://status.legarec.fr/api/v1/endpoints/taches_worker/external?success=true' --request POST
 expect 404 'https://status.legarec.fr/api/v1/endpoints/taches_worker/external/?success=true' --request POST
@@ -137,6 +138,8 @@ if docker compose exec -T espace nc -z -w 2 "$clamd" 3310; then fail 'a portal r
 networks() { docker inspect --format '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}} {{end}}' "$(docker compose ps --quiet "$1")"; }
 [ "$(networks clamav)" = 'legarec-app_antivirus ' ] || fail 'clamd is on another network than that of the worker'
 [ "$(networks freshclam)" = 'legarec-app_sortie-antivirus ' ] || fail 'freshclam is on another network than its way out'
+# n8n: Caddy, the API and the internal checks, and its own way out.
+[ "$(networks n8n)" = 'legarec-app_automatisations legarec-app_sortie-n8n ' ] || fail 'n8n is on other networks than its own'
 [ "$(docker compose exec -T clamav sh -c 'echo "$CLAMAV_NO_FRESHCLAMD"')" = true ] || fail 'clamd updates its signatures itself'
 [ "$(docker compose exec -T freshclam sh -c 'echo "$CLAMAV_NO_CLAMD"')" = true ] || fail 'a second clamd beside freshclam'
 if docker compose exec -T freshclam sh -c 'test -S /tmp/clamd.sock'; then fail 'clamd runs beside freshclam'; fi
