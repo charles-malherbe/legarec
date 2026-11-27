@@ -256,6 +256,22 @@ Journaux : ni adresse IP, ni chemin, ni en-tête dans ceux de Caddy ; ni requêt
 - **Bucket injoignable** : le journal de PostgreSQL attend sur le disque, 8 Go au plus (près de 2 jours à plein débit), puis il est abandonné plutôt que de remplir le disque ; l'alerte arrive avant (26 heures sans sauvegarde).
 - **PostgreSQL** n'écrit plus ses lignes ERROR, qui citent souvent des données ; l'API note leur code.
 
+## Surveillance externe (Hyperping)
+
+Gatus tourne sur le serveur qu'il surveille : si le serveur, son réseau ou Caddy tombe, Gatus tombe avec lui. Hyperping (app.hyperping.io) regarde les mêmes adresses publiques depuis l'extérieur (Paris, Francfort, Londres, Amsterdam), toutes les 5 minutes, avec l'échéance des certificats (alerte 15 jours avant).
+
+- Moniteurs : `infra/hyperping/moniteurs.json` (espace, partenaires, paiement, `api.legarec.fr/health` avec `"status":"ok"`, page d'état). Ni donnée personnelle ni secret.
+- Mise en place ou changement, par le cabinet, depuis une copie à jour du dépôt :
+
+  ```bash
+  infra/hyperping/legarec-hyperping
+  ```
+
+  Le script demande la clé API (Project settings › Developers › Create key, « Read & Write ») sans l'afficher, puis crée ou met à jour chaque moniteur par son identifiant : il peut être relancé sans créer de doublon. La clé n'est écrite nulle part ; à créer avec une expiration, ou à révoquer après usage.
+- Essai sans clé ni appel : `node infra/hyperping/provisionner.mjs --essai`.
+- Alertes : celles du compte Hyperping (e-mail du compte, à régler dans Hyperping) ; aucune donnée ne part vers Hyperping hors des adresses surveillées.
+- Tant que HTTPS ne répond pas (certificats absents), les cinq moniteurs sont en panne : c'est attendu.
+
 ## Documents et PDF (lot N)
 - **Dossier des documents** : `/var/lib/legarec/documents`, propriétaire 10101, groupe 10120, droits 2770 (à créer avant le premier déploiement ; `deployer.sh` le vérifie). L'API et le worker y écrivent et y lisent par ce groupe commun ; aucun autre conteneur ne le voit. Monté sur `/documents` (`DOCUMENTS_DIR`). À sauvegarder avec la base (copie quotidienne du dossier) tant que le bucket n'est pas en service, puis tant qu'il reste des fichiers dans ce dossier (« Bucket des documents »).
 - **Chromium** : paquet Debian de l'image (`CHROMIUM_PATH=/usr/bin/chromium`), utilisé par le worker seul, sans son bac à sable (le conteneur en tient lieu, la page n'exécute aucun script et ne charge rien). Worker : 1 Go de mémoire, 400 processus, `/tmp` de 256 Mo.
