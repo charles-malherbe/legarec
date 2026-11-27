@@ -32,7 +32,7 @@ Seul service exposé sur Internet (ports 80 et 443) : HTTPS automatique, en-têt
 - Chaque collaborateur a sa boîte professionnelle (`initiales@legarec.fr` ou adresse de fonction comme `administratif@`, `support@`) et répond depuis elle.
 - OVH MX Plan : SMTP `smtp.mail.ovh.net` 465 SSL/TLS ; IMAP `ssl0.ovh.net` 993 ; quota d'environ 200 e-mails par heure et par boîte. Un mot de passe par boîte, chiffré côté API.
 - Gestion des boîtes (création, mot de passe, redirections, réponse automatique ; aucune suppression, question 28) depuis Paramètres techniques, par l'API OVHcloud limitée à `/email/domain/legarec.fr/*`.
-- Suivi des ouvertures et des clics (question 84) : e-mails aux débiteurs et aux créanciers sur mail.legarec.fr ; e-mails de compte (invitation, mot de passe, codes) sur compte.legarec.fr, second domaine Resend sans suivi, à créer. Suivi coupé d'ici là. Envois par OVH : jamais suivis.
+- Suivi des ouvertures et des clics : coupé (question 225, à trancher). La décision du 25/11/2026 (question 84) le voulait pour les e-mails aux débiteurs et aux créanciers, les e-mails de compte (invitation, mot de passe, codes) partant d'un second domaine sans suivi ; depuis la décision du 27/11/2026 (question 217), ils partent de mail.legarec.fr avec la même clé que les relances, et Resend règle le suivi pour tout un domaine. Envois par OVH : jamais suivis.
 - Signature des messages des collaborateurs : nom, rôle, e-mail, numéro 3CX (standard par défaut) suivi du poste s'il existe, adresse, site. Jamais de numéro de portable.
 
 ## Autres services

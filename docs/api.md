@@ -455,7 +455,7 @@ Restent : un paiement encaissé jamais reversé ou encore en attente (le créanc
 
 | Service (lot) | Noms des clés | Où la créer, avec quels droits | En développement |
 |---|---|---|---|
-| Resend (Q) | `RESEND_API_KEY`, `RESEND_ACCOUNT_API_KEY` (second domaine, 84), `RESEND_WEBHOOK_SECRET` | Resend > API Keys : accès « envoi » limité à un domaine ; Webhooks : secret de signature `whsec_…` du webhook créé vers `https://api.legarec.fr/hooks/resend` (`docs/deploiement.md`) | Clé limitée à un domaine de test ; destinataires `@resend.dev` (comptés dans le quota) |
+| Resend (Q) | `RESEND_API_KEY`, `RESEND_ACCOUNT_API_KEY` (prévue pour un second domaine, question 84 ; sans usage depuis la décision du 27/11/2026, question 217 : les e-mails de compte partiront avec `RESEND_API_KEY`), `RESEND_WEBHOOK_SECRET` | Resend > API Keys : accès « envoi » limité à un domaine ; Webhooks : secret de signature `whsec_…` du webhook créé vers `https://api.legarec.fr/hooks/resend` (`docs/deploiement.md`) | Clé limitée à un domaine de test ; destinataires `@resend.dev` (comptés dans le quota) |
 | MySendingBox (Q) | `MYSENDINGBOX_API_KEY` (`live_`), `MYSENDINGBOX_TEST_API_KEY` (`test_`) | Compte MySendingBox | Clé `test_` seulement : aucun courrier ne part |
 | Stockage S3 OVHcloud (N, X) | `S3_ACCESS_KEY`, `S3_SECRET_KEY` | Clé limitée au bucket `legarec-documents` : lire, écrire, supprimer un objet, lister le bucket | **Aucune** : disque local (`S3_DOCUMENTS_BUCKET` est refusé au démarrage hors production, quel que soit le nom) |
 | OVH, boîtes (R) | `OVH_API_APP_KEY`, `OVH_API_APP_SECRET`, `OVH_API_CONSUMER_KEY` | eu.api.ovh.com/createToken, règles `/email/domain/legarec.fr/*` seulement | **Aucune** : pas de mode test trouvé, elle agirait sur les vraies boîtes |
