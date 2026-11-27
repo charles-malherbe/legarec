@@ -344,7 +344,7 @@ services:
       N8N_TEMPLATES_ENABLED: 'false'
       N8N_HIRING_BANNER_ENABLED: 'false'
       N8N_COMMUNITY_PACKAGES_ENABLED: 'false'
-      # The executions may carry personal data: 14 days, then gone (QUESTIONS.md, 232).
+      # The executions may carry personal data: 14 days, then gone (DECISIONS.md, question 232).
       EXECUTIONS_DATA_PRUNE: 'true'
       EXECUTIONS_DATA_MAX_AGE: '336'
       EXECUTIONS_DATA_PRUNE_MAX_COUNT: '10000'

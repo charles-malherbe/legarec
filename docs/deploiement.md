@@ -246,6 +246,7 @@ Après le premier déploiement, puis après chaque changement de ces fichiers.
 | Versions du bucket effacées ou remplacées | 7 jours de plus, soit 70 jours au plus pour une donnée effacée | Règle du bucket |
 | Journaux techniques | 60 jours | `infra/loki/loki.yaml` |
 | Copie locale de Docker (`docker compose logs`) | 2 Mo par conteneur, effacée à chaque déploiement | `docker-compose.yml` |
+| Exécutions de n8n | 14 jours, 10 000 au plus | `docker-compose.yml` (`EXECUTIONS_DATA_*`) |
 
 Journaux : ni adresse IP, ni chemin, ni en-tête dans ceux de Caddy ; ni requête, ni valeur dans ceux de PostgreSQL ; ceux de l'API et du worker sont déjà limités (`docs/api.md`).
 
@@ -395,7 +396,7 @@ Tant qu'une route manque, son écran affiche son état d'erreur (« Réessayer �
 - **Stockage chez OVHcloud** : fait pour Caddy (`media.legarec.fr`), pgBackRest et les noms des clés (`S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_REGION`, `S3_DOCUMENTS_BUCKET`). pgBackRest reste en adresses « chemin » (`repo1-s3-uri-style=path`), qu'OVHcloud accepte ; **jamais essayé contre un vrai bucket** : le premier `legarec run --rm sauvegarde full` de la mise en service le dira, avant toute donnée. La migration `storage_secret_names` renomme deux noms de clés : sans effet au premier déploiement ; elle interdit seulement de revenir à une version antérieure une fois une clé de stockage saisie. Le bucket `legarec-documents` est branché dans le code, éteint en production (« Bucket des documents », question 205).
 - ClamAV : fait (« Antivirus », ci-dessus). Reste une alerte quand clamd ne répond plus : Gatus ne joint pas le réseau `antivirus` (réservé au worker), et le contrôle de santé du conteneur ne prévient personne.
 - Chemin des modèles d'e-mails et de PDF : vérifié. Le worker les lit dans `templates/`, à côté de `dist/` (`apps/api/src/worker.ts`), et l'image copie ce dossier ; `TEMPLATES_DIR` de `renderer.ts` ne sert qu'aux tests.
-- n8n : conteneur en place (« n8n », plus haut). Restent les comptes de service, pour qu'il appelle l'API (`/service`), et la question 232 (durée des exécutions).
+- n8n : conteneur en place (« n8n », plus haut). Restent les comptes de service, pour qu'il appelle l'API (`/service`), rien d'autre (questions tranchées : sortie vers Internet, webhooks réservés au cabinet, exécutions gardées 14 jours).
 - Bucket des documents : ouvrir à l'API un chemin vers le bucket (question 205), puis première vérification réelle. Contrôle Gatus : fait, sans clé (question 206). Copie vers le bucket des fichiers restés sur le disque : non prévue.
 - Purge à la demande après une restauration : faite (`dist/purge.js`, étape 6 de « Restaurer la base »).
 - Fichiers sans ligne : balayage fait, chaque nuit, suspendu par la purge d'après restauration, et commande `dist/sweep-files.js` (« Documents et PDF », questions 230 et 231). Bucket couvert dans le code, jamais essayé contre un vrai bucket. Reste à décider : une alerte (Gatus ou notification au Développeur) quand la tâche refuse ou trouve un fichier sans ligne.
