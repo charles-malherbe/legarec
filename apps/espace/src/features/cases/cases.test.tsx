@@ -23,7 +23,7 @@ describe('case access', () => {
   it('refuses every change outside the role', async () => {
     expect((await call('ad', '/cases/demo')).status).toBe(200);
     for (const [path, body] of [
-      ['/cases/demo/reminders', { channel: 'E-mail', template: 'Relance n°1', recipient: 'compta@batiplus.example', message: 'Bonjour' }],
+      ['/cases/demo/reminders', { channel: 'EMAIL', template: 'FRIENDLY', recipient: 'compta@batiplus.example', message: 'Bonjour' }],
       ['/cases/demo/payments', { method: 'TRANSFER', amount: 10000, receivedOn: '2026-11-24', label: 'Virement', reconciled: true }],
       ['/cases/demo/access-code/regenerate', { version: 1 }],
       ['/cases/demo/portal-messages', { text: 'Bonjour' }],
@@ -107,6 +107,33 @@ describe('case file', () => {
     await userEvent.type(within(bounce).getByLabelText('Motif du rejet'), 'Provision insuffisante');
     await confirmWith('Déclarer impayé');
     await waitFor(() => expect(within(screen.getByText('1234567 · Banque test').closest('tr')!).getByText('Impayé')).toBeVisible());
+  });
+  it('sends a reminder after a confirmation with its summary, as codes, and says why one is refused', async () => {
+    openAs('cl', '/debiteurs/demo');
+    await userEvent.click(await screen.findByRole('button', { name: 'Envoyer une relance' }));
+    const sent: unknown[] = [];
+    server.events.on('request:start', ({ request }) => {
+      if (request.url.endsWith('/cases/demo/reminders'))
+        void request
+          .clone()
+          .json()
+          .then((body) => sent.push(body));
+    });
+    // A text is not open yet: the API refuses it, and the form says why; nothing has left.
+    await userEvent.selectOptions(await screen.findByLabelText('Canal'), 'SMS');
+    await userEvent.click(screen.getByRole('button', { name: 'Envoyer la relance' }));
+    await confirmWith('Envoyer la relance');
+    expect(await screen.findByText('La relance n’est pas partie : ce mode d’envoi n’est pas encore disponible.')).toBeVisible();
+    // By e-mail, to an address of the case.
+    await userEvent.selectOptions(screen.getByLabelText('Canal'), 'EMAIL');
+    await userEvent.click(screen.getByRole('button', { name: 'Envoyer la relance' }));
+    const dialog = await screen.findByRole('alertdialog', { name: 'Envoyer cette relance ?' });
+    expect(within(dialog).getByText('Relance ferme (niveau 3)')).toBeVisible();
+    expect(within(dialog).getByText('E-mail')).toBeVisible();
+    await confirmWith('Envoyer la relance');
+    expect(await screen.findByText('Relance envoyée.')).toBeVisible();
+    expect(sent.map((body) => (body as { channel: string; template: string }).channel)).toEqual(['SMS', 'EMAIL']);
+    expect(sent[1]).toMatchObject({ channel: 'EMAIL', template: 'FIRM', recipient: expect.stringContaining('@') as string });
   });
   it('shows the access code in clear to those who act on the case, and to nobody else', async () => {
     openAs('cl', '/debiteurs/demo');
