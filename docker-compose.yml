@@ -126,7 +126,8 @@ services:
     secrets: [worker]
     group_add: ['10120']
     # Chromium writes the PDF (receipts): its processes, and its files in /tmp.
-    environment: { DOCUMENTS_DIR: /documents, CHROMIUM_PATH: /usr/bin/chromium, HOME: /tmp }
+    # The antivirus is an address, not a secret: without it, the files received would wait, unread.
+    environment: { DOCUMENTS_DIR: /documents, CHROMIUM_PATH: /usr/bin/chromium, HOME: /tmp, CLAMAV_URL: 'tcp://clamav:3310' }
     volumes: ['/var/lib/legarec/documents:/documents']
     pids_limit: 400
     tmpfs: ['/tmp:size=256m,mode=1777']
@@ -134,12 +135,34 @@ services:
     memswap_limit: 1g
     # A task under way ends before the worker stops: a letter or a text message cut short would have an unknown outcome.
     stop_grace_period: 90s
-    networks: [donnees, surveillance, sortie-worker]
+    networks: [donnees, surveillance, antivirus, sortie-worker]
     depends_on: *services
     healthcheck:
       <<: *health
       interval: 60s
       test: [CMD, node, --env-file=/run/secrets/worker, worker-health.mjs]
+
+  # Antivirus, reached by the worker alone: every file received waits for its answer (docs/deploiement.md, « Antivirus »).
+  clamav:
+    <<: *container
+    image: legarec/clamav:${LEGAREC_VERSION:?}
+    build: { context: ., dockerfile: infra/docker/clamav.Dockerfile }
+    # The image has its own init.
+    init: false
+    user: '10116:10116'
+    volumes: ['clamav-data:/var/lib/clamav']
+    # clamd writes each file it reads here: 15 MB at most, four at a time.
+    tmpfs: ['/tmp:size=128m,mode=1777']
+    # The signatures take about 1.2 GB once loaded.
+    mem_limit: 2g
+    memswap_limit: 2g
+    stop_grace_period: 30s
+    networks: [antivirus, sortie-antivirus]
+    healthcheck:
+      <<: *health
+      # Loading the signatures takes minutes on a busy server.
+      start_period: 6m
+      test: [CMD, clamdcheck.sh]
 
   # One run before each deployment, with the only account that may change the tables.
   migration:
@@ -342,7 +365,10 @@ networks:
   etat: *closed
   journaux: *closed
   surveillance: *closed
+  antivirus: *closed
   sortie-worker: {}
+  # The signatures of the antivirus, and nothing else.
+  sortie-antivirus: {}
   sortie-base: {}
   sortie-alertes: {}
 
@@ -352,6 +378,7 @@ volumes:
   postgres-data:
   postgres-socket:
   valkey-data:
+  clamav-data:
   gatus-data:
   gatus-interne-data:
   loki-data:

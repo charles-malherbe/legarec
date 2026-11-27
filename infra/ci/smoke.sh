@@ -119,6 +119,22 @@ docker compose exec -T valkey valkey-cli ping > /tmp/said 2>&1 || true
 grep -q NOAUTH /tmp/said || fail 'Valkey without a password'
 ok networks
 
+# Antivirus: heard by the worker alone, and it tells a clean file from the test file of the antivirus makers
+clamd="$(address clamav antivirus)"
+instream="$(cat infra/ci/instream.mjs)"
+docker compose exec -T worker node -e "$instream" "$clamd" clean > /tmp/said 2>&1 || fail 'the worker does not reach the antivirus'
+grep -q ' OK$' /tmp/said || fail 'the antivirus on a clean file'
+docker compose exec -T worker node -e "$instream" "$clamd" sick > /tmp/said 2>&1 || fail 'the antivirus on the test file'
+grep -q ' FOUND$' /tmp/said || fail 'the antivirus does not find the test file'
+[ "$(docker compose exec -T worker node -e 'console.log(process.env.CLAMAV_URL)')" = tcp://clamav:3310 ] || fail 'the worker has no antivirus'
+if nc -z -w 2 "$clamd" 3310; then fail 'the server reaches the antivirus'; fi
+# The image of the API has no nc: the same probe from the worker is its witness.
+probe="import('node:net').then(({ connect }) => connect({ host: process.argv[1], port: 3310 }).setTimeout(2000, () => process.exit(1)).on('connect', () => process.exit(0)).on('error', () => process.exit(1)))"
+docker compose exec -T worker node -e "$probe" "$clamd" || fail 'witness of the antivirus'
+if docker compose exec -T api node -e "$probe" "$clamd"; then fail 'the API reaches the antivirus'; fi
+if docker compose exec -T espace nc -z -w 2 "$clamd" 3310; then fail 'a portal reaches the antivirus'; fi
+ok antivirus
+
 # PostgreSQL: rights, then a second run of everything that can be run again
 docker compose exec -T postgres psql --username postgres --dbname legarec --tuples-only --no-align --command \
   "SELECT pg_get_userbyid(datdba), has_database_privilege('legarec_app', 'legarec', 'CONNECT') FROM pg_database WHERE datname = 'legarec'" | grep -qx 'legarec_owner|t' || fail 'owner of the database'

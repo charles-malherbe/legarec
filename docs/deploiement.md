@@ -17,11 +17,12 @@ Première partie du lot X. Fichiers préparés par Claude Code, vérifiés par G
 | `sauvegarde`, `essai-restauration` | Une exécution par minuterie | 999 | 384 et 512 Mo | oui (bucket) |
 | `restauration` | À la main, base arrêtée | 999 | 384 Mo | oui (bucket) |
 | `valkey` | Files d'attente | 10115 | 512 Mo | non |
+| `clamav` | Antivirus des fichiers reçus, joint par le worker seul | 10116 | 2 Go | oui (signatures) |
 | `gatus` | Page d'état publique | 10111 | 96 Mo | non |
 | `gatus-interne` | Contrôles internes et alertes | 10111 | 96 Mo | oui (alertes) |
 | `journaux`, `loki`, `grafana` | Journaux techniques, 60 jours | 10113, 10001, 10114 | 96, 384 et 320 Mo | non |
 
-Conteneurs permanents : 4,9 Go au plus. Réserver 2,5 Go pour ClamAV et n8n, à venir. Aucun conteneur ne tourne en root, ni sous le compte 1000 (premier compte du serveur). Systèmes de fichiers en lecture seule, aucun droit Linux, réseaux séparés et fermés au serveur lui-même : un portail ne joint pas la base, n8n ne joindra que l'API, et un autre compte du serveur ne joint ni l'API, ni Loki, ni la base.
+Conteneurs permanents : 6,9 Go au plus, dont 2 Go pour ClamAV. Réserver 0,5 Go pour n8n, à venir. Aucun conteneur ne tourne en root, ni sous le compte 1000 (premier compte du serveur). Systèmes de fichiers en lecture seule, aucun droit Linux, réseaux séparés et fermés au serveur lui-même : un portail ne joint pas la base, n8n ne joindra que l'API, et un autre compte du serveur ne joint ni l'API, ni Loki, ni la base.
 
 | Fichiers | Contenu |
 |---|---|
@@ -40,7 +41,7 @@ Conteneurs permanents : 4,9 Go au plus. Réserver 2,5 Go pour ClamAV et n8n, à 
 - [ ] VPS réservé à Legarec (décision du cabinet) : rien d'autre dessus, ni développement, ni Claude Code ; 8 Go de mémoire au moins. Ports 80 et 443 libres.
 - [ ] Docker 28 ou plus récent, Compose 2.30 ou plus récent ; 40 Go de disque libres.
 - [ ] Aucun projet Compose nommé `legarec-app` (`docker compose ls`) ni réseau 10.213.0.0/24 sur ce serveur.
-- [ ] Comptes libres : `getent passwd 10001 10101 10102 10103 10104 10110 10111 10113 10114 10115` et `getent group 10120` ne répondent rien ; 999 (PostgreSQL) n'est celui d'aucune personne.
+- [ ] Comptes libres : `getent passwd 10001 10101 10102 10103 10104 10110 10111 10113 10114 10115 10116` et `getent group 10120` ne répondent rien ; 999 (PostgreSQL) n'est celui d'aucune personne.
 - [ ] Connexion SSH par clé, réservée au cabinet ; aucun compte de ce serveur utilisé pour le développement.
 - [ ] Pare-feu : 80/tcp, 443/tcp, 443/udp ouverts ; rien d'autre pour Legarec. Refuser aux réseaux de Docker l'accès aux autres services du serveur.
 - [ ] Dépôt cloné dans `/opt/legarec`, propriété de root, hors de portée de Claude Code : `git clone`, branche `main`. Clé de déploiement GitHub en lecture seule.
@@ -225,6 +226,7 @@ Après le premier déploiement, puis après chaque changement de ces fichiers.
 
 **Serveur**
 - [ ] `legarec ps` : tous en marche ; seul `caddy` publie des ports.
+- [ ] Antivirus : un PDF sain déposé dans Documents devient lisible en moins d'une minute ; le fichier d'essai EICAR (eicar.org) renommé en `.pdf` est refusé ou affiché « Bloqué par l’antivirus », jamais lisible.
 - [ ] `docker inspect` d'un conteneur : aucune valeur de `/etc/legarec/`.
 - [ ] Redémarrage du serveur : tout revient seul.
 - [ ] Depuis un compte sans `sudo` : `/etc/legarec` illisible.
@@ -254,6 +256,13 @@ Journaux : ni adresse IP, ni chemin, ni en-tête dans ceux de Caddy ; ni requêt
 - **Dossier des documents** : `/var/lib/legarec/documents`, propriétaire 10101, groupe 10120, droits 2770 (à créer avant le premier déploiement ; `deployer.sh` le vérifie). L'API et le worker y écrivent et y lisent par ce groupe commun ; aucun autre conteneur ne le voit. Monté sur `/documents` (`DOCUMENTS_DIR`). À sauvegarder avec la base (copie quotidienne du dossier) tant que le bucket n'existe pas.
 - **Chromium** : paquet Debian de l'image (`CHROMIUM_PATH=/usr/bin/chromium`), utilisé par le worker seul, sans son bac à sable (le conteneur en tient lieu, la page n'exécute aucun script et ne charge rien). Worker : 1 Go de mémoire, 400 processus, `/tmp` de 256 Mo.
 
+## Antivirus (ClamAV)
+- **Conteneur `clamav`** : image officielle `clamav/clamav` 1.5.5, désignée par son empreinte (`infra/docker/clamav.Dockerfile`), lancée sans root par son script `/init-unprivileged`. Réglages dans l'image (`infra/clamav/`) : flux de 20 Mo au plus (un fichier fait 15 Mo au plus), un seul jeu de signatures en mémoire (`ConcurrentDatabaseReload no`, `TestDatabases no`) pour tenir dans 2 Go.
+- **Réseaux** : `antivirus`, fermé, partagé avec le worker seul (`CLAMAV_URL=tcp://clamav:3310`, écrit dans `docker-compose.yml` : ce n'est pas un secret) ; `sortie-antivirus` pour télécharger les signatures (`database.clamav.net`), rien d'autre. Ni l'API, ni un portail, ni un autre compte du serveur ne le joignent.
+- **Signatures** : celles du jour de publication de l'image sont dans l'image, donc clamd démarre sans Internet ; `freshclam` les met à jour ensuite une fois par jour dans le volume `clamav-data`. Démarrage : une à plusieurs minutes (chargement des signatures), pendant lesquelles les fichiers reçus attendent.
+- **Antivirus arrêté ou injoignable** : rien ne se perd et rien ne se lit ; la tâche d'analyse est retentée, le document reste « analyse antivirus en cours ». Aucune alerte Gatus ne le signale encore (ci-dessous, « Le reste »).
+- **Jamais essayé sur un serveur** : la composition n'a pas pu être lancée par Claude Code (Docker interdit). GitHub Actions la construit et vérifie (`infra/ci/smoke.sh`) que le worker obtient « OK » pour un fichier sain et « FOUND » pour le fichier d'essai EICAR, et que ni l'API, ni un portail, ni le serveur ne joignent clamd. À regarder à la première mise en service : mémoire réellement prise (`docker stats`), et mise à jour des signatures dans le journal du conteneur.
+
 ## Reste à faire (fin du lot X)
 
 ### Avant la mise en service : écrans encore sans API
@@ -279,7 +288,7 @@ Tant qu'une route manque, son écran affiche son état d'erreur (« Réessayer �
 
 ### Le reste
 - **Stockage chez OVHcloud** : fait pour Caddy (`media.legarec.fr`), pgBackRest et les noms des clés (`S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_REGION`, `S3_DOCUMENTS_BUCKET`). pgBackRest reste en adresses « chemin » (`repo1-s3-uri-style=path`), qu'OVHcloud accepte ; **jamais essayé contre un vrai bucket** : le premier `legarec run --rm sauvegarde full` de la mise en service le dira, avant toute donnée. La migration `storage_secret_names` renomme deux noms de clés : sans effet au premier déploiement ; elle interdit seulement de revenir à une version antérieure une fois une clé de stockage saisie. Le bucket `legarec-documents` n'est pas encore branché (ci-dessous).
-- ClamAV : conteneur à ajouter (1,5 à 2 Go de mémoire, image désignée par son empreinte), joint par le worker seul (`CLAMAV_URL=tcp://clamav:3310`) ; d'ici là, les fichiers reçus attendent sans être lus (rien ne se perd). Le bucket `legarec-documents` remplacera ensuite le dossier des documents.
+- ClamAV : fait (« Antivirus », ci-dessus). Reste une alerte quand clamd ne répond plus : Gatus ne joint pas le réseau `antivirus` (réservé au worker), et le contrôle de santé du conteneur ne prévient personne.
 - Chemin des modèles d'e-mails et de PDF : vérifié. Le worker les lit dans `templates/`, à côté de `dist/` (`apps/api/src/worker.ts`), et l'image copie ce dossier ; `TEMPLATES_DIR` de `renderer.ts` ne sert qu'aux tests.
 - n8n : avec les comptes de service ; conteneur et valeurs (`N8N_ENCRYPTION_KEY`) à ajouter, sur un réseau partagé avec l'API seule. Sa route existe déjà dans Caddy, réservée aux adresses du cabinet : elle répond 502 d'ici là.
 - Gatus : contrôle du bucket des documents (lot N).

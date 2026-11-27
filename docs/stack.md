@@ -34,7 +34,7 @@ Deux ambiances sur les mêmes composants, en deux thèmes dérivés du thème de
 Voir `docs/domaines-et-services.md`.
 
 ## Hébergement, code, qualité
-- Conteneurs **Docker** sur un **VPS** : réservé à Legarec : un `docker-compose.yml` (api, worker, trois fronts, PostgreSQL, Valkey, Gatus, Loki, Grafana, **Caddy** ; ClamAV et n8n à venir). Caddy est le seul service exposé (HTTPS automatique) ; `infra/caddy/Caddyfile`, d'après `kits/caddy/Caddyfile.exemple`. Guide : `docs/deploiement.md`.
+- Conteneurs **Docker** sur un **VPS** : réservé à Legarec : un `docker-compose.yml` (api, worker, trois fronts, PostgreSQL, Valkey, Gatus, Loki, Grafana, ClamAV, **Caddy** ; n8n à venir). Caddy est le seul service exposé (HTTPS automatique) ; `infra/caddy/Caddyfile`, d'après `kits/caddy/Caddyfile.exemple`. Guide : `docs/deploiement.md`.
 - Code sur **GitHub, avec GitHub Actions** pour les vérifications : `.github/workflows/` lance `pnpm verifier` sur chaque pull request. Aucun secret de production ni déploiement dans GitHub Actions ; le déploiement reste `pnpm deployer`, lancé par le cabinet.
 - Mises à jour : versions exactes figées ; Renovate propose les mises à jour, vérifiées par GitHub Actions avant fusion.
 - Tests : **Vitest** (logique), **Playwright** (parcours + comparaison visuelle avec `maquette/captures/`), **axe** (accessibilité).
