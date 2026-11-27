@@ -70,8 +70,8 @@ headers="$(get --head https://media.legarec.fr/e-mails/v1/legarec-logo-en-tete-n
 for header in 'content-type: image/png' 'cache-control: public, max-age=31536000, immutable' "content-security-policy: default-src 'none'" 'strict-transport-security: ' 'x-content-type-options: nosniff'; do
   [ "$(grep -ci "^$header" <<< "$headers")" = 1 ] || fail "media copy: $header, once"
 done
-# Neither copy nor bucket: the error of the proxy, never an empty page; never the listing of a folder.
-expect 502 https://media.legarec.fr/marque/absent.png
+# Never the listing of a folder. A file in neither the copy nor the bucket gets the 502 of the proxy, never an empty
+# page: the last request of « Technical logs » checks it, and must stay the only 502 until then.
 expect 404 https://media.legarec.fr/marque/
 ok 'media copy'
 
@@ -209,7 +209,7 @@ status "https://media.legarec.fr/$mark?code=$mark" --user-agent "$mark" --cookie
 loki() { docker compose exec -T grafana wget -qO- "http://loki:3100/loki/api/v1/$1"; }
 for _ in $(seq 30); do
   loki 'query_range?query=%7Bapplication%3D%22legarec%22%2Ccontainer%3D~%22.*caddy.*%22%7D&limit=1000' > /tmp/caddy.json
-  # The last of the requests above: the bucket cannot be reached from here.
+  # The last of the requests above, the only 502: the bucket cannot be reached from here and the copy lacks this file.
   grep -qE 'status[\\]+":502' /tmp/caddy.json && break
   sleep 3
 done
