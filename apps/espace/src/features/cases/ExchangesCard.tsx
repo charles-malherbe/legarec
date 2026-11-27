@@ -3,6 +3,7 @@ import { Badge, Bouton, Carte, Champ, Onglets, useConfirm, useToast, type Tone }
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { useChange } from '../../app/data';
+import { opens } from '../../app/features';
 import layout from '@legarec/ui/layout.module.css';
 
 const CHANNEL: Record<Exchange['channel'], { label: string; tone: Tone }> = {
@@ -16,6 +17,11 @@ const CHANNEL: Record<Exchange['channel'], { label: string; tone: Tone }> = {
   PORTAL_IN: { label: 'Espace débiteur', tone: 'teal' },
   PORTAL_OUT: { label: 'Réponse · espace débiteur', tone: 'marine' },
 };
+const CHANNELS = [
+  ['/appels', 'Appeler'],
+  ['/e-mails', 'E-mail'],
+  ['/sms', 'SMS'],
+] as const;
 const DELIVERY: Record<NonNullable<Exchange['delivery']>, Tone> = { SENT: 'neutral', DELIVERED: 'info', ACKNOWLEDGED: 'success', FAILED: 'danger' };
 const FILTERS = [
   ['all', 'Tous'],
@@ -29,6 +35,7 @@ export function ExchangesCard({ data }: { data: CaseDetail }) {
   const toast = useToast();
   const [filter, setFilter] = useState<(typeof FILTERS)[number][0]>('all');
   const [reply, setReply] = useState('');
+  const channels = CHANNELS.filter(([href]) => opens(href));
   const items = data.exchanges.filter((item) => filter === 'all' || (filter === 'portal' ? item.channel.startsWith('PORTAL') : item.delivery !== null));
   const send = () =>
     confirm({
@@ -49,17 +56,13 @@ export function ExchangesCard({ data }: { data: CaseDetail }) {
     <Carte title="Échanges avec le débiteur" padding="none">
       <div style={{ padding: 'var(--sp-3) var(--sp-5)' }} className={layout.between}>
         <Onglets label="Filtrer les échanges" items={FILTERS.map(([id, label]) => ({ label, selected: id === filter, pick: () => setFilter(id) }))} />
-        {data.canAct && (
+        {data.canAct && channels.length > 0 && (
           <span className={layout.inline}>
-            <Link to="/appels" className={layout.link}>
-              Appeler
-            </Link>
-            <Link to="/e-mails" className={layout.link}>
-              E-mail
-            </Link>
-            <Link to="/sms" className={layout.link}>
-              SMS
-            </Link>
+            {channels.map(([href, label]) => (
+              <Link key={href} to={href} className={layout.link}>
+                {label}
+              </Link>
+            ))}
           </span>
         )}
       </div>
