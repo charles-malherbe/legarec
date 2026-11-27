@@ -6,6 +6,7 @@ import { Staff, StaffOrDelegate } from '../../platform/access/access';
 import { currentActor } from '../../platform/http/context';
 import { Commits } from '../../platform/http/transaction.interceptor';
 import { AccessCodes } from '../debtor-access/access-codes';
+import { SendingsService } from '../reminders/sendings.service';
 import { CasesService, type StaffActor } from './cases.service';
 import { ContactsService } from './contacts.service';
 
@@ -23,6 +24,7 @@ export class CasesController {
     @Inject(CasesService) private readonly cases: CasesService,
     @Inject(ContactsService) private readonly contacts: ContactsService,
     @Inject(AccessCodes) private readonly codes: AccessCodes,
+    @Inject(SendingsService) private readonly sendings: SendingsService,
   ) {}
 
   @Post('search')
@@ -112,6 +114,19 @@ export class CasesController {
   @ApiNoContentResponse()
   addNote(@Param('id') id: string, @Body({ schema: bodies['POST /cases/:id/notes'] }) { text }: In<'POST /cases/:id/notes'>) {
     return this.cases.addNote(id, text);
+  }
+
+  /**
+   * A reminder to the debtor, from a case one acts on. Refused with its reason (409, `sendingRefusal`) when the rules of the
+   * firm forbid it: caps of the debtor, hours, first letter, individual, closed case, values of the firm between brackets.
+   */
+  @Post(':id/reminders')
+  @WithCases()
+  @Commits()
+  @HttpCode(204)
+  @ApiNoContentResponse()
+  remind(@Param('id') id: string, @Body({ schema: bodies['POST /cases/:id/reminders'] }) body: In<'POST /cases/:id/reminders'>) {
+    return this.sendings.remind(id, body);
   }
 
   /** The Director and the manager in their own right (question 138): the debtor of all its cases, for all the creditors. */

@@ -1760,6 +1760,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/staff/cases/{id}/reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CasesController_remind"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/staff/cases/{id}/debtor": {
         parameters: {
             query?: never;
@@ -6186,6 +6202,23 @@ export interface operations {
         };
     };
     CasesController_addNote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CasesController_remind: {
         parameters: {
             query?: never;
             header?: never;

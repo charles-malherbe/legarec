@@ -54,6 +54,13 @@ const workerSchema = z.object({
   JOBS_DATABASE_URL: database,
   /** Development only: folder where the simulated messages are written. */
   DEV_MAIL_DIR: z.string().startsWith('/').optional(),
+  /** Outside production only: addresses of the firm a test key of Resend may write to, besides `@resend.dev`. */
+  DEV_RECIPIENTS: z
+    .string()
+    .max(2000)
+    .transform((value) => value.split(',').map((item) => item.trim().toLowerCase()).filter(Boolean))
+    .pipe(z.array(z.email()).max(20))
+    .optional(),
   /** clamd of the server (`tcp://clamav:3310`). Absent in production: files wait, unread, for the antivirus. */
   CLAMAV_URL: z
     .string()
@@ -105,6 +112,7 @@ export const readConfig = (env: Env): Config => read(apiSchema, env);
 export function readWorkerConfig(env: Env): WorkerConfig {
   const config = read(workerSchema, env);
   if (config.NODE_ENV === 'production' && config.DEV_MAIL_DIR) throw new ConfigError('Refused in production: DEV_MAIL_DIR');
+  if (config.NODE_ENV === 'production' && config.DEV_RECIPIENTS) throw new ConfigError('Refused in production: DEV_RECIPIENTS');
   return config;
 }
 

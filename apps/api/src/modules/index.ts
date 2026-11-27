@@ -42,6 +42,7 @@ import { CreditNotesController } from './remittances/credit-notes.controller';
 import { RemittancesController } from './remittances/remittances.controller';
 import { RemindersController } from './reminders/reminders.controller';
 import { RemindersService } from './reminders/reminders.service';
+import { SendingsService } from './reminders/sendings.service';
 import { AiController } from '../ai/ai.controller';
 import { AiJournalController } from '../ai/journal.controller';
 import { NotificationsController } from './notifications/notifications.controller';
@@ -117,6 +118,7 @@ export const providers: Provider[] = [
   ContactsService,
   NotificationsService,
   RemindersService,
+  SendingsService,
   LitigationService,
   DepositsService,
   DashboardService,

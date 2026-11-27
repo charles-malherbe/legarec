@@ -25,17 +25,16 @@ export class EmailsService {
   ) {}
 
   async send(name: AutomaticEmail, to: string, data: unknown): Promise<void> {
+    await this.transport.send(await this.compose(name, to, data));
+  }
+
+  /** The message as it would leave, for whoever sends it another way (a reminder, whose outcome is recorded). */
+  async compose(name: AutomaticEmail, to: string, data: unknown): Promise<AutomaticMessage> {
     // One valid address only: no list nor header injection.
     z.email().parse(to);
     const config = await this.settings();
     const { subject, html } = this.renderer.renderAutomatic(name, data, config);
-    await this.transport.send({
-      from: AUTOMATIC_SENDER,
-      to,
-      subject,
-      html,
-      ...(REPLY_ACCEPTED.includes(name) ? { replyTo: config.collection_email } : {}),
-    });
+    return { from: AUTOMATIC_SENDER, to, subject, html, ...(REPLY_ACCEPTED.includes(name) ? { replyTo: config.collection_email } : {}) };
   }
 
   /** The role shown in an invitation always comes from the labels of the application. */

@@ -12,6 +12,8 @@ const DAY_MS = 86_400_000;
 const shift = (day: string, days: number) => new Date(Date.parse(`${day}T12:00:00Z`) + days * DAY_MS).toISOString().slice(0, 10);
 const asTime = (time: string) => time || null;
 const LABELS: Record<Channel, string> = { EMAIL: 'e-mail', SMS: 'SMS', CALL: 'appel', LETTER: 'courrier' };
+/** Midnight in Paris at the start of that day, in winter as in summer. */
+const startOf = (day: string) => [1, 2].map((hours) => new Date(Date.parse(`${day}T00:00:00Z`) - hours * 3_600_000)).find((time) => dayOf(time) === day)!;
 /** Two years ahead at most. */
 const FURTHEST_DAYS = 730;
 /** What the agenda shows: a month back, three months ahead. */
@@ -81,8 +83,15 @@ export class RemindersService {
         limit: null,
       })),
     ].sort((a, b) => a.date.localeCompare(b.date) || (a.time ?? '').localeCompare(b.time ?? ''));
-    // What has left this week: with the sendings of lot Q.
-    return { today, items, weekly: { emails: 0, sms: 0, letters: 0 } };
+    // What has left this week (from Monday) on the cases one reads; texts come with lot R.
+    const [monday] = capPeriod('EMAIL', today);
+    const left = await tx.sending.groupBy({
+      by: ['channel'],
+      where: { draft: false, status: { not: 'FAILED' }, createdAt: { gte: startOf(monday) } },
+      _count: { _all: true },
+    });
+    const sent = (...channels: string[]) => left.filter((row) => channels.includes(row.channel)).reduce((sum, row) => sum + row._count._all, 0);
+    return { today, items, weekly: { emails: sent('EMAIL'), sms: 0, letters: sent('LETTER', 'REGISTERED_LETTER') } };
   }
 
   /** The cases one may plan a reminder on: those one acts on. */

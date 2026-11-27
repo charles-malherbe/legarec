@@ -3,7 +3,8 @@ import { randomBytes } from 'node:crypto';
 import { Writable } from 'node:stream';
 import { inject } from 'vitest';
 import { emailConfigOf } from '../src/emails/config';
-import { EmailsService } from '../src/emails/emails.service';
+import { EmailsService, type AutomaticMessage } from '../src/emails/emails.service';
+import { ResendClient, type HttpClient } from '../src/emails/resend';
 import { EmailRenderer, TEMPLATES_DIR } from '../src/emails/renderer';
 import { aiJobs } from '../src/ai/ai.jobs';
 import type { AiSetup } from '../src/ai/provider';
@@ -12,6 +13,7 @@ import { AuthKeys } from '../src/modules/auth/keys';
 import { accessCodeJobs } from '../src/modules/debtor-access/access-codes.jobs';
 import { documentJobs } from '../src/modules/documents/documents.jobs';
 import { receiptJobs } from '../src/modules/payments/receipts.jobs';
+import { sendingJobs } from '../src/modules/reminders/sendings.jobs';
 import { PdfRenderer } from '../src/platform/pdf/pdf';
 import { fileURLToPath } from 'node:url';
 import { SimulatedScanner } from '../src/platform/scanner/scanner';
@@ -33,13 +35,22 @@ export interface Mail {
   html: string;
 }
 
-/** The real worker, whose e-mails go nowhere. */
-export function startMailWorker(test: TestApp, { ai }: { ai?: AiSetup } = {}) {
+/**
+ * The real worker, whose e-mails go nowhere. `http` stands for the provider of the reminders: without it, a call to a
+ * provider fails the test, for no test ever reaches one.
+ */
+export function startMailWorker(
+  test: TestApp,
+  { ai, http, production = false, now }: { ai?: AiSetup; http?: HttpClient; production?: boolean; now?: () => Date } = {},
+) {
   const prefix = `test-${randomBytes(5).toString('hex')}`;
   const logger = createLogger('debug', new Writable({ write: (chunk: Buffer, _encoding, done) => (test.logs.push(chunk.toString()), done()) }));
   const database = new Database(test.database.url('jobs'));
   const valkey = connectValkey(inject('valkeyUrl'), 'jobs');
   const mails: Mail[] = [];
+  /** The reminders that left for nobody, for want of a key. */
+  const simulated: AutomaticMessage[] = [];
+  const vault = new Vault(test.config);
   const pdf = new PdfRenderer();
   let sending: Pick<Mail, 'name' | 'data'> | undefined;
   const settings = () => database.run({ kind: 'worker', job: 'email-settings' }, async (tx) => emailConfigOf(await SettingValues.read(tx), test.config));
@@ -54,17 +65,30 @@ export function startMailWorker(test: TestApp, { ai }: { ai?: AiSetup } = {}) {
     return emails.send(name, to, data);
   };
   const handlers = {
-    email: accountJobs({ keys: new AuthKeys(test.config), portals: test.config, send }),
-    maintenance: accessCodeJobs(new Vault(test.config)),
+    email: {
+      ...accountJobs({ keys: new AuthKeys(test.config), portals: test.config, send }),
+      ...sendingJobs({
+        database,
+        vault,
+        emails,
+        resend: new ResendClient(http ?? (() => Promise.reject(new Error('a test never reaches a provider')))),
+        production,
+        devRecipients: ['recette@legarec.test'],
+        simulate: (message) => Promise.resolve(void simulated.push(message)),
+        ...(now ? { now } : {}),
+      }),
+    },
+    maintenance: accessCodeJobs(vault),
     documents: documentJobs(storageFor(test.config), new SimulatedScanner()),
     pdf: receiptJobs(storageFor(test.config), pdf, fileURLToPath(new URL('../templates/pdf/', import.meta.url))),
-    ai: aiJobs(() => ai ?? null, new Vault(test.config)),
+    ai: aiJobs(() => ai ?? null, vault),
   };
   const workers = startWorkers({ database, logger, connection: valkey, handlers, prefix });
   const publisher = new OutboxPublisher(database, logger, valkey, prefix);
   return {
     prefix,
     valkey,
+    simulated,
     /** Runs everything queued so far, and gives what was sent. */
     run: async (): Promise<Mail[]> => {
       await publisher.publish();
