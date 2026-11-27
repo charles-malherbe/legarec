@@ -22,6 +22,7 @@ interface Line {
   confirmed_at: Date | null;
   delivered_at: Date | null;
   undelivered_at: Date | null;
+  undelivered_reason: string | null;
   complained_at: Date | null;
 }
 type Tone = 'danger' | 'warning' | 'success';
@@ -37,6 +38,9 @@ const UNDELIVERED: Partial<Record<EventKind, { reason: string; detail: string }>
 };
 /** After which the address is no longer written to (question 224). */
 const UNREACHABLE: ReadonlySet<EventKind> = new Set(['BOUNCED', 'SUPPRESSED', 'COMPLAINED']);
+/** Reasons that leave the address alone, and those that condemn it: the first may become the second, never the reverse. */
+const MILD: readonly string[] = ['BOUNCE', 'PROVIDER_FAILED'];
+const FINAL: readonly string[] = ['HARD_BOUNCE', 'SUPPRESSED'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
 
 const note = (tx: Transaction, caseId: string, kind: string, title: string, detail: string, tone: Tone) =>
@@ -54,7 +58,8 @@ const note = (tx: Transaction, caseId: string, kind: string, title: string, deta
  *   the history and to the logs, and counts as left for the caps and the levels (`confirmed_at`): nothing is sent twice in
  *   its name.
  * - Delivery, bounce and complaint are written once each on the line and in the history of the case. An address that can
- *   no longer be written to is marked as wrong (`app.invalidate_unreachable_contact`).
+ *   no longer be written to is marked as wrong (`app.invalidate_unreachable_contact`). One fact may be made worse: a
+ *   temporary bounce, or a failure at Resend, followed by a permanent bounce or a suppression, takes that reason.
  */
 export async function applyResendEvent(tx: Transaction, event: Stored, logger: AppLogger, now: Date): Promise<boolean> {
   const { kind } = event;
@@ -63,7 +68,7 @@ export async function applyResendEvent(tx: Transaction, event: Stored, logger: A
   // not known here is of another environment: never looked for otherwise.
   const [line] = await tx.$queryRaw<Line[]>`
     SELECT s.id, s.case_id, s.status::text AS status, s.level, s.simulated, s.provider_ref, s.created_at, s.confirmed_at, s.delivered_at,
-      s.undelivered_at, s.complained_at
+      s.undelivered_at, s.undelivered_reason, s.complained_at
     FROM sendings s
     WHERE s.channel = 'EMAIL' AND CASE WHEN ${event.sending_id}::uuid IS NOT NULL THEN s.id = ${event.sending_id}::uuid
       ELSE ${event.provider_ref}::text IS NOT NULL AND s.provider_ref = ${event.provider_ref}::text END
@@ -117,6 +122,11 @@ export async function applyResendEvent(tx: Transaction, event: Stored, logger: A
     // « Relance non envoyée » has just been written for a line that was uncertain.
     if (left || line.status === 'SENT') await note(tx, caseId, 'REMINDER_UNDELIVERED', 'Relance non distribuée', `${about} · ${undelivered.detail}`, 'danger');
     fact = true;
+  } else if (undelivered && FINAL.includes(undelivered.reason) && line.undelivered_reason !== null && MILD.includes(line.undelivered_reason)) {
+    // The same message, first bounced for a time or failed at Resend, then refused for good: the reason alone changes, on
+    // the date already written. The history has said once that the reminder did not arrive; what follows says the rest.
+    const { count } = await tx.sending.updateMany({ where: { id, undeliveredReason: { in: [...MILD] } }, data: { undeliveredReason: undelivered.reason } });
+    fact = count === 1;
   }
   if (fact && UNREACHABLE.has(kind)) {
     const [marked] = await tx.$queryRaw<{ marked: boolean }[]>`SELECT app.invalidate_unreachable_contact(${id}::uuid) AS marked`;

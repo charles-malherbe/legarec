@@ -34,7 +34,8 @@ CREATE INDEX sendings_provider_ref ON sendings (provider_ref) WHERE provider_ref
 -- As before: a line is born queued, is taken (uncertain) before anything leaves, then is sent or failed; never back. A
 -- settled line keeps its status, its reference, its failure and its date for ever: a line that has failed never becomes
 -- sent, whatever the provider says later. What the provider says of it is added beside, once each, and never to a line
--- that has not been taken nor to a simulated one.
+-- that has not been taken nor to a simulated one. A single fact may be made worse afterwards: a temporary bounce or a
+-- failure at the provider, followed by a permanent bounce or a suppression of the same message, takes that reason.
 CREATE OR REPLACE FUNCTION app.keep_sending() RETURNS trigger
 LANGUAGE plpgsql SET search_path = pg_catalog, public, pg_temp AS $$
 BEGIN
@@ -58,7 +59,10 @@ BEGIN
   END IF;
   IF (OLD.confirmed_at IS NOT NULL AND NEW.confirmed_at IS DISTINCT FROM OLD.confirmed_at)
     OR (OLD.delivered_at IS NOT NULL AND NEW.delivered_at IS DISTINCT FROM OLD.delivered_at)
-    OR (OLD.undelivered_at IS NOT NULL AND (NEW.undelivered_at, NEW.undelivered_reason) IS DISTINCT FROM (OLD.undelivered_at, OLD.undelivered_reason))
+    OR (OLD.undelivered_at IS NOT NULL AND (NEW.undelivered_at, NEW.undelivered_reason) IS DISTINCT FROM (OLD.undelivered_at, OLD.undelivered_reason)
+      -- One change only: a reason that left the address alone becomes one that condemns it, on the date already written.
+      AND NOT coalesce(NEW.undelivered_at = OLD.undelivered_at AND OLD.undelivered_reason IN ('BOUNCE', 'PROVIDER_FAILED')
+        AND NEW.undelivered_reason IN ('HARD_BOUNCE', 'SUPPRESSED'), false))
     OR (OLD.complained_at IS NOT NULL AND NEW.complained_at IS DISTINCT FROM OLD.complained_at)
     OR ((NEW.status IN ('QUEUED', 'UNCERTAIN') OR NEW.simulated)
       AND (NEW.confirmed_at IS NOT NULL OR NEW.delivered_at IS NOT NULL OR NEW.undelivered_at IS NOT NULL OR NEW.complained_at IS NOT NULL)) THEN

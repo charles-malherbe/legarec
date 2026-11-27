@@ -427,6 +427,54 @@ describe('a line that was sent', () => {
     expect(await history(made)).toEqual(['Relance non distribuée']);
   });
 
+  it('that bounced for a time, then for good, takes the worse reason once and has its address marked as wrong', async () => {
+    const made = await eligible();
+    const { id, ref } = await line(made, 'SENT');
+    await happen({ type: 'email.bounced', sending: id, ref, ago: 60, data: { bounce: { type: 'Transient' } } });
+    const soft = await sending(id);
+    expect(soft).toMatchObject({ undelivered_reason: 'BOUNCE' });
+    expect(await contactOf(made)).toEqual({ status: 'VERIFIED', is_primary: true });
+    await happen({ type: 'email.bounced', sending: id, ref, ago: 10, data: { bounce: { type: 'Permanent' } } });
+    // The reason alone has changed: the date of the first bounce, and everything else, stay.
+    expect(await sending(id)).toEqual({ ...soft, undelivered_reason: 'HARD_BOUNCE' });
+    expect(await contactOf(made)).toEqual({ status: 'INVALID', is_primary: false });
+    expect(await rows('SELECT title, detail FROM case_events WHERE case_id = $1 ORDER BY occurred_at, id', [made.id])).toEqual([
+      { title: 'Relance non distribuée', detail: 'E-mail · niveau 1 · rejet temporaire' },
+      { title: 'Adresse e-mail marquée invalide', detail: 'Rebond Resend' },
+    ]);
+    // Never back, nor from one final reason to the other.
+    await happen({ type: 'email.bounced', sending: id, ref, data: { bounce: { type: 'Transient' } } });
+    await happen({ type: 'email.suppressed', sending: id, ref });
+    await happen({ type: 'email.failed', sending: id, ref });
+    expect(await sending(id)).toEqual({ ...soft, undelivered_reason: 'HARD_BOUNCE' });
+    expect(await history(made)).toHaveLength(2);
+    expect((await stored()).map((row) => row.status)).toEqual(['PROCESSED', 'PROCESSED', 'IGNORED', 'IGNORED', 'IGNORED']);
+    // A colleague has confirmed the address since the first bounce: the line learns the reason, the address is left alone.
+    const touched = await eligible();
+    const old = await line(touched, 'SENT', { minutes: 600 });
+    await happen({ type: 'email.bounced', sending: old.id, ref: old.ref, ago: 3600, data: { bounce: { type: 'Transient' } } });
+    await as(officer(), (tx) => tx.$executeRaw`SELECT app.note_contact(${touched.contact}::uuid, 'VERIFIED')`);
+    await happen({ type: 'email.bounced', sending: old.id, ref: old.ref, ago: 5, data: { bounce: { type: 'Permanent' } } });
+    expect(await sending(old.id)).toMatchObject({ undelivered_reason: 'HARD_BOUNCE' });
+    expect(await contactOf(touched)).toEqual({ status: 'VERIFIED', is_primary: true });
+    expect(await history(touched)).toEqual(['Relance non distribuée']);
+  });
+
+  it('that failed at Resend, then is suppressed, has its address marked as wrong, and its failure said once', async () => {
+    const made = await eligible();
+    const { id } = await line(made, 'UNCERTAIN');
+    await happen({ type: 'email.failed', sending: id, ago: 30 });
+    expect(await sending(id)).toMatchObject({ status: 'FAILED', failure: 'PROVIDER_FAILED', undelivered_reason: 'PROVIDER_FAILED' });
+    await happen({ type: 'email.suppressed', sending: id, ago: 10 });
+    expect(await sending(id)).toMatchObject({ status: 'FAILED', failure: 'PROVIDER_FAILED', undelivered_reason: 'SUPPRESSED', confirmed_at: null });
+    expect(await contactOf(made)).toEqual({ status: 'INVALID', is_primary: false });
+    expect(await rows('SELECT title, detail FROM case_events WHERE case_id = $1 ORDER BY occurred_at, id', [made.id])).toEqual([
+      { title: 'Relance non envoyée', detail: null },
+      { title: 'Adresse e-mail marquée invalide', detail: 'Adresse écartée par Resend' },
+    ]);
+    expect((await stored()).map((row) => row.status)).toEqual(['PROCESSED', 'PROCESSED']);
+  });
+
   it('that is complained about, or that Resend has suppressed, has its address marked as wrong too', async () => {
     const complained = await eligible();
     const first = await line(complained, 'SENT');
@@ -543,11 +591,21 @@ describe('in the database', () => {
       "confirmed_at = now() + interval '1 second'",
       'confirmed_at = NULL, delivered_at = NULL, complained_at = NULL',
       "delivered_at = now() + interval '1 second'",
-      "undelivered_reason = 'HARD_BOUNCE'",
+      "undelivered_reason = 'PROVIDER_FAILED'",
+      // The worse reason, but on another date.
+      "undelivered_at = now() + interval '1 second', undelivered_reason = 'HARD_BOUNCE'",
       'undelivered_at = NULL, undelivered_reason = NULL',
       "complained_at = now() + interval '1 second'",
     ])
       expect(await change(sent.id, set), set).toBe('42501');
+    // One change only: the reason that left the address alone becomes one that condemns it, and then stays.
+    expect(await change(sent.id, "undelivered_reason = 'HARD_BOUNCE'")).toBe('done');
+    for (const set of ["undelivered_reason = 'BOUNCE'", "undelivered_reason = 'SUPPRESSED'", "undelivered_reason = 'PROVIDER_FAILED'", 'undelivered_at = NULL, undelivered_reason = NULL'])
+      expect(await change(sent.id, set), set).toBe('42501');
+    const failedAtProvider = await line(made, 'SENT');
+    expect(await change(failedAtProvider.id, "undelivered_at = now(), undelivered_reason = 'PROVIDER_FAILED'")).toBe('done');
+    expect(await change(failedAtProvider.id, "undelivered_reason = 'BOUNCE'")).toBe('42501');
+    expect(await change(failedAtProvider.id, "undelivered_reason = 'SUPPRESSED'")).toBe('done');
     expect(await change(sent.id, "undelivered_reason = 'UNKNOWN'")).not.toBe('done');
     for (const state of ['QUEUED', 'UNCERTAIN', 'SIMULATED'] as const) {
       const { id } = await line(made, state);
