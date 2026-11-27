@@ -35,6 +35,7 @@ Conteneurs permanents : 7,8 Go au plus, dont 2,4 Go pour ClamAV et 0,5 Go pour n
 | `infra/systemd/` | Minuteries des sauvegardes, de leur vérification et de l'essai de restauration |
 | `infra/valeurs/` | Modèles des fichiers de `/etc/legarec/` (noms seulement) |
 | `infra/deployer.sh` | Déploiement, lancé par le cabinet |
+| `infra/hyperping/` | Surveillance externe : moniteurs et healthchecks Hyperping |
 | `infra/ci/`, `.github/workflows/images.yml` | Essai complet dans GitHub Actions, sans secret ni publication |
 
 ## À préparer
@@ -82,6 +83,7 @@ Un fichier par conteneur dans `/etc/legarec/`, d'après `infra/valeurs/*.exemple
 | `gatus.env` | 10111 | `GATUS_ALERT_KEY`, `GATUS_ALERT_TO`, `GATUS_WORKER_TOKEN`, `GATUS_BACKUP_TOKEN`, `GATUS_RESTORE_TOKEN`, `S3_REGION` (`eu-west-par`, déjà écrite) |
 | `grafana.env` | 10114 | `GF_SECURITY_ADMIN_PASSWORD`, `GF_SECURITY_SECRET_KEY` |
 | `n8n.env` | 10117 | `N8N_ENCRYPTION_KEY` : celle de l'ancien n8n s'il est repris (« n8n », plus bas), sinon `openssl rand -hex 32` |
+| `hyperping.env` (facultatif) | root, 600 | `HYPERPING_PING_SAUVEGARDE`, `HYPERPING_PING_RESTAURATION` (« Healthchecks », plus bas) |
 
 Dossiers et droits :
 
@@ -275,6 +277,37 @@ Gatus tourne sur le serveur qu'il surveille : si le serveur, son réseau ou Cadd
 - Essai sans clé ni appel : `node infra/hyperping/provisionner.mjs --essai`.
 - Alertes : celles du compte Hyperping (e-mail du compte, à régler dans Hyperping) ; aucune donnée ne part vers Hyperping hors des adresses surveillées.
 - Tant que HTTPS ne répond pas (certificats absents), les cinq moniteurs sont en panne : c'est attendu.
+
+### Healthchecks (tâches du serveur)
+Gatus surveille déjà les sauvegardes et l'essai de restauration, mais depuis le serveur. Deux healthchecks Hyperping en sont le second témoin, hors du serveur : chaque tâche réussie envoie un ping (`infra/hyperping/signaler`, après le succès seulement), et Hyperping prévient quand il n'arrive plus.
+
+| Healthcheck (Hyperping › Healthchecks › New) | Période | Délai de grâce | Envoyé par | Variable |
+|---|---|---|---|---|
+| Legarec · Sauvegarde de la nuit | 1 jour | 8 heures | `legarec-sauvegarde` (lundi à samedi, 1 h 30) et `legarec-sauvegarde-complete` (dimanche, 1 h 30) | `HYPERPING_PING_SAUVEGARDE` |
+| Legarec · Essai de restauration | 7 jours | 8 heures | `legarec-essai-restauration` (lundi, 4 h) | `HYPERPING_PING_RESTAURATION` |
+
+Le délai de grâce couvre la durée maximale d'une tâche (6 heures) et le décalage aléatoire de la minuterie (10 minutes).
+
+1. Créer les deux healthchecks dans Hyperping et copier leur adresse de ping (`https://hc.hyperping.io/…`). Cette adresse porte un jeton : elle reste dans le gestionnaire de mots de passe et dans ce fichier, jamais dans le dépôt.
+2. Fichier des adresses, lu par systemd seul (root, 600), puis y remplacer les deux valeurs entre crochets :
+
+   ```bash
+   sudo install -o root -g root -m 600 /opt/legarec/infra/valeurs/hyperping.env.exemple /etc/legarec/hyperping.env
+   ```
+
+3. Unités à jour (étape 4 de « Ordre de mise en service »), puis relecture par systemd :
+
+   ```bash
+   sudo cp /opt/legarec/infra/systemd/* /etc/systemd/system/ && sudo systemctl daemon-reload
+   ```
+
+4. Premier ping sans attendre la nuit (une sauvegarde incrémentale, de quelques minutes) :
+
+   ```bash
+   sudo systemctl start legarec-sauvegarde.service
+   ```
+
+Le fichier est facultatif : sans lui, ou avec une ligne vide, rien ne part et la tâche n'en est pas gênée. Une valeur encore entre crochets ou une adresse autre que `https://hc.hyperping.io/…` n'est jamais appelée : le journal de l'unité le dit (`journalctl -u legarec-sauvegarde`), sans afficher l'adresse. Un ping qui échoue ne fait jamais échouer la tâche : c'est Hyperping qui le remarquera. Rien d'autre ne part vers Hyperping que ce ping vide.
 
 ## Documents et PDF (lot N)
 - **Dossier des documents** : `/var/lib/legarec/documents`, propriétaire 10101, groupe 10120, droits 2770 (à créer avant le premier déploiement ; `deployer.sh` le vérifie). L'API et le worker y écrivent et y lisent par ce groupe commun ; aucun autre conteneur ne le voit. Monté sur `/documents` (`DOCUMENTS_DIR`). À sauvegarder avec la base (copie quotidienne du dossier) tant que le bucket n'est pas en service, puis tant qu'il reste des fichiers dans ce dossier (« Bucket des documents »).

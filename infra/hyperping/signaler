@@ -1,0 +1,16 @@
+#!/bin/sh
+# Healthcheck of Hyperping: tells it that a task of the server ended well, so that it warns when one stops coming.
+# Run by systemd after the task (ExecStartPost, never after a failure), with the address of the variable named in $1,
+# read from /etc/legarec/hyperping.env. The address carries a token: never printed. No address: nothing is sent.
+set -eu
+[ "$#" = 1 ] || { echo 'Usage : signaler <variable>' >&2; exit 2; }
+url="$(printenv "$1" || true)"
+case "$url" in
+  '') exit 0 ;;
+  https://hc.hyperping.io/*) ;;
+  *)
+    echo "Valeur de $1 inattendue (adresse https://hc.hyperping.io/… attendue) : rien n'est envoyé." >&2
+    exit 1
+    ;;
+esac
+exec /usr/bin/curl --fail --silent --show-error --max-time 10 --retry 3 --retry-all-errors --output /dev/null -- "$url"
