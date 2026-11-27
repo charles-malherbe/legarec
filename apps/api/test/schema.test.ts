@@ -483,7 +483,7 @@ describe('rights of the roles inside', () => {
       'template_versions UPDATE (number, on_behalf_of_id, published_at, review_reason, reviewed_by, state, submitted_by, updated_at)',
       // Documents: shared by its function.
       'documents INSERT (category, id, kind, original_name, sha256, size_bytes, source, storage_key, title, uploaded_by_creditor, uploaded_by_debtor)',
-      'documents SELECT (case_id, contains_access_code, created_at, creditor_id, id, purged_at, scan_status, shared_with_creditor_at, source, uploaded_by_creditor, uploaded_by_debtor)',
+      'documents SELECT (case_id, contains_access_code, created_at, creditor_id, id, purged_at, scan_status, shared_with_creditor_at, source, storage_key, uploaded_by_creditor, uploaded_by_debtor)',
       'documents UPDATE (case_id, creditor_id, shared_by, shared_with_creditor_at)',
       'debtor_links SELECT (case_id, debtor_id, expires_at, id, revoked_at, token_hash, uses)',
       'ai_suggestions SELECT (asked_by, case_id, cost_micro, created_at, decided_by, decision, feature, id, input_summary, input_tokens, model, outcome, output_tokens, prompt_version)',
@@ -717,6 +717,8 @@ describe('rights on the functions', () => {
     ...['internal_key', 'first_internal_key'].map((name) => [name, ['staff', 'worker']] as [string, string[]]),
     // The two keys of the bucket of the documents, for whoever handles a file.
     ['storage_keys', ['debtor', 'partner', 'staff', 'worker']],
+    // Which keys of the storage a row holds: asked by the sweep of the files without a row.
+    ['referenced_files', ['retention']],
     ['portal_officer', ['partner']],
     ['create_director', ['worker']],
     ['ticket_reader', ['worker']],
@@ -809,6 +811,7 @@ describe('rights on the functions', () => {
       'purge_remittances purge_invoices purge_payments purge_accounting_documents forget_remittances forget_lone_invoices forget_bounced_payments forget_accounting_documents',
       'purge_waiting_files forget_waiting_files purge_old_history forget_case_story forget_old_history',
       'forget_payments forget_invoices invoice_batches accounting_cutoff',
+      'referenced_files',
     ].flatMap((names) => names.split(' '));
     const found = await rows<{ proname: string }>(
       "SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'app' ORDER BY 1",
@@ -841,6 +844,53 @@ describe('database', () => {
       for (const name of ['statement_timeout', 'lock_timeout', 'idle_in_transaction_session_timeout'])
         expect(setting.some((value) => value.startsWith(`${name}=`))).toBe(true);
     expect(settings).toHaveLength(2);
+  });
+});
+
+describe('files of the storage', () => {
+  // A column that holds a key of the storage: its files are erased by the sweep (src/platform/storage/sweep.ts) unless
+  // `app.referenced_files` reads it. A new one is added to this list AND to the function, in a new migration.
+  const HOLDING = ['documents.storage_key'];
+  // Columns named like a key that are something else. A new column whose name ends in `key` is put in one list or the other.
+  const OTHER_KEYS = ['idempotency_keys.key', 'second_factors.public_key', 'setting_versions.key', 'settings.key', 'task_keys.key', 'task_marks.key'];
+  // The whole value, and nothing around it.
+  const KEY_CHECK = "'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'";
+
+  it('are held by columns that are all known: named like a key, or checked like one', async () => {
+    const found = await rows<{ entry: string; checked: boolean }>(
+      `SELECT c.relname || '.' || a.attname AS entry,
+         EXISTS (SELECT 1 FROM pg_constraint k WHERE k.conrelid = c.oid AND k.contype = 'c' AND a.attnum = ANY (k.conkey) AND strpos(pg_get_constraintdef(k.oid), $1) > 0) AS checked
+       FROM pg_attribute a JOIN pg_class c ON c.oid = a.attrelid JOIN pg_namespace n ON n.oid = c.relnamespace
+       WHERE ${TABLES} AND a.attnum > 0 AND NOT a.attisdropped ORDER BY 1`,
+      [KEY_CHECK],
+    );
+    const named = found.filter(({ entry, checked }) => checked || /(^|_)key$/u.test(entry.split('.')[1]!)).map((row) => row.entry);
+    expect(named).toEqual([...HOLDING, ...OTHER_KEYS].sort());
+    // A key of the storage is checked as one by the database.
+    expect(found.filter((row) => row.checked).map((row) => row.entry)).toEqual(HOLDING);
+  });
+
+  it('are all read by the function that tells the sweep which keys a row holds', async () => {
+    const [{ source }] = (await rows<{ source: string }>(
+      "SELECT p.prosrc AS source FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'app' AND p.proname = 'referenced_files'",
+    )) as [{ source: string }];
+    const read = [...source.matchAll(/SELECT \w+\.(\w+) FROM public\.(\w+) \w+ WHERE \w+\.(\w+) = ANY \(keys\)/gu)];
+    expect(read.every(([, selected, , compared]) => selected === compared)).toBe(true);
+    expect(read.map(([, column, table]) => `${table}.${column}`).sort()).toEqual(HOLDING);
+    // And the function can read them, whatever the row.
+    for (const entry of HOLDING) {
+      const [table, column] = entry.split('.') as [string, string];
+      expect(await rows('SELECT has_column_privilege($1, $2, $3, $4) AS granted', ['legarec_definer', table, column, 'SELECT']), entry).toEqual([
+        { granted: true },
+      ]);
+      expect(
+        await rows(
+          "SELECT 1 FROM pg_policy p JOIN pg_class c ON c.oid = p.polrelid WHERE c.relname = $1 AND 'legarec_definer'::regrole = ANY (p.polroles) AND p.polcmd IN ('*', 'r') AND pg_get_expr(p.polqual, p.polrelid) = 'true'",
+          [table],
+        ),
+        entry,
+      ).not.toEqual([]);
+    }
   });
 });
 
