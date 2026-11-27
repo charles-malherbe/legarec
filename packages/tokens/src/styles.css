@@ -1,11 +1,20 @@
 @import './fonts.css';
 @import './tokens.css';
+/* Roboto for the text, the titles and the brand screens (DECISIONS.md, 27/11/2026), instead of the Inter and Lora of the
+   mockup: tokens.css stays a copy of the mockup, its font variables are replaced here. */
+:root {
+  --font-title: Roboto, system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+  --font-text: Roboto, system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+  --font-brand: Roboto, system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+}
 body {
   margin: 0;
   background: var(--surface-2);
   color: var(--text);
   font-size: var(--fs-md);
   font-optical-sizing: none;
+  /* The single-storey « a » of Inter (cv11) asked by the mockup: Roboto keeps its own letters. */
+  font-feature-settings: normal;
 }
 /* Mantine sets 1.55 on body; the mockup uses the natural line height, except in low-vision mode. */
 :root:not([data-a11y='malvoyant']) body {
