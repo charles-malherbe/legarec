@@ -2,6 +2,7 @@ import { Queue, type ConnectionOptions } from 'bullmq';
 import type { Database, Transaction } from '../database/database';
 import type { AppLogger } from '../logging/logger';
 import type { Storage } from '../storage/storage';
+import { sweep, TooManyOrphans, type SweepMode, type Swept } from '../storage/sweep';
 import type { ScheduledHandlers } from './jobs';
 import type { QueueName } from './outbox';
 import { QUEUE_PREFIX } from './publisher';
@@ -82,8 +83,39 @@ async function eraseFiles(database: Database, storage: Storage): Promise<number>
   }
 }
 
-/** Each step stands alone: one that fails neither undoes nor prevents the others. Counts are kept, never what was removed. */
-export async function purge(database: Database, logger: AppLogger, storage: Storage): Promise<Record<string, number>> {
+/**
+ * The files of the storage that no row points at (sweep.ts): an upload whose row was never written and whose removal
+ * failed, a program stopped between the two. The purge asks which keys a row holds, and reads no table for that.
+ * Counts in the journal, never a key.
+ */
+export async function sweepFiles(database: Database, logger: AppLogger, storage: Storage, mode: SweepMode): Promise<Swept> {
+  const referenced = (keys: string[]) =>
+    database.run({ kind: 'retention' }, async (tx) =>
+      (await tx.$queryRaw<{ key: string }[]>`SELECT key FROM app.referenced_files(${keys}::text[]) AS key`).map((row) => row.key),
+    );
+  const told = (found: Swept) => {
+    logger.info({ kind: 'orphan-files', count: found.orphans + found.parts }, 'files without a row found');
+    if (found.unknown) logger.warn({ kind: 'orphan-files', count: found.unknown }, 'names that are no storage key, left untouched');
+    return found;
+  };
+  let found: Swept;
+  try {
+    found = told(await sweep(storage, referenced, mode));
+  } catch (error) {
+    if (error instanceof TooManyOrphans) told(error.found);
+    throw error;
+  }
+  const left = found.orphans + found.parts - found.erased;
+  if (mode !== 'count' && left) logger.warn({ kind: 'orphan-files', count: left }, 'files without a row left for the next run');
+  return found;
+}
+
+/**
+ * Each step stands alone: one that fails neither undoes nor prevents the others. Counts are kept, never what was removed.
+ * `orphans`: what the last step does with the files without a row. They are erased by the night alone; the purge asked
+ * at once, after a restoration, only counts them (docs/deploiement.md, « Restaurer la base »).
+ */
+export async function purge(database: Database, logger: AppLogger, storage: Storage, orphans: SweepMode = 'count'): Promise<Record<string, number>> {
   const counts: Record<string, number> = {};
   const failures: string[] = [];
   const count = (kind: string, removed: number) => async (tx: Transaction) => {
@@ -97,6 +129,14 @@ export async function purge(database: Database, logger: AppLogger, storage: Stor
       () => database.run({ kind: 'retention' }, async (tx) => count(kind, await remove(tx))(tx)),
     ]),
     ['document-files', async () => database.run({ kind: 'retention' }, count('document-files', await eraseFiles(database, storage)))],
+    // After the files of the erased documents: their rows still hold their keys, the sweep leaves them to the step above.
+    [
+      'orphan-files',
+      async () => {
+        const { erased } = await sweepFiles(database, logger, storage, orphans);
+        return database.run({ kind: 'retention' }, count('orphan-files', erased));
+      },
+    ],
   ];
   for (const [kind, run] of steps) {
     try {
@@ -116,7 +156,7 @@ export function maintenance(database: Database, logger: AppLogger, storage: Stor
   return {
     maintenance: {
       purge: async () => {
-        const outcomes = await Promise.allSettled([purge(database, logger, storage), after()]);
+        const outcomes = await Promise.allSettled([purge(database, logger, storage, 'erase'), after()]);
         // The purge has already said which of its steps failed.
         if (outcomes[1].status === 'rejected') logger.error({ errorType: (outcomes[1].reason as Error).name }, 'night task failed');
         const failed = outcomes.find((outcome) => outcome.status === 'rejected');

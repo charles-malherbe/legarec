@@ -10,7 +10,9 @@ import { storageFor } from './platform/storage/storage';
 /**
  *   node dist/purge.js
  * The purge of the night, at once: after a restoration, before anyone signs in, what had been removed must go again
- * (docs/deploiement.md, « Restaurer la base »). Counts only, never what was removed.
+ * (docs/deploiement.md, « Restaurer la base »). Counts only, never what was removed. The files of the storage that no
+ * row points at are counted by the journal and never erased here: a database just restored has lost the rows of the
+ * files received since (`dist/sweep-files.js`).
  */
 const config = readWorkerConfig(process.env);
 const logger = createLogger(config.LOG_LEVEL);
