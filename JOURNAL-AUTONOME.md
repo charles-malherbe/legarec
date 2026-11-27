@@ -143,3 +143,28 @@ Consigne de l'utilisateur : « Continuer le développement sans interruption, fu
 - Question **231, à trancher** : qui est prévenu quand le nettoyage refuse d'effacer ou reste suspendu (aujourd'hui, le journal du worker seulement ; une alerte Gatus ou dans l'application reste à décider). Question **230** (délai de 7 jours, variante 24 heures) à confirmer.
 - Une base de développement qui avait appliqué la première version de la migration `20261127210000_referenced_files` (worktree `fichiers-orphelins` seulement) doit être recréée.
 
+
+## Suite du 27/11 : relances groupées depuis la liste (`lot/q4`)
+
+| Initiative | Raison |
+|---|---|
+| Lot choisi : le bouton « Relancer » de la liste des débiteurs, par e-mail seulement | Suite directe de `lot/q3` ; l'écran validé existe. Il parle du « scénario » de chaque débiteur, qui n'est décrit nulle part (question 216) : règles par défaut inscrites en question 220 |
+| La mise en demeure ne part jamais en lot, et rien ne part en lot après elle | Acte qui engage : il se décide dossier par dossier, sur la fiche |
+| L'écran demande d'abord à l'API ce que chaque dossier recevrait ; l'API ne laisse partir que le niveau confirmé | Relecture sécurité, bloquant : deux lots envoyés à une minute d'écart faisaient partir le rappel amiable puis la relance ferme au même débiteur |
+| 7 jours au moins entre deux niveaux envoyés en lot | Aucun rythme dans `HANDOFF.md` ni `DECISIONS.md` ; la maquette montre J+7 |
+| Un envoi « incertain » ne bloque son dossier que 48 heures, puis compte comme parti | Aucun écran ne permet encore de le trancher : sans borne, le dossier restait bloqué pour toujours ; compté comme parti, il ne provoque pas un second envoi du même niveau |
+| Limites : 100 dossiers par lot, 300 dossiers en lot et 120 demandes par heure et par compte | Une page de la liste ; freine un compte détourné sans gêner l'usage normal |
+| Avis au collaborateur quand une relance échoue ou expire (type `SENDING_FAILED`, un seul avis par envoi, imposé par la base) | Manque noté après `lot/q3` ; textes de l'avis en question 222 |
+
+- **`lot/q4`** : 9 commits. `POST /staff/cases/reminders/preview` et `POST /staff/cases/reminders`, migration `20261127220000_sending_notices`, journal d'audit `REMINDERS_GROUPED`, liste des débiteurs de l'espace.
+  - **Aucun message réel n'est parti** : mêmes garde-fous que `lot/q3` (clé Resend et `RESEND_ENV=production`).
+  - **Écarts à l'écran validé**, à confirmer (question 220 ; titre et bouton inchangés) : la phrase de la confirmation, les lignes « Relances » et « Laissés de côté » du récapitulatif, les messages quand rien ne peut partir ou quand l'aperçu échoue, le message final qui compte ce qui est réellement parti et donne les motifs ; les dossiers laissés de côté restent sélectionnés.
+  - Relecture sécurité indépendante en trois passes : un bloquant (ci-dessus) et cinq importants corrigés, puis deux remarques corrigées (borne de 48 heures ; un dossier dont la date de mise en demeure est renseignée est laissé de côté).
+  - `pnpm verifier` relancé par cette session sur l'arbre final, `main` inclus : 105 fichiers, 3 857 tests au vert. Vérification locale : GitHub Actions est arrêté.
+  - Non fait : la relance d'échéance d'un échéancier (question 221) ; aucun SMS (lot R).
+  - À savoir : aucun code n'écrit encore `cases.formal_notice_on` ; cette garde ne joue que le jour où un lot renseignera la date.
+  - Jamais essayé : le vrai service Resend ; l'écran dans un navigateur contre l'API ; `/comparer` sur la liste modifiée.
+
+### À faire par l'utilisateur ou le cabinet
+- Questions **220** (règles et écarts ci-dessus), **221** (relance d'échéance : quel texte, quel déclencheur) et **222** (textes de l'avis d'échec) à confirmer.
+- Toujours ouvert : un écran pour trancher un envoi « incertain » (hors maquette, à décider).
