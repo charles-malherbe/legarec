@@ -6,6 +6,7 @@ import { Bucket, BucketError, DEADLINE_MS, endpointOf, pathOf, type BucketClient
 const PLACE: BucketPlace = { bucket: 'legarec-essai', region: 'eu-west-par' };
 const KEYS: BucketKeys = { accessKeyId: 'identifiant-fictif-QZKX', secretAccessKey: 'valeur-fictive-zz-KXPM' };
 const bytes = (text: string) => new TextEncoder().encode(text);
+const WRITTEN = new Date('2026-11-01T08:00:00Z');
 
 /** What S3 answers, as its client tells it: an error named after the code of the answer, with the facts of the request. */
 function refusal(name: string, status: number): Error {
@@ -23,6 +24,8 @@ class FakeBucket implements BucketClient {
   readonly heard: { command: string; bucket: string | undefined; key: string | undefined; signal: AbortSignal | undefined }[] = [];
   /** Thrown instead of any answer. */
   failure: Error | undefined;
+  /** A page cut short that does not say where the next one starts. */
+  cut = false;
 
   send(command: Parameters<BucketClient['send']>[0], options?: { abortSignal?: AbortSignal }) {
     const { Bucket: bucket } = command.input;
@@ -37,9 +40,18 @@ class FakeBucket implements BucketClient {
     }
     if (command instanceof GetObjectCommand)
       return found ? Promise.resolve({ Body: { transformToByteArray: () => Promise.resolve(found) } }) : Promise.reject(refusal('NoSuchKey', 404));
-    // Everything that starts with the prefix, as S3 does.
-    if (command instanceof ListObjectsV2Command)
-      return Promise.resolve({ Contents: [...this.objects.keys()].filter((name) => name.startsWith(key!)).map((Key) => ({ Key })) });
+    // Everything that starts with the prefix, as S3 does; without one, the whole bucket, two objects a page.
+    if (command instanceof ListObjectsV2Command) {
+      const names = [...this.objects.keys()].filter((name) => name.startsWith(key ?? '')).sort();
+      if (key !== undefined) return Promise.resolve({ Contents: names.map((Key) => ({ Key })) });
+      const from = Number(command.input.ContinuationToken ?? 0);
+      const more = from + 2 < names.length;
+      return Promise.resolve({
+        Contents: names.slice(from, from + 2).map((Key) => ({ Key, LastModified: WRITTEN })),
+        IsTruncated: more,
+        ...(more && !this.cut ? { NextContinuationToken: String(from + 2) } : {}),
+      });
+    }
     if (command instanceof DeleteObjectCommand) this.objects.delete(key!);
     return Promise.resolve({});
   }
@@ -150,6 +162,38 @@ describe('the bucket of the documents', () => {
     await files.remove(key);
     expect(clients[0]!.client.heard.map((heard) => heard.command)).toEqual(['DeleteObjectCommand', 'DeleteObjectCommand']);
     expect([...objects.keys()]).toEqual([`${pathOf(key)}.autre`]);
+  });
+
+  it('lists everything it holds, page after page, with the date of each object', async () => {
+    const { bucket, clients, objects } = start();
+    const files = bucket.with(KEYS);
+    const keys = Array.from({ length: 5 }, () => randomUUID());
+    for (const key of keys) await files.write(key, bytes('essai'));
+    objects.set('notes.txt', bytes('posé à la main'));
+    const listed = [];
+    for await (const entry of files.list()) listed.push(entry);
+    expect(listed.map((entry) => entry.name).sort()).toEqual([...keys.map(pathOf), 'notes.txt'].sort());
+    expect(listed.every((entry) => entry.modifiedAt?.getTime() === WRITTEN.getTime())).toBe(true);
+    const asked = clients[0]!.client.heard.filter((heard) => heard.command === 'ListObjectsV2Command');
+    expect(asked).toHaveLength(3);
+    for (const heard of asked) expect([heard.bucket, heard.signal instanceof AbortSignal]).toEqual([PLACE.bucket, true]);
+  });
+
+  it('fails on a list that cannot be read to its end, instead of taking a part for the whole', async () => {
+    const all = async (files: ReturnType<Bucket['with']>) => {
+      const listed = [];
+      for await (const entry of files.list()) listed.push(entry.name);
+      return listed;
+    };
+    const { bucket, clients } = start();
+    const files = bucket.with(KEYS);
+    for (let index = 0; index < 3; index += 1) await files.write(randomUUID(), bytes('essai'));
+    clients[0]!.client.cut = true;
+    await expect(all(files)).rejects.toMatchObject({ operation: 'list', code: 'Truncated' });
+    clients[0]!.client.cut = false;
+    clients[0]!.client.failure = refusal('AccessDenied', 403);
+    await expect(all(files)).rejects.toMatchObject({ operation: 'list', code: 'AccessDenied' });
+    await expect(all(start({ ...PLACE, bucket: 'un-autre' }).bucket.with(KEYS))).rejects.toMatchObject({ operation: 'list', code: 'NoSuchBucket' });
   });
 
   it('tells a failure by its name alone: nothing of the keys, of the request nor of the answer', async () => {

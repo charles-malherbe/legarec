@@ -1,8 +1,8 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { chmod, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { chmod, lstat, mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { Bucket, BucketError, checkedKey, pathOf, type BucketKeys, type Connect } from './bucket';
+import { Bucket, BucketError, checkedKey, isKey, pathOf, type BucketKeys, type Connect } from './bucket';
 
 export { FILE_MAX_BYTES } from '@legarec/contracts';
 
@@ -11,6 +11,21 @@ export interface Stored {
   size: number;
   sha256: string;
 }
+
+/** Something found in a place, by its name there (`ab/<key>` for a file); `modifiedAt` is `null` when the place does not tell. */
+export interface Entry {
+  name: string;
+  modifiedAt: Date | null;
+  /** Not a plain file (a folder, a link): never a file of the storage, whatever its name. */
+  foreign?: true;
+}
+
+/**
+ * What the storage holds, for the sweep of the files without a row. Only a name that is exactly a key drawn by `put`, at
+ * its place, can be erased; anything else is `unknown`, and nobody touches it. A `part` is a writing of the disk that was
+ * interrupted before its renaming: no row can point at it, its key was never given to anyone.
+ */
+export type Kept = { kind: 'file' | 'part'; key: string; modifiedAt: Date | null; erase(): Promise<void> } | { kind: 'unknown' };
 
 /** Where the files are kept: under their key, whole, or not at all. */
 export interface Files {
@@ -21,9 +36,20 @@ export interface Files {
   erase(key: string): Promise<boolean>;
   /** Gone, whether it was there or not. */
   remove(key: string): Promise<void>;
+  /** Everything that is there, whatever its name. */
+  list(): AsyncIterable<Entry>;
 }
 
 const missing = (error: unknown): boolean => (error as NodeJS.ErrnoException).code === 'ENOENT';
+/** A folder that is not there yet holds nothing. */
+const entriesOf = async (folder: string) => {
+  try {
+    return await readdir(folder, { withFileTypes: true });
+  } catch (error) {
+    if (missing(error)) return [];
+    throw error;
+  }
+};
 
 /** The disk of the server, in a folder of its own (a volume in production). */
 export class Folder implements Files {
@@ -67,6 +93,36 @@ export class Folder implements Files {
   async remove(key: string): Promise<void> {
     await rm(this.path(key), { force: true });
   }
+
+  /** What an interrupted writing left beside the place of its file. */
+  async discard(key: string): Promise<void> {
+    await rm(`${this.path(key)}.part`, { force: true });
+  }
+
+  /**
+   * The two levels written by `write`, and no deeper: a link is never followed, a folder under a folder never opened.
+   */
+  async *list(): AsyncGenerator<Entry> {
+    for (const top of await entriesOf(this.folder)) {
+      if (!top.isDirectory() || !/^[0-9a-f]{2}$/u.test(top.name)) {
+        yield { name: top.name, modifiedAt: null, foreign: true };
+        continue;
+      }
+      for (const entry of await entriesOf(join(this.folder, top.name))) {
+        const name = `${top.name}/${entry.name}`;
+        if (!entry.isFile()) {
+          yield { name, modifiedAt: null, foreign: true };
+          continue;
+        }
+        try {
+          yield { name, modifiedAt: (await lstat(join(this.folder, name))).mtime };
+        } catch (error) {
+          // Erased since the folder was read.
+          if (!missing(error)) throw error;
+        }
+      }
+    }
+  }
 }
 
 /** A file that could not be removed: the name of what went wrong, and nothing of the file. */
@@ -78,7 +134,7 @@ export type Left = (code: string) => void;
  * the disk before the keys were typed is still read there.
  */
 export class Storage {
-  private readonly folder: Files;
+  private readonly folder: Folder;
   private readonly bucket: () => Promise<Files | null>;
   /** A bucket is named in the configuration: without its keys, what it holds is out of reach, not absent. */
   private readonly expected: boolean;
@@ -128,7 +184,7 @@ export class Storage {
   /**
    * A file whose row was never written. Never fails because of the storage: it runs while a request is already failing, whose error must stay
    * the one that is told. What could not be removed is said by the name of its failure alone, and stays in the storage
-   * without a row (PLAN.md, lot X: nothing sweeps such files yet).
+   * without a row: the sweep of the night erases it later (sweep.ts).
    */
   async remove(key: string): Promise<void> {
     const checked = checkedKey(key);
@@ -140,6 +196,25 @@ export class Storage {
       this.folder.remove(checked),
     ]);
     for (const outcome of tried) if (outcome.status === 'rejected') this.left(outcome.reason instanceof BucketError ? outcome.reason.code : 'Error');
+  }
+
+  /**
+   * Everything the two places hold, for the sweep (sweep.ts). A bucket without its keys is a failure before anything is
+   * listed: what it holds is out of reach, not absent, and a count of the disk alone would be told as the whole.
+   * Each file is erased where it was found, and nowhere else.
+   */
+  async *kept(): AsyncGenerator<Kept> {
+    const bucket = await this.bucket();
+    if (this.expected && !bucket) throw new BucketError('list', 'NoKeys');
+    for (const place of bucket ? [bucket, this.folder] : [this.folder]) {
+      for await (const { name, modifiedAt, foreign } of place.list()) {
+        const [, key, part] = /^[0-9a-f]{2}\/([^/]+?)(\.part)?$/u.exec(name) ?? [];
+        // The key at the place `write` gives it; a `.part` exists on the disk only.
+        if (foreign || !key || !isKey(key) || name !== `${pathOf(key)}${part ?? ''}` || (part && place !== this.folder)) yield { kind: 'unknown' };
+        else if (part) yield { kind: 'part', key, modifiedAt, erase: () => this.folder.discard(key) };
+        else yield { kind: 'file', key, modifiedAt, erase: async () => void (await place.erase(key)) };
+      }
+    }
   }
 }
 
