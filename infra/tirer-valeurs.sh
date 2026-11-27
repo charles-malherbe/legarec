@@ -7,18 +7,21 @@
 # - Nothing is printed but names: no value on the screen, in a log, or on a command line.
 # - Left to the firm: the values that come from outside (still between brackets or empty), listed at the end.
 #   N8N_ENCRYPTION_KEY is drawn only with --n8n-neuf: the key of the former n8n must be taken over (« n8n »).
+# - --sauvegardes-locales: the backups go to the disk of the server until their bucket exists (« Sauvegardes locales »).
 set -euo pipefail
 umask 077
 stop() { echo "$1" >&2; exit 1; }
 
 dir=/etc/legarec
 new_n8n=false
+local_backups=false
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --n8n-neuf) new_n8n=true ;;
+    --sauvegardes-locales) local_backups=true ;;
     # Tests only: another folder, owner and group left as they are.
     --dossier) dir="${2:?}"; shift ;;
-    *) stop "Option inconnue : $1 (seules --n8n-neuf et --dossier existent)." ;;
+    *) stop "Option inconnue : $1 (seules --n8n-neuf, --sauvegardes-locales et --dossier existent)." ;;
   esac
   shift
 done
@@ -82,6 +85,20 @@ shared() {
 }
 # An address made from a password: written only where the line is empty.
 address() { write_value "$1" "$2" "$3"; }
+
+# Backups on the disk of the server: no bucket, hence no key. A file that already has a key is left as it is.
+if [ "$local_backups" = true ]; then
+  for name in pgbackrest restauration; do
+    file="$dir/$name.env"
+    grep -qx 'PGBACKREST_REPO1_TYPE=posix' "$file" && continue
+    [ -z "$(read_value "$name" PGBACKREST_REPO1_S3_KEY)" ] || stop "$file a déjà une clé S3 : rien n'est changé, les sauvegardes restent sur le bucket."
+    temporary="$(mktemp "$dir/.tirage.XXXXXX")"
+    { grep -v '^PGBACKREST_REPO1_S3_' "$file" || true; printf 'PGBACKREST_REPO1_TYPE=posix\nPGBACKREST_REPO1_PATH=/depot\n'; } > "$temporary"
+    cat "$temporary" > "$file"
+    rm -f "$temporary"
+    filled+=("$name.env : sauvegardes locales (PGBACKREST_REPO1_TYPE, PGBACKREST_REPO1_PATH)")
+  done
+fi
 
 # Database and queues.
 shared hex postgres:POSTGRES_PASSWORD

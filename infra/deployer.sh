@@ -29,10 +29,15 @@ for name in "${!group[@]}"; do
   [ "$(stat -c %u:%g:%a "$file")" = "0:${group[$name]}:640" ] || tell "Droits de $file : root, groupe ${group[$name]}, 640 attendus."
   while IFS= read -r key; do
     [ "$ci" = true ] && [[ "$key" == PGBACKREST_REPO1_S3_* ]] && continue
+    # Backups on the disk of the server, while they wait for their bucket: no key to give.
+    grep -qx 'PGBACKREST_REPO1_TYPE=posix' "$file" && [[ "$key" == PGBACKREST_REPO1_S3_* ]] && continue
     grep -qE "^$key=[^[]" "$file" && ! grep -qE "^$key=.*\[" "$file" || tell "Valeur absente ou entre crochets : $key dans $file"
   done < <(sed -n 's/^\([A-Z0-9_]*\)=.*/\1/p' "infra/valeurs/$name.env.exemple")
 done
 [ "$wrong" = 0 ] || exit 1
+if [ "$ci" = false ] && grep -qx 'PGBACKREST_REPO1_TYPE=posix' /etc/legarec/pgbackrest.env; then
+  echo 'Attention : sauvegardes sur le disque du serveur (volume sauvegardes-locales), perdues avec lui. À passer sur le bucket dès que possible (docs/deploiement.md, « Sauvegardes locales »).' >&2
+fi
 
 LEGAREC_VERSION="$(git rev-parse --short=12 HEAD)"
 export LEGAREC_VERSION

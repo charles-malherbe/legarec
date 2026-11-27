@@ -213,7 +213,9 @@ services:
       # The same collation as in development; checksums find a damaged page.
       POSTGRES_INITDB_ARGS: --auth-local=peer --auth-host=scram-sha-256 --encoding=UTF8 --locale=C.UTF-8 --locale-provider=icu --icu-locale=fr-FR --data-checksums
     secrets: [postgres, pgbackrest]
-    volumes: ['postgres-data:/var/lib/postgresql/data', 'postgres-socket:/var/run/postgresql']
+    # /depot: the backups on the disk of the server, while they wait for their bucket (docs/deploiement.md, « Sauvegardes
+    # locales »); unused once pgbackrest.env names the bucket.
+    volumes: ['postgres-data:/var/lib/postgresql/data', 'postgres-socket:/var/run/postgresql', 'sauvegardes-locales:/depot']
     shm_size: 256m
     mem_limit: 1536m
     memswap_limit: 1536m
@@ -236,7 +238,7 @@ services:
     command: [incr]
     secrets: [pgbackrest]
     # Reads the data folder, and nothing of it changes; talks to the server by its local socket.
-    volumes: ['postgres-data:/var/lib/postgresql/data:ro', 'postgres-socket:/var/run/postgresql']
+    volumes: ['postgres-data:/var/lib/postgresql/data:ro', 'postgres-socket:/var/run/postgresql', 'sauvegardes-locales:/depot']
     mem_limit: 384m
     memswap_limit: 384m
     networks: [surveillance, sortie-base]
@@ -250,7 +252,7 @@ services:
     command: []
     # A key of its own, that only reads.
     secrets: [{ source: restauration, target: pgbackrest }]
-    volumes: ['/restauration']
+    volumes: ['/restauration', 'sauvegardes-locales:/depot']
     mem_limit: 512m
     memswap_limit: 512m
     depends_on: []
@@ -262,7 +264,7 @@ services:
     entrypoint: [legarec-restore, /var/lib/postgresql/data]
     command: []
     secrets: [{ source: restauration, target: pgbackrest }]
-    volumes: ['postgres-data:/var/lib/postgresql/data']
+    volumes: ['postgres-data:/var/lib/postgresql/data', 'sauvegardes-locales:/depot']
     networks: [sortie-base]
     depends_on: []
 
@@ -454,6 +456,7 @@ volumes:
   caddy-config:
   postgres-data:
   postgres-socket:
+  sauvegardes-locales:
   valkey-data:
   clamav-data:
   gatus-data:
