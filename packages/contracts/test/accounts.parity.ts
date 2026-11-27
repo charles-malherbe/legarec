@@ -451,6 +451,37 @@ export const ACCOUNT_PARITY: Parity[] = [
   { as: 'manager', request: `POST /deposits/${UNKNOWN}/accept`, body: { expectedTotal: 100 }, status: 404, answer: code('NOT_FOUND') },
   { as: 'manager', request: `POST /deposits/${UNKNOWN}/refuse`, body: { reason: 'Motif du refus' }, status: 404, answer: code('NOT_FOUND') },
   { as: 'officer', request: `POST /deposits/${UNKNOWN}/refuse`, body: { reason: 'Motif du refus' }, status: 403, answer: code('FORBIDDEN') },
+  // A reminder from a case: texts and registered letters are not open yet (lot R, question 210); refused before anything is read.
+  ...(['SMS', 'REGISTERED_LETTER'] as const).map(
+    (channel): Parity => ({
+      as: 'manager',
+      request: 'POST /cases/{caseOfManager}/reminders',
+      body: { channel, template: 'FRIENDLY', recipient: 'compta@exemple.test', message: 'Bonjour' },
+      status: 409,
+      answer: code('NOT_AVAILABLE'),
+    }),
+  ),
+  {
+    as: 'manager',
+    request: 'POST /cases/{caseOfManager}/reminders',
+    body: { channel: 'E-mail', template: 'Relance n°1', recipient: 'compta@exemple.test', message: 'Bonjour' },
+    status: 422,
+    answer: refused('INVALID'),
+  },
+  {
+    as: 'director',
+    request: 'POST /cases/{caseOfManager}/reminders',
+    body: { channel: 'SMS', template: 'FRIENDLY', recipient: 'compta@exemple.test', message: 'Bonjour' },
+    status: 403,
+    answer: code('FORBIDDEN'),
+  },
+  {
+    as: 'manager',
+    request: 'POST /cases/{caseOfDirector}/reminders',
+    body: { channel: 'SMS', template: 'FRIENDLY', recipient: 'compta@exemple.test', message: 'Bonjour' },
+    status: 404,
+    answer: code('NOT_FOUND'),
+  },
   { as: 'manager', request: 'POST /cases/{caseOfManager}/notes', body: { text: 'Rappeler après le 5.' }, status: 204 },
   { as: 'director', request: 'POST /cases/{caseOfManager}/notes', body: { text: 'Rappeler après le 5.' }, status: 403, answer: code('FORBIDDEN') },
   { as: 'manager', request: 'POST /cases/{caseOfDirector}/notes', body: { text: 'Rappeler après le 5.' }, status: 404, answer: code('NOT_FOUND') },

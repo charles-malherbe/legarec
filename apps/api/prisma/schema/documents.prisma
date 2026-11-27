@@ -78,6 +78,7 @@ model Document {
   case     Case?     @relation(fields: [caseId, creditorId], references: [id, creditorId], onDelete: NoAction, onUpdate: NoAction)
   author   User?     @relation("documentAuthor", fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   receipts Receipt[]
+  sendings Sending[]
   attachedTo PortalMessageAttachment[]
 
   @@unique([id, caseId], map: "documents_id_case_id_key")

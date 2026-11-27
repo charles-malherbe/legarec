@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { emailConfigOf } from './emails/config';
 import { EmailsService } from './emails/emails.service';
 import { EmailRenderer } from './emails/renderer';
+import { ResendClient } from './emails/resend';
 import { SimulatedTransport } from './emails/transport';
 import { accountJobs } from './modules/auth/auth.jobs';
 import { AuthKeys } from './modules/auth/keys';
@@ -12,6 +13,7 @@ import { aiJobs, sweepCaseEvents } from './ai/ai.jobs';
 import { aiSetup } from './ai/provider';
 import { documentJobs } from './modules/documents/documents.jobs';
 import { receiptJobs } from './modules/payments/receipts.jobs';
+import { sendingJobs, sweepSendings } from './modules/reminders/sendings.jobs';
 import { PdfRenderer } from './platform/pdf/pdf';
 import { storageKeys } from './modules/vault/storage-keys';
 import { Vault } from './modules/vault/vault';
@@ -37,8 +39,9 @@ const publisher = new OutboxPublisher(database, logger, publishing);
 const emailSettings = () => database.run({ kind: 'worker', job: 'email-settings' }, async (tx) => emailConfigOf(await SettingValues.read(tx), config));
 // Next to the folder of the sources, as to that of the programs once built.
 const templates = fileURLToPath(new URL('../templates/emails/', import.meta.url));
-const emails = new EmailsService(new EmailRenderer(templates), new SimulatedTransport(logger, config.DEV_MAIL_DIR), emailSettings);
 const vault = new Vault(config);
+const simulated = new SimulatedTransport(logger, config.DEV_MAIL_DIR);
+const emails = new EmailsService(new EmailRenderer(templates), simulated, emailSettings);
 const clamd = config.CLAMAV_URL ? new URL(config.CLAMAV_URL) : null;
 // Without an antivirus in production, received files wait unread; elsewhere, the simulated one.
 const scanner = clamd ? new ClamavScanner(clamd.hostname, Number(clamd.port)) : config.NODE_ENV === 'production' ? null : new SimulatedScanner();
@@ -51,7 +54,24 @@ const pdf = new PdfRenderer(config.CHROMIUM_PATH);
 const handlers: JobHandlers = {
   documents: documentJobs(storage, scanner),
   pdf: receiptJobs(storage, pdf, fileURLToPath(new URL('../templates/pdf/', import.meta.url))),
-  email: accountJobs({ keys: new AuthKeys(config), portals: config, send: (name, to, data) => emails.send(name, to, data) }),
+  email: {
+    // The e-mails of the accounts stay simulated until their own domain exists (question 84).
+    ...accountJobs({ keys: new AuthKeys(config), portals: config, send: (name, to, data) => emails.send(name, to, data) }),
+  },
+  // The reminders leave by Resend when its key is in the vault; without it outside production, they are simulated. Their
+  // own queue, where nothing is ever tried twice.
+  reminders: sendingJobs({
+    database,
+    asWorker: (work) => database.run({ kind: 'worker', job: 'case-reminder' }, work),
+    vault,
+    emails,
+    // Resend never redirects: a redirection would carry the key and the message elsewhere.
+    resend: new ResendClient((url, init) => fetch(url, { ...init, redirect: 'error' })),
+    production: config.NODE_ENV === 'production',
+    real: config.RESEND_ENV === 'production',
+    devRecipients: config.DEV_RECIPIENTS ?? [],
+    simulate: (message) => simulated.send(message),
+  }),
   maintenance: accessCodeJobs(vault),
   ai: aiJobs(() => aiSetup(config), vault),
 };
@@ -87,6 +107,8 @@ async function main() {
   const scheduled: ScheduledHandlers = {
     ...maintenance(database, logger, storage, resealAll),
     // Something new on a case: its summary, once the case has been quiet for a few minutes (docs/ia.md).
+    // No reminder stays queued for ever: abandoned or too old, it fails and the case says so.
+    reminders: { 'sendings-sweep': async () => void (await sweepSendings((work) => database.run({ kind: 'worker', job: 'sendings-sweep' }, work))) },
     ai: {
       'case-events': async () =>
         void (await sweepCaseEvents(
@@ -100,6 +122,9 @@ async function main() {
   const schedule = () =>
     Promise.all([
       scheduleMaintenance(connection).catch(() => logger.warn('maintenance not scheduled')),
+      scheduleRepeated(connection, { queue: 'reminders', name: 'sendings-sweep', pattern: '*/5 * * * *', attempts: 1 }).catch(() =>
+        logger.warn('sweep of the sendings not scheduled'),
+      ),
       scheduleRepeated(connection, { queue: 'ai', name: 'case-events', pattern: '*/5 * * * *', attempts: 1 }).catch(() =>
         logger.warn('case events of the assistant not scheduled'),
       ),

@@ -145,7 +145,7 @@ describe('documents and letters', () => {
   });
   it('checks the number of a batch and the rights on a draft', async () => {
     const options = { table: true, pay: true, indemnity: false };
-    const batch = { caseIds: null, filters: { creditor: 'md', age: '31-60' }, template: 'FRIENDLY', channel: 'x', delay: 8, months: 4, options };
+    const batch = { caseIds: null, filters: { creditor: 'md', age: '31-60' }, template: 'FRIENDLY', channel: 'EMAIL_PDF', delay: 8, months: 4, options };
     expect(await status('cl', '/documents/compose', { ...batch, expected: 38 })).toBe(409);
     expect(await status('cl', '/documents/compose', { ...batch, expected: 13 })).toBe(204);
     expect(await status('cl', '/documents/compose', { ...batch, filters: null, expected: 38 })).toBe(409);

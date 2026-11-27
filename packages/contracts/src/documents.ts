@@ -41,34 +41,101 @@ export const documentsData = z.object({
 
 export const letterTemplate = z.enum(['FRIENDLY', 'FIRM', 'FORMAL_NOTICE', 'PAYMENT_PLAN', 'CLEARANCE']);
 export type LetterTemplate = z.infer<typeof letterTemplate>;
+/** How a letter leaves, with the label of the screen « Rédiger un courrier ». */
+export const composeChannel = z.enum(['EMAIL_PDF', 'EMAIL_SIGNATURE', 'REGISTERED_LETTER', 'LETTER', 'DOWNLOAD']);
+export type ComposeChannel = z.infer<typeof composeChannel>;
+export const COMPOSE_CHANNELS: Record<ComposeChannel, string> = {
+  EMAIL_PDF: 'E-mail avec PDF joint',
+  EMAIL_SIGNATURE: 'E-mail avec lien de signature',
+  REGISTERED_LETTER: 'Lettre recommandée avec AR (MySendingBox)',
+  LETTER: 'Courrier simple (MySendingBox)',
+  DOWNLOAD: 'Télécharger seulement',
+};
+/** Why nothing left for a case; the same codes when the API refuses a single sending (409). */
+export const sendingRefusal = z.enum([
+  'NO_FIRST_LETTER',
+  'CONTACT_CAP',
+  'OUTSIDE_HOURS',
+  'NO_EMAIL',
+  'NO_ADDRESS',
+  'INDIVIDUAL',
+  'NOT_SETTLED',
+  'CASE_CLOSED',
+  'FIRM_INCOMPLETE',
+  'NOT_AVAILABLE',
+  'UNKNOWN_RECIPIENT',
+  'CASE_DISPUTED',
+  'PLAN_RESPECTED',
+  'SERVICE_NOT_READY',
+]);
+export type SendingRefusal = z.infer<typeof sendingRefusal>;
+export const SENDING_REFUSALS: Record<SendingRefusal, string> = {
+  NO_FIRST_LETTER: 'aucun premier courrier postal n’a encore été envoyé pour ce dossier',
+  CONTACT_CAP: 'le plafond de contacts de ce débiteur est atteint',
+  OUTSIDE_HOURS: 'l’envoi est hors des plages autorisées',
+  NO_EMAIL: 'le dossier n’a aucune adresse e-mail utilisable',
+  NO_ADDRESS: 'l’adresse postale du débiteur est incomplète',
+  INDIVIDUAL: 'les relances par e-mail ne s’adressent pas à un particulier',
+  NOT_SETTLED: 'le dossier n’est pas soldé',
+  CASE_CLOSED: 'le dossier est clos',
+  FIRM_INCOMPLETE: 'des valeurs du cabinet sont encore entre crochets dans Paramètres',
+  NOT_AVAILABLE: 'ce mode d’envoi n’est pas encore disponible',
+  UNKNOWN_RECIPIENT: 'le destinataire n’est pas une adresse e-mail du dossier',
+  CASE_DISPUTED: 'le dossier est en litige ou au contentieux',
+  PLAN_RESPECTED: 'l’échéancier du dossier est respecté',
+  SERVICE_NOT_READY: 'le service d’envoi des e-mails n’est pas encore configuré',
+};
+/** The code of a channel from the label shown in the list « Envoi ». */
+export const composeChannelOf = (label: string): ComposeChannel =>
+  (Object.keys(COMPOSE_CHANNELS) as ComposeChannel[]).find((code) => COMPOSE_CHANNELS[code] === label) ?? 'DOWNLOAD';
+/** What a grouped sending did: how many left for the queue, and which cases were left out, with the reason. */
+export const sendingOutcome = z.object({
+  queued: z.number().int().nonnegative(),
+  skipped: z.array(z.object({ id: z.string(), reason: sendingRefusal })),
+});
+export type SendingOutcome = z.infer<typeof sendingOutcome>;
+/** « 2 non envoyés : le plafond de contacts de ce débiteur est atteint (2) » ; empty when everything left. */
+export function skippedText(outcome: SendingOutcome): string {
+  if (outcome.skipped.length === 0) return '';
+  const counts = new Map<SendingRefusal, number>();
+  for (const item of outcome.skipped) counts.set(item.reason, (counts.get(item.reason) ?? 0) + 1);
+  const reasons = [...counts].map(([reason, count]) => `${SENDING_REFUSALS[reason]} (${count})`).join(' ; ');
+  return `${outcome.skipped.length} non envoyé${outcome.skipped.length > 1 ? 's' : ''} : ${reasons}`;
+}
 export const LETTER_TEMPLATES: Record<LetterTemplate, { label: string; hint: string; subject: string; channel: string; slug: string }> = {
   FRIENDLY: {
     label: 'Relance amiable',
     hint: 'Premier rappel courtois',
     subject: 'Rappel – factures impayées',
-    channel: 'E-mail avec PDF joint',
+    channel: COMPOSE_CHANNELS.EMAIL_PDF,
     slug: 'amiable',
   },
-  FIRM: { label: 'Relance ferme', hint: 'Avec indemnités de retard', subject: 'Relance – factures impayées', channel: 'E-mail avec PDF joint', slug: 'ferme' },
+  FIRM: {
+    label: 'Relance ferme',
+    hint: 'Avec indemnités de retard',
+    subject: 'Relance – factures impayées',
+    channel: COMPOSE_CHANNELS.EMAIL_PDF,
+    slug: 'ferme',
+  },
   FORMAL_NOTICE: {
     label: 'Mise en demeure',
     hint: 'Dernier avertissement avant procédure',
     subject: 'Mise en demeure de payer',
-    channel: 'Lettre recommandée avec AR (MySendingBox)',
+    channel: COMPOSE_CHANNELS.REGISTERED_LETTER,
     slug: 'demeure',
   },
   PAYMENT_PLAN: {
     label: 'Proposition d’échéancier',
     hint: 'Plan de paiement à signer',
     subject: 'Proposition d’échéancier',
-    channel: 'E-mail avec lien de signature',
+    channel: COMPOSE_CHANNELS.EMAIL_SIGNATURE,
     slug: 'echeancier',
   },
   CLEARANCE: {
     label: 'Attestation de solde',
     hint: 'Confirme le paiement intégral',
     subject: 'Attestation de solde',
-    channel: 'E-mail avec PDF joint',
+    channel: COMPOSE_CHANNELS.EMAIL_PDF,
     slug: 'attestation',
   },
 };
@@ -82,7 +149,8 @@ export const letterRecipient = z.object({
   isIndividual: z.boolean(),
   /** A clearance certificate only leaves for a settled case. */
   settled: z.boolean(),
-  lastReminder: z.iso.date(),
+  /** The last reminder that left, whatever its channel; null when none did. */
+  lastReminder: z.iso.date().nullable(),
   firstLetter: z.object({ reference: z.string(), date: z.iso.date() }).nullable(),
   interest: cents,
   invoices: z.array(z.object({ number: z.string(), due: z.iso.date(), amount: cents })),
@@ -118,5 +186,11 @@ export function letterAmount(template: LetterTemplate, recipient: LetterRecipien
   const { principal, indemnity, total } = letterTotals(recipient, withIndemnity && (template === 'FIRM' || template === 'FORMAL_NOTICE'));
   return template === 'FORMAL_NOTICE' ? total : principal + indemnity;
 }
+/**
+ * The amount an e-mail reminder announces (question 213), as the letters of the same name: the principal left, the
+ * indemnities from the firm reminder on (level 2), interest in the formal notice only (level 3).
+ */
+export const reminderAmount = (level: number, owed: { principal: number; fees: number; interest: number }) =>
+  owed.principal + (level >= 2 ? owed.fees : 0) + (level >= 3 ? owed.interest : 0);
 export const letterSchedule = (total: number, months: number) =>
   splitPlan(total, months).map((amount, index) => ({ date: new Date(Date.UTC(2026, 11 + index, 15)).toISOString().slice(0, 10), amount }));

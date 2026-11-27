@@ -618,6 +618,12 @@ export const MATRIX: Record<string, MatrixEntry> = {
     expect: withCases(404, { director: 403, manager: 204, managerAlone: 204 }),
   },
   'DELETE /staff/reminders/:id': { path: plannedReminder, expect: withCases(404, { director: 403, manager: 204, managerAlone: 204 }) },
+  // A reminder from a case one acts on (here held by nobody: the managers); its debtor is an individual, to whom no e-mail reminder goes.
+  'POST /staff/cases/:id/reminders': {
+    path: async (test) => `/staff/cases/${(await newCase(test)).id}/reminders`,
+    body: () => ({ channel: 'EMAIL', template: 'FRIENDLY', recipient: 'compta@exemple.test', message: 'Bonjour' }),
+    expect: withCases(404, { director: 403, manager: 409, managerAlone: 409 }),
+  },
   // Litigation: read with the cases; opened and followed on a case one acts on (here held by nobody: the managers).
   'GET /staff/litigation': { expect: withCases(200) },
   'POST /staff/cases/litigation': {

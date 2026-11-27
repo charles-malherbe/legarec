@@ -8,7 +8,7 @@ import { creditNoteDraftBody, creditNoteIssue } from './creditNotes';
 import { coordinate, coordinateKind, coordinateSource, emailCategory, outgoingMessage } from './communication';
 import { debtorAccess, debtorIdentifier, debtorMessage, debtorRequest, limitedMessage } from './debtor';
 import { depositAcceptance, depositRefusal } from './deposits';
-import { letterTemplate } from './documents';
+import { composeChannel, letterTemplate } from './documents';
 import { bankAccountChange, bankAccountConfirmation, creditorChanges, mandateAmendment, newCreditor } from './creditors';
 import { EMAIL_MAX, ID_MAX } from './limits';
 import { AMOUNT_MAX, enteredAmount } from './money';
@@ -101,7 +101,20 @@ export const paymentStatusBody = z.object({
   reason,
   version: z.number().int().min(1).max(1_000_000),
 });
-export const caseReminderBody = z.object({ channel: line(60), template: line(80), recipient: line(300), message: line(10_000) });
+/**
+ * A reminder from a case. By e-mail: the validated reminder of the level chosen, to an e-mail address of the case (`recipient`).
+ * By registered letter: the text typed, to the postal address of the case.
+ */
+export const reminderChannel = z.enum(['EMAIL', 'REGISTERED_LETTER', 'SMS']);
+export type ReminderChannel = z.infer<typeof reminderChannel>;
+export const reminderTemplate = letterTemplate.extract(['FRIENDLY', 'FIRM', 'FORMAL_NOTICE']);
+/** `message`: for the channels that take a typed text; an e-mail leaves with the validated text of its template, and takes none. */
+export const caseReminderBody = z.object({
+  channel: reminderChannel,
+  template: reminderTemplate,
+  recipient: line(300),
+  message: line(10_000).optional(),
+});
 export const gdprRequestBody = z.object({ caseId: id, kind: gdprRequestKind, origin: line(200) });
 export const gdprAnswerBody = z.object({ status: z.enum(['OPEN', 'ANSWERED', 'REFUSED']), reason });
 /** As many cases as were shown (`GET …/erasure`): any difference and nothing is erased (409). */
@@ -136,7 +149,7 @@ export const composeBody = z.object({
   filters: z.object({ creditor: z.string().max(64), age: z.string().max(20) }).nullable(),
   /** Number of letters confirmed: the API refuses the batch if its own count differs. */
   expected: z.number().int().min(0).max(100_000),
-  channel: line(80),
+  channel: composeChannel,
   delay: z.number().int().min(0).max(90),
   months: z.number().int().min(1).max(60),
   options: z.object({ table: z.boolean(), pay: z.boolean(), indemnity: z.boolean() }),

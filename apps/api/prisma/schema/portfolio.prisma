@@ -261,6 +261,7 @@ model Case {
   documents Document[]
   portalMessages PortalMessage[]
   plannedReminders PlannedReminder[]
+  sendings         Sending[]
   litigation LitigationFile[]
 
   @@unique([id, creditorId], map: "cases_id_creditor")
@@ -352,6 +353,8 @@ model CaseContact {
   replacedBy CaseContact?       @relation("Replacement", fields: [replacedById, caseId], references: [id, caseId], onDelete: NoAction, onUpdate: NoAction)
   replaces   CaseContact[]      @relation("Replacement")
   events     CaseContactEvent[]
+
+  sendings   Sending[]
 
   @@unique([id, caseId])
   @@index([valueNormalized], map: "case_contacts_lookup")
@@ -514,6 +517,52 @@ model PlannedReminder {
   @@index([dueOn], map: "planned_reminders_due")
   @@index([caseId], map: "planned_reminders_case")
   @@map("planned_reminders")
+}
+
+/// What leaves for a debtor (lot Q): an e-mail reminder, written with the request and sent by the worker.
+model Sending {
+  id            String         @id @default(dbgenerated("app.uuid_v7()")) @db.Uuid
+  caseId        String         @map("case_id") @db.Uuid
+  creditorId    String         @map("creditor_id") @db.Uuid
+  channel       SendingChannel
+  template      String
+  level         Int?
+  contactId     String?        @map("contact_id") @db.Uuid
+  documentId    String?        @map("document_id") @db.Uuid
+  /// Written by the worker alone: never sent with the line.
+  status        SendingStatus  @default(dbgenerated("'QUEUED'::sending_status"))
+  simulated     Boolean        @default(dbgenerated("false"))
+  providerRef   String?        @map("provider_ref")
+  failure       String?
+  createdBy     String         @default(dbgenerated("app.user_id()")) @map("created_by") @db.Uuid
+  onBehalfOfId  String?        @default(dbgenerated("app.on_behalf_of()")) @map("on_behalf_of_id") @db.Uuid
+  createdAt     DateTime       @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
+  sentAt        DateTime?      @map("sent_at") @db.Timestamptz(3)
+
+  case     Case      @relation(fields: [caseId, creditorId], references: [id, creditorId], onDelete: NoAction, onUpdate: NoAction)
+  contact  CaseContact? @relation(fields: [contactId, caseId], references: [id, caseId], onDelete: NoAction, onUpdate: NoAction)
+  document Document?    @relation(fields: [documentId, caseId], references: [id, caseId], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([caseId, createdAt], map: "sendings_case")
+  @@index([status], map: "sendings_waiting")
+  @@map("sendings")
+}
+
+enum SendingChannel {
+  EMAIL
+  LETTER
+  REGISTERED_LETTER
+
+  @@map("sending_channel")
+}
+
+enum SendingStatus {
+  QUEUED
+  SENT
+  FAILED
+  UNCERTAIN
+
+  @@map("sending_status")
 }
 
 enum LitigationStage {

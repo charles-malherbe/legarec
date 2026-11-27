@@ -1,5 +1,6 @@
 import { REPLY_ACCEPTED, ROLE_LABELS, type AutomaticEmail, type EmailConfig, type Role } from '@legarec/contracts';
 import { z } from 'zod';
+import { firmIncomplete } from './config';
 import type { EmailRenderer } from './renderer';
 
 export const AUTOMATIC_SENDER = 'LEGAREC <ne-pas-repondre@mail.legarec.fr>';
@@ -25,17 +26,21 @@ export class EmailsService {
   ) {}
 
   async send(name: AutomaticEmail, to: string, data: unknown): Promise<void> {
+    await this.transport.send(await this.compose(name, to, data));
+  }
+
+  /** Whether a value of the firm is still between brackets: asked of its settings, never of what a message says of a debtor. */
+  async firmIncomplete(): Promise<boolean> {
+    return firmIncomplete(await this.settings());
+  }
+
+  /** The message as it would leave, for whoever sends it another way (a reminder, whose outcome is recorded). */
+  async compose(name: AutomaticEmail, to: string, data: unknown): Promise<AutomaticMessage> {
     // One valid address only: no list nor header injection.
     z.email().parse(to);
     const config = await this.settings();
     const { subject, html } = this.renderer.renderAutomatic(name, data, config);
-    await this.transport.send({
-      from: AUTOMATIC_SENDER,
-      to,
-      subject,
-      html,
-      ...(REPLY_ACCEPTED.includes(name) ? { replyTo: config.collection_email } : {}),
-    });
+    return { from: AUTOMATIC_SENDER, to, subject, html, ...(REPLY_ACCEPTED.includes(name) ? { replyTo: config.collection_email } : {}) };
   }
 
   /** The role shown in an invitation always comes from the labels of the application. */

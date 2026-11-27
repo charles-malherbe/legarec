@@ -72,7 +72,7 @@ Un fichier par conteneur dans `/etc/legarec/`, d'après `infra/valeurs/*.exemple
 |---|---|---|
 | `caddy.env` | 10110 | `ACME_EMAIL`, `AUTHORIZED_IPS` (adresses du cabinet, séparées par une espace), `S3_REGION` (`eu-west-par`, déjà écrite) |
 | `api.env` | 10101 | `DATABASE_URL`, `VALKEY_URL`, `VAULT_MASTER_KEY`, `SESSION_SIGNING_KEY`, adresses des portails, `MYSENDINGBOX_ENV` ; plus tard `S3_DOCUMENTS_BUCKET` et `S3_REGION` (« Bucket des documents ») |
-| `worker.env` | 10102 | `JOBS_DATABASE_URL`, les mêmes `VALKEY_URL`, `VAULT_MASTER_KEY` et `SESSION_SIGNING_KEY`, `GATUS_PUSH_URL`, `GATUS_PUSH_TOKEN` ; plus tard les mêmes `S3_DOCUMENTS_BUCKET` et `S3_REGION` que `api.env` |
+| `worker.env` | 10102 | `JOBS_DATABASE_URL`, les mêmes `VALKEY_URL`, `VAULT_MASTER_KEY` et `SESSION_SIGNING_KEY`, `GATUS_PUSH_URL`, `GATUS_PUSH_TOKEN`, `RESEND_ENV` (`test` par défaut : les relances ne partent que vers les adresses d'essai `@resend.dev` ; `production` à la mise en service, pour écrire aux débiteurs) ; plus tard les mêmes `S3_DOCUMENTS_BUCKET` et `S3_REGION` que `api.env` |
 | `migration.env` | 10104 | `MIGRATION_DATABASE_URL` |
 | `postgres.env` | 999 | `POSTGRES_PASSWORD`, `LEGAREC_OWNER_PASSWORD`, `LEGAREC_APP_PASSWORD`, `LEGAREC_JOBS_PASSWORD` |
 | `pgbackrest.env` | 999 | `PGBACKREST_REPO1_S3_REGION`, `PGBACKREST_REPO1_S3_ENDPOINT`, `PGBACKREST_REPO1_S3_KEY`, `PGBACKREST_REPO1_S3_KEY_SECRET`, `PGBACKREST_REPO1_CIPHER_PASS`, `GATUS_PUSH_TOKEN` |
@@ -297,17 +297,17 @@ Gatus tourne sur le serveur qu'il surveille : si le serveur, son réseau ou Cadd
 ## Reste à faire (fin du lot X)
 
 ### Avant la mise en service : écrans encore sans API
-Une page construite pour la production n'a aucune simulation : elle appelle l'API. État au 26/11/2026, après `lot/u3` (comparaison des routes simulées et de `packages/contracts/openapi.json`) :
+Une page construite pour la production n'a aucune simulation : elle appelle l'API. État au 27/11/2026, après `lot/q3` (comparaison des routes simulées et de `packages/contracts/openapi.json`) :
 
 | Portail | Routes appelées | Sur l'API | Manquent |
 |---|---|---|---|
 | `paiement` | 13 | 13 | — |
 | `partenaires` | 19 | 19 | — |
-| `espace` | 167 | 131 | 36, ci-dessous |
+| `espace` | 167 | 132 | 35, ci-dessous |
 
 | Écran de l'espace | Ce qui manque | Attend |
 |---|---|---|
-| Relances envoyées depuis un dossier, un échéancier ou la liste ; envoi et composition d'un document ; essai d'un modèle | 8 routes | Clés de test Resend et MySendingBox (lot Q) |
+| Relances envoyées depuis un échéancier ou la liste ; envoi et composition d'un document ; essai d'un modèle (la relance par e-mail depuis un dossier est sur l'API depuis `lot/q3`) | 7 routes | Composition des courriers et clé de test MySendingBox (lot Q, question 210) |
 | Messagerie (e-mails, SMS), boîtes OVH dans Paramètres | 21 routes | Compte SMS et boîtes OVH (lot R) |
 | Appels | 7 routes | Licence et identifiants 3CX (lot T) |
 

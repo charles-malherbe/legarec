@@ -3,7 +3,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { z } from 'zod';
 import { Database } from '../../platform/database/database';
 import { ApiError, notFound } from '../../platform/errors/api-error';
-import { dayOf } from '../../platform/format';
+import { dayOf, startOfDay } from '../../platform/format';
 import type { StaffActor } from '../account/account.service';
 import { SettingValues } from '../settings/values';
 import { capOf, capPeriod, type Channel } from './contact-rules';
@@ -81,8 +81,16 @@ export class RemindersService {
         limit: null,
       })),
     ].sort((a, b) => a.date.localeCompare(b.date) || (a.time ?? '').localeCompare(b.time ?? ''));
-    // What has left this week: with the sendings of lot Q.
-    return { today, items, weekly: { emails: 0, sms: 0, letters: 0 } };
+    // What has left this week (from Monday) on the cases one reads; texts come with lot R.
+    const [monday] = capPeriod('EMAIL', today);
+    const left = await tx.sending.groupBy({
+      by: ['channel'],
+      // As the caps: on the day it left; one that still waits, on the day it was asked.
+      where: { status: { not: 'FAILED' }, OR: [{ sentAt: { gte: startOfDay(monday) } }, { sentAt: null, createdAt: { gte: startOfDay(monday) } }] },
+      _count: { _all: true },
+    });
+    const sent = (...channels: string[]) => left.filter((row) => channels.includes(row.channel)).reduce((sum, row) => sum + row._count._all, 0);
+    return { today, items, weekly: { emails: sent('EMAIL'), sms: 0, letters: sent('LETTER', 'REGISTERED_LETTER') } };
   }
 
   /** The cases one may plan a reminder on: those one acts on. */

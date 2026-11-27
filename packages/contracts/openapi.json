@@ -9802,6 +9802,28 @@
         }
       }
     },
+    "/staff/cases/{id}/reminders": {
+      "post": {
+        "operationId": "CasesController_remind",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "cases"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
+          ]
+        }
+      }
+    },
     "/staff/cases/{id}/debtor": {
       "put": {
         "operationId": "CasesController_correctDebtor",

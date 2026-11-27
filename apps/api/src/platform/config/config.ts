@@ -18,6 +18,8 @@ const common = {
   DEBTOR_PORTAL_URL: origin.default('http://localhost:5175'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug']).default('info'),
   MYSENDINGBOX_ENV: z.enum(['test', 'production']).default('test'),
+  /** `production`: the reminders leave for the debtors. Otherwise, whatever NODE_ENV says, only for test addresses. */
+  RESEND_ENV: z.enum(['test', 'production']).default('test'),
   /** Absent: the AI is off, whatever the settings say. */
   AI_ENABLED: z.literal('true').optional(),
   /** The two levels of model (docs/ia.md): absent, the AI is off. Never a name in the code. */
@@ -74,6 +76,18 @@ const workerSchema = z.object({
   JOBS_DATABASE_URL: database,
   /** Development only: folder where the simulated messages are written. */
   DEV_MAIL_DIR: z.string().startsWith('/').optional(),
+  /** Outside production only: addresses of the firm a test key of Resend may write to, besides `@resend.dev`. */
+  DEV_RECIPIENTS: z
+    .string()
+    .max(2000)
+    .transform((value) =>
+      value
+        .split(',')
+        .map((item) => item.trim().toLowerCase())
+        .filter(Boolean),
+    )
+    .pipe(z.array(z.email()).max(20))
+    .optional(),
   /** clamd of the server (`tcp://clamav:3310`). Absent in production: files wait, unread, for the antivirus. */
   CLAMAV_URL: z
     .string()
@@ -93,7 +107,7 @@ export class ConfigError extends Error {
 
 type Env = Record<string, string | undefined>;
 /** Reads the startup values. An error names the variables, never their content. */
-function read<T extends z.ZodType<Partial<Config> & Pick<Config, 'NODE_ENV' | 'MYSENDINGBOX_ENV'>>>(schema: T, env: Env): Readonly<z.infer<T>> {
+function read<T extends z.ZodType<Partial<Config> & Pick<Config, 'NODE_ENV' | 'MYSENDINGBOX_ENV' | 'RESEND_ENV'>>>(schema: T, env: Env): Readonly<z.infer<T>> {
   const parsed = schema.safeParse(env);
   if (!parsed.success) {
     const names = [...new Set(parsed.error.issues.map((issue) => String(issue.path[0])))].sort();
@@ -121,6 +135,7 @@ function read<T extends z.ZodType<Partial<Config> & Pick<Config, 'NODE_ENV' | 'M
   const live = Object.keys(env).filter((name) => env[name]?.startsWith('live_'));
   if (live.length) throw new ConfigError(`Live keys refused outside production: ${live.join(', ')}`);
   if (config.MYSENDINGBOX_ENV === 'production') throw new ConfigError('Real letters refused outside production: MYSENDINGBOX_ENV');
+  if (config.RESEND_ENV === 'production') throw new ConfigError('Real e-mails refused outside production: RESEND_ENV');
   return Object.freeze(config);
 }
 
@@ -128,6 +143,7 @@ export const readConfig = (env: Env): Config => read(apiSchema, env);
 export function readWorkerConfig(env: Env): WorkerConfig {
   const config = read(workerSchema, env);
   if (config.NODE_ENV === 'production' && config.DEV_MAIL_DIR) throw new ConfigError('Refused in production: DEV_MAIL_DIR');
+  if (config.NODE_ENV === 'production' && config.DEV_RECIPIENTS) throw new ConfigError('Refused in production: DEV_RECIPIENTS');
   return config;
 }
 

@@ -225,7 +225,7 @@ Les 161 routes simulées se répartissent ainsi :
 | Premier courrier : seul un courrier postal compte (fiche, Rédiger, aide, scénarios) | Q |
 | Forme juridique affichée et corrigeable ; score absent si inconnue, entrepreneur individuel ou particulier | L, U |
 | **Valeurs de démonstration figées dans 18 fichiers** : « novembre », « décembre », « 2026 », « ▲ 3 pts », « 8 % HT », 134 070 € d'honoraires, listes de gestionnaires et d'avocats, dates de décembre 2026 dans `letterSchedule` et le simulateur | L à U |
-| Fiche débiteur : la relance envoie un destinataire libre et des libellés ; devient un contact du dossier et des codes | Q |
+| Fiche débiteur : la relance envoie un destinataire libre et des libellés ; devient un contact du dossier et des codes : fait pour l'e-mail (lot Q, question 211) | Q |
 | Appel entrant lu une seule fois : interrogation toutes les 5 secondes | T |
 | Échec d'envoi et quota par boîte : compteur dans Valkey, plus en mémoire | R |
 | Écran Secrets : liste de noms attendus, « Renouveler » qui demande la nouvelle valeur, « Révoquer » masqué pour les clés internes, `SESSION_SIGNING_KEY` retirée, « Environnement » réel (108 à 110) : fait (lot L) | L |
@@ -283,10 +283,20 @@ Les 161 routes simulées se répartissent ainsi :
 - [ ] Factures saisies à la main, devis, contrats (questions 195 et 196, à trancher)
 - [ ] PDF de la facture et de l'avoir (aucun gabarit de facture encore), envoi de l'avoir au créancier (V3, lot R), « Préparer l'avoir » depuis Reversements (reprises), détail des encaissements par créancier, relevés PDF et envois, reprises (questions 156 à 159)
 
-## Lot Q — Envois (état au 26/11/2026)
+## Lot Q — Envois (état au 27/11/2026)
 - [x] Agenda des relances sur l'API : planifier, déplacer, marquer faite, supprimer ; plafonds tous créanciers confondus, plages et jours fériés
 - [x] Question 160 : plages horaires réglables jour par jour dans Paramètres › Relances (appels ; e-mails et SMS), lues par l'API et les simulations (`contactHours`)
-- [ ] Envois (Resend, MySendingBox en test), scénarios, premier courrier, relances depuis un dossier
+- [x] Table `sendings` (migration `20261127100000_sendings`) : une ligne par envoi, écrite avec la requête, sans adresse ni texte d'e-mail ; plafonds comptés par débiteur tous créanciers confondus sous verrou (`app.sent_contacts`) ; clé du fournisseur lue par le worker seul (`app.service_key`) ; lignes supprimées à l'anonymisation du dossier
+- [x] Relance par e-mail depuis un dossier (`POST /staff/cases/:id/reminders`) : relances du kit (`reminder-1` à `reminder-3`) vers une adresse du dossier ; refus motivé (409) : plafond, plages et jours fériés, premier courrier postal absent, particulier, dossier clos, valeur du cabinet entre crochets, adresse inconnue (questions 211 à 215)
+- [x] Envoi par Resend dans le worker : clé du coffre, jamais journalisée ; sans clé hors production, envoi simulé (`simulated`) ; hors production, seulement vers `@resend.dev` ou `DEV_RECIPIENTS` ; un seul essai, ligne « incertaine » quand la réponse du fournisseur est inconnue, jamais renvoyée ; code d'accès joint seulement vers une adresse confirmée (question 112)
+- [x] Fiche du dossier branchée (codes au lieu de libellés, adresse choisie parmi celles du dossier, motif du refus affiché) ; compteur de relances de la fiche et « envoyés cette semaine » de l'agenda réels ; « Rédiger un courrier » envoie des codes de canal (toujours simulé)
+- [x] Corrections après la revue de sécurité : coordonnée et document d'un envoi liés à leur dossier par clé étrangère composite ; « une seule fois » tenu par un déclencheur de la base (`QUEUED` → `UNCERTAIN` → `SENT` ou `FAILED`, jamais en arrière) ; colonnes et canal que rien n'écrit retirés (les courriers apporteront les leurs) ; plafond compté au jour du départ ; file `reminders` à essai unique ; aucune ligne ne reste en file (tâche abandonnée ou délai dépassé : `FAILED`, balayage toutes les 5 minutes) ; refus si litige, contentieux ou échéancier respecté (question 218) ; `RESEND_ENV=production` exigé pour écrire à de vrais destinataires ; refus à la demande en production sans clé valide ; « Relance envoyée » écrit au départ réel (question 219) ; limite de 120 demandes par heure et par compte
+- [ ] Simulations : le refus `CASE_DISPUTED` est reproduit (statut du dossier) ; `PLAN_RESPECTED` et `SERVICE_NOT_READY` ne le sont pas (les simulations ne relient pas un échéancier actif à la relance, et n'ont ni coffre ni production)
+- [ ] Après un échec ou une expiration, aucune notification au collaborateur : seul l'historique du dossier le dit (« Relance non envoyée »)
+- [ ] Envoi « incertain » (`UNCERTAIN`) : aucun moyen de le trancher (ni écran, ni route) ; il compte dans le plafond du débiteur tant qu'il n'est pas tranché
+- [ ] Courriers : composition des PDF, premier courrier `LR-AAAA-NNNN`, MySendingBox (compte de test), relance « Courrier recommandé » de la fiche, « Rédiger un courrier » et envoi groupé (`GET` et `POST /staff/documents/compose`, brouillon), envoi d'un document, essai d'un modèle (question 210)
+- [ ] Scénarios automatiques : règles à spécifier (question 216) ; relance d'un échéancier, relance groupée depuis la liste (`POST /staff/cases/reminders`)
+- [ ] Dérogation motivée aux plafonds (question 214) ; e-mails de compte sur leur domaine (question 217) ; webhooks Resend (distribution, rebond, ouverture) et suivi ; file des envois « incertains » à trancher par une personne (aucun écran)
 
 ## Lot W — IA (état au 26/11/2026)
 - [x] Couche fournisseur, garde-fous, budget, journal ; synthèse du dossier (régénérer, signaler)

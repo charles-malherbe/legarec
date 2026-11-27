@@ -8,6 +8,9 @@ const isoDay = new Intl.DateTimeFormat('en-CA', { timeZone: ZONE, year: 'numeric
 export const dayOf = (date: Date) => isoDay.format(date);
 /** By the calendar: the days of a change of hour last 23 or 25 hours. */
 const dayBefore = (day: string) => new Date(Date.parse(`${day}T12:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+/** Midnight in Paris at the start of that day, in winter (UTC+1) as in summer (UTC+2). */
+export const startOfDay = (day: string) =>
+  [2, 1].map((hours) => new Date(Date.parse(`${day}T00:00:00Z`) - hours * 3_600_000)).find((time) => dayOf(time) === day)!;
 export const timeOf = format({ hour: '2-digit', minute: '2-digit' });
 const numeric = format({ day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 const short = format({ day: 'numeric', month: 'short' });
