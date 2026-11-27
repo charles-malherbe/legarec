@@ -3,6 +3,7 @@ import type { AutomaticMessage, EmailsService } from '../../emails/emails.servic
 import { allowedOutsideProduction, ProviderRefused, type ResendClient } from '../../emails/resend';
 import { Audit } from '../../platform/audit/audit';
 import { Keyring } from '../../platform/crypto/keyring';
+import { databaseCode } from '../../platform/database/codes';
 import type { Database, Transaction } from '../../platform/database/database';
 import { dayOf, timeOf } from '../../platform/format';
 import { GiveUp, TryLater } from '../../platform/queue/errors';
@@ -105,25 +106,39 @@ async function factsOf(database: Database, vault: Vault, tx: Transaction, caseId
   };
 }
 
-/** A line that has not left fails, once: said in the history of the case, without a word of why beyond a code. */
-async function markFailed(asApplication: Run, sending: string, caseId: string, failure: string): Promise<string> {
+/**
+ * A line that has not left fails, once: said in the history of the case, without a word of why beyond a code. `from` is the
+ * state the caller knows it in: `QUEUED` for whatever stops it before it is taken (a line taken meanwhile is left alone:
+ * nobody here knows what has left), `UNCERTAIN` for the one task that took it and heard the provider refuse.
+ */
+async function markFailed(
+  asApplication: Run,
+  sending: string,
+  caseId: string,
+  failure: string,
+  from: 'QUEUED' | 'UNCERTAIN',
+): Promise<{ code: string; failed: boolean }> {
   const code = CODE.test(failure) ? failure : 'SENDING_FAILED';
-  await asApplication(async (tx) => {
-    const { count } = await tx.sending.updateMany({
-      where: { id: sending, status: { in: ['QUEUED', 'UNCERTAIN'] } },
-      data: { status: 'FAILED', failure: code },
-    });
+  const failed = await asApplication(async (tx) => {
+    const { count } = await tx.sending.updateMany({ where: { id: sending, status: from }, data: { status: 'FAILED', failure: code } });
     // An anonymized case takes no more history.
     if (count)
       await tx.$executeRaw`SELECT app.add_case_event(${caseId}::uuid, 'REMINDER_FAILED', 'Relance non envoyée', NULL, 'danger'::event_tone, false) WHERE app.case_writable(${caseId}::uuid)`;
+    return count === 1;
   });
-  return code;
+  return { code, failed };
 }
+const sentNote = (caseId: string, level: number | null) => (tx: Transaction) =>
+  tx.$executeRaw`SELECT app.add_case_event(${caseId}::uuid, 'REMINDER_SENT', 'Relance envoyée', ${`E-mail · niveau ${level ?? 1}`}, 'info'::event_tone, false) WHERE app.case_writable(${caseId}::uuid)`;
+/** How long a sent line may stay without its event before the sweep writes it: far more than the two writes of a task take. */
+const UNSAID_MS = 2 * 60_000;
 
 /**
  * No line stays queued for ever. Every few minutes: those whose task was abandoned before anything left (the author gone,
  * a task refused or interrupted before the line was taken) fail with its code; those that have waited beyond their time
- * (`sendingDeadline`) fail as `EXPIRED`. A line already taken is never touched: nobody knows what has left.
+ * (`sendingDeadline`) fail as `EXPIRED`. A line already taken is never touched, even when a task takes it between the
+ * reading and the writing here: nobody knows what has left. And a line sent whose task was cut before the history said so
+ * gets its « Relance envoyée », in the name of the application.
  */
 export async function sweepSendings(asApplication: Run, now: Date = new Date()): Promise<number> {
   const [settings, waiting] = await asApplication(
@@ -148,9 +163,18 @@ export async function sweepSendings(asApplication: Run, now: Date = new Date()):
         ? 'EXPIRED'
         : null;
     if (!code) continue;
-    await markFailed(asApplication, line.id, line.case_id, code);
-    failed += 1;
+    if ((await markFailed(asApplication, line.id, line.case_id, code, 'QUEUED')).failed) failed += 1;
   }
+  // Sent a moment ago at least, and no « Relance envoyée » on the case since: the task was cut between its two writes.
+  const before = new Date(now.getTime() - UNSAID_MS);
+  await asApplication(async (tx) => {
+    const unsaid = await tx.$queryRaw<{ case_id: string; level: number | null }[]>`
+      SELECT s.case_id, s.level FROM sendings s
+      WHERE s.status = 'SENT' AND s.sent_at < ${before} AND s.sent_at > ${before}::timestamptz - interval '7 days' AND app.case_writable(s.case_id)
+        AND NOT EXISTS (SELECT 1 FROM case_events e WHERE e.case_id = s.case_id AND e.kind = 'REMINDER_SENT' AND e.occurred_at >= s.sent_at - interval '1 minute')
+      ORDER BY s.sent_at LIMIT 200`;
+    for (const line of unsaid) await sentNote(line.case_id, line.level)(tx);
+  });
   return failed;
 }
 
@@ -186,12 +210,15 @@ export function sendingJobs({
     if (!count) return;
     // Neither the address nor the text: the channel and the level. In the name of the colleague who asked, as long as
     // the case is still theirs; of the application otherwise.
-    const note = (tx: Transaction) =>
-      tx.$executeRaw`SELECT app.add_case_event(${caseId}::uuid, 'REMINDER_SENT', 'Relance envoyée', ${`E-mail · niveau ${level}`}, 'info'::event_tone, false) WHERE app.case_writable(${caseId}::uuid)`;
-    await asAuthor(note).catch(() => asApplication(note));
+    // Only a refusal of the rights hands it to the application; anything else surfaces, and the sweep says it later.
+    const note = sentNote(caseId, level);
+    await asAuthor(note).catch((error: unknown) => {
+      if (databaseCode(error) !== '42501') throw error;
+      return asApplication(note);
+    });
   };
-  const fail = async (asApplication: Run, sending: string, caseId: string, failure: string): Promise<never> => {
-    throw new GiveUp(await markFailed(asApplication, sending, caseId, failure));
+  const fail = async (asApplication: Run, sending: string, caseId: string, failure: string, from: 'QUEUED' | 'UNCERTAIN' = 'QUEUED'): Promise<never> => {
+    throw new GiveUp((await markFailed(asApplication, sending, caseId, failure, from)).code);
   };
 
   return {
@@ -255,7 +282,7 @@ export function sendingJobs({
         try {
           ({ ref } = await resend.send(key, message, `sending/${sending}`));
         } catch (error) {
-          if (error instanceof ProviderRefused) return fail(asApplication, sending, caseId, error.code);
+          if (error instanceof ProviderRefused) return fail(asApplication, sending, caseId, error.code, 'UNCERTAIN');
           // Nothing clear came back: the line stays uncertain, and so does its task.
           throw new GiveUp('UNCERTAIN');
         }

@@ -714,3 +714,69 @@ describe('with a key, the guard of the recipients', () => {
     await rows("UPDATE outbox SET done_at = now() WHERE payload ->> 'case' = $1", [made.id]);
   });
 });
+
+describe('the sweep and a line a task has taken', () => {
+  const abandoned = async () => {
+    const made = await eligible(test.s.officerA);
+    expect((await remind('officerA', made)).status).toBe(204);
+    await rows("UPDATE outbox SET failed_at = now(), failure = 'AUTHOR_GONE' WHERE payload ->> 'case' = $1", [made.id]);
+    return made;
+  };
+  const late = () => new Date(Date.now() + 14 * 86_400_000);
+
+  it('never fails a line already taken, whatever its task says and however old it is', async () => {
+    const made = await abandoned();
+    await rows("UPDATE sendings SET status = 'UNCERTAIN' WHERE case_id = $1", [made.id]);
+    await sweepSendings(worker.asWorker, late());
+    expect(await sendings(made.id)).toMatchObject([{ status: 'UNCERTAIN', failure: null }]);
+    expect(await events(made.id, 'REMINDER_FAILED')).toEqual([]);
+  });
+
+  it('leaves alone a line taken between its reading and its writing: the message may have left', async () => {
+    const made = await abandoned();
+    let calls = 0;
+    // The sweep reads first; a task takes the line before the sweep writes.
+    const raced: typeof worker.asWorker = async (work) => {
+      if ((calls += 1) === 2) await rows("UPDATE sendings SET status = 'UNCERTAIN' WHERE case_id = $1 AND status = 'QUEUED'", [made.id]);
+      return worker.asWorker(work);
+    };
+    await sweepSendings(raced, late());
+    expect(calls).toBeGreaterThanOrEqual(2);
+    expect(await sendings(made.id)).toMatchObject([{ status: 'UNCERTAIN', failure: null }]);
+    expect(await events(made.id, 'REMINDER_FAILED')).toEqual([]);
+    // Left alone, the same line fails.
+    const other = await abandoned();
+    await sweepSendings(worker.asWorker, workerNow);
+    expect(await sendings(other.id)).toMatchObject([{ status: 'FAILED', failure: 'AUTHOR_GONE' }]);
+  });
+
+  it('says « Relance envoyée » for a line sent whose task was cut before the history said so, once', async () => {
+    const made = await eligible(test.s.officerA);
+    expect((await remind('officerA', made, { template: 'FIRM' })).status).toBe(204);
+    await rows("UPDATE outbox SET failed_at = now(), failure = 'UNCERTAIN' WHERE payload ->> 'case' = $1", [made.id]);
+    await rows("UPDATE sendings SET status = 'UNCERTAIN' WHERE case_id = $1", [made.id]);
+    await rows("UPDATE sendings SET status = 'SENT', sent_at = now() - interval '1 minute' WHERE case_id = $1", [made.id]);
+    // Too recent: its task may still be writing.
+    await sweepSendings(worker.asWorker, new Date());
+    expect(await events(made.id, 'REMINDER_SENT')).toEqual([]);
+    await sweepSendings(worker.asWorker, new Date(Date.now() + 5 * 60_000));
+    await sweepSendings(worker.asWorker, new Date(Date.now() + 10 * 60_000));
+    expect(await events(made.id, 'REMINDER_SENT')).toEqual([{ title: 'Relance envoyée', detail: 'E-mail · niveau 2', actor_label: 'Application' }]);
+  });
+
+  it('counts in the week of the agenda on the day it left, as the caps do', async () => {
+    const weekly = async () => ((await call('officerA', 'GET', '/reminders')).body as { weekly: { emails: number } }).weekly.emails;
+    const made = await eligible(test.s.officerA);
+    const before = await weekly();
+    await rows(
+      `INSERT INTO sendings (case_id, creditor_id, channel, template, level, contact_id, created_by, created_at)
+       SELECT c.id, c.creditor_id, 'EMAIL', 'FRIENDLY', 1, k.id, $2, now() - interval '8 days' FROM cases c JOIN case_contacts k ON k.case_id = c.id WHERE c.id = $1`,
+      [made.id, test.s.officerA],
+    );
+    // Asked last week and still waiting: last week's.
+    expect(await weekly()).toBe(before);
+    await rows("UPDATE sendings SET status = 'UNCERTAIN' WHERE case_id = $1", [made.id]);
+    await rows("UPDATE sendings SET status = 'SENT', sent_at = now() WHERE case_id = $1", [made.id]);
+    expect(await weekly()).toBe(before + 1);
+  });
+});

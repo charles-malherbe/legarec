@@ -85,7 +85,8 @@ export class RemindersService {
     const [monday] = capPeriod('EMAIL', today);
     const left = await tx.sending.groupBy({
       by: ['channel'],
-      where: { status: { not: 'FAILED' }, createdAt: { gte: startOfDay(monday) } },
+      // As the caps: on the day it left; one that still waits, on the day it was asked.
+      where: { status: { not: 'FAILED' }, OR: [{ sentAt: { gte: startOfDay(monday) } }, { sentAt: null, createdAt: { gte: startOfDay(monday) } }] },
       _count: { _all: true },
     });
     const sent = (...channels: string[]) => left.filter((row) => channels.includes(row.channel)).reduce((sum, row) => sum + row._count._all, 0);
