@@ -55,6 +55,10 @@ class Memory implements Files {
       this.objects.delete(key);
     });
   }
+  // Listed by the tests of the sweep (sweep.test.ts).
+  async *list() {
+    yield* [];
+  }
 }
 
 describe('the files of the documents', () => {

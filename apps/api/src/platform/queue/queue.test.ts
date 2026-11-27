@@ -742,7 +742,8 @@ describe('purge', () => {
   it('is scheduled once, whatever the number of workers, and runs from the queue', async () => {
     work(async () => undefined, { scheduled: maintenance(jobs, logger, storage) });
     await Promise.all([scheduleMaintenance(valkey, prefix), scheduleMaintenance(valkey, prefix)]);
-    expect(await valkey.zcard(`${prefix}:maintenance:repeat`)).toBe(1);
+    // The purge, and the sweep of the files without a row.
+    expect(await valkey.zcard(`${prefix}:maintenance:repeat`)).toBe(2);
     await queue().add('purge', {});
     await until(() => logged('purge done') === 24);
   });

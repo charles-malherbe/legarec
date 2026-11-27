@@ -123,3 +123,23 @@ Consigne de l'utilisateur : « Continuer le développement sans interruption, fu
 - Questions **210 à 219** (envois) à confirmer, en place par défaut. À trancher pour avancer : **210** (quel texte part par courrier postal : bloque tous les courriers), **216** (scénarios automatiques), **217** (les e-mails de compte restent simulés tant que le domaine d'envoi et sa clé n'existent pas : **bloque les invitations en production**), **218** (une promesse de paiement ne suspend pas les relances), **212** (une mise en demeure par simple e-mail est-elle voulue ; « Relance ferme (niveau 3) » envoie le modèle de niveau 2).
 - Plafond des relances : limite de 120 par heure et par collaborateur, valeur choisie par défaut (`docs/api.md`).
 - Reste ouvert sur les envois : aucun avis au collaborateur après un échec ou une expiration ; aucun moyen de trancher un envoi « incertain » (panne de Resend), qui compte au plafond.
+
+## Suite du 27/11 : fichiers sans ligne (`lot/x7`)
+
+| Initiative | Raison |
+|---|---|
+| Lot choisi : nettoyage des fichiers stockés qu'aucune ligne de la base ne référence | Noté « reporté au lot X » dans `PLAN.md` ; ne dépend d'aucune décision ni d'aucune clé. Un dépôt interrompu laissait un fichier, parfois avec des données personnelles, que rien ne purgeait |
+| Dans le doute, le nettoyage n'efface pas | Ce code supprime des pièces : chaque garde choisit l'option qui efface le moins |
+
+- **`lot/x7`** : 7 commits. Tâche de nuit à 4 h 30 (une seule fois par nuit), commande `dist/sweep-files.js`, fonction `app.referenced_files()` (migration `20261127210000_referenced_files`), disque et bucket.
+  - Règles en place par défaut (questions 230 et 231) : un fichier sans ligne n'est effacé qu'après **7 jours** ; **100 fichiers au plus par nuit** ; **rien n'est effacé** au-delà de 20 fichiers sans ligne, ou si plus de la moitié des fichiers anciens sont sans ligne, ou si la base ne connaît aucun des fichiers anciens (mauvaise base ou base vide).
+  - **Après une restauration** : `dist/purge.js` suspend le nettoyage ; la nuit ne fait plus que compter jusqu'à `dist/sweep-files.js --resume`. Un effacement forcé (`--erase <nombre>`, le nombre affiché juste avant) est inscrit dans `retention_runs`.
+  - Relecture indépendante en deux passes, centrée sur la perte de données : aucun scénario où un fichier référencé est effacé en marche normale. La première version protégeait mal après une restauration ou sur une mauvaise base ; corrigé, contrôlé par le même relecteur (« fusionnable en l'état »).
+  - `pnpm verifier` relancé par cette session : 105 fichiers, 3 811 tests au vert ; l'API se construit avec la nouvelle commande.
+  - Jamais essayé : les commandes `dist/sweep-files.js` et `dist/purge.js` elles-mêmes (seules les fonctions qu'elles appellent sont testées), Docker, un vrai bucket.
+  - Mineurs laissés : une base restaurée **sans** passer par `dist/purge.js` n'est pas suspendue (20 fichiers au plus peuvent partir) ; toute purge à la demande suspend le nettoyage sans limite de durée et seul le journal du worker le dit ; si les seuls fichiers anciens sont sans ligne (tout début de production), la tâche échoue chaque nuit et il faut les retirer à la main ; la commande propose d'effacer avant de rappeler la suspension.
+
+### À faire par l'utilisateur ou le cabinet
+- Question **231, à trancher** : qui est prévenu quand le nettoyage refuse d'effacer ou reste suspendu (aujourd'hui, le journal du worker seulement ; une alerte Gatus ou dans l'application reste à décider). Question **230** (délai de 7 jours, variante 24 heures) à confirmer.
+- Une base de développement qui avait appliqué la première version de la migration `20261127210000_referenced_files` (worktree `fichiers-orphelins` seulement) doit être recréée.
+
