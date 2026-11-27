@@ -180,7 +180,6 @@ n8n.legarec.fr {
 	root * /srv/media
 	@kept file
 	header @kept Cache-Control "public, max-age=31536000, immutable"
-	file_server @kept
 }
 
 media.legarec.fr {
@@ -224,15 +223,22 @@ media.legarec.fr {
 		# Bucket absent, refusing or without the file: the copy, or 404 without the answer of the provider.
 		handle_response {
 			import media_kept
+			file_server @kept
 			@missing not file
 			respond @missing 404
 		}
 	}
-	# Bucket unreachable: the copy, or the 502 of the proxy.
+	# Bucket unreachable: the copy, or the 502 of the proxy. A file served while handling an error keeps the code of the
+	# error unless told otherwise: 200, for the whole file, since nothing partial or conditional can be answered with it.
 	handle_errors 502 503 504 {
 		import security
 		header Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'"
 		import media_kept
+		request_header -Range
+		request_header -If-*
+		file_server @kept {
+			status 200
+		}
 	}
 }
 
