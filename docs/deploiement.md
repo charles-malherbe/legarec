@@ -63,6 +63,15 @@ Décision du 26/11/2026, au lieu de Scaleway. Adresse du service : `s3.eu-west-p
 
 ### Resend
 - [ ] Clé dédiée aux alertes, droit d'envoi seulement, domaine `mail.legarec.fr`.
+- [ ] **Webhook des relances** (suivi de la distribution, des rebonds et des plaintes ; règle un envoi « incertain »). À faire par le cabinet, une fois l'API en ligne :
+  1. Resend > Webhooks > « Add Webhook ». Adresse : `https://api.legarec.fr/hooks/resend`.
+  2. Événements à cocher : `email.sent`, `email.delivered`, `email.delivery_delayed`, `email.bounced`, `email.complained`, `email.failed`, `email.suppressed`. **Ne pas cocher** `email.opened` ni `email.clicked` : ils ne sont pas suivis (question 225) ; cochés par erreur, ils sont reçus et ignorés.
+  3. Copier le secret de signature du webhook (`whsec_…`) et le coller dans Paramètres techniques > Secrets, sous `RESEND_WEBHOOK_SECRET` (« Resend (webhooks) »). Il ne va dans aucun fichier du serveur.
+  4. Tant que ce secret n'est pas saisi, l'API **refuse tous les événements** (401) : Resend réessaie pendant environ une journée (délais croissants), puis désactive le webhook et prévient par e-mail ; le réactiver alors chez Resend. Mieux vaut donc saisir le secret aussitôt le webhook créé.
+  5. Renouvellement : « Rotate » chez Resend (l'ancien secret signe encore 24 heures), puis saisir le nouveau dans Secrets.
+  6. Essai : envoyer une relance à `delivered@resend.dev` depuis un dossier d'essai ; l'historique du dossier doit dire « Relance distribuée » dans les minutes qui suivent. Avec `bounced@resend.dev`, l'adresse du dossier passe à « Invalide » (question 224).
+  - Caddy : rien à changer. `infra/caddy/Caddyfile` laisse passer `/hooks/*` vers l'API (seul `/service` est fermé), comme le Caddyfile de référence du kit ; ses journaux ne gardent que `/hooks`. Pas de filtrage par adresse IP : c'est la signature qui authentifie (Resend publie ses adresses d'envoi, si le cabinet veut un jour les imposer dans Caddy).
+  - Un seul webhook par environnement. Un événement qui désigne un envoi d'un autre environnement est ignoré.
 
 ## Valeurs à fournir
 
@@ -143,7 +152,7 @@ sudo install -o root -g 10101 -m 640 /opt/legarec/infra/valeurs/api.env.exemple 
    legarec exec worker node --env-file=/run/secrets/worker dist/account.js director
    ```
 
-6. Clé Resend, puis les autres clés, dans Paramètres techniques > Secrets.
+6. Clé Resend, puis les autres clés, dans Paramètres techniques > Secrets ; puis le webhook Resend et son secret `RESEND_WEBHOOK_SECRET` (« Resend », plus haut).
 7. Invitations des collaborateurs, puis des créanciers.
 
 Déploiements suivants : `sudo git -C /opt/legarec checkout main`, `sudo git -C /opt/legarec pull --ff-only`, puis l'étape 2. Pendant les migrations, l'ancienne version répond encore : une migration doit rester compatible avec elle.
