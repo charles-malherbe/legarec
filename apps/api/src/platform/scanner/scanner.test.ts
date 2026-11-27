@@ -90,6 +90,13 @@ describe('clamd over TCP', () => {
     expect(heard[0]!.body.equals(file)).toBe(true);
   });
 
+  it('takes for infected an archive that goes beyond what clamd reads (AlertExceedsMax), never for clean', async () => {
+    for (const name of ['Heuristics.Limits.Exceeded.MaxFileSize', 'Heuristics.Limits.Exceeded.MaxScanSize', 'Heuristics.Limits.Exceeded.MaxRecursion']) {
+      const scanner = new ClamavScanner('127.0.0.1', await clamd(() => `stream: ${name} FOUND`));
+      expect(await scanner.scan(Buffer.from('PK nothing'))).toBe('INFECTED');
+    }
+  });
+
   it('never takes for clean a file that clamd refused, or an answer it does not know', async () => {
     const tooLarge = new ClamavScanner('127.0.0.1', await clamd(verdict, [], 100_000));
     await expect(tooLarge.scan(Buffer.alloc(200_000))).rejects.toThrow();
