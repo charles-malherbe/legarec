@@ -105,8 +105,11 @@ export class RateLimits {
     this.key = deriveKey(Buffer.from(config.SESSION_SIGNING_KEY, 'base64'), 'rate-limit');
   }
 
-  /** Counts one request of this network, refused beyond the limit. Without Valkey, nothing is counted: refused too. */
-  async take({ name, max, seconds, sliding = false }: RateLimit, of: string = networkOf(requestFacts().ip)): Promise<void> {
+  /**
+   * Counts one request of this network, refused beyond the limit. Without Valkey, nothing is counted: refused too.
+   * `weight`: what the request counts for (the lines of a batch), by fixed windows only.
+   */
+  async take({ name, max, seconds, sliding = false }: RateLimit, of: string = networkOf(requestFacts().ip), weight = 1): Promise<void> {
     if (sliding) {
       const key = `limit:${name}:sliding:${this.digest(of)}`;
       const count = await this.ask(() => this.valkey.eval(SLIDING, 1, key, Date.now(), seconds * 1000, max, `${Date.now()}:${randomBytes(8).toString('hex')}`));
@@ -117,7 +120,7 @@ export class RateLimits {
     const key = `limit:${name}:${window}:${this.digest(of)}`;
     let count: unknown;
     try {
-      const answers = await this.valkey.multi().incr(key).expire(key, seconds).exec();
+      const answers = await this.valkey.multi().incrby(key, weight).expire(key, seconds).exec();
       count = answers?.[0]?.[1];
     } catch {
       throw new ApiError(503, 'UNAVAILABLE');

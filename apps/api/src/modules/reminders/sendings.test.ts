@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { startApp, type TestApp } from '../../../test/app';
 import { startMailWorker, type MailWorker } from '../../../test/worker';
 import type { HttpClient } from '../../emails/resend';
+import { Audit } from '../../platform/audit/audit';
 import { Clock } from '../../platform/clock';
 import { CONFIG } from '../../platform/config/config';
 import { databaseCode } from '../../platform/database/codes';
@@ -239,36 +240,53 @@ describe('a reminder from a case', () => {
   it('stops at the cap of the debtor, whatever the creditor, even when colleagues send together', async () => {
     const mine = await eligible(test.s.officerA);
     const theirs = await eligible(test.s.officerB, { debtor: mine.debtor });
+    const third = await eligible(test.s.officerA, { debtor: mine.debtor });
     // Two e-mails a week by default: six asked at the same moment for the same debtor, two leave.
-    const answers = await Promise.all([0, 1, 2].flatMap(() => [remind('officerA', mine), remind('officerB', theirs)]));
+    const answers = await Promise.all([0, 1].flatMap(() => [remind('officerA', mine), remind('officerB', theirs), remind('officerA', third)]));
     expect(answers.map((item) => item.status).sort()).toEqual([204, 204, 409, 409, 409, 409]);
-    expect(answers.filter((item) => item.status === 409).map((item) => item.body)).toEqual(Array(4).fill({ code: 'CONTACT_CAP' }));
-    expect((await remind('officerA', mine)).body).toEqual({ code: 'CONTACT_CAP' });
+    // Beyond the cap of the debtor, or because the same case already has one on its way.
+    for (const { body } of answers.filter((item) => item.status === 409))
+      expect(['CONTACT_CAP', 'REMINDER_PENDING']).toContain((body as { code: string }).code);
+    const written = await rows<{ case_id: string }>('SELECT case_id FROM sendings WHERE case_id = ANY($1::uuid[])', [[mine.id, theirs.id, third.id]]);
+    expect(written).toHaveLength(2);
+    const [left] = [mine, third].filter((made) => !written.some((line) => line.case_id === made.id));
+    const waiting = left ?? third;
+    if (left) expect((await remind('officerA', left)).body).toEqual({ code: 'CONTACT_CAP' });
     // What failed before leaving does not count.
-    await rows("UPDATE sendings SET status = 'FAILED', failure = 'PROVIDER_REFUSED' WHERE id = (SELECT id FROM sendings WHERE case_id IN ($1, $2) LIMIT 1)", [
-      mine.id,
-      theirs.id,
-    ]);
-    expect((await remind('officerA', mine)).status).toBe(204);
+    await rows(
+      "UPDATE sendings SET status = 'FAILED', failure = 'PROVIDER_REFUSED' WHERE id = (SELECT id FROM sendings WHERE case_id = ANY($1::uuid[]) LIMIT 1)",
+      [[mine.id, theirs.id, third.id].filter((id) => id !== waiting.id)],
+    );
+    if (left) expect((await remind('officerA', left)).status).toBe(204);
     await rows("UPDATE outbox SET done_at = now() WHERE name = 'case-reminder' AND done_at IS NULL");
   });
 });
 
 describe('reminders from the list of cases', () => {
-  const batch = (as: string, ids: string[], key: string = randomUUID()) =>
-    test.call('POST', '/staff/cases/reminders', { as, body: { ids }, headers: { 'idempotency-key': key } });
+  type Item = { id: string; template: 'FRIENDLY' | 'FIRM' };
+  const friendly = (...made: Made[]): Item[] => made.map(({ id }) => ({ id, template: 'FRIENDLY' }));
+  const firm = (...made: Made[]): Item[] => made.map(({ id }) => ({ id, template: 'FIRM' }));
+  const batch = (as: string, items: Item[], key: string = randomUUID()) =>
+    test.call('POST', '/staff/cases/reminders', { as, body: { items }, headers: { 'idempotency-key': key } });
+  const preview = async (as: string, made: Made[]) =>
+    ((await test.call('POST', '/staff/cases/reminders/preview', { as, body: { ids: made.map(({ id }) => id) } })).body as { items: unknown[] }).items;
   const lines = (ids: string[]) =>
     rows<{ case_id: string; level: number; status: string }>(
       'SELECT case_id, level, status FROM sendings WHERE case_id = ANY($1::uuid[]) ORDER BY case_id, created_at',
       [ids],
     );
-  /** A line already there for a case, as a reminder asked earlier would have left it. */
-  const earlier = (made: Made, template: string, level: number) =>
-    rows(
-      `INSERT INTO sendings (case_id, creditor_id, channel, template, level, contact_id, created_by)
-       SELECT c.id, c.creditor_id, 'EMAIL', $2, $3, (SELECT id FROM case_contacts WHERE case_id = c.id AND is_primary), $4 FROM cases c WHERE c.id = $1`,
-      [made.id, template, level, test.s.officerA],
-    );
+  /** A reminder asked earlier for a case, and what became of it: left `days` ago, or still in that state. */
+  const earlier = async (made: Made, template: string, level: number, state: 'SENT' | 'QUEUED' | 'UNCERTAIN' | 'FAILED' = 'SENT', days = 30) => {
+    const [{ id }] = (await rows<{ id: string }>(
+      `INSERT INTO sendings (case_id, creditor_id, channel, template, level, contact_id, created_by, created_at)
+       SELECT c.id, c.creditor_id, 'EMAIL', $2, $3, (SELECT id FROM case_contacts WHERE case_id = c.id AND is_primary), $4, now() - make_interval(days => $5)
+       FROM cases c WHERE c.id = $1 RETURNING id`,
+      [made.id, template, level, test.s.officerA, days],
+    )) as [{ id: string }];
+    if (state === 'FAILED') await rows("UPDATE sendings SET status = 'FAILED', failure = 'PROVIDER_REFUSED' WHERE id = $1", [id]);
+    if (state === 'UNCERTAIN' || state === 'SENT') await rows("UPDATE sendings SET status = 'UNCERTAIN' WHERE id = $1", [id]);
+    if (state === 'SENT') await rows("UPDATE sendings SET status = 'SENT', sent_at = now() - make_interval(days => $2) WHERE id = $1", [id, days]);
+  };
   /** Nothing of these tests stays in the queue for the next ones. */
   const settle = async (ids: string[]) => {
     await worker.run();
@@ -276,55 +294,149 @@ describe('reminders from the list of cases', () => {
     await rows("UPDATE sendings SET status = 'FAILED', failure = 'TEST_OVER' WHERE case_id = ANY($1::uuid[]) AND status = 'QUEUED'", [ids]);
   };
 
-  it('sends each case its next reminder, to its main address, and leaves out the others with their reason', async () => {
+  it('sends each case the reminder that was confirmed, to its main address, and leaves out the others with their reason', async () => {
     const fresh = await eligible(test.s.officerA);
     const second = await eligible(test.s.officerA);
     await earlier(second, 'FRIENDLY', 1);
     const third = await eligible(test.s.officerA);
     await earlier(third, 'FRIENDLY', 1);
-    await earlier(third, 'FIRM', 2);
-    await rows("UPDATE sendings SET status = 'FAILED', failure = 'PROVIDER_REFUSED' WHERE case_id = $1 AND level = 2", [third.id]);
+    await earlier(third, 'FIRM', 2, 'FAILED');
     // The formal notice is never sent in a batch (question 220): the firm reminder has left, a colleague decides.
     const notice = await eligible(test.s.officerA);
     await earlier(notice, 'FIRM', 2);
+    // Nor a friendly reminder after a formal notice: the status of the case, or a formal notice by letter.
+    const noticed = await eligible(test.s.officerA);
+    await rows("UPDATE cases SET status = 'FORMAL_NOTICE' WHERE id = $1", [noticed.id]);
+    const byLetter = await eligible(test.s.officerA);
+    await rows(
+      `INSERT INTO sendings (case_id, creditor_id, channel, template, created_by, created_at)
+       SELECT id, creditor_id, 'REGISTERED_LETTER', 'FORMAL_NOTICE', $2, now() - interval '60 days' FROM cases WHERE id = $1`,
+      [byLetter.id, test.s.officerA],
+    );
     const individual = await eligible(test.s.officerA, { kind: 'INDIVIDUAL' });
     const noLetter = await eligible(test.s.officerA, { firstLetter: false });
     const disputed = await eligible(test.s.officerA);
     await rows("UPDATE cases SET status = 'DISPUTE' WHERE id = $1", [disputed.id]);
     const noEmail = await eligible(test.s.officerA);
     await rows("UPDATE case_contacts SET status = 'INVALID', is_primary = false, invalidated_at = now() WHERE case_id = $1", [noEmail.id]);
+    const closed = await eligible(test.s.officerA);
+    await rows("UPDATE cases SET status = 'SETTLED', closed_on = current_date WHERE id = $1", [closed.id]);
+    const plan = await eligible(test.s.officerA);
+    await rows(
+      `INSERT INTO payment_plans (case_id, creditor_id, total_cents, months, method, first_due_on, status, threshold_months, owned_by_director, requested_by)
+       SELECT id, creditor_id, 1860000, 6, 'TRANSFER', '2026-12-05', 'ACTIVE', 6, false, $2 FROM cases WHERE id = $1`,
+      [plan.id, test.s.officerA],
+    );
     // An older address that is not the main one: the reminder goes to the main one.
     await rows(
       `INSERT INTO case_contacts (case_id, creditor_id, kind, label, value, value_normalized, source, created_at)
        SELECT id, creditor_id, 'EMAIL', 'Accueil', 'accueil@resend.dev', 'accueil@resend.dev', 'CREDITOR', now() - interval '1 day' FROM cases WHERE id = $1`,
       [fresh.id],
     );
-    const all = [fresh, second, third, notice, individual, noLetter, disputed, noEmail].map((made) => made.id);
-    const answer = await batch('officerA', all);
+    const out = [notice, noticed, byLetter, individual, noLetter, disputed, noEmail, closed, plan];
+    const reasons = [
+      'NO_NEXT_REMINDER',
+      'NO_NEXT_REMINDER',
+      'NO_NEXT_REMINDER',
+      'INDIVIDUAL',
+      'NO_FIRST_LETTER',
+      'CASE_DISPUTED',
+      'NO_EMAIL',
+      'CASE_CLOSED',
+      'PLAN_RESPECTED',
+    ];
+    const skipped = out.map((made, index) => ({ id: made.id, reason: reasons[index] }));
+    // What the confirmation shows: read, nothing written, no key asked.
+    expect(await preview('officerA', [fresh, second, third, ...out])).toEqual([
+      { id: fresh.id, template: 'FRIENDLY', reason: null },
+      { id: second.id, template: 'FIRM', reason: null },
+      { id: third.id, template: 'FIRM', reason: null },
+      ...skipped.map((item) => ({ ...item, template: null })),
+    ]);
+    expect(await lines([fresh.id])).toEqual([]);
+    const all = [fresh, second, third, ...out].map((made) => made.id);
+    const answer = await batch('officerA', [...friendly(fresh), ...firm(second, third), ...friendly(...out)]);
     expect(answer.status).toBe(200);
-    expect(answer.body).toEqual({
-      queued: 3,
-      skipped: [
-        { id: notice.id, reason: 'NO_NEXT_REMINDER' },
-        { id: individual.id, reason: 'INDIVIDUAL' },
-        { id: noLetter.id, reason: 'NO_FIRST_LETTER' },
-        { id: disputed.id, reason: 'CASE_DISPUTED' },
-        { id: noEmail.id, reason: 'NO_EMAIL' },
-      ],
-    });
+    expect(answer.body).toEqual({ queued: 3, skipped });
     expect((await lines([fresh.id])).map((line) => line.level)).toEqual([1]);
     expect((await lines([second.id])).map((line) => line.level)).toEqual([1, 2]);
     // What failed before leaving does not count: the firm reminder is asked again.
     expect(await lines([third.id])).toMatchObject([{ level: 1 }, { level: 2, status: 'FAILED' }, { level: 2, status: 'QUEUED' }]);
     // Nothing is written for a case left out.
-    expect((await lines([notice.id, individual.id, noLetter.id, disputed.id, noEmail.id])).map((line) => line.level)).toEqual([2]);
+    expect((await lines(out.map((made) => made.id))).map((line) => [line.level, line.status])).toEqual([
+      [2, 'SENT'],
+      [null, 'QUEUED'],
+    ]);
+    // Who, how many, on whose behalf: neither a case nor a debtor.
+    expect(await rows("SELECT params FROM audit_log WHERE action = 'REMINDERS_GROUPED' AND actor_id = $1", [test.s.officerA])).toEqual([
+      { params: { count: 3 } },
+    ]);
     await worker.run();
     const sent = worker.simulated.splice(0);
     expect(sent.map((message) => message.to).sort()).toEqual([fresh.email, second.email, third.email].sort());
     expect(sent.find((message) => message.to === fresh.email)!.subject).toBe('Relance : facture F-2026-0712 impayée');
     expect(await events(fresh.id, 'REMINDER_SENT')).toMatchObject([{ title: 'Relance envoyée', detail: 'E-mail · niveau 1' }]);
     expect(await events(individual.id, 'REMINDER_SENT')).toEqual([]);
+    await rows("UPDATE sendings SET status = 'FAILED', failure = 'TEST_OVER' WHERE case_id = $1 AND status = 'QUEUED'", [byLetter.id]);
     await settle(all);
+  });
+
+  it('asks nothing more for a case whose reminder is still on its way: a second batch, a single reminder, an uncertain line', async () => {
+    const made = await eligible(test.s.officerA);
+    expect((await batch('officerA', friendly(made))).body).toEqual({ queued: 1, skipped: [] });
+    // A second click, with another key: neither the same reminder again, nor the next one.
+    const pending = { queued: 0, skipped: [{ id: made.id, reason: 'REMINDER_PENDING' }] };
+    expect((await batch('officerA', friendly(made))).body).toEqual(pending);
+    expect((await batch('officerA', firm(made))).body).toEqual(pending);
+    expect(await preview('officerA', [made])).toEqual([{ id: made.id, template: null, reason: 'REMINDER_PENDING' }]);
+    expect((await remind('officerA', made, { template: 'FIRM' })).body).toEqual({ code: 'REMINDER_PENDING' });
+    expect(await lines([made.id])).toMatchObject([{ level: 1, status: 'QUEUED' }]);
+    // Nobody knows whether an uncertain line has left: nothing more until a person decides.
+    const uncertain = await eligible(test.s.officerA);
+    await earlier(uncertain, 'FRIENDLY', 1, 'UNCERTAIN', 20);
+    expect((await batch('officerA', [...friendly(uncertain)])).body).toEqual({ queued: 0, skipped: [{ id: uncertain.id, reason: 'REMINDER_PENDING' }] });
+    expect((await batch('officerA', [...firm(uncertain)])).body).toMatchObject({ queued: 0 });
+    expect((await remind('officerA', uncertain)).body).toEqual({ code: 'REMINDER_PENDING' });
+    // Once it has left, the firm reminder does not follow in the same minute.
+    await worker.run();
+    worker.simulated.splice(0);
+    expect((await batch('officerA', firm(made))).body).toEqual({ queued: 0, skipped: [{ id: made.id, reason: 'TOO_SOON' }] });
+    expect(await lines([made.id])).toMatchObject([{ level: 1, status: 'SENT' }]);
+  });
+
+  it('writes one line when two batches ask for the same case at the same moment', async () => {
+    const made = await eligible(test.s.officerA);
+    const answers = await Promise.all([0, 1, 2, 3].map(() => batch('officerA', friendly(made))));
+    expect(answers.map((answer) => (answer.body as { queued: number }).queued).sort()).toEqual([0, 0, 0, 1]);
+    expect(await lines([made.id])).toMatchObject([{ level: 1, status: 'QUEUED' }]);
+    await settle([made.id]);
+  });
+
+  it('never sends another level than the one confirmed, and waits a week between two levels', async () => {
+    const fresh = await eligible(test.s.officerA);
+    const later = await eligible(test.s.officerA);
+    await earlier(later, 'FRIENDLY', 1);
+    // The screen showed a firm reminder for one, a friendly one for the other: the cases have changed since.
+    expect((await batch('officerA', [...firm(fresh), ...friendly(later)])).body).toEqual({
+      queued: 0,
+      skipped: [
+        { id: fresh.id, reason: 'LEVEL_CHANGED' },
+        { id: later.id, reason: 'LEVEL_CHANGED' },
+      ],
+    });
+    expect(await lines([fresh.id])).toEqual([]);
+    expect((await lines([later.id])).map((line) => line.level)).toEqual([1]);
+    const recent = await eligible(test.s.officerA);
+    await earlier(recent, 'FRIENDLY', 1, 'SENT', 2);
+    const due = await eligible(test.s.officerA);
+    // The clock of these tests is a working day of this week: a fortnight is more than a week before it, whatever today is.
+    await earlier(due, 'FRIENDLY', 1, 'SENT', 15);
+    expect(await preview('officerA', [recent, due])).toEqual([
+      { id: recent.id, template: null, reason: 'TOO_SOON' },
+      { id: due.id, template: 'FIRM', reason: null },
+    ]);
+    expect((await batch('officerA', firm(recent, due))).body).toEqual({ queued: 1, skipped: [{ id: recent.id, reason: 'TOO_SOON' }] });
+    await settle([due.id]);
   });
 
   it('holds the cap of a debtor across the batch, whatever the creditor', async () => {
@@ -333,7 +445,7 @@ describe('reminders from the list of cases', () => {
     const alone = await eligible(test.s.officerA);
     const ids = [first, ...others, alone].map((made) => made.id);
     // Two e-mails a week by default: three cases of the same debtor, for three creditors, two leave.
-    const answer = await batch('officerA', ids);
+    const answer = await batch('officerA', friendly(first, ...others, alone));
     expect(answer.body).toMatchObject({ queued: 3, skipped: [{ reason: 'CONTACT_CAP' }] });
     const written = await rows<{ case_id: string; right: boolean }>(
       'SELECT s.case_id, s.creditor_id = c.creditor_id AS right FROM sendings s JOIN cases c ON c.id = s.case_id WHERE s.case_id = ANY($1::uuid[])',
@@ -349,7 +461,7 @@ describe('reminders from the list of cases', () => {
     const theirs = await eligible(test.s.officerB, { debtor: mine.debtor });
     const again = await eligible(test.s.officerA, { debtor: mine.debtor });
     expect((await remind('officerB', theirs)).status).toBe(204);
-    expect((await batch('officerA', [mine.id, again.id])).body).toMatchObject({ queued: 1, skipped: [{ reason: 'CONTACT_CAP' }] });
+    expect((await batch('officerA', friendly(mine, again))).body).toMatchObject({ queued: 1, skipped: [{ reason: 'CONTACT_CAP' }] });
     await settle([...ids, mine.id, theirs.id, again.id]);
   });
 
@@ -358,32 +470,48 @@ describe('reminders from the list of cases', () => {
     const theirs = await eligible(test.s.officerB);
     const directors = await eligible(test.s.director);
     // A case of a colleague answers as one that does not exist.
-    const hidden = await batch('officerA', [mine.id, theirs.id]);
-    const unknown = await batch('officerA', [mine.id, randomUUID()]);
-    expect([hidden.status, hidden.body]).toEqual([unknown.status, unknown.body]);
+    const unknown: Made = { id: randomUUID(), debtor: '', email: '' };
+    const hidden = await batch('officerA', friendly(mine, theirs));
+    const missing = await batch('officerA', friendly(mine, unknown));
+    expect([hidden.status, hidden.body]).toEqual([missing.status, missing.body]);
     expect(hidden.status).toBe(404);
     // The Director reads every case and acts on their own only.
-    expect((await batch('director', [directors.id, mine.id])).status).toBe(403);
-    // Even for a case the rules would leave out: the Director is not told why.
+    expect((await batch('director', friendly(directors, mine))).status).toBe(403);
+    // Even for a case the rules would leave out: the Director is not told why, before the confirmation either.
     const individual = await eligible(test.s.officerA, { kind: 'INDIVIDUAL' });
-    expect((await batch('director', [individual.id])).body).toEqual({ code: 'FORBIDDEN' });
-    expect((await batch('developer', [mine.id])).status).toBe(403);
-    expect((await batch('partnerA', [mine.id])).status).toBe(403);
+    expect((await batch('director', friendly(individual))).body).toEqual({ code: 'FORBIDDEN' });
+    for (const [as, made, status] of [
+      ['director', [individual], 403],
+      ['officerA', [mine, theirs], 404],
+      ['developer', [mine], 403],
+      ['partnerA', [mine], 403],
+    ] as const)
+      expect((await test.call('POST', '/staff/cases/reminders/preview', { as, body: { ids: made.map(({ id }) => id) } })).status).toBe(status);
+    expect((await batch('developer', friendly(mine))).status).toBe(403);
+    expect((await batch('partnerA', friendly(mine))).status).toBe(403);
+    // The delegation of the Director gives the manager nothing on the cases of the Director.
+    expect((await batch('manager', friendly(directors))).status).toBe(404);
     expect(await lines([mine.id, theirs.id, directors.id])).toEqual([]);
     expect(
       await rows("SELECT 1 FROM outbox WHERE name = 'case-reminder' AND payload ->> 'case' = ANY($1::text[])", [[mine.id, theirs.id, directors.id]]),
     ).toEqual([]);
-    expect((await batch('director', [directors.id])).body).toEqual({ queued: 1, skipped: [] });
-    await settle([directors.id]);
+    // The manager acts in their own right on the case of an officer: nothing is said to be done for the Director.
+    expect((await batch('manager', friendly(mine))).body).toEqual({ queued: 1, skipped: [] });
+    expect(await rows('SELECT created_by, on_behalf_of_id FROM sendings WHERE case_id = $1', [mine.id])).toEqual([
+      { created_by: test.s.manager, on_behalf_of_id: null },
+    ]);
+    expect((await batch('director', friendly(directors))).body).toEqual({ queued: 1, skipped: [] });
+    await settle([directors.id, mine.id]);
   });
 
   it('never sends twice: a case named twice, a request repeated, a task delivered again', async () => {
     const made = await eligible(test.s.officerA);
     const key = randomUUID();
-    const first = await batch('officerA', [made.id, made.id], key);
+    // Named twice, with two templates: the first one counts.
+    const first = await batch('officerA', [...friendly(made), ...firm(made)], key);
     expect(first.body).toEqual({ queued: 1, skipped: [] });
     // The same request again: the same answer, nothing more.
-    expect((await batch('officerA', [made.id, made.id], key)).body).toEqual(first.body);
+    expect((await batch('officerA', [...friendly(made), ...firm(made)], key)).body).toEqual(first.body);
     expect(await lines([made.id])).toMatchObject([{ level: 1, status: 'QUEUED' }]);
     await worker.run();
     expect(worker.simulated.splice(0).map((message) => message.to)).toEqual([made.email]);
@@ -393,24 +521,54 @@ describe('reminders from the list of cases', () => {
     expect(await lines([made.id])).toMatchObject([{ level: 1, status: 'SENT' }]);
   });
 
-  it('is bounded, asks for a key, and follows the hours as a single reminder does', async () => {
+  it('is bounded, asks for a key, and follows the hours and the values of the firm as a single reminder does', async () => {
     const made = await eligible(test.s.officerA);
     expect((await batch('officerA', [])).status).toBe(422);
-    expect(
-      (
-        await batch(
-          'officerA',
-          Array.from({ length: 501 }, () => randomUUID()),
-        )
-      ).status,
-    ).toBe(422);
-    expect((await test.call('POST', '/staff/cases/reminders', { as: 'officerA', body: { ids: [made.id] } })).body).toEqual({
+    expect((await batch('officerA', [{ id: made.id, template: 'FORMAL_NOTICE' as 'FIRM' }])).status).toBe(422);
+    const tooMany = Array.from({ length: 101 }, () => ({ id: randomUUID(), template: 'FRIENDLY' as const }));
+    expect((await batch('officerA', tooMany)).status).toBe(422);
+    expect((await test.call('POST', '/staff/cases/reminders/preview', { as: 'officerA', body: { ids: tooMany.map(({ id }) => id) } })).status).toBe(422);
+    expect((await test.call('POST', '/staff/cases/reminders', { as: 'officerA', body: { items: friendly(made) } })).body).toEqual({
       code: 'IDEMPOTENCY_KEY_REQUIRED',
     });
     clock(at(WORKING, '21:30'));
-    expect((await batch('officerA', [made.id])).body).toEqual({ queued: 0, skipped: [{ id: made.id, reason: 'OUTSIDE_HOURS' }] });
+    expect((await batch('officerA', friendly(made))).body).toEqual({ queued: 0, skipped: [{ id: made.id, reason: 'OUTSIDE_HOURS' }] });
     clock(at(WORKING, '10:30'));
+    const [kept] = await rows<{ key: string; value: unknown; updated_by: string }>(
+      "DELETE FROM settings WHERE key = 'firm.cabinet.siren' RETURNING key, value, updated_by",
+    );
+    expect((await batch('officerA', friendly(made))).body).toEqual({ queued: 0, skipped: [{ id: made.id, reason: 'FIRM_INCOMPLETE' }] });
+    await rows('INSERT INTO settings (key, value, updated_by) VALUES ($1, $2::jsonb, $3)', [kept!.key, JSON.stringify(kept!.value), kept!.updated_by]);
     expect(await lines([made.id])).toEqual([]);
+  });
+
+  it('counts each case asked against the e-mails of the hour of an account', async () => {
+    // Three hundred an hour: three full pages, whatever becomes of them.
+    const page = () => Array.from({ length: 100 }, () => ({ id: randomUUID(), template: 'FRIENDLY' as const }));
+    // The manager has asked for two cases above.
+    for (let index = 0; index < 2; index += 1) expect((await batch('manager', page())).status).toBe(404);
+    expect((await batch('manager', page())).body).toEqual({ code: 'TOO_MANY' });
+    const made = await eligible(test.s.manager);
+    expect((await batch('manager', friendly(made))).body).toEqual({ code: 'TOO_MANY' });
+    expect(await lines([made.id])).toEqual([]);
+    // The hour of a colleague is their own.
+    expect((await batch('officerB', page())).status).toBe(404);
+  });
+
+  it('takes a full page of cases well within the time of a request', async () => {
+    const made: Made[] = [];
+    for (let index = 0; index < 100; index += 1) made.push(await eligible(test.s.director));
+    const times: number[] = [Date.now()];
+    expect(await preview('director', made)).toHaveLength(100);
+    times.push(Date.now());
+    const answer = await batch('director', friendly(...made));
+    times.push(Date.now());
+    // Out of the way of the next tests: neither published nor run.
+    await rows("UPDATE outbox SET published_at = now(), done_at = now() WHERE name = 'case-reminder' AND done_at IS NULL");
+    await rows("UPDATE sendings SET status = 'FAILED', failure = 'TEST_OVER' WHERE case_id = ANY($1::uuid[])", [made.map(({ id }) => id)]);
+    expect(answer.body).toEqual({ queued: 100, skipped: [] });
+    // The transaction of a request may last fifteen seconds.
+    expect(times[2]! - times[0]!).toBeLessThan(5_000);
   });
 });
 
@@ -719,6 +877,82 @@ describe('a reminder that has not left is told to the colleague who asked for it
   });
 });
 
+describe('a reminder that has not left: the notices of a colleague stay readable', () => {
+  const notices = (user: string) =>
+    rows<{ case_id: string | null; sending_id: string | null }>(
+      "SELECT case_id, sending_id FROM notifications WHERE user_id = $1 AND kind = 'SENDING_FAILED' ORDER BY created_at, id",
+      [user],
+    );
+  const later = () => new Date(Date.now() + 30 * 86_400_000);
+
+  it('once per line as a rule of the database, five cases an hour by name, then one notice for the others', async () => {
+    await rows("DELETE FROM notifications WHERE kind = 'SENDING_FAILED'");
+    const made: Made[] = [];
+    for (let index = 0; index < 8; index += 1) made.push(await eligible(test.s.officerB));
+    for (const item of made) expect((await remind('officerB', item)).status).toBe(204);
+    await rows("UPDATE outbox SET published_at = now(), done_at = now() WHERE name = 'case-reminder' AND done_at IS NULL");
+    // The whole lot expires at once.
+    await sweepSendings(worker.asWorker, later());
+    const told = await notices(test.s.officerB);
+    expect(told.filter((notice) => notice.sending_id !== null)).toHaveLength(5);
+    expect(told.filter((notice) => notice.sending_id === null)).toEqual([{ case_id: null, sending_id: null }]);
+    expect(new Set(told.map((notice) => notice.sending_id)).size).toBe(6);
+    // Told again about the same lines: nothing more, named or not.
+    const failed = await rows<{ id: string }>('SELECT id FROM sendings WHERE case_id = ANY($1::uuid[])', [made.map(({ id }) => id)]);
+    for (const { id } of failed) await asWorker((tx) => tx.$executeRaw`SELECT app.tell_sending_failed(${id}::uuid)`);
+    expect(await notices(test.s.officerB)).toHaveLength(6);
+    // The database itself refuses a second notice for a line.
+    const [{ case_id: about, sending_id: line }] = told as [{ case_id: string; sending_id: string }];
+    await expect(
+      rows(
+        `INSERT INTO notifications (user_id, kind, actor_id, target_id, case_id, creditor_id, case_count, sending_id)
+         SELECT $1, 'SENDING_FAILED', $1, $1, id, creditor_id, 1, $3 FROM cases WHERE id = $2`,
+        [test.s.officerB, about, line],
+      ),
+    ).rejects.toThrow(/notifications_sending_once/u);
+    const shown = (await call('officerB', 'GET', '/notifications')).body as { text: string; href: string; cta: string }[];
+    expect(shown.filter((item) => item.text.startsWith('La relance par e-mail de '))).toHaveLength(5);
+    expect(shown.filter((item) => item.text.startsWith('D’autres relances'))).toEqual([
+      expect.objectContaining({
+        text: 'D’autres relances par e-mail ne sont pas parties : l’historique de chaque dossier le dit',
+        href: '/debiteurs',
+        cta: 'Voir les dossiers',
+      }),
+    ]);
+    // Once it has been read, the next failure of the hour says it again.
+    await rows("UPDATE notifications SET read_at = now() WHERE kind = 'SENDING_FAILED'");
+    const more = await eligible(test.s.officerB);
+    expect((await remind('officerB', more)).status).toBe(204);
+    await rows("UPDATE outbox SET published_at = now(), done_at = now() WHERE name = 'case-reminder' AND done_at IS NULL");
+    await sweepSendings(worker.asWorker, later());
+    expect((await notices(test.s.officerB)).filter((notice) => notice.sending_id === null)).toHaveLength(2);
+    await rows("DELETE FROM notifications WHERE kind = 'SENDING_FAILED'");
+  });
+
+  it('says nothing about an anonymized case, and names no debtor to whoever has lost the case', async () => {
+    const forgotten = await eligible(test.s.officerA);
+    const moved = await eligible(test.s.officerA);
+    expect((await remind('officerA', forgotten)).status).toBe(204);
+    expect((await remind('officerA', moved)).status).toBe(204);
+    // A line that failed, then its case anonymized before anybody was told (the anonymization itself removes the lines).
+    const [{ id: line }] = (await rows<{ id: string }>("UPDATE sendings SET status = 'FAILED', failure = 'PROVIDER_REFUSED' WHERE case_id = $1 RETURNING id", [
+      forgotten.id,
+    ])) as [{ id: string }];
+    await rows("UPDATE outbox SET published_at = now(), done_at = now() WHERE payload ->> 'case' = $1", [forgotten.id]);
+    await rows('UPDATE cases SET anonymized_at = now() WHERE id = $1', [forgotten.id]);
+    await asWorker((tx) => tx.$executeRaw`SELECT app.tell_sending_failed(${line}::uuid)`);
+    // The colleague may no longer act on the case when the task runs: it fails under the rights of the worker.
+    await rows('UPDATE cases SET officer_id = $2 WHERE id = $1', [moved.id, test.s.officerB]);
+    await worker.run().catch(() => undefined);
+    await sweepSendings(worker.asWorker, later());
+    expect(await sendings(moved.id)).toMatchObject([{ status: 'FAILED', failure: 'NOT_ALLOWED' }]);
+    expect((await notices(test.s.officerA)).map((notice) => notice.case_id)).toEqual([moved.id]);
+    const shown = ((await call('officerA', 'GET', '/notifications')).body as { text: string; meta: string }[]).filter((item) => item.meta === 'Relances');
+    expect(shown.map((item) => item.text)).toEqual(['Une relance par e-mail n’est pas partie']);
+    await rows("DELETE FROM notifications WHERE kind = 'SENDING_FAILED'");
+  });
+});
+
 describe('the rules the database holds by itself', () => {
   it('a line goes forward only: queued, taken, then sent or failed; a settled one never changes', async () => {
     const made = await eligible(test.s.officerA);
@@ -941,7 +1175,14 @@ describe('with a key, the guard of the recipients', () => {
 
   it('in production, a request is refused while the service has no valid key: nothing would be simulated', async () => {
     const made = await eligible(test.s.officerA);
-    const production = new SendingsService(test.pool, test.app.get(Outbox), { ...test.app.get(CONFIG), NODE_ENV: 'production' }, test.app.get(Clock));
+    const production = new SendingsService(
+      test.pool,
+      test.app.get(Outbox),
+      { ...test.app.get(CONFIG), NODE_ENV: 'production' },
+      test.app.get(Clock),
+      new Audit(test.pool),
+    );
+    const asOfficer = <T>(work: () => Promise<T>) => test.pool.run({ kind: 'staff', userId: test.s.officerA, role: 'CLAIMS_OFFICER', delegations: [] }, work);
     const ask = () =>
       test.pool
         .run({ kind: 'staff', userId: test.s.officerA, role: 'CLAIMS_OFFICER', delegations: [] }, () =>
@@ -953,6 +1194,12 @@ describe('with a key, the guard of the recipients', () => {
         );
     await rows("UPDATE vault_secrets SET status = 'REVOKE_PENDING' WHERE name = 'RESEND_API_KEY'");
     expect(await ask()).toBe('409 SERVICE_NOT_READY');
+    // From the list too: left out, and said before the confirmation.
+    expect(await asOfficer(() => production.remindMany([{ id: made.id, template: 'FRIENDLY' }]))).toEqual({
+      queued: 0,
+      skipped: [{ id: made.id, reason: 'SERVICE_NOT_READY' }],
+    });
+    expect((await asOfficer(() => production.preview([made.id]))).items).toEqual([{ id: made.id, template: null, reason: 'SERVICE_NOT_READY' }]);
     expect(await sendings(made.id)).toEqual([]);
     await rows("UPDATE vault_secrets SET status = 'VALID' WHERE name = 'RESEND_API_KEY'");
     expect(await ask()).toBe('queued');

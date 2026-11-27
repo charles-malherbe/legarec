@@ -1664,6 +1664,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/staff/cases/reminders/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CasesController_previewReminders"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/staff/cases/reminders": {
         parameters: {
             query?: never;
@@ -5978,6 +5994,33 @@ export interface operations {
             };
         };
     };
+    CasesController_previewReminders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: {
+                            id: string;
+                            /** @enum {string|null} */
+                            template: "FRIENDLY" | "FIRM" | null;
+                            /** @enum {string|null} */
+                            reason: "NO_FIRST_LETTER" | "CONTACT_CAP" | "OUTSIDE_HOURS" | "NO_EMAIL" | "NO_ADDRESS" | "INDIVIDUAL" | "NOT_SETTLED" | "CASE_CLOSED" | "FIRM_INCOMPLETE" | "NOT_AVAILABLE" | "UNKNOWN_RECIPIENT" | "CASE_DISPUTED" | "PLAN_RESPECTED" | "SERVICE_NOT_READY" | "NO_NEXT_REMINDER" | "REMINDER_PENDING" | "TOO_SOON" | "LEVEL_CHANGED" | null;
+                        }[];
+                    };
+                };
+            };
+        };
+    };
     CasesController_remindMany: {
         parameters: {
             query?: never;
@@ -5997,7 +6040,7 @@ export interface operations {
                         skipped: {
                             id: string;
                             /** @enum {string} */
-                            reason: "NO_FIRST_LETTER" | "CONTACT_CAP" | "OUTSIDE_HOURS" | "NO_EMAIL" | "NO_ADDRESS" | "INDIVIDUAL" | "NOT_SETTLED" | "CASE_CLOSED" | "FIRM_INCOMPLETE" | "NOT_AVAILABLE" | "UNKNOWN_RECIPIENT" | "CASE_DISPUTED" | "PLAN_RESPECTED" | "SERVICE_NOT_READY" | "NO_NEXT_REMINDER";
+                            reason: "NO_FIRST_LETTER" | "CONTACT_CAP" | "OUTSIDE_HOURS" | "NO_EMAIL" | "NO_ADDRESS" | "INDIVIDUAL" | "NOT_SETTLED" | "CASE_CLOSED" | "FIRM_INCOMPLETE" | "NOT_AVAILABLE" | "UNKNOWN_RECIPIENT" | "CASE_DISPUTED" | "PLAN_RESPECTED" | "SERVICE_NOT_READY" | "NO_NEXT_REMINDER" | "REMINDER_PENDING" | "TOO_SOON" | "LEVEL_CHANGED";
                         }[];
                     };
                 };

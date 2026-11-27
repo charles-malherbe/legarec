@@ -6,6 +6,7 @@ import {
   caseList,
   caseOpened,
   caseSearchQuery,
+  reminderPreview,
   REQUEST_BODIES,
   sendingOutcome,
 } from '@legarec/contracts';
@@ -25,6 +26,8 @@ const bodies = REQUEST_BODIES.staff;
 type In<K extends keyof typeof bodies> = z.infer<(typeof bodies)[K]>;
 const me = () => currentActor() as StaffActor;
 const REMINDERS: RateLimit = { name: 'case-reminders', max: 120, seconds: 3_600 };
+/** E-mails asked from the list by one account in an hour: three full pages. */
+const REMINDER_LINES: RateLimit = { name: 'case-reminder-lines', max: 300, seconds: 3_600 };
 const WithCases = () => Staff('DIRECTOR', 'COLLECTION_MANAGER', 'CLAIMS_OFFICER');
 /** Whoever opens a case (D1). */
 const Opens = () => Staff('DIRECTOR', 'COLLECTION_MANAGER');
@@ -76,20 +79,32 @@ export class CasesController {
     return this.cases.assign(ids, officerId);
   }
 
+  /** Before the confirmation of a grouped reminder: what each case would receive now, or why nothing (question 220). */
+  @Post('reminders/preview')
+  @WithCases()
+  @HttpCode(200)
+  @ApiOkResponse({ standardSchema: reminderPreview })
+  async previewReminders(@Body({ schema: bodies['POST /cases/reminders/preview'] }) { ids }: In<'POST /cases/reminders/preview'>) {
+    await this.limits.take(REMINDERS, me().userId);
+    return this.sendings.preview(ids);
+  }
+
   /**
-   * The next e-mail reminder of each case chosen in the list (question 220). All the cases are read and acted on by the
-   * caller, or nothing is done; then each one follows the rules of a single reminder: what they refuse is left out, with
-   * its reason (`sendingOutcome`).
+   * The e-mail reminder confirmed for each case chosen in the list (question 220). All the cases are read and acted on by
+   * the caller, or nothing is done; then each one follows the rules of a single reminder: what they refuse is left out,
+   * with its reason (`sendingOutcome`). Another template than the one confirmed never leaves.
    */
   @Post('reminders')
   @WithCases()
   @Commits()
   @HttpCode(200)
   @ApiOkResponse({ standardSchema: sendingOutcome })
-  async remindMany(@Body({ schema: bodies['POST /cases/reminders'] }) { ids }: In<'POST /cases/reminders'>) {
-    // One request of the same count as a single reminder: the caps of each debtor stay the rule.
-    await this.limits.take(REMINDERS, me().userId);
-    return this.sendings.remindMany(ids);
+  async remindMany(@Body({ schema: bodies['POST /cases/reminders'] }) { items }: In<'POST /cases/reminders'>) {
+    const author = me().userId;
+    await this.limits.take(REMINDERS, author);
+    // Each case asked weighs one e-mail of the hour of this account, whatever becomes of it.
+    await this.limits.take(REMINDER_LINES, author, new Set(items.map((item) => item.id)).size);
+    return this.sendings.remindMany(items);
   }
 
   @Post()

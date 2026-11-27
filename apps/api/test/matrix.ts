@@ -631,6 +631,14 @@ export const MATRIX: Record<string, MatrixEntry> = {
       remindedCase = (await newCase(test)).id;
       return '/staff/cases/reminders';
     },
+    body: () => ({ items: [{ id: remindedCase, template: 'FRIENDLY' }] }),
+    expect: withCases(404, { director: 403, manager: 200, managerAlone: 200 }),
+  },
+  'POST /staff/cases/reminders/preview': {
+    path: async (test) => {
+      remindedCase = (await newCase(test)).id;
+      return '/staff/cases/reminders/preview';
+    },
     body: () => ({ ids: [remindedCase] }),
     expect: withCases(404, { director: 403, manager: 200, managerAlone: 200 }),
   },

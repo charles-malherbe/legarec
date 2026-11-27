@@ -51,6 +51,10 @@ export const COMPOSE_CHANNELS: Record<ComposeChannel, string> = {
   LETTER: 'Courrier simple (MySendingBox)',
   DOWNLOAD: 'Télécharger seulement',
 };
+/** Days between two levels of reminder sent from the list (question 220). */
+export const REMINDER_GAP_DAYS = 7;
+/** Cases in one grouped reminder: a page of the list at most. */
+export const REMINDER_BATCH_MAX = 100;
 /** Why nothing left for a case; the same codes when the API refuses a single sending (409). */
 export const sendingRefusal = z.enum([
   'NO_FIRST_LETTER',
@@ -68,6 +72,9 @@ export const sendingRefusal = z.enum([
   'PLAN_RESPECTED',
   'SERVICE_NOT_READY',
   'NO_NEXT_REMINDER',
+  'REMINDER_PENDING',
+  'TOO_SOON',
+  'LEVEL_CHANGED',
 ]);
 export type SendingRefusal = z.infer<typeof sendingRefusal>;
 export const SENDING_REFUSALS: Record<SendingRefusal, string> = {
@@ -85,8 +92,11 @@ export const SENDING_REFUSALS: Record<SendingRefusal, string> = {
   CASE_DISPUTED: 'le dossier est en litige ou au contentieux',
   PLAN_RESPECTED: 'l’échéancier du dossier est respecté',
   SERVICE_NOT_READY: 'le service d’envoi des e-mails n’est pas encore configuré',
-  // A grouped reminder never sends the formal notice (question 220).
-  NO_NEXT_REMINDER: 'le rappel amiable et la relance ferme sont déjà partis, la suite se décide sur la fiche du dossier',
+  // A grouped reminder never sends the formal notice, nor anything after one (question 220).
+  NO_NEXT_REMINDER: 'la relance suivante est une mise en demeure, ou elle est déjà partie : la suite se décide sur la fiche du dossier',
+  REMINDER_PENDING: 'une relance par e-mail de ce dossier est encore en cours d’envoi',
+  TOO_SOON: `la relance précédente est partie depuis moins de ${REMINDER_GAP_DAYS} jours`,
+  LEVEL_CHANGED: 'la relance à envoyer n’est plus celle qui a été confirmée',
 };
 /** The code of a channel from the label shown in the list « Envoi ». */
 export const composeChannelOf = (label: string): ComposeChannel =>
@@ -97,6 +107,18 @@ export const sendingOutcome = z.object({
   skipped: z.array(z.object({ id: z.string(), reason: sendingRefusal })),
 });
 export type SendingOutcome = z.infer<typeof sendingOutcome>;
+/** What a grouped reminder sends: the two first levels, never the formal notice. */
+export const batchTemplate = z.enum(['FRIENDLY', 'FIRM']);
+export type BatchTemplate = z.infer<typeof batchTemplate>;
+export const BATCH_TEMPLATE_LABELS: Record<BatchTemplate, [one: string, many: string]> = {
+  FRIENDLY: ['rappel amiable', 'rappels amiables'],
+  FIRM: ['relance ferme', 'relances fermes'],
+};
+/** Before the confirmation: the reminder each case would receive now, or why it would receive none. */
+export const reminderPreview = z.object({
+  items: z.array(z.object({ id: z.string(), template: batchTemplate.nullable(), reason: sendingRefusal.nullable() })),
+});
+export type ReminderPreview = z.infer<typeof reminderPreview>;
 /** « 2 non envoyés : le plafond de contacts de ce débiteur est atteint (2) » ; empty when everything left. */
 export function skippedText(outcome: SendingOutcome): string {
   if (outcome.skipped.length === 0) return '';

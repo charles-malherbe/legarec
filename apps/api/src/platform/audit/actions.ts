@@ -50,6 +50,7 @@ export const AUDIT_ACTIONS = {
   // Cases
   CASE_OPENED: 'Dossier ouvert',
   CASES_ASSIGNED: 'Dossiers attribués : {count}',
+  REMINDERS_GROUPED: 'Relances groupées par e-mail mises en file : {count}',
   CASE_DEPOSITED: 'Créance déposée par un créancier : {count} factures',
   DEPOSIT_ACCEPTED: 'Créance déposée : dossier ouvert',
   DEPOSIT_REFUSED: 'Créance déposée : refusée',
