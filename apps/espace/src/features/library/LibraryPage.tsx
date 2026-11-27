@@ -7,6 +7,7 @@ import {
   Case,
   Champ,
   DepotFichiers,
+  Embleme,
   EtatListe,
   FilMessages,
   Icone,
@@ -109,6 +110,10 @@ export function LibraryPage() {
         <Avatar title="Camille Laurent" presence="call" />
         <Avatar title="Hugo Benali" presence="dispo" tone="or" />
         <Avatar title="Sarah Morel" presence="off" tone="info" />
+      </Group>
+      <Group title="Emblème">
+        <Embleme />
+        <Embleme size={48} />
       </Group>
       <Carte title="Champ">
         <div className={layout.form}>

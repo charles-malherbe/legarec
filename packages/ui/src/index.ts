@@ -35,6 +35,7 @@ export * from './DoubleAuthentification';
 export * from './FormulaireConnexion';
 export * from './PagesMotDePasse';
 export * from './EntetePublique';
+export * from './Embleme';
 export * from './DepotFichiers';
 export * from './FilMessages';
 export * from './PageLegale';

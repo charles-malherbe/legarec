@@ -81,24 +81,6 @@
   flex: none;
   gap: var(--sp-2);
 }
-.logo {
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-  border-radius: var(--r-md);
-  background: var(--app-icon-bg);
-  color: var(--app-icon-fg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-title);
-  font-size: var(--fs-xl);
-  font-weight: 700;
-  line-height: 1;
-}
-.logo::before {
-  content: 'L';
-}
 .brandText {
   min-width: 0;
   display: flex;

@@ -1,4 +1,4 @@
-import { Bouton, PiedDePage } from '@legarec/ui';
+import { Bouton, Embleme, PiedDePage } from '@legarec/ui';
 import { Link } from 'react-router';
 import css from './ErrorPage.module.css';
 
@@ -30,7 +30,7 @@ export function ErrorPage({ code = 404, reference }: { code?: keyof typeof CONTE
     <main data-brand className={css.root}>
       <div className={css.box}>
         <Link to="/" aria-label="Legarec, accueil" className={css.brand}>
-          <span aria-hidden className={css.logo} />
+          <Embleme />
           <span className={css.name}>Legarec</span>
         </Link>
         <span className={css.code}>Erreur {code}</span>

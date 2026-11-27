@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
+import { Embleme } from './Embleme';
 import { Icone } from './Icone';
 import type { IconName } from './icons';
 import css from './Sidebar.module.css';
@@ -95,7 +96,7 @@ export function Sidebar({ active, groups, footer, creditors, creditorId, credito
           <Icone icon="menu" size={18} />
         </button>
         <Link to="/" className={css.brand}>
-          <span aria-hidden className={css.logo} />
+          <Embleme />
           <span className={css.brandMobile}>Legarec</span>
         </Link>
         <span className={css.mobileScope}>{current?.name}</span>
@@ -104,7 +105,7 @@ export function Sidebar({ active, groups, footer, creditors, creditorId, credito
       <nav ref={nav} aria-label="Navigation principale" className={css.nav} data-open={drawer || undefined} data-collapsed={!expanded || undefined}>
         <div className={css.head}>
           <Link to="/" className={css.brand} aria-label={expanded ? undefined : 'Legarec, retour au tableau de bord'}>
-            <span aria-hidden className={css.logo} />
+            <Embleme />
             {expanded && (
               <span className={css.brandText}>
                 <span className={css.brandName}>Legarec</span>
