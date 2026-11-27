@@ -440,25 +440,34 @@ Sans ancien n8n à reprendre : `N8N_ENCRYPTION_KEY` tirée par `openssl rand -he
 ## Reste à faire (fin du lot X)
 
 ### Avant la mise en service : écrans encore sans API
-Une page construite pour la production n'a aucune simulation : elle appelle l'API. État au 27/11/2026, après `lot/q4` (comparaison des routes simulées et de `packages/contracts/openapi.json`) :
+Une page construite pour la production n'a aucune simulation : elle appelle l'API. État au 27/11/2026 (comparaison des routes simulées et de `packages/contracts/openapi.json`) :
 
 | Portail | Routes appelées | Sur l'API | Manquent |
 |---|---|---|---|
 | `paiement` | 13 | 13 | — |
 | `partenaires` | 19 | 19 | — |
-| `espace` | 167 | 133 | 34, ci-dessous |
+| `espace` | 168 | 134 | 34, ci-dessous |
 
-| Écran de l'espace | Ce qui manque | Attend |
-|---|---|---|
-| Relances envoyées depuis un échéancier ; envoi et composition d'un document ; essai d'un modèle (la relance par e-mail est sur l'API : depuis un dossier, `lot/q3` ; depuis la liste, `lot/q4`) | 6 routes | Composition des courriers et clé de test MySendingBox (lot Q, question 210) |
-| Messagerie (e-mails, SMS), boîtes OVH dans Paramètres | 21 routes | Compte SMS et boîtes OVH (lot R) |
-| Appels | 7 routes | Licence et identifiants 3CX (lot T) |
+Décision 194 : un écran dont les routes manquent ne s'affiche jamais en erreur. La construction de l'espace laisse de côté chaque partie encore sans API : son entrée de menu et son compteur, son raccourci, sa page dans la recherche et dans « Créer » disparaissent ; son adresse tapée à la main mène à « Page introuvable » ; ses boutons dans les écrans gardés sont retirés sans laisser de trou (questions 233 à 238). Un test ouvre les écrans gardés et vérifie que chacune de leurs requêtes est au contrat (`apps/espace/src/app/features.test.tsx`).
+
+| Partie (nom dans `VITE_FEATURES`) | Masqué | Routes | Attend |
+|---|---|---|---|
+| `calls` | Page Appels, avec son entrée et son compteur « appels en file », `G A` et le groupe « Téléphone » des raccourcis, la fenêtre d'appel entrant ; « Démarrer ma session d’appels » (tableau de bord, Relances), « Appeler » (relance téléphonique, échanges du dossier, conversation SMS), « Appeler l'expéditeur » (E-mails) | 7 | Licence et identifiants 3CX (lot T) |
+| `emails` | Page E-mails, avec son entrée et son compteur « e-mails non lus », `G M` ; dans le dossier, « Écrire un e-mail » et « E-mail » (contact principal, échanges) ; les adresses du dossier et du contact d'un créancier restent affichées, en texte | 8 | Boîtes OVH (lot R) |
+| `sms` | Page SMS, avec son entrée et son compteur « SMS non lus », `G S` ; « SMS » des échanges du dossier | 4 | Compte SMS OVH (lot R) |
+| `mailboxes` | Section « Boîtes e-mail » de Paramètres techniques | 9 | Boîtes OVH (lot R) |
+| `letters` | Page Rédiger un courrier, avec son entrée ; « Courrier » de « Créer », « + Nouveau courrier » (Documents, dossier), « Envoi groupé » (SMS) | 3 | Composition des courriers et clé de test MySendingBox (lot Q, question 210) |
+| `document-sending` | « Envoyer » du détail d'un document (Documents) | 1 | idem |
+| `installment-reminders` | « Envoyer un rappel » d'un échéancier | 1 | idem |
+| `template-tests` | « M’envoyer un test » d'un modèle d'e-mail ou de SMS | 1 | idem |
+
+Le groupe « Communication » du menu disparaît tant qu'aucune de ses trois pages n'est montrée ; l'ordre et les libellés des autres entrées ne changent pas. Restent, faute de route à appeler : le statut 3CX du menu du compte, les numéros et les boutons « Appeler » du dossier, qui passent l'appel à 3CX (lien `tel:`), et les textes qui citent appels, e-mails ou SMS (question 238). Les liens venus de l'API (priorités du tableau de bord, notifications) ne mènent jamais à une partie masquée. La relance par e-mail est sur l'API, depuis un dossier (`lot/q3`) comme depuis la liste (`lot/q4`).
+
+**Rallumer une partie**, une fois ses routes sur l'API (refaire la comparaison ci-dessus) : ajouter son nom à `VITE_FEATURES` dans `docker-compose.yml`, service `espace` (`VITE_FEATURES: 'calls,emails'`, noms séparés par des virgules), puis déployer : la page est reconstruite avec elle, entrée de menu, raccourcis et boutons compris. Un nom inconnu arrête la construction, plutôt que de laisser une partie masquée pour une faute de frappe. Sans nom, une construction de production ne montre aucune de ces parties ; le développement (`pnpm dev`, avec les simulations) les montre toutes. Voir l'espace tel qu'en production, avec les simulations : `VITE_FEATURES= pnpm --filter @legarec/espace dev` (aucune partie ; seules les priorités et notifications simulées pointent encore vers `/appels` ou `/e-mails`, qui mènent alors à « Page introuvable »), ou `VITE_FEATURES=calls pnpm --filter @legarec/espace dev` (une seule). Quand les 34 routes seront sur l'API, retirer le réglage et `apps/espace/src/app/features.ts` (`PLAN.md`, lot X).
 
 Sur l'API depuis `lot/u3`, sans ce que la base ne sait pas encore : Rapports calcule ses chiffres sur les dossiers réels, sans appels, promesses, honoraires ni rapports programmés (questions 200 à 203) ; Équipe montre le portefeuille et l'encaissé de chacun et dit « Téléphonie non connectée » à la place de la présence et des appels (question 204, lot T).
 
 Sur l'API depuis `lot/s5`, mais incomplets faute de décision : Facturation liste les factures de commission, ses onglets « Devis » et « Contrats » sont vides et « + Créer depuis un modèle » répond que la création n'est pas encore disponible (questions 195 et 196) ; les Documents du créancier listent ce que l'équipe lui a partagé, sans relevé, rapport ni téléchargement (questions 197 à 199).
-
-Tant qu'une route manque, son écran affiche son état d'erreur (« Réessayer ») : rien ne se perd, mais l'écran ne sert pas. **À décider par le cabinet (question 194)** : attendre tous les lots, ou mettre en service avec les écrans prêts et masquer les autres.
 
 ### Le reste
 - **Stockage chez OVHcloud** : fait pour Caddy (`media.legarec.fr`), pgBackRest et les noms des clés (`S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_REGION`, `S3_DOCUMENTS_BUCKET`). pgBackRest reste en adresses « chemin » (`repo1-s3-uri-style=path`), qu'OVHcloud accepte ; **jamais essayé contre un vrai bucket** : le premier `legarec run --rm sauvegarde full` de la mise en service le dira, avant toute donnée. La migration `storage_secret_names` renomme deux noms de clés : sans effet au premier déploiement ; elle interdit seulement de revenir à une version antérieure une fois une clé de stockage saisie. Le bucket `legarec-documents` est branché dans le code, éteint en production (« Bucket des documents », question 205).

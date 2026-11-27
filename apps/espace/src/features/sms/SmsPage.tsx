@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { useCreditorScope } from '../../app/creditorScope';
 import { useApi, useChange } from '../../app/data';
+import { opens } from '../../app/features';
 import { useCurrentUser } from '../../app/session';
 import layout from '@legarec/ui/layout.module.css';
 import { pageOf } from '../../shared/paging';
@@ -121,7 +122,7 @@ export function SmsPage() {
         }
         actions={[
           { label: 'Modèles de SMS', href: '/parametres/modeles/sms' },
-          ...(user.role === 'COLLECTION_MANAGER' ? [{ label: 'Envoi groupé', href: '/documents/rediger' }] : []),
+          ...(user.role === 'COLLECTION_MANAGER' && opens('/documents/rediger') ? [{ label: 'Envoi groupé', href: '/documents/rediger' }] : []),
           ...(canWrite ? [{ label: '+ Nouveau SMS', primary: true, kbd: 'N', onPress: startNew }] : []),
         ]}
       />
@@ -200,10 +201,12 @@ export function SmsPage() {
                     {current.contact} · {current.phone}
                   </span>
                 </span>
-                <span className={layout.inline}>
-                  {current.canAct !== false && <Bouton variant="secondary" size="sm" label="Appeler" icon="phone" href="/appels" />}
-                  {current.caseId && <Bouton variant="secondary" size="sm" label="Ouvrir le dossier" href={`/debiteurs/${current.caseId}`} />}
-                </span>
+                {((current.canAct !== false && opens('/appels')) || current.caseId) && (
+                  <span className={layout.inline}>
+                    {current.canAct !== false && opens('/appels') && <Bouton variant="secondary" size="sm" label="Appeler" icon="phone" href="/appels" />}
+                    {current.caseId && <Bouton variant="secondary" size="sm" label="Ouvrir le dossier" href={`/debiteurs/${current.caseId}`} />}
+                  </span>
+                )}
               </div>
               {current.stopped && (
                 <Alerte tone="warning" compact text="Ce numéro a répondu STOP : les SMS automatiques sont arrêtés et le gestionnaire du dossier est prévenu." />

@@ -4,6 +4,7 @@ import { Alerte, Badge, Bouton, Carte, EtatListe, Onglets, Statut, SuggestionIA,
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { useApi, useChange } from '../../app/data';
+import { opens, shown } from '../../app/features';
 import layout from '@legarec/ui/layout.module.css';
 import { STATUS_TONE } from '../dashboard/DashboardPage';
 import { ApiError } from '../../app/api';
@@ -142,14 +143,12 @@ function CaseView({ data }: { data: CaseDetail }) {
           </span>
           {data.contacts.map((contact) => (
             <span key={contact.id} className={layout.inline}>
-              {data.canAct ? (
-                contact.kind === 'PHONE' ? (
-                  <a href={toTelHref(contact.value)} className={layout.link}>
-                    {contact.value}
-                  </a>
-                ) : (
-                  <Bouton variant="link" size="sm" label={contact.value} ariaLabel={`Écrire à ${contact.value}`} onPress={() => writeEmail(contact.value)} />
-                )
+              {data.canAct && contact.kind === 'PHONE' ? (
+                <a href={toTelHref(contact.value)} className={layout.link}>
+                  {contact.value}
+                </a>
+              ) : data.canAct && shown('emails') ? (
+                <Bouton variant="link" size="sm" label={contact.value} ariaLabel={`Écrire à ${contact.value}`} onPress={() => writeEmail(contact.value)} />
               ) : (
                 <span>{contact.value}</span>
               )}
@@ -265,7 +264,7 @@ function CaseView({ data }: { data: CaseDetail }) {
               </ol>
             </Carte>
           )}
-          {tab === 'exchanges' && data.canAct && panel !== 'message' && (
+          {tab === 'exchanges' && data.canAct && panel !== 'message' && shown('emails') && (
             <div>
               <Bouton variant="secondary" icon="mail" label="Écrire un e-mail" onPress={() => writeEmail(null)} />
             </div>
@@ -273,7 +272,12 @@ function CaseView({ data }: { data: CaseDetail }) {
           {tab === 'exchanges' && panel === 'message' && <CaseMessage key={to ?? 'main'} data={data} to={to} onClose={() => setPanel(null)} />}
           {tab === 'exchanges' && <ExchangesCard data={data} />}
           {tab === 'documents' && (
-            <Carte title="Documents du dossier" padding="none" actionLabel={data.canAct ? '+ Nouveau courrier' : undefined} actionHref="/documents/rediger">
+            <Carte
+              title="Documents du dossier"
+              padding="none"
+              actionLabel={data.canAct && opens('/documents/rediger') ? '+ Nouveau courrier' : undefined}
+              actionHref="/documents/rediger"
+            >
               <ul className={layout.list}>
                 {data.documents.map((item) => (
                   <li key={item.id}>
@@ -353,7 +357,9 @@ function CaseView({ data }: { data: CaseDetail }) {
                     ariaLabel={`Appeler ${data.mainContact.name}`}
                     onPress={() => startCall(data.mainContact.phone)}
                   />
-                  <Bouton variant="secondary" label="E-mail" ariaLabel={`E-mail : ${data.mainContact.name}`} onPress={() => writeEmail(null)} />
+                  {shown('emails') && (
+                    <Bouton variant="secondary" label="E-mail" ariaLabel={`E-mail : ${data.mainContact.name}`} onPress={() => writeEmail(null)} />
+                  )}
                 </div>
               )}
             </div>

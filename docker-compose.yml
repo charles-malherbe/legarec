@@ -77,7 +77,9 @@ services:
     build:
       context: .
       dockerfile: infra/docker/portail.Dockerfile
-      args: { PORTAL: espace, VITE_API_URL: 'https://api.legarec.fr/staff' }
+      # Parts of the portal shown before the API answers them (decision 194): none. One shows again once named here
+      # (`calls,emails`) and the portal deployed: docs/deploiement.md, « Avant la mise en service : écrans encore sans API ».
+      args: { PORTAL: espace, VITE_API_URL: 'https://api.legarec.fr/staff', VITE_FEATURES: '' }
 
   partenaires:
     <<: *portal

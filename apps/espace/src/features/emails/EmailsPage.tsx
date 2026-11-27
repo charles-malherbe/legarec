@@ -20,6 +20,7 @@ import { Link, useLocation, useNavigate } from 'react-router';
 import { z } from 'zod';
 import { useCreditorScope } from '../../app/creditorScope';
 import { useApi, useChange } from '../../app/data';
+import { opens } from '../../app/features';
 import layout from '@legarec/ui/layout.module.css';
 import { pageOf } from '../../shared/paging';
 import { listState, matches } from '../../shared/listState';
@@ -415,7 +416,9 @@ function Reader({ mail, sender, templates }: { mail: EmailThread; sender: z.infe
           <Bouton variant="secondary" size="sm" label="Transférer" disabled />
           {canAct && <Bouton variant="secondary" size="sm" label={mail.archived ? 'Désarchiver' : 'Archiver'} onPress={() => void archive(!mail.archived)} />}
         </span>
-        <Bouton variant="secondary" size="sm" label="Appeler l'expéditeur" icon="phone" href="/appels" disabled={mail.category === 'BOUNCE'} />
+        {opens('/appels') && (
+          <Bouton variant="secondary" size="sm" label="Appeler l'expéditeur" icon="phone" href="/appels" disabled={mail.category === 'BOUNCE'} />
+        )}
       </div>
       <div className={layout.stack} style={{ padding: 'var(--sp-5)' }}>
         <div className={layout.text}>

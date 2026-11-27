@@ -31,6 +31,7 @@ import { LitigationPage } from '../features/litigation/LitigationPage';
 import { LoginPage } from '../features/login/LoginPage';
 import { PlansPage } from '../features/plans/PlansPage';
 import { CreditorScopeProvider } from './creditorScope';
+import { opens } from './features';
 import { CurrentUser, SESSION_KEY, useSession, useSessionEnd } from './session';
 import { Shell } from './Shell';
 
@@ -81,6 +82,8 @@ export function App() {
           <Route path="/confidentialite" element={<PageLegale page="confidentialite" />} />
           <Route path="/cookies" element={<PageLegale page="cookies" />} />
           <Route path="/erreur-demo" element={<ErrorPage code={404} />} />
+          {/* A section of the settings left out of this build: its address is unknown, like the screens left out below. */}
+          {!opens('/parametres/techniques/boites') && <Route path="/parametres/techniques/boites" element={<ErrorPage code={404} />} />}
           <Route element={<RequireSession />}>
             <Route element={<Shell />}>
               <Route index element={<DashboardPage />} />
@@ -100,9 +103,10 @@ export function App() {
                 }
               />
               <Route path="echeanciers" element={<PlansPage />} />
-              <Route path="appels" element={<CallsPage />} />
-              <Route path="e-mails" element={<EmailsPage />} />
-              <Route path="sms" element={<SmsPage />} />
+              {/* Left out of a build without their API (decision 194): « Page introuvable », never a screen in error. */}
+              {opens('/appels') && <Route path="appels" element={<CallsPage />} />}
+              {opens('/e-mails') && <Route path="e-mails" element={<EmailsPage />} />}
+              {opens('/sms') && <Route path="sms" element={<SmsPage />} />}
               <Route path="notifications" element={<NotificationsPage />} />
               <Route
                 path="rapports"
@@ -116,7 +120,7 @@ export function App() {
               <Route path="facturation" element={<BillingPage />} />
               <Route path="facturation/reversements" element={<RemittancesPage />} />
               <Route path="documents" element={<DocumentsPage />} />
-              <Route path="documents/rediger" element={<ComposePage />} />
+              {opens('/documents/rediger') && <Route path="documents/rediger" element={<ComposePage />} />}
               <Route path="contentieux" element={<LitigationPage />} />
               <Route path="parametres" element={<SettingsPage />} />
               <Route path="parametres/champs-de-fusion" element={<MergeFieldsPage />} />
