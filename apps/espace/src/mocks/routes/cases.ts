@@ -8,12 +8,16 @@ import {
   canReadCase,
   hasDelegation,
   newPayment,
+  REMINDER_GAP_DAYS,
+  type BatchTemplate,
   type CaseDetail,
   type CaseFilter,
   type CaseListItem,
   type GdprRequest,
   type Payment,
   type Role,
+  type SendingOutcome,
+  type SendingRefusal,
   type Session,
 } from '@legarec/contracts';
 import { http, HttpResponse } from 'msw';
@@ -250,6 +254,30 @@ export const resetCases = () => {
   opened = {};
   payments = {};
   extra = {};
+  reminded.clear();
+};
+/** The highest level of e-mail reminder that has left a case here, and when. */
+const reminded = new Map<string, { level: number; at: number }>();
+/**
+ * As the API, for what a simulation knows of a case: closed, in dispute or litigation, an individual, no formal notice in a
+ * batch and a week between two levels (question 220). The caps, the hours and the first letter are not simulated.
+ */
+const nextInBatch = (item: Stored): BatchTemplate | SendingRefusal => {
+  if (item.status === 'SETTLED' || item.status === 'LOST') return 'CASE_CLOSED';
+  if (item.status === 'DISPUTE' || item.status === 'LITIGATION') return 'CASE_DISPUTED';
+  if (item.identifier === 'Particulier') return 'INDIVIDUAL';
+  const last = reminded.get(item.id);
+  if (item.status === 'FORMAL_NOTICE' || (last && last.level >= 2)) return 'NO_NEXT_REMINDER';
+  if (last && Date.now() - last.at < REMINDER_GAP_DAYS * 86_400_000) return 'TOO_SOON';
+  return last ? 'FIRM' : 'FRIENDLY';
+};
+const isTemplate = (value: string): value is BatchTemplate => value === 'FRIENDLY' || value === 'FIRM';
+/** As the API: every case read (404) and acted on (403), or nothing. */
+const allOf = (ids: string[], session: Session): Stored[] | Response => {
+  const items = [...new Set(ids)].map(find);
+  const known = items.filter((item): item is Stored => !!item && canReadCase(session, ownership(item)));
+  if (known.length !== items.length) return notFound();
+  return known.some((item) => !canActOnCase(session, ownership(item))) ? forbidden() : known;
 };
 
 const ownership = (item: Stored) => ({ officerId: item.officerId, officerRole: item.officerId ? (OFFICERS[item.officerId]?.role ?? 'CLAIMS_OFFICER') : null });
@@ -643,8 +671,44 @@ export const caseHandlers = [
     }),
   ),
   http.post(
+    '/api/cases/reminders/preview',
+    guarded<Info>(staffWithCases, async ({ request }, session) => {
+      const { ids } = (await request.json()) as { ids: string[] };
+      const known = allOf(ids, session);
+      if (known instanceof Response) return known;
+      return HttpResponse.json({
+        items: known.map((item) => {
+          const next = nextInBatch(item);
+          return isTemplate(next) ? { id: item.id, template: next, reason: null } : { id: item.id, template: null, reason: next };
+        }),
+      });
+    }),
+  ),
+  http.post(
     '/api/cases/reminders',
-    bulk('Relance programmée', () => {}),
+    // Then each one judged by itself: another template than the one confirmed never leaves.
+    guarded<Info>(staffWithCases, async ({ request }, session) => {
+      const { items } = (await request.json()) as { items: { id: string; template: BatchTemplate }[] };
+      const known = allOf(
+        items.map((item) => item.id),
+        session,
+      );
+      if (known instanceof Response) return known;
+      const outcome: SendingOutcome = { queued: 0, skipped: [] };
+      for (const item of known) {
+        const next = nextInBatch(item);
+        const reason = !isTemplate(next) ? next : next !== items.find((asked) => asked.id === item.id)?.template ? 'LEVEL_CHANGED' : null;
+        if (reason) {
+          outcome.skipped.push({ id: item.id, reason });
+          continue;
+        }
+        const level = next === 'FIRM' ? 2 : 1;
+        reminded.set(item.id, { level, at: Date.now() });
+        outcome.queued += 1;
+        log(item.id, session, 'Relance envoyée', `E-mail · niveau ${level}`);
+      }
+      return HttpResponse.json(outcome);
+    }),
   ),
   http.post(
     '/api/cases/litigation',
@@ -821,7 +885,9 @@ export const caseHandlers = [
       if (channel !== 'EMAIL') return HttpResponse.json({ code: 'NOT_AVAILABLE' }, { status: 409 });
       // Nothing leaves during a dispute or a litigation (question 218).
       if (item.status === 'DISPUTE' || item.status === 'LITIGATION') return HttpResponse.json({ code: 'CASE_DISPUTED' }, { status: 409 });
-      log(item.id, session, 'Relance envoyée', `E-mail · niveau ${{ FRIENDLY: 1, FIRM: 2, FORMAL_NOTICE: 3 }[template]}`);
+      const level = { FRIENDLY: 1, FIRM: 2, FORMAL_NOTICE: 3 }[template];
+      reminded.set(item.id, { level: Math.max(level, reminded.get(item.id)?.level ?? 0), at: Date.now() });
+      log(item.id, session, 'Relance envoyée', `E-mail · niveau ${level}`);
       return done();
     }),
   ),

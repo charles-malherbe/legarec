@@ -43,6 +43,7 @@ export class NotificationsService {
           ticket: { select: { number: true, subject: true } },
           caseCount: true,
           planDecision: true,
+          sendingId: true,
           // Null when this person no longer reads it.
           case: { select: { id: true, reference: true, debtor: { select: { name: true } } } },
         },
@@ -53,7 +54,7 @@ export class NotificationsService {
     const unread = await some(null, shown);
     const found = [...unread, ...(await some({ not: null }, shown - unread.length))].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     const now = new Date();
-    return found.map(({ id, userId, kind, action, createdAt, readAt, actor, target, ticket, caseCount, case: about, planDecision }) => {
+    return found.map(({ id, userId, kind, action, createdAt, readAt, actor, target, ticket, caseCount, case: about, planDecision, sendingId }) => {
       const day = daysAgo(createdAt, now);
       const self = target?.id === userId;
       const said = (): { text: string; meta: string; href: string; cta: string } => {
@@ -114,6 +115,23 @@ export class NotificationsService {
                   cta: 'Ouvrir le dossier',
                 }
               : { text: 'Accès d’un débiteur au portail de paiement bloqué après dix codes faux', meta: 'Accès débiteur', ...HERE };
+          case 'SENDING_FAILED':
+            return about
+              ? {
+                  text: `La relance par e-mail de ${about.debtor.name} n’est pas partie`,
+                  meta: `Dossier ${about.reference}`,
+                  href: `/debiteurs/${about.id}`,
+                  cta: 'Ouvrir le dossier',
+                }
+              : sendingId
+                ? { text: 'Une relance par e-mail n’est pas partie', meta: 'Relances', ...HERE }
+                : // Beyond five in an hour, the cases are no longer named one by one.
+                  {
+                    text: 'D’autres relances par e-mail ne sont pas parties : l’historique de chaque dossier le dit',
+                    meta: 'Relances',
+                    href: '/debiteurs',
+                    cta: 'Voir les dossiers',
+                  };
           case 'DEBTOR_ACCESS_ALERT':
             return {
               text: 'Accès débiteur : plus de 200 codes faux en une heure. Les adresses en cause sont suspendues 15 minutes.',

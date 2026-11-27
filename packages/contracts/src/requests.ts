@@ -8,7 +8,7 @@ import { creditNoteDraftBody, creditNoteIssue } from './creditNotes';
 import { coordinate, coordinateKind, coordinateSource, emailCategory, outgoingMessage } from './communication';
 import { debtorAccess, debtorIdentifier, debtorMessage, debtorRequest, limitedMessage } from './debtor';
 import { depositAcceptance, depositRefusal } from './deposits';
-import { composeChannel, letterTemplate } from './documents';
+import { batchTemplate, composeChannel, letterTemplate, REMINDER_BATCH_MAX } from './documents';
 import { bankAccountChange, bankAccountConfirmation, creditorChanges, mandateAmendment, newCreditor } from './creditors';
 import { EMAIL_MAX, ID_MAX } from './limits';
 import { AMOUNT_MAX, enteredAmount } from './money';
@@ -83,6 +83,15 @@ export const newCoordinateBody = z.object({
 export const coordinateBody = coordinate.pick({ status: true, primary: true }).partial();
 
 export const casesBody = z.object({ ids });
+/** The cases of a grouped reminder, before the confirmation. */
+export const remindersPreviewBody = z.object({ ids: z.array(id).min(1).max(REMINDER_BATCH_MAX) });
+/** A grouped reminder as it was confirmed: for each case, the template that was shown. Another one never leaves. */
+export const groupedRemindersBody = z.object({
+  items: z
+    .array(z.object({ id, template: batchTemplate }))
+    .min(1)
+    .max(REMINDER_BATCH_MAX),
+});
 /** `consentReceived`: the written agreement of the creditor is in hand, for the cases whose mandate asks for one. */
 export const litigationBody = z.object({ ids, reason: line(500), consentReceived: z.boolean() });
 const litigationVersion = z.number().int().min(1).max(1_000_000);
@@ -247,7 +256,8 @@ export const REQUEST_BODIES = {
     'POST /cases/:id/coordinates': newCoordinateBody,
     'PUT /cases/:id/coordinates/:coordinateId': coordinateBody,
     'POST /cases/search': searchBody,
-    'POST /cases/reminders': casesBody,
+    'POST /cases/reminders': groupedRemindersBody,
+    'POST /cases/reminders/preview': remindersPreviewBody,
     'POST /cases/litigation': litigationBody,
     'PUT /litigation/:id': litigationFileBody,
     'POST /litigation/:id/stage': litigationStageBody,

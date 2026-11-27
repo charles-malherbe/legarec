@@ -110,6 +110,7 @@ describe('what a route receives', () => {
     expect(free.map(({ id }) => id).sort()).toEqual([
       // Readings, whose question is in the body.
       'POST /staff/cases/check',
+      'POST /staff/cases/reminders/preview',
       'POST /staff/cases/search',
       'POST /staff/notifications/read',
       'POST /staff/search',

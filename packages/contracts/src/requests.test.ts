@@ -197,7 +197,15 @@ const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly
       { primary: true },
     ],
     'POST /cases/search': [{ query: '' }, { query: 'batiplus' }],
-    'POST /cases/reminders': [{ ids: ['demo', 'lagarde'] }],
+    'POST /cases/reminders': [
+      {
+        items: [
+          { id: 'demo', template: 'FRIENDLY' },
+          { id: 'lagarde', template: 'FIRM' },
+        ],
+      },
+    ],
+    'POST /cases/reminders/preview': [{ ids: ['demo', 'lagarde'] }],
     'POST /cases/litigation': [{ ids: ['demo'], reason: 'Promesses non tenues', consentReceived: true }],
     'PUT /litigation/:id': [{ court: 'Tribunal de commerce de Lyon', partnerName: 'Me Durieux, avocat', version: 1 }],
     'POST /litigation/:id/stage': [

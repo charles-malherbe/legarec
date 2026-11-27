@@ -107,7 +107,8 @@ async function factsOf(database: Database, vault: Vault, tx: Transaction, caseId
 }
 
 /**
- * A line that has not left fails, once: said in the history of the case, without a word of why beyond a code. `from` is the
+ * A line that has not left fails, once: said in the history of the case and to the colleague who asked for it, without a
+ * word of why beyond a code. `from` is the
  * state the caller knows it in: `QUEUED` for whatever stops it before it is taken (a line taken meanwhile is left alone:
  * nobody here knows what has left), `UNCERTAIN` for the one task that took it and heard the provider refuse.
  */
@@ -121,9 +122,12 @@ async function markFailed(
   const code = CODE.test(failure) ? failure : 'SENDING_FAILED';
   const failed = await asApplication(async (tx) => {
     const { count } = await tx.sending.updateMany({ where: { id: sending, status: from }, data: { status: 'FAILED', failure: code } });
-    // An anonymized case takes no more history.
-    if (count)
+    if (count) {
+      // An anonymized case takes no more history.
       await tx.$executeRaw`SELECT app.add_case_event(${caseId}::uuid, 'REMINDER_FAILED', 'Relance non envoyée', NULL, 'danger'::event_tone, false) WHERE app.case_writable(${caseId}::uuid)`;
+      // And the colleague who asked for it is told in the application, once: with the failure, or not at all.
+      await tx.$executeRaw`SELECT app.tell_sending_failed(${sending}::uuid)`;
+    }
     return count === 1;
   });
   return { code, failed };

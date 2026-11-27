@@ -96,6 +96,7 @@ enum NotificationKind {
   DEBTOR_BLOCKED
   AI_BUDGET
   DEBTOR_ACCESS_ALERT
+  SENDING_FAILED
 
   @@map("notification_kind")
 }
@@ -309,6 +310,8 @@ model Notification {
   caseCount Int?             @map("case_count")
   planId    String?          @map("plan_id") @db.Uuid
   planDecision PlanDecision? @map("plan_decision")
+  /// The line a « reminder not sent » is about; no relation: the line goes with the anonymization of its case.
+  sendingId String?          @map("sending_id") @db.Uuid
   createdAt DateTime         @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
   readAt    DateTime?        @map("read_at") @db.Timestamptz(3)
 

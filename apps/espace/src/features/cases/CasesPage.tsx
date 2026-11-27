@@ -1,4 +1,16 @@
-import { canAccessBilling, caseList, depositsData, formatCents, type CaseFilter } from '@legarec/contracts';
+import {
+  BATCH_TEMPLATE_LABELS,
+  batchTemplate,
+  canAccessBilling,
+  caseList,
+  depositsData,
+  formatCents,
+  reminderPreview,
+  sendingOutcome,
+  skippedText,
+  type CaseFilter,
+  type ReminderPreview,
+} from '@legarec/contracts';
 import { Avatar, Badge, Bouton, Champ, PageHeader, Pagination, Tableau, Toolbar, useConfirm, useToast } from '@legarec/ui';
 import { useDebouncedValue } from '@mantine/hooks';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
@@ -82,18 +94,49 @@ export function CasesPage() {
     onClear: () => setQuery(''),
   });
 
-  const sendReminders = () =>
+  /** What the API would send to each case now, then the confirmation of exactly that (question 220). */
+  const sendReminders = async () => {
+    let preview: ReminderPreview;
+    try {
+      preview = await api(reminderPreview, '/cases/reminders/preview', { method: 'POST', body: { ids } });
+    } catch {
+      toast({ message: 'Les relances n’ont pas pu être préparées. Réessayez.', tone: 'danger' });
+      return;
+    }
+    const items = preview.items.flatMap(({ id, template }) => (template ? [{ id, template }] : []));
+    const out = preview.items.flatMap(({ id, reason }) => (reason ? [{ id, reason }] : []));
+    const leftOut = skippedText({ queued: 0, skipped: out });
+    if (items.length === 0) {
+      toast({ message: `Aucune relance ne peut partir. ${leftOut}.`, tone: 'danger' });
+      return;
+    }
+    const receiving = rows.filter((row) => items.some((item) => item.id === row.id));
+    const levels = batchTemplate.options
+      .map((template) => [template, items.filter((item) => item.template === template).length] as const)
+      .filter(([, count]) => count > 0)
+      .map(([template, count]) => `${count} ${BATCH_TEMPLATE_LABELS[template][count > 1 ? 1 : 0]}`)
+      .join(', ');
     confirm({
-      title: `Envoyer une relance à ${chosen.length} débiteur${plural} ?`,
-      body: 'Chaque débiteur reçoit la prochaine relance de son scénario (e-mail via Resend ou SMS), avec le lien de son espace débiteur.',
-      details: [{ k: 'Débiteurs', v: names }],
+      title: `Envoyer une relance à ${items.length} débiteur${items.length > 1 ? 's' : ''} ?`,
+      // What really leaves (question 220): the e-mail of the kit, never a text, never the formal notice.
+      body: 'Chaque débiteur reçoit par e-mail la relance indiquée ci-dessous, à l’adresse e-mail principale de son dossier (à défaut, sa première adresse non invalidée). Si un dossier a changé entre-temps, sa relance ne part pas et le motif est donné.',
+      details: [
+        { k: 'Débiteurs', v: receiving.map((row) => row.name).join(', ') },
+        { k: 'Relances', v: levels },
+        ...(leftOut ? [{ k: 'Laissés de côté', v: leftOut }] : []),
+      ],
       confirmLabel: 'Envoyer les relances',
       onConfirm: async () => {
-        await change('/cases/reminders', { body: { ids } });
-        toast({ message: `${chosen.length} relance(s) programmée(s) pour envoi immédiat.` });
-        setSelected([]);
+        const outcome = await change('/cases/reminders', { body: { items }, schema: sendingOutcome });
+        const skipped = [...out, ...outcome.skipped];
+        const left = skippedText({ queued: outcome.queued, skipped });
+        const queued = outcome.queued > 0 ? `${outcome.queued} relance(s) programmée(s) pour envoi immédiat.` : 'Aucune relance n’est partie.';
+        toast({ message: left ? `${queued} ${left}.` : queued, ...(outcome.queued > 0 ? {} : { tone: 'danger' as const }) });
+        // The cases left out stay selected: the colleague sees which ones.
+        setSelected(skipped.map((item) => item.id));
       },
     });
+  };
   const toLitigation = () =>
     confirm({
       tone: 'danger',
@@ -273,7 +316,7 @@ export function CasesPage() {
           <span>
             {chosen.length} sélectionné{plural} · {formatCents(total)}
           </span>
-          <Bouton variant="dark" size="sm" label="Envoyer une relance" onPress={sendReminders} />
+          <Bouton variant="dark" size="sm" label="Envoyer une relance" onPress={() => void sendReminders()} />
           {mayAssign && (
             <>
               <Champ
