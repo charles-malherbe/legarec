@@ -32,6 +32,8 @@ export class ClamavScanner implements Scanner {
       const chunks: Buffer[] = [];
       socket.setTimeout(this.timeoutMs, () => socket.destroy(new Error('clamd timeout')));
       socket.on('error', reject);
+      // Closed without a word (clamd restarting): a failure, never a wait without end.
+      socket.on('close', () => reject(new Error('clamd closed')));
       socket.on('data', (chunk: Buffer) => chunks.push(chunk));
       socket.on('end', () => {
         const answer = Buffer.concat(chunks).toString('utf8').replace(/\0/gu, '').trim();

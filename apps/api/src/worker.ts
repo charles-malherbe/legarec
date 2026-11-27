@@ -15,9 +15,10 @@ import { documentJobs } from './modules/documents/documents.jobs';
 import { receiptJobs } from './modules/payments/receipts.jobs';
 import { sendingJobs, sweepSendings } from './modules/reminders/sendings.jobs';
 import { PdfRenderer } from './platform/pdf/pdf';
+import { storageKeys } from './modules/vault/storage-keys';
 import { Vault } from './modules/vault/vault';
 import { ClamavScanner, SimulatedScanner } from './platform/scanner/scanner';
-import { storageFor } from './platform/storage/storage';
+import { fileLeft, storageFor } from './platform/storage/storage';
 import { readWorkerConfig } from './platform/config/config';
 import { Database } from './platform/database/database';
 import { createLogger } from './platform/logging/logger';
@@ -44,7 +45,11 @@ const emails = new EmailsService(new EmailRenderer(templates), simulated, emailS
 const clamd = config.CLAMAV_URL ? new URL(config.CLAMAV_URL) : null;
 // Without an antivirus in production, received files wait unread; elsewhere, the simulated one.
 const scanner = clamd ? new ClamavScanner(clamd.hostname, Number(clamd.port)) : config.NODE_ENV === 'production' ? null : new SimulatedScanner();
-const storage = storageFor(config);
+// The keys of the bucket, read with the rights of the worker, outside of any task.
+const storage = storageFor(config, {
+  keys: storageKeys(vault, (work) => database.run({ kind: 'worker', job: 'storage-keys' }, work)),
+  left: fileLeft(logger),
+});
 const pdf = new PdfRenderer(config.CHROMIUM_PATH);
 const handlers: JobHandlers = {
   documents: documentJobs(storage, scanner),

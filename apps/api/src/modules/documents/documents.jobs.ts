@@ -19,16 +19,32 @@ export const documentJobs = (storage: Storage, scanner: Scanner | null): Record<
       const asApplication = await authorize(seen);
       const found = await asApplication((tx) => tx.document.findUnique({ where: { id }, select: { storageKey: true, scanStatus: true } }));
       if (!found) throw new GiveUp('UNKNOWN_DOCUMENT');
+      // Erased for sure: a storage that fails here is asked again, by this task, until the file is gone.
+      const erase = async () => {
+        try {
+          await storage.erase(found.storageKey);
+        } catch {
+          throw new TryLater('STORAGE_UNAVAILABLE');
+        }
+      };
+      // Found infected by a run that could not erase it.
+      if (found.scanStatus === 'INFECTED') return erase();
       if (found.scanStatus !== 'PENDING') return;
       if (!scanner) throw new TryLater('NO_ANTIVIRUS');
+      let bytes: Buffer;
+      try {
+        bytes = await storage.read(found.storageKey);
+      } catch {
+        throw new TryLater('STORAGE_UNAVAILABLE');
+      }
       let verdict: 'CLEAN' | 'INFECTED';
       try {
-        verdict = await scanner.scan(await storage.read(found.storageKey));
+        verdict = await scanner.scan(bytes);
       } catch {
         throw new TryLater('ANTIVIRUS_UNAVAILABLE');
       }
       await asApplication((tx) => tx.document.updateMany({ where: { id, scanStatus: 'PENDING' }, data: { scanStatus: verdict, scannedAt: new Date() } }));
-      if (verdict === 'INFECTED') await storage.remove(found.storageKey);
+      if (verdict === 'INFECTED') await erase();
     },
   },
 });

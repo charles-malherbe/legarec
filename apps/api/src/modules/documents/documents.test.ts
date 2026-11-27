@@ -5,6 +5,10 @@ import { startApp, type TestApp } from '../../../test/app';
 import { startMailWorker, type MailWorker } from '../../../test/worker';
 import { deflateRawSync, deflateSync } from 'node:zlib';
 import { Database } from '../../platform/database/database';
+import { TryLater } from '../../platform/queue/errors';
+import { SimulatedScanner } from '../../platform/scanner/scanner';
+import { storageFor, type Storage } from '../../platform/storage/storage';
+import { documentJobs } from './documents.jobs';
 import { checkFile } from './file-type';
 
 let test: TestApp;
@@ -106,6 +110,52 @@ describe('a file received', () => {
     expect((await test.call('GET', `/staff/documents/${sick.id}/file`, { as: 'officerA' })).status).toBe(409);
     expect((await test.call('GET', `/staff/documents/${clean.id}/file`, { as: 'officerB' })).status).toBe(404);
     expect((await list('officerA')).items.find((item) => item.id === sick.id)?.status).toBe('Bloqué par l’antivirus');
+  });
+
+  it('found infected is erased for sure: a storage that fails is asked again by the same task, and says what it is', async () => {
+    await makeCase(test.s.officerA, 'CH-2026-0998');
+    const sick = await imported('officerA', text(`%PDF-1.4\n(CH-2026-0998)\n${EICAR}\n%%EOF`));
+    const [{ key }] = (await rows<{ key: string }>('SELECT storage_key AS key FROM documents WHERE id = $1', [sick.id])) as [{ key: string }];
+    const real = storageFor(test.config);
+    const asked: string[] = [];
+    let down: 'read' | 'erase' | null = 'read';
+    const failing = {
+      read: (wanted: string) => (asked.push('read'), down === 'read' ? Promise.reject(new Error('bucket')) : real.read(wanted)),
+      erase: (wanted: string) => (asked.push('erase'), down === 'erase' ? Promise.reject(new Error('bucket')) : real.erase(wanted)),
+    } as unknown as Storage;
+    const jobs = new Database(test.database.url('jobs'));
+    const run = () =>
+      documentJobs(failing, new SimulatedScanner())['scan-document']!.run({
+        taskId: randomUUID(),
+        payload: { document: sick.id },
+        asAuthor: () => Promise.reject(new Error('not used')),
+        authorize: () => Promise.resolve((work) => jobs.run({ kind: 'worker', job: 'documents' }, work)),
+      });
+    const status = async () => (await rows<{ scan_status: string }>('SELECT scan_status FROM documents WHERE id = $1', [sick.id]))[0]!.scan_status;
+    try {
+      // The file cannot be read: it is not the antivirus that fails.
+      const unread = await run().catch((thrown: unknown) => thrown);
+      expect(unread).toBeInstanceOf(TryLater);
+      expect(unread).toMatchObject({ code: 'STORAGE_UNAVAILABLE' });
+      expect(await status()).toBe('PENDING');
+      // Read and found infected, but the erasure fails: the task is not over.
+      down = 'erase';
+      await expect(run()).rejects.toMatchObject({ code: 'STORAGE_UNAVAILABLE' });
+      expect(await status()).toBe('INFECTED');
+      expect((await real.read(key)).byteLength).toBeGreaterThan(0);
+      // Run again: no second reading, the erasure alone, until it is done.
+      asked.length = 0;
+      await expect(run()).rejects.toMatchObject({ code: 'STORAGE_UNAVAILABLE' });
+      down = null;
+      await run();
+      expect(asked).toEqual(['erase', 'erase']);
+      await expect(real.read(key)).rejects.toThrow('file not found');
+      // And once more, for nothing.
+      await run();
+      expect(await status()).toBe('INFECTED');
+    } finally {
+      await jobs.close();
+    }
   });
 });
 

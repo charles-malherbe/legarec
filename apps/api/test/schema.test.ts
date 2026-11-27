@@ -715,6 +715,8 @@ describe('rights on the functions', () => {
     ...['renew_internal_key', 'access_code', 'first_access_code', 'renew_access_code'].map((name) => [name, ['staff']] as [string, string[]]),
     // What they read is encrypted with a key that is not in the database.
     ...['internal_key', 'first_internal_key'].map((name) => [name, ['staff', 'worker']] as [string, string[]]),
+    // The two keys of the bucket of the documents, for whoever handles a file.
+    ['storage_keys', ['debtor', 'partner', 'staff', 'worker']],
     ['portal_officer', ['partner']],
     ['create_director', ['worker']],
     ['ticket_reader', ['worker']],
@@ -792,7 +794,7 @@ describe('rights on the functions', () => {
       'purge_sign_ins anonymize_accounts account_of account_of_link inviter_name resume_session take_attempt clear_attempts subject proved_subject tell_reset',
       'invite_member cancel_invitation disable_member enable_member set_member_role set_extension support account_states locked set_delegation open_ticket acts_as_director',
       'save_secret renew_secret revoke_secret keep_secret save_setting creditor_iban open_debtor note_contact',
-      'internal_key first_internal_key renew_internal_key access_code first_access_code renew_access_code',
+      'internal_key first_internal_key renew_internal_key access_code first_access_code renew_access_code storage_keys',
       'portal_officer create_director ticket_reader close_account release_cases digests refuse tell_director end_technical_delegation take_with_substituted open_delegations require_for_developer plain_name keep_account_history',
       'uuid_v7 setting user_id creditor_id debtor_id only_identifiers audit_params',
       'save_interest_rate decide_plan follow_allocation check_allocations record_payment change_payment ask_plan money_case issue_receipt keep_receipt share_document',

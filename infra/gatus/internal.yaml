@@ -64,6 +64,13 @@ endpoints:
     interval: 10m
     conditions: ['[STATUS] == 200']
     alerts: [{ type: custom, description: media.legarec.fr ne répond plus }]
+  # Without any key: a private bucket that is there answers 403 to a stranger; 404, it is gone; 200, it has become public.
+  - name: Documents
+    group: fichiers
+    url: https://legarec-documents.s3.${S3_REGION}.io.cloud.ovh.net/
+    interval: 10m
+    conditions: ['[STATUS] == 403']
+    alerts: [{ type: custom, description: 'bucket des documents injoignable, absent ou devenu public' }]
   - name: Loki
     group: journaux
     url: http://loki:3100/ready

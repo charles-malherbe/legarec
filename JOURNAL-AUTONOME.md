@@ -79,3 +79,34 @@ Consigne de l'utilisateur : « Continuer à avancer le projet pour préparer le 
   - Relecture sécurité indépendante : aucune fuite entre rôles ; **un point important** : la page Équipe aurait montré en production deux chiffres codés en dur (« 78 % tenues sur 30 jours », « 4 min 05 ») pendant le chargement et après une erreur. Corrigé (ces valeurs ne viennent plus que de la simulation, tests en chargement et en erreur), avec 4 mineurs : test du portefeuille du Directeur, rôle vérifié avant le calcul, paramètre invalide refusé (422), exception de `rules.test.ts` bornée.
   - `pnpm verifier` relancé par cette session sur l'arbre final : 97 fichiers, 3 644 tests au vert.
   - À voir hors de ce lot : le compteur « gestionnaires en ligne » du menu se fie à la dernière activité (`shell.controller.ts`), alors qu'Équipe dit la présence inconnue sans téléphonie (noté dans la question 204).
+
+# Session du 27/11/2026 : reprise des lots arrêtés (ClamAV, bucket des documents, envois)
+
+Consigne de l'utilisateur : « Continuer le développement sans interruption, fusion si pas d'erreur ». Session `debian-00`. GitHub Actions est toujours à l'arrêt : « pas d'erreur » veut dire `pnpm verifier` relancé en local par cette session, après une relecture sécurité indépendante sans point bloquant.
+
+## État trouvé au démarrage (01:15 UTC)
+- `main` à jour (#34 à #69 fusionnées). PR #70 (Hyperping) ouverte. Deux worktrees arrêtées en plein travail depuis 00:24, avec du code non commité : `exploitation` (`lot/x6`) et `envois` (`lot/q3`). L'autre session (« Statut et avancement ») confirme par message qu'elle n'y touche plus ; elle signale deux décisions en attente chez l'utilisateur (GitHub Actions gratuit ou retiré ; pings Hyperping à côté de Gatus) : `.github/workflows` n'est pas modifié.
+
+## Initiatives
+| Initiative | Raison |
+|---|---|
+| PR #70 fusionnée après `pnpm verifier` relancé ici (97 fichiers, 3 644 tests) et lecture du script | Consigne de fusion ; aucun code exécuté par l'application, aucun secret |
+| `lot/x6` et `lot/q3` repris à partir des fichiers trouvés sur le disque, un agent par worktree, questions 205 à 209 et 210 à 219 réservées | Travail non commité d'une session arrêtée ; rien n'a été jeté |
+| **Bucket des documents laissé éteint en production** (question 205) | Le conteneur de l'API n'a aucune sortie vers Internet : écrire `S3_DOCUMENTS_BUCKET` aujourd'hui ferait échouer chaque dépôt et chaque téléchargement. Ouvrir une sortie à l'API a été refusé (elle deviendrait joignable sans Caddy). Les fichiers restent sur le disque |
+| `S3_DOCUMENTS_BUCKET` refusé hors production, quel que soit son nom | Avec un autre nom que `legarec-documents` et deux clés dans le coffre, le développement aurait appelé le vrai OVHcloud |
+| Antivirus en deux conteneurs : `clamav` (clamd, sans aucune sortie) et `freshclam` (signatures, seul à sortir) | Relecture sécurité : le conteneur qui lit les fichiers reçus avait tout Internet et restait joignable hors de son réseau |
+| Une archive qui dépasse les limites d'analyse est traitée comme infectée (`AlertExceedsMax`) | Sinon ClamAV répond « OK » sans l'avoir lue en entier |
+
+## Avancement
+- **PR #70 fusionnée** (surveillance externe Hyperping). Rien n'est créé chez Hyperping : le cabinet lance `infra/hyperping/legarec-hyperping` avec sa clé.
+- **`lot/x6` — ClamAV et bucket des documents** : 11 commits. Client du bucket (`@aws-sdk/client-s3`), clés lues chiffrées dans le coffre (`app.storage_keys()`), repli sur le disque, contrôle Gatus sans clé, documentation.
+  - Relecture sécurité indépendante : aucun bloquant, 5 importants, 7 mineurs. Corrigés : antivirus (ci-dessus) ; bucket configuré sans ses clés = panne visible, plus « fichier absent » (la purge échoue au lieu de compter 0) ; bucket refusé hors production ; fichier infecté effacé à coup sûr ; un nettoyage ne masque plus l'erreur d'origine.
+  - Laissés, inscrits comme conditions de la question 205 : `app.storage_keys()` remet le chiffré des clés aux rôles créancier et débiteur de la base ; l'appel au bucket se fait dans la transaction de la requête (contraire à `.claude/rules/api.md`).
+  - `pnpm verifier` relancé par cette session sur l'arbre final fusionné avec `main` : 101 fichiers, 3 711 tests au vert.
+  - **Jamais essayé** : Docker (interdit à Claude Code) et la CI, donc ni les deux conteneurs de l'antivirus, ni `infra/ci/smoke.sh` ; aucun appel à un vrai bucket, ni le contrôle Gatus (403 attendu).
+
+## À faire par l'utilisateur ou le cabinet
+- Question **205**, à trancher avant d'allumer le bucket : comment l'API atteint le bucket. Proposé : l'API reste fermée, écrit sur le disque, le worker copie vers le bucket après l'antivirus, lecture par adresses signées (demande un autre lot).
+- Question **206** : Gatus ne voit pas une clé du bucket refusée ou expirée (contrôle sans clé seulement), à confirmer.
+- À la mise en service : premier démarrage de `clamav` et `freshclam` à surveiller (`docs/deploiement.md`, « Antivirus ») ; `S3_REGION` obligatoire dans `gatus.env` ; le contrôle « Documents » de Gatus alertera tant que le bucket n'existe pas.
+- `freshclam` n'a pas de contrôle de santé : des signatures périmées ne lèvent aucune alerte.

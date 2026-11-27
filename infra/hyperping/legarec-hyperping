@@ -1,0 +1,10 @@
+#!/bin/bash
+# Surveillance externe : crée ou met à jour les moniteurs Hyperping de infra/hyperping/moniteurs.json.
+# Lancé par le cabinet. La clé API (app.hyperping.io › Project settings › Developers, « Read & Write ») est demandée sans être
+# affichée ; elle n'est écrite nulle part, ni dans l'historique du terminal, ni dans un fichier.
+set -euo pipefail
+here="$(cd "$(dirname "$0")" && pwd)"
+read -rsp 'Clé API Hyperping (rien ne s’affiche) : ' HYPERPING_API_KEY
+echo
+export HYPERPING_API_KEY
+exec node "$here/provisionner.mjs"
