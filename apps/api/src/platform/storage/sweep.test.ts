@@ -218,8 +218,9 @@ describe('the sweep of the files without a row', () => {
     const { root, storage, referenced, left } = await start(0);
     await kept(root, storage);
     await half(root, OLD);
-    for (const work of [sweep(storage, referenced, 'erase'), sweep(storage, referenced, 'force', { expected: 2 })])
-      expect(await refusal(work)).toBe('NO_ROW_HELD');
+    // One after the other: started together, the second refusal came while the first was awaited, unhandled.
+    for (const work of [() => sweep(storage, referenced, 'erase'), () => sweep(storage, referenced, 'force', { expected: 2 })])
+      expect(await refusal(work())).toBe('NO_ROW_HELD');
     expect(await left()).toHaveLength(2);
     // Counting is always possible.
     expect(await sweep(storage, referenced, 'count')).toMatchObject({ old: 1, orphans: 1, parts: 1, erased: 0 });
