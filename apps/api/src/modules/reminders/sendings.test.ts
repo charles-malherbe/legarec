@@ -253,10 +253,9 @@ describe('a reminder from a case', () => {
     const waiting = left ?? third;
     if (left) expect((await remind('officerA', left)).body).toEqual({ code: 'CONTACT_CAP' });
     // What failed before leaving does not count.
-    await rows(
-      "UPDATE sendings SET status = 'FAILED', failure = 'PROVIDER_REFUSED' WHERE id = (SELECT id FROM sendings WHERE case_id = ANY($1::uuid[]) LIMIT 1)",
-      [[mine.id, theirs.id, third.id].filter((id) => id !== waiting.id)],
-    );
+    await rows("UPDATE sendings SET status = 'FAILED', failure = 'EXPIRED' WHERE id = (SELECT id FROM sendings WHERE case_id = ANY($1::uuid[]) LIMIT 1)", [
+      [mine.id, theirs.id, third.id].filter((id) => id !== waiting.id),
+    ]);
     if (left) expect((await remind('officerA', left)).status).toBe(204);
     await rows("UPDATE outbox SET done_at = now() WHERE name = 'case-reminder' AND done_at IS NULL");
   });
@@ -283,8 +282,8 @@ describe('reminders from the list of cases', () => {
        FROM cases c WHERE c.id = $1 RETURNING id`,
       [made.id, template, level, test.s.officerA, days],
     )) as [{ id: string }];
+    if (state !== 'QUEUED') await rows("UPDATE sendings SET status = 'UNCERTAIN' WHERE id = $1", [id]);
     if (state === 'FAILED') await rows("UPDATE sendings SET status = 'FAILED', failure = 'PROVIDER_REFUSED' WHERE id = $1", [id]);
-    if (state === 'UNCERTAIN' || state === 'SENT') await rows("UPDATE sendings SET status = 'UNCERTAIN' WHERE id = $1", [id]);
     if (state === 'SENT') await rows("UPDATE sendings SET status = 'SENT', sent_at = now() - $2::float8 * interval '1 day' WHERE id = $1", [id, days]);
   };
   /** Nothing of these tests stays in the queue for the next ones. */
@@ -961,7 +960,8 @@ describe('a reminder that has not left: the notices of a colleague stay readable
     const moved = await eligible(test.s.officerA);
     expect((await remind('officerA', forgotten)).status).toBe(204);
     expect((await remind('officerA', moved)).status).toBe(204);
-    // A line that failed, then its case anonymized before anybody was told (the anonymization itself removes the lines).
+    // A line taken, then refused by the provider, then its case anonymized before anybody was told (the anonymization itself removes the lines).
+    await rows("UPDATE sendings SET status = 'UNCERTAIN' WHERE case_id = $1", [forgotten.id]);
     const [{ id: line }] = (await rows<{ id: string }>("UPDATE sendings SET status = 'FAILED', failure = 'PROVIDER_REFUSED' WHERE case_id = $1 RETURNING id", [
       forgotten.id,
     ])) as [{ id: string }];

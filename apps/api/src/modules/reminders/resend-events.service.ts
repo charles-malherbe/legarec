@@ -49,11 +49,13 @@ export class ResendEventsService {
     const event = readResendEvent(body);
     // What names no message of ours is kept for the count only: nothing to do with it.
     const wanted = event.kind !== 'OTHER' && (event.sendingId !== null || event.providerRef !== null);
+    // Neither its date nor the message it names: an open or a click is not followed, not even kept (question 225).
+    const kept = wanted ? event : { occurredAt: null, providerRef: null, sendingId: null };
     // Delivered twice, or sent again by Resend: written once, handled once.
     const [written] = await tx.$queryRaw<{ id: string }[]>`
       INSERT INTO webhook_events (provider, provider_event_id, status, kind, occurred_at, provider_ref, sending_id)
-      VALUES (${PROVIDER}, ${delivery.id}, ${wanted ? 'RECEIVED' : 'IGNORED'}::webhook_status, ${event.kind}, ${event.occurredAt}::timestamptz,
-        ${event.providerRef}::uuid, ${event.sendingId}::uuid)
+      VALUES (${PROVIDER}, ${delivery.id}, ${wanted ? 'RECEIVED' : 'IGNORED'}::webhook_status, ${event.kind}, ${kept.occurredAt}::timestamptz,
+        ${kept.providerRef}::uuid, ${kept.sendingId}::uuid)
       ON CONFLICT (provider, provider_event_id) DO NOTHING RETURNING id`;
     if (written && wanted)
       await this.outbox.add({ queue: 'maintenance', name: 'resend-event', payload: { event: written.id }, dedupeKey: `resend-event:${written.id}` });

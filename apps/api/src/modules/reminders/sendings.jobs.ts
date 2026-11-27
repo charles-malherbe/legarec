@@ -107,6 +107,12 @@ async function factsOf(database: Database, vault: Vault, tx: Transaction, caseId
 }
 
 /**
+ * Beginning of every reason a line fails for once it has been taken, and of none other: a failed line says whether it ever
+ * left this machine (held by `keep_sending`). What the provider says afterwards is only believed of the first kind.
+ */
+export const PROVIDER_FAILURE = 'PROVIDER_';
+
+/**
  * A line that has not left fails, once: said in the history of the case and to the colleague who asked for it, without a
  * word of why beyond a code. `from` is the
  * state the caller knows it in: `QUEUED` for whatever stops it before it is taken (a line taken meanwhile is left alone:
@@ -119,7 +125,8 @@ export async function markFailed(
   failure: string,
   from: 'QUEUED' | 'UNCERTAIN',
 ): Promise<{ code: string; failed: boolean }> {
-  const code = CODE.test(failure) ? failure : 'SENDING_FAILED';
+  const taken = from === 'UNCERTAIN';
+  const code = CODE.test(failure) && failure.startsWith(PROVIDER_FAILURE) === taken ? failure : taken ? 'PROVIDER_FAILED' : 'SENDING_FAILED';
   const failed = await asApplication(async (tx) => {
     const { count } = await tx.sending.updateMany({ where: { id: sending, status: from }, data: { status: 'FAILED', failure: code } });
     if (count) {

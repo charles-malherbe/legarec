@@ -74,16 +74,21 @@ const workingHour = () => {
   }
   throw new Error('no working day this week');
 };
-type State = 'QUEUED' | 'UNCERTAIN' | 'SENT' | 'FAILED' | 'SIMULATED';
-/** A reminder of the case in that state, asked `minutes` ago; `ref`: the message at the provider, for a line that was sent. */
+type State = 'QUEUED' | 'UNCERTAIN' | 'SENT' | 'FAILED' | 'EXPIRED' | 'SIMULATED';
+/**
+ * A reminder of the case in that state, asked `minutes` ago; `ref`: the message at the provider, for a line that was sent.
+ * `FAILED`: taken, then refused by the provider; `EXPIRED`: failed before it was ever taken.
+ */
 const line = async (made: Made, state: State, { ref = randomUUID(), minutes = 10 }: { ref?: string; minutes?: number } = {}) => {
   const [{ id }] = (await rows<{ id: string }>(
     `INSERT INTO sendings (case_id, creditor_id, channel, template, level, contact_id, created_by, created_at)
      SELECT c.id, c.creditor_id, 'EMAIL', 'FRIENDLY', 1, $2, $3, now() - $4::float8 * interval '1 minute' FROM cases c WHERE c.id = $1 RETURNING id`,
     [made.id, made.contact, test.s.officerA, minutes],
   )) as [{ id: string }];
-  if (state !== 'QUEUED') await rows("UPDATE sendings SET status = 'UNCERTAIN' WHERE id = $1", [id]);
-  if (state === 'SENT') await rows("UPDATE sendings SET status = 'SENT', sent_at = created_at + interval '1 second', provider_ref = $2 WHERE id = $1", [id, ref]);
+  if (state === 'EXPIRED') await rows("UPDATE sendings SET status = 'FAILED', failure = 'EXPIRED' WHERE id = $1", [id]);
+  else if (state !== 'QUEUED') await rows("UPDATE sendings SET status = 'UNCERTAIN' WHERE id = $1", [id]);
+  if (state === 'SENT')
+    await rows("UPDATE sendings SET status = 'SENT', sent_at = created_at + interval '1 second', provider_ref = $2 WHERE id = $1", [id, ref]);
   if (state === 'SIMULATED') await rows("UPDATE sendings SET status = 'SENT', sent_at = created_at, simulated = true WHERE id = $1", [id]);
   if (state === 'FAILED') await rows("UPDATE sendings SET status = 'FAILED', failure = 'PROVIDER_REFUSED' WHERE id = $1", [id]);
   return { id, ref };
@@ -109,7 +114,7 @@ const sending = async (id: string) =>
 const contactOf = async (made: Made) =>
   (await rows<{ status: string; is_primary: boolean }>('SELECT status, is_primary FROM case_contacts WHERE id = $1', [made.contact]))[0]!;
 const history = async (made: Made) =>
-  (await rows<{ title: string }>("SELECT title FROM case_events WHERE case_id = $1 ORDER BY occurred_at, id", [made.id])).map((row) => row.title);
+  (await rows<{ title: string }>('SELECT title FROM case_events WHERE case_id = $1 ORDER BY occurred_at, id', [made.id])).map((row) => row.title);
 
 interface Sent {
   type: string;
@@ -136,7 +141,9 @@ const bodyOf = ({ type, sending: tag, ref, ago = 5, data = {} }: Sent, to = 'com
     },
   });
 const signature = (key: string, id: string, timestamp: string, body: string) =>
-  `v1,${createHmac('sha256', Buffer.from(key.slice('whsec_'.length), 'base64')).update(`${id}.${timestamp}.${body}`).digest('base64')}`;
+  `v1,${createHmac('sha256', Buffer.from(key.slice('whsec_'.length), 'base64'))
+    .update(`${id}.${timestamp}.${body}`)
+    .digest('base64')}`;
 const stamp = (ago = 0) => String(Math.floor(Date.now() / 1000) - ago);
 /** Posted as Resend does; `change` spoils the delivery after it was signed. */
 const post = (body: string, change: { id?: string; headers?: Record<string, string | undefined>; sent?: string; key?: string; ago?: number } = {}) => {
@@ -159,7 +166,8 @@ const happen = async (event: Sent) => {
   expect((await post(bodyOf(event))).status).toBe(204);
   await worker.run();
 };
-const stored = () => rows<{ status: string; kind: string | null }>("SELECT status, kind FROM webhook_events WHERE provider = 'RESEND' ORDER BY received_at, id");
+const stored = () =>
+  rows<{ status: string; kind: string | null }>("SELECT status, kind FROM webhook_events WHERE provider = 'RESEND' ORDER BY received_at, id");
 const storeSecret = async (value: string, status = 'VALID') => {
   const id = randomUUID();
   await rows("INSERT INTO vault_secrets (id, name, value_cipher, status) VALUES ($1, 'RESEND_WEBHOOK_SECRET', $2, $3::secret_status)", [
@@ -283,6 +291,10 @@ describe('an event of Resend', () => {
       { status: 'IGNORED', kind: 'OTHER' },
       { status: 'IGNORED', kind: 'DELIVERED' },
     ]);
+    // Neither the date of an open or a click, nor the reminder it names (question 225).
+    expect(await rows("SELECT occurred_at, provider_ref, sending_id FROM webhook_events WHERE provider = 'RESEND'")).toEqual(
+      Array.from({ length: 5 }, () => ({ occurred_at: null, provider_ref: null, sending_id: null })),
+    );
     expect(await rows("SELECT 1 FROM outbox WHERE name = 'resend-event' AND done_at IS NULL")).toEqual([]);
     expect(await sending(id)).toMatchObject({ confirmed_at: null, delivered_at: null });
     expect(await history(made)).toEqual([]);
@@ -293,16 +305,21 @@ describe('an event of Resend', () => {
     const queued = await line(made, 'QUEUED');
     const simulated = await line(made, 'SIMULATED');
     const sent = await line(made, 'SENT');
+    const expired = await line(made, 'EXPIRED');
     await happen({ type: 'email.delivered', sending: randomUUID() });
     await happen({ type: 'email.delivered', ref: randomUUID() });
     await happen({ type: 'email.delivered', sending: queued.id });
+    // Failed before it was taken: nothing of it ever left, whatever message names it (a copy of this database elsewhere).
+    await happen({ type: 'email.delivered', sending: expired.id });
+    await happen({ type: 'email.bounced', sending: expired.id, data: { bounce: { type: 'Permanent' } } });
     await happen({ type: 'email.bounced', sending: simulated.id, data: { bounce: { type: 'Permanent' } } });
     // The line is named, but the message is not the one that left for it.
     await happen({ type: 'email.bounced', sending: sent.id, ref: randomUUID(), data: { bounce: { type: 'Permanent' } } });
     // A name unknown here is never looked for by its message: it belongs to another environment.
     await happen({ type: 'email.delivered', sending: randomUUID(), ref: sent.ref });
-    expect((await stored()).map((row) => row.status)).toEqual(Array.from({ length: 6 }, () => 'IGNORED'));
+    expect((await stored()).map((row) => row.status)).toEqual(Array.from({ length: 8 }, () => 'IGNORED'));
     expect(await sending(queued.id)).toMatchObject({ status: 'QUEUED', confirmed_at: null });
+    expect(await sending(expired.id)).toMatchObject({ status: 'FAILED', failure: 'EXPIRED', confirmed_at: null, delivered_at: null, undelivered_at: null });
     expect(await sending(sent.id)).toMatchObject({ status: 'SENT', confirmed_at: null, delivered_at: null, undelivered_at: null });
     expect(await contactOf(made)).toEqual({ status: 'VERIFIED', is_primary: true });
     expect(await history(made)).toEqual([]);
@@ -320,7 +337,9 @@ describe('a line whose fate was unknown', () => {
     expect(Math.abs(Date.now() - 120_000 - settled.sent_at!.getTime())).toBeLessThan(5000);
     expect(settled.confirmed_at).toEqual(settled.sent_at);
     expect(await history(made)).toEqual(['Relance envoyée']);
-    expect(await rows('SELECT actor_label, detail FROM case_events WHERE case_id = $1', [made.id])).toEqual([{ actor_label: 'Application', detail: 'E-mail · niveau 1' }]);
+    expect(await rows('SELECT actor_label, detail FROM case_events WHERE case_id = $1', [made.id])).toEqual([
+      { actor_label: 'Application', detail: 'E-mail · niveau 1' },
+    ]);
   });
 
   it('is settled once when the events come in disorder, and keeps the date it was settled on', async () => {
@@ -354,7 +373,13 @@ describe('a line whose fate was unknown', () => {
     const made = await eligible();
     const { id } = await line(made, 'UNCERTAIN');
     await happen({ type: 'email.failed', sending: id, data: { failed: { reason: 'reached_daily_quota' } } });
-    expect(await sending(id)).toMatchObject({ status: 'FAILED', failure: 'PROVIDER_FAILED', sent_at: null, confirmed_at: null, undelivered_reason: 'PROVIDER_FAILED' });
+    expect(await sending(id)).toMatchObject({
+      status: 'FAILED',
+      failure: 'PROVIDER_FAILED',
+      sent_at: null,
+      confirmed_at: null,
+      undelivered_reason: 'PROVIDER_FAILED',
+    });
     expect(await history(made)).toEqual(['Relance non envoyée']);
     expect(await rows('SELECT kind::text FROM notifications WHERE sending_id = $1', [id])).toEqual([{ kind: 'SENDING_FAILED' }]);
     expect(await contactOf(made)).toMatchObject({ status: 'VERIFIED' });
@@ -506,6 +531,41 @@ describe('a line that was sent', () => {
     await happen({ type: 'email.complained', sending: before.id, ref: before.ref, ago: 3600 });
     expect(await contactOf(reached)).toEqual({ status: 'VERIFIED', is_primary: true });
   });
+
+  it('leaves alone an address a colleague is changing while the bounce is handled', async () => {
+    const made = await eligible();
+    const old = await line(made, 'SENT', { minutes: 600 });
+    let holding!: () => void;
+    const held = new Promise<void>((resolve) => (holding = resolve));
+    let release!: () => void;
+    const released = new Promise<void>((resolve) => (release = resolve));
+    // As the sheet of the case does: the case, then the coordinate, then what was done, in one transaction not yet ended.
+    const colleague = as(officer(), async (tx) => {
+      await tx.$queryRaw`SELECT 1 FROM cases WHERE id = ${made.id}::uuid FOR NO KEY UPDATE`;
+      await tx.$executeRaw`UPDATE case_contacts SET status = 'VERIFIED' WHERE id = ${made.contact}::uuid`;
+      holding();
+      await released;
+      await tx.$executeRaw`SELECT app.note_contact(${made.contact}::uuid, 'VERIFIED')`;
+    });
+    await held;
+    const handled = happen({ type: 'email.bounced', sending: old.id, ref: old.ref, ago: 60, data: { bounce: { type: 'Permanent' } } });
+    // The worker waits for the coordinate, while the colleague has not yet said what they did.
+    await vi.waitFor(
+      async () =>
+        expect(
+          await rows(
+            "SELECT 1 FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock' AND query LIKE '%invalidate_unreachable_contact%'",
+          ),
+        ).toHaveLength(1),
+      { timeout: 10_000, interval: 50 },
+    );
+    release();
+    expect(await colleague).toBeUndefined();
+    await handled;
+    expect(await sending(old.id)).toMatchObject({ undelivered_reason: 'HARD_BOUNCE' });
+    expect(await contactOf(made)).toEqual({ status: 'VERIFIED', is_primary: true });
+    expect(await history(made)).toEqual(['Relance non distribuée']);
+  });
 });
 
 describe('a line that had failed and yet has left', () => {
@@ -520,7 +580,11 @@ describe('a line that had failed and yet has left', () => {
       return (answer.body as { items: unknown[] }).items;
     };
     const counted = () =>
-      as(officer(), async (tx) => (await tx.$queryRaw<{ count: number }[]>`SELECT app.sent_contacts(${made.id}::uuid, 'EMAIL', current_date - 7, current_date + 7) AS count`)[0]!.count);
+      as(
+        officer(),
+        async (tx) =>
+          (await tx.$queryRaw<{ count: number }[]>`SELECT app.sent_contacts(${made.id}::uuid, 'EMAIL', current_date - 7, current_date + 7) AS count`)[0]!.count,
+      );
     const { id } = await line(made, 'FAILED');
     // The line that failed does not count: the same level would be asked again.
     expect(await preview()).toEqual([{ id: made.id, template: 'FRIENDLY', reason: null }]);
@@ -568,7 +632,12 @@ describe('in the database', () => {
     const made = await eligible();
     const sent = await line(made, 'SENT');
     const failed = await line(made, 'FAILED');
-    for (const set of ["status = 'FAILED', failure = 'LATE', sent_at = NULL, provider_ref = NULL", 'sent_at = now()', "provider_ref = 'other'", 'simulated = true'])
+    for (const set of [
+      "status = 'FAILED', failure = 'LATE', sent_at = NULL, provider_ref = NULL",
+      'sent_at = now()',
+      "provider_ref = 'other'",
+      'simulated = true',
+    ])
       expect(await change(sent.id, set), set).toBe('42501');
     for (const set of [
       "status = 'SENT', failure = NULL, sent_at = now()",
@@ -585,8 +654,10 @@ describe('in the database', () => {
     const made = await eligible();
     const sent = await line(made, 'SENT');
     expect(await change(sent.id, 'delivered_at = now()')).toBe('23514');
-    expect(await change(sent.id, "undelivered_at = now()")).toBe('23514');
-    expect(await change(sent.id, "confirmed_at = now(), delivered_at = now(), undelivered_at = now(), undelivered_reason = 'BOUNCE', complained_at = now()")).toBe('done');
+    expect(await change(sent.id, 'undelivered_at = now()')).toBe('23514');
+    expect(
+      await change(sent.id, "confirmed_at = now(), delivered_at = now(), undelivered_at = now(), undelivered_reason = 'BOUNCE', complained_at = now()"),
+    ).toBe('done');
     for (const set of [
       "confirmed_at = now() + interval '1 second'",
       'confirmed_at = NULL, delivered_at = NULL, complained_at = NULL',
@@ -600,17 +671,34 @@ describe('in the database', () => {
       expect(await change(sent.id, set), set).toBe('42501');
     // One change only: the reason that left the address alone becomes one that condemns it, and then stays.
     expect(await change(sent.id, "undelivered_reason = 'HARD_BOUNCE'")).toBe('done');
-    for (const set of ["undelivered_reason = 'BOUNCE'", "undelivered_reason = 'SUPPRESSED'", "undelivered_reason = 'PROVIDER_FAILED'", 'undelivered_at = NULL, undelivered_reason = NULL'])
+    for (const set of [
+      "undelivered_reason = 'BOUNCE'",
+      "undelivered_reason = 'SUPPRESSED'",
+      "undelivered_reason = 'PROVIDER_FAILED'",
+      'undelivered_at = NULL, undelivered_reason = NULL',
+    ])
       expect(await change(sent.id, set), set).toBe('42501');
     const failedAtProvider = await line(made, 'SENT');
     expect(await change(failedAtProvider.id, "undelivered_at = now(), undelivered_reason = 'PROVIDER_FAILED'")).toBe('done');
     expect(await change(failedAtProvider.id, "undelivered_reason = 'BOUNCE'")).toBe('42501');
     expect(await change(failedAtProvider.id, "undelivered_reason = 'SUPPRESSED'")).toBe('done');
     expect(await change(sent.id, "undelivered_reason = 'UNKNOWN'")).not.toBe('done');
-    for (const state of ['QUEUED', 'UNCERTAIN', 'SIMULATED'] as const) {
+    for (const state of ['QUEUED', 'UNCERTAIN', 'SIMULATED', 'EXPIRED'] as const) {
       const { id } = await line(made, state);
-      for (const set of ['confirmed_at = now()', "undelivered_at = now(), undelivered_reason = 'BOUNCE'"]) expect(await change(id, set), `${state} ${set}`).toBe('42501');
+      for (const set of ['confirmed_at = now()', "undelivered_at = now(), undelivered_reason = 'BOUNCE'"])
+        expect(await change(id, set), `${state} ${set}`).toBe('42501');
     }
+  });
+
+  it('a line fails for a reason of the provider once it has been taken, and for no other', async () => {
+    const made = await eligible();
+    const queued = await line(made, 'QUEUED');
+    expect(await change(queued.id, "status = 'FAILED', failure = 'PROVIDER_REFUSED'")).toBe('42501');
+    expect(await change(queued.id, "status = 'FAILED', failure = 'EXPIRED'")).toBe('done');
+    const taken = await line(made, 'UNCERTAIN');
+    expect(await change(taken.id, "status = 'FAILED', failure = 'EXPIRED'")).toBe('42501');
+    expect(await change(taken.id, "status = 'FAILED', failure = NULL")).toBe('42501');
+    expect(await change(taken.id, "status = 'FAILED', failure = 'PROVIDER_BUSY'")).toBe('done');
   });
 
   it('the secret of the events is read by their route alone, and by its name alone', async () => {
@@ -635,7 +723,10 @@ describe('in the database', () => {
     expect(await as(hook, (tx) => tx.$queryRaw`SELECT id FROM cases`)).toBe('42501');
     expect(await as(hook, (tx) => tx.$queryRaw`SELECT app.invalidate_unreachable_contact(${id}::uuid)`)).toBe('42501');
     const insert = (status: string) =>
-      as(hook, (tx) => tx.$executeRaw`INSERT INTO webhook_events (provider, provider_event_id, status) VALUES ('RESEND', ${randomUUID()}, ${status}::webhook_status)`);
+      as(
+        hook,
+        (tx) => tx.$executeRaw`INSERT INTO webhook_events (provider, provider_event_id, status) VALUES ('RESEND', ${randomUUID()}, ${status}::webhook_status)`,
+      );
     expect(await insert('PROCESSED')).toBe('42501');
     expect(await insert('FAILED')).toBe('42501');
     expect(await insert('IGNORED')).toBe(1);
@@ -647,7 +738,8 @@ describe('in the database', () => {
     const made = await eligible();
     const { id } = await line(made, 'SENT');
     const mark = (actor: Actor | 'worker') => {
-      const work = async (tx: Transaction) => (await tx.$queryRaw<{ marked: boolean }[]>`SELECT app.invalidate_unreachable_contact(${id}::uuid) AS marked`)[0]!.marked;
+      const work = async (tx: Transaction) =>
+        (await tx.$queryRaw<{ marked: boolean }[]>`SELECT app.invalidate_unreachable_contact(${id}::uuid) AS marked`)[0]!.marked;
       return actor === 'worker' ? worker.asWorker(work) : as(actor, work);
     };
     expect(await mark(officer())).toBe('42501');
@@ -659,9 +751,17 @@ describe('in the database', () => {
     expect(await contactOf(made)).toEqual({ status: 'VERIFIED', is_primary: true });
     const hard = await line(made, 'SENT');
     await rows("UPDATE sendings SET undelivered_at = now(), undelivered_reason = 'HARD_BOUNCE' WHERE id = $1", [hard.id]);
-    expect(await worker.asWorker(async (tx) => (await tx.$queryRaw<{ marked: boolean }[]>`SELECT app.invalidate_unreachable_contact(${hard.id}::uuid) AS marked`)[0]!.marked)).toBe(true);
+    expect(
+      await worker.asWorker(
+        async (tx) => (await tx.$queryRaw<{ marked: boolean }[]>`SELECT app.invalidate_unreachable_contact(${hard.id}::uuid) AS marked`)[0]!.marked,
+      ),
+    ).toBe(true);
     expect(await contactOf(made)).toEqual({ status: 'INVALID', is_primary: false });
     // The worker itself cannot write a coordinate otherwise.
-    expect(await worker.asWorker((tx) => tx.$executeRaw`UPDATE case_contacts SET status = 'INVALID', invalidated_at = now() WHERE id = ${made.contact}::uuid`).catch(databaseCode)).toBe('42501');
+    expect(
+      await worker
+        .asWorker((tx) => tx.$executeRaw`UPDATE case_contacts SET status = 'INVALID', invalidated_at = now() WHERE id = ${made.contact}::uuid`)
+        .catch(databaseCode),
+    ).toBe('42501');
   });
 });

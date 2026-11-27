@@ -3,7 +3,7 @@ import type { Transaction } from '../../platform/database/database';
 import type { AppLogger } from '../../platform/logging/logger';
 import { GiveUp } from '../../platform/queue/errors';
 import type { JobDefinition } from '../../platform/queue/jobs';
-import { markFailed, sentNote } from './sendings.jobs';
+import { markFailed, PROVIDER_FAILURE, sentNote } from './sendings.jobs';
 
 interface Stored {
   kind: EventKind | null;
@@ -15,6 +15,7 @@ interface Line {
   id: string;
   case_id: string;
   status: 'QUEUED' | 'UNCERTAIN' | 'SENT' | 'FAILED';
+  failure: string | null;
   level: number | null;
   simulated: boolean;
   provider_ref: string | null;
@@ -49,8 +50,8 @@ const note = (tx: Transaction, caseId: string, kind: string, title: string, deta
 /**
  * What an event changes, in one transaction with the event itself: the event and the line are held until the end, so that
  * two events of the same message, or an event and the task that sent it, pass one after the other. False: nothing to do
- * with it (a line of another environment, a simulated one, one that has not been taken, a message that is not the one of
- * the line).
+ * with it (a line of another environment, a simulated one, one that has not been taken or failed before it was, a
+ * message that is not the one of the line).
  *
  * - A line whose fate was unknown (`UNCERTAIN`) is settled: sent, on the date of the event, when the event proves that the
  *   message has left; failed when Resend says that it has not.
@@ -67,13 +68,15 @@ export async function applyResendEvent(tx: Transaction, event: Stored, logger: A
   // By the line the message names; without a name (a message older than the tag), by the message itself. A name that is
   // not known here is of another environment: never looked for otherwise.
   const [line] = await tx.$queryRaw<Line[]>`
-    SELECT s.id, s.case_id, s.status::text AS status, s.level, s.simulated, s.provider_ref, s.created_at, s.confirmed_at, s.delivered_at,
+    SELECT s.id, s.case_id, s.status::text AS status, s.failure, s.level, s.simulated, s.provider_ref, s.created_at, s.confirmed_at, s.delivered_at,
       s.undelivered_at, s.undelivered_reason, s.complained_at
     FROM sendings s
     WHERE s.channel = 'EMAIL' AND CASE WHEN ${event.sending_id}::uuid IS NOT NULL THEN s.id = ${event.sending_id}::uuid
       ELSE ${event.provider_ref}::text IS NOT NULL AND s.provider_ref = ${event.provider_ref}::text END
     ORDER BY s.created_at LIMIT 1 FOR UPDATE OF s`;
   if (!line || line.simulated || line.status === 'QUEUED') return false;
+  // Failed before it was taken: nothing of it ever left, and an event that names it speaks of another message.
+  if (line.status === 'FAILED' && !line.failure?.startsWith(PROVIDER_FAILURE)) return false;
   // The line knows its message: an event about another one says nothing of it.
   if (line.provider_ref && UUID.test(line.provider_ref) && event.provider_ref && line.provider_ref !== event.provider_ref) return false;
   const { id, case_id: caseId } = line;

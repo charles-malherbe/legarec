@@ -33,9 +33,11 @@ CREATE INDEX sendings_provider_ref ON sendings (provider_ref) WHERE provider_ref
 
 -- As before: a line is born queued, is taken (uncertain) before anything leaves, then is sent or failed; never back. A
 -- settled line keeps its status, its reference, its failure and its date for ever: a line that has failed never becomes
--- sent, whatever the provider says later. What the provider says of it is added beside, once each, and never to a line
--- that has not been taken nor to a simulated one. A single fact may be made worse afterwards: a temporary bounce or a
--- failure at the provider, followed by a permanent bounce or a suppression of the same message, takes that reason.
+-- sent, whatever the provider says later. A line fails for a reason of the provider (`PROVIDER_…`) once it has been
+-- taken, and for no other: a failed line says whether it ever left this machine. What the provider says of a line is
+-- added beside, once each, and never to a line that has not been taken (queued, uncertain, or failed before it was
+-- taken) nor to a simulated one. A single fact may be made worse afterwards: a temporary bounce or a failure at the
+-- provider, followed by a permanent bounce or a suppression of the same message, takes that reason.
 CREATE OR REPLACE FUNCTION app.keep_sending() RETURNS trigger
 LANGUAGE plpgsql SET search_path = pg_catalog, public, pg_temp AS $$
 BEGIN
@@ -54,7 +56,9 @@ BEGIN
       OR (OLD.status = 'UNCERTAIN' AND NEW.status IN ('UNCERTAIN', 'SENT', 'FAILED'))
       OR (OLD.status IN ('SENT', 'FAILED') AND NEW.status = OLD.status))
     OR (NEW.status <> 'SENT' AND (NEW.simulated OR NEW.sent_at IS NOT NULL OR NEW.provider_ref IS NOT NULL))
-    OR (NEW.status <> 'FAILED' AND NEW.failure IS NOT NULL) THEN
+    OR (NEW.status <> 'FAILED' AND NEW.failure IS NOT NULL)
+    OR (OLD.status = 'QUEUED' AND NEW.status = 'FAILED' AND coalesce(starts_with(NEW.failure, 'PROVIDER_'), false))
+    OR (OLD.status = 'UNCERTAIN' AND NEW.status = 'FAILED' AND NOT coalesce(starts_with(NEW.failure, 'PROVIDER_'), false)) THEN
     RAISE EXCEPTION 'a sending never goes back' USING ERRCODE = 'insufficient_privilege';
   END IF;
   IF (OLD.confirmed_at IS NOT NULL AND NEW.confirmed_at IS DISTINCT FROM OLD.confirmed_at)
@@ -64,7 +68,7 @@ BEGIN
       AND NOT coalesce(NEW.undelivered_at = OLD.undelivered_at AND OLD.undelivered_reason IN ('BOUNCE', 'PROVIDER_FAILED')
         AND NEW.undelivered_reason IN ('HARD_BOUNCE', 'SUPPRESSED'), false))
     OR (OLD.complained_at IS NOT NULL AND NEW.complained_at IS DISTINCT FROM OLD.complained_at)
-    OR ((NEW.status IN ('QUEUED', 'UNCERTAIN') OR NEW.simulated)
+    OR ((NEW.status IN ('QUEUED', 'UNCERTAIN') OR NEW.simulated OR (NEW.status = 'FAILED' AND NOT coalesce(starts_with(NEW.failure, 'PROVIDER_'), false)))
       AND (NEW.confirmed_at IS NOT NULL OR NEW.delivered_at IS NOT NULL OR NEW.undelivered_at IS NOT NULL OR NEW.complained_at IS NOT NULL)) THEN
     RAISE EXCEPTION 'what the provider said of a sending is written once' USING ERRCODE = 'insufficient_privilege';
   END IF;
@@ -144,6 +148,9 @@ BEGIN
   IF contact IS NULL THEN
     RETURN false;
   END IF;
+  -- A colleague who is changing the coordinate goes first: its row is held here, and the guards below, read by the next
+  -- statement, see what was committed meanwhile.
+  PERFORM 1 FROM public.case_contacts k WHERE k.id = contact AND k.case_id = about FOR UPDATE;
   UPDATE public.case_contacts k SET status = 'INVALID', is_primary = false, invalidated_at = now()
   WHERE k.id = contact AND k.case_id = about AND k.kind = 'EMAIL' AND k.status <> 'INVALID'
     AND NOT EXISTS (SELECT 1 FROM public.case_contact_events e WHERE e.contact_id = k.id AND e.occurred_at > since)
