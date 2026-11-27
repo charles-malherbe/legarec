@@ -1,1 +1,6 @@
-{ "extends": "../../tsconfig.base.json", "include": ["src", "vite.config.ts"] }
+{
+  "extends": "../../tsconfig.base.json",
+  // vite.config.ts imports src/app/features.ts by its full name, as the native loader of Vite will require.
+  "compilerOptions": { "allowImportingTsExtensions": true },
+  "include": ["src", "vite.config.ts"]
+}
