@@ -24,7 +24,7 @@ describe('bodies of the requests', () => {
     const long = 'x'.repeat(30_000);
     for (const [path, body] of [
       ['/cases/demo/portal-messages', { text: long }],
-      ['/cases/demo/reminders', { channel: 'E-mail', template: 'x', recipient: 'x', message: long }],
+      ['/cases/demo/reminders', { channel: 'EMAIL', template: 'FRIENDLY', recipient: 'x', message: long }],
       ['/sms/s1/messages', { text: long }],
       ['/emails/e1/replies', { text: long }],
     ] as const)
@@ -94,7 +94,7 @@ const qualification = {
   announced: true,
   sendRecap: false,
 };
-const letter = { channel: 'Lettre recommandée avec AR (MySendingBox)', delay: 8, months: 4, options: { table: true, pay: true, indemnity: true } };
+const letter = { channel: 'REGISTERED_LETTER', delay: 8, months: 4, options: { table: true, pay: true, indemnity: true } };
 
 /** Bodies as the screens send them: the calls of the portals, and the demonstration data of the mockup. */
 const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly unknown[]> } = {
@@ -216,7 +216,7 @@ const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly
       { status: 'CASHED', version: 2 },
       { status: 'RECONCILED', version: 1 },
     ],
-    'POST /cases/:id/reminders': [{ channel: 'E-mail', template: 'Relance n°1', recipient: 'compta@batiplus.example', message: 'Bonjour' }],
+    'POST /cases/:id/reminders': [{ channel: 'EMAIL', template: 'FRIENDLY', recipient: 'compta@batiplus.example', message: 'Bonjour' }],
     'POST /gdpr/requests': [{ caseId: 'meunier', kind: 'ACCESS', origin: 'Courrier' }],
     'POST /remittances': [
       { until: '2026-11-14', expected: [{ creditorId: 'delta', toPay: 2_290_000, accountId: 'compte' }], retained: [] },

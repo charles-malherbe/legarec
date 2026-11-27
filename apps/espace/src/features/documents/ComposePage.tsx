@@ -1,4 +1,6 @@
 import {
+  COMPOSE_CHANNELS,
+  composeChannelOf,
   composeData,
   fixedIndemnity,
   formatCents,
@@ -24,13 +26,8 @@ import layout from '@legarec/ui/layout.module.css';
 import css from './Documents.module.css';
 
 type Data = z.infer<typeof composeData>;
-const CHANNELS = [
-  'E-mail avec PDF joint',
-  'E-mail avec lien de signature',
-  'Lettre recommandée avec AR (MySendingBox)',
-  'Courrier simple (MySendingBox)',
-  'Télécharger seulement',
-];
+/** The labels of the list « Envoi », in the order of the mock-up; the API reads their codes. */
+const CHANNELS = Object.values(COMPOSE_CHANNELS);
 
 export function ComposePage() {
   const [creditor, setCreditor] = useState('all');
@@ -138,7 +135,7 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
     event.currentTarget.querySelectorAll<HTMLElement>('[role=radio]')[next]?.focus();
   };
   const count = batch ? batch.debtors - excluded : 1;
-  const downloadOnly = channel === 'Télécharger seulement';
+  const downloadOnly = channel === COMPOSE_CHANNELS.DOWNLOAD;
   const blocked = missingFirstLetter || notSettled || (!!batch && (!filters.fresh || count <= 0));
   const AGES: Record<string, string> = { '31-60': '31 – 60 jours', '0-30': '0 – 30 jours', '60+': '+ 60 jours' };
   const selection = batch
@@ -157,7 +154,7 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
     filters: batch ? { creditor: filters.creditor, age: filters.age } : null,
     // The API refuses the batch if its own count differs from the one confirmed.
     expected: count,
-    channel: target,
+    channel: composeChannelOf(target),
     delay,
     months,
     options: { table, pay, indemnity: indemnity && allowsIndemnity },
@@ -204,7 +201,7 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
         ...(excluded > 0 ? [{ k: 'Exclus', v: `${excluded} débiteurs sans premier courrier` }] : []),
       ],
       onConfirm: async () => {
-        await change('/documents/compose', { body: compose('Télécharger seulement') });
+        await change('/documents/compose', { body: compose(COMPOSE_CHANNELS.DOWNLOAD) });
         setDone(batch ? `${count} documents générés, sans envoi.` : 'Document généré, sans envoi.');
       },
     });
@@ -540,7 +537,7 @@ function Letter({ firm, recipient, template, delay, months, table, pay, indemnit
     FIRM: (
       <>
         <p>
-          Malgré notre précédent rappel du <mark>{formatDate(recipient.lastReminder)}</mark>, les factures ci-dessous restent impayées pour un montant de{' '}
+          Malgré notre précédent rappel du <mark>{recipient.lastReminder ? formatDate(recipient.lastReminder) : '—'}</mark>, les factures ci-dessous restent impayées pour un montant de{' '}
           {money(totals.principal)}.
         </p>
         <p>

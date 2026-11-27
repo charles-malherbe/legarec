@@ -73,7 +73,7 @@ it('lists receipts and scopes documents by role', async () => {
   expect(items.map((item) => item.id)).toEqual(['d5']);
   expect((await call('hb', '/documents/d2/send', {})).status).toBe(403);
   const options = { table: true, pay: true, indemnity: false };
-  const letter = { template: 'FRIENDLY', caseIds: ['demo'], filters: null, expected: 1, channel: 'Courrier simple', delay: 8, months: 4, options };
+  const letter = { template: 'FRIENDLY', caseIds: ['demo'], filters: null, expected: 1, channel: 'LETTER', delay: 8, months: 4, options };
   expect((await call('ad', '/documents/compose', letter)).status).toBe(403);
   expect((await call('dev', '/documents')).status).toBe(403);
 });
