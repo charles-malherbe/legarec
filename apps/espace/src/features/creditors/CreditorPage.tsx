@@ -4,6 +4,7 @@ import { Badge, Bouton, Carte, EtatListe, Icone, Onglets, Tableau, type Tone } f
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { useApi } from '../../app/data';
+import { opens } from '../../app/features';
 import { useCurrentUser } from '../../app/session';
 import layout from '@legarec/ui/layout.module.css';
 import { STATUS_TONE } from '../dashboard/DashboardPage';
@@ -272,9 +273,13 @@ export function CreditorPage() {
                 <a href={toTelHref(data.contact.phone)} className={layout.link}>
                   {data.contact.phone}
                 </a>
-                <Link to="/e-mails" state={{ to: data.contact.email }} className={layout.link}>
-                  {data.contact.email}
-                </Link>
+                {opens('/e-mails') ? (
+                  <Link to="/e-mails" state={{ to: data.contact.email }} className={layout.link}>
+                    {data.contact.email}
+                  </Link>
+                ) : (
+                  <span>{data.contact.email}</span>
+                )}
                 <Badge
                   label={`Accès espace créancier : ${data.contact.portalEnabled ? 'activé' : 'non activé'}`}
                   tone={data.contact.portalEnabled ? 'success' : 'neutral'}

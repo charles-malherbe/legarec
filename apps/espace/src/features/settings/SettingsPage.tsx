@@ -3,6 +3,7 @@ import { Alerte, Bouton, Champ, EtatListe, Onglets, PageHeader, Tuile, type Icon
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { useApi } from '../../app/data';
+import { opens } from '../../app/features';
 import { useCurrentUser } from '../../app/session';
 import layout from '@legarec/ui/layout.module.css';
 import { matches } from '../../shared/listState';
@@ -44,9 +45,13 @@ export function SettingsPage({ scope = 'firm' }: { scope?: 'firm' | 'techniques'
         </section>
       </>
     );
-  const group = data?.groups.find((item) => item.tiles.some((tile) => tile.id === section));
+  // The section of a part left out of this build is not offered (its address leads to « Page introuvable »).
+  const groups = (data?.groups ?? [])
+    .map((item) => ({ ...item, tiles: item.tiles.filter((tile) => opens(`${base}/${tile.id}`)) }))
+    .filter((item) => item.tiles.length > 0);
+  const group = groups.find((item) => item.tiles.some((tile) => tile.id === section));
   const current = group?.tiles.find((tile) => tile.id === section);
-  const hits = (data?.groups ?? [])
+  const hits = groups
     .map((item) => ({ ...item, tiles: item.tiles.filter((tile) => matches(query, tile.title, tile.description, item.label)) }))
     .filter((item) => item.tiles.length > 0);
   return (

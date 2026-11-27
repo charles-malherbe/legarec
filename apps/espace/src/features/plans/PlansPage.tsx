@@ -32,6 +32,7 @@ import { useSearchParams } from 'react-router';
 import type { z } from 'zod';
 import { useCreditorScope } from '../../app/creditorScope';
 import { useApi, useChange } from '../../app/data';
+import { shown } from '../../app/features';
 import layout from '@legarec/ui/layout.module.css';
 import { pageOf } from '../../shared/paging';
 import { listState, matches } from '../../shared/listState';
@@ -321,7 +322,7 @@ export function PlansPage() {
                 {current.canAct && (
                   <div className={layout.inline}>
                     <Bouton variant="secondary" label="Modifier le plan" onPress={() => setSimulate(current.caseId)} />
-                    <Bouton variant="secondary" label="Envoyer un rappel" onPress={() => remind(current)} />
+                    {shown('installment-reminders') && <Bouton variant="secondary" label="Envoyer un rappel" onPress={() => remind(current)} />}
                   </div>
                 )}
               </div>

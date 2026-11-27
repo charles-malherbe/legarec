@@ -1,7 +1,7 @@
 import { caseDetail, creditorDetail, hasDelegation, ROLE_LABELS, searchHit, shellData, type Notification } from '@legarec/contracts';
 import { signOut } from '@legarec/platform';
 import { applyDisplay } from '@legarec/tokens';
-import { useIdle, SessionExpiry, Sidebar, Topbar, type SidebarGroup, type Tone } from '@legarec/ui';
+import { useIdle, SessionExpiry, Sidebar, Topbar, type SidebarGroup, type Tone, type TopbarProps } from '@legarec/ui';
 import { useDebouncedValue } from '@mantine/hooks';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
@@ -11,6 +11,7 @@ import { canOpen, delegationFor } from './access';
 import { api } from './api';
 import { useCreditorScope } from './creditorScope';
 import { useApi } from './data';
+import { opens, shown } from './features';
 
 import { SESSION_KEY, useCurrentUser, useUpdatePreferences } from './session';
 import { AccessDenied } from '../features/error/ErrorPage';
@@ -39,7 +40,20 @@ const GO_TO: Record<string, string> = {
   p: '/parametres',
   h: '/aide',
 };
-const KEY_GROUPS = [
+const GO_TO_LISTED = [
+  ['Tableau de bord', 'd'],
+  ['Débiteurs', 'b'],
+  ['Échéanciers', 'e'],
+  ['Relances', 'r'],
+  ['Appels', 'a'],
+  ['E-mails', 'm'],
+  ['SMS', 's'],
+  ['Contentieux', 'j'],
+  ['Équipe', 't'],
+  ['Paramètres', 'p'],
+] as const;
+/** The keys of a part left out of this build are not listed: they lead nowhere. */
+const keyGroups = (): TopbarProps['keyGroups'] => [
   {
     label: 'Partout',
     items: [
@@ -52,18 +66,7 @@ const KEY_GROUPS = [
   },
   {
     label: 'Aller à',
-    items: [
-      ['Tableau de bord', 'D'],
-      ['Débiteurs', 'B'],
-      ['Échéanciers', 'E'],
-      ['Relances', 'R'],
-      ['Appels', 'A'],
-      ['E-mails', 'M'],
-      ['SMS', 'S'],
-      ['Contentieux', 'J'],
-      ['Équipe', 'T'],
-      ['Paramètres', 'P'],
-    ].map(([label, key]) => ({ label: label ?? '', keys: ['G', key ?? ''] })),
+    items: GO_TO_LISTED.filter(([, key]) => opens(GO_TO[key] ?? '/')).map(([label, key]) => ({ label, keys: ['G', key.toUpperCase()] })),
   },
   {
     label: 'Dans une page',
@@ -74,17 +77,22 @@ const KEY_GROUPS = [
       { label: 'Valider une fenêtre de confirmation', keys: ['Entrée'] },
     ],
   },
-  {
-    label: 'Téléphone',
-    items: [
-      { label: 'Décrocher un appel entrant', keys: ['D'] },
-      { label: 'Refuser un appel entrant', keys: ['X'] },
-      { label: 'Couper / réactiver le micro', keys: ['M'] },
-      { label: 'Raccrocher', keys: ['H'] },
-      { label: 'Qualifier : choisir un résultat', keys: ['1…8'] },
-      { label: 'Enregistrer la qualification', keys: ['Ctrl', 'Entrée'] },
-    ],
-  },
+  // Those of the calls page and of an incoming call.
+  ...(shown('calls')
+    ? [
+        {
+          label: 'Téléphone',
+          items: [
+            { label: 'Décrocher un appel entrant', keys: ['D'] },
+            { label: 'Refuser un appel entrant', keys: ['X'] },
+            { label: 'Couper / réactiver le micro', keys: ['M'] },
+            { label: 'Raccrocher', keys: ['H'] },
+            { label: 'Qualifier : choisir un résultat', keys: ['1…8'] },
+            { label: 'Enregistrer la qualification', keys: ['Ctrl', 'Entrée'] },
+          ],
+        },
+      ]
+    : []),
 ];
 const CREATE = [
   { label: 'Débiteur', href: '/debiteurs/nouveau', icon: 'users', key: 'D' },
@@ -194,8 +202,10 @@ export function Shell() {
   const goTo = useCallback(
     (letter: string) => {
       const target = GO_TO[letter];
-      if (target) void navigate(target);
-      return !!target;
+      // A part left out of this build has no page to go to: the key does nothing.
+      if (!target || !opens(target)) return false;
+      void navigate(target);
+      return true;
     },
     [navigate],
   );
@@ -205,7 +215,7 @@ export function Shell() {
   };
 
   const counts = shell?.counts;
-  const groups: SidebarGroup[] = [
+  const menu: SidebarGroup[] = [
     {
       id: 'pil',
       label: 'Pilotage',
@@ -230,7 +240,14 @@ export function Shell() {
       items: [
         { href: '/relances', label: 'Relances', icon: 'agenda', count: counts?.remindersToday, countTone: 'navy', countLabel: 'relances aujourd’hui' },
         { href: '/echeanciers', label: 'Échéanciers', icon: 'plan' },
-        { href: '/contentieux', label: 'Contentieux', icon: 'scale', count: counts?.litigationUrgent, countTone: 'rose', countLabel: 'accords de créancier attendus' },
+        {
+          href: '/contentieux',
+          label: 'Contentieux',
+          icon: 'scale',
+          count: counts?.litigationUrgent,
+          countTone: 'rose',
+          countLabel: 'accords de créancier attendus',
+        },
       ],
     },
     {
@@ -251,6 +268,8 @@ export function Shell() {
       ],
     },
   ];
+  // The entries of the parts left out of this build go, with their counter, and a group left empty with them.
+  const groups = menu.map((group) => ({ ...group, items: group.items.filter((item) => opens(item.href)) })).filter((group) => group.items.length > 0);
   const items = groups.flatMap((group) => group.items.map((item) => item.href));
   const active =
     [...items, '/parametres'].filter((href) => href === pathname || (href !== '/' && pathname.startsWith(`${href}/`))).sort((a, b) => b.length - a.length)[0] ??
@@ -270,7 +289,7 @@ export function Shell() {
         ? [{ label: 'Créanciers', href: '/creanciers' }, { label: openCase.creditor, href: `/creanciers/${openCase.creditorId}` }, { label: openCase.name }]
         : trail;
   const acting = delegationFor(pathname, user);
-  const pageHits = PAGES.filter(([href, label]) => canOpen(href, user) && label.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 4);
+  const pageHits = PAGES.filter(([href, label]) => canOpen(href, user) && opens(href) && label.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 4);
 
   return (
     <div className={css.root} data-density={user.preferences.density}>
@@ -307,7 +326,7 @@ export function Shell() {
               })),
             ],
           }}
-          createItems={CREATE.filter((item) => canOpen(item.href, user))}
+          createItems={CREATE.filter((item) => canOpen(item.href, user) && opens(item.href))}
           notifications={{
             href: '/notifications',
             preferencesHref: '/compte',
@@ -335,7 +354,7 @@ export function Shell() {
           offline={!online}
           onRetry={() => void client.refetchQueries()}
           helpHref="/aide"
-          keyGroups={KEY_GROUPS}
+          keyGroups={keyGroups()}
           onGoTo={goTo}
           onLogout={() => void logout()}
         />
@@ -344,7 +363,8 @@ export function Shell() {
           {canOpen(pathname, user) || pathname.startsWith('/parametres/techniques') ? <Outlet /> : <AccessDenied />}
         </main>
       </div>
-      <IncomingCall />
+      {/* Without the calls, no page asks for an incoming call. */}
+      {shown('calls') && <IncomingCall />}
       {idle.warning && <SessionExpiry secondsLeft={idle.secondsLeft} onStay={idle.stay} onLogout={() => void logout()} />}
     </div>
   );
