@@ -435,7 +435,7 @@ Restent : un paiement encaissé jamais reversé ou encore en attente (le créanc
 | Migrations | Rien à saisir | `/etc/legarec/migration.env`, lu seulement pendant une migration | Prod : le cabinet, en SSH |
 | Autres conteneurs | Aucun | Un fichier par conteneur dans `/etc/legarec/` (lot X) | Prod : le cabinet, en SSH |
 | SIREN, IBAN, adresse… | Paramètres du cabinet (remplacent `FIRM_*` et `BANK_*`) | Paramètres du cabinet | Directeur |
-| Pages (`VITE_API_URL`, `VITE_LOGO_NEGATIVE_URL`, `VITE_API`, `VITE_FEATURES`) | Publiques : jamais un secret | idem | — |
+| Pages (`VITE_API_URL`, `VITE_API`, `VITE_FEATURES`) | Publiques : jamais un secret | idem | — |
 | GitHub Actions | Aucun secret | Aucun secret | — |
 
 **Pourquoi un fichier du serveur (nécessité technique)** : le coffre est dans la base ; il ne peut contenir ni sa propre clé, ni l'accès à la base, et l'API a besoin de ces valeurs avant de pouvoir le lire.

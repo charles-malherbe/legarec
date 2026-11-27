@@ -226,26 +226,25 @@ export function FormulaireConnexion({ onSession }: { onSession: (session: OpenSe
             error={form.errors.email as string | undefined}
             onChange={(value) => form.setFieldValue('email', value)}
           />
-          <div className={css.password}>
-            <Champ
-              label="Mot de passe"
-              type={visible ? 'text' : 'password'}
-              size="lg"
-              autocomplete="current-password"
-              spellCheck={false}
-              value={form.values.password}
-              error={form.errors.password as string | undefined}
-              onChange={(value) => form.setFieldValue('password', value)}
-              layout={{ flex: 1 }}
-            />
-            <Bouton
-              variant="ghost"
-              size="lg"
-              label={visible ? 'Masquer' : 'Afficher'}
-              ariaLabel={visible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-              onPress={() => setVisible(!visible)}
-            />
-          </div>
+          <Champ
+            label="Mot de passe"
+            type={visible ? 'text' : 'password'}
+            size="lg"
+            autocomplete="current-password"
+            spellCheck={false}
+            value={form.values.password}
+            error={form.errors.password as string | undefined}
+            onChange={(value) => form.setFieldValue('password', value)}
+            action={
+              <Bouton
+                variant="ghost"
+                size="sm"
+                label={visible ? 'Masquer' : 'Afficher'}
+                ariaLabel={visible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                onPress={() => setVisible(!visible)}
+              />
+            }
+          />
           <div className={css.row}>
             <Case label="Rester connecté" checked={remember} onToggle={setRemember} />
             <Link to="/mot-de-passe-oublie">Mot de passe oublié ?</Link>

@@ -9,11 +9,13 @@ import {
   Carte,
   Case,
   Champ,
+  Embleme,
   EtatListe,
   Icone,
   Indicateur,
   Interrupteur,
   Onglets,
+  PageConnexion,
   PageHeader,
   Pagination,
   PiedDePage,
@@ -50,7 +52,7 @@ it('has no axe violation across the library', async () => {
         note="Note"
       />
       <Badge label="Litige" tone="violet" dot icon="alert" /> <Statut label="Actif" tone="success" pulse /> <Avatar title="Camille Laurent" presence="dispo" />{' '}
-      <Icone icon="euro" label="Euro" />
+      <Embleme /> <Icone icon="euro" label="Euro" />
       <Bouton label="Enregistrer" onPress={noop} /> <Bouton label="Chercher" icon="search" iconOnly onPress={noop} />{' '}
       <Bouton label="Voir" href="/x" variant="link" />
       <Champ label="Adresse" value="" error="Adresse invalide" onChange={noop} />{' '}
@@ -106,6 +108,36 @@ describe('Champ', () => {
     const input = screen.getByLabelText('E-mail');
     expect(input).toHaveAttribute('aria-invalid', 'true');
     expect(input).toHaveAccessibleDescription('Adresse invalide');
+  });
+  it('draws its action inside the field, after it in the tab order', async () => {
+    const show = vi.fn();
+    renderUi(
+      <Champ label="Mot de passe" type="password" value="" onChange={noop} action={<Bouton variant="ghost" size="sm" label="Afficher" onPress={show} />} />,
+    );
+    const input = screen.getByLabelText('Mot de passe');
+    const button = screen.getByRole('button', { name: 'Afficher' });
+    expect(input).toHaveAttribute('data-action');
+    expect(input.closest('.row')).toContainElement(button);
+    input.focus();
+    await userEvent.tab();
+    expect(button).toHaveFocus();
+    await userEvent.click(button);
+    expect(show).toHaveBeenCalledOnce();
+  });
+});
+
+describe('PageConnexion', () => {
+  it('shows the negative logo of the media kit, served with the page, never the name as a logo', async () => {
+    const { container } = renderUi(
+      <PageConnexion>
+        <h2>Connexion</h2>
+      </PageConnexion>,
+    );
+    const logo = screen.getByRole('img', { name: 'Legarec, cabinet de recouvrement' });
+    expect(logo.getAttribute('src')).toMatch(/legarec-logo-horizontal-negatif.*\.png$/);
+    expect(logo.getAttribute('src')).not.toMatch(/^https?:|media\.legarec\.fr/);
+    expect(screen.queryByText('Legarec, cabinet de recouvrement')).toBeNull();
+    expect(await axeViolations(container)).toEqual([]);
   });
 });
 

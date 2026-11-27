@@ -1,0 +1,10 @@
+/* Files of the media kit, only reduced in size (DECISIONS.md, 27/11/2026). */
+.root {
+  display: inline-block;
+  flex-shrink: 0;
+  background: url('./marque/legarec-embleme-couleur.png') center / contain no-repeat;
+}
+/* The kit: colour on a light background, negative on navy or dark. */
+:global(:root[data-theme='dark']) .root {
+  background-image: url('./marque/legarec-embleme-negatif.png');
+}

@@ -1,5 +1,5 @@
 import { Input, NativeSelect, Textarea, TextInput } from '@mantine/core';
-import { useId, type ChangeEvent, type HTMLInputAutoCompleteAttribute, type InputHTMLAttributes } from 'react';
+import { useId, type ChangeEvent, type HTMLInputAutoCompleteAttribute, type InputHTMLAttributes, type ReactNode } from 'react';
 import { Icone } from './Icone';
 import css from './Champ.module.css';
 import type { LayoutProps } from './types';
@@ -21,6 +21,8 @@ export interface ChampProps extends LayoutProps {
   size?: 'md' | 'lg';
   prefix?: string;
   suffix?: string;
+  /** Control drawn inside the field, at its end: the button that shows a password. */
+  action?: ReactNode;
   rows?: number;
   hideLabel?: boolean;
   fieldId?: string;
@@ -59,6 +61,7 @@ export function Champ(props: ChampProps) {
         'data-mono': props.mono || undefined,
         'data-size': size,
         'data-readonly': props.readOnly || undefined,
+        'data-action': props.action ? true : undefined,
       },
     },
   };
@@ -106,6 +109,7 @@ export function Champ(props: ChampProps) {
             spellCheck={props.spellCheck}
           />
         )}
+        {props.action && <span className={css.action}>{props.action}</span>}
         {suffix && <span className={css.affix}>{suffix}</span>}
       </div>
       {help && !error && (

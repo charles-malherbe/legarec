@@ -22,22 +22,6 @@
   gap: var(--sp-2h);
   text-decoration: none;
 }
-.logo {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--r-md);
-  background: var(--app-icon-bg);
-  color: var(--app-icon-fg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--fs-xl);
-  font-weight: 700;
-  line-height: 1;
-}
-.logo::before {
-  content: 'L';
-}
 .name {
   font-size: var(--fs-lg);
   font-weight: 700;

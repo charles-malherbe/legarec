@@ -22,12 +22,6 @@
   width: auto;
   align-self: flex-start;
 }
-.logoText {
-  font-family: var(--font-brand);
-  font-size: var(--fs-xl);
-  font-weight: 700;
-  color: var(--on-dark);
-}
 .pitch {
   display: flex;
   flex-direction: column;
@@ -39,12 +33,23 @@
   flex-direction: column;
   gap: var(--sp-3);
 }
+/* The media kit keeps gold for rules and dots, never for text. */
 .kicker {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2h);
   font-size: var(--fs-xs);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--or);
+  color: var(--on-dark-accent);
+}
+.kicker::before {
+  content: '';
+  flex-shrink: 0;
+  width: var(--sp-6);
+  height: var(--sp-0h);
+  background: var(--or);
 }
 .headline h1 {
   margin: 0;
@@ -201,17 +206,14 @@
   flex-direction: column;
   gap: var(--sp-3h);
 }
-.password {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--sp-2);
-}
 .row {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: var(--sp-2);
+  /* « Mot de passe oublié ? » at the size of « Rester connecté », as in the mockup. */
+  font-size: var(--fs-base);
 }
 .links {
   display: flex;
@@ -311,6 +313,15 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-3);
+}
+/* Presentation above the form (the two columns no longer fit): the form comes sooner, without the feature list. */
+@media (max-width: 959px) {
+  .intro {
+    gap: var(--sp-6);
+  }
+  .features {
+    display: none;
+  }
 }
 @media (max-width: 767px) {
   .intro {

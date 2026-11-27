@@ -21,6 +21,7 @@ paths:
 - Clavier : tout est atteignable au clavier, focus visible, raccourcis de la maquette (`HANDOFF.md`, section raccourcis) inactifs pendant la saisie. La page Appels se pilote entièrement au clavier.
 - Responsive : 390, 768, 1024, 1440 px sans défilement horizontal de la page ; tableaux défilants dans leur conteneur ; menu en tiroir sous 1024 px.
 - Deux ambiances : `espace` dense ; `partenaires` et `paiement` aérés ; titres en Roboto comme le reste (décision du 27/11/2026, plus de Lora à l'écran). Mode malvoyant : bouton dans la Topbar de l'espace en plus du menu du compte.
+- Marque : logos et emblème du kit média (`packages/ui/src/marque`, composant `Embleme`), jamais retouchés ni recomposés avec une autre police ; couleur sur fond clair, négatif sur fond marine ou sombre ; l'or jamais pour du texte (filets, pastilles, icônes seulement).
 - Aucune carte, aucun prélèvement SEPA, aucun badge PCI-DSS : paiement par chèque et virement uniquement.
 - Textes : reprendre ceux de la maquette mot pour mot. Montants `48 200 €` (espace fine insécable), dates `05/12/2026`, SIRET groupé `512 384 920 00027`.
 - Après un écran : `/comparer <Ecran>` et corriger jusqu'à un écart faible ; vérifier avec axe.

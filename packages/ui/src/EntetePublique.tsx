@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router';
+import { Embleme } from './Embleme';
 import css from './EntetePublique.module.css';
 
 export interface EntetePubliqueProps {
@@ -19,9 +20,7 @@ export function EntetePublique({ subtitle, homeHref = '/', after, children, maxW
         <div className={css.row}>
           <div className={css.group}>
             <NavLink to={homeHref} className={css.brand}>
-              <span aria-hidden className={css.icon}>
-                L
-              </span>
+              <Embleme />
               <span className={css.name}>
                 <span className={css.title}>Legarec</span>
                 <span className={css.subtitle}>{subtitle}</span>
