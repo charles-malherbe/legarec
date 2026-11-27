@@ -7,7 +7,7 @@ RUN apt-get update \
   && apt-get install --yes --no-install-recommends pgbackrest ca-certificates curl \
   && dpkg --compare-versions "$(dpkg-query --showformat='${Version}' --show pgbackrest)" ge "$MINIMUM" \
   && rm -rf /var/lib/apt/lists/* /etc/pgbackrest.conf \
-  && install -d -o postgres -g postgres -m 700 /restauration
+  && install -d -o postgres -g postgres -m 700 /restauration /depot
 COPY infra/postgres/postgresql.conf infra/postgres/pg_hba.conf /etc/legarec/
 COPY infra/postgres/pgbackrest.conf /etc/pgbackrest/pgbackrest.conf
 COPY --chmod=0755 infra/postgres/legarec-* /usr/local/bin/

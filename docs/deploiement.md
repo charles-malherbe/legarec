@@ -105,7 +105,7 @@ Fichiers et valeurs internes, en une fois : `infra/tirer-valeurs.sh` crée les f
 sudo /opt/legarec/infra/tirer-valeurs.sh
 ```
 
-Il liste à la fin ce qui reste à écrire à la main (`sudo nano /etc/legarec/<nom>.env`), les valeurs venues de l'extérieur : `ACME_EMAIL` et `AUTHORIZED_IPS` (`caddy.env`), `GATUS_ALERT_KEY` et `GATUS_ALERT_TO` (`gatus.env`), les clés S3 de `pgbackrest.env` et de `restauration.env`, et `N8N_ENCRYPTION_KEY`, reprise de l'ancien n8n (« n8n », plus bas) ; sans ancien n8n à reprendre, `--n8n-neuf` la tire aussi. Puis copie de toutes les valeurs dans le gestionnaire de mots de passe : `VAULT_MASTER_KEY` perdue, les secrets saisis dans l'application le sont aussi.
+Il liste à la fin ce qui reste à écrire à la main (`sudo nano /etc/legarec/<nom>.env`), les valeurs venues de l'extérieur : `ACME_EMAIL` et `AUTHORIZED_IPS` (`caddy.env`), `GATUS_ALERT_KEY` et `GATUS_ALERT_TO` (`gatus.env`), les clés S3 de `pgbackrest.env` et de `restauration.env`, et `N8N_ENCRYPTION_KEY`, reprise de l'ancien n8n (« n8n », plus bas) ; sans ancien n8n à reprendre, `--n8n-neuf` la tire aussi. Sans bucket pour l'instant, `--sauvegardes-locales` met les sauvegardes sur le disque du serveur, et les clés S3 ne sont plus demandées (« Sauvegardes locales », plus bas). Puis copie de toutes les valeurs dans le gestionnaire de mots de passe : `VAULT_MASTER_KEY` perdue, les secrets saisis dans l'application le sont aussi.
 
 À la main, pour un seul fichier (exemple : `api`, groupe 10101) :
 
@@ -273,6 +273,29 @@ Journaux : ni adresse IP, ni chemin, ni en-tête dans ceux de Caddy ; ni requêt
 - **Images construites sur le serveur**, rien n'est publié. Chaque version porte le numéro du commit.
 - **Bucket injoignable** : le journal de PostgreSQL attend sur le disque, 8 Go au plus (près de 2 jours à plein débit), puis il est abandonné plutôt que de remplir le disque ; l'alerte arrive avant (26 heures sans sauvegarde).
 - **PostgreSQL** n'écrit plus ses lignes ERROR, qui citent souvent des données ; l'API note leur code.
+
+## Sauvegardes locales (en attendant le bucket)
+
+Décision du 27/11/2026 : mise en service possible avant le bucket `legarec-sauvegardes`. Les sauvegardes et le journal (WAL) vont alors dans le volume Docker `legarec-app_sauvegardes-locales`, sur le disque du serveur, chiffrés par la même phrase (`PGBACKREST_REPO1_CIPHER_PASS`), avec la même durée (56 jours), les mêmes minuteries, la même vérification et le même essai de restauration.
+
+**Risque** : elles sont sur le même disque que la base. Elles protègent d'une erreur (ligne effacée, migration ratée, retour à un instant précis), **pas de la perte du serveur ni de son disque**. À passer sur le bucket avant les premières vraies données.
+
+- Mise en place : `sudo /opt/legarec/infra/tirer-valeurs.sh --sauvegardes-locales`. Dans `pgbackrest.env` et `restauration.env`, les lignes `PGBACKREST_REPO1_S3_*` sont remplacées par `PGBACKREST_REPO1_TYPE=posix` et `PGBACKREST_REPO1_PATH=/depot` ; un fichier qui a déjà une clé S3 n'est pas touché. `deployer.sh` ne demande alors plus les clés, et le rappelle à chaque déploiement.
+- Le contrôle « Bucket des documents » des contrôles internes alerte tant que le bucket `legarec-documents` n'existe pas, et `media.legarec.fr` ne sert aucun logo tant que `legarec-media` n'existe pas : c'est attendu.
+- **Passage au bucket**, quand il existe (« À préparer ») :
+  1. Dans les deux fichiers, retirer les deux lignes `PGBACKREST_REPO1_TYPE` et `PGBACKREST_REPO1_PATH`, et remettre celles du modèle (`infra/valeurs/pgbackrest.env.exemple`) avec les clés : écriture dans `pgbackrest.env`, lecture seule dans `restauration.env`. La phrase de chiffrement ne change pas.
+  2. Redéploiement (étape 2 de « Ordre de mise en service ») : la base envoie désormais son journal au bucket.
+  3. Première sauvegarde complète sur le bucket, puis essai de restauration :
+
+     ```bash
+     legarec run --rm sauvegarde full
+     ```
+
+     ```bash
+     legarec run --rm essai-restauration
+     ```
+
+  4. Garder le volume `legarec-app_sauvegardes-locales` 56 jours, le temps que le bucket couvre la même durée, puis le supprimer (`sudo docker volume rm legarec-app_sauvegardes-locales`, conteneurs de sauvegarde arrêtés).
 
 ## Surveillance externe (Hyperping)
 
