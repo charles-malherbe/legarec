@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { BucketError, pathOf } from './bucket';
 import { Storage, type Entry, type Files } from './storage';
-import { ORPHAN_ALARM, ORPHAN_DELAY_MS, ORPHANS_PER_RUN, sweep, TooManyOrphans } from './sweep';
+import { ORPHAN_ALARM, ORPHAN_DELAY_MS, ORPHANS_PER_RUN, sweep, SweepInterrupted, SweepRefused } from './sweep';
 
 const HOUR = 60 * 60 * 1000;
 const bytes = (text: string) => new TextEncoder().encode(text);
@@ -54,6 +54,7 @@ function rowsOf(keys: Iterable<string> = []) {
 class Memory implements Files {
   readonly objects = new Map<string, Date | null>();
   down = false;
+  readonly failing = new Set<string>();
 
   write(key: string) {
     this.objects.set(pathOf(key), new Date());
@@ -63,6 +64,7 @@ class Memory implements Files {
     return Promise.resolve(null);
   }
   erase(key: string) {
+    if (this.failing.has(key)) return Promise.reject(new BucketError('erase', 'AccessDenied'));
     if (this.down) return Promise.reject(new BucketError('erase', 'TimeoutError'));
     return Promise.resolve(this.objects.delete(pathOf(key)));
   }
@@ -77,36 +79,52 @@ class Memory implements Files {
 }
 
 describe('the sweep of the files without a row', () => {
-  it('erases an old file that no row points at, and keeps the one a row holds', async () => {
+  /** A storage of the disk with files that have their row: a database that is the one of these files. */
+  async function start(heldFiles = 1) {
     const root = await folder();
     const storage = new Storage(root);
-    const [orphan, held] = [await kept(root, storage), await kept(root, storage)];
-    const rows = rowsOf([held]);
-    expect(await sweep(storage, rows.referenced, 'erase')).toEqual({ young: 0, old: 2, orphans: 1, parts: 0, unknown: 0, erased: 1 });
-    expect(await filesOf(root)).toEqual([pathOf(held)]);
-    expect(rows.asked.flat().sort()).toEqual([orphan, held].sort());
+    const rows = rowsOf();
+    for (let index = 0; index < heldFiles; index += 1) rows.held.add(await kept(root, storage));
+    return { root, storage, ...rows, left: async () => (await filesOf(root)).filter((name) => !rows.held.has(name.slice(3))) };
+  }
+  const half = async (root: string, ms: number) => {
+    const key = randomUUID();
+    await mkdir(join(root, key.slice(0, 2)), { recursive: true });
+    await writeFile(join(root, `${pathOf(key)}.part`), 'moitié');
+    await aged(root, `${pathOf(key)}.part`, ms);
+    return `${pathOf(key)}.part`;
+  };
+  const refusal = (work: Promise<unknown>) => work.then(() => null).catch((error: unknown) => (error instanceof SweepRefused ? error.code : error));
+
+  it('erases an old file that no row points at, and keeps the one a row holds', async () => {
+    const { root, storage, held, asked, referenced, left } = await start();
+    const orphan = await kept(root, storage);
+    expect(await sweep(storage, referenced, 'erase')).toEqual({ young: 0, old: 2, orphans: 1, parts: 0, unknown: 0, erased: 1 });
+    expect(await filesOf(root)).toEqual([...held].map(pathOf));
+    expect(asked.flat().sort()).toEqual([orphan, ...held].sort());
     // Nothing left to do.
-    expect(await sweep(storage, rows.referenced, 'erase')).toMatchObject({ old: 1, orphans: 0, erased: 0 });
+    expect(await sweep(storage, referenced, 'erase')).toMatchObject({ old: 1, orphans: 0, erased: 0 });
+    expect(await left()).toEqual([]);
   });
 
   it('never judges a file younger than the delay: its row may not be written yet', async () => {
-    const root = await folder();
-    const storage = new Storage(root);
+    const { root, storage, held, asked, referenced, left } = await start();
     const fresh = await kept(root, storage, 0);
     const almost = await kept(root, storage, ORPHAN_DELAY_MS - HOUR);
     const due = await kept(root, storage, ORPHAN_DELAY_MS + HOUR);
-    const rows = rowsOf();
-    expect(await sweep(storage, rows.referenced, 'erase')).toMatchObject({ young: 2, old: 1, orphans: 1, erased: 1 });
-    expect(await filesOf(root)).toEqual([pathOf(fresh), pathOf(almost)].sort());
+    expect(await sweep(storage, referenced, 'erase')).toMatchObject({ young: 2, old: 2, orphans: 1, erased: 1 });
+    expect(await left()).toEqual([pathOf(fresh), pathOf(almost)].sort());
     // Not even asked about.
-    expect(rows.asked.flat()).toEqual([due]);
+    expect(asked.flat().sort()).toEqual([due, ...held].sort());
+    // Forced by a person: the delay holds all the same.
+    expect(await sweep(storage, referenced, 'force', { expected: 0 })).toMatchObject({ young: 2, erased: 0 });
+    expect(await left()).toHaveLength(2);
     // A week at least: the time to notice a restoration (question 230).
     expect(ORPHAN_DELAY_MS).toBeGreaterThanOrEqual(7 * 24 * HOUR);
   });
 
   it('touches nothing whose name is not a storage key at its place', async () => {
-    const root = await folder();
-    const storage = new Storage(root);
+    const { root, storage, referenced } = await start();
     const key = randomUUID();
     const other = key.startsWith('00') ? 'ff' : '00';
     await mkdir(join(root, key.slice(0, 2), 'sous-dossier'), { recursive: true });
@@ -134,88 +152,90 @@ describe('the sweep of the files without a row', () => {
     await mkdir(join(root, linked.slice(0, 2)), { recursive: true });
     await symlink(join(root, 'notes.txt'), join(root, pathOf(linked)));
     const before = await filesOf(root);
-    const found = await sweep(storage, rowsOf().referenced, 'force');
-    expect(found).toMatchObject({ old: 0, orphans: 0, parts: 0, erased: 0 });
-    // `archives` and the sub-folder are counted once each and never opened; the link is one more.
-    expect(found).toMatchObject({ young: 0, unknown: strangers.length - 2 + 3 });
+    for (const found of [await sweep(storage, referenced, 'erase'), await sweep(storage, referenced, 'force', { expected: 0 })])
+      // `archives` and the sub-folder are counted once each and never opened; the link is one more.
+      expect(found).toEqual({ young: 0, old: 1, orphans: 0, parts: 0, unknown: strangers.length - 2 + 3, erased: 0 });
     expect(await filesOf(root)).toEqual(before);
   });
 
-  it('erases what an interrupted writing left, once old enough, without asking the database', async () => {
-    const root = await folder();
-    const storage = new Storage(root);
-    const [old, recent] = [randomUUID(), randomUUID()];
-    for (const [key, ms] of [
-      [old, OLD],
-      [recent, HOUR],
-    ] as const) {
-      await mkdir(join(root, key.slice(0, 2)), { recursive: true });
-      await writeFile(join(root, `${pathOf(key)}.part`), 'moitié');
-      await aged(root, `${pathOf(key)}.part`, ms);
-    }
-    const rows = rowsOf([old]);
-    expect(await sweep(storage, rows.referenced, 'count')).toMatchObject({ young: 1, parts: 1, orphans: 0, erased: 0 });
-    expect(await sweep(storage, rows.referenced, 'erase')).toMatchObject({ young: 1, parts: 1, orphans: 0, erased: 1 });
-    expect(await filesOf(root)).toEqual([`${pathOf(recent)}.part`]);
-    expect(rows.asked).toEqual([]);
+  it('erases what an interrupted writing left, once old enough, without asking the database about it', async () => {
+    const { root, storage, held, asked, referenced, left } = await start();
+    await half(root, OLD);
+    const recent = await half(root, HOUR);
+    expect(await sweep(storage, referenced, 'count')).toMatchObject({ young: 1, parts: 1, orphans: 0, erased: 0 });
+    expect(await sweep(storage, referenced, 'erase')).toMatchObject({ young: 1, parts: 1, orphans: 0, erased: 1 });
+    expect(await left()).toEqual([recent]);
+    expect(new Set(asked.flat())).toEqual(held);
   });
 
   it('only counts when asked to count', async () => {
-    const root = await folder();
-    const storage = new Storage(root);
+    const { root, storage, referenced, left } = await start();
     const orphan = await kept(root, storage);
-    expect(await sweep(storage, rowsOf().referenced, 'count')).toEqual({ young: 0, old: 1, orphans: 1, parts: 0, unknown: 0, erased: 0 });
-    expect(await filesOf(root)).toEqual([pathOf(orphan)]);
+    expect(await sweep(storage, referenced, 'count')).toEqual({ young: 0, old: 2, orphans: 1, parts: 0, unknown: 0, erased: 0 });
+    expect(await left()).toEqual([pathOf(orphan)]);
   });
 
   it('never erases more than its cap in one run, even forced; the rest waits for the next one', async () => {
-    const root = await folder();
-    const storage = new Storage(root);
+    const { root, storage, referenced, left } = await start();
     for (let index = 0; index < ORPHANS_PER_RUN + 7; index += 1) await kept(root, storage);
-    const half = randomUUID();
-    await mkdir(join(root, half.slice(0, 2)), { recursive: true });
-    await writeFile(join(root, `${pathOf(half)}.part`), 'moitié');
-    await aged(root, `${pathOf(half)}.part`, OLD);
-    const { referenced } = rowsOf();
-    expect(await sweep(storage, referenced, 'force')).toMatchObject({ orphans: ORPHANS_PER_RUN + 7, parts: 1, erased: ORPHANS_PER_RUN });
-    expect(await filesOf(root)).toHaveLength(8);
-    expect(await sweep(storage, referenced, 'force')).toMatchObject({ erased: 8 });
-    expect(await filesOf(root)).toEqual([]);
+    await half(root, OLD);
+    const all = ORPHANS_PER_RUN + 8;
+    expect(await sweep(storage, referenced, 'force', { expected: all })).toMatchObject({ orphans: all - 1, parts: 1, erased: ORPHANS_PER_RUN });
+    expect(await left()).toHaveLength(8);
+    expect(await sweep(storage, referenced, 'force', { expected: 8 })).toMatchObject({ erased: 8 });
+    expect(await left()).toEqual([]);
     expect(ORPHANS_PER_RUN).toBeLessThanOrEqual(100);
   });
 
-  it('refuses to erase anything when too many files have no row: the database is not the one of these files', async () => {
-    const root = await folder();
-    const storage = new Storage(root);
+  it('refuses at night beyond twenty files without a row, however large the storage: a restoration loses that many', async () => {
+    const { root, storage, held, referenced, left } = await start(0);
     const orphans: string[] = [];
     for (let index = 0; index < ORPHAN_ALARM.files + 1; index += 1) orphans.push(await kept(root, storage));
-    const { held, referenced } = rowsOf();
-    const before = await filesOf(root);
+    // 21 out of 2 100: one in a hundred, and refused all the same.
+    for (let index = 0; index < 2_079; index += 1) held.add(await kept(root, storage));
     const refused = await sweep(storage, referenced, 'erase').catch((error: unknown) => error);
-    expect(refused).toBeInstanceOf(TooManyOrphans);
-    expect((refused as TooManyOrphans).found).toMatchObject({ old: ORPHAN_ALARM.files + 1, orphans: ORPHAN_ALARM.files + 1, erased: 0 });
-    expect(await filesOf(root)).toEqual(before);
-    // The same orphans among enough files that have their row: a few failed uploads, erased.
-    for (let index = 0; index < (ORPHAN_ALARM.files + 1) / ORPHAN_ALARM.share - orphans.length; index += 1) held.add(await kept(root, storage));
-    expect(await sweep(storage, referenced, 'count')).toMatchObject({ old: 420, orphans: 21 });
-    held.delete([...held][0]!);
-    await expect(sweep(storage, referenced, 'erase')).rejects.toBeInstanceOf(TooManyOrphans);
+    expect(refused).toMatchObject({ name: 'SweepRefused', code: 'TOO_MANY', found: { old: 2_100, orphans: 21, erased: 0 } });
+    expect(await left()).toHaveLength(21);
+    // One less: a few failed uploads, erased.
     held.add(orphans.pop()!);
-    held.add(orphans.pop()!);
-    expect(await sweep(storage, referenced, 'erase')).toMatchObject({ old: 420, orphans: 20, erased: 20 });
-    expect(await filesOf(root)).toHaveLength(400);
+    expect(await sweep(storage, referenced, 'erase')).toMatchObject({ orphans: ORPHAN_ALARM.files, erased: ORPHAN_ALARM.files });
+    expect(await left()).toEqual([]);
+    expect(ORPHAN_ALARM.files).toBeLessThanOrEqual(20);
   });
 
-  it('lets a person who has looked erase beyond the alarm, and a small storage lose its few orphans', async () => {
-    const root = await folder();
-    const storage = new Storage(root);
-    for (let index = 0; index < ORPHAN_ALARM.files; index += 1) await kept(root, storage);
-    // Twenty out of twenty: all of them, but too few to be a mistaken database.
-    expect(await sweep(storage, rowsOf().referenced, 'erase')).toMatchObject({ orphans: ORPHAN_ALARM.files, erased: ORPHAN_ALARM.files });
+  it('refuses at night when more files are without a row than with one, however few they are', async () => {
+    const { root, storage, held, referenced, left } = await start(2);
+    for (let index = 0; index < 3; index += 1) await kept(root, storage);
+    expect(await refusal(sweep(storage, referenced, 'erase'))).toBe('TOO_LARGE_A_SHARE');
+    expect(await left()).toHaveLength(3);
+    // As many with a row as without: half, not more.
+    held.add(await kept(root, storage));
+    expect(await sweep(storage, referenced, 'erase')).toMatchObject({ old: 6, orphans: 3, erased: 3 });
+    expect(ORPHAN_ALARM.share).toBeLessThanOrEqual(0.5);
+  });
+
+  it('never erases against a database that holds none of the old files, not even forced: it is not theirs', async () => {
+    const { root, storage, referenced, left } = await start(0);
+    await kept(root, storage);
+    await half(root, OLD);
+    for (const work of [sweep(storage, referenced, 'erase'), sweep(storage, referenced, 'force', { expected: 2 })])
+      expect(await refusal(work)).toBe('NO_ROW_HELD');
+    expect(await left()).toHaveLength(2);
+    // Counting is always possible.
+    expect(await sweep(storage, referenced, 'count')).toMatchObject({ old: 1, orphans: 1, parts: 1, erased: 0 });
+  });
+
+  it('lets a person who has looked erase beyond the alarm, by giving the number that the count has shown', async () => {
+    const { root, storage, referenced, left } = await start(2);
     for (let index = 0; index < ORPHAN_ALARM.files + 1; index += 1) await kept(root, storage);
-    await expect(sweep(storage, rowsOf().referenced, 'erase')).rejects.toBeInstanceOf(TooManyOrphans);
-    expect(await sweep(storage, rowsOf().referenced, 'force')).toMatchObject({ erased: ORPHAN_ALARM.files + 1 });
-    expect(await filesOf(root)).toEqual([]);
+    expect(await refusal(sweep(storage, referenced, 'erase'))).toBe('TOO_MANY');
+    // No number, or another one: files have come or gone since the person looked.
+    for (const expected of [undefined, 20, 22]) {
+      expect(await refusal(sweep(storage, referenced, 'force', expected === undefined ? {} : { expected }))).toBe('CHANGED');
+    }
+    expect(await left()).toHaveLength(21);
+    expect(await sweep(storage, referenced, 'force', { expected: 21 })).toMatchObject({ erased: 21 });
+    expect(await left()).toEqual([]);
   });
 
   it('sweeps the bucket as the disk, each file where it was found', async () => {
@@ -223,47 +243,56 @@ describe('the sweep of the files without a row', () => {
     let keysTyped = false;
     const storage = new Storage(root, { bucket: () => Promise.resolve(keysTyped ? bucket : null) });
     // Written to the disk before the keys were typed.
-    const onDisk = await kept(root, storage);
+    await kept(root, storage);
     keysTyped = true;
     const old = new Date(Date.now() - OLD);
-    const [orphan, held, fresh, undated] = [randomUUID(), randomUUID(), randomUUID(), randomUUID()];
-    bucket.objects.set(pathOf(orphan), old);
-    bucket.objects.set(pathOf(held), old);
+    const [orphan, held, alsoHeld, fresh, undated] = [randomUUID(), randomUUID(), randomUUID(), randomUUID(), randomUUID()];
+    for (const key of [orphan, held, alsoHeld]) bucket.objects.set(pathOf(key), old);
     bucket.objects.set(pathOf(fresh), new Date());
     bucket.objects.set(pathOf(undated), null);
-    for (const name of ['notes.txt', `${pathOf(randomUUID())}.part`, `zz/${randomUUID()}`, '']) bucket.objects.set(name, old);
-    expect(await sweep(storage, rowsOf([held]).referenced, 'erase')).toEqual({ young: 2, old: 3, orphans: 2, parts: 0, unknown: 4, erased: 2 });
-    expect([...bucket.objects.keys()].sort()).toEqual(
-      [pathOf(held), pathOf(fresh), pathOf(undated), 'notes.txt', ...[...bucket.objects.keys()].filter((name) => /part$|^zz|^$/u.test(name))].sort(),
-    );
+    const strangers = ['notes.txt', `${pathOf(randomUUID())}.part`, `zz/${randomUUID()}`, ''];
+    for (const name of strangers) bucket.objects.set(name, old);
+    expect(await sweep(storage, rowsOf([held, alsoHeld]).referenced, 'erase')).toEqual({ young: 2, old: 4, orphans: 2, parts: 0, unknown: 4, erased: 2 });
+    expect([...bucket.objects.keys()].sort()).toEqual([pathOf(held), pathOf(alsoHeld), pathOf(fresh), pathOf(undated), ...strangers].sort());
     expect(await filesOf(root)).toEqual([]);
-    expect(onDisk).toHaveLength(36);
   });
 
   it('erases nothing when the bucket is out of reach: keys missing or bucket failing are not an empty bucket', async () => {
     const [root, bucket] = [await folder(), new Memory()];
     let keysTyped = false;
     const storage = new Storage(root, { bucket: () => Promise.resolve(keysTyped ? bucket : null) });
+    const held = await kept(root, storage);
     const onDisk = await kept(root, storage);
-    const { referenced, asked } = rowsOf();
+    const { referenced, asked } = rowsOf([held]);
     for (const mode of ['erase', 'force', 'count'] as const)
-      await expect(sweep(storage, referenced, mode)).rejects.toMatchObject({ operation: 'list', code: 'NoKeys' });
+      await expect(sweep(storage, referenced, mode, { expected: 1 })).rejects.toMatchObject({ operation: 'list', code: 'NoKeys' });
     keysTyped = true;
     bucket.down = true;
     await expect(sweep(storage, referenced, 'erase')).rejects.toMatchObject({ operation: 'list', code: 'TimeoutError' });
-    expect([await filesOf(root), asked]).toEqual([[pathOf(onDisk)], []]);
+    expect([await filesOf(root), asked]).toEqual([[pathOf(held), pathOf(onDisk)].sort(), []]);
     // Without any bucket in the configuration, the disk alone is the whole storage.
     expect(await sweep(new Storage(root), referenced, 'erase')).toMatchObject({ orphans: 1, erased: 1 });
   });
 
+  it('tells how many files were erased before the storage failed', async () => {
+    const [root, bucket] = [await folder(), new Memory()];
+    const storage = new Storage(root, { bucket: () => Promise.resolve(bucket) });
+    const old = new Date(Date.now() - OLD);
+    const [first, second, third] = [randomUUID(), randomUUID(), randomUUID()];
+    const all = [first, second, third, ...Array.from({ length: 3 }, () => randomUUID())];
+    for (const key of all) bucket.objects.set(pathOf(key), old);
+    bucket.failing.add(second);
+    const stopped = await sweep(storage, rowsOf([third, ...all.slice(3)]).referenced, 'erase').catch((error: unknown) => error);
+    expect(stopped).toBeInstanceOf(SweepInterrupted);
+    expect(stopped).toMatchObject({ found: { orphans: 2, erased: 1 }, cause: { code: 'AccessDenied' } });
+    expect(bucket.objects.has(pathOf(first))).toBe(false);
+    expect(bucket.objects.has(pathOf(second))).toBe(true);
+  });
+
   it('asks the database by batches, and fails with it', async () => {
-    const root = await folder();
-    const storage = new Storage(root);
-    const keys: string[] = [];
-    for (let index = 0; index < 501; index += 1) keys.push(await kept(root, storage));
-    const rows = rowsOf(keys);
-    expect(await sweep(storage, rows.referenced, 'erase')).toMatchObject({ old: 501, orphans: 0, erased: 0 });
-    expect(rows.asked.map((batch) => batch.length)).toEqual([500, 1]);
+    const { root, storage, asked, referenced } = await start(501);
+    expect(await sweep(storage, referenced, 'erase')).toMatchObject({ old: 501, orphans: 0, erased: 0 });
+    expect(asked.map((batch) => batch.length)).toEqual([500, 1]);
     await expect(sweep(storage, () => Promise.reject(new Error('database down')), 'erase')).rejects.toThrow('database down');
     expect(await filesOf(root)).toHaveLength(501);
   });
