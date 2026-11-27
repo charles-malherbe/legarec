@@ -323,6 +323,12 @@ describe('cases closed for more than five years', () => {
       "INSERT INTO planned_reminders (case_id, creditor_id, kind, due_on, title, created_by) VALUES ($1, $2, 'CALL', '2099-01-05', 'Rappeler Jeanne', $3)",
       [id, creditor, s.manager],
     );
+    await rows("INSERT INTO sendings (case_id, creditor_id, channel, template, level, contact_id, status, created_by) VALUES ($1, $2, 'EMAIL', 'FRIENDLY', 1, $3, 'SENT', $4)", [
+      id,
+      creditor,
+      contact!.id,
+      s.manager,
+    ]);
     await rows(
       "INSERT INTO debtor_links (debtor_id, case_id, creditor_id, token_hash, channel, expires_at) VALUES ($1, $2, $3, $4, 'LETTER', now() + interval '1 day')",
       [debtor, id, creditor, hash()],
@@ -403,7 +409,7 @@ describe('cases closed for more than five years', () => {
         anonymized: true,
       },
     ]);
-    for (const table of ['case_contacts', 'case_contact_events', 'portal_messages', 'planned_reminders', 'debtor_links', 'litigation_files'])
+    for (const table of ['case_contacts', 'case_contact_events', 'portal_messages', 'planned_reminders', 'sendings', 'debtor_links', 'litigation_files'])
       expect(await count(table, old), table).toBe(0);
     // The history stays without names (question 169): what was typed goes, a title naming the person to reach is replaced,
     // who of the team acted stays (question 132).

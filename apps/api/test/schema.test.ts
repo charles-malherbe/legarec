@@ -276,6 +276,9 @@ describe('rights of the roles inside', () => {
       'planned_reminders INSERT (case_id, creditor_id, due_on, due_time, kind, title, warning)',
       'planned_reminders SELECT (case_id, created_at, created_by, creditor_id, done_at, due_on, due_time, id, kind, title, warning)',
       'planned_reminders UPDATE (done_at, due_on, due_time)',
+      // What leaves for a debtor (lot Q): started by whoever acts on the case; only the worker says what left. Neither the text typed nor the reference of the provider is read back.
+      'sendings INSERT (case_id, channel, contact_id, creditor_id, draft, installment_id, level, message, options, template)',
+      'sendings SELECT (case_id, channel, contact_id, created_at, created_by, creditor_id, document_id, draft, failure, id, installment_id, level, on_behalf_of_id, options, sent_at, simulated, status, template)',
       // Litigation: read with the cases; opened and followed on those one acts on, the dates and the author set by PostgreSQL.
       'litigation_files INSERT (case_id, consent, creditor_id, stage, version)',
       'litigation_files SELECT (case_id, consent, consent_noted_at, consent_noted_by, court, created_at, created_by, creditor_id, id, on_behalf_of_id, partner_name, stage, stage_since, title_on, version)',
@@ -348,6 +351,9 @@ describe('rights of the roles inside', () => {
       'ai_suggestions SELECT (case_id, cost_micro, created_at, creditor_id, decision, events, feature, id, outcome)',
       // The reminders it will send (lot Q).
       'planned_reminders SELECT (case_id, creditor_id, done_at, due_on, due_time, id, kind, title)',
+      // What it sends, and what happened to it.
+      'sendings SELECT (case_id, channel, contact_id, created_at, created_by, creditor_id, document_id, draft, failure, id, installment_id, level, message, options, provider_ref, sent_at, simulated, status, template)',
+      'sendings UPDATE (document_id, failure, provider_ref, sent_at, simulated, status)',
       // The links of the letters it sends (lot Q).
       'debtor_links INSERT (case_id, channel, creditor_id, debtor_id, expires_at, token_hash)',
       'debtor_links SELECT (case_id, channel, creditor_id, debtor_id, expires_at, id, revoked_at, uses)',
@@ -482,6 +488,8 @@ describe('rights of the roles inside', () => {
       'debtor_links SELECT (case_id, debtor_id, expires_at, id, revoked_at, token_hash, uses)',
       'ai_suggestions SELECT (asked_by, case_id, cost_micro, created_at, decided_by, decision, feature, id, input_summary, input_tokens, model, outcome, output_tokens, prompt_version)',
       'planned_reminders SELECT (case_id, done_at, due_on, id, kind)',
+      // Counted for the caps of a debtor, whatever the creditor (app.sent_contacts).
+      'sendings SELECT (case_id, channel, created_at, draft, id, status)',
       // Remittances and invoices of the firm: their functions only.
       'billing_documents INSERT (*)',
       'billing_documents SELECT (*)',
@@ -589,6 +597,8 @@ describe('rights of the roles inside', () => {
       'plan_approvals UPDATE (reason)',
       'planned_reminders DELETE (*)',
       'planned_reminders SELECT (case_id)',
+      'sendings DELETE (*)',
+      'sendings SELECT (case_id)',
       'portal_message_attachments DELETE (*)',
       'portal_message_attachments SELECT (case_id)',
       'portal_messages DELETE (*)',
@@ -747,6 +757,8 @@ describe('rights on the functions', () => {
     ...['billing_overview', 'credit_notes', 'save_credit_note_draft', 'delete_credit_note_draft', 'issue_credit_note'].map((name) => [name, ['staff']] as [string, string[]]),
     ...['invoice_lines_left', 'invoice_left', 'invoice_settled_on', 'check_credit_lines'].map((name) => [name, []] as [string, string[]]),
     ['planned_contacts', ['staff']],
+    ['sent_contacts', ['staff']],
+    ['service_key', ['worker']],
     ['note_ai_decision', []],
     ...['ai_key', 'ai_spent', 'ai_budget_alert'].map((name) => [name, ['worker']] as [string, string[]]),
     ...['ai_journal', 'ai_journal_totals'].map((name) => [name, ['staff']] as [string, string[]]),
@@ -785,7 +797,7 @@ describe('rights on the functions', () => {
       'debtor_link ask_code_by_sms firm_payment_settings limited_message',
       'gdpr_request gdpr_keeper gdpr_registry gdpr_answer gdpr_export gdpr_erasure gdpr_erase',
       'anonymize_case forget_case forget_debtor erasure_blockers erasure_digest case_writable',
-      'note_ai_decision ai_key ai_spent ai_budget_alert ai_journal ai_journal_totals planned_contacts keep_done_reminder litigation_rules case_exists correct_debtor accept_deposit refuse_deposit remittance_core creditor_payouts remittance_sources remittance_summary note_settlement remittance_draft validate_remittances mark_remittances_paid remittance_batches remittance_batch',
+      'note_ai_decision ai_key ai_spent ai_budget_alert ai_journal ai_journal_totals planned_contacts sent_contacts service_key keep_done_reminder litigation_rules case_exists correct_debtor accept_deposit refuse_deposit remittance_core creditor_payouts remittance_sources remittance_summary note_settlement remittance_draft validate_remittances mark_remittances_paid remittance_batches remittance_batch',
       'billing_overview credit_notes save_credit_note_draft delete_credit_note_draft issue_credit_note invoice_lines_left invoice_left invoice_settled_on check_credit_lines',
       'purge_remittances purge_invoices purge_payments purge_accounting_documents forget_remittances forget_lone_invoices forget_bounced_payments forget_accounting_documents',
       'purge_waiting_files forget_waiting_files purge_old_history forget_case_story forget_old_history',
