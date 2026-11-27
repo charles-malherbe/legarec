@@ -30,10 +30,13 @@ describe('case access', () => {
       ['/cases/demo/portal-messages', { text: 'Bonjour' }],
     ] as const)
       expect((await call('ad', path, body)).status).toBe(403);
-    expect((await call('ad', '/cases/reminders', { ids: ['demo'] })).status).toBe(403);
-    expect((await call('ad', '/cases/reminders', { ids: ['lagarde'] })).status).toBe(200);
+    const friendly = (...ids: string[]) => ({ items: ids.map((id) => ({ id, template: 'FRIENDLY' })) });
+    expect((await call('ad', '/cases/reminders', friendly('demo'))).status).toBe(403);
+    expect((await call('ad', '/cases/reminders/preview', { ids: ['demo'] })).status).toBe(403);
+    expect((await call('ad', '/cases/reminders', friendly('lagarde'))).status).toBe(200);
     // A case of someone else answers as one that does not exist, and stops the whole.
-    expect((await call('hb', '/cases/reminders', { ids: ['helio', 'demo'] })).status).toBe(404);
+    expect((await call('hb', '/cases/reminders', friendly('helio', 'demo'))).status).toBe(404);
+    expect((await call('hb', '/cases/reminders/preview', { ids: ['helio', 'demo'] })).status).toBe(404);
     // Refused, unlike a case that does not exist (question 141).
     expect((await call('hb', '/cases/demo')).status).toBe(403);
     expect((await call('hb', '/cases/inconnu')).status).toBe(404);
@@ -70,28 +73,48 @@ describe('case list', () => {
     expect(await screen.findByText(/transmis au contentieux/)).toBeVisible();
     expect(sent).toMatchObject({ reason: 'Promesses non tenues', consentReceived: true });
   });
-  it('confirms grouped reminders, then says how many left and why the others did not', async () => {
+  it('confirms grouped reminders level by level, sends what was confirmed, and keeps the cases left out selected', async () => {
     openAs('cl', '/debiteurs');
     await userEvent.click(await screen.findByLabelText('Sélectionner Bâtiplus SAS'));
     await userEvent.click(screen.getByLabelText('Sélectionner Paul Meunier'));
+    let sent: unknown;
+    server.events.on('request:start', ({ request }) => {
+      if (request.url.endsWith('/cases/reminders'))
+        void request
+          .clone()
+          .json()
+          .then((body) => (sent = body));
+    });
     await userEvent.click(screen.getByRole('button', { name: 'Envoyer une relance' }));
-    const dialog = await screen.findByRole('alertdialog', { name: 'Envoyer une relance à 2 débiteurs ?' });
-    expect(within(dialog).getByText('Bâtiplus SAS, Paul Meunier')).toBeVisible();
-    expect(within(dialog).getByText(/par e-mail la relance suivante de son dossier/)).toBeVisible();
+    // Only the debtors who will receive one are counted and named; the level is said, and who is left out.
+    const dialog = await screen.findByRole('alertdialog', { name: 'Envoyer une relance à 1 débiteur ?' });
+    expect(within(dialog).getByText('Bâtiplus SAS')).toBeVisible();
+    expect(within(dialog).getByText('1 rappel amiable')).toBeVisible();
+    expect(within(dialog).getByText('1 non envoyé : les relances par e-mail ne s’adressent pas à un particulier (1)')).toBeVisible();
     await confirmWith('Envoyer les relances');
     expect(
       await screen.findByText(
         '1 relance(s) programmée(s) pour envoi immédiat. 1 non envoyé : les relances par e-mail ne s’adressent pas à un particulier (1).',
       ),
     ).toBeVisible();
-    expect(screen.queryByLabelText('Sélectionner Bâtiplus SAS')).not.toBeChecked();
-    // Nothing left: said as a failure, with the reason.
-    await userEvent.click(screen.getByLabelText('Sélectionner Paul Meunier'));
+    expect(sent).toEqual({ items: [{ id: 'demo', template: 'FRIENDLY' }] });
+    await waitFor(() => expect(screen.getByLabelText('Sélectionner Bâtiplus SAS')).not.toBeChecked());
+    expect(screen.getByLabelText('Sélectionner Paul Meunier')).toBeChecked();
+    // Nothing can leave: said at once, without a confirmation.
     await userEvent.click(screen.getByRole('button', { name: 'Envoyer une relance' }));
-    await confirmWith('Envoyer les relances');
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Aucune relance n’est partie. 1 non envoyé : les relances par e-mail ne s’adressent pas à un particulier (1).',
+      'Aucune relance ne peut partir. 1 non envoyé : les relances par e-mail ne s’adressent pas à un particulier (1).',
     );
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+  });
+  it('leaves out a case whose reminder is no longer the one confirmed, and one reminded less than a week ago', async () => {
+    const send = async (template: string) => (await call('cl', '/cases/reminders', { items: [{ id: 'demo', template }] })).json() as Promise<unknown>;
+    expect(await send('FIRM')).toEqual({ queued: 0, skipped: [{ id: 'demo', reason: 'LEVEL_CHANGED' }] });
+    expect(await send('FRIENDLY')).toEqual({ queued: 1, skipped: [] });
+    expect(await send('FIRM')).toEqual({ queued: 0, skipped: [{ id: 'demo', reason: 'TOO_SOON' }] });
+    expect(await (await call('cl', '/cases/reminders/preview', { ids: ['demo'] })).json()).toEqual({
+      items: [{ id: 'demo', template: null, reason: 'TOO_SOON' }],
+    });
   });
   it('covers no result and error states, without putting the search in the URL', async () => {
     const urls: string[] = [];
