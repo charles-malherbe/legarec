@@ -1,6 +1,7 @@
 import { Queue, type ConnectionOptions } from 'bullmq';
 import type { Database, Transaction } from '../database/database';
 import type { AppLogger } from '../logging/logger';
+import type { Scanner } from '../scanner/scanner';
 import type { Storage } from '../storage/storage';
 import { sweep, SweepInterrupted, SweepRefused, type SweepMode, type Swept } from '../storage/sweep';
 import type { ScheduledHandlers } from './jobs';
@@ -138,9 +139,42 @@ export async function sweepFiles(database: Database, logger: AppLogger, storage:
 
 /** The sweep of the night: only a count as long as it is held since a restoration. */
 export async function nightSweep(database: Database, logger: AppLogger, storage: Storage): Promise<void> {
-  if (!(await sweepHeld(database))) return void (await sweepFiles(database, logger, storage, 'erase'));
-  await sweepFiles(database, logger, storage, 'count');
-  logger.warn({ kind: 'orphan-files' }, 'sweep of the files without a row held since a restoration: nothing erased');
+  let found: Swept;
+  try {
+    if (!(await sweepHeld(database))) found = await sweepFiles(database, logger, storage, 'erase');
+    else {
+      found = await sweepFiles(database, logger, storage, 'count');
+      logger.warn({ kind: 'orphan-files' }, 'sweep of the files without a row held since a restoration: nothing erased');
+    }
+  } catch (error) {
+    // Refused, interrupted, or the storage did not answer: the Developer is told (question 231).
+    await operationsAlert(database, logger, 'FILES_SWEEP');
+    throw error;
+  }
+  // One file without a row is worth a look: it should not happen.
+  if (found.orphans + found.parts > 0) await operationsAlert(database, logger, 'FILES_SWEEP');
+}
+
+/**
+ * Tells the Developer in the application, once a day for each problem (`app.operations_alert`): the night or the clock
+ * found something wrong on the server. Never throws: an alert that cannot be written is said in the journal.
+ */
+export async function operationsAlert(database: Database, logger: AppLogger, problem: 'FILES_SWEEP' | 'ANTIVIRUS_DOWN'): Promise<void> {
+  try {
+    await database.run({ kind: 'retention' }, (tx) => tx.$queryRaw`SELECT app.operations_alert(${problem}) AS told`);
+  } catch (error) {
+    logger.error({ kind: 'operations-alert', problem, errorType: (error as Error).name }, 'alert not written');
+  }
+}
+
+/** clamd no longer answers (twice, a minute apart): the files received wait, unread, and the Developer is told. */
+export async function checkAntivirus(database: Database, logger: AppLogger, scanner: Pick<Scanner, 'ping'>, pause = 60_000): Promise<boolean> {
+  if (await scanner.ping()) return true;
+  await new Promise((resolve) => setTimeout(resolve, pause));
+  if (await scanner.ping()) return true;
+  logger.error({ kind: 'antivirus' }, 'antivirus does not answer');
+  await operationsAlert(database, logger, 'ANTIVIRUS_DOWN');
+  return false;
 }
 
 /** Each step stands alone: one that fails neither undoes nor prevents the others. Counts are kept, never what was removed. */

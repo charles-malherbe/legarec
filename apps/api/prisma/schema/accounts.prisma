@@ -97,6 +97,8 @@ enum NotificationKind {
   AI_BUDGET
   DEBTOR_ACCESS_ALERT
   SENDING_FAILED
+  FILES_SWEEP
+  ANTIVIRUS_DOWN
 
   @@map("notification_kind")
 }
