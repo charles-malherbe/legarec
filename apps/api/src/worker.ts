@@ -5,6 +5,7 @@ import { EmailsService } from './emails/emails.service';
 import { EmailRenderer } from './emails/renderer';
 import { ResendClient } from './emails/resend';
 import { SimulatedTransport } from './emails/transport';
+import { accountMail } from './modules/auth/account-mail';
 import { accountJobs } from './modules/auth/auth.jobs';
 import { AuthKeys } from './modules/auth/keys';
 import { accessCodeJobs, reseal } from './modules/debtor-access/access-codes.jobs';
@@ -47,6 +48,8 @@ const templates = fileURLToPath(new URL('../templates/emails/', import.meta.url)
 const vault = new Vault(config);
 const simulated = new SimulatedTransport(logger, config.DEV_MAIL_DIR);
 const emails = new EmailsService(new EmailRenderer(templates), simulated, emailSettings);
+// Resend never redirects: a redirection would carry the key and the message elsewhere.
+const resend = new ResendClient((url, init) => fetch(url, { ...init, redirect: 'error' }));
 const clamd = config.CLAMAV_URL ? new URL(config.CLAMAV_URL) : null;
 // Without an antivirus in production, received files wait unread; elsewhere, the simulated one.
 const scanner = clamd ? new ClamavScanner(clamd.hostname, Number(clamd.port)) : config.NODE_ENV === 'production' ? null : new SimulatedScanner();
@@ -64,10 +67,22 @@ const letterTracking: LetterTracking = { vault, mysendingbox, real: config.MYSEN
 const handlers: JobHandlers = {
   documents: documentJobs(storage, scanner),
   pdf: { ...receiptJobs(storage, pdf, pdfTemplates), ...planJobs(storage, pdf, pdfTemplates) },
-  email: {
-    // The e-mails of the accounts stay simulated until their own domain exists (question 84).
-    ...accountJobs({ keys: new AuthKeys(config), portals: config, send: (name, to, data) => emails.send(name, to, data) }),
-  },
+  // The e-mails of the accounts leave by Resend with the key and the domain of the reminders (question 217); without the
+  // key outside production, they are simulated. One try: each reaches a person.
+  email: accountJobs({
+    keys: new AuthKeys(config),
+    portals: config,
+    mail: accountMail({
+      asWorker: (work) => database.run({ kind: 'worker', job: 'account-email' }, work),
+      vault,
+      emails,
+      resend,
+      production: config.NODE_ENV === 'production',
+      real: config.RESEND_ENV === 'production',
+      devRecipients: config.DEV_RECIPIENTS ?? [],
+      simulate: (message) => simulated.send(message),
+    }),
+  }),
   // The reminders leave by Resend when its key is in the vault; without it outside production, they are simulated. Their
   // own queue, where nothing is ever tried twice.
   reminders: {
@@ -76,8 +91,7 @@ const handlers: JobHandlers = {
       asWorker: (work) => database.run({ kind: 'worker', job: 'case-reminder' }, work),
       vault,
       emails,
-      // Resend never redirects: a redirection would carry the key and the message elsewhere.
-      resend: new ResendClient((url, init) => fetch(url, { ...init, redirect: 'error' })),
+      resend,
       production: config.NODE_ENV === 'production',
       real: config.RESEND_ENV === 'production',
       devRecipients: config.DEV_RECIPIENTS ?? [],

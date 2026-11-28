@@ -473,7 +473,7 @@ describe('a task that must not run twice', () => {
     expect([tries, (await state()).done]).toEqual([2, true]);
   });
 
-  it.each(['letter', 'sms', 'staff-email'] satisfies QueueName[])('is every task of the queue %s, whatever its definition says', (name) => {
+  it.each(['email', 'letter', 'sms', 'staff-email', 'reminders'] satisfies QueueName[])('is every task of the queue %s, whatever its definition says', (name) => {
     const handlers = { [name]: { send: { from: EVERYONE, repeatable: true, run: () => Promise.resolve() } } };
     expect(() => startWorkers({ database: jobs, logger, connection: valkey, handlers, prefix })).toThrow(`Never repeatable in the queue ${name}: send`);
   });
