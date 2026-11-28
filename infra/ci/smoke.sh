@@ -47,7 +47,7 @@ expect 404 https://api.legarec.fr//service/cases --path-as-is
 expect 404 https://api.legarec.fr/service%2Fcases
 expect 404 https://api.legarec.fr/x/../service/cases --path-as-is
 expect 404 https://api.legarec.fr/nothing
-expect 302 https://api.legarec.fr/
+expect 404 https://api.legarec.fr/
 headers="$(get --head https://api.legarec.fr/health | tr -d '\r')"
 for header in 'cache-control: no-store' "content-security-policy: default-src 'none'" 'strict-transport-security: ' 'x-content-type-options: nosniff'; do
   [ "$(grep -ci "^$header" <<< "$headers")" = 1 ] || fail "api: $header, once"
