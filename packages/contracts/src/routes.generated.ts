@@ -2594,6 +2594,8 @@ export interface operations {
                             /** @enum {string} */
                             density: "comfortable" | "compact";
                             lowVision: boolean;
+                            menuCollapsed: boolean;
+                            menuClosedGroups: string[];
                         };
                     };
                 };
@@ -2635,6 +2637,8 @@ export interface operations {
                                 /** @enum {string} */
                                 density: "comfortable" | "compact";
                                 lowVision: boolean;
+                                menuCollapsed: boolean;
+                                menuClosedGroups: string[];
                             };
                         } | null;
                     } | {
@@ -2690,6 +2694,8 @@ export interface operations {
                                 /** @enum {string} */
                                 density: "comfortable" | "compact";
                                 lowVision: boolean;
+                                menuCollapsed: boolean;
+                                menuClosedGroups: string[];
                             };
                         } | null;
                     } | {
@@ -2789,6 +2795,8 @@ export interface operations {
                                 /** @enum {string} */
                                 density: "comfortable" | "compact";
                                 lowVision: boolean;
+                                menuCollapsed: boolean;
+                                menuClosedGroups: string[];
                             };
                         } | null;
                     };
@@ -3010,6 +3018,8 @@ export interface operations {
                                 /** @enum {string} */
                                 density: "comfortable" | "compact";
                                 lowVision: boolean;
+                                menuCollapsed: boolean;
+                                menuClosedGroups: string[];
                             };
                         } | null;
                     } | {
@@ -3065,6 +3075,8 @@ export interface operations {
                                 /** @enum {string} */
                                 density: "comfortable" | "compact";
                                 lowVision: boolean;
+                                menuCollapsed: boolean;
+                                menuClosedGroups: string[];
                             };
                         } | null;
                     } | {
@@ -3164,6 +3176,8 @@ export interface operations {
                                 /** @enum {string} */
                                 density: "comfortable" | "compact";
                                 lowVision: boolean;
+                                menuCollapsed: boolean;
+                                menuClosedGroups: string[];
                             };
                         } | null;
                     };

@@ -235,9 +235,9 @@ describe('rights of the roles inside', () => {
       'notifications UPDATE (read_at)',
       'retention_runs SELECT (id, kind, ran_at, removed)',
       'support_tickets SELECT (created_at, id, message, number, status, subject, user_id)',
-      'users SELECT (absent_from, absent_until, anonymized_at, auto_reply, created_at, creditor_id, daily_summary, density, disabled_at, email, extension, first_name, id, invited_at, last_name, last_seen_at, low_vision, password_changed_at, quiet_hours, role, status, substitute_id, theme, two_factor_required)',
+      'users SELECT (absent_from, absent_until, anonymized_at, auto_reply, created_at, creditor_id, daily_summary, density, disabled_at, email, extension, first_name, id, invited_at, last_name, last_seen_at, low_vision, menu_closed_groups, menu_collapsed, password_changed_at, quiet_hours, role, status, substitute_id, theme, two_factor_required)',
       // One's own line: never the role, the address, the status nor the credentials.
-      'users UPDATE (absent_from, absent_until, auto_reply, daily_summary, density, first_name, last_name, low_vision, quiet_hours, substitute_id, theme)',
+      'users UPDATE (absent_from, absent_until, auto_reply, daily_summary, density, first_name, last_name, low_vision, menu_closed_groups, menu_collapsed, quiet_hours, substitute_id, theme)',
       'vault_secrets SELECT (created_at, decided_by, id, kind, last_used_at, name, requested_by, rotated_at, rotation, status)',
       'setting_versions SELECT (changed_at, changed_by, id, key, on_behalf_of_id)',
       'settings SELECT (key, on_behalf_of_id, updated_at, updated_by, value, version)',

@@ -307,6 +307,11 @@ export function Shell() {
         creditorId={scope.id}
         creditorsHref="/creanciers"
         onCreditor={scope.setId}
+        // Remembered in the profile, as the theme (DECISIONS.md, 28/11/2026).
+        collapsed={user.preferences.menuCollapsed}
+        onCollapsed={(menuCollapsed) => void updatePreferences({ menuCollapsed })}
+        closedGroups={user.preferences.menuClosedGroups}
+        onClosedGroups={(menuClosedGroups) => void updatePreferences({ menuClosedGroups })}
       />
       <div className={css.main}>
         <Topbar

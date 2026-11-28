@@ -4,7 +4,7 @@ const base = {
   directorName: 'Marie Dubreuil',
   activeDelegations: ['TECHNICAL', 'ADMINISTRATIVE'] as Session['activeDelegations'],
   twoFactorEnabled: false,
-  preferences: { theme: 'light', density: 'comfortable', lowVision: false } as Session['preferences'],
+  preferences: { theme: 'light', density: 'comfortable', lowVision: false, menuCollapsed: false, menuClosedGroups: [] } as Session['preferences'],
 };
 
 /** Fictitious demonstration accounts; only used by MSW. */

@@ -224,7 +224,8 @@ export const REQUEST_BODIES = {
     'POST /auth/invitation/:token/totp': oneTimeCodeBody,
     'POST /auth/setup/totp/verify': oneTimeCodeBody,
     'POST /auth/proof': proofBody,
-    'PUT /auth/preferences': preferences,
+    // The menu may be left out: a page loaded before it was remembered keeps saving the display.
+    'PUT /auth/preferences': preferences.partial({ menuCollapsed: true, menuClosedGroups: true }),
     'POST /notifications/read': readBody,
     'PUT /notifications': notificationsBody,
     'POST /search': searchBody,

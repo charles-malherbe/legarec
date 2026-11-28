@@ -1,4 +1,14 @@
-import { acceptsBody, hasDelegation, isFirmIdentity, loginRequest, PROOF_MINUTES, sensitiveAction, type Dashboard, type ShellData } from '@legarec/contracts';
+import {
+  acceptsBody,
+  hasDelegation,
+  isFirmIdentity,
+  loginRequest,
+  PROOF_MINUTES,
+  sensitiveAction,
+  type Dashboard,
+  type Session,
+  type ShellData,
+} from '@legarec/contracts';
 import { http, HttpResponse, type HttpHandler } from 'msw';
 import { ACCOUNTS, DEMO_PASSWORD } from './accounts';
 import dashboardData from './dashboard.json';
@@ -182,7 +192,8 @@ export const handlers: HttpHandler[] = [
   http.put('/api/auth/preferences', async ({ request }) => {
     const session = currentSession();
     if (!session) return unauthorized();
-    state.preferences.set(session.userId, (await request.json()) as never);
+    // As the API: what the page leaves out (the menu, for a page loaded before) stays as it was.
+    state.preferences.set(session.userId, { ...session.preferences, ...((await request.json()) as Partial<Session['preferences']>) });
     return done();
   }),
   http.post('/api/auth/login', async ({ request }) => {

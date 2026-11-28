@@ -24,6 +24,9 @@ export const preferences = z.object({
   theme: z.enum(['light', 'dark', 'system']),
   density: z.enum(['comfortable', 'compact']),
   lowVision: z.boolean(),
+  /** The menu of the espace reduced to its icons, and the groups closed in it, by their key (DECISIONS.md, 28/11/2026). */
+  menuCollapsed: z.boolean(),
+  menuClosedGroups: z.array(z.string().regex(/^[a-z]{1,16}$/u)).max(10),
 });
 export const session = z.object({
   userId: z.string(),

@@ -23,7 +23,18 @@ export class SessionViews {
     return this.database.run(actor, async (tx) => {
       const me = await tx.user.findUnique({
         where: { id: actor.userId },
-        select: { firstName: true, lastName: true, email: true, role: true, extension: true, theme: true, density: true, lowVision: true },
+        select: {
+          firstName: true,
+          lastName: true,
+          email: true,
+          role: true,
+          extension: true,
+          theme: true,
+          density: true,
+          lowVision: true,
+          menuCollapsed: true,
+          menuClosedGroups: true,
+        },
       });
       // Closed between the reading of the cookie and this one: PostgreSQL shows nothing to nobody.
       if (!me) throw unauthorized();
@@ -33,14 +44,14 @@ export class SessionViews {
         select: { kind: true },
         orderBy: { kind: 'asc' },
       });
-      const { theme, density, lowVision, ...person } = me;
+      const { theme, density, lowVision, menuCollapsed, menuClosedGroups, ...person } = me;
       return {
         userId: actor.userId,
         ...person,
         activeDelegations: open.map((delegation) => delegation.kind),
         directorName: director ? `${director.firstName} ${director.lastName}` : '',
         twoFactorEnabled: actor.session?.secondFactor ?? false,
-        preferences: { theme, density, lowVision },
+        preferences: { theme, density, lowVision, menuCollapsed, menuClosedGroups },
       };
     });
   }

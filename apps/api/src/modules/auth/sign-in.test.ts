@@ -43,7 +43,7 @@ describe('password', () => {
         activeDelegations: ['TECHNICAL', 'ADMINISTRATIVE'],
         directorName: 'Dora Test',
         twoFactorEnabled: false,
-        preferences: { theme: 'light', density: 'comfortable', lowVision: false },
+        preferences: { theme: 'light', density: 'comfortable', lowVision: false, menuCollapsed: false, menuClosedGroups: [] },
       },
     });
     const session = await browser.session();

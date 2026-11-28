@@ -223,8 +223,38 @@
   font-size: var(--fs-base);
 }
 .option[aria-selected='true'],
-.option:hover {
+.option:hover,
+.option:focus {
   background: var(--surface-3);
+}
+/* A long list scrolls in the popup; its focus ring stays inside, where the list does not cut it. */
+.options[data-long] {
+  max-height: min(50vh, 360px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.options[data-long] .option:focus-visible {
+  outline-offset: -3px;
+  box-shadow: none;
+}
+.search {
+  box-sizing: border-box;
+  margin: 0 var(--sp-1) var(--sp-1);
+  height: var(--control-sm);
+  padding: 0 var(--sp-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-base);
+}
+.none {
+  margin: 0;
+  padding: var(--sp-2);
+  font-size: var(--fs-sm);
+  color: var(--text-2);
 }
 .tick {
   width: 16px;
@@ -419,11 +449,25 @@
     top: 0;
     height: 100vh;
     min-height: 0;
-    overflow-y: auto;
-    scrollbar-width: thin;
   }
-  .nav[data-collapsed] {
-    overflow: visible;
+  /* Only the groups scroll, opened or reduced: the head, the creditor, « Paramètres » and the button that reduces the
+     menu stay in view on a screen 720 px high (DECISIONS.md, 28/11/2026). The margins give the room of the marker and
+     of the focus ring back to the scrolling area, which would cut them. */
+  .groups {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    margin: calc(-1 * var(--sp-2)) calc(-1 * var(--sp-2h));
+    padding: var(--sp-2) var(--sp-2h);
+    /* A shade at the edge that still hides entries, and none at an edge reached: the covers move with the entries. */
+    --edge: color-mix(in srgb, var(--border-strong) 45%, transparent);
+    background:
+      linear-gradient(var(--surface-2) 40%, transparent) top / 100% var(--sp-8) no-repeat local,
+      linear-gradient(transparent, var(--surface-2) 60%) bottom / 100% var(--sp-8) no-repeat local,
+      radial-gradient(farthest-side at 50% 0, var(--edge), transparent) top / 100% var(--sp-2h) no-repeat scroll,
+      radial-gradient(farthest-side at 50% 100%, var(--edge), transparent) bottom / 100% var(--sp-2h) no-repeat scroll;
   }
 }
 @media (max-width: 1023px) {
