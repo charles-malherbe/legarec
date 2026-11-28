@@ -64,9 +64,6 @@ services:
       portails:
       api:
       automatisations:
-      # The public addresses, as the monitoring reaches them without leaving the server.
-      etat:
-        aliases: [espace.legarec.fr, partenaires.legarec.fr, paiement.legarec.fr, api.legarec.fr, media.legarec.fr]
     healthcheck:
       <<: *health
       test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1:8081/health']
@@ -140,7 +137,7 @@ services:
     memswap_limit: 1g
     # A task under way ends before the worker stops: a letter or a text message cut short would have an unknown outcome.
     stop_grace_period: 90s
-    networks: [donnees, surveillance, antivirus, sortie-worker]
+    networks: [donnees, antivirus, sortie-worker]
     depends_on: *services
     healthcheck:
       <<: *health
@@ -243,7 +240,7 @@ services:
     volumes: ['postgres-data:/var/lib/postgresql/data:ro', 'postgres-socket:/var/run/postgresql', 'sauvegardes-locales:/depot']
     mem_limit: 384m
     memswap_limit: 384m
-    networks: [surveillance, sortie-base]
+    networks: [sortie-base]
     depends_on:
       postgres: { condition: service_healthy }
 
@@ -287,36 +284,8 @@ services:
       <<: *health
       test: [CMD, legarec-valkey-health]
 
-  # Public status page.
-  gatus:
-    <<: *container
-    image: legarec/gatus:${LEGAREC_VERSION:?}
-    build: { context: ., dockerfile: infra/docker/gatus.Dockerfile }
-    user: '10111:10111'
-    environment: { GATUS_CONFIG_PATH: /etc/gatus/public.yaml, GATUS_LOG_LEVEL: WARN }
-    volumes: ['gatus-data:/data']
-    mem_limit: 96m
-    memswap_limit: 96m
-    networks: [etat]
-    healthcheck: &gatus-health
-      <<: *health
-      test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1:8080/health']
-
-  # Internal checks and alerts, shown to the addresses of the firm only.
-  gatus-interne:
-    <<: *container
-    image: legarec/gatus:${LEGAREC_VERSION:?}
-    user: '10111:10111'
-    environment: { GATUS_CONFIG_PATH: /etc/gatus/internal.yaml, GATUS_LOG_LEVEL: WARN }
-    secrets: [gatus]
-    volumes: ['gatus-interne-data:/data']
-    mem_limit: 96m
-    memswap_limit: 96m
-    networks: [etat, journaux, surveillance, sortie-alertes, automatisations]
-    healthcheck: *gatus-health
-
-  # Automations: n8n.legarec.fr, from the addresses of the firm only (Caddy). It meets Caddy, the API and the internal checks,
-  # and has a way out to the Internet of its own, for the services its automations call (DECISIONS.md, 27/11/2026). Its data
+  # Automations: n8n.legarec.fr, from the addresses of the firm only (Caddy). It meets Caddy and the API, and has
+  # a way out to the Internet of its own, for the services its automations call (DECISIONS.md, 27/11/2026). Its data
   # stay in its volume, never in PostgreSQL.
   n8n:
     <<: *container
@@ -369,7 +338,7 @@ services:
       <<: *health
       test: [CMD, node, -e, "fetch('http://127.0.0.1:5678/healthz').then((answer) => process.exit(answer.ok ? 0 : 1), () => process.exit(1))"]
 
-  # Collector of the technical logs. Neither shell nor health check in its image: checked by gatus-interne.
+  # Collector of the technical logs. Neither shell nor health check in its image.
   journaux:
     <<: *container
     image: legarec/journaux:${LEGAREC_VERSION:?}
@@ -381,7 +350,7 @@ services:
     memswap_limit: 96m
     networks: [journaux]
 
-  # Technical logs, 60 days. Neither shell nor health check in its image: checked by gatus-interne.
+  # Technical logs, 60 days. Neither shell nor health check in its image.
   loki:
     <<: *container
     image: legarec/loki:${LEGAREC_VERSION:?}
@@ -392,40 +361,6 @@ services:
     mem_limit: 384m
     memswap_limit: 384m
     networks: [journaux]
-
-  # Technical logs on screen: status.legarec.fr/journaux, from the addresses of the firm only.
-  grafana:
-    <<: *container
-    image: legarec/grafana:${LEGAREC_VERSION:?}
-    build: { context: ., dockerfile: infra/docker/grafana.Dockerfile }
-    user: '10114:10114'
-    environment:
-      GF_SERVER_ROOT_URL: https://status.legarec.fr/journaux/
-      GF_SERVER_SERVE_FROM_SUB_PATH: 'true'
-      GF_SECURITY_COOKIE_SECURE: 'true'
-      GF_SECURITY_COOKIE_SAMESITE: strict
-      GF_SECURITY_DISABLE_GRAVATAR: 'true'
-      GF_USERS_ALLOW_SIGN_UP: 'false'
-      GF_AUTH_ANONYMOUS_ENABLED: 'false'
-      GF_ANALYTICS_REPORTING_ENABLED: 'false'
-      GF_ANALYTICS_CHECK_FOR_UPDATES: 'false'
-      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: 'false'
-      GF_NEWS_NEWS_FEED_ENABLED: 'false'
-      GF_PLUGINS_PREINSTALL_DISABLED: 'true'
-      GF_LOG_MODE: console
-      # A warning quotes the address of who failed to sign in.
-      GF_LOG_LEVEL: error
-      # A snapshot would outlive the logs.
-      GF_SNAPSHOTS_ENABLED: 'false'
-      GF_SNAPSHOTS_EXTERNAL_ENABLED: 'false'
-    secrets: [grafana]
-    volumes: ['grafana-data:/var/lib/grafana']
-    mem_limit: 320m
-    memswap_limit: 320m
-    networks: [etat, journaux]
-    healthcheck:
-      <<: *health
-      test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1:3000/api/health']
 
 # A container only meets those it needs. Closed: no way out to the Internet, and no way in from the server itself, whose
 # other users would otherwise reach the containers by their addresses (logs, API behind Caddy).
@@ -443,17 +378,14 @@ networks:
     <<: *closed
     # Named in infra/postgres/pg_hba.conf: the only addresses that may open the database.
     ipam: { config: [{ subnet: 10.213.0.0/24 }] }
-  etat: *closed
   journaux: *closed
-  surveillance: *closed
   antivirus: *closed
-  # n8n, Caddy, the API and the internal checks.
+  # n8n, Caddy and the API.
   automatisations: *closed
   sortie-worker: {}
   # The signatures of the antivirus, for `freshclam` alone: clamd is not on it.
   sortie-antivirus: {}
   sortie-base: {}
-  sortie-alertes: {}
   # The automations of the firm, for n8n alone.
   sortie-n8n: {}
 
@@ -465,10 +397,7 @@ volumes:
   sauvegardes-locales:
   valkey-data:
   clamav-data:
-  gatus-data:
-  gatus-interne-data:
   loki-data:
-  grafana-data:
   n8n-data:
 
 # One file per container, owned by root, readable by the group of its container only (docs/deploiement.md).
@@ -481,6 +410,4 @@ secrets:
   pgbackrest: { file: /etc/legarec/pgbackrest.env }
   restauration: { file: /etc/legarec/restauration.env }
   valkey: { file: /etc/legarec/valkey.env }
-  gatus: { file: /etc/legarec/gatus.env }
-  grafana: { file: /etc/legarec/grafana.env }
   n8n: { file: /etc/legarec/n8n.env }

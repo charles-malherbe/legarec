@@ -4,7 +4,7 @@ FROM postgres:17.12@sha256:87c8b42f423b45d5247e6aa8fdb2e7762fec164c68a50fe3eb07e
 ARG MINIMUM=2.59.3
 # From the repository of PostgreSQL, already trusted by the image, which only keeps the latest versions: a minimum is checked.
 RUN apt-get update \
-  && apt-get install --yes --no-install-recommends pgbackrest ca-certificates curl \
+  && apt-get install --yes --no-install-recommends pgbackrest ca-certificates \
   && dpkg --compare-versions "$(dpkg-query --showformat='${Version}' --show pgbackrest)" ge "$MINIMUM" \
   && rm -rf /var/lib/apt/lists/* /etc/pgbackrest.conf \
   && install -d -o postgres -g postgres -m 700 /restauration /depot

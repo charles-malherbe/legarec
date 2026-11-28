@@ -1,4 +1,4 @@
-# Technical logs, kept for 60 days (question 115) then erased. Reached by the collector, Grafana and the monitoring only.
+# Technical logs, kept for 60 days (question 115) then erased. Reached by the collector only; read on the server.
 auth_enabled: false
 analytics:
   reporting_enabled: false

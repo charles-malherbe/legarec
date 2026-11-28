@@ -307,6 +307,8 @@ const signIn = (portal: 'staff' | 'partner'): Record<string, MatrixEntry> => {
 export const MATRIX: Record<string, MatrixEntry> = {
   'GET /health': { expect: everyone(200) },
 
+  // Nobody signs in: without the signature of Resend, the same refusal for all (`resend-events.test.ts`).
+  'POST /hooks/resend': { body: () => ({ type: 'email.delivered' }), expect: everyone(401) },
   ...signIn('staff'),
   ...signIn('partner'),
   'GET /staff/auth/session': { expect: staffOf(200) },

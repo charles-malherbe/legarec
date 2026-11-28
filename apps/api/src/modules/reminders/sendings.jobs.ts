@@ -107,19 +107,26 @@ async function factsOf(database: Database, vault: Vault, tx: Transaction, caseId
 }
 
 /**
+ * Beginning of every reason a line fails for once it has been taken, and of none other: a failed line says whether it ever
+ * left this machine (held by `keep_sending`). What the provider says afterwards is only believed of the first kind.
+ */
+export const PROVIDER_FAILURE = 'PROVIDER_';
+
+/**
  * A line that has not left fails, once: said in the history of the case and to the colleague who asked for it, without a
  * word of why beyond a code. `from` is the
  * state the caller knows it in: `QUEUED` for whatever stops it before it is taken (a line taken meanwhile is left alone:
  * nobody here knows what has left), `UNCERTAIN` for the one task that took it and heard the provider refuse.
  */
-async function markFailed(
+export async function markFailed(
   asApplication: Run,
   sending: string,
   caseId: string,
   failure: string,
   from: 'QUEUED' | 'UNCERTAIN',
 ): Promise<{ code: string; failed: boolean }> {
-  const code = CODE.test(failure) ? failure : 'SENDING_FAILED';
+  const taken = from === 'UNCERTAIN';
+  const code = CODE.test(failure) && failure.startsWith(PROVIDER_FAILURE) === taken ? failure : taken ? 'PROVIDER_FAILED' : 'SENDING_FAILED';
   const failed = await asApplication(async (tx) => {
     const { count } = await tx.sending.updateMany({ where: { id: sending, status: from }, data: { status: 'FAILED', failure: code } });
     if (count) {
@@ -132,7 +139,7 @@ async function markFailed(
   });
   return { code, failed };
 }
-const sentNote = (caseId: string, level: number | null) => (tx: Transaction) =>
+export const sentNote = (caseId: string, level: number | null) => (tx: Transaction) =>
   tx.$executeRaw`SELECT app.add_case_event(${caseId}::uuid, 'REMINDER_SENT', 'Relance envoyée', ${`E-mail · niveau ${level ?? 1}`}, 'info'::event_tone, false) WHERE app.case_writable(${caseId}::uuid)`;
 /** How long a sent line may stay without its event before the sweep writes it: far more than the two writes of a task take. */
 const UNSAID_MS = 2 * 60_000;
@@ -284,7 +291,7 @@ export function sendingJobs({
         }
         let ref: string;
         try {
-          ({ ref } = await resend.send(key, message, `sending/${sending}`));
+          ({ ref } = await resend.send(key, message, `sending/${sending}`, sending));
         } catch (error) {
           if (error instanceof ProviderRefused) return fail(asApplication, sending, caseId, error.code, 'UNCERTAIN');
           // Nothing clear came back: the line stays uncertain, and so does its task.

@@ -77,6 +77,8 @@ interface Line {
   level: number | null;
   status: string;
   sentAt: Date | null;
+  /** The provider itself said that the message had left (webhooks of Resend). */
+  confirmedAt: Date | null;
   createdAt: Date;
 }
 type Chosen = { contactId: string; template: Template } | SendingRefusal;
@@ -92,6 +94,11 @@ interface Rules {
 
 /** Nobody knows whether it has left, and nothing tells it later: it holds the case for a time only (question 220). */
 const stillUncertain = (line: Line, now: Date) => line.status === 'UNCERTAIN' && now.getTime() - line.createdAt.getTime() < UNCERTAIN_MS;
+/**
+ * A line that has failed and yet has left, by the word of the provider itself: it keeps its status for ever, and counts as
+ * one that has left, so that the same level never leaves twice in its name.
+ */
+const failed = (line: Line) => line.status === 'FAILED' && !line.confirmedAt;
 /** A line that waits, or whose fate is unknown since less than two days: nothing more is asked for the case meanwhile. */
 const pending = (lines: readonly Line[], now: Date) =>
   lines.some((line) => line.channel === 'EMAIL' && (line.status === 'QUEUED' || stillUncertain(line, now)));
@@ -101,13 +108,13 @@ const pending = (lines: readonly Line[], now: Date) =>
  * Nothing once a formal notice is in the story of the case, whatever its channel, in the lines or on the case itself.
  */
 function nextInBatch(found: Found, lines: readonly Line[], now: Date): BatchTemplate | SendingRefusal {
-  if (found.status === 'FORMAL_NOTICE' || found.formalNoticeOn || lines.some((line) => line.template === 'FORMAL_NOTICE' && line.status !== 'FAILED'))
+  if (found.status === 'FORMAL_NOTICE' || found.formalNoticeOn || lines.some((line) => line.template === 'FORMAL_NOTICE' && !failed(line)))
     return 'NO_NEXT_REMINDER';
-  const left = lines.filter((line) => line.channel === 'EMAIL' && (line.status === 'SENT' || line.status === 'UNCERTAIN'));
+  const left = lines.filter((line) => line.channel === 'EMAIL' && line.status !== 'QUEUED' && !failed(line));
   const highest = Math.max(0, ...left.map((line) => line.level ?? 0));
   const template = NEXT_IN_BATCH[highest];
   if (!template) return 'NO_NEXT_REMINDER';
-  const last = Math.max(0, ...left.map((line) => (line.sentAt ?? line.createdAt).getTime()));
+  const last = Math.max(0, ...left.map((line) => (line.sentAt ?? line.confirmedAt ?? line.createdAt).getTime()));
   return now.getTime() - last < GAP_MS ? 'TOO_SOON' : template;
 }
 
@@ -167,7 +174,7 @@ export class SendingsService {
     const lines = new Map<string, Line[]>();
     for (const line of await tx.sending.findMany({
       where: { caseId: { in: wanted } },
-      select: { caseId: true, channel: true, template: true, level: true, status: true, sentAt: true, createdAt: true },
+      select: { caseId: true, channel: true, template: true, level: true, status: true, sentAt: true, confirmedAt: true, createdAt: true },
     }))
       lines.set(line.caseId, [...(lines.get(line.caseId) ?? []), line]);
     return {
@@ -284,7 +291,7 @@ export class SendingsService {
     const lines = new Map<string, Line[]>();
     for (const line of await tx.sending.findMany({
       where: { caseId: { in: open.map((found) => found.id) } },
-      select: { caseId: true, channel: true, template: true, level: true, status: true, sentAt: true, createdAt: true },
+      select: { caseId: true, channel: true, template: true, level: true, status: true, sentAt: true, confirmedAt: true, createdAt: true },
     }))
       lines.set(line.caseId, [...(lines.get(line.caseId) ?? []), line]);
     const data: { caseId: string; creditorId: string; channel: 'EMAIL'; template: Template; level: number; contactId: string }[] = [];

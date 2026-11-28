@@ -2,9 +2,11 @@ import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule, type AppParts } from './app.module';
 import { openRequest } from './platform/http/context';
+import { portalOf } from './platform/http/origin';
 import { jsonOnly, portalsOnly, securityHeaders } from './platform/http/security';
 import { accessLog } from './platform/logging/access-log';
 import { FILE_MAX_BYTES } from './platform/storage/storage';
+import { HOOK_MAX_BYTES } from '@legarec/contracts';
 
 /** Routes whose body is a file. */
 export const UPLOADS = [/^\/staff\/documents\/import$/u, /^\/debtor\/attachments$/u, /^\/partner\/portal\/attachments$/u, /^\/partner\/portal\/imports$/u];
@@ -23,6 +25,8 @@ export async function createApp(parts: AppParts): Promise<NestExpressApplication
   // The address of the caller is the one set by Caddy, and by nobody else.
   app.set('trust proxy', parts.config.TRUSTED_PROXIES);
   app.use(accessLog(parts.logger), openRequest, securityHeaders, portalsOnly(parts.config), jsonOnly(UPLOADS));
+  // An event of a provider is signed on its bytes: kept as they came, whatever type is announced, and small.
+  app.useBodyParser('raw', { limit: HOOK_MAX_BYTES, type: (request) => portalOf((request as { path?: string }).path ?? '') === 'hook' });
   app.useBodyParser('json', { limit: '1mb', type: 'application/json' });
   // A file is the whole body, up to 15 Mo, on the routes that expect one.
   app.useBodyParser('raw', { limit: FILE_MAX_BYTES, type: (request) => UPLOADS.some((pattern) => pattern.test((request as { path?: string }).path ?? '')) });

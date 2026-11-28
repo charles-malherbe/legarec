@@ -19,9 +19,7 @@ Première partie du lot X. Fichiers préparés par Claude Code, vérifiés par G
 | `valkey` | Files d'attente | 10115 | 512 Mo | non |
 | `clamav` | Antivirus des fichiers reçus (clamd), joint par le worker seul | 10116 | 2 Go | non |
 | `freshclam` | Mise à jour des signatures de l'antivirus (même image) | 10116 | 384 Mo | oui (signatures) |
-| `gatus` | Page d'état publique | 10111 | 96 Mo | non |
-| `gatus-interne` | Contrôles internes et alertes | 10111 | 96 Mo | oui (alertes, contrôle du bucket des documents) |
-| `journaux`, `loki`, `grafana` | Journaux techniques, 60 jours | 10113, 10001, 10114 | 96, 384 et 320 Mo | non |
+| `journaux`, `loki` | Journaux techniques, 60 jours | 10113, 10001 | 96 et 384 Mo | non |
 | `n8n` | Automatisations (`n8n.legarec.fr`, adresses du cabinet seulement), joint Caddy, l'API et les contrôles internes | 10117 | 1 Go | oui (services appelés par les automatisations) |
 
 Conteneurs permanents : 8,3 Go au plus, dont 2,4 Go pour ClamAV et 1 Go pour n8n. Aucun conteneur ne tourne en root, ni sous le compte 1000 (premier compte du serveur). Systèmes de fichiers en lecture seule, aucun droit Linux, réseaux séparés et fermés au serveur lui-même : un portail ne joint pas la base, n8n ne joint de Legarec que l'API, et un autre compte du serveur ne joint ni l'API, ni Loki, ni la base.
@@ -31,7 +29,7 @@ Conteneurs permanents : 8,3 Go au plus, dont 2,4 Go pour ClamAV et 1 Go pour n8n
 | `docker-compose.yml`, `infra/docker/` | Conteneurs et images |
 | `infra/caddy/` | Proxy et serveur des portails |
 | `infra/postgres/`, `infra/valkey/` | Base, sauvegardes, files |
-| `infra/gatus/`, `infra/loki/`, `infra/grafana/` | Surveillance et journaux |
+| `infra/loki/`, `infra/hyperping/` | Journaux et surveillance |
 | `infra/systemd/` | Minuteries des sauvegardes, de leur vérification et de l'essai de restauration |
 | `infra/valeurs/` | Modèles des fichiers de `/etc/legarec/` (noms seulement) |
 | `infra/deployer.sh` | Déploiement, lancé par le cabinet |
@@ -59,12 +57,21 @@ Conteneurs permanents : 8,3 Go au plus, dont 2,4 Go pour ClamAV et 1 Go pour n8n
 Décision du 26/11/2026, au lieu de Scaleway. Adresse du service : `s3.eu-west-par.io.cloud.ovh.net` (déjà écrite dans les modèles de `infra/valeurs/`, avec la région). Sauvegardes chez le même fournisseur que le serveur, sans seconde copie : risque accepté par le cabinet (question 167).
 - [ ] Bucket `legarec-sauvegardes`, privé, versions activées, **clé propre à ce bucket**. Politique du bucket : cette clé ne peut ni effacer une version, ni couper les versions, ni changer le cycle de vie ; seconde clé, en lecture seule, pour l'essai de restauration.
 - [ ] Règle de cycle de vie : versions remplacées ou supprimées effacées après 7 jours.
-- [ ] Bucket `legarec-documents`, privé, multi-zones (décision du 26/11/2026), liste du contenu fermée au public, versions activées, règle de cycle de vie : versions remplacées ou supprimées effacées après 70 jours (question 115). Avec les versions, une suppression par l'application (purge, fichier infecté, fichier sans ligne) ne pose qu'un marqueur : l'objet ne disparaît vraiment qu'à l'échéance de cette règle, qui doit donc être en place avant le premier dépôt. **Clé propre à ce bucket** : lire, écrire et supprimer un objet, et lister le bucket (sans ce dernier droit, S3 répond « refusé » au lieu de « absent » pour un fichier qui n'y est pas, et l'application ne lirait plus les fichiers restés sur le disque). À créer dès maintenant, même vide : Gatus le surveille (« Bucket des documents », plus bas).
+- [ ] Bucket `legarec-documents`, privé, multi-zones (décision du 26/11/2026), liste du contenu fermée au public, versions activées, règle de cycle de vie : versions remplacées ou supprimées effacées après 70 jours (question 115). Avec les versions, une suppression par l'application (purge, fichier infecté, fichier sans ligne) ne pose qu'un marqueur : l'objet ne disparaît vraiment qu'à l'échéance de cette règle, qui doit donc être en place avant le premier dépôt. **Clé propre à ce bucket** : lire, écrire et supprimer un objet, et lister le bucket (sans ce dernier droit, S3 répond « refusé » au lieu de « absent » pour un fichier qui n'y est pas, et l'application ne lirait plus les fichiers restés sur le disque). À créer dès maintenant, même vide.
 - [ ] Bucket `legarec-media`, public en lecture, liste du contenu désactivée, avec le contenu de `infra/media` déposé aux mêmes chemins (logos des e-mails, fichiers du kit média). En attendant, et chaque fois que le bucket ne répond pas ou n'a pas le fichier, Caddy sert la copie de `infra/media` gardée dans son image (décision du 27/11/2026). Un nouveau fichier public va dans `infra/media` sous un chemin versionné, puis dans le bucket.
 - [ ] Bucket `legarec-enregistrements` (lot T), privé, liste du contenu désactivée, versions activées (question 165), règles de cycle de vie : versions remplacées ou supprimées effacées après 7 jours, suppression après 190 jours ; **clé propre à ce bucket**, qui ne peut ni effacer une version ni changer les règles.
 
 ### Resend
 - [ ] Clé dédiée aux alertes, droit d'envoi seulement, domaine `mail.legarec.fr`.
+- [ ] **Webhook des relances** (suivi de la distribution, des rebonds et des plaintes ; règle un envoi « incertain »). À faire par le cabinet, une fois l'API en ligne :
+  1. Resend > Webhooks > « Add Webhook ». Adresse : `https://api.legarec.fr/hooks/resend`.
+  2. Événements à cocher : `email.sent`, `email.delivered`, `email.delivery_delayed`, `email.bounced`, `email.complained`, `email.failed`, `email.suppressed`. **Ne pas cocher** `email.opened` ni `email.clicked` : ils ne sont pas suivis (question 225) ; cochés par erreur, ils sont reçus et ignorés. Laisser coupé, de même, le suivi des ouvertures et des clics du domaine (Resend > Domains, coupé par défaut) : il vaudrait pour tous les e-mails du domaine, e-mails de compte compris (question 217).
+  3. Copier le secret de signature du webhook (`whsec_…`) **en entier**, `whsec_` compris, sans espace ni retour à la ligne, et le coller dans Paramètres techniques > Secrets, sous `RESEND_WEBHOOK_SECRET` (« Resend (webhooks) »). Il ne va dans aucun fichier du serveur. Un secret mal copié n'est pas signalé à la saisie : tous les événements sont alors refusés (401), comme sans secret (étape 4) ; l'essai de l'étape 6 le montre.
+  4. Tant que ce secret n'est pas saisi, l'API **refuse tous les événements** (401) : Resend réessaie pendant environ une journée (délais croissants), puis désactive le webhook et prévient par e-mail ; le réactiver alors chez Resend. Mieux vaut donc saisir le secret aussitôt le webhook créé.
+  5. Renouvellement : « Rotate » chez Resend (l'ancien secret signe encore 24 heures), puis saisir le nouveau dans Secrets.
+  6. Essai : envoyer une relance à `delivered@resend.dev` depuis un dossier d'essai ; l'historique du dossier doit dire « Relance distribuée » dans les minutes qui suivent. Avec `bounced@resend.dev`, l'adresse du dossier passe à « Invalide » (question 224).
+  - Caddy : rien à changer. `infra/caddy/Caddyfile` laisse passer `/hooks/*` vers l'API (seul `/service` est fermé), comme le Caddyfile de référence du kit ; ses journaux ne gardent que `/hooks`. Pas de filtrage par adresse IP : c'est la signature qui authentifie (Resend publie ses adresses d'envoi, si le cabinet veut un jour les imposer dans Caddy).
+  - Un seul webhook par environnement. Un événement qui désigne un envoi d'un autre environnement est ignoré : son étiquette `sending_id` n'existe pas ici. Sauf pour une **copie de la base de production** (restauration d'essai, préproduction) : elle porte les mêmes identifiants. Une telle copie **n'envoie jamais avec une clé de l'équipe Resend de la production** : les événements de ses messages arriveraient au webhook de la production (et inversement), et le premier qui porterait l'étiquette d'un envoi « incertain » le trancherait. Pour essayer des envois depuis une copie : une autre équipe Resend, avec sa clé et son webhook.
 
 ## Valeurs à fournir
 
@@ -74,14 +81,12 @@ Un fichier par conteneur dans `/etc/legarec/`, d'après `infra/valeurs/*.exemple
 |---|---|---|
 | `caddy.env` | 10110 | `ACME_EMAIL`, `AUTHORIZED_IPS` (adresses du cabinet, séparées par une espace), `S3_REGION` (`eu-west-par`, déjà écrite) |
 | `api.env` | 10101 | `DATABASE_URL`, `VALKEY_URL`, `VAULT_MASTER_KEY`, `SESSION_SIGNING_KEY`, adresses des portails, `MYSENDINGBOX_ENV` ; plus tard `S3_DOCUMENTS_BUCKET` et `S3_REGION` (« Bucket des documents ») |
-| `worker.env` | 10102 | `JOBS_DATABASE_URL`, les mêmes `VALKEY_URL`, `VAULT_MASTER_KEY` et `SESSION_SIGNING_KEY`, `GATUS_PUSH_URL`, `GATUS_PUSH_TOKEN`, `RESEND_ENV` (`test` par défaut : les relances ne partent que vers les adresses d'essai `@resend.dev` ; `production` à la mise en service, pour écrire aux débiteurs) ; plus tard les mêmes `S3_DOCUMENTS_BUCKET` et `S3_REGION` que `api.env` |
+| `worker.env` | 10102 | `JOBS_DATABASE_URL`, les mêmes `VALKEY_URL`, `VAULT_MASTER_KEY` et `SESSION_SIGNING_KEY`, `RESEND_ENV` (`test` par défaut : les relances ne partent que vers les adresses d'essai `@resend.dev` ; `production` à la mise en service, pour écrire aux débiteurs) ; plus tard les mêmes `S3_DOCUMENTS_BUCKET` et `S3_REGION` que `api.env` |
 | `migration.env` | 10104 | `MIGRATION_DATABASE_URL` |
 | `postgres.env` | 999 | `POSTGRES_PASSWORD`, `LEGAREC_OWNER_PASSWORD`, `LEGAREC_APP_PASSWORD`, `LEGAREC_JOBS_PASSWORD` |
-| `pgbackrest.env` | 999 | `PGBACKREST_REPO1_S3_REGION`, `PGBACKREST_REPO1_S3_ENDPOINT`, `PGBACKREST_REPO1_S3_KEY`, `PGBACKREST_REPO1_S3_KEY_SECRET`, `PGBACKREST_REPO1_CIPHER_PASS`, `GATUS_PUSH_TOKEN` |
+| `pgbackrest.env` | 999 | `PGBACKREST_REPO1_S3_REGION`, `PGBACKREST_REPO1_S3_ENDPOINT`, `PGBACKREST_REPO1_S3_KEY`, `PGBACKREST_REPO1_S3_KEY_SECRET`, `PGBACKREST_REPO1_CIPHER_PASS` |
 | `restauration.env` | 999 | Les mêmes noms que `pgbackrest.env`, avec la clé en lecture seule |
 | `valkey.env` | 10115 | `VALKEY_PASSWORD` |
-| `gatus.env` | 10111 | `GATUS_ALERT_KEY`, `GATUS_ALERT_TO`, `GATUS_WORKER_TOKEN`, `GATUS_BACKUP_TOKEN`, `GATUS_RESTORE_TOKEN`, `S3_REGION` (`eu-west-par`, déjà écrite) |
-| `grafana.env` | 10114 | `GF_SECURITY_ADMIN_PASSWORD`, `GF_SECURITY_SECRET_KEY` |
 | `n8n.env` | 10117 | `N8N_ENCRYPTION_KEY` : celle de l'ancien n8n s'il est repris (« n8n », plus bas), sinon `openssl rand -hex 32` |
 | `hyperping.env` (facultatif) | root, 600 | `HYPERPING_PING_SAUVEGARDE`, `HYPERPING_PING_RESTAURATION` (« Healthchecks », plus bas) |
 
@@ -99,13 +104,13 @@ sudo install -d -o 10113 -g 10113 -m 700 /var/lib/legarec/journaux
 sudo install -d -o 10101 -g 10120 -m 2770 /var/lib/legarec/documents
 ```
 
-Fichiers et valeurs internes, en une fois : `infra/tirer-valeurs.sh` crée les fichiers absents depuis leurs modèles (propriétaire et groupe du tableau), puis tire les mots de passe, les jetons, les clés du coffre et des sessions et la phrase des sauvegardes, et les recopie là où ils reviennent (adresses de la base et de Valkey, `GATUS_PUSH_TOKEN`, même clé pour l'API et le worker, même phrase pour la sauvegarde et la restauration). Il ne remplit qu'une ligne vide : une valeur déjà écrite est gardée, et ce qui en dépend la suit ; deux valeurs qui devraient être identiques et ne le sont pas l'arrêtent. Il n'affiche que des noms, jamais une valeur, et peut être relancé sans risque.
+Fichiers et valeurs internes, en une fois : `infra/tirer-valeurs.sh` crée les fichiers absents depuis leurs modèles (propriétaire et groupe du tableau), puis tire les mots de passe, les jetons, les clés du coffre et des sessions et la phrase des sauvegardes, et les recopie là où ils reviennent (adresses de la base et de Valkey, même clé pour l'API et le worker, même phrase pour la sauvegarde et la restauration). Il ne remplit qu'une ligne vide : une valeur déjà écrite est gardée, et ce qui en dépend la suit ; deux valeurs qui devraient être identiques et ne le sont pas l'arrêtent. Il n'affiche que des noms, jamais une valeur, et peut être relancé sans risque.
 
 ```bash
 sudo /opt/legarec/infra/tirer-valeurs.sh
 ```
 
-Il liste à la fin ce qui reste à écrire à la main (`sudo nano /etc/legarec/<nom>.env`), les valeurs venues de l'extérieur : `ACME_EMAIL` et `AUTHORIZED_IPS` (`caddy.env`), `GATUS_ALERT_KEY` et `GATUS_ALERT_TO` (`gatus.env`), les clés S3 de `pgbackrest.env` et de `restauration.env`, et `N8N_ENCRYPTION_KEY`, reprise de l'ancien n8n (« n8n », plus bas) ; sans ancien n8n à reprendre, `--n8n-neuf` la tire aussi. Sans bucket pour l'instant, `--sauvegardes-locales` met les sauvegardes sur le disque du serveur, et les clés S3 ne sont plus demandées (« Sauvegardes locales », plus bas). Puis copie de toutes les valeurs dans le gestionnaire de mots de passe : `VAULT_MASTER_KEY` perdue, les secrets saisis dans l'application le sont aussi.
+Il liste à la fin ce qui reste à écrire à la main (`sudo nano /etc/legarec/<nom>.env`), les valeurs venues de l'extérieur : `ACME_EMAIL` et `AUTHORIZED_IPS` (`caddy.env`), les clés S3 de `pgbackrest.env` et de `restauration.env`, et `N8N_ENCRYPTION_KEY`, reprise de l'ancien n8n (« n8n », plus bas) ; sans ancien n8n à reprendre, `--n8n-neuf` la tire aussi. Sans bucket pour l'instant, `--sauvegardes-locales` met les sauvegardes sur le disque du serveur, et les clés S3 ne sont plus demandées (« Sauvegardes locales », plus bas). Puis copie de toutes les valeurs dans le gestionnaire de mots de passe : `VAULT_MASTER_KEY` perdue, les secrets saisis dans l'application le sont aussi.
 
 À la main, pour un seul fichier (exemple : `api`, groupe 10101) :
 
@@ -115,9 +120,7 @@ sudo install -o root -g 10101 -m 640 /opt/legarec/infra/valeurs/api.env.exemple 
 
 - Mots de passe et jetons : `openssl rand -hex 32`, sauf `VAULT_MASTER_KEY` et `SESSION_SIGNING_KEY` : `openssl rand -base64 32`.
 - Trois mots de passe PostgreSQL différents, repris dans les adresses : `postgresql://legarec_app:…@postgres:5432/legarec` (API), `legarec_jobs` (worker), `legarec_owner` (migrations). Valkey : `redis://:…@valkey:6379/0`.
-- Jetons de surveillance : trois différents dans `gatus.env`, chacun repris sous le nom `GATUS_PUSH_TOKEN` dans `worker.env`, `pgbackrest.env` ou `restauration.env`.
 - Une valeur vide ou encore entre crochets arrête le déploiement.
-- `gatus.env` : la ligne `S3_REGION=eu-west-par` est obligatoire depuis le contrôle du bucket des documents ; un fichier créé avant ce contrôle doit la recevoir, sinon `gatus-interne` ne démarre pas (« Missing value: S3_REGION ») et le déploiement s'arrête.
 - Raccourci utilisé plus bas, à taper une fois par session :
 
   ```bash
@@ -159,7 +162,7 @@ sudo install -o root -g 10101 -m 640 /opt/legarec/infra/valeurs/api.env.exemple 
    legarec exec worker node --env-file=/run/secrets/worker dist/account.js director
    ```
 
-6. Clé Resend, puis les autres clés, dans Paramètres techniques > Secrets.
+6. Clé Resend, puis les autres clés, dans Paramètres techniques > Secrets ; puis le webhook Resend et son secret `RESEND_WEBHOOK_SECRET` (« Resend », plus haut).
 7. Invitations des collaborateurs, puis des créanciers.
 
 Déploiements suivants : `sudo git -C /opt/legarec checkout main`, `sudo git -C /opt/legarec pull --ff-only`, puis l'étape 2. Pendant les migrations, l'ancienne version répond encore : une migration doit rester compatible avec elle.
@@ -230,8 +233,7 @@ Après le premier déploiement, puis après chaque changement de ces fichiers.
 - [ ] Les trois portails s'ouvrent en HTTPS, cadenas valide, aucune erreur dans la console du navigateur.
 - [ ] `http://` et `www.` mènent à l'adresse en `https://` sans `www`.
 - [ ] `https://api.legarec.fr/health` répond ; `https://api.legarec.fr/service/x` répond 404.
-- [ ] Depuis un téléphone hors du Wi-Fi du cabinet : `n8n.legarec.fr` et `status.legarec.fr/journaux` répondent 403 ; `status.legarec.fr` ne montre que les portails et l'API.
-- [ ] Depuis le cabinet : `status.legarec.fr` montre aussi sauvegardes, worker et journaux ; `status.legarec.fr/journaux` demande un mot de passe.
+- [ ] Depuis un téléphone hors du Wi-Fi du cabinet : `n8n.legarec.fr` répond 403.
 - [ ] En IPv4 et en IPv6 : deux appareils de réseaux différents sont vus avec deux adresses différentes (journal d'audit).
 
 **Sauvegardes**
@@ -242,7 +244,7 @@ Après le premier déploiement, puis après chaque changement de ces fichiers.
 **Surveillance**
 - [ ] `legarec stop worker` : alerte reçue en moins de 10 minutes ; `legarec start worker` : message de rétablissement.
 - [ ] Contrôle « Documents » en vert dans les contrôles internes (le bucket `legarec-documents` répond 403 à un inconnu). En rouge : bucket pas encore créé, autre région, ou réponse d'OVHcloud différente de celle attendue (jamais essayé, « Bucket des documents »).
-- [ ] Journaux visibles dans Grafana ; chercher un nom, un e-mail, une référence et un lien de courrier connus : aucun résultat.
+- [ ] Journaux lus sur le serveur (« Lire les journaux », ci-dessous) ; chercher un nom, un e-mail, une référence et un lien de courrier connus : aucun résultat.
 
 **Serveur**
 - [ ] `legarec ps` : tous en marche ; seul `caddy` publie des ports.
@@ -266,9 +268,11 @@ Journaux : ni adresse IP, ni chemin, ni en-tête dans ceux de Caddy ; ni requêt
 
 ## Choix faits, à connaître
 - **Valeurs lues dans un fichier monté**, jamais dans l'environnement du conteneur : `docker inspect` ne montre rien. `pgbackrest.env` est monté dans deux conteneurs, seule exception : c'est PostgreSQL qui envoie son journal.
-- **Contrôles internes** : un compte du serveur peut lire leurs noms et leur état (réseau de sortie des alertes) ; écrire demande un jeton.
-- **Deux Gatus** : Gatus ne sait pas cacher un contrôle à certains visiteurs. Caddy montre l'un ou l'autre selon l'adresse IP.
-- **Grafana** : `status.legarec.fr/journaux`, depuis les adresses du cabinet (aucun nouveau domaine).
+- **Journaux sans écran** (28/11/2026) : ni Grafana ni `status.legarec.fr`. Loki les garde 60 jours ; ils se lisent sur le serveur, par un conteneur de passage de l'image du worker posé sur le seul réseau des journaux :
+
+  ```bash
+  cd /opt/legarec && sudo docker run --rm --network legarec-app_journaux --entrypoint node "legarec/worker:$(sed -n 's/^LEGAREC_VERSION=//p' /etc/legarec/version.env)" -e "fetch('http://loki:3100/loki/api/v1/query_range?limit=200&query=' + encodeURIComponent(process.argv[1])).then((r) => r.text()).then((t) => process.stdout.write(t))" '{application="legarec",container=~".*api.*"}'
+  ```
 - **Journaux** : Docker les remet à un collecteur par un fichier de communication propre à Legarec ; ni accès à Docker, ni lecture des autres conteneurs du serveur.
 - **Images construites sur le serveur**, rien n'est publié. Chaque version porte le numéro du commit.
 - **Bucket injoignable** : le journal de PostgreSQL attend sur le disque, 8 Go au plus (près de 2 jours à plein débit), puis il est abandonné plutôt que de remplir le disque ; l'alerte arrive avant (26 heures sans sauvegarde).
@@ -299,9 +303,9 @@ Décision du 27/11/2026 : mise en service possible avant le bucket `legarec-sauv
 
 ## Surveillance externe (Hyperping)
 
-Gatus tourne sur le serveur qu'il surveille : si le serveur, son réseau ou Caddy tombe, Gatus tombe avec lui. Hyperping (app.hyperping.io) regarde les mêmes adresses publiques depuis l'extérieur (Paris, Francfort, Londres, Amsterdam), toutes les 5 minutes, avec l'échéance des certificats (alerte 15 jours avant).
+Seule surveillance depuis le retrait de Gatus (28/11/2026). Hyperping (app.hyperping.io) regarde les adresses publiques depuis l'extérieur (Paris, Francfort, Londres, Amsterdam), toutes les 5 minutes, avec l'échéance des certificats (alerte 15 jours avant).
 
-- Moniteurs : `infra/hyperping/moniteurs.json` (espace, partenaires, paiement, `api.legarec.fr/health` avec `"status":"ok"`, page d'état). Ni donnée personnelle ni secret.
+- Moniteurs : `infra/hyperping/moniteurs.json` (espace, partenaires, paiement, `api.legarec.fr/health` avec `"status":"ok"`). Le moniteur « Legarec · Page d'état » d'un compte déjà mis en place est à supprimer à la main dans Hyperping : le script ne supprime rien. Ni donnée personnelle ni secret.
 - Mise en place ou changement, par le cabinet, depuis une copie à jour du dépôt :
 
   ```bash
@@ -311,10 +315,10 @@ Gatus tourne sur le serveur qu'il surveille : si le serveur, son réseau ou Cadd
   Le script demande la clé API (Project settings › Developers › Create key, « Read & Write ») sans l'afficher, puis crée ou met à jour chaque moniteur par son identifiant : il peut être relancé sans créer de doublon. La clé n'est écrite nulle part ; à créer avec une expiration, ou à révoquer après usage.
 - Essai sans clé ni appel : `node infra/hyperping/provisionner.mjs --essai`.
 - Alertes : celles du compte Hyperping (e-mail du compte, à régler dans Hyperping) ; aucune donnée ne part vers Hyperping hors des adresses surveillées.
-- Tant que HTTPS ne répond pas (certificats absents), les cinq moniteurs sont en panne : c'est attendu.
+- Tant que HTTPS ne répond pas (certificats absents), les quatre moniteurs sont en panne : c'est attendu.
 
 ### Healthchecks (tâches du serveur)
-Gatus surveille déjà les sauvegardes et l'essai de restauration, mais depuis le serveur. Deux healthchecks Hyperping en sont le second témoin, hors du serveur : chaque tâche réussie envoie un ping (`infra/hyperping/signaler`, après le succès seulement), et Hyperping prévient quand il n'arrive plus.
+Deux healthchecks Hyperping surveillent les sauvegardes et l'essai de restauration, hors du serveur : chaque tâche réussie envoie un ping (`infra/hyperping/signaler`, après le succès seulement), et Hyperping prévient quand il n'arrive plus.
 
 | Healthcheck (Hyperping › Healthchecks › New) | Période | Délai de grâce | Envoyé par | Variable |
 |---|---|---|---|---|
@@ -346,7 +350,7 @@ Le fichier est facultatif : sans lui, ou avec une ligne vide, rien ne part et la
 
 ## Documents et PDF (lot N)
 - **Dossier des documents** : `/var/lib/legarec/documents`, propriétaire 10101, groupe 10120, droits 2770 (à créer avant le premier déploiement ; `deployer.sh` le vérifie). L'API et le worker y écrivent et y lisent par ce groupe commun ; aucun autre conteneur ne le voit. Monté sur `/documents` (`DOCUMENTS_DIR`). À sauvegarder avec la base (copie quotidienne du dossier) tant que le bucket n'est pas en service, puis tant qu'il reste des fichiers dans ce dossier (« Bucket des documents »).
-- **Fichiers sans ligne** : chaque nuit à 4 h 30, le worker efface du dossier (et du bucket quand il est en service) les fichiers qu'aucune ligne de la base ne désigne : dépôt dont l'enregistrement a échoué, programme arrêté au mauvais moment. Dans le doute, il n'efface pas. Garde-fous : jamais un fichier de moins de **7 jours** (question 230) ; jamais un nom qui n'est pas une clé à sa place (`xx/<clé>`), compté et laissé ; **100 fichiers au plus par nuit**, un seul essai par nuit ; **rien n'est effacé**, et la tâche échoue (erreur `kind: orphan-files` dans le journal du worker, avec `TOO_MANY`, `TOO_LARGE_A_SHARE` ou `NO_ROW_HELD`), s'il y a plus de 20 fichiers sans ligne, ou plus de fichiers sans ligne qu'avec, ou si la base ne détient aucun des fichiers (question 231). Le journal ne porte que des nombres ; il avertit (`warn`) dès qu'un fichier de plus de 7 jours est sans ligne. Aucune alerte Gatus pour l'instant : c'est le journal du worker qu'il faut lire.
+- **Fichiers sans ligne** : chaque nuit à 4 h 30, le worker efface du dossier (et du bucket quand il est en service) les fichiers qu'aucune ligne de la base ne désigne : dépôt dont l'enregistrement a échoué, programme arrêté au mauvais moment. Dans le doute, il n'efface pas. Garde-fous : jamais un fichier de moins de **7 jours** (question 230) ; jamais un nom qui n'est pas une clé à sa place (`xx/<clé>`), compté et laissé ; **100 fichiers au plus par nuit**, un seul essai par nuit ; **rien n'est effacé**, et la tâche échoue (erreur `kind: orphan-files` dans le journal du worker, avec `TOO_MANY`, `TOO_LARGE_A_SHARE` ou `NO_ROW_HELD`), s'il y a plus de 20 fichiers sans ligne, ou plus de fichiers sans ligne qu'avec, ou si la base ne détient aucun des fichiers (question 231). Le journal ne porte que des nombres ; il avertit (`warn`) dès qu'un fichier de plus de 7 jours est sans ligne. Aucune alerte pour l'instant : c'est le journal du worker qu'il faut lire.
   - Compter, sans rien effacer : `legarec run --rm --no-deps worker node --env-file=/run/secrets/worker dist/sweep-files.js`. La commande dit combien de fichiers sont sans ligne, combien sont trop récents, combien de noms sont inconnus, et si l'effacement de la nuit est suspendu.
   - Effacer après avoir regardé, au-delà de l'alarme de la nuit : la même commande suivie de `--erase <nombre>`, où `<nombre>` est le nombre de fichiers sans ligne que le comptage vient d'afficher ; tout autre nombre est refusé. 100 fichiers au plus à chaque fois, toujours aucun fichier de moins de 7 jours ; la commande dit combien il en reste et quoi taper. Chaque effacement forcé est inscrit (`orphan-files-forced` dans `retention_runs`, et au journal). **Si la base ne détient aucun des fichiers, la commande refuse aussi** : ce n'est pas la base de ce dossier, vérifier `DOCUMENTS_DIR` et la base avant toute chose.
   - **Après une restauration de la base** : la purge de l'étape 6 a suspendu l'effacement de la nuit. Les fichiers reçus entre l'instant restauré et l'arrêt n'ont plus de ligne et ne sont plus visibles dans l'application ; tant que la suspension dure, aucun n'est effacé, quel que soit leur âge. À faire, sans délai imposé : compter ; copier à part ceux qui doivent être redéposés (pièce d'un créancier, justificatif d'un débiteur : les fichiers de `/var/lib/legarec/documents` dont la date est postérieure à l'instant restauré) ; effacer le reste avec `--erase <nombre>` (seuls les fichiers de plus de 7 jours partent) ou laisser la nuit le faire ; puis lever la suspension : la même commande suivie de `--resume`. Une fois levée, la nuit reprend avec ses garde-fous : plus de 20 fichiers sans ligne, elle refuse encore et il faut `--erase`.
@@ -359,12 +363,12 @@ Le fichier est facultatif : sans lui, ou avec une ligne vide, rien ne part et la
 - **Réseaux** : `clamav` est sur `antivirus` seul, fermé, partagé avec le worker seul (`CLAMAV_URL=tcp://clamav:3310`, écrit dans `docker-compose.yml` : ce n'est pas un secret) ; ni l'API, ni un portail, ni `freshclam`, ni un autre compte du serveur ne le joignent. `freshclam` est sur `sortie-antivirus` seul, pour télécharger les signatures (`database.clamav.net`) ; ce réseau n'est pas limité à cette adresse : c'est le conteneur qui ne fait rien d'autre.
 - **Signatures** : celles du jour de publication de l'image sont dans l'image et sont copiées dans le volume `clamav-data` à sa création, donc clamd démarre sans Internet. `freshclam` les met à jour une fois par jour dans ce volume ; clamd, qu'il ne peut pas prévenir, regarde toutes les 10 minutes (`SelfCheck 600`) et recharge ce qui a changé. Démarrage et rechargement : une à plusieurs minutes, pendant lesquelles les fichiers reçus attendent. **Volume vidé à la main** : clamd ne démarre pas sans signatures, et son script tenterait un téléchargement qu'il ne peut plus faire ; lancer d'abord `legarec up -d freshclam`, attendre la fin du téléchargement dans son journal, puis `legarec up -d clamav`. `freshclam` n'a pas de contrôle de santé (celui de l'image interroge clamd) : des signatures qui ne se mettent plus à jour ne déclenchent aucune alerte, à regarder dans son journal.
 - **Archive au-delà des limites d'analyse** (taille, profondeur, nombre de fichiers) : `AlertExceedsMax yes`, clamd répond « FOUND » et non « OK » ; le fichier est alors traité comme infecté (« Bloqué par l’antivirus », fichier effacé), jamais comme sain.
-- **Antivirus arrêté ou injoignable** : rien ne se perd et rien ne se lit ; la tâche d'analyse est retentée (`ANTIVIRUS_UNAVAILABLE` ; `STORAGE_UNAVAILABLE` quand c'est le fichier qui ne se lit ou ne s'efface pas), le document reste « analyse antivirus en cours ». Un fichier trouvé infecté est effacé par la même tâche, retentée jusqu'à ce que l'effacement réussisse. Aucune alerte Gatus ne signale clamd arrêté (ci-dessous, « Le reste »).
+- **Antivirus arrêté ou injoignable** : rien ne se perd et rien ne se lit ; la tâche d'analyse est retentée (`ANTIVIRUS_UNAVAILABLE` ; `STORAGE_UNAVAILABLE` quand c'est le fichier qui ne se lit ou ne s'efface pas), le document reste « analyse antivirus en cours ». Un fichier trouvé infecté est effacé par la même tâche, retentée jusqu'à ce que l'effacement réussisse. Aucune alerte ne signale clamd arrêté (ci-dessous, « Le reste »).
 - **Jamais essayé sur un serveur, ni même lancé** : Claude Code n'a pas le droit d'utiliser Docker, et GitHub Actions est à l'arrêt. La séparation en deux conteneurs repose sur la documentation de l'image (variables `CLAMAV_NO_CLAMD` et `CLAMAV_NO_FRESHCLAMD`, premier téléchargement si `main.cvd` manque). `infra/ci/smoke.sh` est écrit pour vérifier que le worker obtient « OK » pour un fichier sain et « FOUND » pour le fichier d'essai EICAR, que ni l'API, ni un portail, ni le serveur ne joignent clamd, que `clamav` n'est que sur `antivirus` et `freshclam` que sur `sortie-antivirus`. À regarder à la première mise en service : démarrage des deux conteneurs, mémoire réellement prise (`docker stats` ; 384 Mo prévus pour `freshclam`, sans mesure), première mise à jour dans le journal de `freshclam`, puis rechargement dans celui de `clamav` dans les 10 minutes.
 
 ## n8n (automatisations)
 
-`n8n.legarec.fr`, réservé aux adresses du cabinet par Caddy. Même version (2.48.7) que le n8n déjà installé sur le serveur (`legarec-n8n-1`, projet Compose `legarec`, servi par l'ancien Caddy `legarec-caddy-1`) : ses données se reprennent telles quelles. Base SQLite dans le volume `legarec-app_n8n-data`, jamais dans PostgreSQL. Réseau `automatisations` (Caddy, l'API, `gatus-interne`) et sortie vers Internet à lui seul (`sortie-n8n`), pour les services qu'appellent ses automatisations. Il ne joint ni la base, ni Valkey, ni les journaux. Aucun service extérieur n'appelle ses webhooks : tout `n8n.legarec.fr`, webhooks compris, est réservé aux adresses du cabinet. Exécutions effacées après 14 jours. Contrôle « n8n » dans les contrôles internes.
+`n8n.legarec.fr`, réservé aux adresses du cabinet par Caddy. Même version (2.48.7) que le n8n déjà installé sur le serveur (`legarec-n8n-1`, projet Compose `legarec`, servi par l'ancien Caddy `legarec-caddy-1`) : ses données se reprennent telles quelles. Base SQLite dans le volume `legarec-app_n8n-data`, jamais dans PostgreSQL. Réseau `automatisations` (Caddy, l'API) et sortie vers Internet à lui seul (`sortie-n8n`), pour les services qu'appellent ses automatisations. Il ne joint ni la base, ni Valkey, ni les journaux. Aucun service extérieur n'appelle ses webhooks : tout `n8n.legarec.fr`, webhooks compris, est réservé aux adresses du cabinet. Exécutions effacées après 14 jours. Contrôle « n8n » dans les contrôles internes.
 
 ### Reprise de l'ancien n8n
 À faire au premier déploiement, par le cabinet. La clé doit être **celle de l'ancien n8n** : avec une autre, n8n refuse de démarrer, ou ne lit plus les identifiants enregistrés dans les automatisations.
@@ -433,8 +437,8 @@ Sans ancien n8n à reprendre : `N8N_ENCRYPTION_KEY` tirée par `openssl rand -he
 - **Fichiers déjà sur le disque** : ils y restent et sont toujours lus (le bucket d'abord ; s'il répond que l'objet n'existe pas, le disque). Aucune copie automatique vers le bucket : le dossier reste à sauvegarder tant qu'il n'est pas vide. La purge efface aux deux endroits ; dans le bucket, elle demande d'abord la liste (un objet), ce qui distingue un objet absent d'un bucket absent. Le balayage des fichiers sans ligne (« Documents et PDF ») liste le bucket entier, page par page, puis le disque ; sans les clés du coffre, il échoue sans rien effacer, disque compris.
 - **Panne** : un bucket injoignable, une clé refusée ou un bucket absent font échouer la requête ou la tâche (erreur `BucketError`, avec le seul nom donné par S3 : `AccessDenied`, `NoSuchBucket`, `TimeoutError`…) ; jamais de repli silencieux sur le disque, qui cacherait la panne et disperserait les fichiers. Une tâche du worker est retentée. Seul le retrait d'un fichier dont la ligne n'a pas pu être écrite (dépôt qui échoue) ne fait jamais échouer la requête : ce qui n'a pas pu être retiré est noté au journal par le seul nom de la panne (« file left in the storage ») et reste dans le stockage sans ligne ; rien ne balaie encore ces fichiers (`PLAN.md`, lot X). Une révocation de clé demandée (en attente du Directeur) renvoie les nouveaux fichiers sur le disque et rend illisibles ceux du bucket jusqu'à la décision : à éviter en journée.
 - **Jamais dans un seul des deux fichiers** : l'API et le worker doivent avoir les mêmes deux valeurs, sinon l'un écrit là où l'autre ne lit pas (analyse antivirus, quittances).
-- **Surveillance** : contrôle « Documents » de Gatus, sans aucune clé : toutes les 10 minutes, `https://legarec-documents.s3.<région>.io.cloud.ovh.net/` doit répondre 403 (bucket présent, privé, OVHcloud joignable) ; 404 : bucket absent ; 200 : il est devenu public. Il ne dit pas si les clés du coffre fonctionnent : une clé refusée se voit aux dépôts qui échouent (question 206).
-- **Jamais essayé contre un vrai bucket**, ni l'application ni le contrôle Gatus : aucune clé, et jamais depuis le serveur de développement. Les tests jouent contre un faux client S3, en mémoire. Première vérification réelle, à la mise en service du bucket, avant tout dossier : déposer un PDF dans Documents, le rouvrir, le voir dans le bucket sous `xx/<clé>` (illisible par une adresse publique), puis vérifier qu'un fichier déposé avant la bascule s'ouvre encore. À surveiller ce jour-là : la réponse d'OVHcloud pour un objet absent (`NoSuchKey` attendu ; un « refusé » bloquerait la lecture des fichiers du disque), la liste d'un objet par la clé de l'application (droit de lister), les sommes de contrôle des envois, et la forme d'adresse (le client utilise `legarec-documents.s3.<région>…`).
+- **Surveillance** : aucune depuis le retrait de Gatus (28/11/2026), qui vérifiait sans clé que le bucket répondait 403 (présent et privé). Une clé refusée se voit aux dépôts qui échouent (question 206).
+- **Jamais essayé contre un vrai bucket**, ni l'application : aucune clé, et jamais depuis le serveur de développement. Les tests jouent contre un faux client S3, en mémoire. Première vérification réelle, à la mise en service du bucket, avant tout dossier : déposer un PDF dans Documents, le rouvrir, le voir dans le bucket sous `xx/<clé>` (illisible par une adresse publique), puis vérifier qu'un fichier déposé avant la bascule s'ouvre encore. À surveiller ce jour-là : la réponse d'OVHcloud pour un objet absent (`NoSuchKey` attendu ; un « refusé » bloquerait la lecture des fichiers du disque), la liste d'un objet par la clé de l'application (droit de lister), les sommes de contrôle des envois, et la forme d'adresse (le client utilise `legarec-documents.s3.<région>…`).
 - En développement et dans les tests : toujours le disque. `S3_DOCUMENTS_BUCKET` est refusé au démarrage hors production, quel que soit le nom : avec des clés dans le coffre, le vrai service d'OVHcloud serait appelé.
 
 ## Reste à faire (fin du lot X)
@@ -471,13 +475,13 @@ Sur l'API depuis `lot/s5`, mais incomplets faute de décision : Facturation list
 
 ### Le reste
 - **Stockage chez OVHcloud** : fait pour Caddy (`media.legarec.fr`), pgBackRest et les noms des clés (`S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_REGION`, `S3_DOCUMENTS_BUCKET`). pgBackRest reste en adresses « chemin » (`repo1-s3-uri-style=path`), qu'OVHcloud accepte ; **jamais essayé contre un vrai bucket** : le premier `legarec run --rm sauvegarde full` de la mise en service le dira, avant toute donnée. La migration `storage_secret_names` renomme deux noms de clés : sans effet au premier déploiement ; elle interdit seulement de revenir à une version antérieure une fois une clé de stockage saisie. Le bucket `legarec-documents` est branché dans le code, éteint en production (« Bucket des documents », question 205).
-- ClamAV : fait (« Antivirus », ci-dessus). Reste une alerte quand clamd ne répond plus : Gatus ne joint pas le réseau `antivirus` (réservé au worker), et le contrôle de santé du conteneur ne prévient personne.
+- ClamAV : fait (« Antivirus », ci-dessus). Reste une alerte quand clamd ne répond plus : le contrôle de santé du conteneur ne prévient personne.
 - Chemin des modèles d'e-mails et de PDF : vérifié. Le worker les lit dans `templates/`, à côté de `dist/` (`apps/api/src/worker.ts`), et l'image copie ce dossier ; `TEMPLATES_DIR` de `renderer.ts` ne sert qu'aux tests.
 - n8n : conteneur en place (« n8n », plus haut). Restent les comptes de service, pour qu'il appelle l'API (`/service`), rien d'autre (questions tranchées : sortie vers Internet, webhooks réservés au cabinet, exécutions gardées 14 jours).
-- Bucket des documents : ouvrir à l'API un chemin vers le bucket (question 205), puis première vérification réelle. Contrôle Gatus : fait, sans clé (question 206). Copie vers le bucket des fichiers restés sur le disque : non prévue.
+- Bucket des documents : ouvrir à l'API un chemin vers le bucket (question 205), puis première vérification réelle. Contrôle du bucket : retiré avec Gatus (28/11/2026). Copie vers le bucket des fichiers restés sur le disque : non prévue.
 - Purge à la demande après une restauration : faite (`dist/purge.js`, étape 6 de « Restaurer la base »).
-- Fichiers sans ligne : balayage fait, chaque nuit, suspendu par la purge d'après restauration, et commande `dist/sweep-files.js` (« Documents et PDF », questions 230 et 231). Bucket couvert dans le code, jamais essayé contre un vrai bucket. Reste à décider : une alerte (Gatus ou notification au Développeur) quand la tâche refuse ou trouve un fichier sans ligne.
+- Fichiers sans ligne : balayage fait, chaque nuit, suspendu par la purge d'après restauration, et commande `dist/sweep-files.js` (« Documents et PDF », questions 230 et 231). Bucket couvert dans le code, jamais essayé contre un vrai bucket. Reste à décider : une alerte (notification au Développeur) quand la tâche refuse ou trouve un fichier sans ligne.
 - **Condition de mise en service** : `legarec-hold-tasks` ne bloque que les tâches en file (`outbox`). Chaque lot qui ajoute un planning dans PostgreSQL (relances, envois groupés, notifications) l'étend à ses tables, avec un test : sinon une relance déjà partie redeviendrait due. L'agenda des relances (`planned_reminders`, lot Q) n'envoie encore rien de lui-même : à étendre avec l'envoi automatique.
-- `pgbackrest verify` chaque semaine : fait (minuterie `legarec-verification-sauvegardes`, dimanche 6 h, surveillée par Gatus). Reste l'essai automatique d'une restauration à un instant précis.
+- `pgbackrest verify` chaque semaine : fait (minuterie `legarec-verification-sauvegardes`, dimanche 6 h ; plus surveillée depuis le retrait de Gatus). Reste l'essai automatique d'une restauration à un instant précis.
 - Versions du bucket `legarec-documents` : 70 jours (question 115), règle à poser sur le bucket par le cabinet (« À préparer »).
 - Contrôle de plusieurs copies de l'API : non prévu, une seule à la fois.

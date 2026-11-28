@@ -123,6 +123,11 @@ model WebhookEvent {
   status          WebhookStatus @default(RECEIVED)
   receivedAt      DateTime      @default(now()) @map("received_at") @db.Timestamptz(3)
   processedAt     DateTime?     @map("processed_at") @db.Timestamptz(3)
+  /// What the event says (closed list), when, and of which message and line: identifiers and dates only.
+  kind            String?
+  occurredAt      DateTime?     @map("occurred_at") @db.Timestamptz(3)
+  providerRef     String?       @map("provider_ref") @db.Uuid
+  sendingId       String?       @map("sending_id") @db.Uuid
 
   @@unique([provider, providerEventId])
   @@map("webhook_events")

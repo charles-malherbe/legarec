@@ -538,6 +538,12 @@ model Sending {
   onBehalfOfId  String?        @default(dbgenerated("app.on_behalf_of()")) @map("on_behalf_of_id") @db.Uuid
   createdAt     DateTime       @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
   sentAt        DateTime?      @map("sent_at") @db.Timestamptz(3)
+  /// What the provider said of it afterwards (webhooks of Resend): written once each, by the worker alone.
+  confirmedAt   DateTime?      @map("confirmed_at") @db.Timestamptz(3)
+  deliveredAt   DateTime?      @map("delivered_at") @db.Timestamptz(3)
+  undeliveredAt DateTime?      @map("undelivered_at") @db.Timestamptz(3)
+  undeliveredReason String?    @map("undelivered_reason")
+  complainedAt  DateTime?      @map("complained_at") @db.Timestamptz(3)
 
   case     Case      @relation(fields: [caseId, creditorId], references: [id, creditorId], onDelete: NoAction, onUpdate: NoAction)
   contact  CaseContact? @relation(fields: [contactId, caseId], references: [id, caseId], onDelete: NoAction, onUpdate: NoAction)
@@ -545,6 +551,7 @@ model Sending {
 
   @@index([caseId, createdAt], map: "sendings_case")
   @@index([status], map: "sendings_waiting")
+  @@index([providerRef], map: "sendings_provider_ref")
   @@map("sendings")
 }
 

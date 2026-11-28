@@ -1,5 +1,5 @@
 {
-  "_comment": "Surveillance externe par Hyperping (app.hyperping.io), en plus de Gatus qui tourne sur le même serveur : les mêmes adresses publiques, vues de l'extérieur. Chaque moniteur a un identifiant à nous (external_id) : le script crée ou met à jour, sans doublon. Aucune donnée personnelle, aucun secret.",
+  "_comment": "Surveillance externe par Hyperping (app.hyperping.io), seule surveillance depuis le retrait de Gatus (28/11/2026) : les adresses publiques, vues de l'extérieur. Chaque moniteur a un identifiant à nous (external_id) : le script crée ou met à jour, sans doublon. Aucune donnée personnelle, aucun secret.",
   "defaults": {
     "protocol": "http",
     "http_method": "GET",
@@ -16,7 +16,6 @@
     { "external_id": "legarec-espace", "name": "Legarec · Espace collaborateurs", "url": "https://espace.legarec.fr/" },
     { "external_id": "legarec-partenaires", "name": "Legarec · Portail partenaires", "url": "https://partenaires.legarec.fr/" },
     { "external_id": "legarec-paiement", "name": "Legarec · Espace de paiement", "url": "https://paiement.legarec.fr/" },
-    { "external_id": "legarec-api", "name": "Legarec · Service des données", "url": "https://api.legarec.fr/health", "required_keyword": "\"status\":\"ok\"" },
-    { "external_id": "legarec-etat", "name": "Legarec · Page d'état", "url": "https://status.legarec.fr/" }
+    { "external_id": "legarec-api", "name": "Legarec · Service des données", "url": "https://api.legarec.fr/health", "required_keyword": "\"status\":\"ok\"" }
   ]
 }

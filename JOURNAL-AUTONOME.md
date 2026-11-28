@@ -168,3 +168,30 @@ Consigne de l'utilisateur : « Continuer le développement sans interruption, fu
 ### À faire par l'utilisateur ou le cabinet
 - Questions **220** (règles et écarts ci-dessus), **221** (relance d'échéance : quel texte, quel déclencheur) et **222** (textes de l'avis d'échec) à confirmer.
 - Toujours ouvert : un écran pour trancher un envoi « incertain » (hors maquette, à décider).
+
+## Suite du 27/11 : webhooks Resend (`lot/q5`)
+
+| Initiative | Raison |
+|---|---|
+| Branche `lot/q5` reprise et terminée ; `main` fusionné trois fois (PR #80 et #81 comprises), jamais rebasé | Consigne de la session de suivi. Conflit de `QUESTIONS.md` : 164 et 223 à 226 gardées |
+| Question 225 réécrite après la décision 217 (un seul domaine Resend) | Resend règle le suivi des ouvertures et des clics par domaine, sans réglage par message, et le suivi des clics réécrit les liens, ceux des invitations et des mots de passe compris (documentation de Resend lue le 27/11/2026). Option par défaut : rien n'est suivi ; le choix reste au cabinet |
+| Une ligne n'échoue avec un code du fournisseur (`PROVIDER_…`) qu'après avoir été prise | Relecture sécurité : un événement portant l'étiquette d'une ligne jamais partie (en file, expirée, refusée avant l'appel) pouvait y écrire les faits d'un autre message |
+| Ouvertures, clics et événements non suivis ne gardent que leur type | Relecture sécurité : leur date et l'identifiant du message suffisaient à suivre une ouverture, contre l'option par défaut de la question 225 |
+| Coordonnée verrouillée avant d'être marquée invalide | Relecture sécurité : un rebond traité pendant qu'un collaborateur rétablissait l'adresse pouvait l'invalider aussitôt après |
+| Limite par réseau laissée dans la transaction de la requête | Même schéma que les autres routes ; la sortir demande un changement du socle : noté dans `PLAN.md` avec les autres suites |
+| Compteurs « relances envoyées » de la fiche et « envoyés cette semaine » de l'agenda alignés sur le plafond | Relecture des tests : ce lot fait compter au plafond une relance en échec dont Resend prouve le départ ; le code de l'agenda dit suivre le plafond, la fiche compter « ce qui est parti » |
+| Question 223 complétée (point 3) sans rien changer au comportement | Relecture des tests : une relance déjà « envoyée » dont Resend dit ensuite qu'elle a échoué reste envoyée et compte comme partie, alors qu'une relance incertaine dans le même cas redevient demandable ; au cabinet de confirmer |
+| Une relance refusée par Resend à l'appel n'entend plus aucun événement | Seconde relecture sécurité : Resend n'en a aucun message, un événement qui la nomme parle d'un autre ; il est maintenant dit au journal, sans identifiant |
+
+- **`lot/q5`** : 15 commits, dont trois fusions de `main`. `POST /hooks/resend`, tâche `resend-event`, migration `20261127230000_resend_webhooks`.
+  - **Aucun message réel n'est parti**, et aucun webhook n'existe encore chez Resend.
+  - Relecture sécurité indépendante (`relecteur-securite`) : ni bloquant ni important ; quatre mineurs, trois corrigés avec leurs tests (chaque correction retirée, son test échoue), le quatrième noté (limite dans la transaction). Puis `testeur` : 14 tests ajoutés, aucun bug bloquant, trois remarques corrigées (date de livraison comparée à la seconde comme Svix, compteurs, question 223). Seconde relecture sécurité des corrections : ni bloquant ni important ; trois mineurs corrigés (ligne refusée à l'appel, journal, verrou), trois notés en suite.
+  - `pnpm verifier` relancé par cette session sur l'arbre final, `main` inclus (PR #80 et #81) : 108 fichiers, 3 959 tests au vert, sous Node 26 (le `node` par défaut de la machine est en v22).
+  - Jamais essayé : le vrai service Resend et un vrai événement signé par lui (signature vérifiée d'après la documentation de Resend et de Svix) ; Docker.
+  - Laissés en suite (`PLAN.md`) : alerte sur des 401 ou 429 répétés de `/hooks/resend` ; format du secret non vérifié à la saisie ; étiquette `sending_id` commune aux copies de la base de production (une ligne incertaine, ou dont Resend a signalé l'échec, croit le premier événement qui la nomme) ; une adresse modifiée par un collaborateur juste après qu'un rebond l'a marquée invalide est rétablie sans le dire ; ouvertures et clics reçus par erreur gardent leur heure de réception ; événement dont la tâche est abandonnée, resté `RECEIVED`.
+  - À savoir, hors de ce lot : dans `PLAN.md`, les lignes des questions 214, 215, 218 et 221 ne disent pas encore les décisions du 27/11 ; `contact-rules.ts` dit qu'une promesse ne suspend rien, contre la décision 218 (à faire, lot Q) ; `RESEND_ACCOUNT_API_KEY` figure toujours dans les noms du coffre et les contrats, sans usage depuis la décision 217.
+
+### À faire par l'utilisateur ou le cabinet
+- Questions **223**, **224** et **226** à confirmer ; **225** à trancher (suivi coupé par défaut).
+- Une fois l'API en ligne : créer le webhook chez Resend et saisir son secret `RESEND_WEBHOOK_SECRET`, en entier (`docs/deploiement.md`, « Resend », étapes 1 à 6) ; laisser coupé le suivi des ouvertures et des clics du domaine.
+- Ne jamais envoyer depuis une copie de la base de production avec une clé de l'équipe Resend de la production.

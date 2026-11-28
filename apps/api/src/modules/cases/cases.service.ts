@@ -193,8 +193,9 @@ export class CasesService {
       principal: owed.principal,
       interest: owed.interest,
       fees: owed.fees,
-      // What has left for the debtor from this case (lot Q): a sending that failed before leaving does not count.
-      remindersSent: await tx.sending.count({ where: { caseId: id, status: { not: 'FAILED' } } }),
+      // What has left for the debtor from this case (lot Q), as the caps count it: a sending that failed before leaving
+      // does not count, one that Resend has shown to have left after all does (question 223).
+      remindersSent: await tx.sending.count({ where: { caseId: id, OR: [{ status: { not: 'FAILED' } }, { confirmedAt: { not: null } }] } }),
       remindersTotal: 0,
       risk: null,
       contacts: found.contacts.map(({ id: contactId, kind, value, status }) => ({ id: contactId, kind, value, verified: status === 'VERIFIED' })),

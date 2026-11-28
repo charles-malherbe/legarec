@@ -68,6 +68,13 @@ describe('what Resend answers', () => {
     expect(JSON.parse(init.body)).toEqual({ from: message.from, to: [message.to], subject: message.subject, html: message.html, reply_to: message.replyTo });
     expect(init.body).not.toContain('re_test_key');
   });
+
+  it('names the line the message leaves for in a tag, and nothing else', async () => {
+    const bodies: string[] = [];
+    const http: HttpClient = (_url, init) => (bodies.push(init.body), Promise.resolve({ status: 200, json: () => Promise.resolve({ id: 'ref' }) }));
+    await new ResendClient(http).send('re_test_key', message, 'sending/1', '0193a4c7-8f1e-7c3a-9b2d-5e6f7a8b9c0d');
+    expect((JSON.parse(bodies[0]!) as { tags: unknown }).tags).toEqual([{ name: 'sending_id', value: '0193a4c7-8f1e-7c3a-9b2d-5e6f7a8b9c0d' }]);
+  });
 });
 
 describe('outside production', () => {

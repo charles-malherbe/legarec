@@ -1,8 +1,0 @@
-#!/bin/bash
-# Tells the monitoring that an operation succeeded: `legarec-tell <key>`. It raises the alarm when it hears nothing.
-set -euo pipefail
-token="$(LEGAREC_VALUES=/run/secrets/pgbackrest legarec-value GATUS_PUSH_TOKEN)"
-# The header goes through the standard input: the command line of a program can be read by others.
-printf 'header = "Authorization: Bearer %s"\n' "$token" |
-  curl --config - --silent --show-error --fail --max-time 20 --retry 3 --output /dev/null --request POST \
-    "http://gatus-interne:8080/api/v1/endpoints/$1/external?success=true"

@@ -253,10 +253,9 @@ describe('a reminder from a case', () => {
     const waiting = left ?? third;
     if (left) expect((await remind('officerA', left)).body).toEqual({ code: 'CONTACT_CAP' });
     // What failed before leaving does not count.
-    await rows(
-      "UPDATE sendings SET status = 'FAILED', failure = 'PROVIDER_REFUSED' WHERE id = (SELECT id FROM sendings WHERE case_id = ANY($1::uuid[]) LIMIT 1)",
-      [[mine.id, theirs.id, third.id].filter((id) => id !== waiting.id)],
-    );
+    await rows("UPDATE sendings SET status = 'FAILED', failure = 'EXPIRED' WHERE id = (SELECT id FROM sendings WHERE case_id = ANY($1::uuid[]) LIMIT 1)", [
+      [mine.id, theirs.id, third.id].filter((id) => id !== waiting.id),
+    ]);
     if (left) expect((await remind('officerA', left)).status).toBe(204);
     await rows("UPDATE outbox SET done_at = now() WHERE name = 'case-reminder' AND done_at IS NULL");
   });
@@ -283,8 +282,8 @@ describe('reminders from the list of cases', () => {
        FROM cases c WHERE c.id = $1 RETURNING id`,
       [made.id, template, level, test.s.officerA, days],
     )) as [{ id: string }];
+    if (state !== 'QUEUED') await rows("UPDATE sendings SET status = 'UNCERTAIN' WHERE id = $1", [id]);
     if (state === 'FAILED') await rows("UPDATE sendings SET status = 'FAILED', failure = 'PROVIDER_REFUSED' WHERE id = $1", [id]);
-    if (state === 'UNCERTAIN' || state === 'SENT') await rows("UPDATE sendings SET status = 'UNCERTAIN' WHERE id = $1", [id]);
     if (state === 'SENT') await rows("UPDATE sendings SET status = 'SENT', sent_at = now() - $2::float8 * interval '1 day' WHERE id = $1", [id, days]);
   };
   /** Nothing of these tests stays in the queue for the next ones. */
@@ -612,8 +611,10 @@ describe('the reminder leaves by the provider', () => {
     expect(request!.headers.authorization).toBe(`Bearer ${KEY}`);
     const [{ id }] = (await rows<{ id: string }>('SELECT id FROM sendings WHERE case_id = $1', [made.id])) as [{ id: string }];
     expect(request!.headers['idempotency-key']).toBe(`sending/${id}`);
-    const sent = JSON.parse(request!.body) as { to: string[]; subject: string; reply_to: string };
+    const sent = JSON.parse(request!.body) as { to: string[]; subject: string; reply_to: string; tags: unknown };
     expect(sent).toMatchObject({ to: [made.email], reply_to: 'recouvrement@legarec.fr', subject: 'DERNIER AVIS avant procédure : facture F-2026-0712' });
+    // The line is named to Resend, which gives the name back with each event of the message: an identifier, nothing else.
+    expect(sent.tags).toEqual([{ name: 'sending_id', value: id }]);
     // Delivered again, the task sends nothing more.
     await rows("UPDATE outbox SET done_at = NULL, published_at = NULL, started_at = NULL, claimed_at = NULL WHERE payload ->> 'sending' = $1", [id]);
     await worker.run();
@@ -959,7 +960,8 @@ describe('a reminder that has not left: the notices of a colleague stay readable
     const moved = await eligible(test.s.officerA);
     expect((await remind('officerA', forgotten)).status).toBe(204);
     expect((await remind('officerA', moved)).status).toBe(204);
-    // A line that failed, then its case anonymized before anybody was told (the anonymization itself removes the lines).
+    // A line taken, then refused by the provider, then its case anonymized before anybody was told (the anonymization itself removes the lines).
+    await rows("UPDATE sendings SET status = 'UNCERTAIN' WHERE case_id = $1", [forgotten.id]);
     const [{ id: line }] = (await rows<{ id: string }>("UPDATE sendings SET status = 'FAILED', failure = 'PROVIDER_REFUSED' WHERE case_id = $1 RETURNING id", [
       forgotten.id,
     ])) as [{ id: string }];
@@ -1005,7 +1007,8 @@ describe('the rules the database holds by itself', () => {
     expect(await move(first, "status = 'UNCERTAIN'")).toBe('done');
     expect(await move(first, "status = 'QUEUED'")).toBe('42501');
     expect(await move(first, "status = 'SENT', sent_at = now(), provider_ref = 'ref-9'")).toBe('done');
-    for (const set of ["status = 'QUEUED'", "status = 'UNCERTAIN'", "status = 'FAILED', failure = 'LATE'", "provider_ref = 'other'", "status = 'SENT'"])
+    // What the provider says of it later is written beside (`resend-events.test.ts`): the line itself no longer changes.
+    for (const set of ["status = 'QUEUED'", "status = 'UNCERTAIN'", "status = 'FAILED', failure = 'LATE'", "provider_ref = 'other'", 'sent_at = now()'])
       expect(await move(first, set), set).toBe('42501');
     const second = await insert('QUEUED');
     expect(await move(second, "status = 'FAILED', failure = 'EXPIRED'")).toBe('done');
@@ -1265,6 +1268,17 @@ describe('the sweep and a line a task has taken', () => {
     const other = await abandoned();
     await sweepSendings(worker.asWorker, workerNow);
     expect(await sendings(other.id)).toMatchObject([{ status: 'FAILED', failure: 'AUTHOR_GONE' }]);
+  });
+
+  it('fails a line never taken with no code of the provider, whatever its task says, and goes on with the next ones', async () => {
+    const said = await abandoned();
+    await rows("UPDATE outbox SET failure = 'PROVIDER_REFUSED' WHERE payload ->> 'case' = $1", [said.id]);
+    const next = await abandoned();
+    await sweepSendings(worker.asWorker, workerNow);
+    // Nothing of it ever left this machine: the line says so, and the database would refuse it otherwise.
+    expect(await sendings(said.id)).toMatchObject([{ status: 'FAILED', failure: 'SENDING_FAILED' }]);
+    expect(await events(said.id, 'REMINDER_FAILED')).toMatchObject([{ title: 'Relance non envoyée', actor_label: 'Application' }]);
+    expect(await sendings(next.id)).toMatchObject([{ status: 'FAILED', failure: 'AUTHOR_GONE' }]);
   });
 
   it('says « Relance envoyée » for a line sent whose task was cut before the history said so, once', async () => {
