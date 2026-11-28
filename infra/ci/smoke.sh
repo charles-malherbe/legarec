@@ -111,9 +111,8 @@ docker compose exec -T caddy nc -z -w 2 "$(address api api)" 3000 || fail 'witne
 for to in "postgres donnees 5432" "valkey donnees 6379" "loki journaux 3100" "api donnees 3000"; do
   read -r name network port <<< "$to"
   ip="$(address "$name" "$network")"
-  for from in espace; do
-    if docker compose exec -T "$from" nc -z -w 2 "$ip" "$port"; then fail "$from reaches $name"; fi
-  done
+  # Nor a portal.
+  if docker compose exec -T espace nc -z -w 2 "$ip" "$port"; then fail "espace reaches $name"; fi
   # Nor the server itself.
   if nc -z -w 2 "$ip" "$port"; then fail "the server reaches $name"; fi
 done
