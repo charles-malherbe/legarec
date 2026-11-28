@@ -198,7 +198,7 @@ Les 161 routes simulées se répartissent ainsi :
 - [x] Messages du portail, pièces du débiteur (analysées, invisibles de l'équipe avant leur message), demandes guidées, réponse de l'équipe, code d'accès retiré du texte reçu (6 routes)
 - [x] Compléments de la relecture : compteur aussi par débiteur (10 échecs au total sur ses identifiants, réponse de l'identifiant tapé, question 177), fenêtre glissante de la limite par réseau, alerte au-delà de 200 échecs par heure (Directeur et Développeur dans l'application, une par épisode, réseaux d’au moins 3 échecs suspendus 15 minutes, question 176 ; SMS au lot R), notification « accès bloqué » lisible dans la liste
 - [x] Accès limité, liens des courriers, code par SMS (mis en file, envoi au lot R), bascule du portail paiement en développement (4 routes)
-- [ ] Acceptation de l'échéancier par le débiteur (écran hors maquette à montrer au cabinet)
+- [x] Acceptation de l'échéancier par le débiteur : PDF de la proposition écrit par le worker, « Accepter cet échéancier » avec confirmation et case « J’ai lu », date, adresse IP et empreinte du PDF gardées ; téléchargement de l'échéancier et des quittances (28/11/2026, écran hors maquette montré dans la démo)
 
 ## Lot P — Portail des créanciers (état au 26/11/2026)
 - [x] Tableau de bord, dossiers, accord sur un échéancier long (4 routes)

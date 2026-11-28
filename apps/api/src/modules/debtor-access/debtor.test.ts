@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { startApp, type TestApp } from '../../../test/app';
 import { Database } from '../../platform/database/database';
 import { AuthKeys } from '../auth/keys';
+import { startMailWorker } from '../../../test/worker';
 
 let test: TestApp;
 /** The same database, for the team: its callers named by the header of the tests. */
@@ -365,7 +366,8 @@ describe('beyond 200 failures an hour in all', () => {
   });
   const tryFrom = (from: string, value: string, code: string) =>
     watched.call('POST', '/debtor/access', { body: { identifier: { kind: 'SIREN', value }, code, remember: false }, headers: { 'x-forwarded-for': from } });
-  const alerts = async () => (await rows<{ user_id: string }>("SELECT user_id FROM notifications WHERE kind = 'DEBTOR_ACCESS_ALERT' ORDER BY 1")).map((row) => row.user_id);
+  const alerts = async () =>
+    (await rows<{ user_id: string }>("SELECT user_id FROM notifications WHERE kind = 'DEBTOR_ACCESS_ALERT' ORDER BY 1")).map((row) => row.user_id);
 
   it('tells the Director and the Developer once, and suspends 15 minutes the networks of three failures only', async () => {
     vi.useFakeTimers({ toFake: ['Date'], now: Date.now() });
@@ -385,8 +387,7 @@ describe('beyond 200 failures an hour in all', () => {
     expect(told.some((item) => /plus de 200 codes faux/u.test(item.text))).toBe(true);
     // The networks of three failures or more in the hour are suspended, even with the right code; not the one of a
     // single failure, nor another one.
-    for (const from of [networks[0]!, networks[9]!])
-      expect(await tryFrom(from, known!, code)).toMatchObject({ status: 429, body: { code: 'TOO_MANY' } });
+    for (const from of [networks[0]!, networks[9]!]) expect(await tryFrom(from, known!, code)).toMatchObject({ status: 429, body: { code: 'TOO_MANY' } });
     expect((await tryFrom(networks[10]!, known!, code)).status).toBe(200);
     expect((await tryFrom(networks[11]!, known!, code)).status).toBe(200);
     // During the episode, a network is suspended at its third failure, and nobody is told again.
@@ -463,5 +464,106 @@ describe('the space before any code', () => {
       );
     expect(await read('manager')).toBe(1);
     expect(await read('officerA')).toBe(0);
+  });
+});
+
+describe('the plan proposed to the debtor (question 76)', () => {
+  const headers = (cookie: string) => ({ cookie: `__Host-debtor=${cookie}`, 'x-forwarded-for': network });
+  const accept = (cookie: string, caseId: string, body: unknown) =>
+    test.call('POST', `/debtor/cases/${caseId}/plan/acceptance`, { body, headers: { ...headers(cookie), 'idempotency-key': randomUUID() } });
+
+  it('is written once in PDF, downloaded, then accepted as it was read', async () => {
+    network = `10.${randomBytes(3).join('.')}`;
+    const found = await debtorWithCode();
+    const cookie = cookieOf(await access(found.siren!, found.code))!;
+    for (const [key, value] of [
+      ['firm.cabinet.siren', '732829007'],
+      ['firm.cabinet.address', '10 rue de la Paix, 75002 Paris'],
+      ['firm.cabinet.holder', 'Legarec'],
+      ['firm.cabinet.iban', 'FR76 3000 6000 0112 3456 7890 189'],
+      ['firm.cabinet.bic', 'AGRIFRPP'],
+    ])
+      await rows('INSERT INTO settings (key, value, updated_by) VALUES ($1, to_jsonb($2::text), $3) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value', [
+        key,
+        value,
+        test.s.director,
+      ]);
+    const before = debtorCase.parse((await asDebtor(cookie, `/cases/${found.caseId}`)).body);
+    expect(before.plan).toBeNull();
+    const asked = await staff.call('POST', '/staff/payment-plans', {
+      as: 'officerA',
+      body: { caseId: found.caseId, months: 3, method: 'TRANSFER', expected: before.balance },
+      headers: { 'idempotency-key': randomUUID() },
+    });
+    expect(asked.status).toBe(204);
+    // Proposed, without its PDF yet: shown, but nothing to accept.
+    const proposed = debtorCase.parse((await asDebtor(cookie, `/cases/${found.caseId}`)).body).plan!;
+    expect(proposed).toMatchObject({ acceptedOn: null, total: before.balance, method: 'TRANSFER', fingerprint: null });
+    expect(proposed.installments).toHaveLength(3);
+    expect((await asDebtor(cookie, `/cases/${found.caseId}/plan/file`)).status).toBe(404);
+
+    const worker = startMailWorker(staff);
+    // Only the PDF: what the tests above queued (texts, e-mails) is not run here.
+    await rows("UPDATE outbox SET done_at = now() WHERE name <> 'plan-pdf' AND done_at IS NULL");
+    try {
+      await worker.run();
+    } finally {
+      await worker.stop();
+    }
+    const [plan] = await rows<{ document_id: string; document_sha256: string }>('SELECT document_id, document_sha256 FROM payment_plans WHERE case_id = $1', [
+      found.caseId,
+    ]);
+    expect(await rows('SELECT category, source, visible_to_debtor, sha256 FROM documents WHERE id = $1', [plan!.document_id])).toEqual([
+      { category: 'PAYMENT_PLAN', source: 'GENERATED', visible_to_debtor: true, sha256: plan!.document_sha256 },
+    ]);
+    const shown = debtorCase.parse((await asDebtor(cookie, `/cases/${found.caseId}`)).body).plan!;
+    expect(shown.fingerprint).toBe(plan!.document_sha256);
+    const file = await asDebtor(cookie, `/cases/${found.caseId}/plan/file`);
+    expect(file.status).toBe(200);
+    expect(file.headers.get('content-disposition')).toBe('attachment; filename="echeancier.pdf"');
+    expect(new TextDecoder().decode((file.body as Uint8Array).slice(0, 5))).toBe('%PDF-');
+
+    // Another total, another file: nothing is accepted.
+    expect((await accept(cookie, found.caseId, { fingerprint: shown.fingerprint, total: shown.total + 1, months: 3 })).status).toBe(409);
+    expect((await accept(cookie, found.caseId, { fingerprint: 'b'.repeat(64), total: shown.total, months: 3 })).status).toBe(409);
+    expect((await accept(cookie, found.caseId, { fingerprint: shown.fingerprint, total: shown.total, months: 3 })).status).toBe(204);
+    expect(
+      await rows('SELECT status, accepted_at IS NOT NULL AS accepted, accepted_ip IS NOT NULL AS ip FROM payment_plans WHERE case_id = $1', [found.caseId]),
+    ).toEqual([{ status: 'ACTIVE', accepted: true, ip: true }]);
+    expect(
+      await rows("SELECT a.decision FROM plan_approvals a JOIN payment_plans p ON p.id = a.plan_id WHERE p.case_id = $1 AND a.step = 'DEBTOR'", [found.caseId]),
+    ).toEqual([{ decision: 'APPROVED' }]);
+    expect(await rows("SELECT actor_kind, params FROM audit_log WHERE action = 'PLAN_DEBTOR_ACCEPTED' AND entity_id = $1", [found.caseId])).toEqual([
+      { actor_kind: 'DEBTOR', params: { months: 3 } },
+    ]);
+    expect(await rows("SELECT title, visible_to_creditor FROM case_events WHERE case_id = $1 AND kind = 'PLAN_DEBTOR_ACCEPTED'", [found.caseId])).toEqual([
+      { title: 'Échéancier accepté par le débiteur', visible_to_creditor: true },
+    ]);
+    const accepted = debtorCase.parse((await asDebtor(cookie, `/cases/${found.caseId}`)).body).plan!;
+    expect(accepted.acceptedOn).not.toBeNull();
+    // Accepted once; its PDF still downloaded.
+    expect((await accept(cookie, found.caseId, { fingerprint: shown.fingerprint, total: shown.total, months: 3 })).status).toBe(404);
+    expect((await asDebtor(cookie, `/cases/${found.caseId}/plan/file`)).status).toBe(200);
+  });
+
+  it('never gives the file of another debtor, nor one that is not shown to it', async () => {
+    network = `10.${randomBytes(3).join('.')}`;
+    const mine = await debtorWithCode();
+    const other = await debtorWithCode();
+    const cookie = cookieOf(await access(mine.siren!, mine.code))!;
+    const [document] = await rows<{ id: string }>(
+      `INSERT INTO documents (case_id, creditor_id, category, kind, title, original_name, storage_key, size_bytes, sha256, source, scan_status, scanned_at)
+       SELECT c.id, c.creditor_id, 'PAYMENT_PLAN', 'PDF', 'Échéancier', 'e.pdf', gen_random_uuid()::text, 10, repeat('0', 64), 'GENERATED', 'CLEAN', now() FROM cases c WHERE c.id = $1 RETURNING id`,
+      [mine.caseId],
+    );
+    await rows(
+      `INSERT INTO payment_plans (case_id, creditor_id, total_cents, months, method, first_due_on, status, threshold_months, owned_by_director, requested_by, document_id, document_sha256)
+       SELECT c.id, c.creditor_id, 10000, 2, 'TRANSFER', current_date + 30, 'WAITING_DEBTOR', 6, false, $2, $3, repeat('0', 64) FROM cases c WHERE c.id = $1`,
+      [mine.caseId, test.s.officerA, document!.id],
+    );
+    // Not shown to the debtor: not given.
+    expect((await asDebtor(cookie, `/cases/${mine.caseId}/plan/file`)).status).toBe(404);
+    expect((await asDebtor(cookie, `/cases/${other.caseId}/plan/file`)).status).toBe(404);
+    expect((await accept(cookie, other.caseId, { fingerprint: '0'.repeat(64), total: 10000, months: 2 })).status).toBe(404);
   });
 });

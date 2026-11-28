@@ -1,5 +1,6 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import { AuthKeys } from '../src/modules/auth/keys';
+import { storageFor } from '../src/platform/storage/storage';
 import type { TestApp } from './app';
 
 /** Callers of the test set. `managerAlone` has lost the delegation; `liar` announces rights the table does not give. */
@@ -202,6 +203,49 @@ const unknownSiren = (): string => {
     }, 0);
     if (sum % 10 === 0) return digits;
   }
+};
+
+/** A PDF really written, shown to the debtor of the case of debtor A. */
+const debtorDocument = async (test: TestApp, category: 'PAYMENT_PLAN' | 'RECEIPT') => {
+  const stored = await storageFor(test.config).put(Buffer.from(PDF()));
+  const { rows } = await test.database.admin.query<{ id: string }>(
+    `INSERT INTO documents (case_id, creditor_id, category, kind, title, original_name, storage_key, size_bytes, sha256, source, visible_to_debtor, scan_status, scanned_at)
+     SELECT c.id, c.creditor_id, $2, 'PDF', 'Document', 'document.pdf', $3, $4, $5, 'GENERATED', true, 'CLEAN', now() FROM cases c WHERE c.id = $1 RETURNING id`,
+    [test.s.cases.ofA, category, stored.key, stored.size, stored.sha256],
+  );
+  return rows[0]!.id;
+};
+const PLAN_FINGERPRINT = 'a'.repeat(64);
+/** A plan proposed to debtor A, its PDF written: the plans left open on the case before are cancelled. */
+const debtorPlan = async (test: TestApp, then: string) => {
+  const caseId = test.s.cases.ofA;
+  await test.database.admin.query(
+    "UPDATE payment_plans SET status = 'CANCELLED' WHERE case_id = $1 AND status IN ('PENDING_MANAGER', 'WAITING_CREDITOR', 'WAITING_DEBTOR', 'ACTIVE')",
+    [caseId],
+  );
+  const document = await debtorDocument(test, 'PAYMENT_PLAN');
+  await test.database.admin.query(
+    `WITH p AS (INSERT INTO payment_plans (case_id, creditor_id, total_cents, months, method, first_due_on, status, threshold_months, owned_by_director, requested_by, document_id, document_sha256)
+       SELECT c.id, c.creditor_id, 10000, 2, 'TRANSFER', current_date + 30, 'WAITING_DEBTOR', 6, false, $2, $3, $4 FROM cases c WHERE c.id = $1 RETURNING id, case_id, creditor_id)
+     INSERT INTO plan_approvals (case_id, creditor_id, plan_id, step) SELECT p.case_id, p.creditor_id, p.id, 'DEBTOR' FROM p`,
+    [caseId, test.s.officerA, document, PLAN_FINGERPRINT],
+  );
+  return `/debtor/cases/${caseId}${then}`;
+};
+let receipts = 90_000;
+/** A receipt of a cheque cashed on the case of debtor A, its PDF written. */
+const debtorReceipt = async (test: TestApp) => {
+  const caseId = test.s.cases.ofA;
+  const document = await debtorDocument(test, 'RECEIPT');
+  receipts += 1;
+  const { rows } = await test.database.admin.query<{ id: string }>(
+    `WITH p AS (INSERT INTO payments (case_id, creditor_id, method, amount_cents, status, received_on, settled_at, cheque_number, bank, recorded_by)
+       SELECT c.id, c.creditor_id, 'CHEQUE', 100, 'CASHED', current_date, now(), $5, 'Banque', $2 FROM cases c WHERE c.id = $1 RETURNING id, case_id, creditor_id),
+     a AS (INSERT INTO payment_allocations (case_id, creditor_id, payment_id, component, amount_cents) SELECT p.case_id, p.creditor_id, p.id, 'OVERPAYMENT', 100 FROM p)
+     INSERT INTO receipts (case_id, creditor_id, payment_id, number, document_id) SELECT p.case_id, p.creditor_id, p.id, $3, $4 FROM p RETURNING id`,
+    [caseId, test.s.manager, `Q-2026-${receipts}`, document, String(receipts).padStart(7, '0')],
+  );
+  return `/debtor/cases/${caseId}/receipts/${rows[0]!.id}/file`;
 };
 
 /** A long plan of a case of creditor A, approved by the manager, waiting for the creditor. */
@@ -818,6 +862,14 @@ export const MATRIX: Record<string, MatrixEntry> = {
     expect: only({ debtorA: 204, debtorB: 404 }),
   },
   'POST /debtor/attachments': { file: PDF, expect: only({ debtorA: 200, debtorB: 200 }) },
+  // The plan proposed to debtor A, and its files: debtor B sees none of them.
+  'POST /debtor/cases/:id/plan/acceptance': {
+    path: (test) => debtorPlan(test, '/plan/acceptance'),
+    body: () => ({ fingerprint: PLAN_FINGERPRINT, total: 10000, months: 2 }),
+    expect: only({ debtorA: 204, debtorB: 404 }),
+  },
+  'GET /debtor/cases/:id/plan/file': { path: (test) => debtorPlan(test, '/plan/file'), expect: only({ debtorA: 200, debtorB: 404 }) },
+  'GET /debtor/cases/:id/receipts/:receipt/file': { path: debtorReceipt, expect: only({ debtorA: 200, debtorB: 404 }) },
   // Held by nobody: the manager answers; the Director reads it without acting.
   'POST /staff/cases/:id/portal-messages': {
     path: async (test) => `/staff/cases/${(await newCase(test)).id}/portal-messages`,
