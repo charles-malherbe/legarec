@@ -93,6 +93,8 @@ export const receiptJobs = (storage: Storage, pdf: PdfRenderer, templates: strin
                 sizeBytes: stored.size,
                 sha256: stored.sha256,
                 source: 'GENERATED',
+                // Downloaded by its debtor from its space.
+                visibleToDebtor: true,
                 scanStatus: 'CLEAN',
                 scannedAt: new Date(),
               },
