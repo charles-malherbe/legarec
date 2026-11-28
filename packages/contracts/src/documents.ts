@@ -128,8 +128,9 @@ export const BATCH_TEMPLATE_LABELS: Record<BatchTemplate, [one: string, many: st
 };
 /** Before the confirmation: the reminder each case would receive now, or why it would receive none. */
 /**
- * E-mails « incertains » for 48 hours at least, that no event of Resend has settled: a person decides (Collection manager,
- * or the Director on their cases). Neither address nor text: the case, the debtor, the step and the day it was asked.
+ * E-mails and registered letters « incertains » for 48 hours at least, that no answer of Resend or MySendingBox has settled:
+ * a person decides (Collection manager, or the Director on their cases). Neither address nor text: the case, the debtor,
+ * the step and the day it was asked. A letter noted « Partie » never becomes the first letter of the case.
  */
 export const uncertainSendings = z.object({
   items: z.array(
@@ -138,8 +139,11 @@ export const uncertainSendings = z.object({
       caseId: z.string(),
       reference: z.string(),
       debtor: z.string(),
-      /** Level of the reminder; null for the reminder of an installment (question 221). */
+      channel: z.enum(['EMAIL', 'REGISTERED_LETTER']),
+      /** Level of an e-mail; null for the reminder of an installment (question 221), and for a letter. */
       level: z.number().int().min(1).max(3).nullable(),
+      /** The letter, for a registered letter; null for an e-mail. */
+      letter: z.enum(['FRIENDLY', 'FIRM', 'FORMAL_NOTICE']).nullable(),
       askedAt: z.iso.datetime({ offset: true }),
     }),
   ),

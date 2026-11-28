@@ -389,7 +389,18 @@ const seedLitigation = (): StoredLitigation[] =>
 let litigation = seedLitigation();
 /** An e-mail of the demo case taken by Resend without a clear answer, long enough ago to be decided by a person. */
 const seedUncertain = () => [
-  { id: 'u1', caseId: 'demo', reference: 'LGR-2026-00142', debtor: 'Bâtiplus SAS', level: 2, askedAt: '2026-11-18T08:30:00.000Z', officerId: 'cl' },
+  { id: 'u1', caseId: 'demo', reference: 'LGR-2026-00142', debtor: 'Bâtiplus SAS', channel: 'EMAIL' as const, level: 2, letter: null, askedAt: '2026-11-18T08:30:00.000Z', officerId: 'cl' },
+  {
+    id: 'u2',
+    caseId: 'demo',
+    reference: 'LGR-2026-00142',
+    debtor: 'Bâtiplus SAS',
+    channel: 'REGISTERED_LETTER' as const,
+    level: null,
+    letter: 'FORMAL_NOTICE' as const,
+    askedAt: '2026-11-19T09:00:00.000Z',
+    officerId: 'cl',
+  },
 ];
 let uncertain = seedUncertain();
 /** As the API: the Collection manager, or the Director on their cases. */

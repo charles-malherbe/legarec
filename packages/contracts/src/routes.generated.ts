@@ -4358,7 +4358,11 @@ export interface operations {
                             caseId: string;
                             reference: string;
                             debtor: string;
+                            /** @enum {string} */
+                            channel: "EMAIL" | "REGISTERED_LETTER";
                             level: number | null;
+                            /** @enum {string|null} */
+                            letter: "FRIENDLY" | "FIRM" | "FORMAL_NOTICE" | null;
                             /** Format: date-time */
                             askedAt: string;
                         }[];

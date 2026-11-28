@@ -5,11 +5,19 @@ import { useApi, useChange } from '../../app/data';
 import layout from '@legarec/ui/layout.module.css';
 
 type Item = Items['items'][number];
-const stepOf = (item: Item) => (item.level === null ? 'Rappel d’échéance' : `Relance par e-mail, niveau ${item.level}`);
+const LETTERS = { FRIENDLY: 'relance amiable', FIRM: 'relance ferme', FORMAL_NOTICE: 'mise en demeure' } as const;
+const stepOf = (item: Item) =>
+  item.channel === 'REGISTERED_LETTER'
+    ? `Courrier recommandé, ${item.letter ? LETTERS[item.letter] : 'courrier'}`
+    : item.level === null
+      ? 'Rappel d’échéance'
+      : `Relance par e-mail, niveau ${item.level}`;
+const providerOf = (item: Item) => (item.channel === 'REGISTERED_LETTER' ? 'MySendingBox' : 'Resend');
 
 /**
- * E-mails remis à Resend sans réponse claire, dont Resend n'a rien dit depuis 48 heures : le Responsable du recouvrement,
- * ou le Directeur sur ses dossiers, note s'ils sont partis. Rien ne s'affiche quand il n'y en a pas.
+ * E-mails remis à Resend et recommandés remis à MySendingBox sans réponse claire, depuis 48 heures : le Responsable du
+ * recouvrement, ou le Directeur sur ses dossiers, note s'ils sont partis. Rien ne s'affiche quand il n'y en a pas. Un
+ * courrier noté parti ne vaut jamais premier courrier : le numéro et l'accès du débiteur demandent la réponse du prestataire.
  */
 export function UncertainSendings() {
   const { data } = useApi(uncertainSendings, '/sendings/uncertain');
@@ -21,14 +29,20 @@ export function UncertainSendings() {
     confirm({
       title: sent ? 'Noter cet envoi comme parti ?' : 'Noter cet envoi comme non parti ?',
       tone: sent ? 'primary' : 'danger',
-      body: sent
-        ? 'À faire si Resend montre le message comme envoyé. Il compte alors comme parti le jour de la demande, pour le plafond et la relance suivante.'
-        : 'À faire si Resend n’a aucune trace du message. Il ne compte plus comme parti ; une nouvelle relance pourra être demandée.',
+      body:
+        item.channel === 'REGISTERED_LETTER'
+          ? sent
+            ? 'À faire si MySendingBox montre le courrier comme posté. Il compte alors comme parti le jour de la demande, pour le plafond, mais ne vaut pas premier courrier.'
+            : 'À faire si MySendingBox n’a aucune trace du courrier. Il ne compte plus comme parti ; un nouveau courrier pourra être demandé.'
+          : sent
+            ? 'À faire si Resend montre le message comme envoyé. Il compte alors comme parti le jour de la demande, pour le plafond et la relance suivante.'
+            : 'À faire si Resend n’a aucune trace du message. Il ne compte plus comme parti ; une nouvelle relance pourra être demandée.',
       confirmLabel: sent ? 'Noter comme parti' : 'Noter comme non parti',
       details: [
         { k: 'Débiteur', v: item.debtor },
         { k: 'Dossier', v: item.reference },
         { k: 'Envoi', v: stepOf(item) },
+        { k: 'Prestataire', v: providerOf(item) },
         { k: 'Demandé le', v: formatDate(item.askedAt.slice(0, 10)) },
       ],
       onConfirm: async () => {
@@ -39,7 +53,7 @@ export function UncertainSendings() {
   return (
     <Carte
       title={`${data.items.length} envoi${data.items.length > 1 ? 's' : ''} incertain${data.items.length > 1 ? 's' : ''}`}
-      description="Remis à Resend sans réponse claire, et sans nouvelle de Resend depuis 48 heures. Vérifiez dans Resend, puis notez ce qui s’est passé."
+      description="Remis à Resend ou à MySendingBox sans réponse claire, et sans nouvelle depuis 48 heures. Vérifiez chez le prestataire, puis notez ce qui s’est passé."
     >
       <ul className={layout.stack}>
         {data.items.map((item) => (
@@ -47,8 +61,8 @@ export function UncertainSendings() {
             <span className={layout.grow}>
               <Link to={`/debiteurs/${item.caseId}`}>{item.debtor}</Link> · {item.reference} · {stepOf(item)} · demandé le {formatDate(item.askedAt.slice(0, 10))}
             </span>
-            <Bouton variant="secondary" size="sm" label="Partie" ariaLabel={`Noter comme parti : ${item.debtor}`} onPress={() => settle(item, true)} />
-            <Bouton variant="secondary" size="sm" label="Non partie" ariaLabel={`Noter comme non parti : ${item.debtor}`} onPress={() => settle(item, false)} />
+            <Bouton variant="secondary" size="sm" label="Partie" ariaLabel={`Noter comme parti : ${item.debtor}, ${stepOf(item)}`} onPress={() => settle(item, true)} />
+            <Bouton variant="secondary" size="sm" label="Non partie" ariaLabel={`Noter comme non parti : ${item.debtor}, ${stepOf(item)}`} onPress={() => settle(item, false)} />
           </li>
         ))}
       </ul>
