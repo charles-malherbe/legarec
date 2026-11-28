@@ -3,6 +3,7 @@ import {
   debtorAccess,
   debtorIdentifier,
   debtorRequest,
+  planAcceptance,
   sirenOf,
   type DebtorCase,
   type DebtorIdentifier,
@@ -45,6 +46,14 @@ const item = (id: string, reference: string, debtor: string, creditor: string, d
   payment: payment(reference),
   ...data,
 });
+/** Fingerprint of the simulated PDF of a plan. */
+const FINGERPRINT = '5f1c0e9a3b7d2f8e4a6c1b9d0e3f7a2c5b8d1e4f7a0c3b6d9e2f5a8c1b4d7e0f';
+/** A one-page PDF, as the API gives a plan or a receipt. */
+const pdf = (name: string) =>
+  new HttpResponse(new Blob(['%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n'], { type: 'application/pdf' }), {
+    headers: { 'content-type': 'application/pdf', 'content-disposition': `attachment; filename="${name}"` },
+  });
+const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date());
 /** Fictitious debtors. Access codes only exist in this simulated API. */
 const seed = (): Stored[] => [
   {
@@ -63,7 +72,7 @@ const seed = (): Stored[] => [
           { id: 'i1', number: 'F-2026-0902', dueOn: '2026-10-31', amount: 312000 },
           { id: 'i2', number: 'F-2026-0927', dueOn: '2026-11-07', amount: 312000 },
         ],
-        payments: [{ id: 'p1', amount: 100000, date: '2026-11-14', method: 'TRANSFER', receiptId: 'q1' }],
+        payments: [{ id: 'p1', amount: 100000, date: '2026-11-14', method: 'TRANSFER', receiptId: 'q1', receiptFile: true }],
         next: { date: '2026-12-05', amount: 532000 },
         unread: 1,
         lastMessage: {
@@ -80,10 +89,13 @@ const seed = (): Stored[] => [
         statusLabel: 'Échéancier',
         statusTone: 'info',
         invoices: [{ id: 'i3', number: 'M-5521', dueOn: '2026-09-15', amount: 90000 }],
-        payments: [{ id: 'p2', amount: 31333, date: '2026-11-05', method: 'CHEQUE', receiptId: 'q2' }],
+        payments: [{ id: 'p2', amount: 31333, date: '2026-11-05', method: 'CHEQUE', receiptId: 'q2', receiptFile: true }],
         next: { date: '2026-12-05', amount: 31333 },
         plan: {
           acceptedOn: '2026-10-20',
+          total: 94000,
+          method: 'CHEQUE',
+          fingerprint: FINGERPRINT,
           installments: [
             { number: 1, dueOn: '2026-11-05', amount: 31333, status: 'PAID' },
             { number: 2, dueOn: '2026-12-05', amount: 31333, status: 'DUE' },
@@ -105,6 +117,20 @@ const seed = (): Stored[] => [
         principal: 84000,
         balance: 84000,
         invoices: [{ id: 'i4', number: 'CH-118', dueOn: '2026-08-31', amount: 84000 }],
+        statusLabel: 'Échéancier proposé',
+        statusTone: 'info',
+        // Proposed by the firm, waiting for « Accepter cet échéancier » (question 76).
+        plan: {
+          acceptedOn: null,
+          total: 84000,
+          method: 'TRANSFER',
+          fingerprint: FINGERPRINT,
+          installments: [
+            { number: 1, dueOn: '2026-12-15', amount: 28000, status: 'UPCOMING' },
+            { number: 2, dueOn: '2027-01-15', amount: 28000, status: 'UPCOMING' },
+            { number: 3, dueOn: '2027-02-15', amount: 28000, status: 'UPCOMING' },
+          ],
+        },
       }),
     ],
   },
@@ -292,6 +318,34 @@ export const handlers = [
       entry.unread = 0;
       return done();
     }),
+  ),
+  http.post(
+    '/api/debtor/cases/:id/plan/acceptance',
+    onCase(async (entry, { request }) => {
+      const parsed = planAcceptance.safeParse(await request.json());
+      if (!parsed.success) return HttpResponse.json({ code: 'INVALID' }, { status: 422 });
+      const plan = entry.plan;
+      if (!plan || plan.acceptedOn) return notFound();
+      if (plan.fingerprint !== parsed.data.fingerprint || plan.total !== parsed.data.total || plan.installments.length !== parsed.data.months)
+        return HttpResponse.json({ code: 'CHANGED' }, { status: 409 });
+      plan.acceptedOn = today();
+      Object.assign(entry, {
+        statusLabel: 'Échéancier',
+        statusTone: 'info',
+        next: plan.installments[0] ? { date: plan.installments[0].dueOn, amount: plan.installments[0].amount } : null,
+      });
+      return done();
+    }),
+  ),
+  http.get(
+    '/api/debtor/cases/:id/plan/file',
+    onCase((entry) => (entry.plan?.fingerprint ? pdf('echeancier.pdf') : notFound())),
+  ),
+  http.get(
+    '/api/debtor/cases/:id/receipts/:receipt/file',
+    onCase((entry, { params }) =>
+      entry.payments.some((payment) => payment.receiptId === params.receipt && payment.receiptFile) ? pdf('quittance.pdf') : notFound(),
+    ),
   ),
   http.post(
     '/api/debtor/cases/:id/requests',

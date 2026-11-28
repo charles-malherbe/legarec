@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Échéancier {{case.reference}}</title>
+<style>
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 11pt; color: #1d2433; line-height: 1.5; }
+  h1 { font-size: 18pt; margin: 0 0 4mm; color: #14284b; }
+  h2 { font-size: 12pt; margin: 8mm 0 2mm; color: #14284b; }
+  .firm { font-size: 9pt; color: #555555; margin-bottom: 10mm; }
+  table { width: 100%; border-collapse: collapse; margin: 4mm 0; }
+  th, td { text-align: left; padding: 2mm 0; border-bottom: 0.3mm solid #d8dce5; }
+  td.amount, th.amount { text-align: right; white-space: nowrap; }
+  .total td { font-weight: bold; border-bottom: none; }
+  .legal { font-size: 8.5pt; color: #555555; margin-top: 12mm; }
+</style>
+</head>
+<body>
+  <div class="firm">
+    <strong>{{firm.name}}</strong> · Cabinet de recouvrement amiable<br>
+    {{firm.address}} · {{firm.phone}}<br>
+    SIREN {{firm.siren}}
+  </div>
+  <h1>Échéancier de paiement</h1>
+  <p>Dossier {{case.reference}}, pour le compte de <strong>{{creditor.name}}</strong>.</p>
+  <p>Proposé à <strong>{{debtor.name}}</strong> : {{plan.total}} en {{plan.count}} mensualités.</p>
+  <table>
+    <tr><th>N°</th><th>Échéance</th><th class="amount">Montant</th></tr>
+    {{#each installments}}<tr><td>{{number}}</td><td>{{dueOn}}</td><td class="amount">{{amount}}</td></tr>{{/each}}
+    <tr class="total"><td colspan="2">Total</td><td class="amount">{{plan.total}}</td></tr>
+  </table>
+  <h2>Moyen de paiement</h2>
+  {{#if plan.transfer}}
+  <p>Par virement à l’ordre de {{payment.holder}}<br>IBAN {{payment.iban}} · BIC {{payment.bic}}<br>Indiquez la référence {{case.reference}} dans le libellé.</p>
+  {{else}}
+  <p>Par chèque à l’ordre de {{payment.chequePayee}}, envoyé à {{payment.chequeAddress}}.<br>Indiquez la référence {{case.reference}} au dos du chèque.</p>
+  {{/if}}
+  <p class="legal">Cet échéancier prend effet lorsque vous l’acceptez dans votre espace de paiement : la date de votre accord et l’empreinte de ce document sont conservées. Les relances sont suspendues tant que les mensualités sont réglées. Paiement par chèque ou par virement uniquement.</p>
+</body>
+</html>

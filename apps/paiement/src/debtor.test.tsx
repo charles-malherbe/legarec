@@ -140,3 +140,47 @@ it('switches between the files of a debtor and shows the plan', async () => {
   expect(await screen.findByText('2/3')).toBeVisible();
   expect(screen.getByText('À payer')).toBeVisible();
 });
+it('accepts the proposed plan once read, with a confirmation, as it was shown', async () => {
+  open('/espace/echeancier', 'meunier');
+  expect(await screen.findByRole('heading', { name: 'Échéancier proposé' })).toBeVisible();
+  expect(screen.getByText(/régler 840,00 € en 3 mensualités/)).toBeVisible();
+  await userEvent.click(screen.getByRole('button', { name: 'Accepter cet échéancier' }));
+  const dialog = await inDialog();
+  expect(dialog.getByText('LGR-2026-00220')).toBeVisible();
+  expect(dialog.getByText('Virement')).toBeVisible();
+  // Nothing is accepted before the box is ticked.
+  expect(dialog.getByRole('button', { name: 'Accepter l’échéancier' })).toBeDisabled();
+  await userEvent.click(dialog.getByRole('checkbox', { name: /J’ai lu l’échéancier/ }));
+  await userEvent.click(dialog.getByRole('button', { name: 'Accepter l’échéancier' }));
+  expect(await screen.findByText(/Échéancier accepté le/)).toBeVisible();
+  expect(screen.getByRole('heading', { name: 'Mes mensualités' })).toBeVisible();
+  // Accepted once.
+  expect((await call('/cases/c3/plan/acceptance', { fingerprint: 'a'.repeat(64), total: 84000, months: 3 })).status).toBe(404);
+});
+it('refuses a plan accepted otherwise than shown, and gives its files to its debtor only', async () => {
+  openSession('meunier');
+  expect((await call('/cases/c3/plan/acceptance', { fingerprint: 'a'.repeat(64), total: 84000, months: 3 })).status).toBe(409);
+  expect((await call('/cases/c3/plan/file')).headers.get('content-disposition')).toBe('attachment; filename="echeancier.pdf"');
+  expect((await call('/cases/c2/plan/file')).status).toBe(404);
+  openSession('durand');
+  expect((await call('/cases/c1/receipts/q1/file')).status).toBe(200);
+  expect((await call('/cases/c3/plan/file')).status).toBe(404);
+});
+it('downloads the PDF of a plan and of a receipt', async () => {
+  const saved: string[] = [];
+  const click = HTMLAnchorElement.prototype.click;
+  HTMLAnchorElement.prototype.click = function (this: HTMLAnchorElement) {
+    saved.push(this.download);
+  };
+  URL.createObjectURL = () => 'blob:demo';
+  URL.revokeObjectURL = () => undefined;
+  try {
+    open('/espace/echeancier', 'durand');
+    await userEvent.click(await screen.findByRole('button', { name: /LGR-2026-00204/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Télécharger l’échéancier (PDF)' }));
+    await userEvent.click(screen.getByRole('button', { name: /Quittance de/ }));
+    await waitFor(() => expect(saved).toEqual(['echeancier.pdf', 'quittance.pdf']));
+  } finally {
+    HTMLAnchorElement.prototype.click = click;
+  }
+});
