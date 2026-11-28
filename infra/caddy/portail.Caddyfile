@@ -23,12 +23,17 @@
 	handle /assets/* {
 		@present file
 		header @present Cache-Control "public, max-age=31536000, immutable"
-		file_server
+		# Compressed once at build time, at the strongest level (infra/docker/precompress.mjs): the proxy leaves them as they are.
+		file_server {
+			precompressed br zstd gzip
+		}
 	}
 	# Every route of the portal is the same page, checked each time: a new version is seen at once.
 	handle {
 		header Cache-Control "no-cache"
 		try_files {path} /index.html
-		file_server
+		file_server {
+			precompressed br zstd gzip
+		}
 	}
 }

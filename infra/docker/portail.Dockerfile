@@ -16,6 +16,9 @@ RUN test -n "$VITE_API_URL" && VITE_API_URL="$VITE_API_URL" VITE_FEATURES="$VITE
 # The simulated API never ships.
 RUN ! grep -rlE "mockServiceWorker|setupWorker" "apps/${PORTAL}/dist"
 RUN test -z "$(find "apps/${PORTAL}/dist" -name "*.map")"
+# Compressed once here, at the strongest level, rather than by the proxy at each request.
+COPY infra/docker/precompress.mjs /usr/local/bin/precompress.mjs
+RUN node /usr/local/bin/precompress.mjs "apps/${PORTAL}/dist"
 
 FROM caddy:2.11.9-alpine@sha256:003a97808e781aa9f7e75cc2f43d34d461099031faf5e20faefb9f61126836f0
 ARG PORTAL
