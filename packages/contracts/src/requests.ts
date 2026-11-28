@@ -135,6 +135,14 @@ export const FILE_MAX_BYTES = 15 * 1024 * 1024;
 export const fileBody = z.custom<Uint8Array>((value) => value instanceof Uint8Array && value.byteLength > 0 && value.byteLength <= FILE_MAX_BYTES, {
   error: 'Ce fichier est vide ou dépasse 15 Mo.',
 });
+/**
+ * An event signed by a provider (`POST /hooks/resend`): the bytes as they came, 64 Ko at most (an event of Resend weighs
+ * about one). Anything else is an empty body, whose signature is then refused as any other.
+ */
+export const HOOK_MAX_BYTES = 64 * 1024;
+export const signedBody = z.unknown().transform((value) => (value instanceof Uint8Array && value.byteLength <= HOOK_MAX_BYTES ? value : new Uint8Array()));
+/** Bodies of the routes the providers call: no portal ever sends them. */
+export const HOOK_BODIES = { 'POST /hooks/resend': signedBody } as const;
 /** `expected`: the balance shown in the confirmation; the API refuses the plan if it changed since. */
 export const paymentPlanBody = z.object({
   caseId: id,

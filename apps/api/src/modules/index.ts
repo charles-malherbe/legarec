@@ -40,7 +40,9 @@ import { GdprController } from './gdpr/gdpr.controller';
 import { BillingController } from './remittances/billing.controller';
 import { CreditNotesController } from './remittances/credit-notes.controller';
 import { RemittancesController } from './remittances/remittances.controller';
+import { HooksController } from './reminders/hooks.controller';
 import { RemindersController } from './reminders/reminders.controller';
+import { ResendEventsService } from './reminders/resend-events.service';
 import { RemindersService } from './reminders/reminders.service';
 import { SendingsService } from './reminders/sendings.service';
 import { Clock } from '../platform/clock';
@@ -76,6 +78,7 @@ export const controllers: Type[] = [
   AiController,
   AiJournalController,
   RemindersController,
+  HooksController,
   LitigationController,
   DepositsController,
   RemittancesController,
@@ -120,6 +123,7 @@ export const providers: Provider[] = [
   NotificationsService,
   RemindersService,
   SendingsService,
+  ResendEventsService,
   Clock,
   LitigationService,
   DepositsService,

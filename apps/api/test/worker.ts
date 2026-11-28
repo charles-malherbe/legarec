@@ -13,6 +13,7 @@ import { AuthKeys } from '../src/modules/auth/keys';
 import { accessCodeJobs } from '../src/modules/debtor-access/access-codes.jobs';
 import { documentJobs } from '../src/modules/documents/documents.jobs';
 import { receiptJobs } from '../src/modules/payments/receipts.jobs';
+import { resendEventJobs } from '../src/modules/reminders/resend-events.jobs';
 import { sendingJobs } from '../src/modules/reminders/sendings.jobs';
 import { PdfRenderer } from '../src/platform/pdf/pdf';
 import { fileURLToPath } from 'node:url';
@@ -80,7 +81,8 @@ export function startMailWorker(
       simulate: (message) => Promise.resolve(void simulated.push(message)),
       ...(now ? { now } : {}),
     }),
-    maintenance: accessCodeJobs(vault),
+    // With what Resend says of the reminders afterwards: nothing leaves from there, and it may wait behind the purge.
+    maintenance: { ...accessCodeJobs(vault), ...resendEventJobs({ logger }) },
     documents: documentJobs(storageFor(test.config), new SimulatedScanner()),
     pdf: receiptJobs(storageFor(test.config), pdf, fileURLToPath(new URL('../templates/pdf/', import.meta.url))),
     ai: aiJobs(() => ai ?? null, vault),

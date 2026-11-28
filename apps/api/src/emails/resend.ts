@@ -1,4 +1,5 @@
 import type { AutomaticMessage } from './emails.service';
+import { SENDING_TAG } from './resend-webhook';
 
 /** What a provider is asked through: `fetch`, or a fake in the tests. No test ever reaches a provider. */
 export type HttpClient = (
@@ -29,8 +30,11 @@ export class ResendClient {
     private readonly timeoutMs = TIMEOUT_MS,
   ) {}
 
-  /** `once`: the same key never sends twice (Resend keeps it 24 hours). */
-  async send(key: string, message: AutomaticMessage, once: string): Promise<{ ref: string }> {
+  /**
+   * `once`: the same key never sends twice (Resend keeps it 24 hours). `sending`: the line the message leaves for, given
+   * back by Resend with each event of the message (tag `sending_id`): an identifier, nothing of the debtor.
+   */
+  async send(key: string, message: AutomaticMessage, once: string, sending?: string): Promise<{ ref: string }> {
     let answer: Awaited<ReturnType<HttpClient>>;
     try {
       answer = await this.http(ENDPOINT, {
@@ -42,6 +46,7 @@ export class ResendClient {
           subject: message.subject,
           html: message.html,
           ...(message.replyTo ? { reply_to: message.replyTo } : {}),
+          ...(sending ? { tags: [{ name: SENDING_TAG, value: sending }] } : {}),
         }),
         signal: AbortSignal.timeout(this.timeoutMs),
       });

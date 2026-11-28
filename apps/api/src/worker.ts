@@ -13,6 +13,7 @@ import { aiJobs, sweepCaseEvents } from './ai/ai.jobs';
 import { aiSetup } from './ai/provider';
 import { documentJobs } from './modules/documents/documents.jobs';
 import { receiptJobs } from './modules/payments/receipts.jobs';
+import { resendEventJobs } from './modules/reminders/resend-events.jobs';
 import { sendingJobs, sweepSendings } from './modules/reminders/sendings.jobs';
 import { PdfRenderer } from './platform/pdf/pdf';
 import { storageKeys } from './modules/vault/storage-keys';
@@ -72,7 +73,8 @@ const handlers: JobHandlers = {
     devRecipients: config.DEV_RECIPIENTS ?? [],
     simulate: (message) => simulated.send(message),
   }),
-  maintenance: accessCodeJobs(vault),
+  // With what Resend says of the reminders afterwards: nothing leaves from there, and it may wait behind the purge.
+  maintenance: { ...accessCodeJobs(vault), ...resendEventJobs({ logger }) },
   ai: aiJobs(() => aiSetup(config), vault),
 };
 const resealAll = async () => {
