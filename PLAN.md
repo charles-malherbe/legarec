@@ -302,7 +302,8 @@ Les 161 routes simulées se répartissent ainsi :
 - [ ] Courriers : composition des PDF, premier courrier `LR-AAAA-NNNN`, MySendingBox (compte de test), relance « Courrier recommandé » de la fiche, « Rédiger un courrier » et envoi groupé (`GET` et `POST /staff/documents/compose`, brouillon), envoi d'un document, essai d'un modèle (question 210)
 - [ ] Scénarios automatiques : règles à spécifier (question 216)
 - [x] Rappel d'échéance d'un échéancier (`POST /staff/payment-plans/:id/reminder`, `lot/q-rappel-echeance`, question 221) : e-mail `installment-reminder` de la prochaine échéance d'un échéancier actif, à la demande du collaborateur, à l'adresse principale (particulier compris), plafond, plages et une relance à la fois par dossier appliqués, lien vers le portail sans code ; refusé si l'échéance n'est plus celle confirmée (`INSTALLMENT_CHANGED`) ou s'il n'y en a plus (`NO_NEXT_INSTALLMENT`) ; ne compte pas comme une étape des relances (niveau vide). Pas de SMS (lot R), pas d'envoi automatique ; « Envoyer un rappel » n'est plus grisé
-- [ ] Dérogation motivée aux plafonds (question 214) ; e-mails de compte par Resend, avec la clé et le domaine des relances (question 217 ; toujours simulés) ; file des envois « incertains » restés sans événement de Resend, à trancher par une personne (aucun écran)
+- [x] Dérogation motivée au plafond de contacts (question 214, `lot/q-derogation-plafond`) : relance par e-mail depuis la fiche, Responsable ou Directeur, motif obligatoire gardé sur l'envoi, historique et journal d'audit sans texte libre, rôle revérifié par la base
+- [ ] E-mails de compte par Resend, avec la clé et le domaine des relances (question 217 ; toujours simulés) ; file des envois « incertains » restés sans événement de Resend, à trancher par une personne (aucun écran)
 
 ## Lot W — IA (état au 26/11/2026)
 - [x] Couche fournisseur, garde-fous, budget, journal ; synthèse du dossier (régénérer, signaler)

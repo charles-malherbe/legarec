@@ -331,6 +331,53 @@ describe('the reminder of the next installment (question 221)', () => {
   });
 });
 
+describe('a justified override of the cap (question 214)', () => {
+  const REASON = 'Le débiteur a demandé ce rappel par téléphone.';
+  it('lets the manager send beyond the cap with a reason, kept on the line and never in the audit log', async () => {
+    const first = await eligible(test.s.manager);
+    const second = await eligible(test.s.manager, { debtor: first.debtor });
+    const third = await eligible(test.s.manager, { debtor: first.debtor });
+    // Below the cap, a reason overrides nothing and is not kept.
+    expect((await remind('manager', first, { capOverride: REASON })).status).toBe(204);
+    expect((await remind('manager', second)).status).toBe(204);
+    expect((await remind('manager', third)).body).toEqual({ code: 'CONTACT_CAP' });
+    expect((await remind('manager', third, { capOverride: 'Court' })).status).toBe(422);
+    expect((await remind('manager', third, { capOverride: REASON })).status).toBe(204);
+    const lines = await rows<{ case_id: string; cap_override_reason: string | null }>(
+      'SELECT case_id, cap_override_reason FROM sendings WHERE case_id = ANY($1::uuid[]) ORDER BY created_at',
+      [[first.id, second.id, third.id]],
+    );
+    expect(lines).toEqual([
+      { case_id: first.id, cap_override_reason: null },
+      { case_id: second.id, cap_override_reason: null },
+      { case_id: third.id, cap_override_reason: REASON },
+    ]);
+    expect((await events(third.id, 'CAP_OVERRIDDEN')).map((event) => [event.title, event.detail])).toEqual([
+      ['Dérogation au plafond de contacts', 'E-mail · niveau 1'],
+    ]);
+    expect(await events(first.id, 'CAP_OVERRIDDEN')).toEqual([]);
+    const audit = await rows<{ entity_id: string; params: unknown }>("SELECT entity_id, params FROM audit_log WHERE action = 'CONTACT_CAP_OVERRIDDEN'");
+    expect(audit).toHaveLength(1);
+    expect(JSON.stringify(audit)).not.toContain('téléphone');
+    await rows("UPDATE outbox SET done_at = now() WHERE name = 'case-reminder' AND done_at IS NULL");
+  });
+
+  it('is refused to a claims officer, by the API and by the database', async () => {
+    const first = await eligible(test.s.officerA);
+    const second = await eligible(test.s.officerA, { debtor: first.debtor });
+    expect((await remind('officerA', first)).status).toBe(204);
+    expect((await remind('officerA', second, { capOverride: REASON })).status).toBe(403);
+    const [contact] = await rows<{ id: string; creditor_id: string }>('SELECT id, creditor_id FROM case_contacts WHERE case_id = $1', [second.id]);
+    expect(
+      await asStaff(test.s.officerA, (tx) =>
+        tx.$executeRaw`INSERT INTO sendings (case_id, creditor_id, channel, template, level, contact_id, cap_override_reason)
+          VALUES (${second.id}::uuid, ${contact!.creditor_id}::uuid, 'EMAIL', 'FIRM', 2, ${contact!.id}::uuid, ${REASON})`,
+      ),
+    ).toBe('42501');
+    await rows("UPDATE outbox SET done_at = now() WHERE name = 'case-reminder' AND done_at IS NULL");
+  });
+});
+
 describe('reminders from the list of cases', () => {
   type Item = { id: string; template: 'FRIENDLY' | 'FIRM' };
   const friendly = (...made: Made[]): Item[] => made.map(({ id }) => ({ id, template: 'FRIENDLY' }));

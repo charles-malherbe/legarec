@@ -17,6 +17,7 @@ import { CONFIG, type Config } from '../../platform/config/config';
 import { Database } from '../../platform/database/database';
 import { conflict, forbidden, notFound } from '../../platform/errors/api-error';
 import { dayOf, timeOf } from '../../platform/format';
+import { currentActor } from '../../platform/http/context';
 import { mayActOn } from '../../platform/queue/jobs';
 import { Outbox } from '../../platform/queue/outbox';
 import { normalized } from '../cases/cases.service';
@@ -85,7 +86,14 @@ interface Line {
   confirmedAt: Date | null;
   createdAt: Date;
 }
-type Chosen = { contactId: string; template: Template } | SendingRefusal;
+/** `override`: the reason a colleague gave to go beyond the cap (question 214), used only when it is reached. */
+type Chosen = { contactId: string; template: Template; override?: string } | SendingRefusal;
+/** Who may override the cap of contacts (question 214); PostgreSQL asks it again (`app.check_cap_override`). */
+const OVERRIDERS: ReadonlySet<string> = new Set(['COLLECTION_MANAGER', 'DIRECTOR']);
+const currentStaffRole = () => {
+  const actor = currentActor();
+  return actor.kind === 'staff' ? actor.role : null;
+};
 /** What does not depend on the case: read once for a request. */
 interface Rules {
   now: Date;
@@ -152,7 +160,11 @@ export class SendingsService {
     const wanted = normalized('EMAIL', body.recipient);
     const contact = found.contacts.find((item) => item.valueNormalized === wanted);
     if (!contact) throw refused('UNKNOWN_RECIPIENT');
-    const refusal = (await this.queue([found], rules, () => ({ contactId: contact.id, template: body.template }))).get(found.id);
+    // The cap may be overridden with a reason by the manager, or the Director on their cases (question 214); the database
+    // asks the role again.
+    const override = body.capOverride;
+    if (override !== undefined && !OVERRIDERS.has(currentStaffRole() ?? '')) throw forbidden();
+    const refusal = (await this.queue([found], rules, () => ({ contactId: contact.id, template: body.template, override }))).get(found.id);
     if (refusal) throw refused(refusal);
   }
 
@@ -336,19 +348,28 @@ export class SendingsService {
       select: { caseId: true, channel: true, template: true, level: true, status: true, sentAt: true, confirmedAt: true, createdAt: true },
     }))
       lines.set(line.caseId, [...(lines.get(line.caseId) ?? []), line]);
-    const data: { caseId: string; creditorId: string; channel: 'EMAIL'; template: Template; level: number | null; contactId: string }[] = [];
+    const data: {
+      caseId: string;
+      creditorId: string;
+      channel: 'EMAIL';
+      template: Template;
+      level: number | null;
+      contactId: string;
+      capOverrideReason: string | null;
+    }[] = [];
     for (const found of open) {
       const asked = lines.get(found.id) ?? [];
       // One at a time per case: a second click, a second tab or a colleague adds nothing while a reminder is on its way.
       const chosen = pending(asked, rules.now) ? 'REMINDER_PENDING' : choose(found, asked);
       const count = sent.get(found.debtorId) ?? 0;
-      const refusal = typeof chosen === 'string' ? chosen : count >= rules.cap ? 'CONTACT_CAP' : null;
+      const over = count >= rules.cap;
+      const refusal = typeof chosen === 'string' ? chosen : over && chosen.override === undefined ? 'CONTACT_CAP' : null;
       if (refusal ?? typeof chosen === 'string') {
         refusals.set(found.id, refusal!);
         continue;
       }
       sent.set(found.debtorId, count + 1);
-      const { contactId, template } = chosen as Exclude<Chosen, string>;
+      const { contactId, template, override } = chosen as Exclude<Chosen, string>;
       data.push({
         caseId: found.id,
         creditorId: found.creditorId,
@@ -356,10 +377,17 @@ export class SendingsService {
         template,
         level: template === 'INSTALLMENT' ? null : REMINDER_LEVELS[template],
         contactId,
+        // Below the cap, nothing is overridden: no reason is kept.
+        capOverrideReason: over && override !== undefined ? override : null,
       });
     }
     if (data.length === 0) return refusals;
-    const written = await tx.sending.createManyAndReturn({ data, select: { id: true, caseId: true } });
+    const written = await tx.sending.createManyAndReturn({ data, select: { id: true, caseId: true, level: true, capOverrideReason: true } });
+    for (const line of written.filter((item) => item.capOverrideReason !== null)) {
+      // Who, when and which sending: never the reason, which stays on the line.
+      await this.audit.log({ action: 'CONTACT_CAP_OVERRIDDEN', entity: { type: 'sending', id: line.id } });
+      await tx.$executeRaw`SELECT app.add_case_event(${line.caseId}::uuid, 'CAP_OVERRIDDEN', 'Dérogation au plafond de contacts', ${`E-mail · niveau ${line.level ?? 1}`}, 'warning'::event_tone, false)`;
+    }
     // The history says « Relance envoyée » when the worker has sent it, not before (question 219).
     for (const { id, caseId } of written)
       await this.outbox.add({ queue: 'reminders', name: 'case-reminder', payload: { sending: id, case: caseId }, dedupeKey: `sending:${id}` });

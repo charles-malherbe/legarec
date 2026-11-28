@@ -23,7 +23,7 @@ import {
 import { http, HttpResponse } from 'msw';
 import { done, forbidden, guarded, notFound, staffWithCases } from '../http';
 import { creditorFacts } from './creditorFacts';
-import { addGdprRequest } from './settings';
+import { addGdprRequest, contactCap } from './settings';
 import { mayHoldCases } from './steering';
 import { noteRecentCase } from '../state';
 
@@ -256,7 +256,10 @@ export const resetCases = () => {
   payments = {};
   extra = {};
   reminded.clear();
+  emailed.clear();
 };
+/** E-mails sent here to each debtor, all creditors together: the cap of the week, simulated without its week. */
+const emailed = new Map<string, number>();
 /** The highest level of e-mail reminder that has left a case here, and when. */
 const reminded = new Map<string, { level: number; at: number }>();
 /**
@@ -882,12 +885,24 @@ export const caseHandlers = [
   http.post(
     '/api/cases/:id/reminders',
     acting(async (item, session, { request }) => {
-      const { channel, template } = (await request.json()) as { channel: string; template: 'FRIENDLY' | 'FIRM' | 'FORMAL_NOTICE' };
+      const { channel, template, capOverride } = (await request.json()) as {
+        channel: string;
+        template: 'FRIENDLY' | 'FIRM' | 'FORMAL_NOTICE';
+        capOverride?: string;
+      };
       // As the API: texts come with lot R, the registered letter with the letters (question 210).
       if (channel !== 'EMAIL') return HttpResponse.json({ code: 'NOT_AVAILABLE' }, { status: 409 });
       // Nothing leaves during a dispute or a litigation (question 218).
       if (item.status === 'DISPUTE' || item.status === 'LITIGATION') return HttpResponse.json({ code: 'CASE_DISPUTED' }, { status: 409 });
+      // The cap of the debtor, which the manager or the Director may override with a reason (question 214).
+      if (capOverride !== undefined && session.role !== 'COLLECTION_MANAGER' && session.role !== 'DIRECTOR') return forbidden();
+      if (capOverride !== undefined && capOverride.trim().length < 10) return HttpResponse.json({ code: 'INVALID' }, { status: 422 });
+      const count = emailed.get(item.name) ?? 0;
+      const over = count >= contactCap('emails');
+      if (over && capOverride === undefined) return HttpResponse.json({ code: 'CONTACT_CAP' }, { status: 409 });
+      emailed.set(item.name, count + 1);
       const level = { FRIENDLY: 1, FIRM: 2, FORMAL_NOTICE: 3 }[template];
+      if (over) log(item.id, session, 'Dérogation au plafond de contacts', `E-mail · niveau ${level}`);
       reminded.set(item.id, { level: Math.max(level, reminded.get(item.id)?.level ?? 0), at: Date.now() });
       log(item.id, session, 'Relance envoyée', `E-mail · niveau ${level}`);
       return done();

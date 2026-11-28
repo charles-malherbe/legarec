@@ -22,6 +22,8 @@ export interface ConfirmProps {
   reasonPlaceholder?: string;
   /** What is said of the reason under its field: where it is kept. */
   reasonHelp?: string;
+  /** Characters the reason needs, spaces around it left out, before the confirmation is allowed (1 by default). */
+  reasonMinLength?: number;
   /** Exact text the user must type before confirming (irreversible actions). */
   typeToConfirm?: { label: string; expected: string };
   /** A box to tick in the dialog; `required` blocks the confirmation until it is ticked. */
@@ -44,6 +46,7 @@ function ConfirmBody({
   reasonLabel,
   reasonPlaceholder = 'Précisez le motif…',
   reasonHelp = "Obligatoire · conservé dans le journal d'audit",
+  reasonMinLength = 1,
   typeToConfirm,
   check,
   onConfirm,
@@ -58,7 +61,7 @@ function ConfirmBody({
   useEffect(() => () => void setTimeout(() => opener?.focus?.(), 0), [opener]);
   const textId = useId();
   const titleId = useId();
-  const blocked = (!!reasonLabel && !reason.trim()) || (!!typeToConfirm && typed.trim() !== typeToConfirm.expected) || (!!check?.required && !checked);
+  const blocked = (!!reasonLabel && reason.trim().length < reasonMinLength) || (!!typeToConfirm && typed.trim() !== typeToConfirm.expected) || (!!check?.required && !checked);
 
   const confirm = async () => {
     if (blocked || pending) return;

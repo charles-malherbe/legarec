@@ -123,6 +123,17 @@ export const caseReminderBody = z.object({
   template: reminderTemplate,
   recipient: line(300),
   message: line(10_000).optional(),
+  /**
+   * Justified override of the contact cap (question 214), by the Collection manager or the Director on their cases: the
+   * reason, 10 to 500 characters. Used only when the cap is reached; kept on the sending, never in the audit log.
+   */
+  capOverride: z
+    .string()
+    .trim()
+    .min(10)
+    .max(500)
+    .regex(/^[^\p{Cc}]*$/u)
+    .optional(),
 });
 export const gdprRequestBody = z.object({ caseId: id, kind: gdprRequestKind, origin: line(200) });
 export const gdprAnswerBody = z.object({ status: z.enum(['OPEN', 'ANSWERED', 'REFUSED']), reason });

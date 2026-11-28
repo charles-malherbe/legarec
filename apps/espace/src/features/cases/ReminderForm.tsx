@@ -4,6 +4,7 @@ import { Alerte, Bouton, Carte, Champ, useConfirm, useToast } from '@legarec/ui'
 import { useState } from 'react';
 import { ApiError } from '../../app/api';
 import { useChange } from '../../app/data';
+import { useCurrentUser } from '../../app/session';
 import layout from '@legarec/ui/layout.module.css';
 
 /** The labels of the screen, and the codes the API reads. */
@@ -21,20 +22,23 @@ const TEMPLATES: { value: Template; label: string }[] = [
 /** The validated e-mail each template leaves with (question 212): what it announces depends on it. */
 const LEVELS: Record<Template, number> = { FRIENDLY: 1, FIRM: 2, FORMAL_NOTICE: 3 };
 const labelOf = <T extends string>(items: { value: T; label: string }[], value: T) => items.find((item) => item.value === value)?.label ?? value;
-/** Why the API refused, in the words of the firm; null for any other failure. */
-const refusalOf = (error: unknown): string | null => {
+/** Why the API refused: its code and the words of the firm; null for any other failure. */
+const refusalOf = (error: unknown) => {
   const code = error instanceof ApiError && error.status === 409 ? sendingRefusal.safeParse((error.body as { code?: unknown } | null)?.code) : null;
-  return code?.success ? SENDING_REFUSALS[code.data] : null;
+  return code?.success ? { code: code.data, text: SENDING_REFUSALS[code.data] } : null;
 };
+/** Who may send beyond the cap of contacts, with a reason (question 214): the API and PostgreSQL ask it again. */
+const OVERRIDERS = new Set(['COLLECTION_MANAGER', 'DIRECTOR']);
 
 export function ReminderForm({ data, onClose }: { data: CaseDetail; onClose: () => void }) {
   const change = useChange();
   const confirm = useConfirm();
   const toast = useToast();
+  const user = useCurrentUser();
   const [channel, setChannel] = useState<ReminderChannel>('EMAIL');
   const [template, setTemplate] = useState<Template>('FIRM');
   const [recipient, setRecipient] = useState(data.mainContact.email);
-  const [refusal, setRefusal] = useState<string | null>(null);
+  const [refusal, setRefusal] = useState<ReturnType<typeof refusalOf>>(null);
   // An e-mail only leaves for an address of the case: the API refuses any other.
   const addresses = data.contacts.filter((contact) => contact.kind === 'EMAIL').map((contact) => contact.value);
   const numbers = data.invoices.map((invoice) => invoice.number).join(', ');
@@ -52,35 +56,52 @@ export function ReminderForm({ data, onClose }: { data: CaseDetail; onClose: () 
     const { email, phone, address } = data.mainContact;
     setRecipient(picked === 'SMS' ? phone : picked === 'EMAIL' ? email : address);
   };
+  const details = () => [
+    { k: 'Débiteur', v: data.name },
+    { k: 'Canal', v: labelOf(CHANNELS, channel) },
+    { k: 'Modèle', v: labelOf(TEMPLATES, template) },
+    { k: 'Destinataire', v: recipient },
+    // What the e-mail of this level announces (question 213). For the other channels, not open yet, nothing exact to show.
+    ...(byEmail ? [{ k: 'Montant', v: formatCents(reminderAmount(LEVELS[template], data)) }] : []),
+    { k: 'Premier courrier', v: data.firstLetter ? `${data.firstLetter.reference} du ${formatDate(data.firstLetter.date)}` : 'Cette relance' },
+  ];
+  /** Sends; a refusal of a rule of the firm is said in the form, and nothing has left. */
+  const post = async (capOverride?: string) => {
+    try {
+      // An e-mail leaves with the validated text of its template: no typed text is sent nor kept.
+      await change(`/cases/${data.id}/reminders`, { body: { channel, template, recipient, ...(byEmail ? {} : { message }), ...(capOverride ? { capOverride } : {}) } });
+    } catch (error) {
+      const reason = refusalOf(error);
+      if (!reason) throw error;
+      setRefusal(reason);
+      return;
+    }
+    toast({ message: capOverride ? 'Relance envoyée, en dérogation au plafond de contacts.' : 'Relance envoyée.' });
+    onClose();
+  };
+  const mayOverride = byEmail && OVERRIDERS.has(user.role) && refusal?.code === 'CONTACT_CAP';
+  /** Question 214: one reminder beyond the cap, with a reason kept on the sending. */
+  const override = () =>
+    confirm({
+      title: 'Déroger au plafond de contacts ?',
+      tone: 'danger',
+      body: 'Le plafond de contacts de ce débiteur est atteint. Cette relance part malgré tout ; la dérogation est notée dans l’historique du dossier et dans le journal d’audit.',
+      confirmLabel: 'Envoyer en dérogation',
+      details: details(),
+      reasonLabel: 'Motif de la dérogation',
+      reasonPlaceholder: 'Ex. : le débiteur a demandé ce rappel par téléphone…',
+      reasonHelp: 'Obligatoire, 10 caractères au moins · conservé avec l’envoi',
+      reasonMinLength: 10,
+      onConfirm: (reason) => post(reason.trim()),
+    });
   const send = () =>
     confirm({
       title: 'Envoyer cette relance ?',
       tone: registered ? 'danger' : 'primary',
       body: `${registered ? 'Une lettre recommandée ne peut plus être annulée une fois envoyée. ' : ''}La relance part immédiatement ; l’envoi est ajouté à l’historique du dossier. Les mentions obligatoires du modèle sont ajoutées automatiquement.`,
       confirmLabel: 'Envoyer la relance',
-      details: [
-        { k: 'Débiteur', v: data.name },
-        { k: 'Canal', v: labelOf(CHANNELS, channel) },
-        { k: 'Modèle', v: labelOf(TEMPLATES, template) },
-        { k: 'Destinataire', v: recipient },
-        // What the e-mail of this level announces (question 213). For the other channels, not open yet, nothing exact to show.
-        ...(byEmail ? [{ k: 'Montant', v: formatCents(reminderAmount(LEVELS[template], data)) }] : []),
-        { k: 'Premier courrier', v: data.firstLetter ? `${data.firstLetter.reference} du ${formatDate(data.firstLetter.date)}` : 'Cette relance' },
-      ],
-      onConfirm: async () => {
-        try {
-          // An e-mail leaves with the validated text of its template: no typed text is sent nor kept.
-          await change(`/cases/${data.id}/reminders`, { body: { channel, template, recipient, ...(byEmail ? {} : { message }) } });
-        } catch (error) {
-          const reason = refusalOf(error);
-          if (!reason) throw error;
-          // Refused by a rule of the firm: nothing has left, and the form says why.
-          setRefusal(reason);
-          return;
-        }
-        toast({ message: 'Relance envoyée.' });
-        onClose();
-      },
+      details: details(),
+      onConfirm: () => post(),
     });
   return (
     <Carte title={`Nouvelle relance — niveau ${data.remindersSent + 1}`} actionLabel="Fermer" onAction={onClose}>
@@ -115,9 +136,10 @@ export function ReminderForm({ data, onClose }: { data: CaseDetail; onClose: () 
             text="Aucun premier courrier n’est enregistré pour ce dossier : une relance doit rappeler sa référence et sa date. Envoyez d’abord le rappel amiable."
           />
         )}
-        {refusal && <Alerte tone="danger" compact text={`La relance n’est pas partie : ${refusal}.`} />}
+        {refusal && <Alerte tone="danger" compact text={`La relance n’est pas partie : ${refusal.text}.`} />}
         <div className={layout.end}>
           <Bouton variant="secondary" label="Annuler" onPress={onClose} />
+          {mayOverride && <Bouton variant="secondary" label="Déroger au plafond" onPress={override} />}
           <Bouton label="Envoyer la relance" disabled={blocked || !recipient.trim() || (!byEmail && !message.trim())} onPress={send} />
         </div>
       </div>
