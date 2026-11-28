@@ -105,7 +105,8 @@ export class DashboardService {
           title: name(row),
           meta: `${row.reference} · ${formatCents(left(row))}${days ? ` · ${plural(days, 'jour')} de retard` : ''}`,
           tone: row.status,
-          href: `/dossiers/${row.id}`,
+          // The address of a case file in the espace (the same as the search and the notifications).
+          href: `/debiteurs/${row.id}`,
           done: marks.has(id),
         };
       });
