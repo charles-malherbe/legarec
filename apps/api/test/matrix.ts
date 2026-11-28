@@ -644,6 +644,25 @@ export const MATRIX: Record<string, MatrixEntry> = {
   'GET /staff/team': { expect: only({ director: 200, manager: 200, managerAlone: 200, liar: 403 }) },
   // Agenda of the reminders: read with the cases; planned on a case one acts on (here held by nobody: the managers).
   'GET /staff/reminders': { expect: withCases(200) },
+  // The manager and the Director; the liar is let in by the guard, then shown nothing.
+  'GET /staff/sendings/uncertain': { expect: opens(200) },
+  // An e-mail taken three days ago on a case held by nobody: the manager decides; the Director acts on none but theirs.
+  'PUT /staff/sendings/:id/settlement': {
+    path: async (test) => {
+      const { id, creditorId } = await newCase(test);
+      const { rows } = await test.database.admin.query<{ id: string }>(
+        `WITH k AS (INSERT INTO case_contacts (case_id, creditor_id, kind, label, value, value_normalized, source, status, is_primary)
+           VALUES ($1, $2, 'EMAIL', 'Comptabilité', 'compta@exemple.test', 'compta@exemple.test', 'CREDITOR', 'VERIFIED', true) RETURNING id)
+         INSERT INTO sendings (case_id, creditor_id, channel, template, level, contact_id, created_by, created_at)
+         SELECT $1, $2, 'EMAIL', 'FIRM', 2, k.id, $3, now() - interval '3 days' FROM k RETURNING id`,
+        [id, creditorId, test.s.manager],
+      );
+      await test.database.admin.query("UPDATE sendings SET status = 'UNCERTAIN' WHERE id = $1", [rows[0]!.id]);
+      return `/staff/sendings/${rows[0]!.id}/settlement`;
+    },
+    body: () => ({ outcome: 'NOT_SENT' }),
+    expect: only({ director: 403, manager: 204, managerAlone: 204, liar: 403 }),
+  },
   'GET /staff/reminders/targets': { expect: withCases(200) },
   'POST /staff/reminders': {
     path: async (test) => {

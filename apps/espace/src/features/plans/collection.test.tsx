@@ -57,6 +57,26 @@ describe('payment plans', () => {
   });
 });
 
+describe('uncertain sendings', () => {
+  it('lets the manager note an uncertain e-mail as sent, after a confirmation', async () => {
+    openAs('cl', '/relances');
+    expect(await screen.findByText('1 envoi incertain', {}, { timeout: 5000 })).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Noter comme parti : Bâtiplus SAS' }));
+    const dialog = await inDialog();
+    expect(dialog.getByText('LGR-2026-00142')).toBeVisible();
+    await userEvent.click(dialog.getByRole('button', { name: 'Noter comme parti' }));
+    expect(await screen.findByText('Envoi à Bâtiplus SAS noté comme parti.')).toBeVisible();
+    expect(screen.queryByText('1 envoi incertain')).toBeNull();
+  });
+  it('is neither shown nor decided by a claims officer', async () => {
+    expect((await call('hb', '/sendings/uncertain')).status).toBe(403);
+    expect((await call('hb', '/sendings/u1/settlement', { outcome: 'SENT' }, 'PUT')).status).toBe(403);
+    openAs('hb', '/relances');
+    expect(await screen.findByRole('heading', { name: 'Relances' })).toBeVisible();
+    expect(screen.queryByText(/envoi incertain/)).toBeNull();
+  });
+});
+
 describe('litigation', () => {
   it('confirms the next step with its summary', async () => {
     openAs('cl', '/contentieux');

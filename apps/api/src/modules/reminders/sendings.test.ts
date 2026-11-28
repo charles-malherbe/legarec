@@ -378,6 +378,66 @@ describe('a justified override of the cap (question 214)', () => {
   });
 });
 
+describe('an uncertain sending decided by a person', () => {
+  /** A line of `made` taken long ago, that no event of Resend has settled. */
+  const uncertain = async (made: Made, hoursAgo = 72) => {
+    const [line] = await rows<{ id: string }>(
+      `INSERT INTO sendings (case_id, creditor_id, channel, template, level, contact_id, created_by, created_at)
+       SELECT c.id, c.creditor_id, 'EMAIL', 'FIRM', 2, k.id, c.officer_id, now() - make_interval(hours => $2::int)
+       FROM cases c JOIN case_contacts k ON k.case_id = c.id WHERE c.id = $1 RETURNING id`,
+      [made.id, hoursAgo],
+    );
+    await rows("UPDATE sendings SET status = 'UNCERTAIN' WHERE id = $1", [line!.id]);
+    return line!.id;
+  };
+  const listed = async (as: string) => ((await call(as, 'GET', '/sendings/uncertain')).body as { items: { id: string; level: number | null }[] }).items;
+  const settle = (as: string, id: string, outcome: string) => call(as, 'PUT', `/sendings/${id}/settlement`, { outcome });
+
+  it('is listed for the manager after 48 hours, and noted as sent on the day it was asked', async () => {
+    const made = await eligible(test.s.manager);
+    const old = await uncertain(made);
+    const recent = await uncertain(await eligible(test.s.manager), 2);
+    const ids = (await listed('manager')).map((item) => item.id);
+    expect(ids).toContain(old);
+    expect(ids).not.toContain(recent);
+    expect((await call('officerA', 'GET', '/sendings/uncertain')).status).toBe(403);
+    expect((await settle('manager', recent, 'SENT')).body).toEqual({ code: 'CHANGED' });
+    expect((await settle('manager', old, 'MAYBE')).status).toBe(422);
+    expect((await settle('manager', old, 'SENT')).status).toBe(204);
+    const [line] = await rows<{ status: string; same_day: boolean; failure: string | null }>(
+      'SELECT status, sent_at = created_at AS same_day, failure FROM sendings WHERE id = $1',
+      [old],
+    );
+    expect(line).toEqual({ status: 'SENT', same_day: true, failure: null });
+    expect((await events(made.id, 'REMINDER_SENT')).map((event) => [event.title, event.detail])).toEqual([['Relance notée partie', 'E-mail · niveau 2']]);
+    expect(await rows('SELECT action FROM audit_log WHERE entity_id = $1', [old])).toEqual([{ action: 'SENDING_NOTED_SENT' }]);
+    // Decided once.
+    expect((await settle('manager', old, 'NOT_SENT')).body).toEqual({ code: 'CHANGED' });
+    expect((await listed('manager')).map((item) => item.id)).not.toContain(old);
+  });
+
+  it('is noted as not sent with a code of the provider, which a later event of Resend may still contradict', async () => {
+    const made = await eligible(test.s.manager);
+    const id = await uncertain(made);
+    expect((await settle('manager', id, 'NOT_SENT')).status).toBe(204);
+    expect(await rows('SELECT status, failure, sent_at FROM sendings WHERE id = $1', [id])).toEqual([
+      { status: 'FAILED', failure: 'PROVIDER_UNCONFIRMED', sent_at: null },
+    ]);
+    expect((await events(made.id, 'REMINDER_FAILED')).map((event) => event.title)).toEqual(['Relance notée non partie']);
+  });
+
+  it('is decided by nobody else: a claims officer, the Director on the case of another, by the API and by the database', async () => {
+    const made = await eligible(test.s.officerA);
+    const id = await uncertain(made);
+    expect((await settle('officerA', id, 'SENT')).status).toBe(403);
+    expect(await asStaff(test.s.officerA, (tx) => tx.$executeRaw`SELECT app.settle_sending(${id}::uuid, 'SENT')`)).toBe('42501');
+    expect((await listed('director')).map((item) => item.id)).not.toContain(id);
+    expect((await settle('director', id, 'SENT')).status).toBe(403);
+    expect((await settle('manager', randomUUID(), 'SENT')).status).toBe(404);
+    expect(await rows('SELECT status FROM sendings WHERE id = $1', [id])).toEqual([{ status: 'UNCERTAIN' }]);
+  });
+});
+
 describe('reminders from the list of cases', () => {
   type Item = { id: string; template: 'FRIENDLY' | 'FIRM' };
   const friendly = (...made: Made[]): Item[] => made.map(({ id }) => ({ id, template: 'FRIENDLY' }));

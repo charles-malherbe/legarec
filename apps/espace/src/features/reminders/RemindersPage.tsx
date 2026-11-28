@@ -18,6 +18,8 @@ import { soonAt } from '../../app/features';
 import layout from '@legarec/ui/layout.module.css';
 import { matches } from '../../shared/listState';
 import { PlanReminder } from './PlanReminder';
+import { UncertainSendings } from './UncertainSendings';
+import { useCurrentUser } from '../../app/session';
 import css from './Reminders.module.css';
 
 const TONE: Record<ReminderType, Tone> = { EMAIL: 'info', SMS: 'teal', CALL: 'marine', LETTER: 'warning', INSTALLMENT: 'success', COURT_DEADLINE: 'danger' };
@@ -77,6 +79,7 @@ export function RemindersPage() {
 
 function Agenda({ today, items, weekly }: { today: string; items: Reminder[]; weekly: { emails: number; sms: number; letters: number } }) {
   const scope = useCreditorScope();
+  const user = useCurrentUser();
   const change = useChange();
   const confirm = useConfirm();
   const toast = useToast();
@@ -233,6 +236,7 @@ function Agenda({ today, items, weekly }: { today: string; items: Reminder[]; we
           );
         })}
       </div>
+      {(user.role === 'COLLECTION_MANAGER' || user.role === 'DIRECTOR') && <UncertainSendings />}
       {limits.length > 0 && (
         <Alerte
           tone="warning"

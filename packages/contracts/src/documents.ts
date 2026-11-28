@@ -127,6 +127,26 @@ export const BATCH_TEMPLATE_LABELS: Record<BatchTemplate, [one: string, many: st
   FIRM: ['relance ferme', 'relances fermes'],
 };
 /** Before the confirmation: the reminder each case would receive now, or why it would receive none. */
+/**
+ * E-mails « incertains » for 48 hours at least, that no event of Resend has settled: a person decides (Collection manager,
+ * or the Director on their cases). Neither address nor text: the case, the debtor, the step and the day it was asked.
+ */
+export const uncertainSendings = z.object({
+  items: z.array(
+    z.object({
+      id: z.string(),
+      caseId: z.string(),
+      reference: z.string(),
+      debtor: z.string(),
+      /** Level of the reminder; null for the reminder of an installment (question 221). */
+      level: z.number().int().min(1).max(3).nullable(),
+      askedAt: z.iso.datetime({ offset: true }),
+    }),
+  ),
+});
+export type UncertainSendings = z.infer<typeof uncertainSendings>;
+/** « Partie » or « Non partie ». */
+export const sendingSettlementBody = z.object({ outcome: z.enum(['SENT', 'NOT_SENT']) });
 export const reminderPreview = z.object({
   items: z.array(z.object({ id: z.string(), template: batchTemplate.nullable(), reason: sendingRefusal.nullable() })),
 });

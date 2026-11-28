@@ -976,6 +976,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/staff/sendings/uncertain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["UncertainSendingsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/sendings/{id}/settlement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["UncertainSendingsController_settle"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/hooks/resend": {
         parameters: {
             query?: never;
@@ -4290,6 +4322,52 @@ export interface operations {
         };
     };
     RemindersController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    UncertainSendingsController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: {
+                            id: string;
+                            caseId: string;
+                            reference: string;
+                            debtor: string;
+                            level: number | null;
+                            /** Format: date-time */
+                            askedAt: string;
+                        }[];
+                    };
+                };
+            };
+        };
+    };
+    UncertainSendingsController_settle: {
         parameters: {
             query?: never;
             header?: never;

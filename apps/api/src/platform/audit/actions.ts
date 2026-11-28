@@ -51,6 +51,8 @@ export const AUDIT_ACTIONS = {
   CASE_OPENED: 'Dossier ouvert',
   CASES_ASSIGNED: 'Dossiers attribués : {count}',
   REMINDERS_GROUPED: 'Relances groupées par e-mail mises en file : {count}',
+  SENDING_NOTED_SENT: 'Envoi incertain noté parti',
+  SENDING_NOTED_NOT_SENT: 'Envoi incertain noté non parti',
   CONTACT_CAP_OVERRIDDEN: 'Relance par e-mail au-delà du plafond de contacts, motif sur l’envoi',
   CASE_DEPOSITED: 'Créance déposée par un créancier : {count} factures',
   DEPOSIT_ACCEPTED: 'Créance déposée : dossier ouvert',
