@@ -260,6 +260,36 @@ describe('Rédiger un courrier (question 210)', () => {
     expect((await compose('officerA', { caseIds: [found.id], channel: 'DOWNLOAD', template: 'FIRM' })).body).toEqual({ code: 'NO_FIRST_LETTER' });
   });
 
+  it('keeps the certificate of a settled case, and refuses it while anything is due', async () => {
+    const found = await made();
+    expect((await compose('officerA', { caseIds: [found.id], channel: 'DOWNLOAD', template: 'CLEARANCE' })).body).toEqual({ code: 'NOT_SETTLED' });
+    const due = (await call('officerA', 'GET', `/cases/${found.id}`)).body as { principal: number; interest: number; fees: number };
+    const paid = await call('officerA', 'POST', `/cases/${found.id}/payments`, {
+      method: 'CHEQUE',
+      amount: due.principal + due.interest + due.fees,
+      chequeNumber: String(3_000_000 + (reference % 1000)),
+      bank: 'Banque Rhône',
+      receivedOn: today(),
+      depositedOn: null,
+    });
+    expect(paid.status, JSON.stringify(paid.body)).toBe(204);
+    // Closed at once by the payment, and still offered, settled, for its certificate.
+    const offered = (await call('officerA', 'GET', '/documents/compose')).body as { recipients: { caseId: string; settled: boolean }[] };
+    expect(offered.recipients.find((item) => item.caseId === found.id)).toMatchObject({ settled: true });
+    // Neither by post nor by e-mail for now: kept in the case.
+    expect((await compose('officerA', { caseIds: [found.id], channel: 'LETTER', template: 'CLEARANCE' })).body).toEqual({ code: 'NOT_AVAILABLE' });
+    worker.letterPages.splice(0);
+    const kept = await compose('officerA', { caseIds: [found.id], channel: 'DOWNLOAD', template: 'CLEARANCE' });
+    expect(kept.status, JSON.stringify(kept.body)).toBe(204);
+    await worker.run();
+    expect(await lines(found.id)).toEqual([]);
+    expect(await rows("SELECT title, category::text FROM documents WHERE case_id = $1 AND source = 'GENERATED'", [found.id])).toEqual([
+      { title: 'Attestation de solde', category: 'RECEIPT' },
+    ]);
+    expect(worker.letterPages.at(-1)).toContain('a réglé l’intégralité des sommes dues');
+    expect(worker.letterPages.at(-1)).toContain('F-2026-0712');
+  });
+
   it('refuses what is not open yet, another selection, and whoever does not act on the case', async () => {
     const found = await made();
     expect((await compose('officerA', { caseIds: [found.id], channel: 'EMAIL_SIGNATURE' })).body).toEqual({ code: 'NOT_AVAILABLE' });
