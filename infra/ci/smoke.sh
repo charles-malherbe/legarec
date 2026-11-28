@@ -93,9 +93,10 @@ for id in $(docker compose ps --quiet); do
   published="$(docker inspect --format '{{range $port, $to := .HostConfig.PortBindings}}{{$port}} {{end}}' "$id")"
   [[ "$name" == *caddy* || -z "$published" ]] || fail "$name publishes $published"
 done
-# No value, in what Docker shows of the containers and of their images, nor on a command line.
+# No value, in what Docker shows of the containers and of their images, nor on a command line. Nine are drawn:
+# seven passwords and keys in hex, the key of the vault and the key of the sessions.
 cut -s -d= -f2- /etc/legarec/*.env | grep -E '^[0-9a-f]{48}$|^[A-Za-z0-9+/]{43}=$' | sort -u > /tmp/values
-[ "$(wc -l < /tmp/values)" -ge 12 ] || fail 'no value to look for'
+[ "$(wc -l < /tmp/values)" -ge 9 ] || fail 'no value to look for'
 mapfile -t ids < <(docker compose ps --all --quiet)
 absent 'a value in docker inspect' -Ff /tmp/values -- docker inspect "${ids[@]}"
 mapfile -t images < <(docker image ls --quiet --filter 'reference=legarec/*')
