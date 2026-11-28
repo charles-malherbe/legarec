@@ -11722,6 +11722,9 @@
                           "receiptId": {
                             "nullable": true,
                             "type": "string"
+                          },
+                          "receiptFile": {
+                            "type": "boolean"
                           }
                         },
                         "required": [
@@ -11729,7 +11732,8 @@
                           "amount",
                           "date",
                           "method",
-                          "receiptId"
+                          "receiptId",
+                          "receiptFile"
                         ],
                         "additionalProperties": false
                       }
@@ -11784,6 +11788,23 @@
                       "type": "object",
                       "properties": {
                         "acceptedOn": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "total": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "method": {
+                          "type": "string",
+                          "enum": [
+                            "TRANSFER",
+                            "CHEQUE"
+                          ]
+                        },
+                        "fingerprint": {
+                          "nullable": true,
                           "type": "string"
                         },
                         "installments": {
@@ -11826,6 +11847,9 @@
                       },
                       "required": [
                         "acceptedOn",
+                        "total",
+                        "method",
+                        "fingerprint",
                         "installments"
                       ],
                       "additionalProperties": false
@@ -12186,6 +12210,57 @@
         "responses": {
           "204": {
             "description": ""
+          }
+        },
+        "tags": [
+          "debtor"
+        ],
+        "x-access": {
+          "portal": "debtor"
+        }
+      }
+    },
+    "/debtor/cases/{id}/plan/acceptance": {
+      "post": {
+        "operationId": "DebtorController_accept",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "debtor"
+        ],
+        "x-access": {
+          "portal": "debtor"
+        }
+      }
+    },
+    "/debtor/cases/{id}/plan/file": {
+      "get": {
+        "operationId": "DebtorController_planFile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Le PDF de l’échéancier, sous un nom neutre."
+          }
+        },
+        "tags": [
+          "debtor"
+        ],
+        "x-access": {
+          "portal": "debtor"
+        }
+      }
+    },
+    "/debtor/cases/{id}/receipts/{receipt}/file": {
+      "get": {
+        "operationId": "DebtorController_receiptFile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Le PDF de la quittance, sous un nom neutre."
           }
         },
         "tags": [

@@ -12,6 +12,7 @@ import { accountJobs } from '../src/modules/auth/auth.jobs';
 import { AuthKeys } from '../src/modules/auth/keys';
 import { accessCodeJobs } from '../src/modules/debtor-access/access-codes.jobs';
 import { documentJobs } from '../src/modules/documents/documents.jobs';
+import { planJobs } from '../src/modules/payments/plans.jobs';
 import { receiptJobs } from '../src/modules/payments/receipts.jobs';
 import { resendEventJobs } from '../src/modules/reminders/resend-events.jobs';
 import { sendingJobs } from '../src/modules/reminders/sendings.jobs';
@@ -84,7 +85,10 @@ export function startMailWorker(
     // With what Resend says of the reminders afterwards: nothing leaves from there, and it may wait behind the purge.
     maintenance: { ...accessCodeJobs(vault), ...resendEventJobs({ logger }) },
     documents: documentJobs(storageFor(test.config), new SimulatedScanner()),
-    pdf: receiptJobs(storageFor(test.config), pdf, fileURLToPath(new URL('../templates/pdf/', import.meta.url))),
+    pdf: {
+      ...receiptJobs(storageFor(test.config), pdf, fileURLToPath(new URL('../templates/pdf/', import.meta.url))),
+      ...planJobs(storageFor(test.config), pdf, fileURLToPath(new URL('../templates/pdf/', import.meta.url))),
+    },
     ai: aiJobs(() => ai ?? null, vault),
   };
   const workers = startWorkers({ database, logger, connection: valkey, handlers, prefix });
