@@ -122,8 +122,8 @@ paiement.legarec.fr {
 api.legarec.fr {
 	import security
 	import api_access_log
-	# Root only, to the status page.
-	redir / https://status.legarec.fr 302
+	# Root only: nothing to see there.
+	respond / 404
 	# Service accounts (n8n) reach the API from inside.
 	@service path /service /service/*
 	respond @service 404
@@ -145,25 +145,15 @@ status.legarec.fr {
 		Referrer-Policy "no-referrer"
 		X-Frame-Options "DENY"
 	}
-	@firm remote_ip {$AUTHORIZED_IPS}
 	# Technical logs (Grafana), from the addresses of the firm only, behind its own password.
 	@logs path /journaux /journaux/*
 	handle @logs {
 		import firm_only
 		reverse_proxy grafana:3000
 	}
-	# Results pushed by the worker and the backups stay inside.
-	@push path_regexp (?i)^/api/v1/endpoints/[^/]+/external/?$
-	handle @push {
-		respond 404
-	}
-	# Internal checks (backups, restore tests, tasks, logs), from the addresses of the firm only.
-	handle @firm {
-		reverse_proxy gatus-interne:8080
-	}
-	# Everybody else: the portals and the API.
+	# Nothing else is served here (no status page since 28/11/2026).
 	handle {
-		reverse_proxy gatus:8080
+		redir https://status.legarec.fr/journaux/ 302
 	}
 }
 

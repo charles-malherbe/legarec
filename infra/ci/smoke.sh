@@ -78,19 +78,12 @@ ok 'media copy'
 # Addresses of the firm only
 expect 403 https://n8n.legarec.fr/
 expect 403 https://status.legarec.fr/journaux/
-expect 404 'https://status.legarec.fr/api/v1/endpoints/taches_worker/external?success=true' --request POST
-names="$(get https://status.legarec.fr/api/v1/endpoints/statuses)"
-grep -q 'Espace de paiement' <<< "$names" || fail 'public status page'
-if grep -qE 'sauvegarde|worker|Loki' <<< "$names"; then fail 'internal checks on the public page'; fi
+expect 302 https://status.legarec.fr/
 expect 403 https://n8n.legarec.fr/ --header 'X-Forwarded-For: 192.0.2.1' --header 'Forwarded: for=192.0.2.1'
 sed -i 's/^AUTHORIZED_IPS=.*/AUTHORIZED_IPS=172.16.0.0\/12 192.168.0.0\/16 10.0.0.0\/8 fd00::\/8/' /etc/legarec/caddy.env
 docker compose up --detach --wait --force-recreate caddy
 expect 200 https://status.legarec.fr/journaux/login
 expect 200 https://n8n.legarec.fr/healthz
-get https://status.legarec.fr/api/v1/endpoints/statuses | grep -q 'Loki' || fail 'internal checks for the firm'
-expect 404 'https://status.legarec.fr/api/v1/endpoints/taches_worker/external?success=true' --request POST
-expect 404 'https://status.legarec.fr/api/v1/endpoints/taches_worker/external/?success=true' --request POST
-expect 404 'https://status.legarec.fr/API/v1/endpoints/taches_worker/EXTERNAL?success=true' --request POST
 ok 'addresses of the firm'
 
 # Containers
@@ -121,7 +114,7 @@ docker compose exec -T caddy nc -z -w 2 "$(address api api)" 3000 || fail 'witne
 for to in "postgres donnees 5432" "valkey donnees 6379" "loki journaux 3100" "api donnees 3000"; do
   read -r name network port <<< "$to"
   ip="$(address "$name" "$network")"
-  for from in espace gatus; do
+  for from in espace; do
     if docker compose exec -T "$from" nc -z -w 2 "$ip" "$port"; then fail "$from reaches $name"; fi
   done
   # Nor the server itself.
@@ -189,15 +182,6 @@ journal="$(find /var/lib/legarec-ci/depot/archive -type f -name '0*.zst' -print 
 [ -n "$journal" ] || fail 'no journal to look into'
 [ "$(head -c 8 "$journal")" = Salted__ ] || fail "not encrypted: $journal"
 sql 'DROP TABLE ci_mark'
-heard="$(get https://status.legarec.fr/api/v1/endpoints/statuses)"
-for key in taches_worker sauvegardes_sauvegarde sauvegardes_essai-de-restauration; do
-  for _ in $(seq 40); do
-    heard="$(get https://status.legarec.fr/api/v1/endpoints/statuses)"
-    jq -e --arg key "$key" '.[] | select(.key == $key) | .results | map(.success) | any' <<< "$heard" > /dev/null && break
-    sleep 3
-  done
-  jq -e --arg key "$key" '.[] | select(.key == $key) | .results | map(.success) | any' <<< "$heard" > /dev/null || fail "$key not heard"
-done
 ok backups
 
 # Technical logs: collected, and nothing personal

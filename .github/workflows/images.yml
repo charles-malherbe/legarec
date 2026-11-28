@@ -46,7 +46,7 @@ jobs:
           done
       - name: Scripts and timers
         run: |
-          shellcheck --severity=warning infra/deployer.sh infra/ci/*.sh infra/postgres/legarec-* infra/valkey/legarec-* infra/gatus/legarec-gatus infra/grafana/legarec-grafana infra/n8n/legarec-n8n infra/hyperping/signaler infra/tirer-valeurs.sh
+          shellcheck --severity=warning infra/deployer.sh infra/ci/*.sh infra/postgres/legarec-* infra/valkey/legarec-* infra/grafana/legarec-grafana infra/n8n/legarec-n8n infra/hyperping/signaler infra/tirer-valeurs.sh
           systemd-analyze verify infra/systemd/*.service infra/systemd/*.timer
           for file in infra/systemd/*.timer; do systemd-analyze calendar "$(sed -n 's/^OnCalendar=//p' "$file")"; done
       - name: Compose

@@ -14,7 +14,7 @@ cd "$root"
 git merge-base --is-ancestor HEAD refs/remotes/origin/main || stop 'Cette version ne vient pas de main : rien ne sera déployé.'
 
 # Group of each file of values: the same table as docs/deploiement.md.
-declare -A group=([caddy]=10110 [api]=10101 [worker]=10102 [migration]=10104 [postgres]=999 [pgbackrest]=999 [restauration]=999 [valkey]=10115 [gatus]=10111 [grafana]=10114 [n8n]=10117)
+declare -A group=([caddy]=10110 [api]=10101 [worker]=10102 [migration]=10104 [postgres]=999 [pgbackrest]=999 [restauration]=999 [valkey]=10115 [grafana]=10114 [n8n]=10117)
 # The job of GitHub Actions is told apart by its folder too, which the server does not have.
 ci=false
 if [ "${GITHUB_ACTIONS:-}" = true ] && [ -d /var/lib/legarec-ci ]; then ci=true; fi
@@ -49,8 +49,8 @@ unset COMPOSE_FILE COMPOSE_PROFILES
 compose() { docker compose "${files[@]}" --env-file /dev/null "$@"; }
 echo "Version $LEGAREC_VERSION : construction des images"
 compose build
-echo 'Base de données, files et surveillance'
-compose up --detach --wait postgres valkey gatus-interne
+echo 'Base de données et files'
+compose up --detach --wait postgres valkey
 echo 'Sauvegarde avant migration'
 flock --timeout 3600 /run/legarec-sauvegarde.lock docker compose "${files[@]}" --env-file /dev/null run --rm sauvegarde incr
 echo 'Rôles de la base'

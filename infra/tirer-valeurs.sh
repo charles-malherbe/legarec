@@ -34,7 +34,7 @@ else
 fi
 
 # Group of each file: the same table as infra/deployer.sh and docs/deploiement.md.
-declare -A group=([caddy]=10110 [api]=10101 [worker]=10102 [migration]=10104 [postgres]=999 [pgbackrest]=999 [restauration]=999 [valkey]=10115 [gatus]=10111 [grafana]=10114 [n8n]=10117)
+declare -A group=([caddy]=10110 [api]=10101 [worker]=10102 [migration]=10104 [postgres]=999 [pgbackrest]=999 [restauration]=999 [valkey]=10115 [grafana]=10114 [n8n]=10117)
 for name in "${!group[@]}"; do
   file="$dir/$name.env"
   [ -e "$file" ] && continue
@@ -115,9 +115,6 @@ address worker VALKEY_URL "redis://:$valkey@valkey:6379/0"
 shared base64 api:VAULT_MASTER_KEY worker:VAULT_MASTER_KEY
 shared base64 api:SESSION_SIGNING_KEY worker:SESSION_SIGNING_KEY
 # Monitoring: one token per program, also written in the file of that program.
-shared hex gatus:GATUS_WORKER_TOKEN worker:GATUS_PUSH_TOKEN
-shared hex gatus:GATUS_BACKUP_TOKEN pgbackrest:GATUS_PUSH_TOKEN
-shared hex gatus:GATUS_RESTORE_TOKEN restauration:GATUS_PUSH_TOKEN
 # Backups: the same phrase for the backups and their restoration, or nothing can be restored.
 shared hex pgbackrest:PGBACKREST_REPO1_CIPHER_PASS restauration:PGBACKREST_REPO1_CIPHER_PASS
 shared hex grafana:GF_SECURITY_ADMIN_PASSWORD
