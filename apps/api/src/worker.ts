@@ -12,6 +12,7 @@ import { SettingValues } from './modules/settings/values';
 import { aiJobs, sweepCaseEvents } from './ai/ai.jobs';
 import { aiSetup } from './ai/provider';
 import { documentJobs } from './modules/documents/documents.jobs';
+import { planJobs } from './modules/payments/plans.jobs';
 import { receiptJobs } from './modules/payments/receipts.jobs';
 import { resendEventJobs } from './modules/reminders/resend-events.jobs';
 import { sendingJobs, sweepSendings } from './modules/reminders/sendings.jobs';
@@ -54,7 +55,10 @@ const storage = storageFor(config, {
 const pdf = new PdfRenderer(config.CHROMIUM_PATH);
 const handlers: JobHandlers = {
   documents: documentJobs(storage, scanner),
-  pdf: receiptJobs(storage, pdf, fileURLToPath(new URL('../templates/pdf/', import.meta.url))),
+  pdf: {
+    ...receiptJobs(storage, pdf, fileURLToPath(new URL('../templates/pdf/', import.meta.url))),
+    ...planJobs(storage, pdf, fileURLToPath(new URL('../templates/pdf/', import.meta.url))),
+  },
   email: {
     // The e-mails of the accounts stay simulated until their own domain exists (question 84).
     ...accountJobs({ keys: new AuthKeys(config), portals: config, send: (name, to, data) => emails.send(name, to, data) }),

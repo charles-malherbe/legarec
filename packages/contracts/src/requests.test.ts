@@ -346,6 +346,7 @@ const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly
       { kind: 'SIREN', value: '732829320' },
       { kind: 'REFERENCE', value: 'LGR-2026-00181' },
     ],
+    'POST /debtor/cases/:id/plan/acceptance': [{ fingerprint: 'a'.repeat(64), total: 120_000, months: 3 }],
     'POST /debtor/limited/messages': [
       { name: 'Test', email: '', reference: '', text: 'Bonjour', attachments: [] },
       { name: 'Test', email: 'a@exemple.fr', reference: 'LGR-2026-00181', text: 'Bonjour', attachments: [{ id: 'f1', name: 'virement.pdf' }] },
