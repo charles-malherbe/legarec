@@ -32,7 +32,6 @@ import { useSearchParams } from 'react-router';
 import type { z } from 'zod';
 import { useCreditorScope } from '../../app/creditorScope';
 import { useApi, useChange } from '../../app/data';
-import { soon } from '../../app/features';
 import layout from '@legarec/ui/layout.module.css';
 import { pageOf } from '../../shared/paging';
 import { listState, matches } from '../../shared/listState';
@@ -111,18 +110,20 @@ export function PlansPage() {
       },
     });
   };
-  const remind = (plan: PaymentPlan) =>
+  /** Question 221: by e-mail only, for the next installment, as it was shown; the API refuses one that has changed. */
+  const remind = (plan: PaymentPlan, due: NonNullable<ReturnType<typeof next>>) =>
     confirm({
       title: `Envoyer un rappel à ${plan.debtor} ?`,
-      body: 'Un e-mail (Resend) et un SMS rappellent la prochaine échéance avec le lien de l’espace débiteur.',
+      body: 'Un e-mail rappelle la prochaine échéance à l’adresse principale du dossier, avec le lien de l’espace débiteur.',
       confirmLabel: 'Envoyer le rappel',
       details: [
         { k: 'Débiteur', v: plan.debtor },
         { k: 'Plan', v: plan.creditor },
+        { k: 'Échéance', v: `${due.number}/${plan.installments.length} · ${formatDate(due.date)} · ${formatCents(due.amount)}` },
       ],
       onConfirm: async () => {
-        await change(`/payment-plans/${plan.id}/reminder`);
-        toast({ message: `Rappel envoyé à ${plan.debtor} par e-mail et SMS.` });
+        await change(`/payment-plans/${plan.id}/reminder`, { body: { number: due.number, amount: due.amount } });
+        toast({ message: `Rappel de l’échéance envoyé à ${plan.debtor} par e-mail.` });
       },
     });
   const s = data?.stats;
@@ -322,7 +323,16 @@ export function PlansPage() {
                 {current.canAct && (
                   <div className={layout.inline}>
                     <Bouton variant="secondary" label="Modifier le plan" onPress={() => setSimulate(current.caseId)} />
-                    <Bouton variant="secondary" label="Envoyer un rappel" onPress={() => remind(current)} soon={soon('installment-reminders')} />
+                    <Bouton
+                      variant="secondary"
+                      label="Envoyer un rappel"
+                      disabled={!next(current) || current.state === 'WAITING_DEBTOR' || current.state === 'WAITING_CREDITOR'}
+                      title={next(current) ? undefined : 'Aucune échéance à venir'}
+                      onPress={() => {
+                        const due = next(current);
+                        if (due) remind(current, due);
+                      }}
+                    />
                   </div>
                 )}
               </div>

@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { startApp, type TestApp } from '../../../test/app';
 import { startMailWorker, type MailWorker } from '../../../test/worker';
 import type { HttpClient } from '../../emails/resend';
+import { Ledgers } from '../payments/ledger';
 import { Audit } from '../../platform/audit/audit';
 import { Clock } from '../../platform/clock';
 import { CONFIG } from '../../platform/config/config';
@@ -258,6 +259,75 @@ describe('a reminder from a case', () => {
     ]);
     if (left) expect((await remind('officerA', left)).status).toBe(204);
     await rows("UPDATE outbox SET done_at = now() WHERE name = 'case-reminder' AND done_at IS NULL");
+  });
+});
+
+describe('the reminder of the next installment (question 221)', () => {
+  /** A running plan of three installments, from next month on, on the case. */
+  const planOn = async (made: Made, status = 'ACTIVE') => {
+    const [{ creditor_id: creditor }] = (await rows<{ creditor_id: string }>('SELECT creditor_id FROM cases WHERE id = $1', [made.id])) as [
+      { creditor_id: string },
+    ];
+    const first = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
+    const [{ id }] = (await rows<{ id: string }>(
+      `INSERT INTO payment_plans (case_id, creditor_id, total_cents, months, method, first_due_on, status, threshold_months, owned_by_director, requested_by)
+       VALUES ($1, $2, 1860000, 3, 'TRANSFER', $3, $4::plan_status, 6, false, $5) RETURNING id`,
+      [made.id, creditor, first, status, test.s.officerA],
+    )) as [{ id: string }];
+    await rows(
+      `INSERT INTO installments (case_id, creditor_id, plan_id, number, due_on, amount_cents)
+       SELECT $1, $2, $3, n, $4::date + (n - 1) * interval '1 month', 620000 FROM generate_series(1, 3) n`,
+      [made.id, creditor, id, first],
+    );
+    return { id, first };
+  };
+  const ask = (as: string, plan: string, body: Record<string, number> = { number: 1, amount: 620_000 }) =>
+    call(as, 'POST', `/payment-plans/${plan}/reminder`, body);
+
+  it('leaves by e-mail to the main address, an individual included, without the code of access', async () => {
+    const made = await eligible(test.s.officerA, { kind: 'INDIVIDUAL' });
+    const { code } = (await call('officerA', 'GET', `/cases/${made.id}/access-code`)).body as { code: string };
+    const plan = await planOn(made);
+    expect((await ask('officerA', plan.id)).status).toBe(204);
+    expect(await rows('SELECT template, level, status FROM sendings WHERE case_id = $1', [made.id])).toEqual([
+      { template: 'INSTALLMENT', level: null, status: 'QUEUED' },
+    ]);
+    await worker.run();
+    expect(await sendings(made.id)).toMatchObject([{ status: 'SENT', simulated: true, level: null }]);
+    expect((await events(made.id, 'REMINDER_SENT')).map((event) => event.detail)).toEqual(['E-mail · rappel d’échéance']);
+    const [message] = worker.simulated.splice(0);
+    expect(message!.to).toBe(made.email);
+    expect(message!.html).toMatch(/6\s200,00\s€/u);
+    expect(message!.html).toContain(`${plan.first.slice(8, 10)}/${plan.first.slice(5, 7)}/${plan.first.slice(0, 4)}`);
+    expect(message!.html).not.toMatch(new RegExp(`\\b${code}\\b`, 'u'));
+  });
+
+  it('is refused when the installment is not the one confirmed, the plan does not run, or the case is disputed', async () => {
+    const made = await eligible(test.s.officerA);
+    const plan = await planOn(made);
+    expect((await ask('officerA', plan.id, { number: 1, amount: 600_000 })).body).toEqual({ code: 'INSTALLMENT_CHANGED' });
+    expect((await ask('officerA', plan.id, { number: 2, amount: 620_000 })).body).toEqual({ code: 'INSTALLMENT_CHANGED' });
+    expect((await ask('officerA', plan.id, { number: 0, amount: 620_000 })).status).toBe(422);
+    // A plan another colleague cannot see is as one that does not exist.
+    expect((await ask('officerB', plan.id)).status).toBe(404);
+    expect((await ask('officerA', randomUUID())).status).toBe(404);
+    await rows("UPDATE cases SET status = 'DISPUTE' WHERE id = $1", [made.id]);
+    expect((await ask('officerA', plan.id)).body).toEqual({ code: 'CASE_DISPUTED' });
+    const waiting = await eligible(test.s.officerA);
+    const proposed = await planOn(waiting, 'WAITING_CREDITOR');
+    expect((await ask('officerA', proposed.id)).body).toEqual({ code: 'NO_NEXT_INSTALLMENT' });
+    expect(await sendings(made.id)).toEqual([]);
+    expect(await sendings(waiting.id)).toEqual([]);
+  });
+
+  it('is no step of the reminders, and a dispute meanwhile stops it before it leaves', async () => {
+    const made = await eligible(test.s.officerA);
+    const plan = await planOn(made);
+    expect((await ask('officerA', plan.id)).status).toBe(204);
+    await rows("UPDATE cases SET status = 'LITIGATION' WHERE id = $1", [made.id]);
+    await worker.run().catch(() => undefined);
+    expect(await sendings(made.id)).toMatchObject([{ status: 'FAILED', failure: 'CASE_DISPUTED', level: null }]);
+    expect(worker.simulated.splice(0)).toEqual([]);
   });
 });
 
@@ -1209,6 +1279,7 @@ describe('with a key, the guard of the recipients', () => {
       { ...test.app.get(CONFIG), NODE_ENV: 'production' },
       test.app.get(Clock),
       new Audit(test.pool),
+      test.app.get(Ledgers),
     );
     const asOfficer = <T>(work: () => Promise<T>) => test.pool.run({ kind: 'staff', userId: test.s.officerA, role: 'CLAIMS_OFFICER', delegations: [] }, work);
     const ask = () =>

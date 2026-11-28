@@ -4,7 +4,7 @@
  * (`calls,emails`); development, which simulates them, has them all ready, unless `VITE_FEATURES` is set. What each one
  * greys, and how to make it ready: `docs/deploiement.md`, « Avant la mise en service : écrans encore sans API ».
  */
-export const FEATURES = ['calls', 'emails', 'sms', 'mailboxes', 'letters', 'document-sending', 'installment-reminders', 'template-tests'] as const;
+export const FEATURES = ['calls', 'emails', 'sms', 'mailboxes', 'letters', 'document-sending', 'template-tests'] as const;
 export type Feature = (typeof FEATURES)[number];
 
 /** What a part waits for, said by its greyed buttons (after « Bientôt disponible : ») and by its page. */
@@ -15,7 +15,6 @@ export const SOON: Record<Feature, string> = {
   mailboxes: 'les boîtes e-mail du cabinet ne sont pas encore reliées à l’espace.',
   letters: 'la rédaction et l’envoi des courriers ne sont pas encore reliés à l’espace.',
   'document-sending': 'l’envoi des documents n’est pas encore relié à l’espace.',
-  'installment-reminders': 'l’envoi des rappels d’échéance n’est pas encore relié à l’espace.',
   'template-tests': 'l’envoi d’un test n’est pas encore relié à l’espace.',
 };
 

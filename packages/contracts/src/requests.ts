@@ -8,7 +8,7 @@ import { creditNoteDraftBody, creditNoteIssue } from './creditNotes';
 import { coordinate, coordinateKind, coordinateSource, emailCategory, outgoingMessage } from './communication';
 import { debtorAccess, debtorIdentifier, debtorMessage, debtorRequest, limitedMessage, planAcceptance } from './debtor';
 import { depositAcceptance, depositRefusal } from './deposits';
-import { batchTemplate, composeChannel, letterTemplate, REMINDER_BATCH_MAX } from './documents';
+import { batchTemplate, composeChannel, installmentReminderBody, letterTemplate, REMINDER_BATCH_MAX } from './documents';
 import { bankAccountChange, bankAccountConfirmation, creditorChanges, mandateAmendment, newCreditor } from './creditors';
 import { EMAIL_MAX, ID_MAX } from './limits';
 import { AMOUNT_MAX, enteredAmount } from './money';
@@ -284,6 +284,7 @@ export const REQUEST_BODIES = {
     'PUT /reminders/:id': reminderBody,
     'POST /payment-plans': paymentPlanBody,
     'PUT /payment-plans/requests/:id': planDecisionBody,
+    'POST /payment-plans/:id/reminder': installmentReminderBody,
     'PUT /interest-rates': interestRateBody,
     'POST /documents/compose': composeBody,
     'POST /documents/compose/draft': letterDraftBody,

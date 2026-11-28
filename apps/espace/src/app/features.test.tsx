@@ -247,7 +247,7 @@ describe('without the API of these parts', () => {
     expect(unanswered(seen)).toEqual([]);
     expect(await axeViolations(container)).toEqual([]);
   });
-  it('keeps the sending of the documents, the payment plans and a template greyed, and the creditor address as text', async () => {
+  it('keeps the sending of the documents and of a template greyed, the reminder of an installment ready, and the creditor address as text', async () => {
     withoutApi();
     const seen = requests();
     const documents = openAs('cl', '/documents');
@@ -261,7 +261,8 @@ describe('without the API of these parts', () => {
     documents.unmount();
     const plans = openAs('cl', '/echeanciers');
     expect(await screen.findByRole('button', { name: 'Modifier le plan' })).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Envoyer un rappel' })).toHaveAccessibleDescription(says('installment-reminders'));
+    // On the API since question 221: no « Bientôt » on it.
+    expect(screen.getByRole('button', { name: 'Envoyer un rappel' })).not.toHaveAccessibleDescription(/Bientôt/u);
     plans.unmount();
     const template = openAs('cl', '/parametres/modeles/rappel');
     expect(await screen.findByText('Liste des champs de fusion')).toBeVisible();

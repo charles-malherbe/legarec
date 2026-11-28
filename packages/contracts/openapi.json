@@ -9097,7 +9097,9 @@
                               "NO_NEXT_REMINDER",
                               "REMINDER_PENDING",
                               "TOO_SOON",
-                              "LEVEL_CHANGED"
+                              "LEVEL_CHANGED",
+                              "NO_NEXT_INSTALLMENT",
+                              "INSTALLMENT_CHANGED"
                             ]
                           }
                         },
@@ -9177,7 +9179,9 @@
                               "NO_NEXT_REMINDER",
                               "REMINDER_PENDING",
                               "TOO_SOON",
-                              "LEVEL_CHANGED"
+                              "LEVEL_CHANGED",
+                              "NO_NEXT_INSTALLMENT",
+                              "INSTALLMENT_CHANGED"
                             ]
                           }
                         },
@@ -10579,6 +10583,28 @@
           "portal": "staff",
           "roles": [
             "COLLECTION_MANAGER"
+          ]
+        }
+      }
+    },
+    "/staff/payment-plans/{id}/reminder": {
+      "post": {
+        "operationId": "PlansController_remind",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "payment-plans"
+        ],
+        "x-access": {
+          "portal": "staff",
+          "roles": [
+            "DIRECTOR",
+            "COLLECTION_MANAGER",
+            "CLAIMS_OFFICER"
           ]
         }
       }

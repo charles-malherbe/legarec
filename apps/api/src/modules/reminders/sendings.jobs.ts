@@ -10,6 +10,7 @@ import { GiveUp, TryLater } from '../../platform/queue/errors';
 import { mayActOn, type JobDefinition, type Run } from '../../platform/queue/jobs';
 import { bindingOf } from '../debtor-access/access-codes';
 import { Ledgers, owedOf } from '../payments/ledger';
+import { nextInstallment, PLAN_INSTALLMENTS } from '../payments/plans';
 import { SettingValues } from '../settings/values';
 import { sendingDeadline, suspensionOf } from './contact-rules';
 import { keysIn } from '../vault/internal-keys';
@@ -46,6 +47,8 @@ const day = (value: string | Date) => {
 };
 const money = (cents: number) => formatCents(cents, { decimals: 'always' });
 const CODE = /^[A-Z][A-Z0-9_]{2,63}$/u;
+/** What a sending says once its case has been read again: a refusal, or the address and the data of its template. */
+type Facts = { refusal: string; to?: undefined; data?: undefined } | { refusal: undefined; to: string; data: unknown };
 
 /** What the reminder says, read with the rights of the colleague who sent it. Null: the case no longer allows it. */
 async function factsOf(database: Database, vault: Vault, tx: Transaction, caseId: string, contactId: string, level: number) {
@@ -107,6 +110,38 @@ async function factsOf(database: Database, vault: Vault, tx: Transaction, caseId
 }
 
 /**
+ * What the reminder of an installment says (question 221), read with the rights of the colleague who asked: the next
+ * installment of the running plan, as it stands when it leaves. No access code, no personal link: the portal.
+ */
+async function installmentFactsOf(database: Database, tx: Transaction, caseId: string, contactId: string) {
+  const found = await tx.case.findFirst({
+    where: { id: caseId, closedOn: null, anonymizedAt: null },
+    select: {
+      reference: true,
+      status: true,
+      contacts: { where: { id: contactId, kind: 'EMAIL', status: { not: 'INVALID' } }, select: { value: true } },
+      plans: { where: { status: 'ACTIVE' }, orderBy: { createdAt: 'desc' }, take: 1, select: PLAN_INSTALLMENTS },
+    },
+  });
+  const contact = found?.contacts[0];
+  if (!found || !contact) return { refusal: found ? 'NO_EMAIL' : 'CASE_CLOSED' } as const;
+  // A dispute stops it; the running plan is what it is about.
+  if (suspensionOf(found.status, 0)) return { refusal: 'CASE_DISPUTED' } as const;
+  const plan = found.plans[0];
+  const next = plan && (await nextInstallment(new Ledgers(database, new Audit(database)), plan, dayOf(new Date())));
+  if (!next) return { refusal: 'NO_NEXT_INSTALLMENT' } as const;
+  return {
+    refusal: undefined,
+    to: contact.value,
+    data: {
+      case: { reference: found.reference },
+      installment: { amount: money(next.amount), due_date: day(next.dueOn), number: next.number },
+      plan: { installment_count: next.count },
+    },
+  };
+}
+
+/**
  * Beginning of every reason a line fails for once it has been taken, and of none other: a failed line says whether it ever
  * left this machine (held by `keep_sending`). What the provider says afterwards is only believed of the first kind.
  */
@@ -139,8 +174,9 @@ export async function markFailed(
   });
   return { code, failed };
 }
+/** Level null: the reminder of an installment (question 221), which is no step of the reminders. */
 export const sentNote = (caseId: string, level: number | null) => (tx: Transaction) =>
-  tx.$executeRaw`SELECT app.add_case_event(${caseId}::uuid, 'REMINDER_SENT', 'Relance envoyée', ${`E-mail · niveau ${level ?? 1}`}, 'info'::event_tone, false) WHERE app.case_writable(${caseId}::uuid)`;
+  tx.$executeRaw`SELECT app.add_case_event(${caseId}::uuid, 'REMINDER_SENT', 'Relance envoyée', ${level === null ? 'E-mail · rappel d’échéance' : `E-mail · niveau ${level}`}, 'info'::event_tone, false) WHERE app.case_writable(${caseId}::uuid)`;
 /** How long a sent line may stay without its event before the sweep writes it: far more than the two writes of a task take. */
 const UNSAID_MS = 2 * 60_000;
 
@@ -212,7 +248,7 @@ export function sendingJobs({
     asAuthor: Run,
     sending: string,
     caseId: string,
-    level: number,
+    level: number | null,
     data: { simulated?: boolean; providerRef?: string },
   ) => {
     const { count } = await asApplication((tx) =>
@@ -249,26 +285,30 @@ export function sendingJobs({
           throw error;
         }
         const line = await asApplication((tx) =>
-          tx.sending.findFirst({ where: { id: sending, caseId }, select: { status: true, channel: true, level: true, contactId: true, createdAt: true } }),
+          tx.sending.findFirst({ where: { id: sending, caseId }, select: { status: true, channel: true, template: true, level: true, contactId: true, createdAt: true } }),
         );
         if (!line) throw new GiveUp('UNKNOWN_SENDING');
         // Already taken by another delivery: whatever happened to it, nothing more leaves from here.
         if (line.status !== 'QUEUED') return;
-        if (line.channel !== 'EMAIL' || !line.level || !line.contactId) return fail(asApplication, sending, caseId, 'NOT_AVAILABLE');
-        const { level, contactId } = line;
+        const installment = line.template === 'INSTALLMENT';
+        if (line.channel !== 'EMAIL' || !line.contactId || (!installment && !line.level)) return fail(asApplication, sending, caseId, 'NOT_AVAILABLE');
+        const { contactId } = line;
+        const level = installment ? null : line.level!;
         const settings = await asApplication((tx) => SettingValues.read(tx));
         const hours = contactHours((field) => settings.text('firm', 'relances', field));
         const moment = now();
         // One that has waited too long never leaves (a key, a value of the firm, the hours).
         if (moment >= sendingDeadline(line.createdAt, hours)) return fail(asApplication, sending, caseId, 'EXPIRED');
-        const facts = await asAuthor((tx) => factsOf(database, vault, tx, caseId, contactId, level));
+        const facts = await asAuthor<Facts>((tx) =>
+          level === null ? installmentFactsOf(database, tx, caseId, contactId) : factsOf(database, vault, tx, caseId, contactId, level),
+        );
         if (facts.refusal !== undefined) return fail(asApplication, sending, caseId, facts.refusal);
         // A value of the firm still between brackets: it waits until the Director has typed it. Asked of the settings,
         // never of the message: a debtor whose name holds brackets waits for nothing.
         if (await emails.firmIncomplete()) throw new TryLater('FIRM_INCOMPLETE');
         let message: AutomaticMessage;
         try {
-          message = await emails.compose(`reminder-${level}` as AutomaticEmail, facts.to, facts.data);
+          message = await emails.compose(level === null ? 'installment-reminder' : (`reminder-${level}` as AutomaticEmail), facts.to, facts.data);
         } catch {
           // What the template refuses may quote the debtor: only a code stays.
           return fail(asApplication, sending, caseId, 'UNREADABLE_MESSAGE');

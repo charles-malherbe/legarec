@@ -9,6 +9,7 @@ import { currentActor } from '../../platform/http/context';
 import { Commits } from '../../platform/http/transaction.interceptor';
 import type { StaffActor } from '../cases/cases.service';
 import { CasesService } from '../cases/cases.service';
+import { SendingsService } from '../reminders/sendings.service';
 import { Ledgers } from './ledger';
 import { Plans } from './plans';
 
@@ -54,7 +55,10 @@ export class PaymentsController {
 @ApiTags('payment-plans')
 @Controller('staff/payment-plans')
 export class PlansController {
-  constructor(@Inject(Plans) private readonly plans: Plans) {}
+  constructor(
+    @Inject(Plans) private readonly plans: Plans,
+    @Inject(SendingsService) private readonly sendings: SendingsService,
+  ) {}
 
   @Get()
   @WithCases()
@@ -87,6 +91,16 @@ export class PlansController {
   @ApiNoContentResponse()
   decide(@Param('id') id: string, @Body({ schema: bodies['PUT /payment-plans/requests/:id'] }) body: In<'PUT /payment-plans/requests/:id'>) {
     return this.plans.decide(id, body.decision, body.reason, body.version);
+  }
+
+  /** « Rappeler l’échéance » (question 221): one e-mail for the next installment, on the colleague's request. */
+  @Post(':id/reminder')
+  @WithCases()
+  @Commits()
+  @HttpCode(204)
+  @ApiNoContentResponse()
+  remind(@Param('id') id: string, @Body({ schema: bodies['POST /payment-plans/:id/reminder'] }) body: In<'POST /payment-plans/:id/reminder'>) {
+    return this.sendings.remindInstallment(id, body);
   }
 }
 

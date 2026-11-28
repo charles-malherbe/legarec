@@ -77,6 +77,8 @@ export const sendingRefusal = z.enum([
   'REMINDER_PENDING',
   'TOO_SOON',
   'LEVEL_CHANGED',
+  'NO_NEXT_INSTALLMENT',
+  'INSTALLMENT_CHANGED',
 ]);
 export type SendingRefusal = z.infer<typeof sendingRefusal>;
 export const SENDING_REFUSALS: Record<SendingRefusal, string> = {
@@ -99,7 +101,15 @@ export const SENDING_REFUSALS: Record<SendingRefusal, string> = {
   REMINDER_PENDING: 'une relance par e-mail de ce dossier est encore en cours d’envoi',
   TOO_SOON: `la relance précédente est partie depuis moins de ${REMINDER_GAP_DAYS} jours`,
   LEVEL_CHANGED: 'la relance à envoyer n’est plus celle qui a été confirmée',
+  // Reminder of an installment (question 221).
+  NO_NEXT_INSTALLMENT: 'l’échéancier n’est pas en cours ou n’a plus d’échéance à venir',
+  INSTALLMENT_CHANGED: 'la prochaine échéance n’est plus celle qui a été confirmée',
 };
+/** Reminder of the next installment of a plan (question 221): the installment shown in the confirmation. */
+export const installmentReminderBody = z.object({
+  number: z.number().int().min(1).max(60),
+  amount: z.number().int().min(1).max(2_000_000_000),
+});
 /** The code of a channel from the label shown in the list « Envoi ». */
 export const composeChannelOf = (label: string): ComposeChannel =>
   (Object.keys(COMPOSE_CHANNELS) as ComposeChannel[]).find((code) => COMPOSE_CHANNELS[code] === label) ?? 'DOWNLOAD';

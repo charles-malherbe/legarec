@@ -20,11 +20,13 @@ import { dayOf, timeOf } from '../../platform/format';
 import { mayActOn } from '../../platform/queue/jobs';
 import { Outbox } from '../../platform/queue/outbox';
 import { normalized } from '../cases/cases.service';
+import { Ledgers } from '../payments/ledger';
+import { nextInstallment, PLAN_INSTALLMENTS } from '../payments/plans';
 import { SettingValues } from '../settings/values';
 import { capOf, capPeriod, suspensionOf } from './contact-rules';
 
 type Reminder = z.infer<(typeof REQUEST_BODIES)['staff']['POST /cases/:id/reminders']>;
-type Template = Reminder['template'];
+type Template = Reminder['template'] | 'INSTALLMENT';
 type Wanted = z.infer<(typeof REQUEST_BODIES)['staff']['POST /cases/reminders']>['items'][number];
 /** The validated e-mail of the kit for each template of the form: reminder-1 to reminder-3 (question 212). */
 export const REMINDER_LEVELS = { FRIENDLY: 1, FIRM: 2, FORMAL_NOTICE: 3 } as const;
@@ -32,6 +34,8 @@ export const REMINDER_LEVELS = { FRIENDLY: 1, FIRM: 2, FORMAL_NOTICE: 3 } as con
  * What a grouped reminder sends, by the highest level that has left the case by e-mail: the friendly reminder, then the
  * firm one. The formal notice is never sent in a batch: a colleague decides it from the case (question 220).
  */
+/** The installment a colleague confirmed reminding (question 221). */
+type ExpectedInstallment = z.infer<(typeof REQUEST_BODIES)['staff']['POST /payment-plans/:id/reminder']>;
 const NEXT_IN_BATCH: readonly (BatchTemplate | undefined)[] = ['FRIENDLY', 'FIRM'];
 const GAP_MS = REMINDER_GAP_DAYS * 86_400_000;
 const UNCERTAIN_MS = UNCERTAIN_BLOCK_HOURS * 3_600_000;
@@ -110,7 +114,8 @@ const pending = (lines: readonly Line[], now: Date) =>
 function nextInBatch(found: Found, lines: readonly Line[], now: Date): BatchTemplate | SendingRefusal {
   if (found.status === 'FORMAL_NOTICE' || found.formalNoticeOn || lines.some((line) => line.template === 'FORMAL_NOTICE' && !failed(line)))
     return 'NO_NEXT_REMINDER';
-  const left = lines.filter((line) => line.channel === 'EMAIL' && line.status !== 'QUEUED' && !failed(line));
+  // Reminders of an installment have no level: they are no step of the reminders.
+  const left = lines.filter((line) => line.channel === 'EMAIL' && line.level !== null && line.status !== 'QUEUED' && !failed(line));
   const highest = Math.max(0, ...left.map((line) => line.level ?? 0));
   const template = NEXT_IN_BATCH[highest];
   if (!template) return 'NO_NEXT_REMINDER';
@@ -130,6 +135,7 @@ export class SendingsService {
     @Inject(CONFIG) private readonly config: Config,
     @Inject(Clock) private readonly clock: Clock,
     @Inject(Audit) private readonly audit: Audit,
+    @Inject(Ledgers) private readonly ledgers: Ledgers,
   ) {}
 
   /** A reminder by e-mail, to an address of the case. Refused with the reason (409) when a rule of the firm forbids it. */
@@ -148,6 +154,37 @@ export class SendingsService {
     if (!contact) throw refused('UNKNOWN_RECIPIENT');
     const refusal = (await this.queue([found], rules, () => ({ contactId: contact.id, template: body.template }))).get(found.id);
     if (refusal) throw refused(refusal);
+  }
+
+  /**
+   * Reminder of the next installment of a running plan (question 221): by e-mail, to the main address of the case, an
+   * individual included, on a colleague's request only. The cap and the hours hold; the link is the portal, never a personal
+   * one, and the access code never goes with it. Refused when the installment is no longer the one confirmed.
+   */
+  async remindInstallment(planId: string, expected: ExpectedInstallment): Promise<void> {
+    const { tx } = this.database;
+    const plan = await tx.paymentPlan.findFirst({ where: { id: planId }, select: PLAN_INSTALLMENTS });
+    const found = plan && (await tx.case.findFirst({ where: { id: plan.caseId }, select: CASE }));
+    if (!plan || !found) throw notFound();
+    if (!(await mayActOn(found.id)(tx))) throw forbidden();
+    const rules = await this.rules();
+    const next = await nextInstallment(this.ledgers, plan, dayOf(rules.now));
+    if (!next) throw refused('NO_NEXT_INSTALLMENT');
+    if (next.number !== expected.number || next.amount !== expected.amount) throw refused('INSTALLMENT_CHANGED');
+    const stopped = this.ofPlanCase(found);
+    if (stopped) throw refused(stopped);
+    const refusal = (await this.queue([found], rules, () => ({ contactId: found.contacts[0]!.id, template: 'INSTALLMENT' }), (item) => this.ofPlanCase(item))).get(
+      found.id,
+    );
+    if (refusal) throw refused(refusal);
+  }
+
+  /** What the case forbids for the reminder of an installment: its plan runs, and it may go to an individual. */
+  private ofPlanCase(found: Found): SendingRefusal | null {
+    if (found.closedOn || found.anonymizedAt) return 'CASE_CLOSED';
+    if (suspensionOf(found.status, 0)) return 'CASE_DISPUTED';
+    if (!found.firstLetterReference || !found.firstLetterOn) return 'NO_FIRST_LETTER';
+    return found.contacts.length === 0 ? 'NO_EMAIL' : null;
   }
 
   /** The cases of a grouped action: all read (404) and acted on (403) by the caller, or nothing is done. */
@@ -270,14 +307,19 @@ export class SendingsService {
    * taken in the same order by everyone, so that two batches never wait for each other. The lines are written together:
    * the right to write on a case is asked once, not once per line.
    */
-  private async queue(cases: readonly Found[], rules: Rules, choose: (found: Found, lines: readonly Line[]) => Chosen): Promise<Map<string, SendingRefusal>> {
+  private async queue(
+    cases: readonly Found[],
+    rules: Rules,
+    choose: (found: Found, lines: readonly Line[]) => Chosen,
+    stops: (found: Found) => SendingRefusal | null = (found) => this.ofCase(found),
+  ): Promise<Map<string, SendingRefusal>> {
     const { tx } = this.database;
     const refusals = new Map<string, SendingRefusal>();
     const [from, to] = rules.period;
     const sent = new Map<string, number>();
     const open: Found[] = [];
     for (const found of cases.toSorted((a, b) => a.debtorId.localeCompare(b.debtorId) || a.id.localeCompare(b.id))) {
-      const stopped = this.ofCase(found) ?? this.ofFirm(rules);
+      const stopped = stops(found) ?? this.ofFirm(rules);
       if (stopped) {
         refusals.set(found.id, stopped);
         continue;
@@ -294,7 +336,7 @@ export class SendingsService {
       select: { caseId: true, channel: true, template: true, level: true, status: true, sentAt: true, confirmedAt: true, createdAt: true },
     }))
       lines.set(line.caseId, [...(lines.get(line.caseId) ?? []), line]);
-    const data: { caseId: string; creditorId: string; channel: 'EMAIL'; template: Template; level: number; contactId: string }[] = [];
+    const data: { caseId: string; creditorId: string; channel: 'EMAIL'; template: Template; level: number | null; contactId: string }[] = [];
     for (const found of open) {
       const asked = lines.get(found.id) ?? [];
       // One at a time per case: a second click, a second tab or a colleague adds nothing while a reminder is on its way.
@@ -307,7 +349,14 @@ export class SendingsService {
       }
       sent.set(found.debtorId, count + 1);
       const { contactId, template } = chosen as Exclude<Chosen, string>;
-      data.push({ caseId: found.id, creditorId: found.creditorId, channel: 'EMAIL', template, level: REMINDER_LEVELS[template], contactId });
+      data.push({
+        caseId: found.id,
+        creditorId: found.creditorId,
+        channel: 'EMAIL',
+        template,
+        level: template === 'INSTALLMENT' ? null : REMINDER_LEVELS[template],
+        contactId,
+      });
     }
     if (data.length === 0) return refusals;
     const written = await tx.sending.createManyAndReturn({ data, select: { id: true, caseId: true } });
