@@ -463,7 +463,7 @@ Décision 194, revue le 28/11/2026 (`DECISIONS.md`) : un écran dont les routes 
 | `emails` | Page E-mails, avec son entrée et `G M` (sans le compteur « e-mails non lus ») ; dans le dossier, « Écrire un e-mail » et « E-mail » (contact principal, échanges) ; les adresses du dossier et du contact d'un créancier restent affichées, en texte | 8 | Boîtes OVH (lot R) |
 | `sms` | Page SMS, avec son entrée et `G S` (sans le compteur « SMS non lus ») ; « SMS » des échanges du dossier | 4 | Compte SMS OVH (lot R) |
 | `mailboxes` | Section « Boîtes e-mail » de Paramètres techniques | 9 | Boîtes OVH (lot R) |
-| `letters` | Page Rédiger un courrier, avec son entrée ; « Courrier » de « Créer », « + Nouveau courrier » (Documents, dossier), « Envoi groupé » (SMS) | 3 | Courrier recommandé, simple, e-mail avec PDF joint, « Télécharger seulement » et attestation de solde (PDF seul) et envoi groupé du Responsable sur l'API ; restent le lien de signature, l'échéancier, l'envoi de l'attestation et le brouillon (lot Q, question 210) |
+| `letters` | Page Rédiger un courrier, avec son entrée ; « Courrier » de « Créer », « + Nouveau courrier » (Documents, dossier), « Envoi groupé » (SMS) | 3 | Courrier recommandé, simple, e-mail avec PDF joint, « Télécharger seulement » et attestation de solde (PDF seul) et envoi groupé du Responsable sur l'API ; brouillon ; restent le lien de signature, l'échéancier et l'envoi de l'attestation (lot Q, question 210) |
 | `document-sending` | « Envoyer » du détail d'un document (Documents) | 1 | idem |
 | `template-tests` | « M’envoyer un test » d'un modèle d'e-mail ou de SMS | 1 | idem |
 
