@@ -162,6 +162,14 @@ export const relancesText = (field: string) =>
     .find((item) => item.id === 'relances')
     ?.blocks.flatMap((block) => block.fields)
     .find((item) => item.id === field)?.value ?? '';
+/** Paramètres techniques › Téléphonie: the address of the 3CX instance, null until typed. */
+export const pbxUrl = () =>
+  groups.technical
+    .flatMap((group) => group.items)
+    .find((item) => item.id === 'telephonie')
+    ?.blocks.flatMap((block) => block.fields)
+    .find((item) => item.id === 'instance')
+    ?.value.trim() || null;
 export const resetSettings = () => {
   versions = {};
   resetMailboxRequests();

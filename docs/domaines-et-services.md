@@ -11,10 +11,9 @@
 | `mail.legarec.fr` | Envoi des e-mails automatiques (Resend) ; pas de réception |
 | `media.legarec.fr` | Fichiers publics (bucket legarec-media, sinon copie de `infra/media` servie par Caddy) : `e-mails/v1/`, `marque/`, `documents-publics/` |
 | `n8n.legarec.fr` | Automatisations (accès restreint) |
-| `legarec.on3cx.fr` | Standard téléphonique 3CX (hébergé par 3CX) |
 
 ## Proxy inverse (Caddy)
-Seul service exposé sur Internet (ports 80 et 443) : HTTPS automatique, en-têtes de sécurité, routage des sous-domaines ci-dessus (sauf legarec.fr et legarec.on3cx.fr). Redirections : http → https ; www.espace, www.partenaires, www.paiement → sans www ; mail.legarec.fr → legarec.fr ; racine de media.legarec.fr → legarec.fr ; racine de api.legarec.fr : 404. status.legarec.fr est retiré depuis le 28/11/2026 (ni page d'état ni Grafana). Référence : `kits/caddy/Caddyfile.exemple`.
+Seul service exposé sur Internet (ports 80 et 443) : HTTPS automatique, en-têtes de sécurité, routage des sous-domaines ci-dessus (sauf legarec.fr). Redirections : http → https ; www.espace, www.partenaires, www.paiement → sans www ; mail.legarec.fr → legarec.fr ; racine de media.legarec.fr → legarec.fr ; racine de api.legarec.fr : 404. status.legarec.fr est retiré depuis le 28/11/2026 (ni page d'état ni Grafana). Référence : `kits/caddy/Caddyfile.exemple`.
 
 ## Connexion par portail
 - `espace` : comptes des collaborateurs. `partenaires` : créanciers. `paiement` : identifiant et code d'accès, sans compte.
@@ -36,7 +35,7 @@ Seul service exposé sur Internet (ports 80 et 443) : HTTPS automatique, en-têt
 
 ## Autres services
 - **SMS** : OVHcloud, à double sens ; compte dédié avec un numéro mobile virtuel (question 70) pour recevoir les réponses ; mention STOP (`{{> mention_sms}}`).
-- **Téléphonie** : 3CX (`legarec.on3cx.fr`), par l'API Call Control (question 71) : appels, files, qualification (codes PROMESSE, ECHEANCIER, RAPPEL, LITIGE, DEJA_PAYE, ABSENT, NON_REPONSE, FAUX_NUMERO). Poste du collaborateur dans son profil ; renvoi vers le mobile réglé dans 3CX.
+- **Téléphonie** : 3CX, à l'adresse saisie dans Paramètres techniques › Téléphonie (aucune adresse écrite dans le code), par l'API Call Control (question 71) : appels, files, qualification (codes PROMESSE, ECHEANCIER, RAPPEL, LITIGE, DEJA_PAYE, ABSENT, NON_REPONSE, FAUX_NUMERO). Poste du collaborateur dans son profil ; renvoi vers le mobile réglé dans 3CX.
 - **Lettres recommandées et courriers** : MySendingBox. Deux comptes : test et production, choisis par variable d'environnement. Jamais de bascule implicite vers la production.
 - **Paiement** : chèque et virement sur le compte dédié uniquement (RIB, référence du dossier). Aucun paiement en ligne.
 - **Fichiers** : OVHcloud Object Storage (région Paris, décision du 26/11/2026) : `legarec-media` (public), `legarec-documents` (privé, URL présignées), `legarec-sauvegardes` (versioning). Une clé d'accès par bucket.

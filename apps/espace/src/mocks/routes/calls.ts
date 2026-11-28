@@ -3,6 +3,7 @@ import { http, HttpResponse } from 'msw';
 import { done, forbidden, guarded, notFound, staffWithCases, unauthorized } from '../http';
 import { currentSession } from '../state';
 import { readable } from './cases';
+import { pbxUrl } from './settings';
 
 type Info = { request: Request; params: Record<string, unknown> };
 const phone = (id: string, label: string, value: string, status: Coordinate['status'], primary: boolean, note = ''): Coordinate => ({
@@ -234,6 +235,7 @@ export const callHandlers = [
         campaign: 'Retards 60 j +',
         line: '01 87 88 02 98',
         extension: session.extension,
+        pbxUrl: pbxUrl(),
         tcx: callState.tcx,
         targets: visible,
         active: callState.active && visible[0]?.caseId === 'demo' ? { caseId: 'demo', seconds: 272, announced: true, phone: '0472184590' } : null,

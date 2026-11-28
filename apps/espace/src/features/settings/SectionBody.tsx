@@ -8,6 +8,7 @@ import layout from '@legarec/ui/layout.module.css';
 import { MembersCard } from '../team/MembersCard';
 import { TemplatesCard } from '../templates/TemplatesCard';
 import { AiJournalCard } from './AiJournalCard';
+import { ExtensionsCard } from './ExtensionsCard';
 import { GdprRegistryCard } from './GdprRegistryCard';
 import { InterestRatesCard } from './InterestRatesCard';
 import { MailboxesCard } from './MailboxesCard';
@@ -120,6 +121,8 @@ export function SectionBody({ scope, id, label }: { scope: string; id: string; l
       {data.tables.map((item) =>
         id === 'audit' ? (
           <AuditTable key={item.id} table={item} />
+        ) : item.id === 'extensions' ? (
+          <ExtensionsCard key={item.id} title={item.title} description={item.description} />
         ) : item.id === 'ai-log' ? (
           <AiJournalCard key={item.id} title={item.title} description={item.description} />
         ) : (

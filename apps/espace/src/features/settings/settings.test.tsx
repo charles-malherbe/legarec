@@ -555,3 +555,39 @@ describe('account and help', () => {
     expect(document.body.textContent).not.toMatch(/SEPA|carte bancaire/i);
   });
 });
+
+// Last: the toast of an extension stays on screen a while (DECISIONS.md, 28/11/2026).
+describe('telephony settings', () => {
+  it('takes the address of the 3CX instance and the extensions in the technical settings, then opens 3CX from Appels', async () => {
+    openAs('dev', '/parametres/techniques/telephonie');
+    const address = await screen.findByLabelText('Adresse du standard 3CX');
+    expect(address).toHaveValue('');
+    expect(document.body.textContent).not.toMatch(/on3cx/);
+    await userEvent.type(address, 'http://cabinet.3cx.fr');
+    await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(await screen.findByText('Saisissez une adresse en https, par exemple https://votre-cabinet.3cx.fr.')).toBeVisible();
+    await userEvent.clear(address);
+    await userEvent.type(address, 'https://cabinet.3cx.fr');
+    await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    const dialog = screen.queryByRole('alertdialog');
+    if (dialog) await userEvent.click(within(dialog).getByRole('button', { name: /Enregistrer|Confirmer/ }));
+    await waitFor(() => expect(screen.queryByText(/Modifications non enregistrées/)).toBeNull());
+    await userEvent.click(await screen.findByRole('button', { name: 'Modifier le poste de Hugo Benali' }));
+    const extension = screen.getByLabelText('Poste de Hugo Benali');
+    await userEvent.clear(extension);
+    await userEvent.type(extension, '7');
+    await userEvent.click(screen.getByRole('button', { name: 'Enregistrer le poste de Hugo Benali' }));
+    expect(await screen.findByText('De 2 à 6 chiffres, ou vide pour le standard seul.')).toBeVisible();
+    await userEvent.type(extension, '05');
+    await userEvent.click(screen.getByRole('button', { name: 'Enregistrer le poste de Hugo Benali' }));
+    expect(await screen.findByText('Poste 3CX enregistré.')).toBeVisible();
+    expect(await axeViolations(document.body)).toEqual([]);
+    openAs('cl', '/appels');
+    const open = await screen.findByRole('button', { name: 'Ouvrir 3CX' });
+    expect(open).toBeEnabled();
+  });
+  it('leaves Ouvrir 3CX greyed while no address is typed', async () => {
+    openAs('cl', '/appels');
+    expect(await screen.findByRole('button', { name: 'Ouvrir 3CX' })).toBeDisabled();
+  });
+});
