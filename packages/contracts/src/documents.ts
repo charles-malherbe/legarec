@@ -233,6 +233,7 @@ export const composeData = z.object({
     })
     .nullable(),
 });
+export type ComposeData = z.infer<typeof composeData>;
 
 /** The 40 € fixed indemnity only concerns professional debtors, never an individual. */
 export const fixedIndemnity = (recipient: Pick<LetterRecipient, 'isIndividual' | 'invoices'>) =>

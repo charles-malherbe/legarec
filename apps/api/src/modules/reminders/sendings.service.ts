@@ -164,7 +164,7 @@ export class SendingsService {
     const found = await tx.case.findFirst({ where: { id: caseId }, select: CASE });
     if (!found) throw notFound();
     if (!(await mayActOn(caseId)(tx))) throw forbidden();
-    if (body.channel === 'REGISTERED_LETTER') return this.remindByLetter(found, body.template);
+    if (body.channel === 'REGISTERED_LETTER') return this.remindByLetter(found, body.template, 'REGISTERED_LETTER');
     // Texts are with lot R.
     if (body.channel !== 'EMAIL') throw refused('NOT_AVAILABLE');
     const rules = await this.rules();
@@ -214,8 +214,9 @@ export class SendingsService {
    * the validated text of Paramètres › Modèles, without the access code. It may be the first contact, and may go to an
    * individual; the firm and the second letters quote the first one. The monthly cap of letters holds, without any
    * override; no hours. One letter at a time per case. The worker writes the PDF, keeps it in the case, then posts it.
+   * A plain letter (`LETTER`, « Courrier simple » of Rédiger un courrier) follows the same rules, and never is a first letter.
    */
-  private async remindByLetter(found: Found, template: Reminder['template']): Promise<void> {
+  private async remindByLetter(found: Found, template: Reminder['template'], channel: 'REGISTERED_LETTER' | 'LETTER', delay = 8): Promise<void> {
     const { tx } = this.database;
     if (found.closedOn || found.anonymizedAt) throw refused('CASE_CLOSED');
     const suspended = suspensionOf(found.status, found._count.plans);
@@ -241,10 +242,19 @@ export class SendingsService {
     if (pending(lines, now, 'LETTER')) throw refused('REMINDER_PENDING');
     if ((row?.count ?? 0) >= capOf('LETTER', (field) => settings.text('firm', 'relances', field)).cap) throw refused('CONTACT_CAP');
     const line = await tx.sending.create({
-      data: { caseId: found.id, creditorId: found.creditorId, channel: 'REGISTERED_LETTER', template, level: null, contactId: null },
+      data: { caseId: found.id, creditorId: found.creditorId, channel, template, level: null, contactId: null },
       select: { id: true },
     });
-    await this.outbox.add({ queue: 'reminders', name: 'case-letter', payload: { sending: line.id, case: found.id }, dedupeKey: `sending:${line.id}` });
+    await this.outbox.add({ queue: 'reminders', name: 'case-letter', payload: { sending: line.id, case: found.id, delay }, dedupeKey: `sending:${line.id}` });
+  }
+
+  /** A letter of Rédiger un courrier, for one case: the rules of the registered letter of the case card (question 210). */
+  async letter(caseId: string, template: Reminder['template'], channel: 'REGISTERED_LETTER' | 'LETTER', delay: number): Promise<void> {
+    const { tx } = this.database;
+    const found = await tx.case.findFirst({ where: { id: caseId }, select: CASE });
+    if (!found) throw notFound();
+    if (!(await mayActOn(caseId)(tx))) throw forbidden();
+    return this.remindByLetter(found, template, channel, delay);
   }
 
   /** What the case forbids for the reminder of an installment: its plan runs, and it may go to an individual. */

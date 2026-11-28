@@ -800,6 +800,13 @@ export const MATRIX: Record<string, MatrixEntry> = {
   // Documents: the cases one reads; a file is read from the disk, which the test does not fill: 500 for whoever gets that far.
   'GET /staff/documents': { expect: withCases(200) },
   'POST /staff/documents/import': { file: PDF, expect: withCases(200) },
+  'GET /staff/documents/compose': { expect: withCases(200) },
+  // The grouped sending is not open yet: every caller who acts on cases is answered so, nothing is written.
+  'POST /staff/documents/compose': {
+    body: () => ({ template: 'FRIENDLY', caseIds: null, filters: { creditor: 'all', age: '31-60' }, expected: 1, channel: 'LETTER', delay: 8, months: 4, options: { table: true, pay: true, indemnity: true } }),
+    expect: withCases(409),
+  },
+  'POST /staff/documents/compose/draft': { body: () => ({ template: 'FRIENDLY', caseId: '00000000-0000-4000-8000-000000000000' }), expect: withCases(409) },
   'POST /staff/documents/:id/share': {
     path: (test) => documentPath(test, '/share'),
     expect: only({ director: 403, manager: 204, managerAlone: 204, officerA: 404, officerB: 404, liar: 404 }),
