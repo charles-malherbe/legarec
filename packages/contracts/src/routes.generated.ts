@@ -4515,7 +4515,7 @@ export interface operations {
                         skipped: {
                             id: string;
                             /** @enum {string} */
-                            reason: "NO_FIRST_LETTER" | "CONTACT_CAP" | "OUTSIDE_HOURS" | "NO_EMAIL" | "NO_ADDRESS" | "INDIVIDUAL" | "NOT_SETTLED" | "CASE_CLOSED" | "FIRM_INCOMPLETE" | "NOT_AVAILABLE" | "UNKNOWN_RECIPIENT" | "CASE_DISPUTED" | "PLAN_RESPECTED" | "SERVICE_NOT_READY" | "NO_NEXT_REMINDER" | "REMINDER_PENDING" | "TOO_SOON" | "LEVEL_CHANGED" | "NO_NEXT_INSTALLMENT" | "INSTALLMENT_CHANGED";
+                            reason: "NO_FIRST_LETTER" | "CONTACT_CAP" | "OUTSIDE_HOURS" | "NO_EMAIL" | "NO_ADDRESS" | "INDIVIDUAL" | "NOT_SETTLED" | "CASE_CLOSED" | "FIRM_INCOMPLETE" | "NOT_AVAILABLE" | "UNKNOWN_RECIPIENT" | "CASE_DISPUTED" | "PLAN_RESPECTED" | "SERVICE_NOT_READY" | "NO_NEXT_REMINDER" | "REMINDER_PENDING" | "TOO_SOON" | "LEVEL_CHANGED" | "NO_NEXT_INSTALLMENT" | "INSTALLMENT_CHANGED" | "NO_PLAN_PROPOSED";
                         }[];
                     };
                 };
@@ -6375,7 +6375,7 @@ export interface operations {
                             /** @enum {string|null} */
                             template: "FRIENDLY" | "FIRM" | null;
                             /** @enum {string|null} */
-                            reason: "NO_FIRST_LETTER" | "CONTACT_CAP" | "OUTSIDE_HOURS" | "NO_EMAIL" | "NO_ADDRESS" | "INDIVIDUAL" | "NOT_SETTLED" | "CASE_CLOSED" | "FIRM_INCOMPLETE" | "NOT_AVAILABLE" | "UNKNOWN_RECIPIENT" | "CASE_DISPUTED" | "PLAN_RESPECTED" | "SERVICE_NOT_READY" | "NO_NEXT_REMINDER" | "REMINDER_PENDING" | "TOO_SOON" | "LEVEL_CHANGED" | "NO_NEXT_INSTALLMENT" | "INSTALLMENT_CHANGED" | null;
+                            reason: "NO_FIRST_LETTER" | "CONTACT_CAP" | "OUTSIDE_HOURS" | "NO_EMAIL" | "NO_ADDRESS" | "INDIVIDUAL" | "NOT_SETTLED" | "CASE_CLOSED" | "FIRM_INCOMPLETE" | "NOT_AVAILABLE" | "UNKNOWN_RECIPIENT" | "CASE_DISPUTED" | "PLAN_RESPECTED" | "SERVICE_NOT_READY" | "NO_NEXT_REMINDER" | "REMINDER_PENDING" | "TOO_SOON" | "LEVEL_CHANGED" | "NO_NEXT_INSTALLMENT" | "INSTALLMENT_CHANGED" | "NO_PLAN_PROPOSED" | null;
                         }[];
                     };
                 };
@@ -6401,7 +6401,7 @@ export interface operations {
                         skipped: {
                             id: string;
                             /** @enum {string} */
-                            reason: "NO_FIRST_LETTER" | "CONTACT_CAP" | "OUTSIDE_HOURS" | "NO_EMAIL" | "NO_ADDRESS" | "INDIVIDUAL" | "NOT_SETTLED" | "CASE_CLOSED" | "FIRM_INCOMPLETE" | "NOT_AVAILABLE" | "UNKNOWN_RECIPIENT" | "CASE_DISPUTED" | "PLAN_RESPECTED" | "SERVICE_NOT_READY" | "NO_NEXT_REMINDER" | "REMINDER_PENDING" | "TOO_SOON" | "LEVEL_CHANGED" | "NO_NEXT_INSTALLMENT" | "INSTALLMENT_CHANGED";
+                            reason: "NO_FIRST_LETTER" | "CONTACT_CAP" | "OUTSIDE_HOURS" | "NO_EMAIL" | "NO_ADDRESS" | "INDIVIDUAL" | "NOT_SETTLED" | "CASE_CLOSED" | "FIRM_INCOMPLETE" | "NOT_AVAILABLE" | "UNKNOWN_RECIPIENT" | "CASE_DISPUTED" | "PLAN_RESPECTED" | "SERVICE_NOT_READY" | "NO_NEXT_REMINDER" | "REMINDER_PENDING" | "TOO_SOON" | "LEVEL_CHANGED" | "NO_NEXT_INSTALLMENT" | "INSTALLMENT_CHANGED" | "NO_PLAN_PROPOSED";
                         }[];
                     };
                 };

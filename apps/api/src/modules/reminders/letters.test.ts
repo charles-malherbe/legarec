@@ -335,7 +335,9 @@ describe('Rédiger un courrier (question 210)', () => {
   it('writes the proposal of the plan that waits for its debtor, by the post or kept in the case', async () => {
     const found = await made();
     expect((await compose('officerA', { caseIds: [found.id], channel: 'DOWNLOAD', template: 'PAYMENT_PLAN' })).body).toEqual({ code: 'NO_PLAN_PROPOSED' });
-    const [{ creditor_id: creditor }] = (await rows<{ creditor_id: string }>('SELECT creditor_id FROM cases WHERE id = $1', [found.id])) as [{ creditor_id: string }];
+    const [{ creditor_id: creditor }] = (await rows<{ creditor_id: string }>('SELECT creditor_id FROM cases WHERE id = $1', [found.id])) as [
+      { creditor_id: string },
+    ];
     const first = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
     // Straight in the table, without the task that writes its PDF (whose author would be the test).
     const plan = randomUUID();
@@ -354,10 +356,12 @@ describe('Rédiger un courrier (question 210)', () => {
     const page = worker.letterPages.at(-1)!.replace(/\s/gu, ' ');
     expect(page).toContain('3 mensualités de 6 200,00');
     expect(page).toContain('18 600,00');
-    expect(await rows("SELECT detail FROM case_events WHERE case_id = $1 AND kind = 'REMINDER_SENT'", [found.id])).toEqual([{ detail: 'Courrier · proposition d’échéancier' }]);
-    expect(await rows("SELECT title, category::text FROM documents WHERE case_id = $1 AND source = 'GENERATED' AND category = 'PAYMENT_PLAN'", [found.id])).toEqual([
-      { title: 'Proposition d’échéancier (courrier simple)', category: 'PAYMENT_PLAN' },
+    expect(await rows("SELECT detail FROM case_events WHERE case_id = $1 AND kind = 'REMINDER_SENT'", [found.id])).toEqual([
+      { detail: 'Courrier · proposition d’échéancier' },
     ]);
+    expect(
+      await rows("SELECT title, category::text FROM documents WHERE case_id = $1 AND source = 'GENERATED' AND category = 'PAYMENT_PLAN'", [found.id]),
+    ).toEqual([{ title: 'Proposition d’échéancier (courrier simple)', category: 'PAYMENT_PLAN' }]);
     // Never a first letter, whatever the post says.
     expect((await firstLetter(found.id)).reference).toBeNull();
   });
@@ -385,7 +389,7 @@ describe('Rédiger un courrier (question 210)', () => {
     expect((await compose('officerB', { caseIds: [found.id] })).status).toBe(404);
     expect((await compose('director', { caseIds: [found.id] })).status).toBe(403);
     expect((await call('officerA', 'POST', '/documents/compose/draft', { template: 'PAYMENT_PLAN', caseId: found.id })).body).toEqual({
-      code: 'NOT_AVAILABLE',
+      code: 'NO_PLAN_PROPOSED',
     });
     expect((await call('officerB', 'POST', '/documents/compose/draft', { template: 'FRIENDLY', caseId: found.id })).status).toBe(404);
     expect(await lines(found.id)).toEqual([]);

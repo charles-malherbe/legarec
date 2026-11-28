@@ -4069,7 +4069,8 @@
                               "TOO_SOON",
                               "LEVEL_CHANGED",
                               "NO_NEXT_INSTALLMENT",
-                              "INSTALLMENT_CHANGED"
+                              "INSTALLMENT_CHANGED",
+                              "NO_PLAN_PROPOSED"
                             ]
                           }
                         },
@@ -9552,7 +9553,8 @@
                               "TOO_SOON",
                               "LEVEL_CHANGED",
                               "NO_NEXT_INSTALLMENT",
-                              "INSTALLMENT_CHANGED"
+                              "INSTALLMENT_CHANGED",
+                              "NO_PLAN_PROPOSED"
                             ]
                           }
                         },
@@ -9634,7 +9636,8 @@
                               "TOO_SOON",
                               "LEVEL_CHANGED",
                               "NO_NEXT_INSTALLMENT",
-                              "INSTALLMENT_CHANGED"
+                              "INSTALLMENT_CHANGED",
+                              "NO_PLAN_PROPOSED"
                             ]
                           }
                         },
