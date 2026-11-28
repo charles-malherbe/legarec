@@ -45,6 +45,8 @@ import { RemindersController } from './reminders/reminders.controller';
 import { ResendEventsService } from './reminders/resend-events.service';
 import { RemindersService } from './reminders/reminders.service';
 import { SendingsService } from './reminders/sendings.service';
+import { UncertainSendingsController } from './reminders/uncertain.controller';
+import { UncertainSendingsService } from './reminders/uncertain.service';
 import { Clock } from '../platform/clock';
 import { AiController } from '../ai/ai.controller';
 import { AiJournalController } from '../ai/journal.controller';
@@ -78,6 +80,7 @@ export const controllers: Type[] = [
   AiController,
   AiJournalController,
   RemindersController,
+  UncertainSendingsController,
   HooksController,
   LitigationController,
   DepositsController,
@@ -123,6 +126,7 @@ export const providers: Provider[] = [
   NotificationsService,
   RemindersService,
   SendingsService,
+  UncertainSendingsService,
   ResendEventsService,
   Clock,
   LitigationService,

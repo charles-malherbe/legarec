@@ -387,7 +387,15 @@ const seedLitigation = (): StoredLitigation[] =>
     officerId,
   }));
 let litigation = seedLitigation();
+/** An e-mail of the demo case taken by Resend without a clear answer, long enough ago to be decided by a person. */
+const seedUncertain = () => [
+  { id: 'u1', caseId: 'demo', reference: 'LGR-2026-00142', debtor: 'Bâtiplus SAS', level: 2, askedAt: '2026-11-18T08:30:00.000Z', officerId: 'cl' },
+];
+let uncertain = seedUncertain();
+/** As the API: the Collection manager, or the Director on their cases. */
+const decides = (session: Session) => session.role === 'COLLECTION_MANAGER' || session.role === 'DIRECTOR';
 export const resetCollection = () => {
+  uncertain = seedUncertain();
   planned.clear();
   reminders = seedReminders();
   requests = seedRequests();
@@ -416,6 +424,28 @@ const followed = <S extends z.ZodType<{ version: number }>>(
   });
 
 export const collectionHandlers = [
+  http.get(
+    '/api/sendings/uncertain',
+    guarded(staffWithCases, (_info, session) =>
+      !decides(session)
+        ? forbidden()
+        : HttpResponse.json({ items: uncertain.filter((item) => acts(session, item.officerId)).map(({ officerId: _officer, ...item }) => item) }),
+    ),
+  ),
+  http.put(
+    '/api/sendings/:id/settlement',
+    guarded<Info>(staffWithCases, async ({ params, request }, session) => {
+      if (!decides(session)) return forbidden();
+      const { outcome } = (await request.json()) as { outcome?: string };
+      if (outcome !== 'SENT' && outcome !== 'NOT_SENT') return HttpResponse.json({ code: 'INVALID' }, { status: 422 });
+      const item = uncertain.find((entry) => entry.id === params.id);
+      if (!item) return notFound();
+      if (!acts(session, item.officerId)) return forbidden();
+      uncertain = uncertain.filter((entry) => entry.id !== item.id);
+      audit(session, outcome === 'SENT' ? 'Envoi incertain noté parti' : 'Envoi incertain noté non parti');
+      return done();
+    }),
+  ),
   http.get(
     '/api/reminders',
     guarded(staffWithCases, (_info, session) =>
