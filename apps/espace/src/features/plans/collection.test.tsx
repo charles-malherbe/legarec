@@ -112,6 +112,16 @@ describe('reminders', () => {
     await userEvent.click(screen.getByRole('button', { name: /^E-mail/ }));
     expect(screen.queryByText('Répondre à la contestation')).toBeNull();
   });
+  it('shows the day typed in the date field, and the week by the hour', async () => {
+    openAs('cl', '/relances');
+    const day = await screen.findByLabelText('Jour affiché à droite', {}, { timeout: 5000 });
+    await userEvent.clear(day);
+    await userEvent.type(day, '25/11/2026');
+    expect(await screen.findByRole('heading', { name: 'Mercredi 25 novembre' })).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Semaine' }));
+    expect(await screen.findByText('08 h')).toBeInTheDocument();
+    expect(screen.getByText('Horaires')).toBeInTheDocument();
+  });
   it('hides other officers’ reminders', async () => {
     const { items } = (await (await call('hb', '/reminders')).json()) as { items: { officerId: string }[] };
     expect(new Set(items.map((item) => item.officerId))).toEqual(new Set(['hb']));

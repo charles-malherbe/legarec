@@ -1,13 +1,19 @@
 import '@testing-library/jest-dom/vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { PUBLIC_DATA } from '@legarec/platform';
+import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { MemoryRouter } from 'react-router';
 import { afterAll, beforeAll, beforeEach, expect, it } from 'vitest';
 import { App } from './app/App';
 import { handlers, openSession, resetDebtors, unverified } from './mocks/handlers';
 
-const server = setupServer(...handlers);
+// The calendar of a date field asks the State for its public holidays: never the real register in a test.
+const server = setupServer(
+  ...handlers,
+  http.get(`${PUBLIC_DATA.holidays}/:year`, () => HttpResponse.json({})),
+);
 beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 afterAll(() => server.close());
 beforeEach(() => resetDebtors());

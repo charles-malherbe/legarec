@@ -7,6 +7,7 @@ import { MemoryRouter } from 'react-router';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it, describe, vi } from 'vitest';
 import { axeViolations } from '../../../../packages/ui/src/testing';
 import { handlers } from '../mocks/handlers';
+import { publicDataHandlers } from '../mocks/publicData';
 import { resetSteering } from '../mocks/routes/steering';
 import { setAccount, state } from '../mocks/state';
 import { canOpen } from './access';
@@ -19,7 +20,7 @@ const OFFLINE = 'Le service ne répond pas. Vérifiez votre connexion et réessa
 const { startAuthentication } = vi.hoisted(() => ({ startAuthentication: vi.fn<() => Promise<unknown>>() }));
 vi.mock('@simplewebauthn/browser', () => ({ startAuthentication }));
 
-const server = setupServer(...handlers);
+const server = setupServer(...handlers, ...publicDataHandlers);
 beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => {
   server.resetHandlers();

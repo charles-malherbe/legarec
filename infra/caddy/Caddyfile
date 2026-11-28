@@ -81,11 +81,12 @@
 
 # {args[0]}: container of the portal. Nothing comes from elsewhere, except the API, the logos and the styles that
 # Mantine and FullCalendar write in the page ('unsafe-inline' for the styles only, never for the scripts).
+# {args[2]}: what else the portal may read, the public registers of its forms (DECISIONS.md, 28/11/2026).
 (portal) {
 	import security
 	import access_log
 	header {
-		Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://media.legarec.fr; connect-src https://api.legarec.fr; frame-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'; object-src 'none'; manifest-src 'self'"
+		Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://media.legarec.fr; connect-src https://api.legarec.fr {args[2]}; frame-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'; object-src 'none'; manifest-src 'self'"
 		Referrer-Policy {args[1]}
 		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
 		X-Frame-Options "DENY"
@@ -106,16 +107,16 @@
 }
 
 espace.legarec.fr {
-	import portal espace strict-origin-when-cross-origin
+	import portal espace strict-origin-when-cross-origin "https://data.geopf.fr https://geo.api.gouv.fr https://recherche-entreprises.api.gouv.fr https://data-api.ecb.europa.eu https://calendrier.api.gouv.fr"
 }
 
 partenaires.legarec.fr {
-	import portal partenaires strict-origin-when-cross-origin
+	import portal partenaires strict-origin-when-cross-origin "https://api.legarec.fr https://calendrier.api.gouv.fr"
 }
 
 # The path may carry the link of a letter or of a text message: it never leaves with a click.
 paiement.legarec.fr {
-	import portal paiement no-referrer
+	import portal paiement no-referrer "https://api.legarec.fr https://calendrier.api.gouv.fr"
 }
 
 api.legarec.fr {

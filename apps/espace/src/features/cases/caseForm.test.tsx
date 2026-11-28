@@ -202,3 +202,49 @@ describe('a debtor who already has a case', () => {
     expect(screen.getByRole('button', { name: 'Ouvrir le dossier' })).toBeEnabled();
   });
 });
+
+describe('the public registers', () => {
+  it('propose the exact address and fill the postal code and the city', async () => {
+    openAs('cl', '/debiteurs/nouveau?creancier=md');
+    await screen.findByText('Honoraires amiable');
+    await type('Adresse', '14 rue des forg');
+    const [first] = await within(await screen.findByRole('listbox')).findAllByRole('option');
+    expect(first).toHaveTextContent('14 Rue des Forges 69007 Lyon');
+    await userEvent.click(first!);
+    expect(screen.getByLabelText(/^Adresse/)).toHaveValue('14 Rue des Forges');
+    expect(screen.getByLabelText(/^Code postal/)).toHaveValue('69007');
+    expect(screen.getByLabelText(/^Ville/)).toHaveValue('Lyon');
+  });
+
+  it('offer the communes of a postal code shared by several', async () => {
+    openAs('cl', '/debiteurs/nouveau?creancier=md');
+    await screen.findByText('Honoraires amiable');
+    await type('Code postal', '54490');
+    expect(await screen.findByText('7 communes pour ce code postal')).toBeVisible();
+    await choose('Ville', 'Piennes');
+    expect(screen.getByLabelText(/^Ville/)).toHaveValue('Piennes');
+  });
+
+  it('give the register entry of a SIREN, written only on a click', async () => {
+    openAs('cl', '/debiteurs/nouveau?creancier=md');
+    await screen.findByText('Honoraires amiable');
+    await type('SIRET ou SIREN', '512 384 920');
+    await press('Chercher dans le répertoire Sirene');
+    expect(await screen.findByText('BATIPLUS')).toBeVisible();
+    expect(screen.getByLabelText(/^Raison sociale(?! confirmée)/)).toHaveValue('');
+    await press('Reprendre les informations de BATIPLUS');
+    expect(screen.getByLabelText(/^Raison sociale(?! confirmée)/)).toHaveValue('BATIPLUS');
+    expect(screen.getByLabelText(/^Forme juridique/)).toHaveValue('5710');
+    expect(screen.getByLabelText(/^Adresse/)).toHaveValue('8 Boulevard du Port');
+    expect(screen.getByLabelText(/^Code postal/)).toHaveValue('80000');
+    expect(screen.getByLabelText(/^Ville/)).toHaveValue('Amiens');
+  });
+
+  it('say when the number is unknown, and leave the typing by hand', async () => {
+    openAs('cl', '/debiteurs/nouveau?creancier=md');
+    await screen.findByText('Honoraires amiable');
+    await type('SIRET ou SIREN', '732 829 007');
+    await press('Chercher dans le répertoire Sirene');
+    expect(await screen.findByText(/Aucune entreprise trouvée pour ce numéro/)).toBeVisible();
+  });
+});

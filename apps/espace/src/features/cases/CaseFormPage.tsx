@@ -13,7 +13,7 @@ import {
   SCENARIO_LABELS,
   type NewCase,
 } from '@legarec/contracts';
-import { Alerte, Bouton, Carte, Case, Champ, EtatListe, PageHeader, useConfirm, useToast } from '@legarec/ui';
+import { Alerte, Bouton, Carte, Case, Champ, ChampAdresse, EtatListe, FicheSirene, PageHeader, useConfirm, useToast } from '@legarec/ui';
 import layout from '@legarec/ui/layout.module.css';
 import { useDebouncedValue } from '@mantine/hooks';
 import { useQuery } from '@tanstack/react-query';
@@ -343,9 +343,26 @@ function Form({ choices }: { choices: { creditors: { id: string; name: string }[
                 help: 'Inconnue : pas de score de risque',
                 options: [{ value: '', label: 'Inconnue' }, ...Object.entries(LEGAL_FORMS).map(([value, label]) => ({ value, label }))],
               })}
-            {field('address', 'Adresse', { required: true })}
-            {field('postalCode', 'Code postal', { required: true, inputMode: 'numeric' })}
-            {field('city', 'Ville', { required: true })}
+            {!individual && (
+              <FicheSirene
+                number={form.number}
+                onUse={(record) =>
+                  set({
+                    name: record.name,
+                    legalForm: record.legalCategory in LEGAL_FORMS ? record.legalCategory : form.legalForm,
+                    address: record.line,
+                    postalCode: record.postalCode,
+                    city: record.city,
+                  })
+                }
+              />
+            )}
+            <ChampAdresse
+              required
+              value={{ address: form.address, postalCode: form.postalCode, city: form.city }}
+              errors={{ address: errors.address, postalCode: errors.postalCode, city: errors.city }}
+              onChange={set}
+            />
           </div>
           {errors.nameConfirmed && (
             <p role="alert" className={css.error}>

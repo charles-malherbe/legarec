@@ -1,3 +1,4 @@
+import { Dropzone } from '@mantine/dropzone';
 import { useId, useRef, useState } from 'react';
 import { Bouton } from './Bouton';
 import css from './DepotFichiers.module.css';
@@ -13,34 +14,34 @@ export interface DepotFichiersProps {
   onChange: (files: File[]) => void;
 }
 
-/** Drag-and-drop and file picker. The files are only listed here: the API reads and checks them. */
+/**
+ * Drag-and-drop and file picker, on the dropzone of Mantine: a file dropped beside the zone never opens in the tab. The
+ * files are only listed here: the API reads and checks them (real type, ClamAV).
+ */
 export function DepotFichiers({ label, hint, accept, multiple, maxMb = 10, files, onChange }: DepotFichiersProps) {
-  const input = useRef<HTMLInputElement>(null);
-  const [over, setOver] = useState(false);
+  const open = useRef<() => void>(null);
   const [error, setError] = useState('');
   const hintId = useId();
   const extensions = accept.split(',').map((item) => item.trim().toLowerCase());
-  const add = (list: FileList | null) => {
-    const picked = [...(list ?? [])];
+  const add = (picked: File[]) => {
     const allowed = picked.filter((file) => extensions.some((ext) => file.name.toLowerCase().endsWith(ext)) && file.size <= maxMb * 1_000_000);
     setError(allowed.length < picked.length ? `Fichier refusé : ${extensions.map((ext) => ext.slice(1).toUpperCase()).join(', ')}, ${maxMb} Mo maximum.` : '');
     if (allowed.length > 0) onChange(multiple ? [...files, ...allowed] : allowed.slice(0, 1));
   };
   return (
     <div className={css.root}>
-      <div
+      <Dropzone
+        unstyled
         className={css.drop}
-        data-over={over || undefined}
-        onDragOver={(event) => {
-          event.preventDefault();
-          setOver(true);
-        }}
-        onDragLeave={() => setOver(false)}
-        onDrop={(event) => {
-          event.preventDefault();
-          setOver(false);
-          add(event.dataTransfer.files);
-        }}
+        openRef={open}
+        multiple={multiple}
+        // The extension and the size are checked here, to say why a file is refused; the picker opens with the button.
+        onDrop={add}
+        onReject={(rejected) => add(rejected.map((item) => item.file))}
+        activateOnClick={false}
+        activateOnKeyboard={false}
+        useFsAccessApi={false}
+        inputProps={{ accept, 'aria-label': label, 'aria-describedby': hint ? hintId : undefined }}
       >
         <Icone icon="upload" size={22} />
         <span className={css.label}>{label}</span>
@@ -49,21 +50,8 @@ export function DepotFichiers({ label, hint, accept, multiple, maxMb = 10, files
             {hint}
           </span>
         )}
-        <Bouton variant="secondary" size="sm" label="Choisir un fichier" onPress={() => input.current?.click()} />
-        <input
-          ref={input}
-          type="file"
-          hidden
-          accept={accept}
-          multiple={multiple}
-          aria-label={label}
-          aria-describedby={hint ? hintId : undefined}
-          onChange={(event) => {
-            add(event.currentTarget.files);
-            event.currentTarget.value = '';
-          }}
-        />
-      </div>
+        <Bouton variant="secondary" size="sm" label="Choisir un fichier" onPress={() => open.current?.()} />
+      </Dropzone>
       {error && (
         <p role="alert" className={css.error}>
           {error}

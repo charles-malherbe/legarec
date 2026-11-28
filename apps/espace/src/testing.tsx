@@ -5,11 +5,12 @@ import { MemoryRouter } from 'react-router';
 import { afterAll, afterEach, beforeAll } from 'vitest';
 import { App } from './app/App';
 import { handlers } from './mocks/handlers';
+import { publicDataHandlers } from './mocks/publicData';
 import { setAccount, state } from './mocks/state';
 
 /** Starts MSW for a test file and resets the simulated session between tests. */
 export function mockApi() {
-  const server = setupServer(...handlers);
+  const server = setupServer(...handlers, ...publicDataHandlers);
   beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
   afterEach(() => {
     server.resetHandlers();

@@ -9,7 +9,8 @@ import {
   type ColumnDef,
   type RowSelectionState,
 } from '@tanstack/react-table';
-import { useMemo, type ReactNode } from 'react';
+import { useWindowVirtualizer } from '@tanstack/react-virtual';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { Badge } from './Badge';
 import { Case } from './Case';
 import { EtatListe, type EtatListeProps } from './EtatListe';
@@ -57,6 +58,12 @@ export interface TableauProps<Row> extends LayoutProps {
   selection?: { selected: string[]; onChange: (ids: string[]) => void };
 }
 
+/**
+ * From this many rows, only those near the screen are drawn (TanStack Virtual): a list of a whole year stays fluid. The
+ * table still says how many rows it has (aria-rowcount, aria-rowindex); the search of the browser only finds rows drawn.
+ */
+export const TABLEAU_VIRTUAL_FROM = 200;
+
 const features = tableFeatures({ rowSortingFeature, rowSelectionFeature, sortedRowModel: createSortedRowModel(), sortFns });
 
 export function Tableau<Row extends object>(props: TableauProps<Row>) {
@@ -86,9 +93,35 @@ export function Tableau<Row extends object>(props: TableauProps<Row>) {
   const byKey = new Map(columns.map((column) => [column.key, column]));
   const body = table.getRowModel().rows;
   const empty = rows.length === 0 || !!state;
+  const virtual = !empty && body.length >= TABLEAU_VIRTUAL_FROM;
+  // Where the table starts in the page: the page scrolls, not the table (sticky headers).
+  const [top, setTop] = useState(0);
+  const place = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (node && virtual) setTop(node.getBoundingClientRect().top + window.scrollY);
+    },
+    [virtual],
+  );
+  const virtualizer = useWindowVirtualizer({
+    count: virtual ? body.length : 0,
+    enabled: virtual,
+    estimateSize: () => (props.dense ? 41 : 53),
+    // A row that is not laid out (hidden tab, test) keeps its estimate.
+    measureElement: (row) => row.getBoundingClientRect().height || (props.dense ? 41 : 53),
+    overscan: 20,
+    scrollMargin: top,
+  });
+  const drawn = virtual ? virtualizer.getVirtualItems() : [];
+  const before = drawn[0] ? drawn[0].start - virtualizer.options.scrollMargin : 0;
+  const after = drawn.length > 0 ? virtualizer.getTotalSize() - ((drawn.at(-1)?.end ?? 0) - virtualizer.options.scrollMargin) : 0;
+  const shown = virtual
+    ? drawn.flatMap((item) => (body[item.index] ? [{ row: body[item.index]!, index: item.index }] : []))
+    : body.map((row, index) => ({ row, index }));
+  const span = columns.length + (selection ? 1 : 0);
 
   return (
     <div
+      ref={place}
       role="group"
       aria-label={props.caption}
       tabIndex={0}
@@ -99,10 +132,10 @@ export function Tableau<Row extends object>(props: TableauProps<Row>) {
       data-tight={props.tight || undefined}
       style={props.layout}
     >
-      <Table unstyled className={css.table}>
+      <Table unstyled className={css.table} aria-rowcount={virtual ? body.length + 1 : undefined}>
         {props.caption && <caption className={props.hideCaption ? css.hidden : css.caption}>{props.caption}</caption>}
         <thead>
-          <tr>
+          <tr aria-rowindex={virtual ? 1 : undefined}>
             {selection && (
               <th scope="col" className={css.check}>
                 <Case
@@ -140,9 +173,17 @@ export function Tableau<Row extends object>(props: TableauProps<Row>) {
         </thead>
         {!empty && (
           <tbody>
-            {body.map((row) => (
+            {before > 0 && (
+              <tr aria-hidden className={css.spacer}>
+                <td colSpan={span} style={{ height: before }} />
+              </tr>
+            )}
+            {shown.map(({ row, index }) => (
               <tr
                 key={row.id}
+                data-index={virtual ? index : undefined}
+                ref={virtual ? virtualizer.measureElement : undefined}
+                aria-rowindex={virtual ? index + 2 : undefined}
                 data-active={row.id === props.activeRowId || undefined}
                 data-clickable={onRow ? true : undefined}
                 onClick={onRow ? () => onRow(row.original) : undefined}
@@ -164,6 +205,11 @@ export function Tableau<Row extends object>(props: TableauProps<Row>) {
                 ))}
               </tr>
             ))}
+            {after > 0 && (
+              <tr aria-hidden className={css.spacer}>
+                <td colSpan={span} style={{ height: after }} />
+              </tr>
+            )}
           </tbody>
         )}
       </Table>

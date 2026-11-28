@@ -16,7 +16,8 @@
   color: var(--text-2);
   text-align: center;
 }
-.drop[data-over] {
+.drop[data-accept],
+.drop[data-reject] {
   background: var(--bleu-pale);
   border-color: var(--marine);
 }
