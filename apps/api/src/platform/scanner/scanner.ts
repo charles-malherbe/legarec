@@ -4,6 +4,8 @@ export type Verdict = 'CLEAN' | 'INFECTED';
 export interface Scanner {
   readonly name: 'clamav' | 'simulated';
   scan(bytes: Uint8Array): Promise<Verdict>;
+  /** Whether the antivirus answers now: never throws. */
+  ping(): Promise<boolean>;
 }
 
 /** The test file of the antivirus makers: what the simulated scanner finds, as ClamAV does. */
@@ -15,6 +17,9 @@ export class SimulatedScanner implements Scanner {
   scan(bytes: Uint8Array): Promise<Verdict> {
     return Promise.resolve(Buffer.from(bytes).includes(EICAR) ? 'INFECTED' : 'CLEAN');
   }
+  ping(): Promise<boolean> {
+    return Promise.resolve(true);
+  }
 }
 
 /** clamd over TCP (`INSTREAM`): chunks of at most 64 Ko, each after its length; the answer ends with OK or FOUND. */
@@ -25,6 +30,19 @@ export class ClamavScanner implements Scanner {
     private readonly port: number,
     private readonly timeoutMs = 60_000,
   ) {}
+
+  /** `zPING`, answered `PONG` by a clamd that works; anything else, a cut or 10 seconds of silence: false. */
+  ping(): Promise<boolean> {
+    return new Promise((resolve) => {
+      const socket = connect({ host: this.host, port: this.port });
+      const chunks: Buffer[] = [];
+      socket.setTimeout(10_000, () => socket.destroy());
+      socket.on('error', () => resolve(false));
+      socket.on('data', (chunk: Buffer) => chunks.push(chunk));
+      socket.on('close', () => resolve(Buffer.concat(chunks).toString('utf8').replace(/\0/gu, '').trim() === 'PONG'));
+      socket.on('connect', () => socket.end('zPING\0'));
+    });
+  }
 
   scan(bytes: Uint8Array): Promise<Verdict> {
     return new Promise((resolve, reject) => {
