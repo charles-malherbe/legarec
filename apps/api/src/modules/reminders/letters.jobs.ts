@@ -61,8 +61,10 @@ const LETTERS = {
   FORMAL_NOTICE: { code: 'demeure', level: 3, category: 'FORMAL_NOTICE', title: 'Mise en demeure' },
 } as const;
 type LetterTemplate = keyof typeof LETTERS;
-/** Days the debtor is given to pay from the day of the letter (« date limite »). */
+/** Days the debtor is given to pay from the day of the letter (« date limite »), unless Rédiger un courrier gave 15 or 30. */
 const DEADLINE_DAYS = 8;
+export const LETTER_DELAYS: readonly number[] = [8, 15, 30];
+const delayOf = (value: unknown) => (typeof value === 'number' && LETTER_DELAYS.includes(value) ? value : DEADLINE_DAYS);
 const portalLabel = (url: string) => url.replace(/^https?:\/\//u, '').replace(/\/$/u, '');
 /** A list that reads as its numbers in a sentence (`{{creance.factures}}`) and as its invoices in a loop. */
 const listOf = <T extends { facture: { numero: string } }>(items: T[]) =>
@@ -70,10 +72,13 @@ const listOf = <T extends { facture: { numero: string } }>(items: T[]) =>
 /** The body of a full page: the source of a template is one, checked when it was imported (no script, nothing from elsewhere). */
 const bodyOf = (html: string) => /<body[^>]*>([\s\S]*)<\/body>/iu.exec(html)?.[1] ?? html;
 
+type Prepared =
+  | { refusal: string }
+  | { refusal: undefined; bytes: Buffer; to: PostalAddress; from: PostalAddress; firm: (field: string) => string };
 type Facts = { refusal: string } | { refusal: undefined; to: PostalAddress; data: Record<string, unknown>; source: string; subject: string };
 
 /** What the letter says, read with the rights of the colleague who asked: as the case stands when it leaves. */
-async function factsOf(database: Database, tx: Transaction, caseId: string, template: LetterTemplate, today: string, portal: string): Promise<Facts> {
+async function factsOf(database: Database, tx: Transaction, caseId: string, template: LetterTemplate, today: string, portal: string, delay: number): Promise<Facts> {
   const found = await tx.case.findFirst({
     where: { id: caseId, closedOn: null, anonymizedAt: null },
     select: {
@@ -160,7 +165,7 @@ async function factsOf(database: Database, tx: Transaction, caseId: string, temp
         ),
       },
       creancier: { nom: found.creditor.legalName ?? found.creditor.name, adresse: creditorAddress, siren: found.creditor.siren ?? '' },
-      date: { jour: long(today), limite: long(plusDays(today, DEADLINE_DAYS)) },
+      date: { jour: long(today), limite: long(plusDays(today, delay)) },
       paiement: { lien: portalLabel(portal) },
     },
   };
@@ -181,6 +186,57 @@ export function letterJobs({ database, vault, storage, pdf, templates, mysending
     throw new GiveUp((await markFailed(asApplication, sending, caseId, failure, from)).code);
   };
 
+  /**
+   * The PDF of a letter, from the published template of Paramètres › Modèles, as the case stands: read with the rights of
+   * the colleague who asked. A value of the firm still between brackets makes it wait; what the template refuses is a code.
+   */
+  const prepare = async (asAuthor: Run, asApplication: Run, caseId: string, template: LetterTemplate, mode: string, today: string, delay: number): Promise<Prepared> => {
+    const settings = await asApplication((tx) => SettingValues.read(tx));
+    const facts = await asAuthor((tx) => factsOf(database, tx, caseId, template, today, portal, delay));
+    if (facts.refusal !== undefined) return { refusal: facts.refusal };
+    const firmText = (field: string) => settings.text('firm', 'cabinet', field);
+    const firmPostal = postalOf(firmText('address'));
+    // A value of the firm still between brackets, or an address the post cannot read: it waits for the Director.
+    if (
+      !firmPostal ||
+      ['name', 'address', 'phone', 'siren', 'iban', 'holder', 'chequePayee', 'chequeAddress'].some((field) => PLACEHOLDER.test(firmText(field)))
+    )
+      throw new TryLater('FIRM_INCOMPLETE');
+    const data = {
+      ...facts.data,
+      cabinet: {
+        nom: firmText('name'),
+        adresse: firmText('address'),
+        telephone: firmText('phone'),
+        email: firmText('email'),
+        siren: firmText('siren'),
+        tva: firmText('vat'),
+        titulaire: firmText('holder'),
+        ordre_cheques: firmText('chequePayee'),
+        adresse_cheques: firmText('chequeAddress'),
+      },
+      paiement: { ...(facts.data.paiement as object), iban: firmText('iban') },
+    };
+    let html: string;
+    try {
+      const subject = engine.compile(facts.subject, { strict: true, noEscape: true })(data);
+      const letter = engine.compile(facts.source, { strict: true })({
+        ...data,
+        lettre: { objet: subject, mode, adresse: [...facts.to.lines, `${facts.to.postalCode} ${facts.to.city}`] },
+      });
+      html = layout({ content: bodyOf(letter), lettre: { objet: subject } });
+    } catch {
+      // What the template refuses may quote the debtor: only a code stays.
+      return { refusal: 'UNREADABLE_MESSAGE' };
+    }
+    try {
+      return { refusal: undefined, bytes: await pdf.render(html), to: facts.to, from: { name: firmText('name'), ...firmPostal }, firm: firmText };
+    } catch (error) {
+      if (error instanceof FirmIncomplete) throw new TryLater('FIRM_INCOMPLETE');
+      throw error;
+    }
+  };
+
   const job: JobDefinition = {
     from: ['STAFF'],
     repeatable: false,
@@ -199,7 +255,7 @@ export function letterJobs({ database, vault, storage, pdf, templates, mysending
       );
       if (!line) throw new GiveUp('UNKNOWN_SENDING');
       if (line.status !== 'QUEUED') return;
-      if (line.channel !== 'REGISTERED_LETTER' || !(line.template in LETTERS)) return fail(asApplication, sending, caseId, 'NOT_AVAILABLE');
+      if ((line.channel !== 'REGISTERED_LETTER' && line.channel !== 'LETTER') || !(line.template in LETTERS)) return fail(asApplication, sending, caseId, 'NOT_AVAILABLE');
       const template = line.template as LetterTemplate;
       const settings = await asApplication((tx) => SettingValues.read(tx));
       const hours = contactHours((field) => settings.text('firm', 'relances', field));
@@ -207,54 +263,10 @@ export function letterJobs({ database, vault, storage, pdf, templates, mysending
       // One that has waited too long never leaves (a key, a value of the firm).
       if (moment >= sendingDeadline(line.createdAt, hours)) return fail(asApplication, sending, caseId, 'EXPIRED');
       const today = dayOf(moment);
-      const facts = await asAuthor((tx) => factsOf(database, tx, caseId, template, today, portal));
-      if (facts.refusal !== undefined) return fail(asApplication, sending, caseId, facts.refusal);
-      const firmText = (field: string) => settings.text('firm', 'cabinet', field);
-      const firmPostal = postalOf(firmText('address'));
-      // A value of the firm still between brackets, or an address the post cannot read: it waits for the Director.
-      if (
-        !firmPostal ||
-        ['name', 'address', 'phone', 'siren', 'iban', 'holder', 'chequePayee', 'chequeAddress'].some((field) => PLACEHOLDER.test(firmText(field)))
-      )
-        throw new TryLater('FIRM_INCOMPLETE');
-      const data = {
-        ...facts.data,
-        cabinet: {
-          nom: firmText('name'),
-          adresse: firmText('address'),
-          telephone: firmText('phone'),
-          email: firmText('email'),
-          siren: firmText('siren'),
-          tva: firmText('vat'),
-          titulaire: firmText('holder'),
-          ordre_cheques: firmText('chequePayee'),
-          adresse_cheques: firmText('chequeAddress'),
-        },
-        paiement: { ...(facts.data.paiement as object), iban: firmText('iban') },
-      };
-      let html: string;
-      try {
-        const subject = engine.compile(facts.subject, { strict: true, noEscape: true })(data);
-        const letter = engine.compile(facts.source, { strict: true })({
-          ...data,
-          lettre: {
-            objet: subject,
-            mode: 'Lettre recommandée avec accusé de réception',
-            adresse: [...facts.to.lines, `${facts.to.postalCode} ${facts.to.city}`],
-          },
-        });
-        html = layout({ content: bodyOf(letter), lettre: { objet: subject } });
-      } catch {
-        // What the template refuses may quote the debtor: only a code stays.
-        return fail(asApplication, sending, caseId, 'UNREADABLE_MESSAGE');
-      }
-      let bytes: Buffer;
-      try {
-        bytes = await pdf.render(html);
-      } catch (error) {
-        if (error instanceof FirmIncomplete) throw new TryLater('FIRM_INCOMPLETE');
-        throw error;
-      }
+      const registered = line.channel === 'REGISTERED_LETTER';
+      const prepared = await prepare(asAuthor, asApplication, caseId, template, registered ? 'Lettre recommandée avec accusé de réception' : 'Lettre simple', today, delayOf(payload.delay));
+      if (prepared.refusal !== undefined) return fail(asApplication, sending, caseId, prepared.refusal);
+      const { bytes, to, from } = prepared;
       const name = real ? 'MYSENDINGBOX_API_KEY' : 'MYSENDINGBOX_TEST_API_KEY';
       const [stored] = await asApplication(
         (tx) => tx.$queryRaw<{ id: string | null; value_cipher: Uint8Array | null }[]>`SELECT * FROM app.service_key(${name})`,
@@ -274,7 +286,7 @@ export function letterJobs({ database, vault, storage, pdf, templates, mysending
               creditorId: line.creditorId,
               category,
               kind: 'PDF',
-              title: `${title} (recommandé)`,
+              title: `${title} (${registered ? 'recommandé' : 'courrier simple'})`,
               originalName: `courrier-${today}.pdf`,
               storageKey: file.key,
               sizeBytes: file.size,
@@ -316,7 +328,7 @@ export function letterJobs({ database, vault, storage, pdf, templates, mysending
           return changed;
         });
         if (!count) return;
-        const note = sentNote(caseId, { channel: 'REGISTERED_LETTER', template, level: null });
+        const note = sentNote(caseId, { channel: line.channel, template, level: null });
         await asAuthor(note).catch((error: unknown) => {
           if (databaseCode(error) !== '42501') throw error;
           return asApplication(note);
@@ -327,7 +339,7 @@ export function letterJobs({ database, vault, storage, pdf, templates, mysending
       try {
         answer = await mysendingbox.send(
           key,
-          { pdf: bytes, to: facts.to, from: { name: firmText('name'), ...firmPostal }, postage: 'lrar', sending },
+          { pdf: bytes, to, from, postage: registered ? 'lrar' : 'prioritaire', sending },
           `sending/${sending}`,
         );
       } catch (error) {
@@ -336,8 +348,55 @@ export function letterJobs({ database, vault, storage, pdf, templates, mysending
         throw new GiveUp('UNCERTAIN');
       }
       // A letter of the test mode is rendered, never posted: it opens nothing.
-      await sent({ providerRef: answer.ref, ...(answer.test ? { simulated: true } : {}) }, real && !answer.test);
+      // Only a registered letter is a first letter: its sending is proved (question 83).
+      await sent({ providerRef: answer.ref, ...(answer.test ? { simulated: true } : {}) }, registered && real && !answer.test);
     },
   };
-  return { 'case-letter': job };
+  /**
+   * « Télécharger seulement » of Rédiger un courrier: the same PDF, kept in the case, sent to nobody. Neither a sending nor
+   * a contact: no cap, no first letter. One try: a second run would keep a second copy.
+   */
+  const file: JobDefinition = {
+    from: ['STAFF'],
+    repeatable: false,
+    run: async ({ payload, asAuthor, authorize }) => {
+      const caseId = id(payload.case);
+      const template = payload.template;
+      if (typeof template !== 'string' || !(template in LETTERS)) throw new GiveUp('NOT_AVAILABLE');
+      const asApplication = await authorize(mayActOn(caseId));
+      const today = dayOf(now());
+      const prepared = await prepare(asAuthor, asApplication, caseId, template as LetterTemplate, 'Courrier', today, delayOf(payload.delay));
+      if (prepared.refusal !== undefined) throw new GiveUp(prepared.refusal);
+      const { title, category } = LETTERS[template as LetterTemplate];
+      const stored = await storage.put(prepared.bytes);
+      try {
+        await asApplication(async (tx) => {
+          const found = await tx.case.findFirst({ where: { id: caseId }, select: { creditorId: true } });
+          if (!found) throw new GiveUp('UNKNOWN_CASE');
+          await tx.document.create({
+            data: {
+              caseId,
+              creditorId: found.creditorId,
+              category,
+              kind: 'PDF',
+              title,
+              originalName: `courrier-${today}.pdf`,
+              storageKey: stored.key,
+              sizeBytes: stored.size,
+              sha256: stored.sha256,
+              source: 'GENERATED',
+              scanStatus: 'CLEAN',
+              scannedAt: new Date(),
+            },
+            select: { id: true },
+          });
+          await tx.$executeRaw`SELECT app.add_case_event(${caseId}::uuid, 'DOCUMENT_ADDED', 'Courrier généré', ${`${title} · sans envoi`}, 'info'::event_tone, false) WHERE app.case_writable(${caseId}::uuid)`;
+        });
+      } catch (error) {
+        await storage.remove(stored.key);
+        throw error;
+      }
+    },
+  };
+  return { 'case-letter': job, 'case-letter-file': file };
 }

@@ -196,6 +196,80 @@ describe('a registered letter from a case (question 210)', () => {
   });
 });
 
+describe('Rédiger un courrier (question 210)', () => {
+  const compose = (as: string, body: Record<string, unknown>) =>
+    call(as, 'POST', '/documents/compose', {
+      template: 'FRIENDLY',
+      filters: null,
+      expected: 1,
+      channel: 'LETTER',
+      delay: 8,
+      months: 4,
+      options: { table: true, pay: true, indemnity: true },
+      ...body,
+    });
+  beforeAll(() => setFirm('address', '12 rue de la Paix, 75002 Paris'));
+
+  it('lists the cases the caller acts on, with what the letter quotes', async () => {
+    const found = await made({ firstLetter: true });
+    const mine = (await call('officerA', 'GET', '/documents/compose')).body as {
+      recipients: { caseId: string; address: string[]; invoices: { number: string; amount: number }[]; firstLetter: unknown; isIndividual: boolean }[];
+      batch: unknown;
+      firm: { name: string };
+    };
+    expect(mine.batch).toBeNull();
+    expect(mine.recipients.find((item) => item.caseId === found.id)).toMatchObject({
+      address: ['Bâtiment B', '14 avenue des Tilleuls', '69003 Lyon'],
+      invoices: [{ number: 'F-2026-0712', amount: 1860000 }],
+      firstLetter: { reference: expect.stringMatching(/^LR-2026-/u) as unknown },
+      isIndividual: false,
+    });
+    const theirs = (await call('officerB', 'GET', '/documents/compose')).body as { recipients: { caseId: string }[] };
+    expect(theirs.recipients.map((item) => item.caseId)).not.toContain(found.id);
+  });
+
+  it('posts a plain letter with the rules of the registered one, and the delay chosen', async () => {
+    const found = await made();
+    worker.letterPages.splice(0);
+    expect((await compose('officerA', { caseIds: [found.id], delay: 15 })).status).toBe(204);
+    await worker.run();
+    expect(await lines(found.id)).toMatchObject([{ channel: 'LETTER', template: 'FRIENDLY', status: 'SENT', simulated: true, document: true }]);
+    expect(await rows('SELECT title FROM documents WHERE case_id = $1', [found.id])).toEqual([{ title: 'Relance amiable (courrier simple)' }]);
+    const limit = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' }).format(new Date(Date.now() + 15 * 86_400_000));
+    expect(worker.letterPages.at(-1)).toContain(limit);
+    expect(await rows("SELECT detail FROM case_events WHERE case_id = $1 AND kind = 'REMINDER_SENT'", [found.id])).toEqual([{ detail: 'Courrier · relance amiable' }]);
+    // One letter at a time per case, whatever its channel.
+    expect((await compose('officerA', { caseIds: [found.id], channel: 'REGISTERED_LETTER' })).status).toBe(204);
+    expect((await compose('officerA', { caseIds: [found.id] })).body).toEqual({ code: 'REMINDER_PENDING' });
+    await worker.run();
+  });
+
+  it('keeps the PDF alone in the case, sent to nobody', async () => {
+    const found = await made();
+    expect((await compose('officerA', { caseIds: [found.id], channel: 'DOWNLOAD' })).status).toBe(204);
+    await worker.run();
+    expect(await lines(found.id)).toEqual([]);
+    expect(await rows('SELECT title, source FROM documents WHERE case_id = $1', [found.id])).toEqual([{ title: 'Relance amiable', source: 'GENERATED' }]);
+    expect(await rows("SELECT title, detail FROM case_events WHERE case_id = $1 AND kind = 'DOCUMENT_ADDED'", [found.id])).toEqual([
+      { title: 'Courrier généré', detail: 'Relance amiable · sans envoi' },
+    ]);
+    expect((await compose('officerA', { caseIds: [found.id], channel: 'DOWNLOAD', template: 'FIRM' })).body).toEqual({ code: 'NO_FIRST_LETTER' });
+  });
+
+  it('refuses what is not open yet, another selection, and whoever does not act on the case', async () => {
+    const found = await made();
+    expect((await compose('officerA', { caseIds: [found.id], channel: 'EMAIL_PDF' })).body).toEqual({ code: 'NOT_AVAILABLE' });
+    expect((await compose('officerA', { caseIds: [found.id], template: 'PAYMENT_PLAN' })).body).toEqual({ code: 'NOT_AVAILABLE' });
+    expect((await compose('manager', { caseIds: null, filters: { creditor: 'all', age: '31-60' }, expected: 3 })).body).toEqual({ code: 'NOT_AVAILABLE' });
+    expect((await compose('officerA', { caseIds: [found.id], expected: 2 })).body).toEqual({ code: 'SELECTION_CHANGED' });
+    expect((await compose('officerA', { caseIds: [found.id], delay: 10 })).status).toBe(422);
+    expect((await compose('officerB', { caseIds: [found.id] })).status).toBe(404);
+    expect((await compose('director', { caseIds: [found.id] })).status).toBe(403);
+    expect((await call('officerA', 'POST', '/documents/compose/draft', { template: 'FRIENDLY', caseId: found.id })).body).toEqual({ code: 'NOT_AVAILABLE' });
+    expect(await lines(found.id)).toEqual([]);
+  });
+});
+
 describe('with the test key of MySendingBox', () => {
   beforeAll(() => storeKey('MYSENDINGBOX_TEST_API_KEY', 'test_0123456789'));
 
@@ -367,6 +441,23 @@ describe('posted for real (MYSENDINGBOX_ENV=production)', () => {
     expect((await hook({ event: { letter: 'ltr_track_3' } })).status).toBe(204);
     await worker.run();
     expect(await facts(other.id)).toEqual([{ posted: false, delivered: false, undelivered: null }]);
+  });
+
+  it('never makes a plain letter the first letter, even posted for real', async () => {
+    const found = await made();
+    answer = () => Promise.resolve({ status: 200, json: () => Promise.resolve({ _id: 'ltr_plain_1', mode: 'live' }) });
+    asked.splice(0);
+    expect(
+      (
+        await call('officerA', 'POST', '/documents/compose', {
+          template: 'FRIENDLY', caseIds: [found.id], filters: null, expected: 1, channel: 'LETTER', delay: 8, months: 4, options: { table: true, pay: true, indemnity: true },
+        })
+      ).status,
+    ).toBe(204);
+    await worker.run();
+    expect(asked[0]!.fields.postage_type).toBe('prioritaire');
+    expect(await lines(found.id)).toMatchObject([{ channel: 'LETTER', status: 'SENT', simulated: false, provider_ref: 'ltr_plain_1' }]);
+    expect(await firstLetter(found.id)).toEqual({ reference: null, on: null });
   });
 
   it('dates the formal notice of its sending, then of its delivery (question 98)', async () => {

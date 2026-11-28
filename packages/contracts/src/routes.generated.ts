@@ -1008,6 +1008,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/staff/documents/compose": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ComposeController_data"];
+        put?: never;
+        post: operations["ComposeController_compose"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/documents/compose/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ComposeController_draft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/hooks/resend": {
         parameters: {
             query?: never;
@@ -4388,6 +4420,100 @@ export interface operations {
         };
     };
     UncertainSendingsController_settle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ComposeController_data: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        firm: {
+                            name: string;
+                            address: string;
+                            phone: string;
+                            siren: string;
+                        };
+                        recipients: {
+                            caseId: string;
+                            name: string;
+                            contact: string;
+                            address: string[];
+                            creditor: string;
+                            reference: string;
+                            isIndividual: boolean;
+                            settled: boolean;
+                            /** Format: date */
+                            lastReminder: string | null;
+                            firstLetter: {
+                                reference: string;
+                                /** Format: date */
+                                date: string;
+                            } | null;
+                            interest: number;
+                            invoices: {
+                                number: string;
+                                /** Format: date */
+                                due: string;
+                                amount: number;
+                            }[];
+                        }[];
+                        batch: {
+                            creditors: {
+                                id: string;
+                                name: string;
+                            }[];
+                            debtors: number;
+                            invoices: number;
+                            amount: number;
+                            withoutFirstLetter: number;
+                        } | null;
+                    };
+                };
+            };
+        };
+    };
+    ComposeController_compose: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ComposeController_draft: {
         parameters: {
             query?: never;
             header?: never;
