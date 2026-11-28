@@ -1,6 +1,6 @@
 import { FocusTrap, Modal, Portal } from '@mantine/core';
 import { Command } from 'cmdk';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { Avatar, type AvatarProps } from './Avatar';
 import { Badge } from './Badge';
@@ -68,11 +68,48 @@ export function Topbar(props: TopbarProps) {
   const [keys, setKeys] = useState(false);
   const [onlyUnread, setOnlyUnread] = useState(false);
   const root = useRef<HTMLDivElement>(null);
+  const accountButton = useRef<HTMLButtonElement>(null);
+  const accountPanel = useRef<HTMLElement>(null);
   const goAt = useRef(0);
   const { account, presence, display, notifications, search } = props;
   const unread = notifications.items.filter((item) => item.unread).length;
   const toggle = (next: Panel) => () => setPanel(panel === next ? null : next);
   const close = () => setPanel(null);
+  const initials = account.name
+    .split(' ')
+    .map((part) => part[0])
+    .join('');
+
+  // Opened, the menu of the account takes the focus on its first entry; closed by Échap, it gives it back to the avatar.
+  useEffect(() => {
+    if (panel !== 'account') return;
+    accountPanel.current?.querySelector<HTMLElement>('button, a')?.focus();
+  }, [panel]);
+  /** Up and down go from an entry to the next, Home and End to the first and the last; Échap closes. */
+  const moveInAccount = (event: ReactKeyboardEvent<HTMLElement>) => {
+    const entries = [...(accountPanel.current?.querySelectorAll<HTMLElement>('button, a') ?? [])];
+    const at = entries.indexOf(document.activeElement as HTMLElement);
+    const next =
+      event.key === 'ArrowDown'
+        ? (at + 1) % entries.length
+        : event.key === 'ArrowUp'
+          ? (at - 1 + entries.length) % entries.length
+          : event.key === 'Home'
+            ? 0
+            : event.key === 'End'
+              ? entries.length - 1
+              : null;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      close();
+      accountButton.current?.focus();
+      return;
+    }
+    if (next === null || entries.length === 0) return;
+    event.preventDefault();
+    entries[next]!.focus();
+  };
 
   useEffect(() => {
     if (!panel) return;
@@ -261,52 +298,54 @@ export function Topbar(props: TopbarProps) {
           </div>
           <div className={css.anchor}>
             <button
+              ref={accountButton}
               type="button"
               className={css.account}
+              aria-haspopup="true"
               aria-expanded={panel === 'account'}
               aria-label={`Compte de ${account.name}, statut ${PRESENCE[presence.value][0]}`}
               onClick={toggle('account')}
             >
-              <span
-                aria-hidden
-                className={css.initials}
-                data-presence={AVATAR_PRESENCE[presence.value]}
-                data-initials={account.name
-                  .split(' ')
-                  .map((part) => part[0])
-                  .join('')}
-              />
+              <span aria-hidden className={css.initials} data-presence={AVATAR_PRESENCE[presence.value]} data-initials={initials} />
             </button>
             {panel === 'account' && (
-              <section aria-label="Compte" className={css.panel} data-width="account">
+              <section ref={accountPanel} aria-label="Compte" className={css.panel} data-width="account" onKeyDown={moveInAccount}>
                 <div className={css.identity}>
-                  <span className={css.strong}>{account.name}</span>
-                  <span className={css.hint}>{account.email}</span>
-                  <Badge label={account.roleLabel} tone="marine" layout={{ alignSelf: 'flex-start', marginTop: 'var(--sp-1h)' }} />
+                  <span aria-hidden className={css.initials} data-size="lg" data-presence={AVATAR_PRESENCE[presence.value]} data-initials={initials} />
+                  <span className={css.grow}>
+                    <span className={css.strong}>{account.name}</span>
+                    <span className={css.hint} data-ellipsis title={account.email}>
+                      {account.email}
+                    </span>
+                    <Badge label={account.roleLabel} tone="marine" layout={{ alignSelf: 'flex-start', marginTop: 'var(--sp-1h)' }} />
+                  </span>
                 </div>
-                <div role="radiogroup" aria-label="Statut téléphonique" className={css.section}>
-                  <span className={css.panelTitle}>Statut 3CX{account.extension ? ` · poste ${account.extension}` : ''}</span>
-                  {(Object.keys(PRESENCE) as (keyof typeof PRESENCE)[]).map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      role="radio"
-                      aria-checked={presence.value === value}
-                      className={css.entry}
-                      onClick={() => {
-                        presence.onChange(value);
-                        close();
-                      }}
-                    >
-                      <span aria-hidden className={css.presence} data-value={value} />
-                      <span className={css.grow}>
-                        <span>{PRESENCE[value][0]}</span>
-                        <span className={css.hint}>{PRESENCE[value][1]}</span>
-                      </span>
-                      {presence.value === value && <Icone icon="check" size={16} stroke={2.5} color="var(--marine-text)" />}
-                    </button>
-                  ))}
-                </div>
+                {/* The status of 3CX is that of a telephone extension: without one, it says nothing. */}
+                {account.extension && (
+                  <div role="radiogroup" aria-label="Statut téléphonique" className={css.section}>
+                    <span className={css.panelTitle}>Statut 3CX · poste {account.extension}</span>
+                    {(Object.keys(PRESENCE) as (keyof typeof PRESENCE)[]).map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        role="radio"
+                        aria-checked={presence.value === value}
+                        className={css.entry}
+                        onClick={() => {
+                          presence.onChange(value);
+                          close();
+                        }}
+                      >
+                        <span aria-hidden className={css.presence} data-value={value} />
+                        <span className={css.grow}>
+                          <span>{PRESENCE[value][0]}</span>
+                          <span className={css.hint}>{PRESENCE[value][1]}</span>
+                        </span>
+                        {presence.value === value && <Icone icon="check" size={16} stroke={2.5} color="var(--marine-text)" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <nav aria-label="Mon compte" className={css.section}>
                   {props.accountLinks.map((link) => (
                     <Link key={link.label} to={link.href} className={css.entry} onClick={close}>
