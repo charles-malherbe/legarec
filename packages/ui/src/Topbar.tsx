@@ -7,7 +7,6 @@ import { Badge } from './Badge';
 import { Bouton } from './Bouton';
 import { Icone } from './Icone';
 import type { IconName } from './icons';
-import { Interrupteur } from './Interrupteur';
 import { isShortcutBlocked } from './shortcuts';
 import css from './Topbar.module.css';
 import type { Tone } from './types';
@@ -38,6 +37,7 @@ export interface TopbarProps {
   createItems: { label: string; href: string; icon: IconName; key: string; soon?: boolean }[];
   notifications: { items: TopbarNotification[]; onRead: (id: string) => void; onReadAll: () => void; href: string; preferencesHref: string };
   accountLinks: { label: string; href: string; icon: IconName; hint?: string }[];
+  /** The low-vision mode has one switch, « Aa » beside the search, at every width (DECISIONS.md, 28/11/2026). */
   display: {
     theme: 'light' | 'dark' | 'system';
     onTheme: (theme: 'light' | 'dark' | 'system') => void;
@@ -324,13 +324,6 @@ export function Topbar(props: TopbarProps) {
                         {THEMES[theme]}
                       </button>
                     ))}
-                  </div>
-                  <div className={css.lowVision}>
-                    <span className={css.grow}>
-                      <span>Mode malvoyant</span>
-                      <span className={css.hint}>Texte agrandi, contraste renforcé</span>
-                    </span>
-                    <Interrupteur size="sm" label="Activer le mode malvoyant" checked={display.lowVision} onToggle={display.onLowVision} />
                   </div>
                 </div>
                 <div className={css.section}>

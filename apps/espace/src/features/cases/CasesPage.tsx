@@ -15,11 +15,12 @@ import { Avatar, Badge, Bouton, Champ, PageHeader, Pagination, Tableau, Toolbar,
 import { useDebouncedValue } from '@mantine/hooks';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { Link } from 'react-router';
 import { api } from '../../app/api';
 import { useCreditorScope } from '../../app/creditorScope';
 import { useApi, useChange } from '../../app/data';
 import { useCurrentUser } from '../../app/session';
+import { useTabParam } from '../../app/tabs';
 import layout from '@legarec/ui/layout.module.css';
 import { listState } from '../../shared/listState';
 import { STATUS_TONE } from '../dashboard/DashboardPage';
@@ -33,6 +34,17 @@ const TABS: [CaseFilter, string][] = [
   ['dispute', 'Litige'],
   ['settled', 'Réglés'],
 ];
+/** The tabs in the address: `/debiteurs?onglet=en-retard`. */
+const SLUGS: Record<CaseFilter | 'deposits', string> = {
+  all: 'tous',
+  overdue: 'en-retard',
+  reminder: 'en-relance',
+  promise: 'promesse',
+  dispute: 'litige',
+  settled: 'regles',
+  unassigned: 'sans-gestionnaire',
+  deposits: 'depots',
+};
 const AGES = [
   ['all', 'Toute ancienneté'],
   ['0-30', '0 – 30 j'],
@@ -56,10 +68,12 @@ export function CasesPage() {
   const change = useChange();
   const [query, setQuery] = useState('');
   const [search] = useDebouncedValue(query, 250);
-  // « Dépôts à valider » (question 155): the Director and the manager, opened from the dashboard by `?onglet=depots`.
-  const [searchParams] = useSearchParams();
   const validates = user.role === 'DIRECTOR' || user.role === 'COLLECTION_MANAGER';
-  const [tab, setTab] = useState<CaseFilter | 'deposits'>(validates && searchParams.get('onglet') === 'depots' ? 'deposits' : 'all');
+  const manages = user.role === 'COLLECTION_MANAGER';
+  // The tab is in the address. « Dépôts à valider » (question 155), opened from the dashboard by `?onglet=depots`, is
+  // for the Director and the manager; « Sans gestionnaire » for the manager.
+  const [asked, setTab] = useTabParam(SLUGS, 'all');
+  const tab = (asked === 'deposits' && !validates) || (asked === 'unassigned' && !manages) ? 'all' : asked;
   const deposits = useApi(depositsData, '/deposits', { enabled: validates });
   const [age, setAge] = useState('all');
   const [officer, setOfficer] = useState('all');
@@ -67,6 +81,13 @@ export function CasesPage() {
   const [size, setSize] = useState(25);
   const [selected, setSelected] = useState<string[]>([]);
   const [target, setTarget] = useState('');
+  // A tab picked, or opened by a link, starts on its first page with nothing selected.
+  const [shown, setShown] = useState(tab);
+  if (shown !== tab) {
+    setShown(tab);
+    setPage(1);
+    setSelected([]);
+  }
   // The search may hold a name or a SIRET: it is sent in the body, never in the URL.
   const params = new URLSearchParams({ creditor: scope.id, status: tab === 'deposits' ? 'all' : tab, age, officer, page: String(page), size: String(size) });
   const { data, isPending, error, refetch } = useApiSearch(`/cases/search?${params}`, search);
@@ -78,7 +99,7 @@ export function CasesPage() {
   const ids = chosen.map((row) => row.id);
   const names = chosen.map((row) => row.name).join(', ');
   const tabs: [CaseFilter | 'deposits', string][] = [
-    ...(user.role === 'COLLECTION_MANAGER' && data?.counts.unassigned ? [...TABS, ['unassigned', 'Sans gestionnaire'] as [CaseFilter, string]] : TABS),
+    ...(manages && (data?.counts.unassigned || tab === 'unassigned') ? [...TABS, ['unassigned', 'Sans gestionnaire'] as [CaseFilter, string]] : TABS),
     ...(validates && (deposits.data?.count || tab === 'deposits') ? [['deposits', 'Dépôts à valider'] as ['deposits', string]] : []),
   ];
   const state = listState({
@@ -220,11 +241,7 @@ export function CasesPage() {
           label,
           count: id === 'deposits' ? (deposits.data?.count ?? '') : (data?.counts[id] ?? ''),
           selected: id === tab,
-          pick: () => {
-            setTab(id);
-            setPage(1);
-            setSelected([]);
-          },
+          pick: () => setTab(id),
         }))}
         scope={{
           name: scope.id === 'all' ? 'Tous les créanciers' : (rows[0]?.creditor ?? 'Créancier'),

@@ -37,6 +37,7 @@ import type { ZodType } from 'zod';
 import { useApi, useChange } from '../../app/data';
 import { ApiError } from '../../app/api';
 import { SESSION_KEY, useCurrentUser, useUpdatePreferences } from '../../app/session';
+import { useTabParam } from '../../app/tabs';
 import layout from '@legarec/ui/layout.module.css';
 import css from './Account.module.css';
 
@@ -46,6 +47,8 @@ const TABS = [
   ['notifications', 'Notifications'],
   ['preferences', 'Préférences'],
 ] as const;
+/** In the address, each section goes by its id: `/compte?onglet=securite`. */
+const SLUGS = { profil: 'profil', securite: 'securite', notifications: 'notifications', preferences: 'preferences' } as const;
 const issues = (schema: ZodType, value: unknown) => {
   const parsed = schema.safeParse(value);
   return parsed.success ? null : Object.fromEntries(parsed.error.issues.map((issue) => [String(issue.path[0]), issue.message]));
@@ -65,7 +68,7 @@ const passwordError = (error: unknown) => {
 export function AccountPage() {
   const user = useCurrentUser();
   const { data, error, refetch } = useApi(accountData, '/account');
-  const [tab, setTab] = useState<(typeof TABS)[number][0]>('notifications');
+  const [tab, setTab] = useTabParam(SLUGS, 'notifications');
   return (
     <>
       <PageHeader title="Mon compte" description={`${user.firstName} ${user.lastName} · ${ROLE_LABELS[user.role]}`} />

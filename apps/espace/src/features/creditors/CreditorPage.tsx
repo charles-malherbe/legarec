@@ -6,6 +6,7 @@ import { Link, useParams } from 'react-router';
 import { useApi } from '../../app/data';
 import { ready } from '../../app/features';
 import { useCurrentUser } from '../../app/session';
+import { useTabParam } from '../../app/tabs';
 import layout from '@legarec/ui/layout.module.css';
 import { STATUS_TONE } from '../dashboard/DashboardPage';
 import css from './Creditors.module.css';
@@ -23,12 +24,14 @@ const TABS = [
   ['activity', 'Activité'],
   ['mandate', 'Convention et contacts'],
 ] as const;
+/** The sections in the address: `/creanciers/<id>?onglet=convention`. */
+const SLUGS: Record<(typeof TABS)[number][0], string> = { portfolio: 'portefeuille', payouts: 'reversements', activity: 'activite', mandate: 'convention' };
 const dotTone = (status: CaseStatus | null) => (status ? STATUS_TONE[status] : undefined);
 
 export function CreditorPage() {
   const { id = '' } = useParams();
   const user = useCurrentUser();
-  const [tab, setTab] = useState<(typeof TABS)[number][0]>('portfolio');
+  const [tab, setTab] = useTabParam(SLUGS, 'portfolio');
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const { data, isPending, error, refetch } = useApi(creditorDetail, `/creditors/${id}`);
   if (isPending)

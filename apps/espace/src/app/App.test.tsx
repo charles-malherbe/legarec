@@ -3,7 +3,8 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
-import { MemoryRouter } from 'react-router';
+import { useEffect } from 'react';
+import { MemoryRouter, useLocation } from 'react-router';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it, describe, vi } from 'vitest';
 import { axeViolations } from '../../../../packages/ui/src/testing';
 import { handlers } from '../mocks/handlers';
@@ -38,6 +39,22 @@ const open = (path = '/') =>
   render(
     <MemoryRouter initialEntries={[path]}>
       <App />
+    </MemoryRouter>,
+  );
+/** What the address bar shows: a reload starts again from it. */
+let address = '';
+function Address() {
+  const { pathname, search } = useLocation();
+  useEffect(() => {
+    address = `${pathname}${search}`;
+  }, [pathname, search]);
+  return null;
+}
+const openWithAddress = (path: string) =>
+  render(
+    <MemoryRouter initialEntries={[path]}>
+      <App />
+      <Address />
     </MemoryRouter>,
   );
 const signIn = async (email: string, password: string) => {
@@ -464,6 +481,62 @@ describe('dashboard', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Mode malvoyant' }));
     await waitFor(() => expect(document.documentElement.dataset.a11y).toBe('malvoyant'));
   });
+  it('has one low-vision switch, beside the search, and none in the account menu', async () => {
+    setAccount('cl');
+    open();
+    await screen.findByRole('heading', { name: 'Bonjour Camille' });
+    await userEvent.click(screen.getByRole('button', { name: /^Compte de / }));
+    expect(screen.getByRole('radiogroup', { name: 'Thème' })).toBeVisible();
+    expect(screen.getAllByRole('button', { name: /malvoyant/i })).toHaveLength(1);
+    expect(screen.queryByRole('switch', { name: /malvoyant/i })).toBeNull();
+  });
+});
+
+describe('tabs in the address', () => {
+  it('opens Mon compte on the section that each link names', async () => {
+    setAccount('cl');
+    open();
+    await screen.findByRole('heading', { name: 'Bonjour Camille' });
+    await userEvent.click(screen.getByRole('button', { name: /^Compte de / }));
+    await userEvent.click(within(screen.getByRole('navigation', { name: 'Mon compte' })).getByRole('link', { name: /^Sécurité et connexion/ }));
+    expect(await screen.findByRole('tab', { name: 'Sécurité et connexion' })).toHaveAttribute('aria-selected', 'true');
+    expect(await screen.findByText('Sessions actives')).toBeVisible();
+    // Already on the page: the link still moves to its tab.
+    await userEvent.click(screen.getByRole('button', { name: /^Compte de / }));
+    await userEvent.click(within(screen.getByRole('navigation', { name: 'Mon compte' })).getByRole('link', { name: 'Mon profil' }));
+    expect(await screen.findByRole('tab', { name: 'Profil' })).toHaveAttribute('aria-selected', 'true');
+    // And the « Préférences » of the bell open the notifications.
+    await userEvent.click(screen.getByRole('button', { name: /^Notifications, / }));
+    await userEvent.click(within(screen.getByRole('region', { name: 'Notifications' })).getByRole('link', { name: 'Préférences' }));
+    expect(await screen.findByRole('tab', { name: 'Notifications' })).toHaveAttribute('aria-selected', 'true');
+  });
+  it('keeps the tab picked through a reload, and leaves the address of the first one bare', async () => {
+    setAccount('cl');
+    const first = openWithAddress('/compte');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Préférences' }));
+    expect(address).toBe('/compte?onglet=preferences');
+    first.unmount();
+    openWithAddress(address);
+    expect(await screen.findByRole('tab', { name: 'Préférences' })).toHaveAttribute('aria-selected', 'true');
+    await userEvent.click(screen.getByRole('tab', { name: 'Notifications' }));
+    expect(address).toBe('/compte');
+  });
+  it.each([
+    ['/compte?onglet=inconnu', 'Notifications'],
+    ['/debiteurs/demo?onglet=historique', /^Historique/],
+    ['/creanciers/md?onglet=convention', 'Convention et contacts'],
+    ['/debiteurs?onglet=en-retard', /^En retard/],
+  ])('opens %s on its tab', async (path, tab) => {
+    setAccount('cl');
+    open(path);
+    expect(await screen.findByRole('tab', { name: tab, selected: true })).toBeVisible();
+  });
+  it('never opens « Dépôts à valider » for a Claims officer', async () => {
+    setAccount('hb');
+    open('/debiteurs?onglet=depots');
+    expect(await screen.findByRole('tab', { name: /^Tous/, selected: true })).toBeVisible();
+    expect(screen.queryByRole('tab', { name: /^Dépôts à valider/ })).toBeNull();
+  });
 });
 
 describe('search', () => {
@@ -504,6 +577,17 @@ describe('search', () => {
     await userEvent.type(screen.getByPlaceholderText('Débiteur, SIRET, SIREN, facture…'), 'nord');
     await waitFor(() => expect(screen.queryByRole('group', { name: 'Dossiers récents' })).toBeNull());
     expect(await screen.findByRole('group', { name: 'Débiteurs' })).toBeVisible();
+  });
+  it('opens the case of an invoice found on its invoices', async () => {
+    setAccount('cl');
+    // As the API answers: the simulation finds no invoice.
+    const found = { id: 'f:1', kind: 'INVOICE', title: 'F-2026-0712', sub: 'Bâtiplus SAS · Matériaux Delta · 18 600,00 €', initials: 'BS' };
+    server.use(http.post('/api/search', () => HttpResponse.json([{ ...found, href: '/debiteurs/demo?onglet=factures' }])));
+    open();
+    await screen.findByRole('heading', { name: 'Bonjour Camille' });
+    await openFromSearch('F-2026-0712', /^F-2026-0712/);
+    expect(await screen.findByRole('heading', { level: 1, name: 'Bâtiplus SAS' })).toBeVisible();
+    expect(screen.getByRole('tab', { name: /^Factures/ })).toHaveAttribute('aria-selected', 'true');
   });
 });
 

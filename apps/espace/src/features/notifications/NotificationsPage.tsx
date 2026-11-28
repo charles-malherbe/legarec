@@ -44,7 +44,7 @@ export function NotificationsPage() {
         title="Centre de notifications"
         description={isPending ? ' ' : `${unread.length} non lue${unread.length > 1 ? 's' : ''} · ${data.length} notifications sur 7 jours`}
         actions={[
-          { label: 'Préférences de notification', href: '/compte' },
+          { label: 'Préférences de notification', href: '/compte?onglet=notifications' },
           { label: 'Tout marquer comme lu', primary: true, kbd: 'N', disabled: unread.length === 0, onPress: () => void readAll() },
         ]}
       />
