@@ -184,7 +184,12 @@ export async function markFailed(
   return { code, failed };
 }
 /** Names of the letters in the history (question 210). */
-const LETTER_NAMES: Record<string, string> = { FRIENDLY: 'relance amiable', FIRM: 'relance ferme', FORMAL_NOTICE: 'mise en demeure' };
+const LETTER_NAMES: Record<string, string> = {
+  FRIENDLY: 'relance amiable',
+  FIRM: 'relance ferme',
+  FORMAL_NOTICE: 'mise en demeure',
+  PAYMENT_PLAN: 'proposition d’échéancier',
+};
 /** What the history says of a line: its channel, then its level; level null by e-mail, the reminder of an installment (question 221). */
 export const detailOf = (line: { channel: string; template: string; level: number | null }) =>
   line.channel === 'EMAIL'

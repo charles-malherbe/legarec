@@ -61,6 +61,8 @@ export const LETTERS = {
   FORMAL_NOTICE: { code: 'demeure', level: 3, category: 'FORMAL_NOTICE', title: 'Mise en demeure' },
   // No reminder: what a settled case receives, filed with the receipts (Rédiger un courrier).
   CLEARANCE: { code: 'attestation', level: 0, category: 'RECEIPT', title: 'Attestation de solde' },
+  // The plan that waits for its debtor, accepted in its space (question 76): no reminder either.
+  PAYMENT_PLAN: { code: 'echeancier', level: 0, category: 'PAYMENT_PLAN', title: 'Proposition d’échéancier' },
 } as const;
 export type LetterTemplate = keyof typeof LETTERS;
 /** Days the debtor is given to pay from the day of the letter (« date limite »), unless Rédiger un courrier gave 15 or 30. */
@@ -121,9 +123,17 @@ async function factsOf(
         select: { kind: true, value: true },
       },
       invoices: { select: { id: true, issuedOn: true } },
+      plans: {
+        where: { status: 'WAITING_DEBTOR' },
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+        select: { totalCents: true, installments: { orderBy: { number: 'asc' }, select: { dueOn: true, amountCents: true } } },
+      },
     },
   });
   if (!found) return { refusal: 'CASE_CLOSED' };
+  const plan = template === 'PAYMENT_PLAN' ? found.plans[0] : undefined;
+  if (template === 'PAYMENT_PLAN' && (!plan || plan.installments.length === 0)) return { refusal: 'NO_PLAN_PROPOSED' };
   const { level, code } = LETTERS[template];
   const clearance = template === 'CLEARANCE';
   // A dispute or a plan stops a reminder; the certificate that everything is paid stops at nothing but a balance.
@@ -177,7 +187,8 @@ async function factsOf(
         interets: money(owed.interest),
         indemnites: money(owed.fees),
         frais: money(0),
-        total: money(total),
+        // The plan proposes its own total: what its installments add up to.
+        total: money(plan ? plan.totalCents : total),
         deja_paye: money(paid),
         anciennete: `${Math.max(0, Math.round((Date.parse(`${today}T12:00:00Z`) - Date.parse(`${oldest}T12:00:00Z`)) / 86_400_000))} jours`,
         factures: listOf(
@@ -193,6 +204,13 @@ async function factsOf(
       },
       creancier: { nom: found.creditor.legalName ?? found.creditor.name, adresse: creditorAddress, siren: found.creditor.siren ?? '' },
       date: { jour: long(today), limite: long(plusDays(today, delay)) },
+      echeancier: plan
+        ? {
+            mensualites: String(plan.installments.length),
+            montant: money(plan.installments[0]!.amountCents),
+            premiere_date: long(plan.installments[0]!.dueOn.toISOString().slice(0, 10)),
+          }
+        : { mensualites: '', montant: '', premiere_date: '' },
       paiement: { lien: portalLabel(portal) },
     },
   };
@@ -368,7 +386,7 @@ export function letterJobs({ database, vault, storage, pdf, templates, mysending
         const { count } = await asApplication(async (tx) => {
           const changed = await tx.sending.updateMany({ where: { id: sending, status: 'UNCERTAIN' }, data: { status: 'SENT', sentAt: new Date(), ...change } });
           // The first letter of the case, once: under the lock of the case, so that two letters never both take a number.
-          if (changed.count && first) {
+          if (changed.count && first && LETTERS[template].level > 0) {
             const [open] = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM cases WHERE id = ${caseId}::uuid AND first_letter_on IS NULL FOR UPDATE`;
             if (open) {
               const [numbered] = await tx.$queryRaw<{ for_year: number; number: number }[]>`SELECT * FROM app.next_number('FIRST_LETTER')`;
