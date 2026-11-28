@@ -321,6 +321,20 @@
   border-radius: 0 var(--r-xs) var(--r-xs) 0;
   background: var(--or);
 }
+/* A page not finished yet (DECISIONS.md, 28/11/2026): greyed, with its tag, still a link. */
+.link[data-soon]:not([aria-current]) {
+  color: var(--text-3);
+}
+.soon {
+  flex-shrink: 0;
+  padding: 0 var(--sp-1h);
+  border-radius: var(--r-full);
+  border: 1px dashed var(--border-strong);
+  font-size: var(--fs-2xs);
+  font-weight: 600;
+  line-height: 1.6;
+  color: var(--text-2);
+}
 .count {
   box-sizing: border-box;
   min-width: 20px;

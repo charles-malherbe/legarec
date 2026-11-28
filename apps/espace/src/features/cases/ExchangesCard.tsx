@@ -3,7 +3,7 @@ import { Badge, Bouton, Carte, Champ, Onglets, useConfirm, useToast, type Tone }
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { useChange } from '../../app/data';
-import { opens } from '../../app/features';
+import { soonAt } from '../../app/features';
 import layout from '@legarec/ui/layout.module.css';
 
 const CHANNEL: Record<Exchange['channel'], { label: string; tone: Tone }> = {
@@ -35,7 +35,6 @@ export function ExchangesCard({ data }: { data: CaseDetail }) {
   const toast = useToast();
   const [filter, setFilter] = useState<(typeof FILTERS)[number][0]>('all');
   const [reply, setReply] = useState('');
-  const channels = CHANNELS.filter(([href]) => opens(href));
   const items = data.exchanges.filter((item) => filter === 'all' || (filter === 'portal' ? item.channel.startsWith('PORTAL') : item.delivery !== null));
   const send = () =>
     confirm({
@@ -56,12 +55,11 @@ export function ExchangesCard({ data }: { data: CaseDetail }) {
     <Carte title="Échanges avec le débiteur" padding="none">
       <div style={{ padding: 'var(--sp-3) var(--sp-5)' }} className={layout.between}>
         <Onglets label="Filtrer les échanges" items={FILTERS.map(([id, label]) => ({ label, selected: id === filter, pick: () => setFilter(id) }))} />
-        {data.canAct && channels.length > 0 && (
+        {data.canAct && (
           <span className={layout.inline}>
-            {channels.map(([href, label]) => (
-              <Link key={href} to={href} className={layout.link}>
-                {label}
-              </Link>
+            {/* A channel not ready yet stays, greyed with « Bientôt » (DECISIONS.md, 28/11/2026). */}
+            {CHANNELS.map(([href, label]) => (
+              <Bouton key={href} variant="link" size="sm" label={label} href={href} soon={soonAt(href)} />
             ))}
           </span>
         )}

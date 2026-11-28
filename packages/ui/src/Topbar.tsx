@@ -34,7 +34,8 @@ export interface TopbarProps {
   account: { name: string; email: string; roleLabel: string; extension: string | null; twoFactorHint?: string };
   presence: { value: 'dispo' | 'pause' | 'absent'; onChange: (value: 'dispo' | 'pause' | 'absent') => void };
   search: { hits: SearchHit[]; query: string; onQuery: (value: string) => void; onOpen: (hit: SearchHit) => void };
-  createItems: { label: string; href: string; icon: IconName; key: string }[];
+  /** `soon`: a page not finished yet, greyed with « Bientôt », still offered (DECISIONS.md, 28/11/2026). */
+  createItems: { label: string; href: string; icon: IconName; key: string; soon?: boolean }[];
   notifications: { items: TopbarNotification[]; onRead: (id: string) => void; onReadAll: () => void; href: string; preferencesHref: string };
   accountLinks: { label: string; href: string; icon: IconName; hint?: string }[];
   display: {
@@ -172,9 +173,14 @@ export function Topbar(props: TopbarProps) {
               <nav aria-label="Créer" className={css.panel} data-width="create">
                 <span className={css.panelTitle}>Créer</span>
                 {props.createItems.map((item) => (
-                  <Link key={item.label} to={item.href} className={css.entry} onClick={close}>
+                  <Link key={item.label} to={item.href} className={css.entry} data-soon={item.soon || undefined} onClick={close}>
                     <Icone icon={item.icon} size={16} color="var(--text-3)" />
                     <span className={css.grow}>{item.label}</span>
+                    {item.soon && (
+                      <span className={css.soon}>
+                        Bientôt<span className={css.hidden}> disponible</span>
+                      </span>
+                    )}
                     <span className={css.hint}>{item.key}</span>
                   </Link>
                 ))}

@@ -17,6 +17,8 @@ export interface TuileProps extends LayoutProps {
   badgeTone?: Tone;
   href?: string;
   onPress?: () => void;
+  /** A setting not finished yet: greyed with « Bientôt », still a link to its page (DECISIONS.md, 28/11/2026). */
+  soon?: boolean;
 }
 
 export function Tuile({
@@ -29,6 +31,7 @@ export function Tuile({
   badgeTone = 'neutral',
   href,
   onPress,
+  soon,
   layout,
 }: TuileProps) {
   const content = (
@@ -39,7 +42,7 @@ export function Tuile({
       <span className={css.text}>
         <span className={css.heading}>
           <span className={css.title}>{title}</span>
-          {badge && <Badge label={badge} tone={badgeTone} />}
+          {soon ? <Badge label="Bientôt" tone="neutral" /> : badge && <Badge label={badge} tone={badgeTone} />}
         </span>
         {description && <span className={css.description}>{description}</span>}
         {status && (
@@ -54,11 +57,11 @@ export function Tuile({
     </>
   );
   return href ? (
-    <Link to={href} className={css.root} style={layout}>
+    <Link to={href} className={css.root} style={layout} data-soon={soon || undefined}>
       {content}
     </Link>
   ) : (
-    <UnstyledButton className={css.root} style={layout} onClick={onPress}>
+    <UnstyledButton className={css.root} style={layout} onClick={onPress} data-soon={soon || undefined}>
       {content}
     </UnstyledButton>
   );

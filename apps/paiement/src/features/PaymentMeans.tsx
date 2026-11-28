@@ -47,7 +47,7 @@ export function PaymentMeans({ payment }: { payment: PaymentInfo }) {
             {payment.reference && (
               <Bouton variant="secondary" size="sm" icon="copy" label="Copier la référence" onPress={() => void copy(reference, 'Référence copiée.')} />
             )}
-            <Bouton variant="secondary" size="sm" icon="download" label="Télécharger le RIB (PDF)" disabled title="Disponible avec l’API" />
+            <Bouton variant="secondary" size="sm" icon="download" label="Télécharger le RIB (PDF)" soon />
           </div>
           <p className={css.hint}>Le dossier est mis à jour dès réception du virement (1 à 2 jours ouvrés).</p>
         </>

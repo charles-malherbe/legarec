@@ -67,8 +67,8 @@ export function PayoutsPage() {
                     label: 'Relevé',
                     render: (row) => (
                       <span className={css.inline}>
-                        <Bouton variant="link" size="sm" label="PDF" ariaLabel={`PDF : relevé du ${row.date}`} disabled title="Disponible avec l’API" />
-                        <Bouton variant="link" size="sm" label="CSV" ariaLabel={`CSV : relevé du ${row.date}`} disabled title="Disponible avec l’API" />
+                        <Bouton variant="link" size="sm" label="PDF" ariaLabel={`PDF : relevé du ${row.date}`} soon />
+                        <Bouton variant="link" size="sm" label="CSV" ariaLabel={`CSV : relevé du ${row.date}`} soon />
                       </span>
                     ),
                   },

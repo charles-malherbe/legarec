@@ -13,7 +13,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { useCreditorScope } from '../../app/creditorScope';
 import { useApi, useChange } from '../../app/data';
-import { opens } from '../../app/features';
+import { soonAt } from '../../app/features';
 import layout from '@legarec/ui/layout.module.css';
 import { matches } from '../../shared/listState';
 import { PlanReminder } from './PlanReminder';
@@ -133,8 +133,8 @@ function Agenda({ today, items, weekly }: { today: string; items: Reminder[]; we
   };
   const action = (item: Reminder) =>
     item.type === 'CALL' ? (
-      // Without the calls page, the reminder of a call is postponed or opened from its case.
-      opens('/appels') && <Bouton size="sm" label="Appeler" ariaLabel={`Appeler ${item.debtor}`} href="/appels" />
+      // Without the calls page, « Appeler » says « Bientôt » and leads to its page.
+      <Bouton size="sm" label="Appeler" ariaLabel={`Appeler ${item.debtor}`} href="/appels" soon={soonAt('/appels')} />
     ) : item.type === 'COURT_DEADLINE' ? (
       <Bouton size="sm" label="Ouvrir" ariaLabel={`Ouvrir ${item.debtor}`} href="/contentieux" />
     ) : (
@@ -166,7 +166,7 @@ function Agenda({ today, items, weekly }: { today: string; items: Reminder[]; we
         ]}
         actions={[
           { label: 'Synchroniser l’agenda', disabled: true },
-          ...(opens('/appels') ? [{ label: 'Démarrer ma session d’appels', href: '/appels' }] : []),
+          { label: 'Démarrer ma session d’appels', href: '/appels', soon: soonAt('/appels') },
           { label: '+ Planifier une relance', primary: true, kbd: 'N', expanded: planning, onPress: () => setPlanning(!planning) },
         ]}
       />

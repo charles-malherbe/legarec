@@ -22,7 +22,7 @@ import { Link } from 'react-router';
 import { z } from 'zod';
 import { api } from '../../app/api';
 import { useCreditorScope } from '../../app/creditorScope';
-import { opens } from '../../app/features';
+import { soonAt } from '../../app/features';
 import { useCurrentUser } from '../../app/session';
 import css from './Dashboard.module.css';
 
@@ -113,8 +113,8 @@ export function DashboardPage() {
           { label: 'DSO moyen', value: data ? `${data.dsoDays} jours` : '', sub: data?.dsoSub ?? ' ' },
         ]}
         actions={[
-          { label: 'Exporter', disabled: true },
-          ...(opens('/appels') ? [{ label: 'Démarrer ma session d’appels', href: '/appels' }] : []),
+          { label: 'Exporter', soon: true },
+          { label: 'Démarrer ma session d’appels', href: '/appels', soon: soonAt('/appels') },
           ...(user.role === 'CLAIMS_OFFICER' ? [] : [{ label: '+ Nouveau dossier', primary: true, kbd: 'N', href: '/debiteurs/nouveau' }]),
         ]}
       />
@@ -179,7 +179,14 @@ export function DashboardPage() {
                       <span className={css.tag}>
                         <Badge label={item.tag} tone={STATUS_TONE[item.tone]} />
                       </span>
-                      <Bouton variant="secondary" size="sm" label={item.cta} ariaLabel={`${item.cta} : ${item.title}`} href={item.href} />
+                      <Bouton
+                        variant="secondary"
+                        size="sm"
+                        label={item.cta}
+                        ariaLabel={`${item.cta} : ${item.title}`}
+                        href={item.href}
+                        soon={soonAt(item.href)}
+                      />
                     </li>
                   ))}
                 </ul>

@@ -79,3 +79,8 @@ export function useToast() {
   if (!show) throw new Error('ToastProvider is missing');
   return show;
 }
+
+/** For a component that may be shown outside a provider (a « Bientôt » button in a demonstration page): null there. */
+export function useToastIfAny() {
+  return use(ToastContext);
+}

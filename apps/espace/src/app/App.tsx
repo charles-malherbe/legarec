@@ -32,7 +32,8 @@ import { LitigationPage } from '../features/litigation/LitigationPage';
 import { LoginPage } from '../features/login/LoginPage';
 import { PlansPage } from '../features/plans/PlansPage';
 import { CreditorScopeProvider } from './creditorScope';
-import { opens } from './features';
+import { ready } from './features';
+import { SoonPage } from '../features/soon/SoonPage';
 import { CurrentUser, SESSION_KEY, useSession, useSessionEnd } from './session';
 import { Shell } from './Shell';
 
@@ -84,8 +85,6 @@ export function App() {
           <Route path="/confidentialite" element={<PageLegale page="confidentialite" />} />
           <Route path="/cookies" element={<PageLegale page="cookies" />} />
           <Route path="/erreur-demo" element={<ErrorPage code={404} />} />
-          {/* A section of the settings left out of this build: its address is unknown, like the screens left out below. */}
-          {!opens('/parametres/techniques/boites') && <Route path="/parametres/techniques/boites" element={<ErrorPage code={404} />} />}
           <Route element={<RequireSession />}>
             <Route element={<Shell />}>
               <Route index element={<DashboardPage />} />
@@ -105,10 +104,10 @@ export function App() {
                 }
               />
               <Route path="echeanciers" element={<PlansPage />} />
-              {/* Left out of a build without their API (decision 194): « Page introuvable », never a screen in error. */}
-              {opens('/appels') && <Route path="appels" element={<CallsPage />} />}
-              {opens('/e-mails') && <Route path="e-mails" element={<EmailsPage />} />}
-              {opens('/sms') && <Route path="sms" element={<SmsPage />} />}
+              {/* Without their API, « Bientôt disponible », never a screen in error (DECISIONS.md, 28/11/2026). */}
+              <Route path="appels" element={ready('calls') ? <CallsPage /> : <SoonPage feature="calls" />} />
+              <Route path="e-mails" element={ready('emails') ? <EmailsPage /> : <SoonPage feature="emails" />} />
+              <Route path="sms" element={ready('sms') ? <SmsPage /> : <SoonPage feature="sms" />} />
               <Route path="notifications" element={<NotificationsPage />} />
               <Route
                 path="rapports"
@@ -122,7 +121,7 @@ export function App() {
               <Route path="facturation" element={<BillingPage />} />
               <Route path="facturation/reversements" element={<RemittancesPage />} />
               <Route path="documents" element={<DocumentsPage />} />
-              {opens('/documents/rediger') && <Route path="documents/rediger" element={<ComposePage />} />}
+              <Route path="documents/rediger" element={ready('letters') ? <ComposePage /> : <SoonPage feature="letters" />} />
               <Route path="contentieux" element={<LitigationPage />} />
               <Route path="parametres" element={<SettingsPage />} />
               <Route path="parametres/champs-de-fusion" element={<MergeFieldsPage />} />

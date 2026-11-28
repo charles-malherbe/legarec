@@ -11,7 +11,7 @@ import { canOpen, delegationFor } from './access';
 import { api } from './api';
 import { useCreditorScope } from './creditorScope';
 import { useApi } from './data';
-import { opens, shown } from './features';
+import { pending, ready } from './features';
 
 import { SESSION_KEY, useCurrentUser, useUpdatePreferences } from './session';
 import { AccessDenied } from '../features/error/ErrorPage';
@@ -52,7 +52,7 @@ const GO_TO_LISTED = [
   ['Équipe', 't'],
   ['Paramètres', 'p'],
 ] as const;
-/** The keys of a part left out of this build are not listed: they lead nowhere. */
+/** The keys of a part not ready lead to its « Bientôt disponible » page, and say so in the list. */
 const keyGroups = (): TopbarProps['keyGroups'] => [
   {
     label: 'Partout',
@@ -66,7 +66,7 @@ const keyGroups = (): TopbarProps['keyGroups'] => [
   },
   {
     label: 'Aller à',
-    items: GO_TO_LISTED.filter(([, key]) => opens(GO_TO[key] ?? '/')).map(([label, key]) => ({ label, keys: ['G', key.toUpperCase()] })),
+    items: GO_TO_LISTED.map(([label, key]) => ({ label: pending(GO_TO[key] ?? '/') ? `${label} (bientôt)` : label, keys: ['G', key.toUpperCase()] })),
   },
   {
     label: 'Dans une page',
@@ -77,8 +77,8 @@ const keyGroups = (): TopbarProps['keyGroups'] => [
       { label: 'Valider une fenêtre de confirmation', keys: ['Entrée'] },
     ],
   },
-  // Those of the calls page and of an incoming call.
-  ...(shown('calls')
+  // Those of the calls page and of an incoming call: none without the telephony.
+  ...(ready('calls')
     ? [
         {
           label: 'Téléphone',
@@ -202,8 +202,8 @@ export function Shell() {
   const goTo = useCallback(
     (letter: string) => {
       const target = GO_TO[letter];
-      // A part left out of this build has no page to go to: the key does nothing.
-      if (!target || !opens(target)) return false;
+      // A part not ready opens its « Bientôt disponible » page.
+      if (!target) return false;
       void navigate(target);
       return true;
     },
@@ -268,8 +268,11 @@ export function Shell() {
       ],
     },
   ];
-  // The entries of the parts left out of this build go, with their counter, and a group left empty with them.
-  const groups = menu.map((group) => ({ ...group, items: group.items.filter((item) => opens(item.href)) })).filter((group) => group.items.length > 0);
+  // The entries of the parts not ready stay, greyed with « Bientôt », without a counter (DECISIONS.md, 28/11/2026).
+  const groups = menu.map((group) => ({
+    ...group,
+    items: group.items.map((item) => (pending(item.href) ? { ...item, count: undefined, soon: true } : item)),
+  }));
   const items = groups.flatMap((group) => group.items.map((item) => item.href));
   const active =
     [...items, '/parametres'].filter((href) => href === pathname || (href !== '/' && pathname.startsWith(`${href}/`))).sort((a, b) => b.length - a.length)[0] ??
@@ -289,7 +292,7 @@ export function Shell() {
         ? [{ label: 'Créanciers', href: '/creanciers' }, { label: openCase.creditor, href: `/creanciers/${openCase.creditorId}` }, { label: openCase.name }]
         : trail;
   const acting = delegationFor(pathname, user);
-  const pageHits = PAGES.filter(([href, label]) => canOpen(href, user) && opens(href) && label.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 4);
+  const pageHits = PAGES.filter(([href, label]) => canOpen(href, user) && label.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 4);
 
   return (
     <div className={css.root} data-density={user.preferences.density}>
@@ -320,13 +323,13 @@ export function Shell() {
                 id: `page:${href}`,
                 group: query ? 'Pages' : 'Accès rapide',
                 title: label,
-                sub: 'Page',
+                sub: pending(href) ? 'Page · bientôt disponible' : 'Page',
                 href,
                 initials: '→',
               })),
             ],
           }}
-          createItems={CREATE.filter((item) => canOpen(item.href, user) && opens(item.href))}
+          createItems={CREATE.filter((item) => canOpen(item.href, user)).map((item) => ({ ...item, soon: !!pending(item.href) }))}
           notifications={{
             href: '/notifications',
             preferencesHref: '/compte',
@@ -364,7 +367,7 @@ export function Shell() {
         </main>
       </div>
       {/* Without the calls, no page asks for an incoming call. */}
-      {shown('calls') && <IncomingCall />}
+      {ready('calls') && <IncomingCall />}
       {idle.warning && <SessionExpiry secondsLeft={idle.secondsLeft} onStay={idle.stay} onLogout={() => void logout()} />}
     </div>
   );

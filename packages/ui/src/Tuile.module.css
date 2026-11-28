@@ -60,3 +60,12 @@
   display: flex;
   align-self: center;
 }
+/* A setting not finished yet (DECISIONS.md, 28/11/2026): greyed and dashed, still a link to its page. */
+.root[data-soon] {
+  border-style: dashed;
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+.root[data-soon] :is(.title, .icon) {
+  color: var(--text-3);
+}

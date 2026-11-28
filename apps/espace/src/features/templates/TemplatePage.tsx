@@ -5,7 +5,7 @@ import { useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { ApiError } from '../../app/api';
 import { useApi, useChange } from '../../app/data';
-import { shown } from '../../app/features';
+import { soon } from '../../app/features';
 import layout from '@legarec/ui/layout.module.css';
 import css from './Templates.module.css';
 
@@ -407,9 +407,9 @@ function Template({ item }: { item: TemplateDetail }) {
             )}
           </div>
           <div className={layout.inline}>
-            <Bouton variant="secondary" size="sm" label="Télécharger l’aperçu (PDF)" disabled title="Disponible avec l’API de génération" />
-            {(item.kind === 'SMS' || item.kind === 'EMAIL') && item.canImport && shown('template-tests') && (
-              <Bouton variant="secondary" size="sm" label="M’envoyer un test" onPress={test} />
+            <Bouton variant="secondary" size="sm" label="Télécharger l’aperçu (PDF)" soon />
+            {(item.kind === 'SMS' || item.kind === 'EMAIL') && item.canImport && (
+              <Bouton variant="secondary" size="sm" label="M’envoyer un test" onPress={test} soon={soon('template-tests')} />
             )}
           </div>
         </section>

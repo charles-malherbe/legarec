@@ -94,6 +94,8 @@ export function LibraryPage() {
         ))}
         <Bouton label="Désactivé" disabled />
         <Bouton label="Chargement" loading />
+        <Bouton variant="secondary" label="Exporter" soon />
+        <Bouton label="Envoyer" soon="l’envoi n’est pas encore relié à l’espace." />
       </Group>
       <Group title="Icone">
         {ICONS.map((icon) => (

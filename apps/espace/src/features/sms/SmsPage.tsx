@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { useCreditorScope } from '../../app/creditorScope';
 import { useApi, useChange } from '../../app/data';
-import { opens } from '../../app/features';
+import { soonAt } from '../../app/features';
 import { useCurrentUser } from '../../app/session';
 import layout from '@legarec/ui/layout.module.css';
 import { pageOf } from '../../shared/paging';
@@ -122,7 +122,7 @@ export function SmsPage() {
         }
         actions={[
           { label: 'Modèles de SMS', href: '/parametres/modeles/sms' },
-          ...(user.role === 'COLLECTION_MANAGER' && opens('/documents/rediger') ? [{ label: 'Envoi groupé', href: '/documents/rediger' }] : []),
+          ...(user.role === 'COLLECTION_MANAGER' ? [{ label: 'Envoi groupé', href: '/documents/rediger', soon: soonAt('/documents/rediger') }] : []),
           ...(canWrite ? [{ label: '+ Nouveau SMS', primary: true, kbd: 'N', onPress: startNew }] : []),
         ]}
       />
@@ -201,9 +201,9 @@ export function SmsPage() {
                     {current.contact} · {current.phone}
                   </span>
                 </span>
-                {((current.canAct !== false && opens('/appels')) || current.caseId) && (
+                {(current.canAct !== false || current.caseId) && (
                   <span className={layout.inline}>
-                    {current.canAct !== false && opens('/appels') && <Bouton variant="secondary" size="sm" label="Appeler" icon="phone" href="/appels" />}
+                    {current.canAct !== false && <Bouton variant="secondary" size="sm" label="Appeler" icon="phone" href="/appels" soon={soonAt('/appels')} />}
                     {current.caseId && <Bouton variant="secondary" size="sm" label="Ouvrir le dossier" href={`/debiteurs/${current.caseId}`} />}
                   </span>
                 )}
@@ -256,7 +256,7 @@ export function SmsPage() {
                       {draft.includes('[DATE]') && <span className={layout.danger}>Remplacez [DATE] avant l’envoi.</span>}
                     </span>
                     <span className={layout.inline}>
-                      <Bouton variant="secondary" label="Programmer" disabled />
+                      <Bouton variant="secondary" label="Programmer" soon />
                       <Bouton label="Envoyer" icon="send" disabled={!draft.trim() || draft.includes('[DATE]')} onPress={() => send(current)} />
                     </span>
                   </div>

@@ -20,7 +20,7 @@ import { Link, useLocation, useNavigate } from 'react-router';
 import { z } from 'zod';
 import { useCreditorScope } from '../../app/creditorScope';
 import { useApi, useChange } from '../../app/data';
-import { opens } from '../../app/features';
+import { soonAt } from '../../app/features';
 import layout from '@legarec/ui/layout.module.css';
 import { pageOf } from '../../shared/paging';
 import { listState, matches } from '../../shared/listState';
@@ -413,12 +413,18 @@ function Reader({ mail, sender, templates }: { mail: EmailThread; sender: z.infe
     <article aria-labelledby="mail-sujet" className={layout.card}>
       <div className={layout.between} style={{ padding: 'var(--sp-3) var(--sp-5)', borderBottom: '1px solid var(--border)' }}>
         <span className={layout.inline}>
-          <Bouton variant="secondary" size="sm" label="Transférer" disabled />
+          <Bouton variant="secondary" size="sm" label="Transférer" soon />
           {canAct && <Bouton variant="secondary" size="sm" label={mail.archived ? 'Désarchiver' : 'Archiver'} onPress={() => void archive(!mail.archived)} />}
         </span>
-        {opens('/appels') && (
-          <Bouton variant="secondary" size="sm" label="Appeler l'expéditeur" icon="phone" href="/appels" disabled={mail.category === 'BOUNCE'} />
-        )}
+        <Bouton
+          variant="secondary"
+          size="sm"
+          label="Appeler l'expéditeur"
+          icon="phone"
+          href="/appels"
+          disabled={mail.category === 'BOUNCE'}
+          soon={mail.category === 'BOUNCE' ? undefined : soonAt('/appels')}
+        />
       </div>
       <div className={layout.stack} style={{ padding: 'var(--sp-5)' }}>
         <div className={layout.text}>

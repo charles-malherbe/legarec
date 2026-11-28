@@ -3,7 +3,7 @@ import { Alerte, Bouton, Champ, EtatListe, Onglets, PageHeader, Tuile, type Icon
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { useApi } from '../../app/data';
-import { opens } from '../../app/features';
+import { pending, SOON } from '../../app/features';
 import { useCurrentUser } from '../../app/session';
 import layout from '@legarec/ui/layout.module.css';
 import { matches } from '../../shared/listState';
@@ -45,10 +45,9 @@ export function SettingsPage({ scope = 'firm' }: { scope?: 'firm' | 'techniques'
         </section>
       </>
     );
-  // The section of a part left out of this build is not offered (its address leads to « Page introuvable »).
-  const groups = (data?.groups ?? [])
-    .map((item) => ({ ...item, tiles: item.tiles.filter((tile) => opens(`${base}/${tile.id}`)) }))
-    .filter((item) => item.tiles.length > 0);
+  const groups = data?.groups ?? [];
+  // The section of a part not ready stays, greyed with « Bientôt », and says what it waits for (DECISIONS.md, 28/11/2026).
+  const waiting = section ? pending(`${base}/${section}`) : undefined;
   const group = groups.find((item) => item.tiles.some((tile) => tile.id === section));
   const current = group?.tiles.find((tile) => tile.id === section);
   const hits = groups
@@ -102,6 +101,7 @@ export function SettingsPage({ scope = 'firm' }: { scope?: 'firm' | 'techniques'
                       statusTone={tile.statusTone}
                       badge={data.canEdit || tile.id === 'users' ? undefined : 'Lecture seule'}
                       href={`${base}/${tile.id}`}
+                      soon={!!pending(`${base}/${tile.id}`)}
                     />
                   ))}
                 </div>
@@ -128,21 +128,35 @@ export function SettingsPage({ scope = 'firm' }: { scope?: 'firm' | 'techniques'
               items={group.tiles.map((tile) => ({ label: tile.title, selected: tile.id === section, pick: () => void navigate(`${base}/${tile.id}`) }))}
             />
           )}
-          {!data.canEdit && section !== 'users' && (
-            <Alerte
-              tone="neutral"
-              icon="lock"
-              title="Lecture seule"
-              text={
-                scope === 'firm'
-                  ? 'Ces paramètres sont modifiés par le Directeur ou, par délégation, par le Responsable du recouvrement.'
-                  : 'La configuration technique est modifiée par le Directeur ou, par délégation, par le Développeur.'
-              }
-              actionLabel="En savoir plus sur les rôles"
-              actionHref="/aide"
-            />
+          {waiting ? (
+            <div className={layout.card}>
+              <EtatListe
+                kind="empty"
+                title="Bientôt disponible"
+                text={`${SOON[waiting].charAt(0).toUpperCase()}${SOON[waiting].slice(1)}`}
+                actionLabel={`Tous les ${header.title.toLowerCase()}`}
+                onAction={() => void navigate(base)}
+              />
+            </div>
+          ) : (
+            <>
+              {!data.canEdit && section !== 'users' && (
+                <Alerte
+                  tone="neutral"
+                  icon="lock"
+                  title="Lecture seule"
+                  text={
+                    scope === 'firm'
+                      ? 'Ces paramètres sont modifiés par le Directeur ou, par délégation, par le Responsable du recouvrement.'
+                      : 'La configuration technique est modifiée par le Directeur ou, par délégation, par le Développeur.'
+                  }
+                  actionLabel="En savoir plus sur les rôles"
+                  actionHref="/aide"
+                />
+              )}
+              <SectionBody key={`${scope}/${section}`} scope={scope} id={section} label={current.title} />
+            </>
           )}
-          <SectionBody key={`${scope}/${section}`} scope={scope} id={section} label={current.title} />
         </>
       )}
     </>

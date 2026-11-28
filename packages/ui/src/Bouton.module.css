@@ -127,6 +127,39 @@
   border-color: var(--veil-35);
   color: var(--veil-85);
 }
+/* A part not finished yet (DECISIONS.md, 28/11/2026): greyed whatever its variant, dashed, its text kept at 4.5:1 since
+   the button can still be pressed. */
+.root[data-soon] {
+  --c-bg: var(--surface-2);
+  --c-fg: var(--text-3);
+  --c-bd: var(--border-strong);
+  border-style: dashed;
+  box-shadow: none;
+  cursor: help;
+}
+.root[data-soon][data-variant='link'] {
+  --c-bg: transparent;
+  --c-bd: transparent;
+  text-decoration: underline dashed;
+  text-underline-offset: 3px;
+}
+.root[data-soon] .count {
+  background: var(--surface-3);
+  color: var(--text-2);
+}
+.root[data-soon] .kbd {
+  border-color: var(--border);
+  color: var(--text-3);
+}
+.soon {
+  padding: 0 var(--sp-1h);
+  border-radius: var(--r-full);
+  background: var(--surface-3);
+  color: var(--text-2);
+  font-size: var(--fs-2xs);
+  font-weight: 600;
+  line-height: 1.6;
+}
 @keyframes spin {
   to {
     transform: rotate(360deg);

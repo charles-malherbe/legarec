@@ -28,7 +28,7 @@ export function DocumentsPage() {
                   <small>{item.meta}</small>
                 </span>
                 <span className={css.when}>
-                  <Bouton variant="link" size="sm" label="Télécharger" ariaLabel={`Télécharger : ${item.name}`} disabled title="Disponible avec l’API" />
+                  <Bouton variant="link" size="sm" label="Télécharger" ariaLabel={`Télécharger : ${item.name}`} soon />
                 </span>
               </li>
             ))}

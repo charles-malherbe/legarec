@@ -48,7 +48,7 @@ export function ReportsPage() {
           tone: item.tone === 'bad' ? 'danger' : 'default',
         }))}
         actions={[
-          { label: 'Exporter Excel', disabled: true },
+          { label: 'Exporter Excel', soon: true },
           { label: 'Générer le PDF', primary: true, kbd: 'N', disabled: true },
         ]}
       />
