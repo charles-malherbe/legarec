@@ -368,6 +368,30 @@ describe('posted for real (MYSENDINGBOX_ENV=production)', () => {
     await worker.run();
     expect(await facts(other.id)).toEqual([{ posted: false, delivered: false, undelivered: null }]);
   });
+
+  it('dates the formal notice of its sending, then of its delivery (question 98)', async () => {
+    const found = await made({ firstLetter: true });
+    answer = () => Promise.resolve({ status: 200, json: () => Promise.resolve({ _id: 'ltr_notice_1', mode: 'live' }) });
+    await setFirm('address', '12 rue de la Paix, 75002 Paris');
+    expect((await letter(found.id, 'FORMAL_NOTICE')).status).toBe(204);
+    await worker.run();
+    const day = async () =>
+      (await rows<{ on: string | null }>("SELECT to_char(formal_notice_on, 'YYYY-MM-DD') AS on FROM cases WHERE id = $1", [found.id]))[0]!.on;
+    expect(await day()).toBe(today());
+    // Posted three days ago, distributed now: the interest runs from the delivery.
+    // Past the guard of the lines, which never lets a date go back: for this test only.
+    await test.database.admin.query(
+      `BEGIN; SET LOCAL session_replication_role = replica;
+       UPDATE sendings SET created_at = created_at - interval '3 days', sent_at = sent_at - interval '3 days' WHERE case_id = '${found.id}';
+       UPDATE cases SET formal_notice_on = formal_notice_on - 3 WHERE id = '${found.id}'; COMMIT;`,
+    );
+    const earlier = await day();
+    knows('ltr_notice_1', [{ name: 'letter.distributed', created_at: new Date().toISOString() }]);
+    await sweepLetters(worker.asWorker, worker.letterTracking);
+    expect(earlier).not.toBe(today());
+    expect(await day()).toBe(today());
+    expect(await tracked(found.id)).toEqual([{ title: 'Courrier distribué', detail: 'Courrier recommandé · mise en demeure' }]);
+  });
 });
 
 describe('the events of a letter', () => {

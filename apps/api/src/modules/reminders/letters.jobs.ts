@@ -310,6 +310,9 @@ export function letterJobs({ database, vault, storage, pdf, templates, mysending
               });
             }
           }
+          // A formal notice posted for real: the interest of an individual runs from it, until its delivery is known (question 98).
+          if (changed.count && first && template === 'FORMAL_NOTICE')
+            await tx.case.updateMany({ where: { id: caseId, formalNoticeOn: null }, data: { formalNoticeOn: new Date(`${today}T00:00:00Z`) } });
           return changed;
         });
         if (!count) return;

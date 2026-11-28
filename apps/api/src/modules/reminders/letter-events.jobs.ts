@@ -13,6 +13,7 @@ interface Line {
   channel: string;
   template: string;
   created_at: Date;
+  sent_at: Date | null;
   confirmed_at: Date | null;
   delivered_at: Date | null;
   undelivered_at: Date | null;
@@ -55,6 +56,13 @@ async function apply(tx: Transaction, line: Line, track: LetterTrack, now: Date)
   if (track.delivered && !line.delivered_at) {
     await tx.sending.updateMany({ where: { id: line.id, deliveredAt: null }, data: { deliveredAt: within(track.delivered) } });
     await note(tx, line.case_id, 'REMINDER_DELIVERED', 'Courrier distribué', about, 'success');
+    // The interest of an individual runs from the delivery of the formal notice, failing that from its sending (question
+    // 98): the day of its sending, written when it left, becomes the day of its delivery. Never an earlier formal notice.
+    if (line.template === 'FORMAL_NOTICE' && line.sent_at)
+      await tx.$executeRaw`
+        UPDATE cases SET formal_notice_on = (${within(track.delivered)}::timestamptz AT TIME ZONE 'Europe/Paris')::date
+        WHERE id = ${line.case_id}::uuid AND formal_notice_on = (${line.sent_at}::timestamptz AT TIME ZONE 'Europe/Paris')::date
+          AND formal_notice_on < (${within(track.delivered)}::timestamptz AT TIME ZONE 'Europe/Paris')::date`;
     changed = true;
   } else if (track.undelivered && !line.undelivered_at && !line.delivered_at) {
     const { at, reason } = track.undelivered;
@@ -92,7 +100,7 @@ export async function refreshLetter(asApplication: Run, parts: LetterTracking, s
   const track = trackOf(letter.events);
   return asApplication(async (tx) => {
     const [line] = await tx.$queryRaw<Line[]>`
-      SELECT id, case_id, channel::text AS channel, template, created_at, confirmed_at, delivered_at, undelivered_at
+      SELECT id, case_id, channel::text AS channel, template, created_at, sent_at, confirmed_at, delivered_at, undelivered_at
       FROM sendings WHERE id = ${known.id}::uuid AND status = 'SENT' FOR UPDATE`;
     return line ? apply(tx, line, track, now()) : false;
   });
