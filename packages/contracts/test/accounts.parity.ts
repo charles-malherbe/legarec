@@ -453,14 +453,16 @@ export const ACCOUNT_PARITY: Parity[] = [
   { as: 'manager', request: `POST /deposits/${UNKNOWN}/accept`, body: { expectedTotal: 100 }, status: 404, answer: code('NOT_FOUND') },
   { as: 'manager', request: `POST /deposits/${UNKNOWN}/refuse`, body: { reason: 'Motif du refus' }, status: 404, answer: code('NOT_FOUND') },
   { as: 'officer', request: `POST /deposits/${UNKNOWN}/refuse`, body: { reason: 'Motif du refus' }, status: 403, answer: code('FORBIDDEN') },
-  // A reminder from a case: texts and registered letters are not open yet (lot R, question 210); refused before anything is read.
-  ...(['SMS', 'REGISTERED_LETTER'] as const).map((channel): Parity => ({
+  // A reminder from a case: texts are not open yet (lot R); refused before anything is read.
+  {
     as: 'manager',
     request: 'POST /cases/{caseOfManager}/reminders',
-    body: { channel, template: 'FRIENDLY', recipient: 'compta@exemple.test', message: 'Bonjour' },
+    body: { channel: 'SMS', template: 'FRIENDLY', recipient: 'compta@exemple.test', message: 'Bonjour' },
     status: 409,
     answer: code('NOT_AVAILABLE'),
-  })),
+  },
+  // A registered letter (question 210) depends on the address and the first letter of each case, which the two test sets
+  // do not share: letters.test.ts and the tests of the form hold it.
   {
     as: 'manager',
     request: 'POST /cases/{caseOfManager}/reminders',

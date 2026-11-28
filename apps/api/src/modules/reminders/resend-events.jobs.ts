@@ -106,7 +106,7 @@ export async function applyResendEvent(tx: Transaction, event: Stored, logger: A
         data: { status: 'SENT', sentAt: at, confirmedAt: at, ...(event.provider_ref ? { providerRef: event.provider_ref } : {}) },
       });
       // Whoever settles the line says so: the task that sent it finds it settled and writes nothing.
-      await sentNote(caseId, line.level)(tx);
+      await sentNote(caseId, { channel: 'EMAIL', template: line.level === null ? 'INSTALLMENT' : 'REMINDER', level: line.level })(tx);
     } else {
       // Resend itself says that nothing has left: the colleague is told, and may ask again.
       await markFailed((work) => work(tx), id, caseId, kind === 'SUPPRESSED' ? 'PROVIDER_SUPPRESSED' : 'PROVIDER_FAILED', 'UNCERTAIN');

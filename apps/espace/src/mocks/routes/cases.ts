@@ -257,9 +257,12 @@ export const resetCases = () => {
   extra = {};
   reminded.clear();
   emailed.clear();
+  lettered.clear();
 };
 /** E-mails sent here to each debtor, all creditors together: the cap of the week, simulated without its week. */
 const emailed = new Map<string, number>();
+/** Registered letters sent here to each debtor: the cap of the month, simulated without its month (question 210). */
+const lettered = new Map<string, number>();
 /** The highest level of e-mail reminder that has left a case here, and when. */
 const reminded = new Map<string, { level: number; at: number }>();
 /**
@@ -890,10 +893,23 @@ export const caseHandlers = [
         template: 'FRIENDLY' | 'FIRM' | 'FORMAL_NOTICE';
         capOverride?: string;
       };
-      // As the API: texts come with lot R, the registered letter with the letters (question 210).
-      if (channel !== 'EMAIL') return HttpResponse.json({ code: 'NOT_AVAILABLE' }, { status: 409 });
+      const refuse = (code: string) => HttpResponse.json({ code }, { status: 409 });
+      // As the API: texts come with lot R.
+      if (channel !== 'EMAIL' && channel !== 'REGISTERED_LETTER') return refuse('NOT_AVAILABLE');
       // Nothing leaves during a dispute or a litigation (question 218).
-      if (item.status === 'DISPUTE' || item.status === 'LITIGATION') return HttpResponse.json({ code: 'CASE_DISPUTED' }, { status: 409 });
+      if (item.status === 'DISPUTE' || item.status === 'LITIGATION') return refuse('CASE_DISPUTED');
+      if (channel === 'REGISTERED_LETTER') {
+        // As the API (question 210): to the postal address of the case, the validated text of its template, no override.
+        const detail = detailOf(item, session);
+        if (template !== 'FRIENDLY' && !detail.firstLetter) return refuse('NO_FIRST_LETTER');
+        if (!detail.mainContact.address.trim()) return refuse('NO_ADDRESS');
+        const letters = lettered.get(item.name) ?? 0;
+        if (letters >= contactCap('letters')) return refuse('CONTACT_CAP');
+        lettered.set(item.name, letters + 1);
+        const names = { FRIENDLY: 'relance amiable', FIRM: 'relance ferme', FORMAL_NOTICE: 'mise en demeure' };
+        log(item.id, session, 'Relance envoyée', `Courrier recommandé · ${names[template]}`);
+        return done();
+      }
       // The cap of the debtor, which the manager or the Director may override with a reason (question 214).
       if (capOverride !== undefined && session.role !== 'COLLECTION_MANAGER' && session.role !== 'DIRECTOR') return forbidden();
       if (capOverride !== undefined && capOverride.trim().length < 10) return HttpResponse.json({ code: 'INVALID' }, { status: 422 });

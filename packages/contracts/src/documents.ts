@@ -95,10 +95,10 @@ export const SENDING_REFUSALS: Record<SendingRefusal, string> = {
   UNKNOWN_RECIPIENT: 'le destinataire n’est pas une adresse e-mail du dossier',
   CASE_DISPUTED: 'le dossier est en litige ou au contentieux',
   PLAN_RESPECTED: 'l’échéancier du dossier est respecté',
-  SERVICE_NOT_READY: 'le service d’envoi des e-mails n’est pas encore configuré',
+  SERVICE_NOT_READY: 'le service d’envoi n’est pas encore configuré',
   // A grouped reminder never sends the formal notice, nor anything after one (question 220).
   NO_NEXT_REMINDER: 'la relance suivante est une mise en demeure, ou elle est déjà partie : la suite se décide sur la fiche du dossier',
-  REMINDER_PENDING: 'une relance par e-mail de ce dossier est encore en cours d’envoi',
+  REMINDER_PENDING: 'une relance de ce dossier est encore en cours d’envoi par le même canal',
   TOO_SOON: `la relance précédente est partie depuis moins de ${REMINDER_GAP_DAYS} jours`,
   LEVEL_CHANGED: 'la relance à envoyer n’est plus celle qui a été confirmée',
   // Reminder of an installment (question 221).

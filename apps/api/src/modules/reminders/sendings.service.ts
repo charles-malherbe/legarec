@@ -11,6 +11,7 @@ import {
 import { Inject, Injectable } from '@nestjs/common';
 import type { z } from 'zod';
 import { emailConfigOf, firmIncomplete } from '../../emails/config';
+import { postalOf, streetLinesOf } from '../../letters/postal';
 import { Audit } from '../../platform/audit/audit';
 import { Clock } from '../../platform/clock';
 import { CONFIG, type Config } from '../../platform/config/config';
@@ -53,6 +54,9 @@ const CASE = {
   firstLetterReference: true,
   firstLetterOn: true,
   formalNoticeOn: true,
+  debtorAddress: true,
+  debtorPostalCode: true,
+  debtorCity: true,
   debtor: { select: { kind: true, siren: true } },
   contacts: {
     where: { kind: 'EMAIL' as const, status: { not: 'INVALID' as const } },
@@ -71,6 +75,9 @@ interface Found {
   firstLetterReference: string | null;
   firstLetterOn: Date | null;
   formalNoticeOn: Date | null;
+  debtorAddress: string | null;
+  debtorPostalCode: string | null;
+  debtorCity: string | null;
   debtor: { kind: string; siren: string | null };
   contacts: { id: string; valueNormalized: string }[];
   _count: { plans: number };
@@ -111,9 +118,14 @@ const stillUncertain = (line: Line, now: Date) => line.status === 'UNCERTAIN' &&
  * one that has left, so that the same level never leaves twice in its name.
  */
 const failed = (line: Line) => line.status === 'FAILED' && !line.confirmedAt;
-/** A line that waits, or whose fate is unknown since less than two days: nothing more is asked for the case meanwhile. */
-const pending = (lines: readonly Line[], now: Date) =>
-  lines.some((line) => line.channel === 'EMAIL' && (line.status === 'QUEUED' || stillUncertain(line, now)));
+/**
+ * A line that waits, or whose fate is unknown since less than two days: nothing more is asked for the case meanwhile, by
+ * the same channel (an e-mail, or a letter).
+ */
+const pending = (lines: readonly Line[], now: Date, channel: 'EMAIL' | 'LETTER' = 'EMAIL') =>
+  lines.some((line) => (channel === 'EMAIL' ? line.channel === 'EMAIL' : line.channel !== 'EMAIL') && (line.status === 'QUEUED' || stillUncertain(line, now)));
+/** Templates of a letter that quote the first one: they never are the first (Paramètres › Modèles, « Relance ferme »). */
+const QUOTES_FIRST_LETTER: ReadonlySet<string> = new Set(['FIRM', 'FORMAL_NOTICE']);
 /**
  * The reminder a case receives from the list now (question 220): the level after the highest that has left by e-mail, at
  * least a week after it. An uncertain line counts as one that has left, on the day it was asked: the cautious reading.
@@ -152,7 +164,8 @@ export class SendingsService {
     const found = await tx.case.findFirst({ where: { id: caseId }, select: CASE });
     if (!found) throw notFound();
     if (!(await mayActOn(caseId)(tx))) throw forbidden();
-    // Texts are with lot R; a registered letter with the letters of « Rédiger un courrier » (question 210).
+    if (body.channel === 'REGISTERED_LETTER') return this.remindByLetter(found, body.template);
+    // Texts are with lot R.
     if (body.channel !== 'EMAIL') throw refused('NOT_AVAILABLE');
     const rules = await this.rules();
     const stopped = this.ofCase(found);
@@ -185,10 +198,53 @@ export class SendingsService {
     if (next.number !== expected.number || next.amount !== expected.amount) throw refused('INSTALLMENT_CHANGED');
     const stopped = this.ofPlanCase(found);
     if (stopped) throw refused(stopped);
-    const refusal = (await this.queue([found], rules, () => ({ contactId: found.contacts[0]!.id, template: 'INSTALLMENT' }), (item) => this.ofPlanCase(item))).get(
-      found.id,
-    );
+    const refusal = (
+      await this.queue(
+        [found],
+        rules,
+        () => ({ contactId: found.contacts[0]!.id, template: 'INSTALLMENT' }),
+        (item) => this.ofPlanCase(item),
+      )
+    ).get(found.id);
     if (refusal) throw refused(refusal);
+  }
+
+  /**
+   * A registered letter with acknowledgement of receipt, by MySendingBox (question 210), to the postal address of the case:
+   * the validated text of Paramètres › Modèles, without the access code. It may be the first contact, and may go to an
+   * individual; the firm and the second letters quote the first one. The monthly cap of letters holds, without any
+   * override; no hours. One letter at a time per case. The worker writes the PDF, keeps it in the case, then posts it.
+   */
+  private async remindByLetter(found: Found, template: Reminder['template']): Promise<void> {
+    const { tx } = this.database;
+    if (found.closedOn || found.anonymizedAt) throw refused('CASE_CLOSED');
+    const suspended = suspensionOf(found.status, found._count.plans);
+    if (suspended) throw refused(suspended);
+    if (QUOTES_FIRST_LETTER.has(template) && (!found.firstLetterReference || !found.firstLetterOn)) throw refused('NO_FIRST_LETTER');
+    if (!streetLinesOf(found.debtorAddress) || !found.debtorPostalCode || !found.debtorCity?.trim()) throw refused('NO_ADDRESS');
+    const settings = await SettingValues.read(tx);
+    const firm = (field: string) => settings.text('firm', 'cabinet', field);
+    // The letter names the firm and leaves from its address: nothing between brackets, and an address the post reads.
+    if (firmIncomplete(emailConfigOf(settings, this.config)) || !postalOf(firm('address'))) throw refused('FIRM_INCOMPLETE');
+    if (this.config.NODE_ENV === 'production') {
+      const [service] = await tx.$queryRaw<{ ready: boolean }[]>`SELECT app.service_ready('MYSENDINGBOX_API_KEY') AS ready`;
+      if (service?.ready !== true) throw refused('SERVICE_NOT_READY');
+    }
+    const now = this.clock.now();
+    const [from, to] = capPeriod('LETTER', dayOf(now));
+    // Under the lock of the debtor until the end of the request, as the e-mails.
+    const [row] = await tx.$queryRaw<{ count: number }[]>`SELECT app.sent_contacts(${found.id}::uuid, 'LETTER', ${from}::date, ${to}::date) AS count`;
+    const lines = await tx.sending.findMany({
+      where: { caseId: found.id },
+      select: { channel: true, template: true, level: true, status: true, sentAt: true, confirmedAt: true, createdAt: true },
+    });
+    if (pending(lines, now, 'LETTER')) throw refused('REMINDER_PENDING');
+    if ((row?.count ?? 0) >= capOf('LETTER', (field) => settings.text('firm', 'relances', field)).cap) throw refused('CONTACT_CAP');
+    const line = await tx.sending.create({
+      data: { caseId: found.id, creditorId: found.creditorId, channel: 'REGISTERED_LETTER', template, level: null, contactId: null },
+      select: { id: true },
+    });
+    await this.outbox.add({ queue: 'reminders', name: 'case-letter', payload: { sending: line.id, case: found.id }, dedupeKey: `sending:${line.id}` });
   }
 
   /** What the case forbids for the reminder of an installment: its plan runs, and it may go to an individual. */

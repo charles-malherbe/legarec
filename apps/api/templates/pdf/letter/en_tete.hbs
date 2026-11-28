@@ -1,0 +1,17 @@
+{{!--
+  En-tête d'un courrier (question 210) : le cabinet, le destinataire tel que la Poste le lit, le lieu et la date, le mode
+  d'envoi et l'objet. Le logo n'est pas utilisé dans les documents.
+--}}
+<div class="firm">
+  <strong>{{cabinet.nom}}</strong> · Cabinet de recouvrement amiable<br>
+  {{cabinet.adresse}} · {{cabinet.telephone}}<br>
+  SIREN {{cabinet.siren}}
+</div>
+<div class="recipient">
+  <strong>{{debiteur.raison_sociale}}</strong><br>
+  {{#if debiteur.contact}}{{debiteur.contact}}<br>{{/if}}
+  {{#each lettre.adresse}}{{this}}<br>{{/each}}
+</div>
+<p class="place">Le {{date.jour}}</p>
+<p class="mode">{{lettre.mode}}</p>
+<p class="subject">Objet : {{lettre.objet}}</p>

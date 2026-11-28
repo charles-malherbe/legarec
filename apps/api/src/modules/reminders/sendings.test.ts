@@ -192,9 +192,9 @@ describe('a reminder from a case', () => {
 
   it('is refused with its reason: channel, individual, first letter, closed case, address', async () => {
     const made = await eligible(test.s.officerA);
-    // Texts are with lot R, the registered letter with the letters (question 210).
+    // Texts are with lot R; a registered letter needs the postal address of the case (letters.test.ts).
     expect((await remind('officerA', made, { channel: 'SMS' })).body).toEqual({ code: 'NOT_AVAILABLE' });
-    expect((await remind('officerA', made, { channel: 'REGISTERED_LETTER' })).body).toEqual({ code: 'NOT_AVAILABLE' });
+    expect((await remind('officerA', made, { channel: 'REGISTERED_LETTER' })).body).toEqual({ code: 'NO_ADDRESS' });
     expect((await remind('officerA', made, { channel: 'E-mail' })).status).toBe(422);
     expect((await remind('officerA', made, { recipient: 'autre@resend.dev' })).body).toEqual({ code: 'UNKNOWN_RECIPIENT' });
     const individual = await eligible(test.s.officerA, { kind: 'INDIVIDUAL' });
