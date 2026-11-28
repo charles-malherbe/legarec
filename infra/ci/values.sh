@@ -9,8 +9,8 @@ declare -A value=(
   [ACME_EMAIL]=ci@example.com [AUTHORIZED_IPS]=192.0.2.1 [S3_REGION]=ci
   [VAULT_MASTER_KEY]="$(openssl rand -base64 32)" [SESSION_SIGNING_KEY]="$(openssl rand -base64 32)"
   [POSTGRES_PASSWORD]="$(hex)" [LEGAREC_OWNER_PASSWORD]="$(hex)" [LEGAREC_APP_PASSWORD]="$(hex)" [LEGAREC_JOBS_PASSWORD]="$(hex)"
-  [VALKEY_PASSWORD]="$(hex)" [GATUS_WORKER_TOKEN]="$(hex)" [GATUS_BACKUP_TOKEN]="$(hex)" [GATUS_RESTORE_TOKEN]="$(hex)" [GATUS_ALERT_KEY]="$(hex)" [GATUS_ALERT_TO]=ci@example.com
-  [GF_SECURITY_ADMIN_PASSWORD]="$(hex)" [GF_SECURITY_SECRET_KEY]="$(hex)" [PGBACKREST_REPO1_CIPHER_PASS]="$(hex)" [N8N_ENCRYPTION_KEY]="$(hex)"
+  [VALKEY_PASSWORD]="$(hex)"
+  [PGBACKREST_REPO1_CIPHER_PASS]="$(hex)" [N8N_ENCRYPTION_KEY]="$(hex)"
   [PGBACKREST_REPO1_S3_KEY]=ci [PGBACKREST_REPO1_S3_KEY_SECRET]=ci
 )
 value[DATABASE_URL]="postgresql://legarec_app:${value[LEGAREC_APP_PASSWORD]}@postgres:5432/legarec"
@@ -24,10 +24,8 @@ install -d -o 10101 -g 10120 -m 2770 /var/lib/legarec/documents
 install -d -o 999 -g 999 -m 700 /var/lib/legarec-ci/depot
 chmod 755 /var/lib/legarec-ci
 # Groups: the same table as docs/deploiement.md.
-declare -A group=([caddy]=10110 [api]=10101 [worker]=10102 [migration]=10104 [postgres]=999 [pgbackrest]=999 [restauration]=999 [valkey]=10115 [gatus]=10111 [grafana]=10114 [n8n]=10117)
-declare -A token=([worker]="${value[GATUS_WORKER_TOKEN]}" [pgbackrest]="${value[GATUS_BACKUP_TOKEN]}" [restauration]="${value[GATUS_RESTORE_TOKEN]}")
+declare -A group=([caddy]=10110 [api]=10101 [worker]=10102 [migration]=10104 [postgres]=999 [pgbackrest]=999 [restauration]=999 [valkey]=10115 [n8n]=10117)
 for name in "${!group[@]}"; do
-  value[GATUS_PUSH_TOKEN]="${token[$name]:-}"
   file="/etc/legarec/$name.env"
   install -o root -g "${group[$name]}" -m 640 /dev/null "$file"
   while IFS= read -r line; do
@@ -51,4 +49,3 @@ sed '0,/^{$/s//{\n\tlocal_certs\n\tskip_install_trust/' infra/caddy/Caddyfile > 
 grep -q local_certs /var/lib/legarec-ci/Caddyfile
 # The bucket of the firm is never called from here.
 grep -qx 'S3_REGION=ci' /etc/legarec/caddy.env
-grep -qx 'S3_REGION=ci' /etc/legarec/gatus.env

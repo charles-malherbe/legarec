@@ -53,8 +53,9 @@ Décisions du 24/11/2026, reprises de l'annexe « Architecture » de `PROMPT-FRO
   chiffrement activé, dépôt dans un bucket séparé (legarec-sauvegardes) avec ses propres clés et le versioning activé ;
   restauration testée chaque semaine dans un conteneur temporaire. Conservation : 56 jours restaurables, 70 jours au
   plus pour une donnée effacée, versions comprises.
-- Surveillance : Gatus surveille aussi les sauvegardes (alerte après 26 heures), les tests de restauration et le worker ;
-  alertes par e-mail (clé Resend dédiée).
+- Surveillance : Hyperping seul, hors du serveur (Gatus retiré le 28/11/2026) : portails et API vus de l'extérieur,
+  healthchecks de la sauvegarde de la nuit et de l'essai de restauration. Le worker n'a plus que le contrôle de santé de
+  son conteneur, qui ne prévient personne.
 - Serveur de production : VPS réservé à Legarec, sans développement ni Claude Code (docs/deploiement.md).
 - Proxy inverse : Caddy, seul service exposé sur Internet (ports 80 et 443), dans le docker compose de production ;
   un Caddyfile versionné dans le dépôt (infra/caddy/Caddyfile), validé par caddy validate dans GitHub Actions (.github/workflows/images.yml).
@@ -62,21 +63,20 @@ Décisions du 24/11/2026, reprises de l'annexe « Architecture » de `PROMPT-FRO
     (CSP, X-Content-Type-Options, Referrer-Policy, Permissions-Policy) ; compression ; journaux d'accès JSON
     sans données personnelles ni paramètres de requête.
   - Routage : espace, partenaires et paiement vers leurs conteneurs de fichiers statiques (repli sur index.html pour
-    les routes du front) ; api.legarec.fr vers l'API ; n8n.legarec.fr et status.legarec.fr vers leurs conteneurs,
+    les routes du front) ; api.legarec.fr vers l'API ; n8n.legarec.fr vers son conteneur,
     n8n restreint (adresses IP autorisées ou authentification devant).
-  - status.legarec.fr : deux Gatus, choisis par Caddy selon l'adresse IP ; page publique limitée aux services utiles aux utilisateurs (portails, API) ; les contrôles internes (sauvegardes, restauration,
-    files, base) et les journaux (Grafana, status.legarec.fr/journaux) visibles seulement depuis les adresses IP autorisées.
+  - status.legarec.fr : retiré le 28/11/2026 (ni page d'état ni Grafana).
   - Redirections, une par ligne dans le Caddyfile avec un commentaire, sans transmettre de paramètre ni de donnée
     personnelle :
     - http → https sur tous les sous-domaines (automatique) ;
     - www.espace, www.partenaires, www.paiement → même adresse sans www (301) ;
-    - mail.legarec.fr (page web) → legarec.fr (301) ; media.legarec.fr/ et api.legarec.fr/ (racine seule)
-      → legarec.fr et status.legarec.fr (302).
+    - mail.legarec.fr (page web) → legarec.fr (301) ; media.legarec.fr/ (racine seule) → legarec.fr (302) ;
+      api.legarec.fr/ (racine seule) répond 404.
     - legarec.fr et www.legarec.fr ne passent pas par Caddy : aucune redirection pour eux.
   - La redirection d'un compte connecté vers le bon portail reste faite par l'application, pas par Caddy.
   - Les conteneurs internes (API, PostgreSQL, Valkey, workers) ne publient aucun port sur l'hôte.
   - Caddy de développement séparé, avec certificats locaux ; Claude Code ne touche jamais au Caddy de production.
-- Journaux : JSON (pino), centralisés dans Loki et consultés dans Grafana ; données personnelles et bancaires masquées.
+- Journaux : JSON (pino), centralisés dans Loki (60 jours) et lus sur le serveur (docs/deploiement.md) ; données personnelles et bancaires masquées.
 - n8n passe par l'API avec un compte de service aux droits limités, jamais directement par PostgreSQL.
 - Mises à jour : versions exactes figées ; Renovate (application GitHub) propose les mises à jour regroupées,
   vérifiées par pnpm verifier dans GitHub Actions avant fusion.

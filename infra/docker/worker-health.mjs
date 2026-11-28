@@ -1,4 +1,3 @@
-/* global fetch, AbortSignal */
 // Health of the worker, which opens no port: a program that runs reads its queues, and Valkey knows who reads them.
 // Run inside its container, with its own values. Prints nothing of them.
 import { networkInterfaces } from 'node:os';
@@ -32,13 +31,4 @@ async function reads() {
   }
 }
 
-const healthy = await reads();
-// Told to the monitoring, which raises the alarm when it hears nothing. Its absence is not the fault of the worker.
-const { GATUS_PUSH_URL: url, GATUS_PUSH_TOKEN: token } = process.env;
-if (healthy && url && token)
-  await fetch(`${url}/api/v1/endpoints/taches_worker/external?success=true`, {
-    method: 'POST',
-    headers: { authorization: `Bearer ${token}` },
-    signal: AbortSignal.timeout(3_000),
-  }).catch(() => undefined);
-process.exit(healthy ? 0 : 1);
+process.exit((await reads()) ? 0 : 1);

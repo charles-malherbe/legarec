@@ -13,6 +13,5 @@ services:
 networks:
   sortie-worker: { internal: true }
   sortie-base: { internal: true }
-  sortie-alertes: { internal: true }
   sortie-antivirus: { internal: true }
   sortie-n8n: { internal: true }

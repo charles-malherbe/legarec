@@ -24,5 +24,3 @@ END \$\$"
 # Every row is read: a damaged one is found here, and not the day it is needed.
 pg_dump --host "$socket" --username postgres --dbname legarec --file /dev/null
 echo 'restore test passed'
-# Not told: the monitoring raises the alarm by itself.
-legarec-tell sauvegardes_essai-de-restauration || echo 'monitoring not told' >&2
