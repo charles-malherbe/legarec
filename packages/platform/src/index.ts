@@ -35,3 +35,4 @@ export function openExternal(url: string): void {
 export * from './http';
 export * from './session';
 export * from './simulation';
+export * from './publicData';

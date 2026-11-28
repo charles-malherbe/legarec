@@ -1,5 +1,7 @@
 import { formatDate, interestRates, todayInParis } from '@legarec/contracts';
+import { ecbRateOn } from '@legarec/platform';
 import { Bouton, Carte, Champ, EtatListe, Tableau, useConfirm, useToast } from '@legarec/ui';
+import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useApi, useChange } from '../../app/data';
 import layout from '@legarec/ui/layout.module.css';
@@ -40,6 +42,15 @@ export function InterestRatesCard() {
   const [semester, setSemester] = useState(choices[1] ?? '');
   const [rate, setRate] = useState('');
   const [problem, setProblem] = useState<string>();
+  // The ECB publishes its rate: proposed for a semester begun, typed only once a person chose it.
+  const begun = semester <= todayInParis();
+  const published = useQuery({
+    queryKey: ['ecb-rate', semester],
+    queryFn: ({ signal }) => ecbRateOn(semester, signal),
+    enabled: kind === 'ECB' && begun,
+    staleTime: 60 * 60 * 1000,
+  }).data;
+  const proposal = kind === 'ECB' && begun ? published : null;
   const save = () => {
     const rateBp = parseRate(rate);
     if (rateBp === null || rateBp > 5000) {
@@ -100,6 +111,19 @@ export function InterestRatesCard() {
               <Champ label="Valeur" value={rate} suffix="%" inputMode="decimal" placeholder="2,15" error={problem} onChange={setRate} />
               <Bouton label="Enregistrer le taux" onPress={save} />
             </div>
+          )}
+          {data.canEdit && proposal && (
+            <p className={layout.hint}>
+              Taux publié par la Banque centrale européenne, en vigueur au {formatDate(semester)} : {proposal.rate.toLocaleString('fr-FR')} % (depuis le{' '}
+              {formatDate(proposal.since)}).{' '}
+              <Bouton
+                variant="link"
+                size="sm"
+                label="Reprendre ce taux"
+                ariaLabel={`Reprendre le taux de ${proposal.rate.toLocaleString('fr-FR')} %`}
+                onPress={() => setRate(proposal.rate.toLocaleString('fr-FR', { minimumFractionDigits: 2 }))}
+              />
+            </p>
           )}
         </div>
       )}

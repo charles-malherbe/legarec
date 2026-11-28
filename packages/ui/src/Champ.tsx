@@ -1,13 +1,19 @@
-import { Input, NativeSelect, Textarea, TextInput } from '@mantine/core';
+import { Combobox, Input, NativeSelect, Textarea, TextInput, useCombobox } from '@mantine/core';
 import { useId, useState, type ChangeEvent, type HTMLInputAutoCompleteAttribute, type InputHTMLAttributes, type KeyboardEvent, type ReactNode } from 'react';
 import { Icone } from './Icone';
 import css from './Champ.module.css';
 import type { LayoutProps } from './types';
 
 type Option = string | { value: string; label: string };
+/** A proposal under the field: picked with the arrows and Entrée, or with a click. */
+export interface Suggestion {
+  value: string;
+  label: string;
+  hint?: string;
+}
 export interface ChampProps extends LayoutProps {
   label: string;
-  type?: 'text' | 'email' | 'tel' | 'password' | 'number' | 'search' | 'date' | 'url' | 'select' | 'textarea';
+  type?: 'text' | 'email' | 'tel' | 'password' | 'number' | 'search' | 'date' | 'time' | 'url' | 'select' | 'textarea';
   value: string;
   placeholder?: string;
   help?: string;
@@ -33,6 +39,8 @@ export interface ChampProps extends LayoutProps {
   autoFocus?: boolean;
   /** Says « Majuscules activées » while Caps Lock is on; by default for a password, even while it is shown. */
   capsLockWarning?: boolean;
+  /** Proposals while typing (an address of the Base Adresse Nationale…); typing anything else stays possible. */
+  suggestions?: { items: Suggestion[]; label: string; onPick: (value: string) => void };
   onChange?: (value: string) => void;
   onBlur?: () => void;
 }
@@ -42,6 +50,8 @@ export function Champ(props: ChampProps) {
   const id = props.fieldId ?? auto;
   const { label, type = 'text', value, help, error, prefix, suffix, size = 'md' } = props;
   const [capsLock, setCapsLock] = useState(false);
+  const combobox = useCombobox({ onDropdownClose: () => combobox.resetSelectedOption() });
+  const proposals = props.suggestions?.items ?? [];
   const watchCaps = props.capsLockWarning ?? type === 'password';
   const describedBy =
     [error ? `${id}-err` : help ? `${id}-help` : undefined, watchCaps && capsLock ? `${id}-caps` : undefined].filter(Boolean).join(' ') || undefined;
@@ -107,6 +117,52 @@ export function Champ(props: ChampProps) {
             spellCheck={props.spellCheck}
             data-area
           />
+        ) : props.suggestions ? (
+          <Combobox
+            store={combobox}
+            unstyled
+            withinPortal={false}
+            transitionProps={{ duration: 0 }}
+            hideDetached={false}
+            onOptionSubmit={(picked) => {
+              props.suggestions?.onPick(picked);
+              combobox.closeDropdown();
+            }}
+          >
+            <Combobox.Target>
+              <TextInput
+                {...shared}
+                type={type}
+                placeholder={props.placeholder}
+                readOnly={props.readOnly}
+                maxLength={props.maxLength}
+                // The browser would cover the proposals with its own.
+                autoComplete="off"
+                inputMode={props.inputMode}
+                spellCheck={props.spellCheck}
+                onChange={(event) => {
+                  props.onChange?.(event.currentTarget.value);
+                  combobox.openDropdown();
+                  combobox.updateSelectedOptionIndex();
+                }}
+                onFocus={() => combobox.openDropdown()}
+                onBlur={() => {
+                  combobox.closeDropdown();
+                  props.onBlur?.();
+                }}
+              />
+            </Combobox.Target>
+            <Combobox.Dropdown hidden={proposals.length === 0} className={css.dropdown}>
+              <Combobox.Options aria-label={props.suggestions.label}>
+                {proposals.map((item) => (
+                  <Combobox.Option key={item.value} value={item.value} className={css.option}>
+                    <span>{item.label}</span>
+                    {item.hint && <span className={css.optionHint}> {item.hint}</span>}
+                  </Combobox.Option>
+                ))}
+              </Combobox.Options>
+            </Combobox.Dropdown>
+          </Combobox>
         ) : (
           <TextInput
             {...shared}

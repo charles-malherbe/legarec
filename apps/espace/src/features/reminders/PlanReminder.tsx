@@ -69,7 +69,7 @@ export function PlanReminder({ date: picked, today, onDone }: { date: string; to
             onChange={(value) => setForm({ ...form, type: TYPES.find((item) => item === value) ?? 'CALL' })}
           />
           <Champ label="Date" type="date" value={form.date} error={errors.date} onChange={(date) => setForm({ ...form, date })} />
-          <Champ label="Heure" optional placeholder="10:00" value={form.time} error={errors.time} onChange={(time) => setForm({ ...form, time })} />
+          <Champ label="Heure" type="time" optional value={form.time} error={errors.time} onChange={(time) => setForm({ ...form, time })} />
         </div>
         <Champ label="Objet" value={form.title} error={errors.title} onChange={(title) => setForm({ ...form, title })} />
         <div className={layout.end}>

@@ -1,5 +1,6 @@
 import { creditorChoices, creditorCreated, creditorFile, formatCents, formatDate, isValidIban, newCreditor, type CreditorFile } from '@legarec/contracts';
-import { Alerte, Badge, Bouton, Carte, Case, Champ, EtatListe, PageHeader, useConfirm, useToast } from '@legarec/ui';
+import { Alerte, Badge, Bouton, Carte, Case, Champ, ChampAdresse, EtatListe, FicheSirene, PageHeader, useConfirm, useToast } from '@legarec/ui';
+import { vatNumberOf } from '@legarec/platform';
 import layout from '@legarec/ui/layout.module.css';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
@@ -30,11 +31,6 @@ type Errors = Record<string, string>;
 const contactsOf = (file: CreditorFile): Contact[] => (file.contacts.length ? file.contacts : [{ ...EMPTY_CONTACT, isMain: true }]);
 const errorsOf = (issues: readonly { path: readonly PropertyKey[]; message: string }[]): Errors =>
   Object.fromEntries(issues.map((issue) => [issue.path.map(String).join('.'), issue.message]));
-/** VAT number that follows from the SIREN. */
-const vatOf = (siren: string) => {
-  const digits = siren.replace(/\s/gu, '');
-  return /^\d{9}$/u.test(digits) ? `FR${String((12 + 3 * (Number(digits) % 97)) % 97).padStart(2, '0')}${digits}` : '';
-};
 
 export function CreditorFormPage() {
   const { id } = useParams();
@@ -88,6 +84,22 @@ function IdentityFields({
         error={errors.siren}
         onChange={siren.onChange}
       />
+      {siren.onChange && (
+        <FicheSirene
+          number={siren.value}
+          onUse={(record) =>
+            onChange({
+              ...value,
+              legalName: record.name,
+              name: value.name || record.name,
+              vatNumber: record.vatNumber,
+              address: record.line,
+              postalCode: record.postalCode,
+              city: record.city,
+            })
+          }
+        />
+      )}
       {field('legalName', 'Raison sociale', { required: true })}
       {field('name', 'Nom affiché', { required: true })}
       {field('sector', 'Secteur', { optional: true })}
@@ -102,9 +114,12 @@ function IdentityFields({
         options={[{ value: '', label: 'À choisir' }, ...managers.map((manager) => ({ value: manager.id, label: manager.name }))]}
         onChange={(next) => onChange({ ...value, managerId: next || null })}
       />
-      {field('address', 'Adresse', { required: true })}
-      {field('postalCode', 'Code postal', { required: true, inputMode: 'numeric' })}
-      {field('city', 'Ville', { required: true })}
+      <ChampAdresse
+        required
+        value={{ address: value.address, postalCode: value.postalCode, city: value.city }}
+        errors={{ address: errors['identity.address'], postalCode: errors['identity.postalCode'], city: errors['identity.city'] }}
+        onChange={(next) => onChange({ ...value, ...next })}
+      />
     </div>
   );
 }
@@ -274,7 +289,7 @@ function Create({ managers, bankAccess, rate }: { managers: { id: string; name: 
             value: siren,
             onChange: (value) => {
               // Follows the SIREN until it is typed by hand.
-              if (!identity.vatNumber || identity.vatNumber === vatOf(siren)) setIdentity({ ...identity, vatNumber: vatOf(value) });
+              if (!identity.vatNumber || identity.vatNumber === vatNumberOf(siren)) setIdentity({ ...identity, vatNumber: vatNumberOf(value) });
               setSiren(value);
             },
           }}

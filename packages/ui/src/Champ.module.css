@@ -111,3 +111,35 @@ textarea.input {
   font-weight: 500;
   color: var(--danger-fg);
 }
+
+/* Proposals under the field: over what follows, never wider than it. */
+.dropdown {
+  position: absolute;
+  z-index: 30;
+  box-sizing: border-box;
+  max-height: calc(var(--control-md) * 7);
+  overflow-y: auto;
+  padding: var(--sp-1);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+.option {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-0h);
+  padding: var(--sp-2) var(--sp-2h);
+  border-radius: var(--r-xs);
+  font-size: var(--fs-base);
+  color: var(--text);
+  cursor: pointer;
+}
+.option:hover,
+.option[data-combobox-selected] {
+  background: var(--bleu-pale);
+}
+.optionHint {
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+}
