@@ -64,19 +64,40 @@ export const debtorCase = debtorCaseSummary.extend({
   indemnity: cents,
   paid: cents,
   invoices: z.array(z.object({ id: z.string(), number: z.string(), dueOn: z.string(), amount: cents })),
-  payments: z.array(z.object({ id: z.string(), amount: cents, date: z.string(), method: z.enum(['TRANSFER', 'CHEQUE']), receiptId: z.string().nullable() })),
+  payments: z.array(
+    z.object({
+      id: z.string(),
+      amount: cents,
+      date: z.string(),
+      method: z.enum(['TRANSFER', 'CHEQUE']),
+      receiptId: z.string().nullable(),
+      /** The PDF of the receipt is written: it can be downloaded. */
+      receiptFile: z.boolean(),
+    }),
+  ),
   next: z.object({ date: z.string(), amount: cents }).nullable(),
   lastMessage: z.object({ who: z.string(), when: z.string(), text: z.string() }).nullable(),
   unread: z.number().int(),
   plan: z
     .object({
-      acceptedOn: z.string(),
+      /** Null while it is proposed to the debtor, who accepts it in its space (question 76). */
+      acceptedOn: z.string().nullable(),
+      total: cents,
+      method: z.enum(['TRANSFER', 'CHEQUE']),
+      /** Fingerprint of its PDF, once written: the very file the debtor accepts. */
+      fingerprint: z.string().nullable(),
       installments: z.array(z.object({ number: z.number().int(), dueOn: z.string(), amount: cents, status: installmentStatus })),
     })
     .nullable(),
   payment: paymentInfo,
 });
 export type DebtorCase = z.infer<typeof debtorCase>;
+/** « Accepter cet échéancier »: what the debtor was shown. Anything changed since, and nothing is accepted. */
+export const planAcceptance = z.object({
+  fingerprint: z.string().regex(/^[0-9a-f]{64}$/u),
+  total: z.number().int().min(1).max(2_000_000_000),
+  months: z.number().int().min(1).max(60),
+});
 export const debtorMessages = z.object({
   items: z.array(
     z.object({

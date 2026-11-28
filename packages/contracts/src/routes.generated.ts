@@ -2320,6 +2320,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/debtor/cases/{id}/plan/acceptance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["DebtorController_accept"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/debtor/cases/{id}/plan/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DebtorController_planFile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/debtor/cases/{id}/receipts/{receipt}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DebtorController_receiptFile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/debtor/attachments": {
         parameters: {
             query?: never;
@@ -7062,6 +7110,7 @@ export interface operations {
                             /** @enum {string} */
                             method: "TRANSFER" | "CHEQUE";
                             receiptId: string | null;
+                            receiptFile: boolean;
                         }[];
                         next: {
                             date: string;
@@ -7074,7 +7123,11 @@ export interface operations {
                         } | null;
                         unread: number;
                         plan: {
-                            acceptedOn: string;
+                            acceptedOn: string | null;
+                            total: number;
+                            /** @enum {string} */
+                            method: "TRANSFER" | "CHEQUE";
+                            fingerprint: string | null;
                             installments: {
                                 number: number;
                                 dueOn: string;
@@ -7262,6 +7315,59 @@ export interface operations {
         requestBody?: never;
         responses: {
             204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DebtorController_accept: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DebtorController_planFile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Le PDF de l’échéancier, sous un nom neutre. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DebtorController_receiptFile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Le PDF de la quittance, sous un nom neutre. */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
