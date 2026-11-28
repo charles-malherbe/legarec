@@ -3719,11 +3719,27 @@
                           "debtor": {
                             "type": "string"
                           },
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "EMAIL",
+                              "REGISTERED_LETTER"
+                            ]
+                          },
                           "level": {
                             "nullable": true,
                             "type": "integer",
                             "minimum": 1,
                             "maximum": 3
+                          },
+                          "letter": {
+                            "nullable": true,
+                            "type": "string",
+                            "enum": [
+                              "FRIENDLY",
+                              "FIRM",
+                              "FORMAL_NOTICE"
+                            ]
                           },
                           "askedAt": {
                             "type": "string",
@@ -3736,7 +3752,9 @@
                           "caseId",
                           "reference",
                           "debtor",
+                          "channel",
                           "level",
+                          "letter",
                           "askedAt"
                         ],
                         "additionalProperties": false
@@ -3788,6 +3806,23 @@
     "/hooks/resend": {
       "post": {
         "operationId": "HooksController_resendEvent",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "hooks"
+        ],
+        "x-access": {
+          "portal": "hook"
+        }
+      }
+    },
+    "/hooks/mysendingbox": {
+      "post": {
+        "operationId": "HooksController_letterEvent",
         "parameters": [],
         "responses": {
           "204": {

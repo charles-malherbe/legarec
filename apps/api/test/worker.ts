@@ -16,6 +16,7 @@ import { documentJobs } from '../src/modules/documents/documents.jobs';
 import { planJobs } from '../src/modules/payments/plans.jobs';
 import { receiptJobs } from '../src/modules/payments/receipts.jobs';
 import { resendEventJobs } from '../src/modules/reminders/resend-events.jobs';
+import { letterEventJobs, type LetterTracking } from '../src/modules/reminders/letter-events.jobs';
 import { letterJobs } from '../src/modules/reminders/letters.jobs';
 import { sendingJobs } from '../src/modules/reminders/sendings.jobs';
 import { MySendingBoxClient, type FormClient } from '../src/letters/mysendingbox';
@@ -69,7 +70,9 @@ export function startMailWorker(
   const simulated: AutomaticMessage[] = [];
   /** The pages of the letters, before they became PDF. */
   const letterPages: string[] = [];
+  const mysendingbox = new MySendingBoxClient(letters ?? (() => Promise.reject(new Error('a test never reaches a provider'))));
   const vault = new Vault(test.config);
+  const letterTracking: LetterTracking = { vault, mysendingbox, real: realLetters, logger, ...(now ? { now } : {}) };
   const pdf = new PdfRenderer();
   const settings = () => database.run({ kind: 'worker', job: 'email-settings' }, async (tx) => emailConfigOf(await SettingValues.read(tx), test.config));
   const emails = new EmailsService(
@@ -127,7 +130,7 @@ export function startMailWorker(
         storage: storageFor(test.config),
         pdf: { render: (html) => (letterPages.push(html), pdf.render(html)) },
         templates: fileURLToPath(new URL('../templates/pdf/', import.meta.url)),
-        mysendingbox: new MySendingBoxClient(letters ?? (() => Promise.reject(new Error('a test never reaches a provider')))),
+        mysendingbox,
         asWorker: (work) => database.run({ kind: 'worker', job: 'case-letter' }, work),
         production,
         real: realLetters,
@@ -136,7 +139,7 @@ export function startMailWorker(
       }),
     },
     // With what Resend says of the reminders afterwards: nothing leaves from there, and it may wait behind the purge.
-    maintenance: { ...accessCodeJobs(vault), ...resendEventJobs({ logger }) },
+    maintenance: { ...accessCodeJobs(vault), ...resendEventJobs({ logger }), ...letterEventJobs(letterTracking) },
     documents: documentJobs(storageFor(test.config), new SimulatedScanner()),
     pdf: {
       ...receiptJobs(storageFor(test.config), pdf, fileURLToPath(new URL('../templates/pdf/', import.meta.url))),
@@ -151,6 +154,8 @@ export function startMailWorker(
     valkey,
     simulated,
     letterPages,
+    /** For what the clock runs on the letters (`sweepLetters`). */
+    letterTracking,
     /** With the rights of the worker, for what the clock runs (`sweepSendings`) and what a test asks as the worker. */
     asWorker: <T>(work: (tx: Transaction) => Promise<T>): Promise<T> => database.run({ kind: 'worker', job: 'test' }, work),
     /** Runs everything queued so far, and gives what was sent. */

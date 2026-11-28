@@ -498,7 +498,7 @@ describe('rights of the roles inside', () => {
       'planned_reminders SELECT (case_id, done_at, due_on, id, kind)',
       // Counted for the caps of a debtor, whatever the creditor (app.sent_contacts); who asked, to be told of a failure;
       // an uncertain e-mail decided by a person (app.settle_sending).
-      'sendings SELECT (case_id, channel, complained_at, confirmed_at, contact_id, created_at, created_by, creditor_id, delivered_at, id, level, sent_at, simulated, status, undelivered_at, undelivered_reason)',
+      'sendings SELECT (case_id, channel, complained_at, confirmed_at, contact_id, created_at, created_by, creditor_id, delivered_at, id, level, provider_ref, sent_at, simulated, status, template, undelivered_at, undelivered_reason)',
       'sendings UPDATE (failure, sent_at, status)',
       // Remittances and invoices of the firm: their functions only.
       'billing_documents INSERT (*)',
@@ -781,6 +781,7 @@ describe('rights on the functions', () => {
     ['service_key', ['worker']],
     ['tell_sending_failed', ['worker']],
     ['hook_secret', ['hook']],
+    ['letter_named', ['hook']],
     ['invalidate_unreachable_contact', ['worker']],
     ['settle_sending', ['staff']],
     ['note_ai_decision', []],
@@ -825,7 +826,7 @@ describe('rights on the functions', () => {
       'debtor_link ask_code_by_sms firm_payment_settings limited_message',
       'gdpr_request gdpr_keeper gdpr_registry gdpr_answer gdpr_export gdpr_erasure gdpr_erase',
       'anonymize_case forget_case forget_debtor erasure_blockers erasure_digest case_writable',
-      'note_ai_decision ai_key ai_spent ai_budget_alert ai_journal ai_journal_totals planned_contacts sent_contacts service_ready service_key tell_sending_failed hook_secret invalidate_unreachable_contact settle_sending keep_sending check_cap_override keep_done_reminder litigation_rules case_exists correct_debtor accept_deposit refuse_deposit remittance_core creditor_payouts remittance_sources remittance_summary note_settlement remittance_draft validate_remittances mark_remittances_paid remittance_batches remittance_batch',
+      'note_ai_decision ai_key ai_spent ai_budget_alert ai_journal ai_journal_totals planned_contacts sent_contacts service_ready service_key tell_sending_failed hook_secret letter_named invalidate_unreachable_contact settle_sending keep_sending check_cap_override keep_done_reminder litigation_rules case_exists correct_debtor accept_deposit refuse_deposit remittance_core creditor_payouts remittance_sources remittance_summary note_settlement remittance_draft validate_remittances mark_remittances_paid remittance_batches remittance_batch',
       'billing_overview credit_notes save_credit_note_draft delete_credit_note_draft issue_credit_note invoice_lines_left invoice_left invoice_settled_on check_credit_lines',
       'purge_remittances purge_invoices purge_payments purge_accounting_documents forget_remittances forget_lone_invoices forget_bounced_payments forget_accounting_documents',
       'purge_waiting_files forget_waiting_files purge_old_history forget_case_story forget_old_history',

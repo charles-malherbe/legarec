@@ -42,6 +42,7 @@ import { CreditNotesController } from './remittances/credit-notes.controller';
 import { RemittancesController } from './remittances/remittances.controller';
 import { HooksController } from './reminders/hooks.controller';
 import { RemindersController } from './reminders/reminders.controller';
+import { LetterEventsService } from './reminders/letter-events.service';
 import { ResendEventsService } from './reminders/resend-events.service';
 import { RemindersService } from './reminders/reminders.service';
 import { SendingsService } from './reminders/sendings.service';
@@ -128,6 +129,7 @@ export const providers: Provider[] = [
   SendingsService,
   UncertainSendingsService,
   ResendEventsService,
+  LetterEventsService,
   Clock,
   LitigationService,
   DepositsService,
