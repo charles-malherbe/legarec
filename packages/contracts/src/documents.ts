@@ -234,6 +234,15 @@ export const composeData = z.object({
     .nullable(),
 });
 export type ComposeData = z.infer<typeof composeData>;
+/** The selection of a grouped sending (Rédiger un courrier): a creditor or all, and how late the oldest invoice is. */
+export const COMPOSE_AGES = ['0-30', '31-60', '60+'] as const;
+export const composeQuery = z.object({
+  creditor: z
+    .union([z.literal('all'), z.uuid()])
+    .catch('all')
+    .default('all'),
+  age: z.enum(COMPOSE_AGES).catch('31-60').default('31-60'),
+});
 
 /** The 40 € fixed indemnity only concerns professional debtors, never an individual. */
 export const fixedIndemnity = (recipient: Pick<LetterRecipient, 'isIndividual' | 'invoices'>) =>

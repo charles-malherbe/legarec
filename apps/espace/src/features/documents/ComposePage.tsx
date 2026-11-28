@@ -13,6 +13,9 @@ import {
   letterTemplate,
   letterTotals,
   ROLE_LABELS,
+  sendingOutcome,
+  skippedText,
+  type SendingOutcome,
   type LetterRecipient,
   type LetterTemplate,
 } from '@legarec/contracts';
@@ -29,10 +32,16 @@ type Data = z.infer<typeof composeData>;
 /** The labels of the list « Envoi », in the order of the mock-up; the API reads their codes. */
 const CHANNELS = Object.values(COMPOSE_CHANNELS);
 
+/** What a grouped sending left out, after what it did: « 2 non envoyés : … ». */
+const withSkipped = (outcome: SendingOutcome, done: string) => {
+  const left = skippedText(outcome);
+  return left ? `${done} ${left}.` : done;
+};
+
 export function ComposePage() {
   const [creditor, setCreditor] = useState('all');
   const [age, setAge] = useState('31-60');
-  const { data, isPending, error, refetch } = useApi(composeData, `/documents/compose?creditor=${creditor}&age=${age}`);
+  const { data, isPending, error, refetch } = useApi(composeData, `/documents/compose?creditor=${encodeURIComponent(creditor)}&age=${encodeURIComponent(age)}`);
   // The form stays in place while the API recounts the selection.
   const [last, setLast] = useState(data);
   if (data && data !== last) setLast(data);
@@ -179,13 +188,16 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
         ...(batch ? [] : [{ k: 'Montant', v: formatCents(letterAmount(template, recipient, indemnity && allowsIndemnity)) }]),
       ],
       onConfirm: async () => {
-        await change('/documents/compose', { body: compose(channel) });
+        const outcome = await change('/documents/compose', { body: compose(channel), schema: sendingOutcome });
         setDone(
-          downloadOnly
-            ? `${batch ? `${count} documents générés` : 'Document généré'}, sans envoi.`
-            : batch
-              ? `${count} documents générés et mis en file d’envoi.`
-              : `Document généré et envoyé à ${recipient.name}.`,
+          withSkipped(
+            outcome,
+            downloadOnly
+              ? `${batch ? `${outcome.queued} documents générés` : 'Document généré'}, sans envoi.`
+              : batch
+                ? `${outcome.queued} documents générés et mis en file d’envoi.`
+                : `Document généré et envoyé à ${recipient.name}.`,
+          ),
         );
       },
     });
@@ -201,8 +213,8 @@ function Editor({ data, filters }: { data: Data; filters: Filters }) {
         ...(excluded > 0 ? [{ k: 'Exclus', v: `${excluded} débiteurs sans premier courrier` }] : []),
       ],
       onConfirm: async () => {
-        await change('/documents/compose', { body: compose(COMPOSE_CHANNELS.DOWNLOAD) });
-        setDone(batch ? `${count} documents générés, sans envoi.` : 'Document généré, sans envoi.');
+        const outcome = await change('/documents/compose', { body: compose(COMPOSE_CHANNELS.DOWNLOAD), schema: sendingOutcome });
+        setDone(withSkipped(outcome, batch ? `${outcome.queued} documents générés, sans envoi.` : 'Document généré, sans envoi.'));
       },
     });
   const draft = async () => {
@@ -537,8 +549,8 @@ function Letter({ firm, recipient, template, delay, months, table, pay, indemnit
     FIRM: (
       <>
         <p>
-          Malgré notre précédent rappel du <mark>{recipient.lastReminder ? formatDate(recipient.lastReminder) : '—'}</mark>, les factures ci-dessous restent impayées pour un montant de{' '}
-          {money(totals.principal)}.
+          Malgré notre précédent rappel du <mark>{recipient.lastReminder ? formatDate(recipient.lastReminder) : '—'}</mark>, les factures ci-dessous restent
+          impayées pour un montant de {money(totals.principal)}.
         </p>
         <p>
           Nous vous demandons de régler cette somme sous <mark>{delay} jours</mark>. À défaut, notre client <mark>{recipient.creditor}</mark> pourra nous

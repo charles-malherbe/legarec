@@ -147,7 +147,7 @@ describe('documents and letters', () => {
     const options = { table: true, pay: true, indemnity: false };
     const batch = { caseIds: null, filters: { creditor: 'md', age: '31-60' }, template: 'FRIENDLY', channel: 'EMAIL_PDF', delay: 8, months: 4, options };
     expect(await status('cl', '/documents/compose', { ...batch, expected: 38 })).toBe(409);
-    expect(await status('cl', '/documents/compose', { ...batch, expected: 13 })).toBe(204);
+    expect(await status('cl', '/documents/compose', { ...batch, expected: 13 })).toBe(200);
     expect(await status('cl', '/documents/compose', { ...batch, filters: null, expected: 38 })).toBe(409);
     expect(await status('ad', '/documents/compose/draft', { template: 'FRIENDLY', caseId: 'demo' })).toBe(403);
   });

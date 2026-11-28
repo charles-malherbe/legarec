@@ -1,12 +1,14 @@
-import type { ComposeData } from '@legarec/contracts';
+import { composeQuery, REMINDER_BATCH_MAX, type ComposeData, type SendingOutcome, type SendingRefusal } from '@legarec/contracts';
 import type { REQUEST_BODIES } from '@legarec/contracts';
 import { Inject, Injectable } from '@nestjs/common';
 import type { z } from 'zod';
 import { streetLinesOf } from '../../letters/postal';
 import { Clock } from '../../platform/clock';
 import { Database } from '../../platform/database/database';
-import { conflict, forbidden, invalid, notFound } from '../../platform/errors/api-error';
+import { ApiError, conflict, forbidden, invalid, notFound } from '../../platform/errors/api-error';
 import { dayOf } from '../../platform/format';
+import { Audit } from '../../platform/audit/audit';
+import { currentActor } from '../../platform/http/context';
 import { mayActOn } from '../../platform/queue/jobs';
 import { Outbox } from '../../platform/queue/outbox';
 import { Ledgers, owedOf } from '../payments/ledger';
@@ -16,6 +18,27 @@ import { LETTER_DELAYS } from './letters.jobs';
 import { SendingsService } from './sendings.service';
 
 type Compose = z.infer<(typeof REQUEST_BODIES)['staff']['POST /documents/compose']>;
+type Query = z.infer<typeof composeQuery>;
+/** Days late of the oldest invoice still due, for each choice of the screen. */
+const BATCH_AGES: Record<Query['age'], [number, number]> = { '0-30': [1, 30], '31-60': [31, 60], '60+': [61, Number.MAX_SAFE_INTEGER] };
+/** Who sends a grouped letter: the manager, as the screen offers it. */
+const BATCH_SENDERS: ReadonlySet<string> = new Set(['COLLECTION_MANAGER']);
+const staffRole = () => {
+  const actor = currentActor();
+  return actor.kind === 'staff' ? actor.role : null;
+};
+/** The filters a batch was confirmed with, as the screen sends them; null if they are not those it offers. */
+const composeFilters = (filters: Compose['filters']): Query | null => {
+  const read = composeQuery.strict().safeParse(filters);
+  return read.success && filters && read.data.creditor === filters.creditor && read.data.age === filters.age ? read.data : null;
+};
+/** One case of a grouped selection. */
+interface Selected {
+  id: string;
+  firstLetter: boolean;
+  invoices: number;
+  amount: number;
+}
 /** Cases offered by « Rédiger un courrier »: the most recent the caller acts on. */
 const RECIPIENTS_MAX = 50;
 /** Closed cases stay offered for so many days: the certificate of a settled case is written after it closed. */
@@ -37,9 +60,10 @@ export class ComposeService {
     @Inject(SendingsService) private readonly sendings: SendingsService,
     @Inject(Outbox) private readonly outbox: Outbox,
     @Inject(Clock) private readonly clock: Clock,
+    @Inject(Audit) private readonly audit: Audit,
   ) {}
 
-  async data(): Promise<ComposeData> {
+  async data(query: Query = { creditor: 'all', age: '31-60' }): Promise<ComposeData> {
     const { tx } = this.database;
     const settings = await SettingValues.read(tx);
     const firm = (field: string) => settings.text('firm', 'cabinet', field);
@@ -93,18 +117,96 @@ export class ComposeService {
     return {
       firm: { name: firm('name'), address: firm('address'), phone: firm('phone'), siren: firm('siren') },
       recipients,
-      // The grouped sending is not open yet: the screen offers one case at a time.
-      batch: null,
+      batch: BATCH_SENDERS.has(staffRole() ?? '') ? await this.batch(query) : null,
     };
   }
 
-  async compose(body: Compose): Promise<void> {
-    if (!body.caseIds) throw conflict('NOT_AVAILABLE');
+  /** What the filters of a grouped sending select now, and the creditors one may choose among. */
+  private async batch(query: Query): Promise<NonNullable<ComposeData['batch']>> {
+    const { tx } = this.database;
+    const creditors = await tx.$queryRaw<{ id: string; name: string }[]>`
+      SELECT DISTINCT cr.id, cr.name FROM cases c JOIN creditors cr ON cr.id = c.creditor_id
+      WHERE c.closed_on IS NULL AND c.anonymized_at IS NULL AND app.can_act_on_case(c.officer_id) ORDER BY cr.name, cr.id LIMIT 200`;
+    const selected = await this.selection(query);
+    return {
+      creditors,
+      debtors: selected.length,
+      invoices: selected.reduce((sum, item) => sum + item.invoices, 0),
+      amount: selected.reduce((sum, item) => sum + item.amount, 0),
+      withoutFirstLetter: selected.filter((item) => !item.firstLetter).length,
+    };
+  }
+
+  /**
+   * The open cases the caller acts on, of the creditor chosen, whose oldest invoice still due is as late as chosen: one
+   * letter for each (a debtor with two cases receives two). Read again when the batch is sent.
+   */
+  private async selection({ creditor, age }: Query): Promise<Selected[]> {
+    const { tx } = this.database;
+    const today = dayOf(this.clock.now());
+    const [from, to] = BATCH_AGES[age];
+    // In one query, whatever the size of the portfolio: the principal still due, invoice by invoice (the interest and the
+    // indemnities are those of each letter, counted when it is written).
+    const found = await tx.$queryRaw<{ id: string; first: boolean; invoices: number; amount: bigint }[]>`
+      SELECT c.id, (c.first_letter_reference IS NOT NULL AND c.first_letter_on IS NOT NULL) AS first,
+        count(*)::int AS invoices, sum(i.principal_cents - i.principal_paid_cents) AS amount
+      FROM cases c JOIN case_invoices i ON i.case_id = c.id AND i.principal_cents > i.principal_paid_cents
+      WHERE c.closed_on IS NULL AND c.anonymized_at IS NULL AND app.can_act_on_case(c.officer_id)
+        AND (${creditor} = 'all' OR c.creditor_id::text = ${creditor})
+      GROUP BY c.id
+      HAVING ${today}::date - min(i.due_on) BETWEEN ${from}::int AND ${to}::bigint
+      ORDER BY min(c.created_at), c.id`;
+    return found.map((row) => ({ id: row.id, firstLetter: row.first, invoices: row.invoices, amount: Number(row.amount) }));
+  }
+
+  /**
+   * A grouped sending (manager): the selection is read again, and refused if it no longer holds the number confirmed. Then
+   * each case is judged by the rules of a single letter: what they refuse is left out with its reason, the rest is queued.
+   * Neither the formal notice (a colleague decides it from the case, question 220) nor the certificate leave in a batch.
+   */
+  private async grouped(body: Compose, filters: Query): Promise<SendingOutcome> {
+    if (!BATCH_SENDERS.has(staffRole() ?? '')) throw forbidden();
+    if (body.template !== 'FRIENDLY' && body.template !== 'FIRM') throw conflict('NOT_AVAILABLE');
+    const template = body.template;
+    const all = await this.selection(filters);
+    // The firm reminder recalls the first letter: whoever has none is left out, as the screen says.
+    const selected = template === 'FIRM' ? all.filter((item) => item.firstLetter) : all;
+    if (selected.length === 0 || selected.length !== body.expected) throw conflict('SELECTION_CHANGED');
+    if (selected.length > REMINDER_BATCH_MAX) throw invalid({ field: 'filters', max: REMINDER_BATCH_MAX });
+    const skipped: SendingOutcome['skipped'] = [];
+    for (const { id } of selected) {
+      try {
+        await this.one(id, template, body.channel, body.delay);
+      } catch (error) {
+        // A rule refuses it before anything is written for the case: left out with its reason.
+        if (error instanceof ApiError && error.status === 409) skipped.push({ id, reason: error.code as SendingRefusal });
+        else throw error;
+      }
+    }
+    const queued = selected.length - skipped.length;
+    // Who, how many, when and on whose behalf: neither a case nor a debtor.
+    if (queued > 0) await this.audit.log({ action: 'LETTERS_GROUPED', params: { count: queued } });
+    return { queued, skipped };
+  }
+
+  async compose(body: Compose): Promise<SendingOutcome> {
     if (!TEMPLATES.has(body.template)) throw conflict('NOT_AVAILABLE');
+    if (!LETTER_DELAYS.includes(body.delay)) throw invalid({ field: 'delay' });
+    if (!body.caseIds) {
+      const filters = composeFilters(body.filters);
+      if (!filters) throw invalid({ field: 'filters' });
+      return this.grouped(body, filters);
+    }
     // One case was confirmed: anything else is another selection.
     if (body.expected !== 1) throw conflict('SELECTION_CHANGED');
-    if (!LETTER_DELAYS.includes(body.delay)) throw invalid({ field: 'delay' });
     const [caseId] = body.caseIds as [string];
+    await this.one(caseId, body.template, body.channel, body.delay);
+    return { queued: 1, skipped: [] };
+  }
+
+  /** One case, by the channel chosen. */
+  private async one(caseId: string, wanted: Compose['template'], channel: Compose['channel'], delay: number): Promise<void> {
+    const body = { template: wanted, channel, delay };
     // The certificate of a settled case is no reminder: kept in the case only, for now (Télécharger seulement).
     if (body.template === 'CLEARANCE') {
       if (body.channel !== 'DOWNLOAD') throw conflict('NOT_AVAILABLE');

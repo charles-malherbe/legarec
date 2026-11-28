@@ -849,7 +849,7 @@ describe('the reminder leaves by the provider', () => {
     };
     const made = await placed(await eligible(test.s.officerA));
     asked.splice(0);
-    expect((await compose(made)).status).toBe(204);
+    expect((await compose(made)).status).toBe(200);
     await worker.run();
     expect(await sendings(made.id)).toEqual([{ status: 'SENT', simulated: false, provider_ref: 'ref-1', failure: null, level: 2 }]);
     const [request] = asked.splice(0);
