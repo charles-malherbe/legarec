@@ -33,12 +33,14 @@ const call = (as: string, method: string, path: string, body?: unknown) =>
 const ADDRESS = 'Bâtiment B\n14 avenue des Tilleuls';
 
 /** A case of a company with its postal address; without a first letter unless asked. */
-const made = async (options: { firstLetter?: boolean; address?: string | null; debtor?: string } = {}) => {
+const made = async (options: { firstLetter?: boolean; address?: string | null; debtor?: string; creditor?: string } = {}) => {
   const { firstLetter = false, address = ADDRESS } = options;
-  const [creditor] = await rows<{ id: string }>(
-    "INSERT INTO creditors (name, address, postal_code, city) VALUES ($1, '3 rue du Port', '13002', 'Marseille') RETURNING id",
-    [`Créancier ${(reference += 1)}`],
-  );
+  reference += 1;
+  const [creditor] = options.creditor
+    ? [{ id: options.creditor }]
+    : await rows<{ id: string }>("INSERT INTO creditors (name, address, postal_code, city) VALUES ($1, '3 rue du Port', '13002', 'Marseille') RETURNING id", [
+        `Créancier ${reference}`,
+      ]);
   const debtor =
     options.debtor ??
     (
@@ -231,7 +233,7 @@ describe('Rédiger un courrier (question 210)', () => {
   it('posts a plain letter with the rules of the registered one, and the delay chosen', async () => {
     const found = await made();
     worker.letterPages.splice(0);
-    expect((await compose('officerA', { caseIds: [found.id], delay: 15 })).status).toBe(204);
+    expect((await compose('officerA', { caseIds: [found.id], delay: 15 })).status).toBe(200);
     await worker.run();
     expect(await lines(found.id)).toMatchObject([{ channel: 'LETTER', template: 'FRIENDLY', status: 'SENT', simulated: true, document: true }]);
     expect(await rows('SELECT title FROM documents WHERE case_id = $1', [found.id])).toEqual([{ title: 'Relance amiable (courrier simple)' }]);
@@ -243,14 +245,14 @@ describe('Rédiger un courrier (question 210)', () => {
       { detail: 'Courrier · relance amiable' },
     ]);
     // One letter at a time per case, whatever its channel.
-    expect((await compose('officerA', { caseIds: [found.id], channel: 'REGISTERED_LETTER' })).status).toBe(204);
+    expect((await compose('officerA', { caseIds: [found.id], channel: 'REGISTERED_LETTER' })).status).toBe(200);
     expect((await compose('officerA', { caseIds: [found.id] })).body).toEqual({ code: 'REMINDER_PENDING' });
     await worker.run();
   });
 
   it('keeps the PDF alone in the case, sent to nobody', async () => {
     const found = await made();
-    expect((await compose('officerA', { caseIds: [found.id], channel: 'DOWNLOAD' })).status).toBe(204);
+    expect((await compose('officerA', { caseIds: [found.id], channel: 'DOWNLOAD' })).status).toBe(200);
     await worker.run();
     expect(await lines(found.id)).toEqual([]);
     expect(await rows('SELECT title, source FROM documents WHERE case_id = $1', [found.id])).toEqual([{ title: 'Relance amiable', source: 'GENERATED' }]);
@@ -280,7 +282,7 @@ describe('Rédiger un courrier (question 210)', () => {
     expect((await compose('officerA', { caseIds: [found.id], channel: 'LETTER', template: 'CLEARANCE' })).body).toEqual({ code: 'NOT_AVAILABLE' });
     worker.letterPages.splice(0);
     const kept = await compose('officerA', { caseIds: [found.id], channel: 'DOWNLOAD', template: 'CLEARANCE' });
-    expect(kept.status, JSON.stringify(kept.body)).toBe(204);
+    expect(kept.status, JSON.stringify(kept.body)).toBe(200);
     await worker.run();
     expect(await lines(found.id)).toEqual([]);
     expect(await rows("SELECT title, category::text FROM documents WHERE case_id = $1 AND source = 'GENERATED'", [found.id])).toEqual([
@@ -290,11 +292,50 @@ describe('Rédiger un courrier (question 210)', () => {
     expect(worker.letterPages.at(-1)).toContain('F-2026-0712');
   });
 
+  it('sends a batch of the manager, counted again, and says which cases a rule left out', async () => {
+    const [creditor] = await rows<{ id: string }>(
+      "INSERT INTO creditors (name, address, postal_code, city) VALUES ($1, '3 rue du Port', '13002', 'Marseille') RETURNING id",
+      [`Groupé ${reference}`],
+    );
+    const first = await made({ firstLetter: true, creditor: creditor!.id });
+    const none = await made({ creditor: creditor!.id });
+    const filters = { creditor: creditor!.id, age: '60+' };
+    const read = (as: string, age = '60+') =>
+      call(as, 'GET', `/documents/compose?creditor=${creditor!.id}&age=${encodeURIComponent(age)}`).then(
+        (answer) => (answer.body as { batch: Record<string, unknown> | null }).batch,
+      );
+    expect(await read('manager')).toMatchObject({
+      debtors: 2,
+      invoices: 2,
+      withoutFirstLetter: 1,
+      creditors: expect.arrayContaining([{ id: creditor!.id, name: expect.any(String) as unknown }]) as unknown,
+    });
+    expect(await read('manager', '0-30')).toMatchObject({ debtors: 0 });
+    expect(await read('officerA')).toBeNull();
+    const batch = (body: Record<string, unknown>, as = 'manager') => compose(as, { caseIds: null, filters, ...body });
+    // The firm letter leaves out whoever has no first letter: the count confirmed is that of the screen.
+    expect((await batch({ template: 'FIRM', expected: 2 })).body).toEqual({ code: 'SELECTION_CHANGED' });
+    expect((await batch({ template: 'FIRM', expected: 1 })).body).toEqual({ queued: 1, skipped: [] });
+    // One letter at a time per case: the other is left out with its reason, the rest leaves.
+    expect((await batch({ template: 'FRIENDLY', expected: 2 })).body).toEqual({ queued: 1, skipped: [{ id: first.id, reason: 'REMINDER_PENDING' }] });
+    await worker.run();
+    expect(await lines(first.id)).toMatchObject([{ channel: 'LETTER', template: 'FIRM', status: 'SENT' }]);
+    expect(await lines(none.id)).toMatchObject([{ channel: 'LETTER', template: 'FRIENDLY', status: 'SENT' }]);
+    expect(await rows("SELECT params FROM audit_log WHERE action = 'LETTERS_GROUPED' ORDER BY occurred_at")).toEqual([
+      { params: { count: 1 } },
+      { params: { count: 1 } },
+    ]);
+    // Neither the formal notice nor the certificate in a batch, and the batch is the manager's.
+    expect((await batch({ template: 'FORMAL_NOTICE', expected: 1 })).body).toEqual({ code: 'NOT_AVAILABLE' });
+    expect((await batch({ template: 'CLEARANCE', expected: 1 })).body).toEqual({ code: 'NOT_AVAILABLE' });
+    expect((await batch({ expected: 2 }, 'officerA')).status).toBe(403);
+    expect((await batch({ expected: 2, filters: { creditor: 'nobody', age: '60+' } })).status).toBe(422);
+  });
+
   it('refuses what is not open yet, another selection, and whoever does not act on the case', async () => {
     const found = await made();
     expect((await compose('officerA', { caseIds: [found.id], channel: 'EMAIL_SIGNATURE' })).body).toEqual({ code: 'NOT_AVAILABLE' });
     expect((await compose('officerA', { caseIds: [found.id], template: 'PAYMENT_PLAN' })).body).toEqual({ code: 'NOT_AVAILABLE' });
-    expect((await compose('manager', { caseIds: null, filters: { creditor: 'all', age: '31-60' }, expected: 3 })).body).toEqual({ code: 'NOT_AVAILABLE' });
     expect((await compose('officerA', { caseIds: [found.id], expected: 2 })).body).toEqual({ code: 'SELECTION_CHANGED' });
     expect((await compose('officerA', { caseIds: [found.id], delay: 10 })).status).toBe(422);
     expect((await compose('officerB', { caseIds: [found.id] })).status).toBe(404);
@@ -497,7 +538,7 @@ describe('posted for real (MYSENDINGBOX_ENV=production)', () => {
           options: { table: true, pay: true, indemnity: true },
         })
       ).status,
-    ).toBe(204);
+    ).toBe(200);
     await worker.run();
     expect(asked[0]!.fields.postage_type).toBe('prioritaire');
     expect(await lines(found.id)).toMatchObject([{ channel: 'LETTER', status: 'SENT', simulated: false, provider_ref: 'ltr_plain_1' }]);

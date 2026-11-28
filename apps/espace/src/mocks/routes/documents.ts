@@ -351,12 +351,14 @@ export const documentHandlers = [
         if (session.role !== 'COLLECTION_MANAGER') return forbidden();
         const batch = batchOf(filters?.creditor ?? '', filters?.age ?? '');
         const count = batch.debtors - (template === 'FIRM' || template === 'FORMAL_NOTICE' ? batch.withoutFirstLetter : 0);
-        return filters && count > 0 && count === expected ? done() : HttpResponse.json({ code: 'SELECTION_CHANGED' }, { status: 409 });
+        return filters && count > 0 && count === expected
+          ? HttpResponse.json({ queued: count, skipped: [] })
+          : HttpResponse.json({ code: 'SELECTION_CHANGED' }, { status: 409 });
       }
       const allowed = readable(session)
         .filter((item) => session.role !== 'DIRECTOR' || item.officerId === session.userId)
         .map((item) => item.id);
-      return caseIds.every((id) => allowed.includes(id)) ? done() : forbidden();
+      return caseIds.every((id) => allowed.includes(id)) ? HttpResponse.json({ queued: caseIds.length, skipped: [] }) : forbidden();
     }),
   ),
   http.post(

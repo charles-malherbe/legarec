@@ -1,5 +1,5 @@
-import { composeData, REQUEST_BODIES } from '@legarec/contracts';
-import { Body, Controller, Get, HttpCode, Inject, Post } from '@nestjs/common';
+import { composeData, composeQuery, REQUEST_BODIES, sendingOutcome } from '@legarec/contracts';
+import { Body, Controller, Get, HttpCode, Inject, Post, Query } from '@nestjs/common';
 import { ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import type { z } from 'zod';
 import { Staff } from '../../platform/access/access';
@@ -18,14 +18,15 @@ export class ComposeController {
 
   @Get()
   @ApiOkResponse({ standardSchema: composeData })
-  data() {
-    return this.service.data();
+  data(@Query({ schema: composeQuery }) query: z.infer<typeof composeQuery>) {
+    return this.service.data(query);
   }
 
+  /** What was queued, and the cases a rule left out with the reason (a single case is refused instead, 409). */
   @Post()
   @Commits()
-  @HttpCode(204)
-  @ApiNoContentResponse()
+  @HttpCode(200)
+  @ApiOkResponse({ standardSchema: sendingOutcome })
   compose(@Body({ schema: bodies['POST /documents/compose'] }) body: In<'POST /documents/compose'>) {
     return this.service.compose(body);
   }

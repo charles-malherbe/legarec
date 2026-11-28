@@ -801,10 +801,19 @@ export const MATRIX: Record<string, MatrixEntry> = {
   'GET /staff/documents': { expect: withCases(200) },
   'POST /staff/documents/import': { file: PDF, expect: withCases(200) },
   'GET /staff/documents/compose': { expect: withCases(200) },
-  // The grouped sending is not open yet: every caller who acts on cases is answered so, nothing is written.
+  // A grouped sending is the manager's; a count nobody confirmed is refused, nothing is written.
   'POST /staff/documents/compose': {
-    body: () => ({ template: 'FRIENDLY', caseIds: null, filters: { creditor: 'all', age: '31-60' }, expected: 1, channel: 'LETTER', delay: 8, months: 4, options: { table: true, pay: true, indemnity: true } }),
-    expect: withCases(409),
+    body: () => ({
+      template: 'FRIENDLY',
+      caseIds: null,
+      filters: { creditor: 'all', age: '31-60' },
+      expected: 99_999,
+      channel: 'LETTER',
+      delay: 8,
+      months: 4,
+      options: { table: true, pay: true, indemnity: true },
+    }),
+    expect: withCases(403, { manager: 409, managerAlone: 409 }),
   },
   'POST /staff/documents/compose/draft': { body: () => ({ template: 'FRIENDLY', caseId: '00000000-0000-4000-8000-000000000000' }), expect: withCases(409) },
   'POST /staff/documents/:id/share': {
