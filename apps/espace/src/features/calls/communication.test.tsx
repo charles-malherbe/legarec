@@ -117,7 +117,7 @@ describe('e-mails', () => {
   it('answers from the professional mailbox after confirmation, never from the shared one', async () => {
     openAs('cl', '/e-mails');
     await userEvent.click(await screen.findByRole('button', { name: 'Brouillon IA' }));
-    expect(screen.getByLabelText<HTMLTextAreaElement>('Votre réponse').value).toContain('Merci pour votre message');
+    expect(screen.getByRole('textbox', { name: 'Votre réponse' })).toHaveTextContent('Merci pour votre message');
     await userEvent.click(screen.getByRole('button', { name: 'Envoyer' }));
     const dialog = await inDialog();
     expect(dialog.getByText(/cl@legarec\.fr/)).toBeVisible();

@@ -1,0 +1,101 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1h);
+  min-width: 0;
+}
+.label {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--text);
+}
+.required {
+  color: var(--danger-fg);
+}
+.editor {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.editor[data-invalid] {
+  border-color: var(--danger-fg);
+}
+.editor:focus-within {
+  outline: 2px solid var(--marine);
+  outline-offset: 1px;
+}
+.editor[data-disabled] {
+  background: var(--surface-2);
+}
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-1h);
+  border-bottom: 1px solid var(--border);
+}
+.group {
+  display: flex;
+  gap: var(--sp-0h);
+}
+.control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--target);
+  height: var(--target);
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-xs);
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.control:hover {
+  background: var(--bleu-pale);
+  color: var(--text);
+}
+.control[data-active] {
+  background: var(--bleu-pale);
+  color: var(--marine);
+}
+.control:focus-visible {
+  outline: 2px solid var(--marine);
+  outline-offset: 1px;
+}
+.control svg {
+  width: var(--sp-4);
+  height: var(--sp-4);
+}
+.area {
+  min-width: 0;
+}
+.content {
+  min-height: calc(var(--sp-12) * 3);
+  padding: var(--sp-2h) var(--sp-3);
+  font-family: var(--font-text);
+  font-size: var(--fs-base);
+  line-height: 1.5;
+  color: var(--text);
+  overflow-wrap: anywhere;
+  outline: none;
+}
+.content p {
+  margin: 0 0 var(--sp-2) 0;
+}
+.content :is(ul, ol) {
+  margin: 0 0 var(--sp-2) 0;
+  padding-left: var(--sp-6);
+}
+.help {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+.error {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: var(--fs-xs);
+  color: var(--danger-fg);
+}

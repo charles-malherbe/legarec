@@ -1,5 +1,5 @@
 import type { EmailDraft, mailboxData, MessageTemplate } from '@legarec/contracts';
-import { Alerte, Bouton, Carte, Case, Champ, useConfirm, useToast } from '@legarec/ui';
+import { Alerte, Bouton, Carte, Case, Champ, EditeurTexte, useConfirm, useToast } from '@legarec/ui';
 import { useEffect, useState } from 'react';
 import { z } from 'zod';
 import { ApiError } from '../../app/api';
@@ -25,7 +25,10 @@ export interface StaffMessageFormProps {
   onClose: () => void;
 }
 
-/** Plain text only: the API splits it into paragraphs and escapes it, then sends it from the employee's OVH mailbox. */
+/**
+ * Text with its marks only (bold, italic, lists: `messageText.ts`), never HTML: the API reads it into blocks that the
+ * template escapes, then sends it from the employee's OVH mailbox.
+ */
 export function StaffMessageForm({ sender, recipient, templates = [], draft, initialTo = '', onClose }: StaffMessageFormProps) {
   const change = useChange();
   const confirm = useConfirm();
@@ -132,13 +135,11 @@ export function StaffMessageForm({ sender, recipient, templates = [], draft, ini
           )}
           <Champ label="Objet" required value={subject} maxLength={150} onChange={setSubject} />
         </div>
-        <Champ
+        <EditeurTexte
           label="Message"
-          type="textarea"
-          rows={7}
           required
           value={text}
-          help="Texte simple ; une ligne vide sépare deux paragraphes."
+          help="Gras, italique et listes avec la barre d’outils (Ctrl+B, Ctrl+I) ; Entrée commence un nouveau paragraphe."
           onChange={setText}
         />
         <div

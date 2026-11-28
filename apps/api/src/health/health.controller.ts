@@ -9,7 +9,7 @@ import { VALKEY, type Valkey } from '../platform/queue/valkey';
 
 export const healthAnswer = z.object({ status: z.literal('ok') });
 
-/** Answered to Gatus: alive or not, and nothing about how. */
+/** Answered to the monitoring (Hyperping): alive or not, and nothing about how. */
 @ApiTags('health')
 @Controller('health')
 export class HealthController {

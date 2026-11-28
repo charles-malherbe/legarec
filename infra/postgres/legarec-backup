@@ -8,16 +8,12 @@ case "$kind" in
     legarec-pgbackrest stanza-create
     legarec-pgbackrest check
     legarec-pgbackrest --type="$kind" backup
-    key=sauvegardes_sauvegarde
     ;;
   verify)
     legarec-pgbackrest verify
-    key=sauvegardes_verification
     ;;
   *)
     echo "unknown: $kind" >&2
     exit 2
     ;;
 esac
-# Not told: the monitoring raises the alarm by itself.
-legarec-tell "$key" || echo 'monitoring not told' >&2
