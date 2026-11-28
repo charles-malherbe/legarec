@@ -18,8 +18,10 @@ import { SendingsService } from './sendings.service';
 type Compose = z.infer<(typeof REQUEST_BODIES)['staff']['POST /documents/compose']>;
 /** Cases offered by « Rédiger un courrier »: the most recent the caller acts on. */
 const RECIPIENTS_MAX = 50;
+/** Closed cases stay offered for so many days: the certificate of a settled case is written after it closed. */
+const CLOSED_DAYS = 90;
 /** What leaves from here for now: the three reminders of Paramètres › Modèles (question 210). */
-const TEMPLATES: ReadonlySet<string> = new Set(['FRIENDLY', 'FIRM', 'FORMAL_NOTICE']);
+const TEMPLATES: ReadonlySet<string> = new Set(['FRIENDLY', 'FIRM', 'FORMAL_NOTICE', 'CLEARANCE']);
 const QUOTES_FIRST_LETTER: ReadonlySet<string> = new Set(['FIRM', 'FORMAL_NOTICE']);
 
 /**
@@ -42,7 +44,8 @@ export class ComposeService {
     const settings = await SettingValues.read(tx);
     const firm = (field: string) => settings.text('firm', 'cabinet', field);
     const ids = await tx.$queryRaw<{ id: string }[]>`
-      SELECT c.id FROM cases c WHERE c.closed_on IS NULL AND c.anonymized_at IS NULL AND app.can_act_on_case(c.officer_id)
+      SELECT c.id FROM cases c
+      WHERE (c.closed_on IS NULL OR c.closed_on >= current_date - ${CLOSED_DAYS}::int) AND c.anonymized_at IS NULL AND app.can_act_on_case(c.officer_id)
       ORDER BY c.created_at DESC, c.id LIMIT ${RECIPIENTS_MAX}`;
     const found = await tx.case.findMany({
       where: { id: { in: ids.map((row) => row.id) } },
@@ -102,10 +105,20 @@ export class ComposeService {
     if (body.expected !== 1) throw conflict('SELECTION_CHANGED');
     if (!LETTER_DELAYS.includes(body.delay)) throw invalid({ field: 'delay' });
     const [caseId] = body.caseIds as [string];
+    // The certificate of a settled case is no reminder: kept in the case only, for now (Télécharger seulement).
+    if (body.template === 'CLEARANCE') {
+      if (body.channel !== 'DOWNLOAD') throw conflict('NOT_AVAILABLE');
+      return this.file(caseId, 'CLEARANCE', body.delay);
+    }
     const template = body.template as 'FRIENDLY' | 'FIRM' | 'FORMAL_NOTICE';
     if (body.channel === 'REGISTERED_LETTER' || body.channel === 'LETTER') return this.sendings.letter(caseId, template, body.channel, body.delay);
     if (body.channel === 'EMAIL_PDF') return this.sendings.emailWithLetter(caseId, template, body.delay);
     if (body.channel !== 'DOWNLOAD') throw conflict('NOT_AVAILABLE');
+    return this.file(caseId, template, body.delay);
+  }
+
+  /** « Télécharger seulement »: the PDF alone, written by the worker and kept in the case, sent to nobody. */
+  private async file(caseId: string, template: 'FRIENDLY' | 'FIRM' | 'FORMAL_NOTICE' | 'CLEARANCE', delay: number): Promise<void> {
     const { tx } = this.database;
     const found = await tx.case.findFirst({
       where: { id: caseId },
@@ -124,12 +137,20 @@ export class ComposeService {
     });
     if (!found) throw notFound();
     if (!(await mayActOn(caseId)(tx))) throw forbidden();
-    if (found.closedOn || found.anonymizedAt) throw conflict('CASE_CLOSED');
-    const suspended = suspensionOf(found.status, found._count.plans);
-    if (suspended) throw conflict(suspended);
-    if (QUOTES_FIRST_LETTER.has(template) && (!found.firstLetterReference || !found.firstLetterOn)) throw conflict('NO_FIRST_LETTER');
+    // A settled case is closed at once: only its certificate is still written for it.
+    if (found.anonymizedAt || (found.closedOn && template !== 'CLEARANCE')) throw conflict('CASE_CLOSED');
+    if (template === 'CLEARANCE') {
+      // Everything paid: principal, interest and indemnities, as the ledger reads them today.
+      const ledger = await this.ledgers.read(caseId, dayOf(this.clock.now()));
+      const owed = ledger && owedOf(ledger);
+      if (!ledger || !owed || ledger.invoices.length === 0 || owed.principal + owed.interest + owed.fees > 0) throw conflict('NOT_SETTLED');
+    } else {
+      const suspended = suspensionOf(found.status, found._count.plans);
+      if (suspended) throw conflict(suspended);
+      if (QUOTES_FIRST_LETTER.has(template) && (!found.firstLetterReference || !found.firstLetterOn)) throw conflict('NO_FIRST_LETTER');
+    }
     if (!streetLinesOf(found.debtorAddress) || !found.debtorPostalCode || !found.debtorCity?.trim()) throw conflict('NO_ADDRESS');
-    await this.outbox.add({ queue: 'reminders', name: 'case-letter-file', payload: { case: caseId, template, delay: body.delay } });
+    await this.outbox.add({ queue: 'reminders', name: 'case-letter-file', payload: { case: caseId, template, delay } });
   }
 
   /** « Enregistrer le brouillon »: not open yet. */

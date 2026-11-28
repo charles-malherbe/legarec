@@ -59,6 +59,8 @@ export const LETTERS = {
   FRIENDLY: { code: 'amiable', level: 1, category: 'REMINDER_LETTER', title: 'Relance amiable' },
   FIRM: { code: 'ferme', level: 2, category: 'REMINDER_LETTER', title: 'Relance ferme' },
   FORMAL_NOTICE: { code: 'demeure', level: 3, category: 'FORMAL_NOTICE', title: 'Mise en demeure' },
+  // No reminder: what a settled case receives, filed with the receipts (Rédiger un courrier).
+  CLEARANCE: { code: 'attestation', level: 0, category: 'RECEIPT', title: 'Attestation de solde' },
 } as const;
 export type LetterTemplate = keyof typeof LETTERS;
 /** Days the debtor is given to pay from the day of the letter (« date limite »), unless Rédiger un courrier gave 15 or 30. */
@@ -97,7 +99,8 @@ async function factsOf(
   delay: number,
 ): Promise<Facts> {
   const found = await tx.case.findFirst({
-    where: { id: caseId, closedOn: null, anonymizedAt: null },
+    // A settled case is closed at once: its certificate is written after; nothing else of a closed case.
+    where: { id: caseId, anonymizedAt: null, ...(template === 'CLEARANCE' ? {} : { closedOn: null }) },
     select: {
       reference: true,
       status: true,
@@ -121,20 +124,27 @@ async function factsOf(
     },
   });
   if (!found) return { refusal: 'CASE_CLOSED' };
-  const suspended = suspensionOf(found.status, found._count.plans);
-  if (suspended) return { refusal: suspended };
   const { level, code } = LETTERS[template];
+  const clearance = template === 'CLEARANCE';
+  // A dispute or a plan stops a reminder; the certificate that everything is paid stops at nothing but a balance.
+  const suspended = clearance ? null : suspensionOf(found.status, found._count.plans);
+  if (suspended) return { refusal: suspended };
   if (level > 1 && (!found.firstLetterReference || !found.firstLetterOn)) return { refusal: 'NO_FIRST_LETTER' };
   const street = streetLinesOf(found.debtorAddress);
   if (!street || !found.debtorPostalCode || !found.debtorCity?.trim()) return { refusal: 'NO_ADDRESS' };
   const ledger = await new Ledgers(database, new Audit(database)).read(caseId, today);
   const unpaid = ledger?.invoices.filter((invoice) => invoice.principalLeft > 0) ?? [];
-  if (!ledger || unpaid.length === 0) return { refusal: 'NOTHING_DUE' };
-  const owed = owedOf(ledger);
+  const owed = ledger && owedOf(ledger);
+  if (clearance) {
+    if (!ledger || !owed || ledger.invoices.length === 0 || unpaid.length > 0 || owed.principal + owed.interest + owed.fees > 0)
+      return { refusal: 'NOT_SETTLED' };
+  } else if (!ledger || !owed || unpaid.length === 0) return { refusal: 'NOTHING_DUE' };
+  // The certificate names every invoice of the case, all paid; a reminder those still due.
+  const named = clearance ? ledger.invoices : unpaid;
   // As the e-mails of the same level: the indemnities from the firm letter on, interest in the formal notice only (question 213).
-  const total = reminderAmount(level, owed);
+  const total = reminderAmount(Math.max(level, 1), owed);
   const paid = ledger.invoices.reduce((sum, invoice) => sum + invoice.principal - invoice.principalLeft, 0);
-  const oldest = unpaid.reduce((first, invoice) => (invoice.dueOn < first ? invoice.dueOn : first), unpaid[0]!.dueOn);
+  const oldest = named.reduce((first, invoice) => (invoice.dueOn < first ? invoice.dueOn : first), named[0]!.dueOn);
   const issued = new Map(found.invoices.map((invoice) => [invoice.id, invoice.issuedOn]));
   const item = TEMPLATE_CATALOGUE.find((entry) => entry.id === code)!;
   // The version in service of Paramètres › Modèles, or the validated one of the catalogue.
@@ -171,7 +181,7 @@ async function factsOf(
         deja_paye: money(paid),
         anciennete: `${Math.max(0, Math.round((Date.parse(`${today}T12:00:00Z`) - Date.parse(`${oldest}T12:00:00Z`)) / 86_400_000))} jours`,
         factures: listOf(
-          unpaid.map((invoice) => ({
+          named.map((invoice) => ({
             facture: {
               numero: invoice.number,
               date: short(issued.get(invoice.id) ?? invoice.dueOn),
