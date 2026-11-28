@@ -13,7 +13,7 @@ import {
   SHARED_MAILBOX,
   SharedMailboxIsReceiveOnly,
   StaffMessagesService,
-  toParagraphs,
+  toBlocks,
   type StaffSender,
 } from './staff-messages.service';
 
@@ -213,7 +213,21 @@ describe('staff message', () => {
     expect(service.remaining(sender.email)).toBe(HOURLY_QUOTA);
   });
   it('splits paragraphs at blank lines and protects amounts', () => {
-    expect(toParagraphs('A\r\n\r\n4 320,00 €\n \n\nB')).toEqual(['A', '4 320,00 €', 'B']);
+    expect(toBlocks('A\r\n\r\n4 320,00 €\n \n\nB')).toEqual([
+      { paragraph: [{ text: 'A' }] },
+      { paragraph: [{ text: '4 320,00 €' }] },
+      { paragraph: [{ text: 'B' }] },
+    ]);
+  });
+  it('renders bold, italic and lists from the marks of the text, every word escaped', () => {
+    const text = 'Le solde est de **4 320,00 €**, *à régler* avant le 05/12.\n\n- F-2026-0712\n- **<b>F-2026-0713</b>**\n\n1. Virement\n2. Chèque';
+    const { html } = make().service.build(sender, { ...input, text });
+    expect(html).toContain('<strong>4 320,00 €</strong>');
+    expect(html).toContain('<em>à régler</em>');
+    expect(count(html, '<li ')).toBe(4);
+    expect(html).toMatch(/<ul [^>]*><li [^>]*>F-2026-0712<\/li><li [^>]*><strong>&lt;b&gt;F-2026-0713&lt;\/b&gt;<\/strong><\/li><\/ul>/u);
+    expect(html).toMatch(/<ol [^>]*><li [^>]*>Virement<\/li><li [^>]*>Chèque<\/li><\/ol>/u);
+    expect(html).not.toContain('<b>');
   });
 });
 

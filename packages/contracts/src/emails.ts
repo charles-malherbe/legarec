@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { accessCode } from './debtorAccess';
+import { messageBlock } from './messageText';
 
 /**
  * One schema per e-mail template, deduced from samples.json and from the header of each template.
@@ -224,7 +225,7 @@ export const REPLY_ACCEPTED: readonly AutomaticEmail[] = ['reminder-1', 'reminde
 
 /** Message written by an employee, sent from their own OVH mailbox. */
 export const staffMessage = z.object({
-  message: z.object({ subject: text, preview: optional, paragraphs: z.array(text).min(1), closing: optional }),
+  message: z.object({ subject: text, preview: optional, blocks: z.array(messageBlock).min(1).max(100), closing: optional }),
   case: z.object({ reference: text }).optional(),
   creditor: z.object({ name: text }).optional(),
   debtor_recipient: z.boolean(),

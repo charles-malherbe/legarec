@@ -11,6 +11,7 @@ import {
   Case,
   Champ,
   DepotFichiers,
+  EditeurTexte,
   Embleme,
   EtatListe,
   Icone,
@@ -608,4 +609,61 @@ it('draws every row of a short table', () => {
   renderUi(<Tableau caption="Dossiers" rowId={(row) => row.id} rows={rows} columns={[{ key: 'name', label: 'Débiteur', value: (row) => row.name }]} />);
   expect(screen.getByRole('table')).not.toHaveAttribute('aria-rowcount');
   expect(screen.getByText('Dossier 30')).toBeInTheDocument();
+});
+
+describe('EditeurTexte', () => {
+  function Message({ initial = '' }: { initial?: string }) {
+    const [value, setValue] = useState(initial);
+    return (
+      <>
+        <EditeurTexte label="Message" required value={value} onChange={setValue} help="Une ligne vide sépare deux paragraphes." />
+        <output aria-label="Texte">{value}</output>
+        <button type="button" onClick={() => setValue('Modèle inséré')}>
+          Insérer
+        </button>
+      </>
+    );
+  }
+  it('is a labelled text box, with a toolbar in French', async () => {
+    const { container } = renderUi(<Message />);
+    const box = screen.getByRole('textbox', { name: 'Message' });
+    expect(box).toHaveAttribute('aria-describedby');
+    expect(box).toHaveAttribute('aria-required', 'true');
+    for (const name of ['Gras', 'Italique', 'Liste à puces', 'Liste numérotée']) expect(screen.getByRole('button', { name })).toBeVisible();
+    expect(await axeViolations(container)).toEqual([]);
+  });
+  it('shows a text with marks formatted, and gives back what it is given', () => {
+    renderUi(<Message initial={'Le solde : **4 320 €**.\n\n- F-1\n- F-2'} />);
+    const box = screen.getByRole('textbox', { name: 'Message' });
+    expect(within(box).getByText('4 320 €').tagName).toBe('STRONG');
+    expect(within(box).getAllByRole('listitem')).toHaveLength(2);
+  });
+  it('takes a text put from outside', async () => {
+    renderUi(<Message initial="Bonjour" />);
+    await userEvent.click(screen.getByRole('button', { name: 'Insérer' }));
+    expect(within(screen.getByRole('textbox', { name: 'Message' })).getByText('Modèle inséré')).toBeInTheDocument();
+  });
+  it('writes what is typed, in bold once asked', async () => {
+    renderUi(<Message />);
+    const box = screen.getByRole('textbox', { name: 'Message' });
+    await userEvent.click(box);
+    await userEvent.type(box, 'Bonjour ');
+    await userEvent.click(screen.getByRole('button', { name: 'Gras' }));
+    await userEvent.type(box, 'urgent');
+    expect(screen.getByLabelText('Texte')).toHaveTextContent('Bonjour **urgent**');
+  });
+});
+
+it('ignores shortcuts while typing in the editor of a message', async () => {
+  const pick = vi.fn();
+  renderUi(
+    <>
+      <Toolbar tabs={[{ label: 'A', selected: false, pick }]} query="" onQuery={noop} />
+      <EditeurTexte label="Message" value="" onChange={noop} />
+    </>,
+  );
+  const box = screen.getByRole('textbox', { name: 'Message' });
+  await userEvent.click(box);
+  await userEvent.type(box, '1');
+  expect(pick).not.toHaveBeenCalled();
 });

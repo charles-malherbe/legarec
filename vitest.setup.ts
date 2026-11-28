@@ -24,4 +24,12 @@ if (typeof window !== 'undefined') {
     unobserve() {}
     disconnect() {}
   };
+  // ProseMirror (the editor of the e-mails) asks where the caret is drawn; jsdom draws nothing.
+  const empty = () => ({ length: 0, item: () => null, [Symbol.iterator]: [][Symbol.iterator] }) as unknown as DOMRectList;
+  const none = () => new DOMRect(0, 0, 0, 0);
+  Range.prototype.getClientRects ??= empty;
+  Range.prototype.getBoundingClientRect ??= none;
+  Element.prototype.getClientRects ??= empty;
+  (Text.prototype as unknown as Element).getClientRects ??= empty;
+  document.elementFromPoint ??= () => null;
 }

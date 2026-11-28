@@ -1,4 +1,4 @@
-import { ROLE_LABELS, type Role, type EmailConfig } from '@legarec/contracts';
+import { plainOf, readMessage, ROLE_LABELS, type EmailConfig, type MessageBlock, type Role } from '@legarec/contracts';
 import { z } from 'zod';
 import { formatPhone } from './phone';
 import type { EmailRenderer } from './renderer';
@@ -40,18 +40,15 @@ export class DebtorReferenceRequired extends Error {}
 export class SharedMailboxIsReceiveOnly extends Error {}
 
 const NBSP = '\u00a0';
-/** Plain text split at blank lines, with no-break spaces inside numbers and amounts. */
-export const toParagraphs = (text: string) =>
-  text
-    .replace(/\r\n?/gu, '\n')
-    .split(/\n[^\S\n]*\n/u)
-    .map((item) =>
-      item
-        .trim()
-        .replace(/(?<=\d)[ \u202f](?=\d)/gu, NBSP)
-        .replace(/(?<=\d)[ \u202f](?=€)/gu, NBSP),
-    )
-    .filter(Boolean);
+const keepTogether = (text: string) => text.replace(/(?<=\d)[ \u202f](?=\d)/gu, NBSP).replace(/(?<=\d)[ \u202f](?=€)/gu, NBSP);
+/** The text typed, read into blocks with its marks (`messageText.ts`), with no-break spaces inside numbers and amounts. */
+export const toBlocks = (text: string): MessageBlock[] =>
+  readMessage(text).map((block) => {
+    const runs = (list: { text: string }[]) => list.map((run) => ({ ...run, text: keepTogether(run.text) }));
+    if ('paragraph' in block) return { paragraph: runs(block.paragraph) };
+    if ('bullets' in block) return { bullets: block.bullets.map(runs) };
+    return { numbers: block.numbers.map(runs) };
+  });
 
 /** Messages written by an employee: never through Resend, not even when OVH fails. */
 export class StaffMessagesService {
@@ -86,12 +83,12 @@ export class StaffMessagesService {
   }
 
   build(sender: StaffSender, input: StaffMessageInput): OutgoingStaffMessage {
-    const paragraphs = toParagraphs(input.text);
+    const blocks = toBlocks(input.text);
     const phone = sender.phone ? formatPhone(sender.phone) : null;
     const fullName = `${sender.firstName} ${sender.lastName.toLocaleUpperCase('fr-FR')}`;
     const { subject, html } = this.renderer.renderStaffMessage(
       {
-        message: { subject: input.subject, preview: paragraphs[0]?.slice(0, 120), paragraphs },
+        message: { subject: input.subject, preview: blocks[0] && plainOf(blocks[0]).slice(0, 120), blocks },
         case: input.caseReference ? { reference: input.caseReference } : undefined,
         creditor: input.creditorName ? { name: input.creditorName } : undefined,
         debtor_recipient: input.recipientIsDebtor,

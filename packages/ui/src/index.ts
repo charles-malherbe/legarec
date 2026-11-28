@@ -42,3 +42,4 @@ export * from './Marque';
 export * from './DepotFichiers';
 export * from './FilMessages';
 export * from './PageLegale';
+export * from './EditeurTexte';
