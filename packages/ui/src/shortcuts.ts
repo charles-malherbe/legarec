@@ -4,7 +4,9 @@ import { useEffect, useRef } from 'react';
 export function isShortcutBlocked(event: KeyboardEvent): boolean {
   if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return true;
   const target = event.target as HTMLElement | null;
-  if (target?.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target?.tagName ?? '')) return true;
+  // The editor of the e-mails is a contenteditable: read from the attribute, which every DOM keeps.
+  const editable = target?.isContentEditable || !!target?.closest?.('[contenteditable]:not([contenteditable="false"])');
+  if (editable || /^(INPUT|TEXTAREA|SELECT)$/.test(target?.tagName ?? '')) return true;
   return !!document.querySelector('[data-modal-open="true"]');
 }
 

@@ -25,6 +25,7 @@ export * from './account';
 export * from './portal';
 export * from './debtor';
 export * from './emails';
+export * from './messageText';
 export * from './firm';
 export * from './legal';
 export * from './requests';

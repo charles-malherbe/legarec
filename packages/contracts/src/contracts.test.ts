@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  readMessage,
+  writeMessage,
   formatPhone as writePhone,
   accessCode,
   allocatePayment,
@@ -78,4 +80,25 @@ describe('phone numbers', () => {
     ['+3222345678', '+32 2 234 56 78'],
   ])('writes %s as %s', (typed, written) => expect(writePhone(typed)).toBe(written));
   it('leaves a number it does not know as typed', () => expect(writePhone('12 34')).toBe('12 34'));
+});
+
+describe('text of a message', () => {
+  it('reads bold, italic, bullets and numbered items', () => {
+    expect(readMessage('Le solde : **4 320 €**, *avant* le 05/12.\n\n- F-1\n- F-2\n\n1. Virement\n2) Chèque')).toEqual([
+      { paragraph: [{ text: 'Le solde : ' }, { text: '4 320 €', bold: true }, { text: ', ' }, { text: 'avant', italic: true }, { text: ' le 05/12.' }] },
+      { bullets: [[{ text: 'F-1' }], [{ text: 'F-2' }]] },
+      { numbers: [[{ text: 'Virement' }], [{ text: 'Chèque' }]] },
+    ]);
+  });
+  it('keeps a star without its pair, and an escaped one, as typed', () => {
+    expect(readMessage('5 * 3 = 15')).toEqual([{ paragraph: [{ text: '5 * 3 = 15' }] }]);
+    expect(readMessage('\\*\\*pas en gras\\*\\*')).toEqual([{ paragraph: [{ text: '**pas en gras**' }] }]);
+  });
+  it('reads a plain text as before: paragraphs at blank lines', () => {
+    expect(readMessage('Bonjour,\n\nMerci.\n \n')).toEqual([{ paragraph: [{ text: 'Bonjour,' }] }, { paragraph: [{ text: 'Merci.' }] }]);
+  });
+  it('writes back what it reads', () => {
+    const text = 'Le solde : **4 320 €**, *avant* le 05/12, ***urgent***.\n\n- F-1\n- \\*F-2\n\n1. Virement\n2. Chèque';
+    expect(writeMessage(readMessage(text))).toBe(text);
+  });
 });

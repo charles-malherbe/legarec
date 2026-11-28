@@ -5,6 +5,7 @@ import {
   Bouton,
   Case,
   Champ,
+  EditeurTexte,
   EtatListe,
   Icone,
   PageHeader,
@@ -568,7 +569,12 @@ function Reader({ mail, sender, templates }: { mail: EmailThread; sender: z.infe
                   });
               }}
             />
-            <Champ label="Votre réponse" type="textarea" rows={6} value={reply} onChange={setReply} />
+            {portal ? (
+              // The portal of payment shows a plain text: no marks there.
+              <Champ label="Votre réponse" type="textarea" rows={6} value={reply} onChange={setReply} />
+            ) : (
+              <EditeurTexte label="Votre réponse" value={reply} onChange={setReply} />
+            )}
             {drafted && (
               <span role="status" className={layout.muted}>
                 Brouillon proposé par l’IA : relisez et complétez avant d’envoyer. Les mentions obligatoires sont ajoutées par le modèle.

@@ -12,7 +12,7 @@ emails/partials/signature.hbs        signature du collaborateur (même charte qu
 `staff-message` est le seul modèle qui affiche une signature. Il sert quand un collaborateur écrit un message depuis l'interface web à un débiteur, à un créancier ou à tout autre correspondant d'un dossier. Les 25 modèles automatiques du kit restent sans signature.
 
 - **Objet** : `message.subject`, saisi par le collaborateur. Ce modèle n'a pas d'entrée dans `subjects.json`.
-- **Corps** : le texte saisi, découpé par l'API en paragraphes à chaque ligne vide (`message.paragraphs`). Il est rendu en texte échappé, sans HTML libre. L'API remplace les espaces entre chiffres par des espaces insécables (`4 320,00 €`).
+- **Corps** : le texte saisi, découpé par l'API en blocs à chaque ligne vide (`message.blocks`) : paragraphe, liste à puces (lignes `- `) ou liste numérotée (lignes `1. `), avec gras (`**…**`) et italique (`*…*`). Chaque morceau est rendu en texte échappé, sans HTML libre : la mise en forme vient du modèle, jamais du texte. L'API remplace les espaces entre chiffres par des espaces insécables (`4 320,00 €`). Ajout du 28/11/2026 (éditeur de l'espace) ; avant, `message.paragraphs`, du texte brut.
 - **Mentions** :
   - si `debtor_recipient` est vrai, le bloc `mentions` affiche `mentions_recouvrement` (rappel de l'article L111-8 du CPCE) ;
   - sinon, il affiche « Vous pouvez répondre directement à ce message. »
