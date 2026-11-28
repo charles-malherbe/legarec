@@ -14,7 +14,7 @@
 | `legarec.on3cx.fr` | Standard téléphonique 3CX (hébergé par 3CX) |
 
 ## Proxy inverse (Caddy)
-Seul service exposé sur Internet (ports 80 et 443) : HTTPS automatique, en-têtes de sécurité, routage des sous-domaines ci-dessus (sauf legarec.fr et legarec.on3cx.fr). Redirections : http → https ; www.espace, www.partenaires, www.paiement → sans www ; mail.legarec.fr → legarec.fr ; racines de media.legarec.fr et api.legarec.fr → legarec.fr et status.legarec.fr. Référence : `kits/caddy/Caddyfile.exemple`.
+Seul service exposé sur Internet (ports 80 et 443) : HTTPS automatique, en-têtes de sécurité, routage des sous-domaines ci-dessus (sauf legarec.fr et legarec.on3cx.fr). Redirections : http → https ; www.espace, www.partenaires, www.paiement → sans www ; mail.legarec.fr → legarec.fr ; racine de media.legarec.fr → legarec.fr ; racine de api.legarec.fr : 404. status.legarec.fr est retiré depuis le 28/11/2026 (ni page d'état ni Grafana). Référence : `kits/caddy/Caddyfile.exemple`.
 
 ## Connexion par portail
 - `espace` : comptes des collaborateurs. `partenaires` : créanciers. `paiement` : identifiant et code d'accès, sans compte.
