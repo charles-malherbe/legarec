@@ -218,7 +218,9 @@ function Workspace({ data, onRetry }: { data: Data; onRetry: () => void }) {
         }
         actions={[
           { label: 'Changer de campagne', disabled: true },
-          { label: 'Ouvrir 3CX', onPress: () => openExternal('https://legarec.on3cx.fr') },
+          data.pbxUrl
+            ? { label: 'Ouvrir 3CX', onPress: () => openExternal(data.pbxUrl!) }
+            : { label: 'Ouvrir 3CX', disabled: true, title: 'Adresse du standard à saisir dans Paramètres techniques › Téléphonie' },
           { label: 'Appel suivant', primary: true, kbd: 'N', onPress: () => panel.current?.save() },
         ]}
       />

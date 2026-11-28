@@ -63,6 +63,8 @@ export const callsData = z.object({
   campaign: z.string(),
   line: z.string(),
   extension: z.string().nullable(),
+  /** Paramètres techniques › Téléphonie: the address of the 3CX instance, null until typed. */
+  pbxUrl: z.url({ protocol: /^https$/u }).nullable(),
   tcx: z.enum(['CONNECTED', 'DOWN']),
   targets: z.array(callTarget),
   active: z.object({ caseId: z.string(), seconds: z.number().int(), announced: z.boolean(), phone: z.string() }).nullable(),

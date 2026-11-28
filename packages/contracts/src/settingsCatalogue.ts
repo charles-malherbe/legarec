@@ -353,7 +353,7 @@ export const technicalGroups = (): SettingGroup[] => [
         'neutral',
         [
           block('pbx', 'Standard téléphonique · 3CX', 'Appels sortants et entrants, enregistrements et statuts des gestionnaires passent par 3CX.', [
-            value('instance', 'Instance', '', 'legarec.on3cx.fr'),
+            text('instance', 'Adresse du standard 3CX', 'L’adresse web de votre instance 3CX, en https : le bouton « Ouvrir 3CX » de la page Appels y mène.', ''),
             value('number', 'Numéro principal', '', '01 87 88 02 98'),
             value('queue', 'File entrante', '', '800 « Recouvrement » · distribution au plus disponible'),
             value('wrap', 'Post-appel', '', '60 s de pause pour qualifier'),
@@ -372,7 +372,7 @@ export const technicalGroups = (): SettingGroup[] => [
           ]),
         ],
         [
-          table('extensions', 'Postes des utilisateurs', '', ['Utilisateur', 'Poste 3CX', 'Files', 'Statut 3CX'], []),
+          table('extensions', 'Postes des utilisateurs', 'Le poste 3CX de chaque collaborateur, celui que la page Appels utilise.', ['Utilisateur', 'Poste 3CX', 'Files', 'Statut 3CX'], []),
           table(
             'codes',
             'Codes de qualification envoyés à 3CX',
@@ -484,7 +484,6 @@ export const technicalGroups = (): SettingGroup[] => [
               ],
               ['paiement.legarec.fr', 'Portail débiteurs : RIB, chèque, échéancier', 'Application, espace de paiement', ok('Confirmé')],
               ['api.legarec.fr', 'API back-end : données, webhooks, API créanciers', 'Serveur back-end', ok('Confirmé')],
-              ['legarec.on3cx.fr', 'Standard téléphonique', '3CX (hébergé par 3CX)', ok('Confirmé')],
               ['media.legarec.fr', 'Logos du kit média', 'Stockage de fichiers statiques', ok('Confirmé')],
               ['mail.legarec.fr', 'Envoi des e-mails automatiques (ne-pas-repondre@mail.legarec.fr)', 'Resend', ok('Confirmé')],
             ],
@@ -541,6 +540,8 @@ export const isFirmIdentity = (section: string, field: string) => section === 'c
 const PHONE = /^(?:\+33|0)\s?[1-9](?:[\s.]?\d{2}){4}$/u;
 const GOAL = /^\d{0,9}$/u;
 const MAY_BE_EMPTY = ['monthly-goal', 'call-goal'];
+/** The address of a 3CX instance: https, a host, nothing after it. */
+export const PBX_URL = /^https:\/\/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+(?::\d{2,5})?\/?$/iu;
 /** The hours of Paramètres › Relances, day by day: empty is no contact that day (question 160). */
 const HOURS_FIELDS = CONTACT_DAYS.flatMap(([key]) => [`call-${key}`, `send-${key}`]);
 
@@ -560,6 +561,8 @@ export function settingProblems(section: Pick<SettingDefinition, 'id' | 'blocks'
     } else if (section.id === 'relances' && HOURS_FIELDS.includes(id)) {
       const problem = hoursProblem(next);
       if (problem) problems[id] = problem;
+    } else if (section.id === 'telephonie' && id === 'instance') {
+      if (next.trim() && !PBX_URL.test(next.trim())) problems[id] = 'Saisissez une adresse en https, par exemple https://votre-cabinet.3cx.fr.';
     } else if (field.kind === 'text' && !next.trim() && !MAY_BE_EMPTY.includes(id)) problems[id] = 'Ce champ ne peut pas être vide.';
     else if (section.id === 'cabinet' && id === 'phone' && !PHONE.test(next)) problems[id] = 'Ce numéro de téléphone n’est pas valide.';
     else if (MAY_BE_EMPTY.includes(id) && !GOAL.test(next)) problems[id] = 'Saisissez un nombre entier.';

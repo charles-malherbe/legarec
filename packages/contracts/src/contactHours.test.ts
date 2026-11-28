@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { contactHours, hoursProblem, publicHolidays, readHours } from './contactHours';
-import { settingProblems, firmGroups } from './settingsCatalogue';
+import { settingProblems, firmGroups, technicalGroups } from './settingsCatalogue';
 
 const set = (values: Record<string, string>) => contactHours((field) => values[field] ?? '09:00–19:00');
 const defaults = contactHours(() => 'illisible');
@@ -48,5 +48,20 @@ describe('the hours a debtor may be contacted (question 160)', () => {
     expect(settingProblems(relances, { 'call-sat': '25:00–26:00', 'send-mon': '', calls: '2' })).toEqual({
       'call-sat': 'Format attendu : 09:00–19:00, ou vide pour aucun contact ce jour-là.',
     });
+  });
+});
+
+describe('the address of the 3CX instance (DECISIONS.md, 28/11/2026)', () => {
+  it('takes an https address, or nothing until it is known', () => {
+    const telephonie = technicalGroups()
+      .flatMap((group) => group.items)
+      .find((item) => item.id === 'telephonie')!;
+    expect(settingProblems(telephonie, { instance: '' })).toEqual({});
+    expect(settingProblems(telephonie, { instance: 'https://cabinet.3cx.fr' })).toEqual({});
+    expect(settingProblems(telephonie, { instance: 'https://pbx.example.com:5001/' })).toEqual({});
+    for (const wrong of ['http://cabinet.3cx.fr', 'cabinet.3cx.fr', 'https://cabinet.3cx.fr/webclient?x=1', 'javascript:alert(1)'])
+      expect(settingProblems(telephonie, { instance: wrong })).toEqual({
+        instance: 'Saisissez une adresse en https, par exemple https://votre-cabinet.3cx.fr.',
+      });
   });
 });
