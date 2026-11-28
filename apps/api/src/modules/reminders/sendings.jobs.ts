@@ -1,6 +1,6 @@
 import { contactHours, formatCents, reminderAmount, type AutomaticEmail } from '@legarec/contracts';
 import type { AutomaticMessage, EmailsService } from '../../emails/emails.service';
-import { allowedOutsideProduction, ProviderRefused, type ResendClient } from '../../emails/resend';
+import { allowedOutsideProduction, ProviderRefused, type Attachment, type ResendClient } from '../../emails/resend';
 import { Audit } from '../../platform/audit/audit';
 import { Keyring } from '../../platform/crypto/keyring';
 import { databaseCode } from '../../platform/database/codes';
@@ -14,7 +14,9 @@ import { nextInstallment, PLAN_INSTALLMENTS } from '../payments/plans';
 import { SettingValues } from '../settings/values';
 import { sendingDeadline, suspensionOf } from './contact-rules';
 import { keysIn } from '../vault/internal-keys';
+import type { Storage } from '../../platform/storage/storage';
 import type { Vault } from '../vault/vault';
+import type { LetterPreparer, LetterTemplate } from './letters.jobs';
 
 interface Parts {
   database: Database;
@@ -36,7 +38,14 @@ interface Parts {
   simulate(message: AutomaticMessage): Promise<void>;
   /** The hour it is; set by the tests, which run at any hour. */
   now?: () => Date;
+  /**
+   * « E-mail avec PDF joint » of Rédiger un courrier: the letter of the same level, written as for the post, kept in the
+   * case and joined to the validated e-mail. Without it, such a line fails `NOT_AVAILABLE`.
+   */
+  letters?: { prepare: LetterPreparer; storage: Storage };
 }
+/** The letter each level of e-mail carries when one is joined. */
+const LETTER_OF_LEVEL: Record<number, LetterTemplate> = { 1: 'FRIENDLY', 2: 'FIRM', 3: 'FORMAL_NOTICE' };
 const id = (value: unknown): string => {
   if (typeof value !== 'string') throw new GiveUp('NO_IDENTIFIER');
   return value;
@@ -249,6 +258,7 @@ export function sendingJobs({
   devRecipients,
   simulate,
   now = () => new Date(),
+  letters,
 }: Parts): Record<string, JobDefinition> {
   /** What the provider said, then the history: « Relance envoyée » once it has left, not before (question 219). */
   const sent = async (
@@ -306,6 +316,9 @@ export function sendingJobs({
         if (line.channel !== 'EMAIL' || !line.contactId || (!installment && !line.level)) return fail(asApplication, sending, caseId, 'NOT_AVAILABLE');
         const { contactId } = line;
         const level = installment ? null : line.level!;
+        // A delay in the task: the letter of the level goes with the e-mail (Rédiger un courrier).
+        const joined = typeof payload.delay === 'number' && level !== null ? LETTER_OF_LEVEL[level] : undefined;
+        if (typeof payload.delay === 'number' && (!joined || !letters)) return fail(asApplication, sending, caseId, 'NOT_AVAILABLE');
         const settings = await asApplication((tx) => SettingValues.read(tx));
         const hours = contactHours((field) => settings.text('firm', 'relances', field));
         const moment = now();
@@ -327,15 +340,61 @@ export function sendingJobs({
         }
         // One that has waited never leaves at night, on a Sunday nor on a public holiday (question 161).
         if (hours.outsideHours('EMAIL', dayOf(moment), timeOf(moment))) throw new TryLater('OUTSIDE_HOURS');
+        let letter: Extract<Awaited<ReturnType<LetterPreparer>>, { refusal: undefined }> | undefined;
+        if (joined && letters) {
+          const prepared = await letters.prepare(asAuthor, asApplication, caseId, joined, 'Par e-mail', dayOf(moment), Number(payload.delay));
+          if (prepared.refusal !== undefined) return fail(asApplication, sending, caseId, prepared.refusal);
+          letter = prepared;
+        }
         const [stored] = await asApplication(
           (tx) => tx.$queryRaw<{ id: string | null; value_cipher: Uint8Array | null }[]>`SELECT * FROM app.service_key('RESEND_API_KEY')`,
         );
         const key = stored?.id && stored.value_cipher ? vault.open(stored.id, stored.value_cipher) : null;
         if (!key && production) throw new TryLater('NO_KEY');
         if (key && !real && !allowedOutsideProduction(facts.to, devRecipients)) return fail(asApplication, sending, caseId, 'DEV_RECIPIENT');
-        // From here on, a second run sends nothing.
-        const taken = await asApplication((tx) => tx.sending.updateMany({ where: { id: sending, status: 'QUEUED' }, data: { status: 'UNCERTAIN' } }));
-        if (taken.count !== 1) return;
+        // From here on, a second run sends nothing. A joined letter is kept in the case with the line, at the same moment.
+        let attachment: Attachment | undefined;
+        if (letter && letters) {
+          const today = dayOf(moment);
+          const file = await letters.storage.put(letter.bytes);
+          const { title, category } = letter;
+          try {
+            await asApplication(async (tx) => {
+              const found = await tx.case.findFirst({ where: { id: caseId }, select: { creditorId: true } });
+              if (!found) throw new GiveUp('UNKNOWN_CASE');
+              const document = await tx.document.create({
+                data: {
+                  caseId,
+                  creditorId: found.creditorId,
+                  category,
+                  kind: 'PDF',
+                  title: `${title} (e-mail)`,
+                  originalName: `courrier-${today}.pdf`,
+                  storageKey: file.key,
+                  sizeBytes: file.size,
+                  sha256: file.sha256,
+                  source: 'GENERATED',
+                  scanStatus: 'CLEAN',
+                  scannedAt: new Date(),
+                },
+                select: { id: true },
+              });
+              const { count } = await tx.sending.updateMany({
+                where: { id: sending, status: 'QUEUED' },
+                data: { status: 'UNCERTAIN', documentId: document.id },
+              });
+              if (count !== 1) throw new GiveUp('ALREADY_TAKEN');
+            });
+          } catch (error) {
+            await letters.storage.remove(file.key);
+            if (error instanceof GiveUp && error.code === 'ALREADY_TAKEN') return;
+            throw error;
+          }
+          attachment = { filename: `courrier-${today}.pdf`, content: letter.bytes };
+        } else {
+          const taken = await asApplication((tx) => tx.sending.updateMany({ where: { id: sending, status: 'QUEUED' }, data: { status: 'UNCERTAIN' } }));
+          if (taken.count !== 1) return;
+        }
         if (!key) {
           await simulate(message);
           await sent(asApplication, asAuthor, sending, caseId, level, { simulated: true });
@@ -343,7 +402,7 @@ export function sendingJobs({
         }
         let ref: string;
         try {
-          ({ ref } = await resend.send(key, message, `sending/${sending}`, sending));
+          ({ ref } = await resend.send(key, message, `sending/${sending}`, sending, attachment));
         } catch (error) {
           if (error instanceof ProviderRefused) return fail(asApplication, sending, caseId, error.code, 'UNCERTAIN');
           // Nothing clear came back: the line stays uncertain, and so does its task.

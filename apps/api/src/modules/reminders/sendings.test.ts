@@ -369,8 +369,10 @@ describe('a justified override of the cap (question 214)', () => {
     expect((await remind('officerA', second, { capOverride: REASON })).status).toBe(403);
     const [contact] = await rows<{ id: string; creditor_id: string }>('SELECT id, creditor_id FROM case_contacts WHERE case_id = $1', [second.id]);
     expect(
-      await asStaff(test.s.officerA, (tx) =>
-        tx.$executeRaw`INSERT INTO sendings (case_id, creditor_id, channel, template, level, contact_id, cap_override_reason)
+      await asStaff(
+        test.s.officerA,
+        (tx) =>
+          tx.$executeRaw`INSERT INTO sendings (case_id, creditor_id, channel, template, level, contact_id, cap_override_reason)
           VALUES (${second.id}::uuid, ${contact!.creditor_id}::uuid, 'EMAIL', 'FIRM', 2, ${contact!.id}::uuid, ${REASON})`,
       ),
     ).toBe('42501');
@@ -446,12 +448,18 @@ describe('an uncertain sending decided by a person', () => {
     );
     await rows("UPDATE sendings SET status = 'UNCERTAIN' WHERE id = $1", [line!.id]);
     await rows('UPDATE cases SET first_letter_on = NULL, first_letter_reference = NULL WHERE id = $1', [made.id]);
-    const item = (await call('manager', 'GET', '/sendings/uncertain')).body as { items: { id: string; channel: string; level: number | null; letter: string | null }[] };
+    const item = (await call('manager', 'GET', '/sendings/uncertain')).body as {
+      items: { id: string; channel: string; level: number | null; letter: string | null }[];
+    };
     expect(item.items.find((entry) => entry.id === line!.id)).toMatchObject({ channel: 'REGISTERED_LETTER', level: null, letter: 'FRIENDLY' });
     expect((await settle('manager', line!.id, 'SENT')).status).toBe(204);
     expect(await rows('SELECT status FROM sendings WHERE id = $1', [line!.id])).toEqual([{ status: 'SENT' }]);
-    expect((await events(made.id, 'REMINDER_SENT')).map((event) => [event.title, event.detail])).toEqual([['Relance notée partie', 'Courrier recommandé · relance amiable']]);
-    expect(await rows('SELECT first_letter_on, first_letter_reference FROM cases WHERE id = $1', [made.id])).toEqual([{ first_letter_on: null, first_letter_reference: null }]);
+    expect((await events(made.id, 'REMINDER_SENT')).map((event) => [event.title, event.detail])).toEqual([
+      ['Relance notée partie', 'Courrier recommandé · relance amiable'],
+    ]);
+    expect(await rows('SELECT first_letter_on, first_letter_reference FROM cases WHERE id = $1', [made.id])).toEqual([
+      { first_letter_on: null, first_letter_reference: null },
+    ]);
   });
 });
 
@@ -816,6 +824,50 @@ describe('the reminder leaves by the provider', () => {
     // The key is in no log, no table but the vault, and no queue.
     for (const line of test.logs) expect(line).not.toContain(KEY);
     expect(await rows('SELECT 1 FROM outbox WHERE payload::text LIKE $1', [`%${KEY}%`])).toEqual([]);
+  });
+
+  it('carries the letter of the same level as a PDF, kept in the case (Rédiger un courrier, « E-mail avec PDF joint »)', async () => {
+    await rows(
+      "INSERT INTO settings (key, value, updated_by) VALUES ('firm.cabinet.address', to_jsonb('12 rue de la Paix, 75002 Paris'::text), $1) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+      [test.s.director],
+    );
+    const compose = (made: Made, body: Record<string, unknown> = {}) =>
+      call('officerA', 'POST', '/documents/compose', {
+        template: 'FIRM',
+        caseIds: [made.id],
+        filters: null,
+        expected: 1,
+        channel: 'EMAIL_PDF',
+        delay: 15,
+        months: 4,
+        options: { table: true, pay: true, indemnity: true },
+        ...body,
+      });
+    const placed = async (made: Made) => {
+      await rows("UPDATE cases SET debtor_address = '14 avenue des Tilleuls', debtor_postal_code = '69003', debtor_city = 'Lyon' WHERE id = $1", [made.id]);
+      return made;
+    };
+    const made = await placed(await eligible(test.s.officerA));
+    asked.splice(0);
+    expect((await compose(made)).status).toBe(204);
+    await worker.run();
+    expect(await sendings(made.id)).toEqual([{ status: 'SENT', simulated: false, provider_ref: 'ref-1', failure: null, level: 2 }]);
+    const [request] = asked.splice(0);
+    const sent = JSON.parse(request!.body) as { subject: string; attachments: { filename: string; content: string }[] };
+    // The validated e-mail of the level, and the letter joined: a PDF named by its day, nothing of the debtor.
+    expect(sent.subject).not.toBe('');
+    expect(sent.attachments).toHaveLength(1);
+    expect(sent.attachments[0]!.filename).toMatch(/^courrier-\d{4}-\d{2}-\d{2}\.pdf$/u);
+    expect(Buffer.from(sent.attachments[0]!.content, 'base64').subarray(0, 5).toString()).toBe('%PDF-');
+    expect(await rows('SELECT d.title, d.source FROM documents d JOIN sendings s ON s.document_id = d.id WHERE s.case_id = $1', [made.id])).toEqual([
+      { title: 'Relance ferme (e-mail)', source: 'GENERATED' },
+    ]);
+    // The rules of an e-mail reminder, and an address for the letter.
+    const individual = await placed(await eligible(test.s.officerA, { kind: 'INDIVIDUAL' }));
+    expect((await compose(individual)).body).toEqual({ code: 'INDIVIDUAL' });
+    expect((await compose(await eligible(test.s.officerA))).body).toEqual({ code: 'NO_ADDRESS' });
+    const without = await placed(await eligible(test.s.officerA, { firstLetter: false }));
+    expect((await compose(without)).body).toEqual({ code: 'NO_FIRST_LETTER' });
   });
 
   it('never writes, outside production, to an address that is neither a test one nor listed by the firm', async () => {

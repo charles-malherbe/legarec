@@ -24,8 +24,8 @@ const QUOTES_FIRST_LETTER: ReadonlySet<string> = new Set(['FIRM', 'FORMAL_NOTICE
 
 /**
  * « Rédiger un courrier » (Documents). One case at a time: a registered or a plain letter by MySendingBox, with the rules of
- * the registered letter of the case card, or the PDF alone, kept in the case. The other channels (e-mail with the PDF, link
- * to sign), the payment plan, the clearance certificate and the grouped sending are not open yet: 409 `NOT_AVAILABLE`.
+ * the registered letter of the case card; the validated e-mail of the same level with the letter joined, with the rules of
+ * an e-mail reminder; or the PDF alone, kept in the case. The link to sign, the payment plan, the clearance certificate and the grouped sending are not open yet: 409 `NOT_AVAILABLE`.
  */
 @Injectable()
 export class ComposeService {
@@ -82,7 +82,9 @@ export class ComposeService {
         lastReminder: sent ? dayOf(sent) : null,
         firstLetter: item.firstLetterReference && item.firstLetterOn ? { reference: item.firstLetterReference, date: dayOf(item.firstLetterOn) } : null,
         interest: owed.interest,
-        invoices: ledger.invoices.filter((invoice) => invoice.principalLeft > 0).map((invoice) => ({ number: invoice.number, due: invoice.dueOn, amount: invoice.principalLeft })),
+        invoices: ledger.invoices
+          .filter((invoice) => invoice.principalLeft > 0)
+          .map((invoice) => ({ number: invoice.number, due: invoice.dueOn, amount: invoice.principalLeft })),
       });
     }
     return {
@@ -102,6 +104,7 @@ export class ComposeService {
     const [caseId] = body.caseIds as [string];
     const template = body.template as 'FRIENDLY' | 'FIRM' | 'FORMAL_NOTICE';
     if (body.channel === 'REGISTERED_LETTER' || body.channel === 'LETTER') return this.sendings.letter(caseId, template, body.channel, body.delay);
+    if (body.channel === 'EMAIL_PDF') return this.sendings.emailWithLetter(caseId, template, body.delay);
     if (body.channel !== 'DOWNLOAD') throw conflict('NOT_AVAILABLE');
     const { tx } = this.database;
     const found = await tx.case.findFirst({

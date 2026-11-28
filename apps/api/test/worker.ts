@@ -17,7 +17,7 @@ import { planJobs } from '../src/modules/payments/plans.jobs';
 import { receiptJobs } from '../src/modules/payments/receipts.jobs';
 import { resendEventJobs } from '../src/modules/reminders/resend-events.jobs';
 import { letterEventJobs, type LetterTracking } from '../src/modules/reminders/letter-events.jobs';
-import { letterJobs } from '../src/modules/reminders/letters.jobs';
+import { letterJobs, letterPreparer } from '../src/modules/reminders/letters.jobs';
 import { sendingJobs } from '../src/modules/reminders/sendings.jobs';
 import { MySendingBoxClient, type FormClient } from '../src/letters/mysendingbox';
 import { PdfRenderer } from '../src/platform/pdf/pdf';
@@ -123,6 +123,15 @@ export function startMailWorker(
         devRecipients: DEV_RECIPIENTS,
         simulate: (message) => Promise.resolve(void simulated.push(message)),
         ...(now ? { now } : {}),
+        letters: {
+          prepare: letterPreparer({
+            database,
+            pdf: { render: (html) => (letterPages.push(html), pdf.render(html)) },
+            templates: fileURLToPath(new URL('../templates/pdf/', import.meta.url)),
+            portal: test.config.DEBTOR_PORTAL_URL,
+          }),
+          storage: storageFor(test.config),
+        },
       }),
       ...letterJobs({
         database,
