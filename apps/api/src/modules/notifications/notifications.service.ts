@@ -133,6 +133,18 @@ export class NotificationsService {
                     href: '/debiteurs',
                     cta: 'Voir les dossiers',
                   };
+          case 'FILES_SWEEP':
+            return {
+              text: 'Stockage des documents : le balayage de la nuit a trouvé des fichiers sans ligne en base, ou s’est arrêté. Le journal du worker (« orphan-files ») donne les nombres.',
+              meta: 'Exploitation',
+              ...HERE,
+            };
+          case 'ANTIVIRUS_DOWN':
+            return {
+              text: 'Antivirus : ClamAV ne répond plus. Les fichiers reçus attendent leur analyse et restent illisibles jusqu’à son retour.',
+              meta: 'Exploitation',
+              ...HERE,
+            };
           case 'DEBTOR_ACCESS_ALERT':
             return {
               text: 'Accès débiteur : plus de 200 codes faux en une heure. Les adresses en cause sont suspendues 15 minutes.',

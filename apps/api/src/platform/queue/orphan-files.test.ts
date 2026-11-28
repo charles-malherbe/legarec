@@ -9,7 +9,7 @@ import { createLogger } from '../logging/logger';
 import { pathOf } from '../storage/bucket';
 import { Storage } from '../storage/storage';
 import { ORPHAN_ALARM, ORPHAN_DELAY_MS } from '../storage/sweep';
-import { holdSweep, maintenance, nightSweep, purge, resumeSweep, sweepFiles, sweepHeld } from './maintenance';
+import { checkAntivirus, holdSweep, maintenance, nightSweep, purge, resumeSweep, sweepFiles, sweepHeld } from './maintenance';
 
 let test: TestDatabase;
 let s: Seed;
@@ -213,5 +213,43 @@ describe('which keys a row holds', () => {
     } finally {
       await rows('ROLLBACK');
     }
+  });
+});
+
+describe('what goes wrong on the server, told to the Developer (question 231)', () => {
+  const told = async (kind: string) => rows<{ user_id: string }>('SELECT user_id FROM notifications WHERE kind::text = $1', [kind]);
+  const clear = () => rows("DELETE FROM notifications WHERE kind::text IN ('FILES_SWEEP', 'ANTIVIRUS_DOWN')");
+
+  it('says a file without a row found by the night, once a day', async () => {
+    await clear();
+    await nightSweep(jobs, logger, storage);
+    expect(await told('FILES_SWEEP')).toEqual([]);
+    await file();
+    await nightSweep(jobs, logger, storage);
+    await file();
+    await nightSweep(jobs, logger, storage);
+    expect(await told('FILES_SWEEP')).toEqual([{ user_id: s.developer }]);
+  });
+
+  it('says a sweep that stopped, and lets it fail all the same', async () => {
+    await clear();
+    for (let index = 0; index < ORPHAN_ALARM.files + 1; index += 1) await file();
+    await expect(nightSweep(jobs, logger, storage)).rejects.toMatchObject({ name: 'SweepRefused', code: 'TOO_MANY' });
+    expect(await told('FILES_SWEEP')).toEqual([{ user_id: s.developer }]);
+    await sweepFiles(jobs, logger, storage, 'force', (await orphans()).length);
+  });
+
+  it('says an antivirus that no longer answers, twice in a row, once a day', async () => {
+    await clear();
+    let answers = [false, true];
+    const scanner = { ping: () => Promise.resolve(answers.shift() ?? false) };
+    // Once silent, then back: nobody is told.
+    expect(await checkAntivirus(jobs, logger, scanner, 0)).toBe(true);
+    expect(await told('ANTIVIRUS_DOWN')).toEqual([]);
+    answers = [];
+    expect(await checkAntivirus(jobs, logger, scanner, 0)).toBe(false);
+    expect(await checkAntivirus(jobs, logger, scanner, 0)).toBe(false);
+    expect(await told('ANTIVIRUS_DOWN')).toEqual([{ user_id: s.developer }]);
+    expect(written.join('')).toContain('antivirus does not answer');
   });
 });

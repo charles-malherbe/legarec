@@ -29,7 +29,7 @@ import { readWorkerConfig } from './platform/config/config';
 import { Database } from './platform/database/database';
 import { createLogger } from './platform/logging/logger';
 import { startWorkers, type JobHandlers, type ScheduledHandlers, type Workers } from './platform/queue/jobs';
-import { maintenance, scheduleMaintenance, scheduleRepeated } from './platform/queue/maintenance';
+import { checkAntivirus, maintenance, scheduleMaintenance, scheduleRepeated } from './platform/queue/maintenance';
 import { OutboxPublisher } from './platform/queue/publisher';
 import { connectValkey, whenReady } from './platform/queue/valkey';
 
@@ -144,8 +144,14 @@ async function main() {
   if (stopping) return;
   // Started again by its container, in a clean state.
   const onDead = () => void stop(1);
+  const night = maintenance(database, logger, storage, resealAll);
   const scheduled: ScheduledHandlers = {
-    ...maintenance(database, logger, storage, resealAll),
+    ...night,
+    maintenance: {
+      ...night.maintenance,
+      // Only the worker reaches clamd: it asks it every 10 minutes, and tells the Developer when it no longer answers.
+      ...(scanner ? { 'antivirus-check': async () => void (await checkAntivirus(database, logger, scanner)) } : {}),
+    },
     // Something new on a case: its summary, once the case has been quiet for a few minutes (docs/ia.md).
     // No reminder stays queued for ever: abandoned or too old, it fails and the case says so.
     reminders: {
@@ -166,6 +172,13 @@ async function main() {
   const schedule = () =>
     Promise.all([
       scheduleMaintenance(connection).catch(() => logger.warn('maintenance not scheduled')),
+      ...(scanner
+        ? [
+            scheduleRepeated(connection, { queue: 'maintenance', name: 'antivirus-check', pattern: '*/10 * * * *', attempts: 1 }).catch(() =>
+              logger.warn('check of the antivirus not scheduled'),
+            ),
+          ]
+        : []),
       scheduleRepeated(connection, { queue: 'reminders', name: 'sendings-sweep', pattern: '*/5 * * * *', attempts: 1 }).catch(() =>
         logger.warn('sweep of the sendings not scheduled'),
       ),
