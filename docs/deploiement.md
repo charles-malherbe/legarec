@@ -19,7 +19,7 @@ Première partie du lot X. Fichiers préparés par Claude Code, vérifiés par G
 | `valkey` | Files d'attente | 10115 | 512 Mo | non |
 | `clamav` | Antivirus des fichiers reçus (clamd), joint par le worker seul | 10116 | 2 Go | non |
 | `freshclam` | Mise à jour des signatures de l'antivirus (même image) | 10116 | 384 Mo | oui (signatures) |
-| `journaux`, `loki`, `grafana` | Journaux techniques, 60 jours | 10113, 10001, 10114 | 96, 384 et 320 Mo | non |
+| `journaux`, `loki` | Journaux techniques, 60 jours | 10113, 10001 | 96 et 384 Mo | non |
 | `n8n` | Automatisations (`n8n.legarec.fr`, adresses du cabinet seulement), joint Caddy, l'API et les contrôles internes | 10117 | 1 Go | oui (services appelés par les automatisations) |
 
 Conteneurs permanents : 8,3 Go au plus, dont 2,4 Go pour ClamAV et 1 Go pour n8n. Aucun conteneur ne tourne en root, ni sous le compte 1000 (premier compte du serveur). Systèmes de fichiers en lecture seule, aucun droit Linux, réseaux séparés et fermés au serveur lui-même : un portail ne joint pas la base, n8n ne joint de Legarec que l'API, et un autre compte du serveur ne joint ni l'API, ni Loki, ni la base.
@@ -29,7 +29,7 @@ Conteneurs permanents : 8,3 Go au plus, dont 2,4 Go pour ClamAV et 1 Go pour n8n
 | `docker-compose.yml`, `infra/docker/` | Conteneurs et images |
 | `infra/caddy/` | Proxy et serveur des portails |
 | `infra/postgres/`, `infra/valkey/` | Base, sauvegardes, files |
-| `infra/loki/`, `infra/grafana/`, `infra/hyperping/` | Journaux et surveillance |
+| `infra/loki/`, `infra/hyperping/` | Journaux et surveillance |
 | `infra/systemd/` | Minuteries des sauvegardes, de leur vérification et de l'essai de restauration |
 | `infra/valeurs/` | Modèles des fichiers de `/etc/legarec/` (noms seulement) |
 | `infra/deployer.sh` | Déploiement, lancé par le cabinet |
@@ -78,7 +78,6 @@ Un fichier par conteneur dans `/etc/legarec/`, d'après `infra/valeurs/*.exemple
 | `pgbackrest.env` | 999 | `PGBACKREST_REPO1_S3_REGION`, `PGBACKREST_REPO1_S3_ENDPOINT`, `PGBACKREST_REPO1_S3_KEY`, `PGBACKREST_REPO1_S3_KEY_SECRET`, `PGBACKREST_REPO1_CIPHER_PASS` |
 | `restauration.env` | 999 | Les mêmes noms que `pgbackrest.env`, avec la clé en lecture seule |
 | `valkey.env` | 10115 | `VALKEY_PASSWORD` |
-| `grafana.env` | 10114 | `GF_SECURITY_ADMIN_PASSWORD`, `GF_SECURITY_SECRET_KEY` |
 | `n8n.env` | 10117 | `N8N_ENCRYPTION_KEY` : celle de l'ancien n8n s'il est repris (« n8n », plus bas), sinon `openssl rand -hex 32` |
 | `hyperping.env` (facultatif) | root, 600 | `HYPERPING_PING_SAUVEGARDE`, `HYPERPING_PING_RESTAURATION` (« Healthchecks », plus bas) |
 
@@ -225,8 +224,7 @@ Après le premier déploiement, puis après chaque changement de ces fichiers.
 - [ ] Les trois portails s'ouvrent en HTTPS, cadenas valide, aucune erreur dans la console du navigateur.
 - [ ] `http://` et `www.` mènent à l'adresse en `https://` sans `www`.
 - [ ] `https://api.legarec.fr/health` répond ; `https://api.legarec.fr/service/x` répond 404.
-- [ ] Depuis un téléphone hors du Wi-Fi du cabinet : `n8n.legarec.fr` et `status.legarec.fr/journaux` répondent 403 ; `status.legarec.fr` renvoie vers `/journaux/`.
-- [ ] Depuis le cabinet : `status.legarec.fr/journaux` demande un mot de passe.
+- [ ] Depuis un téléphone hors du Wi-Fi du cabinet : `n8n.legarec.fr` répond 403.
 - [ ] En IPv4 et en IPv6 : deux appareils de réseaux différents sont vus avec deux adresses différentes (journal d'audit).
 
 **Sauvegardes**
@@ -237,7 +235,7 @@ Après le premier déploiement, puis après chaque changement de ces fichiers.
 **Surveillance**
 - [ ] `legarec stop worker` : alerte reçue en moins de 10 minutes ; `legarec start worker` : message de rétablissement.
 - [ ] Contrôle « Documents » en vert dans les contrôles internes (le bucket `legarec-documents` répond 403 à un inconnu). En rouge : bucket pas encore créé, autre région, ou réponse d'OVHcloud différente de celle attendue (jamais essayé, « Bucket des documents »).
-- [ ] Journaux visibles dans Grafana ; chercher un nom, un e-mail, une référence et un lien de courrier connus : aucun résultat.
+- [ ] Journaux lus sur le serveur (« Lire les journaux », ci-dessous) ; chercher un nom, un e-mail, une référence et un lien de courrier connus : aucun résultat.
 
 **Serveur**
 - [ ] `legarec ps` : tous en marche ; seul `caddy` publie des ports.
@@ -261,7 +259,11 @@ Journaux : ni adresse IP, ni chemin, ni en-tête dans ceux de Caddy ; ni requêt
 
 ## Choix faits, à connaître
 - **Valeurs lues dans un fichier monté**, jamais dans l'environnement du conteneur : `docker inspect` ne montre rien. `pgbackrest.env` est monté dans deux conteneurs, seule exception : c'est PostgreSQL qui envoie son journal.
-- **Grafana** : `status.legarec.fr/journaux`, depuis les adresses du cabinet (aucun nouveau domaine).
+- **Journaux sans écran** (28/11/2026) : ni Grafana ni `status.legarec.fr`. Loki les garde 60 jours ; ils se lisent sur le serveur, par un conteneur de passage de l'image du worker posé sur le seul réseau des journaux :
+
+  ```bash
+  cd /opt/legarec && sudo docker run --rm --network legarec-app_journaux --entrypoint node "legarec/worker:$(sed -n 's/^LEGAREC_VERSION=//p' /etc/legarec/version.env)" -e "fetch('http://loki:3100/loki/api/v1/query_range?limit=200&query=' + encodeURIComponent(process.argv[1])).then((r) => r.text()).then((t) => process.stdout.write(t))" '{application="legarec",container=~".*api.*"}'
+  ```
 - **Journaux** : Docker les remet à un collecteur par un fichier de communication propre à Legarec ; ni accès à Docker, ni lecture des autres conteneurs du serveur.
 - **Images construites sur le serveur**, rien n'est publié. Chaque version porte le numéro du commit.
 - **Bucket injoignable** : le journal de PostgreSQL attend sur le disque, 8 Go au plus (près de 2 jours à plein débit), puis il est abandonné plutôt que de remplir le disque ; l'alerte arrive avant (26 heures sans sauvegarde).

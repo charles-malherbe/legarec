@@ -63,10 +63,9 @@ Décisions du 24/11/2026, reprises de l'annexe « Architecture » de `PROMPT-FRO
     (CSP, X-Content-Type-Options, Referrer-Policy, Permissions-Policy) ; compression ; journaux d'accès JSON
     sans données personnelles ni paramètres de requête.
   - Routage : espace, partenaires et paiement vers leurs conteneurs de fichiers statiques (repli sur index.html pour
-    les routes du front) ; api.legarec.fr vers l'API ; n8n.legarec.fr vers son conteneur, status.legarec.fr vers Grafana,
+    les routes du front) ; api.legarec.fr vers l'API ; n8n.legarec.fr vers son conteneur,
     n8n restreint (adresses IP autorisées ou authentification devant).
-  - status.legarec.fr : plus de page d'état ; seulement les journaux (Grafana, status.legarec.fr/journaux), depuis les
-    adresses IP autorisées. Le reste du domaine renvoie vers /journaux/ (302).
+  - status.legarec.fr : retiré le 28/11/2026 (ni page d'état ni Grafana).
   - Redirections, une par ligne dans le Caddyfile avec un commentaire, sans transmettre de paramètre ni de donnée
     personnelle :
     - http → https sur tous les sous-domaines (automatique) ;
@@ -77,7 +76,7 @@ Décisions du 24/11/2026, reprises de l'annexe « Architecture » de `PROMPT-FRO
   - La redirection d'un compte connecté vers le bon portail reste faite par l'application, pas par Caddy.
   - Les conteneurs internes (API, PostgreSQL, Valkey, workers) ne publient aucun port sur l'hôte.
   - Caddy de développement séparé, avec certificats locaux ; Claude Code ne touche jamais au Caddy de production.
-- Journaux : JSON (pino), centralisés dans Loki et consultés dans Grafana ; données personnelles et bancaires masquées.
+- Journaux : JSON (pino), centralisés dans Loki (60 jours) et lus sur le serveur (docs/deploiement.md) ; données personnelles et bancaires masquées.
 - n8n passe par l'API avec un compte de service aux droits limités, jamais directement par PostgreSQL.
 - Mises à jour : versions exactes figées ; Renovate (application GitHub) propose les mises à jour regroupées,
   vérifiées par pnpm verifier dans GitHub Actions avant fusion.

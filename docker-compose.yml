@@ -64,7 +64,6 @@ services:
       portails:
       api:
       automatisations:
-      etat:
     healthcheck:
       <<: *health
       test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1:8081/health']
@@ -363,40 +362,6 @@ services:
     memswap_limit: 384m
     networks: [journaux]
 
-  # Technical logs on screen: status.legarec.fr/journaux, from the addresses of the firm only.
-  grafana:
-    <<: *container
-    image: legarec/grafana:${LEGAREC_VERSION:?}
-    build: { context: ., dockerfile: infra/docker/grafana.Dockerfile }
-    user: '10114:10114'
-    environment:
-      GF_SERVER_ROOT_URL: https://status.legarec.fr/journaux/
-      GF_SERVER_SERVE_FROM_SUB_PATH: 'true'
-      GF_SECURITY_COOKIE_SECURE: 'true'
-      GF_SECURITY_COOKIE_SAMESITE: strict
-      GF_SECURITY_DISABLE_GRAVATAR: 'true'
-      GF_USERS_ALLOW_SIGN_UP: 'false'
-      GF_AUTH_ANONYMOUS_ENABLED: 'false'
-      GF_ANALYTICS_REPORTING_ENABLED: 'false'
-      GF_ANALYTICS_CHECK_FOR_UPDATES: 'false'
-      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: 'false'
-      GF_NEWS_NEWS_FEED_ENABLED: 'false'
-      GF_PLUGINS_PREINSTALL_DISABLED: 'true'
-      GF_LOG_MODE: console
-      # A warning quotes the address of who failed to sign in.
-      GF_LOG_LEVEL: error
-      # A snapshot would outlive the logs.
-      GF_SNAPSHOTS_ENABLED: 'false'
-      GF_SNAPSHOTS_EXTERNAL_ENABLED: 'false'
-    secrets: [grafana]
-    volumes: ['grafana-data:/var/lib/grafana']
-    mem_limit: 320m
-    memswap_limit: 320m
-    networks: [etat, journaux]
-    healthcheck:
-      <<: *health
-      test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1:3000/api/health']
-
 # A container only meets those it needs. Closed: no way out to the Internet, and no way in from the server itself, whose
 # other users would otherwise reach the containers by their addresses (logs, API behind Caddy).
 x-closed: &closed
@@ -413,7 +378,6 @@ networks:
     <<: *closed
     # Named in infra/postgres/pg_hba.conf: the only addresses that may open the database.
     ipam: { config: [{ subnet: 10.213.0.0/24 }] }
-  etat: *closed
   journaux: *closed
   antivirus: *closed
   # n8n, Caddy and the API.
@@ -434,7 +398,6 @@ volumes:
   valkey-data:
   clamav-data:
   loki-data:
-  grafana-data:
   n8n-data:
 
 # One file per container, owned by root, readable by the group of its container only (docs/deploiement.md).
@@ -447,5 +410,4 @@ secrets:
   pgbackrest: { file: /etc/legarec/pgbackrest.env }
   restauration: { file: /etc/legarec/restauration.env }
   valkey: { file: /etc/legarec/valkey.env }
-  grafana: { file: /etc/legarec/grafana.env }
   n8n: { file: /etc/legarec/n8n.env }

@@ -11,7 +11,6 @@
 | `mail.legarec.fr` | Envoi des e-mails automatiques (Resend) ; pas de réception |
 | `media.legarec.fr` | Fichiers publics (bucket legarec-media, sinon copie de `infra/media` servie par Caddy) : `e-mails/v1/`, `marque/`, `documents-publics/` |
 | `n8n.legarec.fr` | Automatisations (accès restreint) |
-| `status.legarec.fr` | Journaux techniques (Grafana, `/journaux`), depuis les adresses du cabinet ; plus de page d'état depuis le 28/11/2026 |
 | `legarec.on3cx.fr` | Standard téléphonique 3CX (hébergé par 3CX) |
 
 ## Proxy inverse (Caddy)

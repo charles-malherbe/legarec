@@ -138,25 +138,6 @@ api.legarec.fr {
 	}
 }
 
-status.legarec.fr {
-	import security
-	import access_log
-	header {
-		Referrer-Policy "no-referrer"
-		X-Frame-Options "DENY"
-	}
-	# Technical logs (Grafana), from the addresses of the firm only, behind its own password.
-	@logs path /journaux /journaux/*
-	handle @logs {
-		import firm_only
-		reverse_proxy grafana:3000
-	}
-	# Nothing else is served here (no status page since 28/11/2026).
-	handle {
-		redir https://status.legarec.fr/journaux/ 302
-	}
-}
-
 n8n.legarec.fr {
 	import security
 	import access_log

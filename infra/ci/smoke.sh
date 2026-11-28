@@ -77,12 +77,9 @@ ok 'media copy'
 
 # Addresses of the firm only
 expect 403 https://n8n.legarec.fr/
-expect 403 https://status.legarec.fr/journaux/
-expect 302 https://status.legarec.fr/
 expect 403 https://n8n.legarec.fr/ --header 'X-Forwarded-For: 192.0.2.1' --header 'Forwarded: for=192.0.2.1'
 sed -i 's/^AUTHORIZED_IPS=.*/AUTHORIZED_IPS=172.16.0.0\/12 192.168.0.0\/16 10.0.0.0\/8 fd00::\/8/' /etc/legarec/caddy.env
 docker compose up --detach --wait --force-recreate caddy
-expect 200 https://status.legarec.fr/journaux/login
 expect 200 https://n8n.legarec.fr/healthz
 ok 'addresses of the firm'
 
@@ -190,7 +187,12 @@ status "https://paiement.legarec.fr/$mark?email=$mark" > /dev/null
 status "https://api.legarec.fr/debtor/$mark?code=$mark" > /dev/null
 curl --silent --insecure --output /dev/null --resolve api.legarec.fr:443:127.0.0.1 --request-target "https://api.legarec.fr/debtor/$mark?code=$mark" https://api.legarec.fr/
 status "https://media.legarec.fr/$mark?code=$mark" --user-agent "$mark" --cookie "a=$mark" > /dev/null
-loki() { docker compose exec -T grafana wget -qO- "http://loki:3100/loki/api/v1/$1"; }
+# Read from a passing container of the worker's image, on the network of the logs alone.
+worker_image="$(docker inspect --format '{{.Config.Image}}' "$(docker compose ps --quiet worker)")"
+loki() {
+  docker run --rm --network legarec-app_journaux --entrypoint node "$worker_image" -e \
+    "fetch('http://loki:3100/loki/api/v1/' + process.argv[1]).then((answer) => answer.text()).then((text) => process.stdout.write(text))" "$1"
+}
 for _ in $(seq 30); do
   loki 'query_range?query=%7Bapplication%3D%22legarec%22%2Ccontainer%3D~%22.*caddy.*%22%7D&limit=1000' > /tmp/caddy.json
   # The last of the requests above, the only 502: the bucket cannot be reached from here and the copy lacks this file.
