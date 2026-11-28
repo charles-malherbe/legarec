@@ -235,9 +235,13 @@ describe('Rédiger un courrier (question 210)', () => {
     await worker.run();
     expect(await lines(found.id)).toMatchObject([{ channel: 'LETTER', template: 'FRIENDLY', status: 'SENT', simulated: true, document: true }]);
     expect(await rows('SELECT title FROM documents WHERE case_id = $1', [found.id])).toEqual([{ title: 'Relance amiable (courrier simple)' }]);
-    const limit = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' }).format(new Date(Date.now() + 15 * 86_400_000));
+    const limit = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' }).format(
+      new Date(Date.now() + 15 * 86_400_000),
+    );
     expect(worker.letterPages.at(-1)).toContain(limit);
-    expect(await rows("SELECT detail FROM case_events WHERE case_id = $1 AND kind = 'REMINDER_SENT'", [found.id])).toEqual([{ detail: 'Courrier · relance amiable' }]);
+    expect(await rows("SELECT detail FROM case_events WHERE case_id = $1 AND kind = 'REMINDER_SENT'", [found.id])).toEqual([
+      { detail: 'Courrier · relance amiable' },
+    ]);
     // One letter at a time per case, whatever its channel.
     expect((await compose('officerA', { caseIds: [found.id], channel: 'REGISTERED_LETTER' })).status).toBe(204);
     expect((await compose('officerA', { caseIds: [found.id] })).body).toEqual({ code: 'REMINDER_PENDING' });
@@ -380,7 +384,10 @@ describe('posted for real (MYSENDINGBOX_ENV=production)', () => {
       [caseId],
     );
   const tracked = async (caseId: string) =>
-    (await rows<{ title: string; detail: string }>("SELECT title, detail FROM case_events WHERE case_id = $1 AND kind IN ('REMINDER_DELIVERED', 'REMINDER_UNDELIVERED') ORDER BY occurred_at", [caseId]));
+    await rows<{ title: string; detail: string }>(
+      "SELECT title, detail FROM case_events WHERE case_id = $1 AND kind IN ('REMINDER_DELIVERED', 'REMINDER_UNDELIVERED') ORDER BY occurred_at",
+      [caseId],
+    );
 
   it('is followed by what MySendingBox says when asked, never by the body of a webhook', async () => {
     const found = await sentLetter('ltr_track_1');
@@ -450,7 +457,14 @@ describe('posted for real (MYSENDINGBOX_ENV=production)', () => {
     expect(
       (
         await call('officerA', 'POST', '/documents/compose', {
-          template: 'FRIENDLY', caseIds: [found.id], filters: null, expected: 1, channel: 'LETTER', delay: 8, months: 4, options: { table: true, pay: true, indemnity: true },
+          template: 'FRIENDLY',
+          caseIds: [found.id],
+          filters: null,
+          expected: 1,
+          channel: 'LETTER',
+          delay: 8,
+          months: 4,
+          options: { table: true, pay: true, indemnity: true },
         })
       ).status,
     ).toBe(204);
@@ -489,12 +503,29 @@ describe('the events of a letter', () => {
   it('give each fact on the date of its first event, a delivery winning over a return', () => {
     const at = (minute: number) => new Date(Date.UTC(2026, 10, 20, 9, minute));
     expect(trackOf([])).toEqual({});
-    expect(trackOf([{ name: 'letter.created', at: at(0) }, { name: 'letter.accepted', at: at(1) }])).toEqual({});
-    expect(trackOf([{ name: 'letter.in_transit', at: at(5) }, { name: 'letter.sent', at: at(2) }, { name: 'letter.lost', at: at(9) }])).toEqual({
+    expect(
+      trackOf([
+        { name: 'letter.created', at: at(0) },
+        { name: 'letter.accepted', at: at(1) },
+      ]),
+    ).toEqual({});
+    expect(
+      trackOf([
+        { name: 'letter.in_transit', at: at(5) },
+        { name: 'letter.sent', at: at(2) },
+        { name: 'letter.lost', at: at(9) },
+      ]),
+    ).toEqual({
       posted: at(2),
       undelivered: { at: at(9), reason: 'LOST' },
     });
-    expect(trackOf([{ name: 'letter.sent', at: at(2) }, { name: 'letter.returned_to_sender', at: at(4) }, { name: 'letter.distributed', at: at(3) }])).toEqual({
+    expect(
+      trackOf([
+        { name: 'letter.sent', at: at(2) },
+        { name: 'letter.returned_to_sender', at: at(4) },
+        { name: 'letter.distributed', at: at(3) },
+      ]),
+    ).toEqual({
       posted: at(2),
       delivered: at(3),
     });

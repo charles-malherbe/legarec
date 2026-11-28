@@ -369,8 +369,10 @@ describe('a justified override of the cap (question 214)', () => {
     expect((await remind('officerA', second, { capOverride: REASON })).status).toBe(403);
     const [contact] = await rows<{ id: string; creditor_id: string }>('SELECT id, creditor_id FROM case_contacts WHERE case_id = $1', [second.id]);
     expect(
-      await asStaff(test.s.officerA, (tx) =>
-        tx.$executeRaw`INSERT INTO sendings (case_id, creditor_id, channel, template, level, contact_id, cap_override_reason)
+      await asStaff(
+        test.s.officerA,
+        (tx) =>
+          tx.$executeRaw`INSERT INTO sendings (case_id, creditor_id, channel, template, level, contact_id, cap_override_reason)
           VALUES (${second.id}::uuid, ${contact!.creditor_id}::uuid, 'EMAIL', 'FIRM', 2, ${contact!.id}::uuid, ${REASON})`,
       ),
     ).toBe('42501');
@@ -446,12 +448,18 @@ describe('an uncertain sending decided by a person', () => {
     );
     await rows("UPDATE sendings SET status = 'UNCERTAIN' WHERE id = $1", [line!.id]);
     await rows('UPDATE cases SET first_letter_on = NULL, first_letter_reference = NULL WHERE id = $1', [made.id]);
-    const item = (await call('manager', 'GET', '/sendings/uncertain')).body as { items: { id: string; channel: string; level: number | null; letter: string | null }[] };
+    const item = (await call('manager', 'GET', '/sendings/uncertain')).body as {
+      items: { id: string; channel: string; level: number | null; letter: string | null }[];
+    };
     expect(item.items.find((entry) => entry.id === line!.id)).toMatchObject({ channel: 'REGISTERED_LETTER', level: null, letter: 'FRIENDLY' });
     expect((await settle('manager', line!.id, 'SENT')).status).toBe(204);
     expect(await rows('SELECT status FROM sendings WHERE id = $1', [line!.id])).toEqual([{ status: 'SENT' }]);
-    expect((await events(made.id, 'REMINDER_SENT')).map((event) => [event.title, event.detail])).toEqual([['Relance notée partie', 'Courrier recommandé · relance amiable']]);
-    expect(await rows('SELECT first_letter_on, first_letter_reference FROM cases WHERE id = $1', [made.id])).toEqual([{ first_letter_on: null, first_letter_reference: null }]);
+    expect((await events(made.id, 'REMINDER_SENT')).map((event) => [event.title, event.detail])).toEqual([
+      ['Relance notée partie', 'Courrier recommandé · relance amiable'],
+    ]);
+    expect(await rows('SELECT first_letter_on, first_letter_reference FROM cases WHERE id = $1', [made.id])).toEqual([
+      { first_letter_on: null, first_letter_reference: null },
+    ]);
   });
 });
 
@@ -851,12 +859,9 @@ describe('the reminder leaves by the provider', () => {
     expect(sent.attachments).toHaveLength(1);
     expect(sent.attachments[0]!.filename).toMatch(/^courrier-\d{4}-\d{2}-\d{2}\.pdf$/u);
     expect(Buffer.from(sent.attachments[0]!.content, 'base64').subarray(0, 5).toString()).toBe('%PDF-');
-    expect(
-      await rows(
-        'SELECT d.title, d.source FROM documents d JOIN sendings s ON s.document_id = d.id WHERE s.case_id = $1',
-        [made.id],
-      ),
-    ).toEqual([{ title: 'Relance ferme (e-mail)', source: 'GENERATED' }]);
+    expect(await rows('SELECT d.title, d.source FROM documents d JOIN sendings s ON s.document_id = d.id WHERE s.case_id = $1', [made.id])).toEqual([
+      { title: 'Relance ferme (e-mail)', source: 'GENERATED' },
+    ]);
     // The rules of an e-mail reminder, and an address for the letter.
     const individual = await placed(await eligible(test.s.officerA, { kind: 'INDIVIDUAL' }));
     expect((await compose(individual)).body).toEqual({ code: 'INDIVIDUAL' });

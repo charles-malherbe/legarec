@@ -82,7 +82,9 @@ export class ComposeService {
         lastReminder: sent ? dayOf(sent) : null,
         firstLetter: item.firstLetterReference && item.firstLetterOn ? { reference: item.firstLetterReference, date: dayOf(item.firstLetterOn) } : null,
         interest: owed.interest,
-        invoices: ledger.invoices.filter((invoice) => invoice.principalLeft > 0).map((invoice) => ({ number: invoice.number, due: invoice.dueOn, amount: invoice.principalLeft })),
+        invoices: ledger.invoices
+          .filter((invoice) => invoice.principalLeft > 0)
+          .map((invoice) => ({ number: invoice.number, due: invoice.dueOn, amount: invoice.principalLeft })),
       });
     }
     return {

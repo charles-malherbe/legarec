@@ -945,6 +945,8 @@ describe('files of the storage', () => {
       'modules/payments/receipts.jobs.ts',
       // documents.storage_key, the registered letters (question 210)
       'modules/reminders/letters.jobs.ts',
+      // documents.storage_key, the letter joined to an e-mail (Rédiger un courrier)
+      'modules/reminders/sendings.jobs.ts',
     ]);
     // Nobody writes to the storage by another way.
     expect(calling(/\.put\(|\bnew (Storage|Folder|Bucket)\(|\.write\(key/u)).toEqual([
@@ -954,6 +956,7 @@ describe('files of the storage', () => {
       'modules/payments/plans.jobs.ts',
       'modules/payments/receipts.jobs.ts',
       'modules/reminders/letters.jobs.ts',
+      'modules/reminders/sendings.jobs.ts',
       'platform/storage/storage.ts',
     ]);
   });

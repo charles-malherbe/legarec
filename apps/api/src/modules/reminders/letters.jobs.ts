@@ -87,7 +87,15 @@ export type Prepared =
 type Facts = { refusal: string } | { refusal: undefined; to: PostalAddress; data: Record<string, unknown>; source: string; subject: string };
 
 /** What the letter says, read with the rights of the colleague who asked: as the case stands when it leaves. */
-async function factsOf(database: Database, tx: Transaction, caseId: string, template: LetterTemplate, today: string, portal: string, delay: number): Promise<Facts> {
+async function factsOf(
+  database: Database,
+  tx: Transaction,
+  caseId: string,
+  template: LetterTemplate,
+  today: string,
+  portal: string,
+  delay: number,
+): Promise<Facts> {
   const found = await tx.case.findFirst({
     where: { id: caseId, closedOn: null, anonymizedAt: null },
     select: {
@@ -188,7 +196,15 @@ async function factsOf(database: Database, tx: Transaction, caseId: string, temp
  * the e-mail reminders and the portal of the debtor open with it. The test key never makes one.
  */
 /** What writes the PDF of a letter: shared by the letters and by the e-mail that carries one (« E-mail avec PDF joint »). */
-export type LetterPreparer = (asAuthor: Run, asApplication: Run, caseId: string, template: LetterTemplate, mode: string, today: string, delay: number) => Promise<Prepared>;
+export type LetterPreparer = (
+  asAuthor: Run,
+  asApplication: Run,
+  caseId: string,
+  template: LetterTemplate,
+  mode: string,
+  today: string,
+  delay: number,
+) => Promise<Prepared>;
 
 export function letterPreparer({ database, pdf, templates, portal }: Pick<Parts, 'database' | 'pdf' | 'templates' | 'portal'>): LetterPreparer {
   const engine = Handlebars.create();
@@ -239,7 +255,15 @@ export function letterPreparer({ database, pdf, templates, portal }: Pick<Parts,
     }
     try {
       const { title, category } = LETTERS[template];
-      return { refusal: undefined, bytes: await pdf.render(html), to: facts.to, from: { name: firmText('name'), ...firmPostal }, firm: firmText, title, category };
+      return {
+        refusal: undefined,
+        bytes: await pdf.render(html),
+        to: facts.to,
+        from: { name: firmText('name'), ...firmPostal },
+        firm: firmText,
+        title,
+        category,
+      };
     } catch (error) {
       if (error instanceof FirmIncomplete) throw new TryLater('FIRM_INCOMPLETE');
       throw error;
@@ -271,7 +295,8 @@ export function letterJobs({ database, vault, storage, pdf, templates, mysending
       );
       if (!line) throw new GiveUp('UNKNOWN_SENDING');
       if (line.status !== 'QUEUED') return;
-      if ((line.channel !== 'REGISTERED_LETTER' && line.channel !== 'LETTER') || !(line.template in LETTERS)) return fail(asApplication, sending, caseId, 'NOT_AVAILABLE');
+      if ((line.channel !== 'REGISTERED_LETTER' && line.channel !== 'LETTER') || !(line.template in LETTERS))
+        return fail(asApplication, sending, caseId, 'NOT_AVAILABLE');
       const template = line.template as LetterTemplate;
       const settings = await asApplication((tx) => SettingValues.read(tx));
       const hours = contactHours((field) => settings.text('firm', 'relances', field));
@@ -280,7 +305,15 @@ export function letterJobs({ database, vault, storage, pdf, templates, mysending
       if (moment >= sendingDeadline(line.createdAt, hours)) return fail(asApplication, sending, caseId, 'EXPIRED');
       const today = dayOf(moment);
       const registered = line.channel === 'REGISTERED_LETTER';
-      const prepared = await prepare(asAuthor, asApplication, caseId, template, registered ? 'Lettre recommandée avec accusé de réception' : 'Lettre simple', today, delayOf(payload.delay));
+      const prepared = await prepare(
+        asAuthor,
+        asApplication,
+        caseId,
+        template,
+        registered ? 'Lettre recommandée avec accusé de réception' : 'Lettre simple',
+        today,
+        delayOf(payload.delay),
+      );
       if (prepared.refusal !== undefined) return fail(asApplication, sending, caseId, prepared.refusal);
       const { bytes, to, from } = prepared;
       const name = real ? 'MYSENDINGBOX_API_KEY' : 'MYSENDINGBOX_TEST_API_KEY';
@@ -353,11 +386,7 @@ export function letterJobs({ database, vault, storage, pdf, templates, mysending
       if (!key) return sent({ simulated: true }, false);
       let answer: { ref: string; test: boolean };
       try {
-        answer = await mysendingbox.send(
-          key,
-          { pdf: bytes, to, from, postage: registered ? 'lrar' : 'prioritaire', sending },
-          `sending/${sending}`,
-        );
+        answer = await mysendingbox.send(key, { pdf: bytes, to, from, postage: registered ? 'lrar' : 'prioritaire', sending }, `sending/${sending}`);
       } catch (error) {
         if (error instanceof ProviderRefused) return fail(asApplication, sending, caseId, error.code, 'UNCERTAIN');
         // Nothing clear came back: the line stays uncertain, and so does its task.

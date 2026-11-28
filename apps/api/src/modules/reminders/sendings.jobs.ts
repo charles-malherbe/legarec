@@ -379,7 +379,10 @@ export function sendingJobs({
                 },
                 select: { id: true },
               });
-              const { count } = await tx.sending.updateMany({ where: { id: sending, status: 'QUEUED' }, data: { status: 'UNCERTAIN', documentId: document.id } });
+              const { count } = await tx.sending.updateMany({
+                where: { id: sending, status: 'QUEUED' },
+                data: { status: 'UNCERTAIN', documentId: document.id },
+              });
               if (count !== 1) throw new GiveUp('ALREADY_TAKEN');
             });
           } catch (error) {
