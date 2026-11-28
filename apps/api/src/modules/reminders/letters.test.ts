@@ -4,7 +4,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { startApp, type TestApp } from '../../../test/app';
 import { startMailWorker, type MailWorker } from '../../../test/worker';
 import type { FormClient } from '../../letters/mysendingbox';
+import { letterNamed, trackOf } from '../../letters/mysendingbox';
 import { postalOf, streetLinesOf } from '../../letters/postal';
+import { sweepLetters } from './letter-events.jobs';
 import { PLACEHOLDER } from '../../platform/pdf/pdf';
 import { Vault } from '../vault/vault';
 
@@ -19,7 +21,7 @@ let answer: () => Promise<{ status: number; json(): Promise<unknown> }> = () =>
 const letters: FormClient = (url, init) => {
   const fields: Record<string, string> = {};
   let file: Blob | null = null;
-  for (const [name, value] of init.body.entries())
+  for (const [name, value] of init.body?.entries() ?? [])
     if (typeof value === 'string') fields[name] = value;
     else file = value;
   asked.push({ url, headers: init.headers, fields, file });
@@ -284,5 +286,110 @@ describe('posted for real (MYSENDINGBOX_ENV=production)', () => {
     expect(await lines(unclear.id)).toMatchObject([{ status: 'UNCERTAIN', failure: null, document: true }]);
     // Neither the address nor what MySendingBox said in the journals.
     for (const line of test.logs) expect(line).not.toContain('Tilleuls');
+  });
+  /** What MySendingBox says of the letter `ref` when asked. */
+  const knows = (ref: string, events: { name: string; created_at: string }[], mode = 'live') => {
+    answer = () => Promise.resolve({ status: 200, json: () => Promise.resolve({ _id: ref, mode, events, to: { address_line1: '14 avenue des Tilleuls' } }) });
+  };
+  const hook = (body: unknown) =>
+    test.call('POST', '/hooks/mysendingbox', { file: Buffer.from(JSON.stringify(body)), headers: { 'content-type': 'application/json' } });
+  const sentLetter = async (ref: string) => {
+    const found = await made();
+    answer = () => Promise.resolve({ status: 200, json: () => Promise.resolve({ _id: ref, mode: 'live' }) });
+    expect((await letter(found.id)).status).toBe(204);
+    await worker.run();
+    return found;
+  };
+  const facts = (caseId: string) =>
+    rows<{ posted: boolean; delivered: boolean; undelivered: string | null }>(
+      'SELECT confirmed_at IS NOT NULL AS posted, delivered_at IS NOT NULL AS delivered, undelivered_reason AS undelivered FROM sendings WHERE case_id = $1',
+      [caseId],
+    );
+  const tracked = async (caseId: string) =>
+    (await rows<{ title: string; detail: string }>("SELECT title, detail FROM case_events WHERE case_id = $1 AND kind IN ('REMINDER_DELIVERED', 'REMINDER_UNDELIVERED') ORDER BY occurred_at", [caseId]));
+
+  it('is followed by what MySendingBox says when asked, never by the body of a webhook', async () => {
+    const found = await sentLetter('ltr_track_1');
+    // The body says « distributed »; MySendingBox, asked, says only « sent ».
+    knows('ltr_track_1', [
+      { name: 'letter.created', created_at: new Date(Date.now() - 60_000).toISOString() },
+      { name: 'letter.sent', created_at: new Date().toISOString() },
+    ]);
+    asked.splice(0);
+    expect((await hook({ event: { name: 'letter.distributed', letter: 'ltr_track_1' }, letter: { _id: 'ltr_track_1' } })).status).toBe(204);
+    await worker.run();
+    expect(asked.map((call) => call.url)).toEqual(['https://api.mysendingbox.fr/letters/ltr_track_1']);
+    expect(asked[0]!.headers.authorization).toBe(`Basic ${Buffer.from('live_abcdefghij:').toString('base64')}`);
+    expect(await facts(found.id)).toEqual([{ posted: true, delivered: false, undelivered: null }]);
+    expect(await tracked(found.id)).toEqual([]);
+    // Then distributed, and asked by the clock: written once. Two webhooks of the same minute ask once (a minute may turn).
+    knows('ltr_track_1', [
+      { name: 'letter.sent', created_at: new Date(Date.now() - 30_000).toISOString() },
+      { name: 'letter.distributed', created_at: new Date().toISOString() },
+    ]);
+    const before = (await rows<{ n: number }>("SELECT count(*)::int AS n FROM outbox WHERE name = 'letter-refresh'"))[0]!.n;
+    for (let i = 0; i < 3; i += 1) expect((await hook({ event: { letter: 'ltr_track_1' } })).status).toBe(204);
+    const after = (await rows<{ n: number }>("SELECT count(*)::int AS n FROM outbox WHERE name = 'letter-refresh'"))[0]!.n;
+    // Once a minute at most for a letter: these three, and the first, ask once or twice.
+    expect(after - before).toBeLessThanOrEqual(1);
+    await worker.run();
+    await sweepLetters(worker.asWorker, worker.letterTracking);
+    expect(await facts(found.id)).toEqual([{ posted: true, delivered: true, undelivered: null }]);
+    expect(await tracked(found.id)).toEqual([{ title: 'Courrier distribué', detail: 'Courrier recommandé · relance amiable' }]);
+    // Delivered, it is no longer asked about by the clock.
+    asked.splice(0);
+    await sweepLetters(worker.asWorker, worker.letterTracking);
+    expect(asked.filter((call) => call.url.endsWith('ltr_track_1'))).toEqual([]);
+    for (const line of test.logs) expect(line).not.toContain('Tilleuls');
+  });
+
+  it('says when a letter came back, and leaves a letter it does not know, or of the other mode', async () => {
+    const found = await sentLetter('ltr_track_2');
+    knows('ltr_track_2', [
+      { name: 'letter.sent', created_at: new Date(Date.now() - 60_000).toISOString() },
+      { name: 'letter.returned_to_sender', created_at: new Date().toISOString() },
+    ]);
+    // Without any webhook: the clock asks the letters on their way.
+    asked.splice(0);
+    expect(await sweepLetters(worker.asWorker, worker.letterTracking)).toBeGreaterThanOrEqual(1);
+    expect(asked.map((call) => call.url)).toContain('https://api.mysendingbox.fr/letters/ltr_track_2');
+    expect(await facts(found.id)).toEqual([{ posted: true, delivered: false, undelivered: 'RETURNED' }]);
+    expect(await tracked(found.id)).toEqual([{ title: 'Courrier non distribué', detail: 'Courrier recommandé · relance amiable · retourné à l’expéditeur' }]);
+    // Unknown here: MySendingBox is not even asked. Nothing readable: 204 all the same.
+    asked.splice(0);
+    expect((await hook({ event: { letter: 'ltr_somebody_else' } })).status).toBe(204);
+    expect((await test.call('POST', '/hooks/mysendingbox')).status).toBe(204);
+    await worker.run();
+    expect(asked).toEqual([]);
+    // A test letter under one of our names changes nothing.
+    const other = await sentLetter('ltr_track_3');
+    knows('ltr_track_3', [{ name: 'letter.distributed', created_at: new Date().toISOString() }], 'test');
+    expect((await hook({ event: { letter: 'ltr_track_3' } })).status).toBe(204);
+    await worker.run();
+    expect(await facts(other.id)).toEqual([{ posted: false, delivered: false, undelivered: null }]);
+  });
+});
+
+describe('the events of a letter', () => {
+  it('give each fact on the date of its first event, a delivery winning over a return', () => {
+    const at = (minute: number) => new Date(Date.UTC(2026, 10, 20, 9, minute));
+    expect(trackOf([])).toEqual({});
+    expect(trackOf([{ name: 'letter.created', at: at(0) }, { name: 'letter.accepted', at: at(1) }])).toEqual({});
+    expect(trackOf([{ name: 'letter.in_transit', at: at(5) }, { name: 'letter.sent', at: at(2) }, { name: 'letter.lost', at: at(9) }])).toEqual({
+      posted: at(2),
+      undelivered: { at: at(9), reason: 'LOST' },
+    });
+    expect(trackOf([{ name: 'letter.sent', at: at(2) }, { name: 'letter.returned_to_sender', at: at(4) }, { name: 'letter.distributed', at: at(3) }])).toEqual({
+      posted: at(2),
+      delivered: at(3),
+    });
+  });
+  it('name a letter from the event or the letter of a webhook, and nothing else', () => {
+    const body = (value: unknown) => Buffer.from(JSON.stringify(value));
+    expect(letterNamed(body({ event: { letter: 'SkyVo5yIZ' } }))).toBe('SkyVo5yIZ');
+    expect(letterNamed(body({ letter: { _id: 'SkyVo5yIZ' } }))).toBe('SkyVo5yIZ');
+    expect(letterNamed(body({ event: { letter: '../accounts' } }))).toBeNull();
+    expect(letterNamed(Buffer.from('not json'))).toBeNull();
+    expect(letterNamed(new Uint8Array())).toBeNull();
   });
 });

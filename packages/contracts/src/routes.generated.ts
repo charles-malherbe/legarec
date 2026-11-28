@@ -1024,6 +1024,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/hooks/mysendingbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["HooksController_letterEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/staff/cases/litigation": {
         parameters: {
             query?: never;
@@ -4389,6 +4405,23 @@ export interface operations {
         };
     };
     HooksController_resendEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    HooksController_letterEvent: {
         parameters: {
             query?: never;
             header?: never;

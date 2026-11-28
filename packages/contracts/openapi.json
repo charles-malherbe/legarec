@@ -3820,6 +3820,23 @@
         }
       }
     },
+    "/hooks/mysendingbox": {
+      "post": {
+        "operationId": "HooksController_letterEvent",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "hooks"
+        ],
+        "x-access": {
+          "portal": "hook"
+        }
+      }
+    },
     "/staff/cases/litigation": {
       "post": {
         "operationId": "LitigationController_open",

@@ -353,6 +353,7 @@ export const MATRIX: Record<string, MatrixEntry> = {
 
   // Nobody signs in: without the signature of Resend, the same refusal for all (`resend-events.test.ts`).
   'POST /hooks/resend': { body: () => ({ type: 'email.delivered' }), expect: everyone(401) },
+  'POST /hooks/mysendingbox': { body: () => ({ event: { name: 'letter.distributed', letter: 'unknown_letter' } }), expect: everyone(204) },
   ...signIn('staff'),
   ...signIn('partner'),
   'GET /staff/auth/session': { expect: staffOf(200) },
