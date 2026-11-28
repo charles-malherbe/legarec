@@ -6,7 +6,7 @@ import { addedInvoices, caseCheck, caseNote, debtorCorrection, gdprRequestKind, 
 import { litigationOutcome, litigationStage, newReminder } from './collection';
 import { creditNoteDraftBody, creditNoteIssue } from './creditNotes';
 import { coordinate, coordinateKind, coordinateSource, emailCategory, outgoingMessage } from './communication';
-import { debtorAccess, debtorIdentifier, debtorMessage, debtorRequest, limitedMessage } from './debtor';
+import { debtorAccess, debtorIdentifier, debtorMessage, debtorRequest, limitedMessage, planAcceptance } from './debtor';
 import { depositAcceptance, depositRefusal } from './deposits';
 import { batchTemplate, composeChannel, installmentReminderBody, letterTemplate, REMINDER_BATCH_MAX } from './documents';
 import { bankAccountChange, bankAccountConfirmation, creditorChanges, mandateAmendment, newCreditor } from './creditors';
@@ -348,6 +348,7 @@ export const REQUEST_BODIES = {
     'POST /debtor/limited/messages': limitedMessage,
     'POST /debtor/cases/:id/messages': debtorMessage,
     'POST /debtor/cases/:id/requests': debtorRequest,
+    'POST /debtor/cases/:id/plan/acceptance': planAcceptance,
     'POST /debtor/attachments': fileBody,
   },
 } as const satisfies Record<string, Record<string, z.ZodType>>;

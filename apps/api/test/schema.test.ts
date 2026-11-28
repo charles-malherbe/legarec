@@ -197,7 +197,7 @@ describe('rights of the roles that face the outside', () => {
       'interest_rates SELECT (id, kind, rate_bp, valid_from)',
       'mandates SELECT (contract_rate_bp, creditor_id, fixed_indemnity, id, interest_mode)',
       'settings SELECT (key, value)',
-      'payment_plans SELECT (accepted_at, case_id, created_at, creditor_id, first_due_on, id, method, months, status, total_cents)',
+      'payment_plans SELECT (accepted_at, case_id, created_at, creditor_id, document_id, document_sha256, first_due_on, id, method, months, status, total_cents)',
       'debtors SELECT (id, kind, name, siren)',
       ...IDEMPOTENCY,
       'case_invoices SELECT (case_id, claimed_cents, creditor_id, due_on, external_ref, id, issued_on, number, principal_cents, principal_paid_cents, state)',
@@ -205,7 +205,7 @@ describe('rights of the roles that face the outside', () => {
       'documents SELECT (case_id, category, created_at, creditor_id, id, kind, original_name, scan_status, size_bytes, source, title)',
       'portal_message_attachments SELECT (case_id, creditor_id, document_id, id, message_id)',
       'portal_messages SELECT (case_id, created_at, creditor_id, id, read_by_debtor_at, read_by_staff_at, request_kind, side, text)',
-      'receipts SELECT (case_id, creditor_id, id, issued_at, number, payment_id)',
+      'receipts SELECT (case_id, creditor_id, document_id, id, issued_at, number, payment_id)',
     ],
   };
   it.each(Object.entries(expected))('%s', async (role, rights) => {
@@ -338,7 +338,8 @@ describe('rights of the roles inside', () => {
       'interest_rates SELECT (kind, rate_bp, valid_from)',
       'installments SELECT (amount_cents, case_id, creditor_id, due_on, id, number, plan_id)',
       'payment_allocations SELECT (amount_cents, case_id, component, creditor_id, id, invoice_id, payment_id, reverses_id)',
-      'payment_plans SELECT (accepted_at, case_id, creditor_id, first_due_on, id, method, months, status, total_cents, version)',
+      'payment_plans SELECT (accepted_at, case_id, creditor_id, document_id, first_due_on, id, method, months, status, total_cents, version)',
+      'payment_plans UPDATE (document_id, document_sha256)',
       'payments SELECT (amount_cents, bounced_at, case_id, creditor_id, deposited_on, id, method, received_on, settled_at, status)',
       'plan_approvals SELECT (case_id, creditor_id, decided_at, decision, id, plan_id, step)',
       // The verdict of ClamAV, and the documents it generates.
@@ -490,7 +491,7 @@ describe('rights of the roles inside', () => {
       'template_versions UPDATE (number, on_behalf_of_id, published_at, review_reason, reviewed_by, state, submitted_by, updated_at)',
       // Documents: shared by its function.
       'documents INSERT (category, id, kind, original_name, sha256, size_bytes, source, storage_key, title, uploaded_by_creditor, uploaded_by_debtor)',
-      'documents SELECT (case_id, contains_access_code, created_at, creditor_id, id, purged_at, scan_status, shared_with_creditor_at, source, storage_key, uploaded_by_creditor, uploaded_by_debtor)',
+      'documents SELECT (case_id, contains_access_code, created_at, creditor_id, id, kind, purged_at, scan_status, shared_with_creditor_at, source, storage_key, uploaded_by_creditor, uploaded_by_debtor, visible_to_debtor)',
       'documents UPDATE (case_id, creditor_id, shared_by, shared_with_creditor_at)',
       'debtor_links SELECT (case_id, debtor_id, expires_at, id, revoked_at, token_hash, uses)',
       'ai_suggestions SELECT (asked_by, case_id, cost_micro, created_at, decided_by, decision, feature, id, input_summary, input_tokens, model, outcome, output_tokens, prompt_version)',
@@ -544,8 +545,8 @@ describe('rights of the roles inside', () => {
       'payment_allocations INSERT (amount_cents, case_id, component, creditor_id, invoice_id, payment_id, reverses_id)',
       'payment_allocations SELECT (amount_cents, case_id, component, creditor_id, id, invoice_id, payment_id, reverses_id)',
       'payment_plans INSERT (case_id, creditor_id, first_due_on, id, method, months, on_behalf_of_id, owned_by_director, requested_by, status, threshold_months, total_cents)',
-      'payment_plans SELECT (case_id, creditor_id, id, months, requested_by, status, version)',
-      'payment_plans UPDATE (status, version)',
+      'payment_plans SELECT (case_id, creditor_id, document_sha256, id, months, requested_by, status, total_cents, version)',
+      'payment_plans UPDATE (accepted_at, accepted_ip, status, version)',
       'payments INSERT (amount_cents, bank, case_id, cheque_number, creditor_id, deposited_on, id, label, method, on_behalf_of_id, received_on, recorded_by, settled_at, status)',
       'payments SELECT (amount_cents, case_id, creditor_id, id, method, received_on, settled_at, settled_in_litigation, status, version)',
       'payments UPDATE (bounce_reason, bounced_at, settled_at, status, version)',
@@ -786,6 +787,8 @@ describe('rights on the functions', () => {
     ['litigation_rules', []],
     ...['remittance_core', 'remittance_sources', 'remittance_summary', 'note_settlement'].map((name) => [name, []] as [string, string[]]),
     ...['creditor_decide_plan', 'creditor_upload', 'creditor_deposit'].map((name) => [name, ['partner']] as [string, string[]]),
+    ...['debtor_accept_plan', 'debtor_file'].map((name) => [name, ['debtor']] as [string, string[]]),
+    ['queue_plan_pdf', []],
     ...['money_case', 'issue_receipt', 'follow_allocation', 'check_allocations', 'keep_receipt', 'keep_sending', 'check_cap_override'].map(
       (name) => [name, []] as [string, string[]],
     ),
@@ -826,6 +829,7 @@ describe('rights on the functions', () => {
       'forget_payments forget_invoices invoice_batches accounting_cutoff',
       'referenced_files',
       'recent_cases note_recent_case',
+      'debtor_accept_plan debtor_file queue_plan_pdf',
     ].flatMap((names) => names.split(' '));
     const found = await rows<{ proname: string }>(
       "SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'app' ORDER BY 1",
@@ -931,6 +935,8 @@ describe('files of the storage', () => {
       // documents.storage_key, by app.creditor_upload
       'modules/partners/portal.service.ts',
       // documents.storage_key
+      'modules/payments/plans.jobs.ts',
+      // documents.storage_key
       'modules/payments/receipts.jobs.ts',
     ]);
     // Nobody writes to the storage by another way.
@@ -938,6 +944,7 @@ describe('files of the storage', () => {
       'modules/debtor-access/portal-messages.ts',
       'modules/documents/documents.service.ts',
       'modules/partners/portal.service.ts',
+      'modules/payments/plans.jobs.ts',
       'modules/payments/receipts.jobs.ts',
       'platform/storage/storage.ts',
     ]);

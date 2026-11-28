@@ -314,7 +314,7 @@ describe('the reminder of the next installment (question 221)', () => {
     await rows("UPDATE cases SET status = 'DISPUTE' WHERE id = $1", [made.id]);
     expect((await ask('officerA', plan.id)).body).toEqual({ code: 'CASE_DISPUTED' });
     const waiting = await eligible(test.s.officerA);
-    const proposed = await planOn(waiting, 'WAITING_DEBTOR');
+    const proposed = await planOn(waiting, 'WAITING_CREDITOR');
     expect((await ask('officerA', proposed.id)).body).toEqual({ code: 'NO_NEXT_INSTALLMENT' });
     expect(await sendings(made.id)).toEqual([]);
     expect(await sendings(waiting.id)).toEqual([]);

@@ -1,5 +1,5 @@
 import { codeBySms, debtorCase, debtorLink, debtorMessages, debtorSession, paymentInfo, REQUEST_BODIES, uploadedFile } from '@legarec/contracts';
-import { Body, Controller, Get, HttpCode, Inject, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Inject, Param, Post, StreamableFile } from '@nestjs/common';
 import { ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import type { z } from 'zod';
 import { Anonymous, Debtor } from '../../platform/access/access';
@@ -124,6 +124,33 @@ export class DebtorController {
     return this.messages.request(id, request);
   }
 
+  /** « Accepter cet échéancier »: the plan proposed on this case, as read (fingerprint of its PDF, total, installments). */
+  @Post('cases/:id/plan/acceptance')
+  @Debtor()
+  @Commits()
+  @HttpCode(204)
+  @ApiNoContentResponse()
+  accept(
+    @Param('id') id: string,
+    @Body({ schema: bodies['POST /debtor/cases/:id/plan/acceptance'] }) { fingerprint, total, months }: In<'POST /debtor/cases/:id/plan/acceptance'>,
+  ) {
+    return this.views.accept(id, fingerprint, total, months);
+  }
+
+  @Get('cases/:id/plan/file')
+  @Debtor()
+  @ApiOkResponse({ description: 'Le PDF de l’échéancier, sous un nom neutre.' })
+  async planFile(@Param('id') id: string) {
+    return pdfFile(await this.views.planFile(id), 'echeancier.pdf');
+  }
+
+  @Get('cases/:id/receipts/:receipt/file')
+  @Debtor()
+  @ApiOkResponse({ description: 'Le PDF de la quittance, sous un nom neutre.' })
+  async receiptFile(@Param('id') id: string, @Param('receipt') receipt: string) {
+    return pdfFile(await this.views.receiptFile(id, receipt), 'quittance.pdf');
+  }
+
   /** The body is the file alone, without its name. */
   @Post('attachments')
   @Debtor()
@@ -133,6 +160,9 @@ export class DebtorController {
     return this.messages.upload(bytes, uploadedType());
   }
 }
+
+const pdfFile = (bytes: Buffer, name: string) =>
+  new StreamableFile(bytes, { type: 'application/pdf', disposition: `attachment; filename="${name}"`, length: bytes.byteLength });
 
 /** The answers of the team in the space of the debtor. */
 @ApiTags('cases')
