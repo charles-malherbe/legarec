@@ -578,9 +578,15 @@ export const collectionHandlers = [
   ),
   http.post(
     '/api/payment-plans/:id/reminder',
-    guarded<Info>(staffWithCases, ({ params }, session) => {
+    guarded<Info>(staffWithCases, async ({ params, request }, session) => {
       const plan = plans.find((item) => item.id === params.id);
-      return !plan ? notFound() : acts(session, plan.officerId) ? done() : forbidden();
+      if (!plan) return notFound();
+      if (!acts(session, plan.officerId)) return forbidden();
+      // As the API (question 221): the next installment, as the colleague confirmed it.
+      const body = (await request.json()) as { number?: number; amount?: number };
+      const due = plan.installments.find((item) => item.state === 'UPCOMING');
+      if (!due) return conflict('NO_NEXT_INSTALLMENT');
+      return due.number === body.number && due.amount === body.amount ? done() : conflict('INSTALLMENT_CHANGED');
     }),
   ),
   http.get(

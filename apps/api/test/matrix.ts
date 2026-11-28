@@ -707,6 +707,20 @@ export const MATRIX: Record<string, MatrixEntry> = {
     body: () => planned,
     expect: only({ director: 403, manager: 204, managerAlone: 204, officerA: 404, officerB: 404, liar: 404 }),
   },
+  // A plan of a case held by nobody: whoever may act on it is let in, then told the installment has changed (409).
+  'POST /staff/payment-plans/:id/reminder': {
+    path: async (test) => {
+      const { id, creditorId } = await owingCase(test);
+      const { rows } = await test.database.admin.query<{ id: string }>(
+        `INSERT INTO payment_plans (case_id, creditor_id, total_cents, months, method, first_due_on, status, threshold_months, owned_by_director, requested_by)
+         VALUES ($1, $2, 10000, 2, 'TRANSFER', '2099-01-15', 'ACTIVE', 6, false, $3) RETURNING id`,
+        [id, creditorId, test.s.manager],
+      );
+      return `/staff/payment-plans/${rows[0]!.id}/reminder`;
+    },
+    body: () => ({ number: 1, amount: 5000 }),
+    expect: withCases(404, { director: 403, manager: 409, managerAlone: 409 }),
+  },
   // The manager only: the liar is let in by the guard, then refused by PostgreSQL.
   'PUT /staff/payment-plans/requests/:id': {
     path: pendingPlan,

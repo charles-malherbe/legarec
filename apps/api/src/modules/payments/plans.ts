@@ -41,6 +41,35 @@ export function installmentStates(
   };
 }
 
+/** What a plan holds to find its next installment: read with the rights of whoever asks. */
+export const PLAN_INSTALLMENTS = {
+  status: true,
+  caseId: true,
+  createdAt: true,
+  installments: { orderBy: { number: 'asc' as const }, select: { number: true, dueOn: true, amountCents: true } },
+};
+/**
+ * The next installment of a plan that runs (question 221): the first one not paid yet that is still to come, with the number
+ * of installments of the plan. Null when the plan does not run, or when nothing is left to come.
+ */
+export async function nextInstallment(
+  ledgers: Ledgers,
+  plan: { status: string; caseId: string; createdAt: Date; installments: { number: number; dueOn: Date; amountCents: number }[] },
+  today: Day,
+): Promise<{ number: number; dueOn: Day; amount: number; count: number } | null> {
+  if (plan.status !== 'ACTIVE') return null;
+  const ledger = await ledgers.read(plan.caseId, today);
+  const since = dayText(plan.createdAt);
+  const paid = (ledger?.counted ?? []).filter((entry) => entry.on >= since).reduce((sum, entry) => sum + entry.amount, 0);
+  const { installments } = installmentStates(
+    plan.installments.map((row) => ({ number: row.number, dueOn: dayText(row.dueOn), amount: row.amountCents })),
+    paid,
+    today,
+  );
+  const next = installments.find((row) => row.state === 'UPCOMING');
+  return next ? { number: next.number, dueOn: next.date, amount: next.amount, count: installments.length } : null;
+}
+
 /** Months above which a plan needs approvals: `Paramètres > Règles et validations`. */
 const thresholdOf = (values: SettingValues) => Number.parseInt(values.text('firm', 'regles', 'duration'), 10) || 6;
 

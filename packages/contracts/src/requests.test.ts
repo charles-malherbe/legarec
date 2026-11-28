@@ -256,6 +256,7 @@ const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly
     ],
     'PUT /reminders/:id': [{ date: '2026-11-22' }, { done: true }, { done: false }],
     'POST /payment-plans': [{ caseId: 'demo', months: 4, method: 'TRANSFER', expected: 2_960_000 }],
+    'POST /payment-plans/:id/reminder': [{ number: 2, amount: 31_333 }],
     'PUT /payment-plans/requests/:id': [
       { decision: 'REFUSED', reason: 'Accord refusé', version: 1 },
       { decision: 'APPROVED', version: 2 },

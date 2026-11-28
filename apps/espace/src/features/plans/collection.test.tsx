@@ -36,6 +36,18 @@ describe('payment plans', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Demander l’accord du créancier' }));
     expect((await inDialog()).getByText(/Responsable du recouvrement, puis/)).toBeVisible();
   });
+  it('reminds the next installment by e-mail, as it was shown (question 221)', async () => {
+    openAs('cl', '/echeanciers');
+    await userEvent.click(await screen.findByRole('button', { name: 'Envoyer un rappel' }));
+    const dialog = await inDialog();
+    expect(dialog.getByText(/Un e-mail rappelle la prochaine échéance/)).toBeVisible();
+    expect(dialog.queryByText(/SMS/)).toBeNull();
+    expect(dialog.getByText('Échéance')).toBeVisible();
+    await userEvent.click(dialog.getByRole('button', { name: 'Envoyer le rappel' }));
+    expect(await screen.findByText(/Rappel de l’échéance envoyé à .+ par e-mail\./)).toBeVisible();
+    // Another installment than the next one is refused.
+    expect((await call('cl', '/payment-plans/p1/reminder', { number: 12, amount: 1 })).status).toBe(409);
+  });
   it('reserves validation to the Collection manager', async () => {
     expect((await call('ad', '/payment-plans/requests/q1', { decision: 'APPROVED', version: 1 }, 'PUT')).status).toBe(403);
     expect((await call('hb', '/payment-plans/requests/q1', { decision: 'APPROVED', version: 1 }, 'PUT')).status).toBe(403);
