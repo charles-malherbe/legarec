@@ -93,8 +93,13 @@ export class ComposeService {
     });
     const today = dayOf(this.clock.now());
     const recipients: ComposeData['recipients'] = [];
+    // Every ledger at once: fifty cases are two queries, not a hundred.
+    const ledgers = await this.ledgers.readMany(
+      found.map((item) => item.id),
+      today,
+    );
     for (const item of found) {
-      const ledger = await this.ledgers.read(item.id, today);
+      const ledger = ledgers.get(item.id);
       if (!ledger) continue;
       const owed = owedOf(ledger);
       const street = streetLinesOf(item.debtorAddress) ?? [];

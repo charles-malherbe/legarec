@@ -1,11 +1,23 @@
 import type { NewPayment, Payment } from '@legarec/contracts';
 import { Inject, Injectable } from '@nestjs/common';
+import type { Prisma } from '../../generated/prisma/client';
 import { Audit } from '../../platform/audit/audit';
 import { Database } from '../../platform/database/database';
 import { conflict, invalid } from '../../platform/errors/api-error';
 import { dayOf } from '../../platform/format';
 import { dayText } from '../creditors/mandates';
-import { accruedInterest, allocate, byAge, indemnities, type Day, type InterestMode, type InvoiceDue, type PrincipalPaid, type Terms } from './money';
+import {
+  accruedInterest,
+  allocate,
+  byAge,
+  indemnities,
+  type Day,
+  type InterestMode,
+  type InvoiceDue,
+  type PrincipalPaid,
+  type Rate,
+  type Terms,
+} from './money';
 
 /** What a case owes today, and how its payments were allocated. */
 export interface Ledger {
@@ -43,6 +55,110 @@ export const maskedLabel = (label: string, director: boolean) =>
         return `${plain.slice(0, 4)} •••• ${plain.slice(-4)}`;
       });
 
+/** What a ledger reads of a case; a debtor does not read the details of a cheque nor the label of a transfer. */
+const ledgerSelect = (debtor: boolean) =>
+  ({
+    id: true,
+    creditorId: true,
+    status: true,
+    formalNoticeOn: true,
+    debtor: { select: { kind: true } },
+    mandate: { select: { interestMode: true, contractRateBp: true, fixedIndemnity: true } },
+    invoices: { select: { id: true, number: true, dueOn: true, principalCents: true, principalPaidCents: true } },
+    payments: {
+      // Identifiers in the order of their creation (UUID v7): what a debtor may read.
+      orderBy: [{ receivedOn: 'asc' }, { id: 'asc' }],
+      select: {
+        id: true,
+        method: true,
+        amountCents: true,
+        status: true,
+        receivedOn: true,
+        // What a debtor does not read: the details of the cheque, the label of the transfer.
+        ...(debtor ? {} : { depositedOn: true, chequeNumber: true, bank: true, label: true, version: true }),
+        allocations: { select: { id: true, component: true, amountCents: true, invoiceId: true, reversesId: true } },
+        receipt: { select: { id: true } },
+      },
+    },
+  }) satisfies Prisma.CaseSelect;
+type Found = Prisma.CaseGetPayload<{ select: ReturnType<typeof ledgerSelect> }>;
+
+/** The amounts of a case as of `today`, from what was read of it. */
+function ledgerOf(found: Found, rates: Rate[], today: Day, director: boolean): Ledger {
+  const mode: InterestMode =
+    found.mandate?.interestMode === 'CONTRACT' && found.mandate.contractRateBp !== null
+      ? { kind: 'CONTRACT', rateBp: found.mandate.contractRateBp }
+      : found.mandate?.interestMode === 'NONE'
+        ? { kind: 'NONE' }
+        : { kind: 'ECB_PLUS_TEN' };
+  const terms: Terms = {
+    individual: found.debtor.kind === 'INDIVIDUAL',
+    mode,
+    formalNoticeOn: found.formalNoticeOn ? dayText(found.formalNoticeOn) : null,
+    fixedIndemnity: found.mandate?.fixedIndemnity ?? false,
+  };
+  const invoices = found.invoices
+    .map((invoice) => ({
+      id: invoice.id,
+      number: invoice.number,
+      dueOn: dayText(invoice.dueOn),
+      principal: invoice.principalCents,
+      paid: invoice.principalPaidCents,
+    }))
+    .sort(byAge);
+  // A bounced payment is as if it had never been received: its entries cancel each other.
+  const live = found.payments.filter((payment) => payment.status !== 'BOUNCED');
+  const net = (component: string, invoiceId?: string) =>
+    live
+      .flatMap((payment) => payment.allocations)
+      .filter((entry) => entry.component === component && (invoiceId === undefined || entry.invoiceId === invoiceId))
+      .reduce((sum, entry) => sum + entry.amountCents, 0);
+  const paid: PrincipalPaid[] = live.flatMap((payment) =>
+    payment.allocations
+      .filter((entry) => entry.component === 'PRINCIPAL' && entry.reversesId === null && entry.invoiceId)
+      .map((entry) => ({ invoiceId: entry.invoiceId!, on: dayText(payment.receivedOn), amount: entry.amountCents })),
+  );
+  const accrued = accruedInterest(invoices, paid, rates, terms, today);
+  const fees = indemnities(invoices, terms, today);
+  return {
+    caseId: found.id,
+    creditorId: found.creditorId,
+    status: found.status,
+    terms,
+    invoices: invoices.map((invoice) => ({
+      id: invoice.id,
+      number: invoice.number,
+      dueOn: invoice.dueOn,
+      principal: invoice.principal,
+      principalLeft: invoice.principal - invoice.paid,
+      feesDue: fees.get(invoice.id) ?? 0,
+      feesPaid: net('FEES', invoice.id),
+    })),
+    interestAccrued: accrued.total,
+    interestPaid: net('INTEREST'),
+    missingRates: accrued.missing,
+    payments: found.payments.map((payment) => {
+      const first = (component: string) =>
+        payment.allocations.filter((entry) => entry.component === component && entry.reversesId === null).reduce((sum, entry) => sum + entry.amountCents, 0);
+      return {
+        id: payment.id,
+        method: payment.method,
+        amount: payment.amountCents,
+        status: payment.status,
+        receivedOn: dayText(payment.receivedOn),
+        depositedOn: 'depositedOn' in payment && payment.depositedOn ? dayText(payment.depositedOn) : null,
+        chequeNumber: 'chequeNumber' in payment ? (payment.chequeNumber ?? null) : null,
+        bank: 'bank' in payment ? (payment.bank ?? null) : null,
+        label: 'label' in payment && payment.label ? maskedLabel(payment.label, director) : null,
+        receiptId: payment.receipt?.id ?? null,
+        allocation: { interest: first('INTEREST'), principal: first('PRINCIPAL'), fees: first('FEES') },
+        version: 'version' in payment ? (payment.version ?? 1) : 1,
+      };
+    }),
+    counted: live.map((payment) => ({ on: dayText(payment.receivedOn), amount: payment.amountCents })),
+  };
+}
+
 /** Money of the cases. PostgreSQL decides which cases are shown and acted on; the rules of the amounts are in `money.ts`. */
 @Injectable()
 export class Ledgers {
@@ -54,111 +170,29 @@ export class Ledgers {
   /** Null when the case is not shown to this person. */
   async read(caseId: string, today: Day = dayOf(new Date()), director = false, debtor = false): Promise<Ledger | null> {
     const { tx } = this.database;
-    const found = await tx.case.findUnique({
-      where: { id: caseId },
-      select: {
-        id: true,
-        creditorId: true,
-        status: true,
-        formalNoticeOn: true,
-        debtor: { select: { kind: true } },
-        mandate: { select: { interestMode: true, contractRateBp: true, fixedIndemnity: true } },
-        invoices: { select: { id: true, number: true, dueOn: true, principalCents: true, principalPaidCents: true } },
-        payments: {
-          // Identifiers in the order of their creation (UUID v7): what a debtor may read.
-          orderBy: [{ receivedOn: 'asc' }, { id: 'asc' }],
-          select: {
-            id: true,
-            method: true,
-            amountCents: true,
-            status: true,
-            receivedOn: true,
-            // What a debtor does not read: the details of the cheque, the label of the transfer.
-            ...(debtor ? {} : { depositedOn: true, chequeNumber: true, bank: true, label: true, version: true }),
-            allocations: { select: { id: true, component: true, amountCents: true, invoiceId: true, reversesId: true } },
-            receipt: { select: { id: true } },
-          },
-        },
-      },
-    });
+    const found = await tx.case.findUnique({ where: { id: caseId }, select: ledgerSelect(debtor) });
     if (!found) return null;
-    const rates = (await tx.interestRate.findMany({ select: { kind: true, validFrom: true, rateBp: true } })).map((rate) => ({
+    return ledgerOf(found, await this.rates(), today, director);
+  }
+
+  /**
+   * The ledgers of several cases, in two queries whatever their number (Rédiger un courrier lists fifty): those not shown to
+   * this person are left out.
+   */
+  async readMany(caseIds: readonly string[], today: Day = dayOf(new Date())): Promise<Map<string, Ledger>> {
+    if (caseIds.length === 0) return new Map();
+    const { tx } = this.database;
+    const found = await tx.case.findMany({ where: { id: { in: [...caseIds] } }, select: ledgerSelect(false) });
+    const rates = await this.rates();
+    return new Map(found.map((item) => [item.id, ledgerOf(item, rates, today, false)]));
+  }
+
+  private async rates(): Promise<Rate[]> {
+    return (await this.database.tx.interestRate.findMany({ select: { kind: true, validFrom: true, rateBp: true } })).map((rate) => ({
       kind: rate.kind,
       validFrom: dayText(rate.validFrom),
       rateBp: rate.rateBp,
     }));
-    const mode: InterestMode =
-      found.mandate?.interestMode === 'CONTRACT' && found.mandate.contractRateBp !== null
-        ? { kind: 'CONTRACT', rateBp: found.mandate.contractRateBp }
-        : found.mandate?.interestMode === 'NONE'
-          ? { kind: 'NONE' }
-          : { kind: 'ECB_PLUS_TEN' };
-    const terms: Terms = {
-      individual: found.debtor.kind === 'INDIVIDUAL',
-      mode,
-      formalNoticeOn: found.formalNoticeOn ? dayText(found.formalNoticeOn) : null,
-      fixedIndemnity: found.mandate?.fixedIndemnity ?? false,
-    };
-    const invoices = found.invoices
-      .map((invoice) => ({
-        id: invoice.id,
-        number: invoice.number,
-        dueOn: dayText(invoice.dueOn),
-        principal: invoice.principalCents,
-        paid: invoice.principalPaidCents,
-      }))
-      .sort(byAge);
-    // A bounced payment is as if it had never been received: its entries cancel each other.
-    const live = found.payments.filter((payment) => payment.status !== 'BOUNCED');
-    const net = (component: string, invoiceId?: string) =>
-      live
-        .flatMap((payment) => payment.allocations)
-        .filter((entry) => entry.component === component && (invoiceId === undefined || entry.invoiceId === invoiceId))
-        .reduce((sum, entry) => sum + entry.amountCents, 0);
-    const paid: PrincipalPaid[] = live.flatMap((payment) =>
-      payment.allocations
-        .filter((entry) => entry.component === 'PRINCIPAL' && entry.reversesId === null && entry.invoiceId)
-        .map((entry) => ({ invoiceId: entry.invoiceId!, on: dayText(payment.receivedOn), amount: entry.amountCents })),
-    );
-    const accrued = accruedInterest(invoices, paid, rates, terms, today);
-    const fees = indemnities(invoices, terms, today);
-    return {
-      caseId: found.id,
-      creditorId: found.creditorId,
-      status: found.status,
-      terms,
-      invoices: invoices.map((invoice) => ({
-        id: invoice.id,
-        number: invoice.number,
-        dueOn: invoice.dueOn,
-        principal: invoice.principal,
-        principalLeft: invoice.principal - invoice.paid,
-        feesDue: fees.get(invoice.id) ?? 0,
-        feesPaid: net('FEES', invoice.id),
-      })),
-      interestAccrued: accrued.total,
-      interestPaid: net('INTEREST'),
-      missingRates: accrued.missing,
-      payments: found.payments.map((payment) => {
-        const first = (component: string) =>
-          payment.allocations.filter((entry) => entry.component === component && entry.reversesId === null).reduce((sum, entry) => sum + entry.amountCents, 0);
-        return {
-          id: payment.id,
-          method: payment.method,
-          amount: payment.amountCents,
-          status: payment.status,
-          receivedOn: dayText(payment.receivedOn),
-          depositedOn: 'depositedOn' in payment && payment.depositedOn ? dayText(payment.depositedOn) : null,
-          chequeNumber: 'chequeNumber' in payment ? (payment.chequeNumber ?? null) : null,
-          bank: 'bank' in payment ? (payment.bank ?? null) : null,
-          label: 'label' in payment && payment.label ? maskedLabel(payment.label, director) : null,
-          receiptId: payment.receipt?.id ?? null,
-          allocation: { interest: first('INTEREST'), principal: first('PRINCIPAL'), fees: first('FEES') },
-          version: 'version' in payment ? (payment.version ?? 1) : 1,
-        };
-      }),
-      counted: live.map((payment) => ({ on: dayText(payment.receivedOn), amount: payment.amountCents })),
-    };
   }
 
   /** One change of money at a time per case: two payments typed together are allocated one after the other. */
