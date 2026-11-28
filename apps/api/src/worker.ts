@@ -14,7 +14,9 @@ import { aiSetup } from './ai/provider';
 import { documentJobs } from './modules/documents/documents.jobs';
 import { receiptJobs } from './modules/payments/receipts.jobs';
 import { resendEventJobs } from './modules/reminders/resend-events.jobs';
+import { letterJobs } from './modules/reminders/letters.jobs';
 import { sendingJobs, sweepSendings } from './modules/reminders/sendings.jobs';
+import { MySendingBoxClient } from './letters/mysendingbox';
 import { PdfRenderer } from './platform/pdf/pdf';
 import { storageKeys } from './modules/vault/storage-keys';
 import { Vault } from './modules/vault/vault';
@@ -52,27 +54,44 @@ const storage = storageFor(config, {
   left: fileLeft(logger),
 });
 const pdf = new PdfRenderer(config.CHROMIUM_PATH);
+const pdfTemplates = fileURLToPath(new URL('../templates/pdf/', import.meta.url));
 const handlers: JobHandlers = {
   documents: documentJobs(storage, scanner),
-  pdf: receiptJobs(storage, pdf, fileURLToPath(new URL('../templates/pdf/', import.meta.url))),
+  pdf: receiptJobs(storage, pdf, pdfTemplates),
   email: {
     // The e-mails of the accounts stay simulated until their own domain exists (question 84).
     ...accountJobs({ keys: new AuthKeys(config), portals: config, send: (name, to, data) => emails.send(name, to, data) }),
   },
   // The reminders leave by Resend when its key is in the vault; without it outside production, they are simulated. Their
   // own queue, where nothing is ever tried twice.
-  reminders: sendingJobs({
-    database,
-    asWorker: (work) => database.run({ kind: 'worker', job: 'case-reminder' }, work),
-    vault,
-    emails,
-    // Resend never redirects: a redirection would carry the key and the message elsewhere.
-    resend: new ResendClient((url, init) => fetch(url, { ...init, redirect: 'error' })),
-    production: config.NODE_ENV === 'production',
-    real: config.RESEND_ENV === 'production',
-    devRecipients: config.DEV_RECIPIENTS ?? [],
-    simulate: (message) => simulated.send(message),
-  }),
+  reminders: {
+    ...sendingJobs({
+      database,
+      asWorker: (work) => database.run({ kind: 'worker', job: 'case-reminder' }, work),
+      vault,
+      emails,
+      // Resend never redirects: a redirection would carry the key and the message elsewhere.
+      resend: new ResendClient((url, init) => fetch(url, { ...init, redirect: 'error' })),
+      production: config.NODE_ENV === 'production',
+      real: config.RESEND_ENV === 'production',
+      devRecipients: config.DEV_RECIPIENTS ?? [],
+      simulate: (message) => simulated.send(message),
+    }),
+    // The registered letters by MySendingBox (question 210): the `live_` key only with MYSENDINGBOX_ENV=production.
+    ...letterJobs({
+      database,
+      vault,
+      storage,
+      pdf,
+      templates: pdfTemplates,
+      // MySendingBox never redirects either.
+      mysendingbox: new MySendingBoxClient((url, init) => fetch(url, { ...init, redirect: 'error' })),
+      asWorker: (work) => database.run({ kind: 'worker', job: 'case-letter' }, work),
+      production: config.NODE_ENV === 'production',
+      real: config.MYSENDINGBOX_ENV === 'production',
+      portal: config.DEBTOR_PORTAL_URL,
+    }),
+  },
   // With what Resend says of the reminders afterwards: nothing leaves from there, and it may wait behind the purge.
   maintenance: { ...accessCodeJobs(vault), ...resendEventJobs({ logger }) },
   ai: aiJobs(() => aiSetup(config), vault),

@@ -194,6 +194,32 @@ describe('case file', () => {
     expect(sent[0]).toHaveProperty('message');
     expect(sent[1]).not.toHaveProperty('message');
   });
+  it('sends a registered letter with the validated text, to the postal address of the case (question 210)', async () => {
+    const sent: unknown[] = [];
+    server.events.on('request:start', ({ request }) => {
+      if (request.url.endsWith('/cases/demo/reminders'))
+        void request
+          .clone()
+          .json()
+          .then((body) => sent.push(body));
+    });
+    openAs('cl', '/debiteurs/demo');
+    await userEvent.click(await screen.findByRole('button', { name: 'Envoyer une relance' }));
+    await userEvent.selectOptions(await screen.findByLabelText('Canal'), 'REGISTERED_LETTER');
+    // No typed text: the template of Paramètres › Modèles; the address is that of the case.
+    expect(screen.queryByLabelText('Message')).toBeNull();
+    expect(screen.getByText(/en lettre recommandée avec accusé de réception, à l’adresse postale du dossier/u)).toBeVisible();
+    expect(screen.getByLabelText('Destinataire')).toHaveAttribute('readonly');
+    await userEvent.click(screen.getByRole('button', { name: 'Envoyer la relance' }));
+    const dialog = await screen.findByRole('alertdialog', { name: 'Envoyer cette relance ?' });
+    expect(within(dialog).getByText('Courrier recommandé')).toBeVisible();
+    expect(within(dialog).getByText(/ne peut plus être annulée/u)).toBeVisible();
+    expect(within(dialog).getByText('Montant')).toBeVisible();
+    await confirmWith('Envoyer la relance');
+    expect(await screen.findByText('Relance envoyée.')).toBeVisible();
+    expect(sent).toEqual([expect.objectContaining({ channel: 'REGISTERED_LETTER', template: 'FIRM' })]);
+    expect(sent[0]).not.toHaveProperty('message');
+  });
   it('lets the manager override the cap of contacts with a reason (question 214)', async () => {
     const body = { channel: 'EMAIL', template: 'FRIENDLY', recipient: 'compta@exemple.test' };
     // The cap of the debtor reached (two e-mails a week by default).

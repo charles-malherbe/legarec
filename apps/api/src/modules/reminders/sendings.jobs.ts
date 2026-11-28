@@ -174,9 +174,17 @@ export async function markFailed(
   });
   return { code, failed };
 }
-/** Level null: the reminder of an installment (question 221), which is no step of the reminders. */
-export const sentNote = (caseId: string, level: number | null) => (tx: Transaction) =>
-  tx.$executeRaw`SELECT app.add_case_event(${caseId}::uuid, 'REMINDER_SENT', 'Relance envoyée', ${level === null ? 'E-mail · rappel d’échéance' : `E-mail · niveau ${level}`}, 'info'::event_tone, false) WHERE app.case_writable(${caseId}::uuid)`;
+/** Names of the letters in the history (question 210). */
+const LETTER_NAMES: Record<string, string> = { FRIENDLY: 'relance amiable', FIRM: 'relance ferme', FORMAL_NOTICE: 'mise en demeure' };
+/** What the history says of a line: its channel, then its level; level null by e-mail, the reminder of an installment (question 221). */
+export const detailOf = (line: { channel: string; template: string; level: number | null }) =>
+  line.channel === 'EMAIL'
+    ? line.level === null
+      ? 'E-mail · rappel d’échéance'
+      : `E-mail · niveau ${line.level}`
+    : `${line.channel === 'REGISTERED_LETTER' ? 'Courrier recommandé' : 'Courrier'} · ${LETTER_NAMES[line.template] ?? 'courrier'}`;
+export const sentNote = (caseId: string, line: { channel: string; template: string; level: number | null }) => (tx: Transaction) =>
+  tx.$executeRaw`SELECT app.add_case_event(${caseId}::uuid, 'REMINDER_SENT', 'Relance envoyée', ${detailOf(line)}, 'info'::event_tone, false) WHERE app.case_writable(${caseId}::uuid)`;
 /** How long a sent line may stay without its event before the sweep writes it: far more than the two writes of a task take. */
 const UNSAID_MS = 2 * 60_000;
 
@@ -194,7 +202,7 @@ export async function sweepSendings(asApplication: Run, now: Date = new Date()):
         await SettingValues.read(tx),
         await tx.$queryRaw<{ id: string; case_id: string; created_at: Date; abandoned: boolean; failure: string | null }[]>`
       SELECT s.id, s.case_id, s.created_at, coalesce(bool_or(o.failed_at IS NOT NULL), false) AS abandoned, max(o.failure) AS failure
-      FROM sendings s LEFT JOIN outbox o ON o.queue = 'reminders' AND o.name = 'case-reminder' AND o.payload->>'sending' = s.id::text
+      FROM sendings s LEFT JOIN outbox o ON o.queue = 'reminders' AND o.name IN ('case-reminder', 'case-letter') AND o.payload->>'sending' = s.id::text
       WHERE s.status = 'QUEUED' GROUP BY s.id ORDER BY s.id LIMIT 1000`,
       ] as const,
   );
@@ -215,12 +223,12 @@ export async function sweepSendings(asApplication: Run, now: Date = new Date()):
   // Sent a moment ago at least, and no « Relance envoyée » on the case since: the task was cut between its two writes.
   const before = new Date(now.getTime() - UNSAID_MS);
   await asApplication(async (tx) => {
-    const unsaid = await tx.$queryRaw<{ case_id: string; level: number | null }[]>`
-      SELECT s.case_id, s.level FROM sendings s
+    const unsaid = await tx.$queryRaw<{ case_id: string; channel: string; template: string; level: number | null }[]>`
+      SELECT s.case_id, s.channel::text, s.template, s.level FROM sendings s
       WHERE s.status = 'SENT' AND s.sent_at < ${before} AND s.sent_at > ${before}::timestamptz - interval '7 days' AND app.case_writable(s.case_id)
         AND NOT EXISTS (SELECT 1 FROM case_events e WHERE e.case_id = s.case_id AND e.kind = 'REMINDER_SENT' AND e.occurred_at >= s.sent_at - interval '1 minute')
       ORDER BY s.sent_at LIMIT 200`;
-    for (const line of unsaid) await sentNote(line.case_id, line.level)(tx);
+    for (const line of unsaid) await sentNote(line.case_id, line)(tx);
   });
   return failed;
 }
@@ -250,6 +258,7 @@ export function sendingJobs({
     caseId: string,
     level: number | null,
     data: { simulated?: boolean; providerRef?: string },
+    template = level === null ? 'INSTALLMENT' : 'REMINDER',
   ) => {
     const { count } = await asApplication((tx) =>
       tx.sending.updateMany({ where: { id: sending, status: 'UNCERTAIN' }, data: { status: 'SENT', sentAt: new Date(), ...data } }),
@@ -258,7 +267,7 @@ export function sendingJobs({
     // Neither the address nor the text: the channel and the level. In the name of the colleague who asked, as long as
     // the case is still theirs; of the application otherwise.
     // Only a refusal of the rights hands it to the application; anything else surfaces, and the sweep says it later.
-    const note = sentNote(caseId, level);
+    const note = sentNote(caseId, { channel: 'EMAIL', template, level });
     await asAuthor(note).catch((error: unknown) => {
       if (databaseCode(error) !== '42501') throw error;
       return asApplication(note);
@@ -285,7 +294,10 @@ export function sendingJobs({
           throw error;
         }
         const line = await asApplication((tx) =>
-          tx.sending.findFirst({ where: { id: sending, caseId }, select: { status: true, channel: true, template: true, level: true, contactId: true, createdAt: true } }),
+          tx.sending.findFirst({
+            where: { id: sending, caseId },
+            select: { status: true, channel: true, template: true, level: true, contactId: true, createdAt: true },
+          }),
         );
         if (!line) throw new GiveUp('UNKNOWN_SENDING');
         // Already taken by another delivery: whatever happened to it, nothing more leaves from here.

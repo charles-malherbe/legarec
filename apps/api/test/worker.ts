@@ -14,7 +14,9 @@ import { accessCodeJobs } from '../src/modules/debtor-access/access-codes.jobs';
 import { documentJobs } from '../src/modules/documents/documents.jobs';
 import { receiptJobs } from '../src/modules/payments/receipts.jobs';
 import { resendEventJobs } from '../src/modules/reminders/resend-events.jobs';
+import { letterJobs } from '../src/modules/reminders/letters.jobs';
 import { sendingJobs } from '../src/modules/reminders/sendings.jobs';
+import { MySendingBoxClient, type FormClient } from '../src/letters/mysendingbox';
 import { PdfRenderer } from '../src/platform/pdf/pdf';
 import { fileURLToPath } from 'node:url';
 import { SimulatedScanner } from '../src/platform/scanner/scanner';
@@ -42,7 +44,15 @@ export interface Mail {
  */
 export function startMailWorker(
   test: TestApp,
-  { ai, http, production = false, real = false, now }: { ai?: AiSetup; http?: HttpClient; production?: boolean; real?: boolean; now?: () => Date } = {},
+  {
+    ai,
+    http,
+    letters,
+    production = false,
+    real = false,
+    realLetters = false,
+    now,
+  }: { ai?: AiSetup; http?: HttpClient; letters?: FormClient; production?: boolean; real?: boolean; realLetters?: boolean; now?: () => Date } = {},
 ) {
   const prefix = `test-${randomBytes(5).toString('hex')}`;
   const logger = createLogger('debug', new Writable({ write: (chunk: Buffer, _encoding, done) => (test.logs.push(chunk.toString()), done()) }));
@@ -51,6 +61,8 @@ export function startMailWorker(
   const mails: Mail[] = [];
   /** The reminders that left for nobody, for want of a key. */
   const simulated: AutomaticMessage[] = [];
+  /** The pages of the letters, before they became PDF. */
+  const letterPages: string[] = [];
   const vault = new Vault(test.config);
   const pdf = new PdfRenderer();
   let sending: Pick<Mail, 'name' | 'data'> | undefined;
@@ -69,18 +81,33 @@ export function startMailWorker(
     email: {
       ...accountJobs({ keys: new AuthKeys(test.config), portals: test.config, send }),
     },
-    reminders: sendingJobs({
-      database,
-      asWorker: (work) => database.run({ kind: 'worker', job: 'case-reminder' }, work),
-      vault,
-      emails,
-      resend: new ResendClient(http ?? (() => Promise.reject(new Error('a test never reaches a provider')))),
-      production,
-      real,
-      devRecipients: ['recette@legarec.test'],
-      simulate: (message) => Promise.resolve(void simulated.push(message)),
-      ...(now ? { now } : {}),
-    }),
+    reminders: {
+      ...sendingJobs({
+        database,
+        asWorker: (work) => database.run({ kind: 'worker', job: 'case-reminder' }, work),
+        vault,
+        emails,
+        resend: new ResendClient(http ?? (() => Promise.reject(new Error('a test never reaches a provider')))),
+        production,
+        real,
+        devRecipients: ['recette@legarec.test'],
+        simulate: (message) => Promise.resolve(void simulated.push(message)),
+        ...(now ? { now } : {}),
+      }),
+      ...letterJobs({
+        database,
+        vault,
+        storage: storageFor(test.config),
+        pdf: { render: (html) => (letterPages.push(html), pdf.render(html)) },
+        templates: fileURLToPath(new URL('../templates/pdf/', import.meta.url)),
+        mysendingbox: new MySendingBoxClient(letters ?? (() => Promise.reject(new Error('a test never reaches a provider')))),
+        asWorker: (work) => database.run({ kind: 'worker', job: 'case-letter' }, work),
+        production,
+        real: realLetters,
+        portal: test.config.DEBTOR_PORTAL_URL,
+        ...(now ? { now } : {}),
+      }),
+    },
     // With what Resend says of the reminders afterwards: nothing leaves from there, and it may wait behind the purge.
     maintenance: { ...accessCodeJobs(vault), ...resendEventJobs({ logger }) },
     documents: documentJobs(storageFor(test.config), new SimulatedScanner()),
@@ -93,6 +120,7 @@ export function startMailWorker(
     prefix,
     valkey,
     simulated,
+    letterPages,
     /** With the rights of the worker, for what the clock runs (`sweepSendings`) and what a test asks as the worker. */
     asWorker: <T>(work: (tx: Transaction) => Promise<T>): Promise<T> => database.run({ kind: 'worker', job: 'test' }, work),
     /** Runs everything queued so far, and gives what was sent. */

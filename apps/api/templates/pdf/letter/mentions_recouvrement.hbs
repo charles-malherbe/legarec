@@ -1,0 +1,10 @@
+{{!--
+  Mentions d'un courrier de recouvrement (article R. 124-4 du CPCE) : le cabinet, le créancier, le détail de la créance,
+  les modalités de paiement et la citation de l'article L. 111-8 du CPCE, validée pour les e-mails. Aucun code d'accès.
+--}}
+<div class="legal">
+  <p>Courrier adressé par {{cabinet.nom}}, {{cabinet.adresse}}, SIREN {{cabinet.siren}}, pour le compte de {{creancier.nom}}{{#if creancier.adresse}}, {{creancier.adresse}}{{/if}}{{#if creancier.siren}}, SIREN {{creancier.siren}}{{/if}}. Dossier n° {{dossier.reference}}.</p>
+  <p>Détail de la créance : principal {{creance.principal}} ; intérêts {{creance.interets}} ; indemnités forfaitaires et accessoires {{creance.indemnites}}.</p>
+  <p>Paiement par virement sur le compte dédié {{paiement.iban}} (titulaire {{cabinet.titulaire}}), en indiquant la référence {{dossier.reference}}, ou par chèque à l'ordre de {{cabinet.ordre_cheques}}, adressé à {{cabinet.adresse_cheques}}. Modalités en ligne : {{paiement.lien}}.</p>
+  <p>Rappel légal (article L111-8 du Code des procédures civiles d'exécution) : « Les frais de recouvrement entrepris sans titre exécutoire restent à la charge du créancier, sauf s'ils concernent un acte dont l'accomplissement est prescrit par la loi au créancier. Toute clause contraire est réputée non écrite, sauf disposition législative contraire. Cependant, le créancier peut demander au juge de l'exécution de mettre à la charge du débiteur de mauvaise foi tout ou partie des frais directement causés par l'acte de recouvrement. »</p>
+</div>

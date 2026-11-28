@@ -47,6 +47,8 @@ export function ReminderForm({ data, onClose }: { data: CaseDetail; onClose: () 
   );
   const registered = channel === 'REGISTERED_LETTER';
   const byEmail = channel === 'EMAIL';
+  /** An e-mail and a registered letter leave with the validated text of their template (questions 212 and 210). */
+  const validated = byEmail || registered;
   /** Every reminder after the first letter recalls its reference and date. */
   const blocked = !data.firstLetter && template !== 'FRIENDLY';
   const pickChannel = (next: string) => {
@@ -61,15 +63,17 @@ export function ReminderForm({ data, onClose }: { data: CaseDetail; onClose: () 
     { k: 'Canal', v: labelOf(CHANNELS, channel) },
     { k: 'Modèle', v: labelOf(TEMPLATES, template) },
     { k: 'Destinataire', v: recipient },
-    // What the e-mail of this level announces (question 213). For the other channels, not open yet, nothing exact to show.
-    ...(byEmail ? [{ k: 'Montant', v: formatCents(reminderAmount(LEVELS[template], data)) }] : []),
+    // What the e-mail or the letter of this level announces (question 213). For texts, not open yet, nothing exact to show.
+    ...(validated ? [{ k: 'Montant', v: formatCents(reminderAmount(LEVELS[template], data)) }] : []),
     { k: 'Premier courrier', v: data.firstLetter ? `${data.firstLetter.reference} du ${formatDate(data.firstLetter.date)}` : 'Cette relance' },
   ];
   /** Sends; a refusal of a rule of the firm is said in the form, and nothing has left. */
   const post = async (capOverride?: string) => {
     try {
-      // An e-mail leaves with the validated text of its template: no typed text is sent nor kept.
-      await change(`/cases/${data.id}/reminders`, { body: { channel, template, recipient, ...(byEmail ? {} : { message }), ...(capOverride ? { capOverride } : {}) } });
+      // An e-mail or a letter leaves with the validated text of its template: no typed text is sent nor kept.
+      await change(`/cases/${data.id}/reminders`, {
+        body: { channel, template, recipient, ...(validated ? {} : { message }), ...(capOverride ? { capOverride } : {}) },
+      });
     } catch (error) {
       const reason = refusalOf(error);
       if (!reason) throw error;
@@ -120,12 +124,21 @@ export function ReminderForm({ data, onClose }: { data: CaseDetail; onClose: () 
           />
           {byEmail && addresses.length > 0 ? (
             <Champ label="Destinataire" type="select" value={recipient} options={addresses} onChange={setRecipient} />
+          ) : registered ? (
+            // The letter leaves for the postal address of the case, as the post reads it: changed on the case only.
+            <Champ label="Destinataire" value={recipient} readOnly onChange={setRecipient} />
           ) : (
             <Champ label="Destinataire" value={recipient} onChange={setRecipient} />
           )}
         </div>
         {byEmail ? (
           <Alerte tone="info" compact text="Par e-mail, la relance part avec le texte validé du modèle." />
+        ) : registered ? (
+          <Alerte
+            tone="info"
+            compact
+            text="Le courrier part avec le texte validé du modèle, en lettre recommandée avec accusé de réception, à l’adresse postale du dossier. Une copie est classée dans les documents du dossier."
+          />
         ) : (
           <Champ label="Message" type="textarea" rows={7} value={message} onChange={setMessage} />
         )}
@@ -140,7 +153,7 @@ export function ReminderForm({ data, onClose }: { data: CaseDetail; onClose: () 
         <div className={layout.end}>
           <Bouton variant="secondary" label="Annuler" onPress={onClose} />
           {mayOverride && <Bouton variant="secondary" label="Déroger au plafond" onPress={override} />}
-          <Bouton label="Envoyer la relance" disabled={blocked || !recipient.trim() || (!byEmail && !message.trim())} onPress={send} />
+          <Bouton label="Envoyer la relance" disabled={blocked || !recipient.trim() || (!validated && !message.trim())} onPress={send} />
         </div>
       </div>
     </Carte>
