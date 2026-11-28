@@ -1,5 +1,5 @@
 import type { ComposeData } from '@legarec/contracts';
-import { REQUEST_BODIES } from '@legarec/contracts';
+import type { REQUEST_BODIES } from '@legarec/contracts';
 import { Inject, Injectable } from '@nestjs/common';
 import type { z } from 'zod';
 import { streetLinesOf } from '../../letters/postal';
