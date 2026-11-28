@@ -46,4 +46,8 @@ export const publicDataHandlers = [
       structure: { dimensions: { observation: [{ values: [{ id: '2026-09-16' }] }] } },
     }),
   ),
+  http.get(`${PUBLIC_DATA.holidays}/:year`, ({ params }) => {
+    const year = String(params.year).replace(/\.json$/u, '');
+    return HttpResponse.json({ [`${year}-01-01`]: '1er janvier', [`${year}-11-11`]: '11 novembre', [`${year}-12-25`]: 'Jour de Noël' });
+  }),
 ];

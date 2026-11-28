@@ -1,9 +1,10 @@
 import { agenda as agendaSchema, REMINDER_LABELS, reminderType, type Reminder, type ReminderType } from '@legarec/contracts';
-import { Alerte, Badge, Bouton, Carte, EtatListe, PageHeader, Toolbar, useConfirm, useToast, type Tone } from '@legarec/ui';
+import { Alerte, Badge, Bouton, Carte, Champ, EtatListe, PageHeader, Toolbar, useConfirm, useToast, type Tone } from '@legarec/ui';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/react/daygrid';
 import interactionPlugin from '@fullcalendar/react/interaction';
 import listPlugin from '@fullcalendar/react/list';
+import timeGridPlugin from '@fullcalendar/react/timegrid';
 import frLocale from '@fullcalendar/react/locales/fr';
 import classicTheme from '@fullcalendar/react/themes/classic';
 import '@fullcalendar/react/skeleton.css';
@@ -20,7 +21,7 @@ import { PlanReminder } from './PlanReminder';
 import css from './Reminders.module.css';
 
 const TONE: Record<ReminderType, Tone> = { EMAIL: 'info', SMS: 'teal', CALL: 'marine', LETTER: 'warning', INSTALLMENT: 'success', COURT_DEADLINE: 'danger' };
-const VIEWS = { month: ['Mois', 'dayGridMonth'], week: ['Semaine', 'dayGridWeek'], list: ['Liste', 'listMonth'] } as const;
+const VIEWS = { month: ['Mois', 'dayGridMonth'], week: ['Semaine', 'timeGridWeek'], list: ['Liste', 'listMonth'] } as const;
 const OFFICERS = [
   { value: 'all', label: 'Tous les gestionnaires' },
   { value: 'cl', label: 'Camille Laurent' },
@@ -108,6 +109,21 @@ function Agenda({ today, items, weekly }: { today: string; items: Reminder[]; we
     toast({
       message: `Relance reportée au ${fr(next, { day: '2-digit', month: '2-digit', year: 'numeric' })}.`,
       undo: () => void change(`/reminders/${item.id}`, { method: 'PUT', body: { date: item.date } }),
+    });
+  };
+  /** Dragged to another day or hour in the calendar: the same change as « Reporter », with « Annuler ». */
+  const move = async (item: Reminder, date: string, time: string | null | undefined, revert: () => void) => {
+    const before = { date: item.date, ...(item.time ? { time: item.time } : {}) };
+    try {
+      await change(`/reminders/${item.id}`, { method: 'PUT', body: { date, ...(time ? { time } : {}) } });
+    } catch {
+      revert();
+      toast({ message: 'La relance n’a pas pu être déplacée.' });
+      return;
+    }
+    toast({
+      message: `Relance déplacée au ${fr(date, { day: '2-digit', month: '2-digit', year: 'numeric' })}${time ? ` à ${time}` : ''}.`,
+      undo: () => void change(`/reminders/${item.id}`, { method: 'PUT', body: before }),
     });
   };
   const send = (item: Reminder) =>
@@ -231,7 +247,7 @@ function Agenda({ today, items, weekly }: { today: string; items: Reminder[]; we
           <section aria-label="Calendrier" className={`${layout.card} ${css.calendar}`}>
             <FullCalendar
               key={`${view}-${view === 'week' ? selected : month}`}
-              plugins={[dayGridPlugin, listPlugin, interactionPlugin, classicTheme]}
+              plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin, classicTheme]}
               locale={frLocale}
               firstDay={1}
               initialView={VIEWS[view][1]}
@@ -244,7 +260,29 @@ function Agenda({ today, items, weekly }: { today: string; items: Reminder[]; we
               showNonCurrentDates={false}
               eventColor="transparent"
               dayMaxEvents={3}
-              events={visible.map((item) => ({ id: item.id, title: `${item.time ? `${item.time} ` : ''}${item.debtor}`, start: item.date, allDay: true }))}
+              // Missing from the French locale of FullCalendar.
+              timedText="Horaires"
+              slotMinTime="08:00:00"
+              slotMaxTime="20:00:00"
+              slotDuration="00:30:00"
+              events={visible.map((item) => ({
+                id: item.id,
+                title: view === 'week' || !item.time ? item.debtor : `${item.time} ${item.debtor}`,
+                start: view === 'week' && item.time ? `${item.date}T${item.time}` : item.date,
+                allDay: view !== 'week' || !item.time,
+                // Moved like « Reporter » moves it: only one that can still be acted on.
+                editable: !item.done && item.canAct,
+                durationEditable: false,
+              }))}
+              eventDrop={(info) => {
+                const item = visible.find((entry) => entry.id === info.event.id);
+                const start = info.event.startStr;
+                if (!item || !start) return info.revert();
+                const date = start.slice(0, 10);
+                const time = info.event.allDay ? item.time : start.slice(11, 16);
+                if (date === item.date && time === item.time) return;
+                void move(item, date, time, info.revert);
+              }}
               eventContent={(info) => {
                 const item = visible.find((entry) => entry.id === info.event.id);
                 return item ? (
@@ -264,17 +302,16 @@ function Agenda({ today, items, weekly }: { today: string; items: Reminder[]; we
               }}
             />
           </section>
-          <label className={layout.inline}>
-            <span className={layout.muted}>Jour affiché à droite</span>
-            <input
+          <div className={css.day}>
+            <Champ
+              label="Jour affiché à droite"
               type="date"
               value={selected}
-              className={css.date}
-              onChange={(event) => {
-                if (event.currentTarget.value) setSelected(event.currentTarget.value);
+              onChange={(day) => {
+                if (day) setSelected(day);
               }}
             />
-          </label>
+          </div>
         </div>
         <aside className={layout.aside} aria-label="Relances du jour">
           <Carte

@@ -109,3 +109,9 @@
 .root[data-tight] td {
   font-size: var(--fs-base);
 }
+
+/* Room of the rows not drawn in a long table. */
+.root .spacer td {
+  padding: 0;
+  border: 0;
+}

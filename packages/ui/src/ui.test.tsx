@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   Alerte,
   Avatar,
@@ -10,6 +10,7 @@ import {
   Carte,
   Case,
   Champ,
+  DepotFichiers,
   Embleme,
   EtatListe,
   Icone,
@@ -517,4 +518,94 @@ describe('Sidebar', () => {
     expect(screen.getByRole('button', { name: 'Ouvrir le menu' })).toHaveFocus();
     expect(screen.getByText('Dans la page').closest('main')).not.toHaveAttribute('inert');
   });
+});
+
+describe('date field', () => {
+  // The calendar opens with the focus: never the real register in a test.
+  const fetch = vi.fn(async (_url: string) => Response.json({ '2027-12-25': 'Jour de Noël' }));
+  beforeEach(() => {
+    fetch.mockClear();
+    vi.stubGlobal('fetch', fetch);
+  });
+  afterEach(() => vi.unstubAllGlobals());
+  function DateField({ initial = '' }: { initial?: string }) {
+    const [value, setValue] = useState(initial);
+    return (
+      <>
+        <Champ label="Date de réception" type="date" value={value} onChange={setValue} />
+        <output aria-label="Valeur">{value}</output>
+      </>
+    );
+  }
+
+  it('reads a day typed the French way or as ISO, and refuses a day that does not exist', async () => {
+    renderUi(<DateField />);
+    const field = screen.getByLabelText('Date de réception');
+    await userEvent.type(field, '05/12/2026');
+    expect(screen.getByLabelText('Valeur')).toHaveTextContent('2026-12-05');
+    await userEvent.clear(field);
+    await userEvent.type(field, '2026-02-03');
+    expect(screen.getByLabelText('Valeur')).toHaveTextContent('2026-02-03');
+    await userEvent.clear(field);
+    await userEvent.type(field, '31/02/2026');
+    expect(screen.getByLabelText('Valeur')).toHaveTextContent('');
+  });
+
+  it('names the public holidays of the State in its calendar, asking only for the year', async () => {
+    renderUi(<DateField initial="2027-12-05" />);
+    await userEvent.click(screen.getByLabelText('Date de réception'));
+    expect(await screen.findByRole('button', { name: /25 décembre 2027, Jour de Noël, jour férié/u })).toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch.mock.calls[0]?.[0]).toBe('https://calendrier.api.gouv.fr/jours-feries/metropole/2027.json');
+  });
+});
+
+describe('DepotFichiers', () => {
+  function Drop() {
+    const [files, setFiles] = useState<File[]>([]);
+    return <DepotFichiers label="Déposez vos factures" hint="PDF, 10 Mo maximum" accept=".pdf" multiple files={files} onChange={setFiles} />;
+  }
+  it('takes a PDF picked, says why another file is refused, and removes a file', async () => {
+    renderUi(<Drop />);
+    const input = screen.getByLabelText('Déposez vos factures');
+    expect(input).toHaveAttribute('accept', '.pdf');
+    await userEvent.upload(input, new File(['x'], 'F-2026-0712.pdf', { type: 'application/pdf' }));
+    expect(within(screen.getByRole('list', { name: 'Fichiers choisis' })).getByText('F-2026-0712.pdf')).toBeVisible();
+    await userEvent.upload(input, new File(['x'], 'outil.exe', { type: 'application/octet-stream' }), { applyAccept: false });
+    expect(screen.getByRole('alert')).toHaveTextContent('Fichier refusé : PDF, 10 Mo maximum.');
+    await userEvent.click(screen.getByRole('button', { name: 'Retirer F-2026-0712.pdf' }));
+    expect(screen.queryByRole('list', { name: 'Fichiers choisis' })).toBeNull();
+  });
+});
+
+it('writes a phone number the way of the firm once typed', async () => {
+  function Phone() {
+    const [value, setValue] = useState('');
+    return <Champ label="Téléphone" type="tel" value={value} onChange={setValue} />;
+  }
+  renderUi(<Phone />);
+  await userEvent.type(screen.getByLabelText('Téléphone'), '+33612345678');
+  await userEvent.tab();
+  expect(screen.getByLabelText('Téléphone')).toHaveValue('06 12 34 56 78');
+});
+
+it('draws only the rows near the screen in a long table, and still says how many it has', () => {
+  const rows = Array.from({ length: 500 }, (_, index) => ({ id: `d${index}`, name: `Dossier ${index + 1}` }));
+  renderUi(<Tableau caption="Dossiers" rowId={(row) => row.id} rows={rows} columns={[{ key: 'name', label: 'Débiteur', value: (row) => row.name }]} />);
+  const table = screen.getByRole('table');
+  expect(table).toHaveAttribute('aria-rowcount', '501');
+  const drawn = within(table)
+    .getAllByRole('row')
+    .filter((row) => row.hasAttribute('aria-rowindex'));
+  expect(drawn.length).toBeGreaterThan(10);
+  expect(drawn.length).toBeLessThan(100);
+  expect(screen.getByText('Dossier 1')).toBeVisible();
+  expect(screen.queryByText('Dossier 500')).toBeNull();
+});
+
+it('draws every row of a short table', () => {
+  const rows = Array.from({ length: 30 }, (_, index) => ({ id: `d${index}`, name: `Dossier ${index + 1}` }));
+  renderUi(<Tableau caption="Dossiers" rowId={(row) => row.id} rows={rows} columns={[{ key: 'name', label: 'Débiteur', value: (row) => row.name }]} />);
+  expect(screen.getByRole('table')).not.toHaveAttribute('aria-rowcount');
+  expect(screen.getByText('Dossier 30')).toBeInTheDocument();
 });

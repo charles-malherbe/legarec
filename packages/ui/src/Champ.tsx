@@ -1,4 +1,9 @@
 import { Combobox, Input, NativeSelect, Textarea, TextInput, useCombobox } from '@mantine/core';
+import { DateInput } from '@mantine/dates';
+import { formatPhone } from '@legarec/contracts';
+import { holidaysOf } from '@legarec/platform';
+import 'dayjs/locale/fr';
+import '@mantine/dates/styles.layer.css';
 import { useId, useState, type ChangeEvent, type HTMLInputAutoCompleteAttribute, type InputHTMLAttributes, type KeyboardEvent, type ReactNode } from 'react';
 import { Icone } from './Icone';
 import css from './Champ.module.css';
@@ -45,11 +50,41 @@ export interface ChampProps extends LayoutProps {
   onBlur?: () => void;
 }
 
+/** « 05/12/2026 », « 5/12/2026 » or « 2026-12-05 » → 2026-12-05; anything else, or a day that does not exist → null. */
+export function parseDate(text: string): string | null {
+  const trimmed = text.trim();
+  const french = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/u.exec(trimmed);
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/u.exec(trimmed);
+  const [year, month, day] = french ? [french[3], french[2], french[1]] : iso ? [iso[1], iso[2], iso[3]] : [];
+  if (!year || !month || !day) return null;
+  const value = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value ? value : null;
+}
+const spoken = new Intl.DateTimeFormat('fr-FR', { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+/**
+ * Calendar of a date field: in French, from Monday, weekends set apart and the public holidays of the State named
+ * (API Jours fériés, read when the calendar opens: only the year leaves).
+ */
+function useHolidays() {
+  const [known, setKnown] = useState<Record<string, string>>({});
+  const [asked, setAsked] = useState<number[]>([]);
+  const ask = (day: string | undefined) => {
+    const year = Number((day ?? new Date().toISOString()).slice(0, 4));
+    if (asked.includes(year)) return;
+    setAsked((list) => [...list, year]);
+    void holidaysOf(year).then((found) => setKnown((all) => ({ ...all, ...found })));
+  };
+  return { known, ask };
+}
+
 export function Champ(props: ChampProps) {
   const auto = useId();
   const id = props.fieldId ?? auto;
   const { label, type = 'text', value, help, error, prefix, suffix, size = 'md' } = props;
   const [capsLock, setCapsLock] = useState(false);
+  const holidays = useHolidays();
   const combobox = useCombobox({ onDropdownClose: () => combobox.resetSelectedOption() });
   const proposals = props.suggestions?.items ?? [];
   const watchCaps = props.capsLockWarning ?? type === 'password';
@@ -65,6 +100,11 @@ export function Champ(props: ChampProps) {
     error: error ? true : undefined,
     onBlur: () => {
       setCapsLock(false);
+      // A phone number is written the way of the firm once typed: « +33 6 12 34 56 78 » becomes « 06 12 34 56 78 ».
+      if (type === 'tel' && !props.readOnly && value.trim()) {
+        const written = formatPhone(value.trim());
+        if (written !== value) props.onChange?.(written);
+      }
       props.onBlur?.();
     },
     'aria-label': props.hideLabel ? label : undefined,
@@ -116,6 +156,42 @@ export function Champ(props: ChampProps) {
             maxLength={props.maxLength}
             spellCheck={props.spellCheck}
             data-area
+          />
+        ) : type === 'date' ? (
+          <DateInput
+            id={id}
+            value={value || null}
+            onChange={(day) => props.onChange?.(day ?? '')}
+            onBlur={shared.onBlur}
+            disabled={props.disabled}
+            required={props.required}
+            readOnly={props.readOnly}
+            error={error ? true : undefined}
+            aria-label={shared['aria-label']}
+            locale="fr"
+            firstDayOfWeek={1}
+            valueFormat="DD/MM/YYYY"
+            dateParser={parseDate}
+            placeholder={props.placeholder ?? 'jj/mm/aaaa'}
+            allowDeselect
+            fixOnBlur
+            inputMode="numeric"
+            autoComplete="off"
+            popoverProps={{
+              onOpen: () => holidays.ask(value || undefined),
+              withinPortal: false,
+              transitionProps: { duration: 0 },
+              classNames: { dropdown: css.calendar },
+            }}
+            onDateChange={(shown) => holidays.ask(shown)}
+            getDayProps={(day) => {
+              const holiday = holidays.known[day];
+              return holiday
+                ? { 'data-holiday': true, title: holiday, 'aria-label': `${spoken.format(new Date(`${day}T00:00:00Z`))}, ${holiday}, jour férié` }
+                : {};
+            }}
+            classNames={{ input: css.input, wrapper: css.wrapper, root: css.wrapper, day: css.day }}
+            {...{ 'data-invalid': error ? true : undefined, 'aria-describedby': describedBy, 'data-size': size, 'data-readonly': props.readOnly || undefined }}
           />
         ) : props.suggestions ? (
           <Combobox

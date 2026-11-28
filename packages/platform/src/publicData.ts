@@ -15,6 +15,8 @@ export const PUBLIC_DATA = {
   companies: 'https://recherche-entreprises.api.gouv.fr/search',
   /** Data portal of the European Central Bank: rate of the main refinancing operations. */
   ecbRate: 'https://data-api.ecb.europa.eu/service/data/FM/B.U2.EUR.4F.KR.MRR_FR.LEV',
+  /** API Jours fériés of the State (calendrier.api.gouv.fr): the public holidays of metropolitan France. */
+  holidays: 'https://calendrier.api.gouv.fr/jours-feries/metropole',
 } as const;
 
 async function read<T extends z.ZodType>(schema: T, url: string, signal?: AbortSignal): Promise<z.infer<T> | null> {
@@ -184,4 +186,22 @@ export async function ecbRateOn(day?: string, signal?: AbortSignal): Promise<Pub
   const rate = values?.[0];
   const since = index === undefined ? undefined : days[Number(index)]?.id;
   return typeof rate === 'number' && since ? { rate, since } : null;
+}
+
+const holidaysAnswer = z.record(z.string().regex(/^\d{4}-\d{2}-\d{2}$/u), z.string());
+const holidayYears = new Map<number, Promise<Record<string, string>>>();
+/**
+ * Public holidays of metropolitan France in a year, as the State publishes them: { '2026-12-25': 'Jour de Noël' }. Only
+ * the year leaves; read once per year and page. Empty if out of reach.
+ */
+export function holidaysOf(year: number): Promise<Record<string, string>> {
+  if (!Number.isInteger(year) || year < 1900 || year > 2100) return Promise.resolve({});
+  const known = holidayYears.get(year);
+  if (known) return known;
+  const asked = read(holidaysAnswer, `${PUBLIC_DATA.holidays}/${year}.json`).then((answer) => {
+    if (!answer) holidayYears.delete(year);
+    return answer ?? {};
+  });
+  holidayYears.set(year, asked);
+  return asked;
 }

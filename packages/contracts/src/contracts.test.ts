@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  formatPhone as writePhone,
   accessCode,
   allocatePayment,
   canAccessTechnicalSettings,
@@ -65,4 +66,16 @@ it('drops to 70 characters with ê, ç or a typographic apostrophe', () => {
 
 it('keeps the 3CX codes of the mockup', () => {
   expect(Object.values(TCX_CODES)).toEqual(['PROMESSE', 'ECHEANCIER', 'RAPPEL', 'LITIGE', 'DEJA_PAYE', 'ABSENT', 'NON_REPONSE', 'FAUX_NUMERO']);
+});
+
+describe('phone numbers', () => {
+  it.each([
+    ['0612345678', '06 12 34 56 78'],
+    ['+33 6 12 34 56 78', '06 12 34 56 78'],
+    ['0033612345678', '06 12 34 56 78'],
+    ['+33 (0)1 87 88 02 98', '01 87 88 02 98'],
+    ['06.12.34.56.78', '06 12 34 56 78'],
+    ['+3222345678', '+32 2 234 56 78'],
+  ])('writes %s as %s', (typed, written) => expect(writePhone(typed)).toBe(written));
+  it('leaves a number it does not know as typed', () => expect(writePhone('12 34')).toBe('12 34'));
 });

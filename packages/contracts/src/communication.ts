@@ -1,3 +1,4 @@
+import { parsePhoneNumberFromString } from 'libphonenumber-js/min';
 import { z } from 'zod';
 import { callOutcome, type CallOutcome } from './calls';
 import { atMost, EMAIL_MAX, ID_MAX } from './limits';
@@ -101,7 +102,14 @@ export const qualification = z.object({
 export type Qualification = z.infer<typeof qualification>;
 
 export const FRENCH_PHONE = /^(\+33\s?|0)[1-9](\s?\d{2}){4}$/;
+/**
+ * A phone number as the firm writes it: « 06 12 34 56 78 » for a number of France, written « +33 6 12 34 56 78 »,
+ * « 0033 6… », « 06.12.34.56.78 » or « +33 (0)6… »; « +32 2 123 45 67 » for a number abroad (libphonenumber-js, as the
+ * API does for the e-mails). A number the numbering plan does not know is left as typed: the checks say what is wrong.
+ */
 export const formatPhone = (value: string) => {
+  const number = parsePhoneNumberFromString(value.replace(/\(0\)/u, ''), 'FR');
+  if (number?.isValid()) return number.countryCallingCode === '33' ? number.formatNational() : number.formatInternational();
   const digits = value.replace(/\s/g, '').replace(/^\+33/, '0');
   return /^0\d{9}$/.test(digits) ? digits.replace(/(\d{2})(?=\d)/g, '$1 ') : value;
 };
