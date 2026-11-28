@@ -815,7 +815,8 @@ export const MATRIX: Record<string, MatrixEntry> = {
     }),
     expect: withCases(403, { manager: 409, managerAlone: 409 }),
   },
-  'POST /staff/documents/compose/draft': { body: () => ({ template: 'FRIENDLY', caseId: '00000000-0000-4000-8000-000000000000' }), expect: withCases(409) },
+  // A case nobody holds: not found for whoever acts on cases.
+  'POST /staff/documents/compose/draft': { body: () => ({ template: 'FRIENDLY', caseId: '00000000-0000-4000-8000-000000000000' }), expect: withCases(404) },
   'POST /staff/documents/:id/share': {
     path: (test) => documentPath(test, '/share'),
     expect: only({ director: 403, manager: 204, managerAlone: 204, officerA: 404, officerB: 404, liar: 404 }),

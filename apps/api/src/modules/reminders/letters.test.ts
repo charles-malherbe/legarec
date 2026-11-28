@@ -332,6 +332,20 @@ describe('Rédiger un courrier (question 210)', () => {
     expect((await batch({ expected: 2, filters: { creditor: 'nobody', age: '60+' } })).status).toBe(422);
   });
 
+  it('keeps a draft in the case, sent to nobody', async () => {
+    const found = await made();
+    expect((await call('officerA', 'POST', '/documents/compose/draft', { template: 'FRIENDLY', caseId: found.id })).status).toBe(204);
+    await worker.run();
+    expect(await lines(found.id)).toEqual([]);
+    expect(await rows('SELECT title, original_name FROM documents WHERE case_id = $1', [found.id])).toEqual([
+      { title: 'Relance amiable (brouillon)', original_name: expect.stringMatching(/^brouillon-\d{4}-\d{2}-\d{2}\.pdf$/u) as unknown },
+    ]);
+    expect(await rows("SELECT title, detail FROM case_events WHERE case_id = $1 AND kind = 'DOCUMENT_ADDED'", [found.id])).toEqual([
+      { title: 'Brouillon de courrier enregistré', detail: 'Relance amiable · non envoyé' },
+    ]);
+    expect((await call('officerA', 'POST', '/documents/compose/draft', { template: 'FIRM', caseId: found.id })).body).toEqual({ code: 'NO_FIRST_LETTER' });
+  });
+
   it('refuses what is not open yet, another selection, and whoever does not act on the case', async () => {
     const found = await made();
     expect((await compose('officerA', { caseIds: [found.id], channel: 'EMAIL_SIGNATURE' })).body).toEqual({ code: 'NOT_AVAILABLE' });
@@ -340,7 +354,10 @@ describe('Rédiger un courrier (question 210)', () => {
     expect((await compose('officerA', { caseIds: [found.id], delay: 10 })).status).toBe(422);
     expect((await compose('officerB', { caseIds: [found.id] })).status).toBe(404);
     expect((await compose('director', { caseIds: [found.id] })).status).toBe(403);
-    expect((await call('officerA', 'POST', '/documents/compose/draft', { template: 'FRIENDLY', caseId: found.id })).body).toEqual({ code: 'NOT_AVAILABLE' });
+    expect((await call('officerA', 'POST', '/documents/compose/draft', { template: 'PAYMENT_PLAN', caseId: found.id })).body).toEqual({
+      code: 'NOT_AVAILABLE',
+    });
+    expect((await call('officerB', 'POST', '/documents/compose/draft', { template: 'FRIENDLY', caseId: found.id })).status).toBe(404);
     expect(await lines(found.id)).toEqual([]);
   });
 });

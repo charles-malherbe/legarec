@@ -19,6 +19,7 @@ import { SendingsService } from './sendings.service';
 
 type Compose = z.infer<(typeof REQUEST_BODIES)['staff']['POST /documents/compose']>;
 type Query = z.infer<typeof composeQuery>;
+type Draft = z.infer<(typeof REQUEST_BODIES)['staff']['POST /documents/compose/draft']>;
 /** Days late of the oldest invoice still due, for each choice of the screen. */
 const BATCH_AGES: Record<Query['age'], [number, number]> = { '0-30': [1, 30], '31-60': [31, 60], '60+': [61, Number.MAX_SAFE_INTEGER] };
 /** Who sends a grouped letter: the manager, as the screen offers it. */
@@ -220,7 +221,7 @@ export class ComposeService {
   }
 
   /** « Télécharger seulement »: the PDF alone, written by the worker and kept in the case, sent to nobody. */
-  private async file(caseId: string, template: 'FRIENDLY' | 'FIRM' | 'FORMAL_NOTICE' | 'CLEARANCE', delay: number): Promise<void> {
+  private async file(caseId: string, template: 'FRIENDLY' | 'FIRM' | 'FORMAL_NOTICE' | 'CLEARANCE', delay: number, draft = false): Promise<void> {
     const { tx } = this.database;
     const found = await tx.case.findFirst({
       where: { id: caseId },
@@ -252,11 +253,15 @@ export class ComposeService {
       if (QUOTES_FIRST_LETTER.has(template) && (!found.firstLetterReference || !found.firstLetterOn)) throw conflict('NO_FIRST_LETTER');
     }
     if (!streetLinesOf(found.debtorAddress) || !found.debtorPostalCode || !found.debtorCity?.trim()) throw conflict('NO_ADDRESS');
-    await this.outbox.add({ queue: 'reminders', name: 'case-letter-file', payload: { case: caseId, template, delay } });
+    await this.outbox.add({ queue: 'reminders', name: draft ? 'case-letter-draft' : 'case-letter-file', payload: { case: caseId, template, delay } });
   }
 
-  /** « Enregistrer le brouillon »: not open yet. */
-  draft(): Promise<void> {
-    return Promise.reject(conflict('NOT_AVAILABLE'));
+  /**
+   * « Enregistrer le brouillon »: the PDF of the template for the case, kept in it as a draft and sent to nobody, with the
+   * checks of « Télécharger seulement » and the delay of 8 days (the screen sends neither delay nor text).
+   */
+  async draft(body: Draft): Promise<void> {
+    if (!TEMPLATES.has(body.template)) throw conflict('NOT_AVAILABLE');
+    return this.file(body.caseId, body.template as 'FRIENDLY' | 'FIRM' | 'FORMAL_NOTICE' | 'CLEARANCE', LETTER_DELAYS[0]!, true);
   }
 }

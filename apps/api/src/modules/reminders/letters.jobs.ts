@@ -409,9 +409,10 @@ export function letterJobs({ database, vault, storage, pdf, templates, mysending
   };
   /**
    * « Télécharger seulement » of Rédiger un courrier: the same PDF, kept in the case, sent to nobody. Neither a sending nor
-   * a contact: no cap, no first letter. One try: a second run would keep a second copy.
+   * a contact: no cap, no first letter. One try: a second run would keep a second copy. A draft (« Enregistrer le
+   * brouillon ») is the same PDF, named as one.
    */
-  const file: JobDefinition = {
+  const fileJob = (draft: boolean): JobDefinition => ({
     from: ['STAFF'],
     repeatable: false,
     run: async ({ payload, asAuthor, authorize }) => {
@@ -434,8 +435,8 @@ export function letterJobs({ database, vault, storage, pdf, templates, mysending
               creditorId: found.creditorId,
               category,
               kind: 'PDF',
-              title,
-              originalName: `courrier-${today}.pdf`,
+              title: draft ? `${title} (brouillon)` : title,
+              originalName: `${draft ? 'brouillon' : 'courrier'}-${today}.pdf`,
               storageKey: stored.key,
               sizeBytes: stored.size,
               sha256: stored.sha256,
@@ -445,13 +446,14 @@ export function letterJobs({ database, vault, storage, pdf, templates, mysending
             },
             select: { id: true },
           });
-          await tx.$executeRaw`SELECT app.add_case_event(${caseId}::uuid, 'DOCUMENT_ADDED', 'Courrier généré', ${`${title} · sans envoi`}, 'info'::event_tone, false) WHERE app.case_writable(${caseId}::uuid)`;
+          const [event, detail] = draft ? ['Brouillon de courrier enregistré', `${title} · non envoyé`] : ['Courrier généré', `${title} · sans envoi`];
+          await tx.$executeRaw`SELECT app.add_case_event(${caseId}::uuid, 'DOCUMENT_ADDED', ${event}, ${detail}, 'info'::event_tone, false) WHERE app.case_writable(${caseId}::uuid)`;
         });
       } catch (error) {
         await storage.remove(stored.key);
         throw error;
       }
     },
-  };
-  return { 'case-letter': job, 'case-letter-file': file };
+  });
+  return { 'case-letter': job, 'case-letter-file': fileJob(false), 'case-letter-draft': fileJob(true) };
 }

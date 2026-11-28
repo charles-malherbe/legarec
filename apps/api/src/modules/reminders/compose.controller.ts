@@ -35,7 +35,7 @@ export class ComposeController {
   @Commits()
   @HttpCode(204)
   @ApiNoContentResponse()
-  draft(@Body({ schema: bodies['POST /documents/compose/draft'] }) _body: In<'POST /documents/compose/draft'>) {
-    return this.service.draft();
+  draft(@Body({ schema: bodies['POST /documents/compose/draft'] }) body: In<'POST /documents/compose/draft'>) {
+    return this.service.draft(body);
   }
 }
