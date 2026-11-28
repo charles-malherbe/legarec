@@ -76,6 +76,7 @@
 		-Via
 		defer
 	}
+	# What a portal already compressed at build time goes down as it is; the rest is compressed here.
 	encode zstd gzip
 }
 
