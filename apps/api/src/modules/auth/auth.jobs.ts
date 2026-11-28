@@ -1,10 +1,11 @@
-import { ROLE_LABELS, type AutomaticEmail } from '@legarec/contracts';
+import { ROLE_LABELS } from '@legarec/contracts';
 import type { Config } from '../../platform/config/config';
 import { newToken } from '../../platform/crypto/keyring';
 import type { Transaction } from '../../platform/database/database';
 import { longMoment } from '../../platform/format';
 import { GiveUp } from '../../platform/queue/errors';
 import type { JobDefinition, Run } from '../../platform/queue/jobs';
+import type { AccountMail } from './account-mail';
 import type { AuthKeys } from './keys';
 import { drawLink, linkUrl, type LinkPurpose } from './link-tokens';
 
@@ -12,7 +13,8 @@ type Portals = Pick<Config, 'STAFF_PORTAL_URL' | 'PARTNER_PORTAL_URL'>;
 interface Parts {
   keys: AuthKeys;
   portals: Portals;
-  send(name: AutomaticEmail, to: string, data: unknown): Promise<void>;
+  /** Asked before a link is drawn: a refused e-mail draws none, and closes none of those already sent. */
+  mail: AccountMail;
 }
 const person = { email: true, firstName: true, lastName: true, role: true, status: true } as const;
 const id = (value: unknown): string => {
@@ -29,8 +31,12 @@ const stillInCharge = async (tx: Transaction) => {
 /** Told to the holder of the account, who started it themselves. */
 const oneself = () => Promise.resolve(true);
 
-/** E-mails of the accounts. A link is drawn here, when it leaves: it is in no table, no queue and no log. */
-export function accountJobs({ keys, portals, send }: Parts): Record<string, JobDefinition> {
+/**
+ * E-mails of the accounts, by Resend with the key of the reminders (question 217). A link is drawn here, when it leaves: it
+ * is in no table, no queue and no log. Each reaches a person: one try, as in the queue of the reminders; an e-mail that
+ * failed is asked again by whoever needs it (« Mot de passe oublié », a new invitation).
+ */
+export function accountJobs({ keys, portals, mail }: Parts): Record<string, JobDefinition> {
   const newLink = async (asApplication: Run, purpose: LinkPurpose, userId: string, role: string): Promise<string> => {
     const token = newToken();
     await asApplication((tx) => drawLink(tx, keys, { purpose, userId, token }));
@@ -40,8 +46,8 @@ export function accountJobs({ keys, portals, send }: Parts): Record<string, JobD
   return {
     invitation: {
       from: ['STAFF'],
-      repeatable: true,
-      run: async ({ payload, authorize }) => {
+      repeatable: false,
+      run: async ({ taskId, payload, authorize }) => {
         const userId = id(payload.userId);
         const asApplication = await authorize(stillInCharge);
         const user = await asApplication((tx) =>
@@ -52,26 +58,28 @@ export function accountJobs({ keys, portals, send }: Parts): Record<string, JobD
         );
         // Cancelled, or activated, since.
         if (user?.status !== 'INVITED') return;
+        const deliver = await mail(user.email, taskId);
         const common = {
           invitation_url: await newLink(asApplication, 'INVITATION', userId, user.role),
           inviter: { name: user.invitedBy ? fullName(user.invitedBy) : 'Legarec' },
           recipient: { first_name: user.firstName },
           expires_in: '72 heures',
         };
-        if (user.creditor) await send('creditor-invitation', user.email, { ...common, creditor: { name: user.creditor.name } });
-        else await send('staff-invitation', user.email, { ...common, role_label: ROLE_LABELS[user.role], requires_2fa: user.twoFactorRequired });
+        if (user.creditor) await deliver('creditor-invitation', { ...common, creditor: { name: user.creditor.name } });
+        else await deliver('staff-invitation', { ...common, role_label: ROLE_LABELS[user.role], requires_2fa: user.twoFactorRequired });
       },
     },
 
     'reset-link': {
       from: ['ANONYMOUS', 'STAFF'],
-      repeatable: true,
-      run: async ({ payload, authorize }) => {
+      repeatable: false,
+      run: async ({ taskId, payload, authorize }) => {
         const userId = id(payload.userId);
         const asApplication = await authorize(stillInCharge);
         const user = await asApplication((tx) => tx.user.findUnique({ where: { id: userId }, select: person }));
         if (user?.status !== 'ACTIVE') return;
-        await send(user.role === 'CREDITOR' ? 'creditor-password-reset' : 'staff-password-reset', user.email, {
+        const deliver = await mail(user.email, taskId);
+        await deliver(user.role === 'CREDITOR' ? 'creditor-password-reset' : 'staff-password-reset', {
           reset_url: await newLink(asApplication, 'RESET', userId, user.role),
           recipient: { first_name: user.firstName },
           requested_at: longMoment(new Date()),
@@ -82,8 +90,8 @@ export function accountJobs({ keys, portals, send }: Parts): Record<string, JobD
 
     'new-device': {
       from: ['STAFF'],
-      repeatable: true,
-      run: async ({ payload, authorize }) => {
+      repeatable: false,
+      run: async ({ taskId, payload, authorize }) => {
         const asApplication = await authorize(oneself);
         const session = await asApplication((tx) =>
           tx.userSession.findUnique({
@@ -92,7 +100,9 @@ export function accountJobs({ keys, portals, send }: Parts): Record<string, JobD
           }),
         );
         if (!session) return;
-        await send('staff-new-device', session.user.email, {
+        await (
+          await mail(session.user.email, taskId)
+        )('staff-new-device', {
           device: { name: session.deviceLabel, login_at: longMoment(session.createdAt), ...(session.ip ? { ip: session.ip } : {}) },
           recipient: { first_name: session.user.firstName },
           // Passwords and active sessions: the security tab of the account.
@@ -103,14 +113,16 @@ export function accountJobs({ keys, portals, send }: Parts): Record<string, JobD
 
     'second-factor-enabled': {
       from: ['STAFF'],
-      repeatable: true,
-      run: async ({ payload, authorize }) => {
+      repeatable: false,
+      run: async ({ taskId, payload, authorize }) => {
         const asApplication = await authorize(oneself);
         const factor = await asApplication((tx) =>
           tx.secondFactor.findUnique({ where: { id: id(payload.factorId) }, select: { kind: true, confirmedAt: true, user: { select: person } } }),
         );
         if (!factor?.confirmedAt) return;
-        await send('staff-2fa-enabled', factor.user.email, {
+        await (
+          await mail(factor.user.email, taskId)
+        )('staff-2fa-enabled', {
           event: { date: longMoment(factor.confirmedAt), method_label: factor.kind === 'TOTP' ? 'Application d’authentification' : 'Clé de sécurité' },
           recipient: { first_name: factor.user.firstName },
         });
@@ -119,8 +131,8 @@ export function accountJobs({ keys, portals, send }: Parts): Record<string, JobD
 
     'delegation-changed': {
       from: ['STAFF'],
-      repeatable: true,
-      run: async ({ payload, authorize }) => {
+      repeatable: false,
+      run: async ({ taskId, payload, authorize }) => {
         const asApplication = await authorize(stillInCharge);
         const found = await asApplication(async (tx) => {
           const delegation = await tx.delegation.findUnique({
@@ -133,7 +145,9 @@ export function accountJobs({ keys, portals, send }: Parts): Record<string, JobD
         const { delegation, holder } = found;
         if (!delegation || !holder) return;
         const director = fullName(delegation.grantedBy);
-        await send('delegation-changed', holder.email, {
+        await (
+          await mail(holder.email, taskId)
+        )('delegation-changed', {
           action_url: `${portals.STAFF_PORTAL_URL}/compte`,
           delegation: {
             from_name: director,
@@ -150,8 +164,8 @@ export function accountJobs({ keys, portals, send }: Parts): Record<string, JobD
 
     'support-ticket': {
       from: ['STAFF'],
-      repeatable: true,
-      run: async ({ payload, authorize }) => {
+      repeatable: false,
+      run: async ({ taskId, payload, authorize }) => {
         const asApplication = await authorize(oneself);
         const found = await asApplication(async (tx) => {
           const ticket = await tx.supportTicket.findUnique({
@@ -163,7 +177,9 @@ export function accountJobs({ keys, portals, send }: Parts): Record<string, JobD
         });
         const { ticket, reader } = found;
         if (!ticket || !reader) return;
-        await send('ops-alert', reader.email, {
+        await (
+          await mail(reader.email, taskId)
+        )('ops-alert', {
           alert: {
             title: `Demande ${ticket.number} : ${ticket.subject}`,
             description: ticket.message,
