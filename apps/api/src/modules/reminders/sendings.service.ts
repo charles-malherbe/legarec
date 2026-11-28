@@ -257,6 +257,25 @@ export class SendingsService {
     return this.remindByLetter(found, template, channel, delay);
   }
 
+  /**
+   * « E-mail avec PDF joint » of Rédiger un courrier: the validated e-mail of the same level (reminder-1 to reminder-3), to
+   * the main address of the case, with the letter of Paramètres › Modèles joined as a PDF and kept in the case. The rules of
+   * an e-mail reminder (first letter sent, no individual, cap without override, hours); the letter needs a postal address,
+   * as it names the debtor at it.
+   */
+  async emailWithLetter(caseId: string, template: Reminder['template'], delay: number): Promise<void> {
+    const { tx } = this.database;
+    const found = await tx.case.findFirst({ where: { id: caseId }, select: CASE });
+    if (!found) throw notFound();
+    if (!(await mayActOn(caseId)(tx))) throw forbidden();
+    const rules = await this.rules();
+    const stopped = this.ofCase(found);
+    if (stopped) throw refused(stopped);
+    if (!streetLinesOf(found.debtorAddress) || !found.debtorPostalCode || !found.debtorCity?.trim()) throw refused('NO_ADDRESS');
+    const refusal = (await this.queue([found], rules, () => ({ contactId: found.contacts[0]!.id, template }), undefined, { delay })).get(found.id);
+    if (refusal) throw refused(refusal);
+  }
+
   /** What the case forbids for the reminder of an installment: its plan runs, and it may go to an individual. */
   private ofPlanCase(found: Found): SendingRefusal | null {
     if (found.closedOn || found.anonymizedAt) return 'CASE_CLOSED';
@@ -390,6 +409,8 @@ export class SendingsService {
     rules: Rules,
     choose: (found: Found, lines: readonly Line[]) => Chosen,
     stops: (found: Found) => SendingRefusal | null = (found) => this.ofCase(found),
+    /** What the task carries besides its line: the delay of a joined letter (Rédiger un courrier). */
+    extra: { delay?: number } = {},
   ): Promise<Map<string, SendingRefusal>> {
     const { tx } = this.database;
     const refusals = new Map<string, SendingRefusal>();
@@ -456,7 +477,7 @@ export class SendingsService {
     }
     // The history says « Relance envoyée » when the worker has sent it, not before (question 219).
     for (const { id, caseId } of written)
-      await this.outbox.add({ queue: 'reminders', name: 'case-reminder', payload: { sending: id, case: caseId }, dedupeKey: `sending:${id}` });
+      await this.outbox.add({ queue: 'reminders', name: 'case-reminder', payload: { sending: id, case: caseId, ...extra }, dedupeKey: `sending:${id}` });
     return refusals;
   }
 }

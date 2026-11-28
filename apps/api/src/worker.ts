@@ -17,7 +17,7 @@ import { planJobs } from './modules/payments/plans.jobs';
 import { receiptJobs } from './modules/payments/receipts.jobs';
 import { resendEventJobs } from './modules/reminders/resend-events.jobs';
 import { letterEventJobs, sweepLetters, type LetterTracking } from './modules/reminders/letter-events.jobs';
-import { letterJobs } from './modules/reminders/letters.jobs';
+import { letterJobs, letterPreparer } from './modules/reminders/letters.jobs';
 import { sendingJobs, sweepSendings } from './modules/reminders/sendings.jobs';
 import { MySendingBoxClient } from './letters/mysendingbox';
 import { PdfRenderer } from './platform/pdf/pdf';
@@ -96,6 +96,8 @@ const handlers: JobHandlers = {
       real: config.RESEND_ENV === 'production',
       devRecipients: config.DEV_RECIPIENTS ?? [],
       simulate: (message) => simulated.send(message),
+      // « E-mail avec PDF joint »: the letter of the level, as the post would carry it.
+      letters: { prepare: letterPreparer({ database, pdf, templates: pdfTemplates, portal: config.DEBTOR_PORTAL_URL }), storage },
     }),
     // The registered letters by MySendingBox (question 210): the `live_` key only with MYSENDINGBOX_ENV=production.
     ...letterJobs({

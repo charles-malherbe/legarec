@@ -818,6 +818,53 @@ describe('the reminder leaves by the provider', () => {
     expect(await rows('SELECT 1 FROM outbox WHERE payload::text LIKE $1', [`%${KEY}%`])).toEqual([]);
   });
 
+  it('carries the letter of the same level as a PDF, kept in the case (Rédiger un courrier, « E-mail avec PDF joint »)', async () => {
+    await rows(
+      "INSERT INTO settings (key, value, updated_by) VALUES ('firm.cabinet.address', to_jsonb('12 rue de la Paix, 75002 Paris'::text), $1) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+      [test.s.director],
+    );
+    const compose = (made: Made, body: Record<string, unknown> = {}) =>
+      call('officerA', 'POST', '/documents/compose', {
+        template: 'FIRM',
+        caseIds: [made.id],
+        filters: null,
+        expected: 1,
+        channel: 'EMAIL_PDF',
+        delay: 15,
+        months: 4,
+        options: { table: true, pay: true, indemnity: true },
+        ...body,
+      });
+    const placed = async (made: Made) => {
+      await rows("UPDATE cases SET debtor_address = '14 avenue des Tilleuls', debtor_postal_code = '69003', debtor_city = 'Lyon' WHERE id = $1", [made.id]);
+      return made;
+    };
+    const made = await placed(await eligible(test.s.officerA));
+    asked.splice(0);
+    expect((await compose(made)).status).toBe(204);
+    await worker.run();
+    expect(await sendings(made.id)).toEqual([{ status: 'SENT', simulated: false, provider_ref: 'ref-1', failure: null, level: 2 }]);
+    const [request] = asked.splice(0);
+    const sent = JSON.parse(request!.body) as { subject: string; attachments: { filename: string; content: string }[] };
+    // The validated e-mail of the level, and the letter joined: a PDF named by its day, nothing of the debtor.
+    expect(sent.subject).not.toBe('');
+    expect(sent.attachments).toHaveLength(1);
+    expect(sent.attachments[0]!.filename).toMatch(/^courrier-\d{4}-\d{2}-\d{2}\.pdf$/u);
+    expect(Buffer.from(sent.attachments[0]!.content, 'base64').subarray(0, 5).toString()).toBe('%PDF-');
+    expect(
+      await rows(
+        'SELECT d.title, d.source FROM documents d JOIN sendings s ON s.document_id = d.id WHERE s.case_id = $1',
+        [made.id],
+      ),
+    ).toEqual([{ title: 'Relance ferme (e-mail)', source: 'GENERATED' }]);
+    // The rules of an e-mail reminder, and an address for the letter.
+    const individual = await placed(await eligible(test.s.officerA, { kind: 'INDIVIDUAL' }));
+    expect((await compose(individual)).body).toEqual({ code: 'INDIVIDUAL' });
+    expect((await compose(await eligible(test.s.officerA))).body).toEqual({ code: 'NO_ADDRESS' });
+    const without = await placed(await eligible(test.s.officerA, { firstLetter: false }));
+    expect((await compose(without)).body).toEqual({ code: 'NO_FIRST_LETTER' });
+  });
+
   it('never writes, outside production, to an address that is neither a test one nor listed by the firm', async () => {
     const real = await eligible(test.s.officerA, { email: 'compta@entreprise-reelle.example' });
     const listed = await eligible(test.s.officerA, { email: 'recette@legarec.test' });

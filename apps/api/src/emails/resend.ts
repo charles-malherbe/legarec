@@ -15,6 +15,12 @@ export class ProviderRefused extends Error {
   }
 }
 
+/** A file that goes with the message: the PDF of a letter (« E-mail avec PDF joint »). Its name says nothing of the debtor. */
+export interface Attachment {
+  filename: string;
+  content: Uint8Array;
+}
+
 const ENDPOINT = 'https://api.resend.com/emails';
 const TIMEOUT_MS = 20_000;
 const REF = /^[A-Za-z0-9_-]{1,100}$/u;
@@ -34,7 +40,7 @@ export class ResendClient {
    * `once`: the same key never sends twice (Resend keeps it 24 hours). `sending`: the line the message leaves for, given
    * back by Resend with each event of the message (tag `sending_id`): an identifier, nothing of the debtor.
    */
-  async send(key: string, message: AutomaticMessage, once: string, sending?: string): Promise<{ ref: string }> {
+  async send(key: string, message: AutomaticMessage, once: string, sending?: string, attachment?: Attachment): Promise<{ ref: string }> {
     let answer: Awaited<ReturnType<HttpClient>>;
     try {
       answer = await this.http(ENDPOINT, {
@@ -47,6 +53,7 @@ export class ResendClient {
           html: message.html,
           ...(message.replyTo ? { reply_to: message.replyTo } : {}),
           ...(sending ? { tags: [{ name: SENDING_TAG, value: sending }] } : {}),
+          ...(attachment ? { attachments: [{ filename: attachment.filename, content: Buffer.from(attachment.content).toString('base64') }] } : {}),
         }),
         signal: AbortSignal.timeout(this.timeoutMs),
       });

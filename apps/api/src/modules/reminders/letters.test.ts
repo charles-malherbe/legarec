@@ -258,7 +258,7 @@ describe('Rédiger un courrier (question 210)', () => {
 
   it('refuses what is not open yet, another selection, and whoever does not act on the case', async () => {
     const found = await made();
-    expect((await compose('officerA', { caseIds: [found.id], channel: 'EMAIL_PDF' })).body).toEqual({ code: 'NOT_AVAILABLE' });
+    expect((await compose('officerA', { caseIds: [found.id], channel: 'EMAIL_SIGNATURE' })).body).toEqual({ code: 'NOT_AVAILABLE' });
     expect((await compose('officerA', { caseIds: [found.id], template: 'PAYMENT_PLAN' })).body).toEqual({ code: 'NOT_AVAILABLE' });
     expect((await compose('manager', { caseIds: null, filters: { creditor: 'all', age: '31-60' }, expected: 3 })).body).toEqual({ code: 'NOT_AVAILABLE' });
     expect((await compose('officerA', { caseIds: [found.id], expected: 2 })).body).toEqual({ code: 'SELECTION_CHANGED' });
