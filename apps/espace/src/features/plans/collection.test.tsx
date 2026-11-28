@@ -60,13 +60,20 @@ describe('payment plans', () => {
 describe('uncertain sendings', () => {
   it('lets the manager note an uncertain e-mail as sent, after a confirmation', async () => {
     openAs('cl', '/relances');
-    expect(await screen.findByText('1 envoi incertain', {}, { timeout: 5000 })).toBeVisible();
-    await userEvent.click(screen.getByRole('button', { name: 'Noter comme parti : Bâtiplus SAS' }));
+    expect(await screen.findByText('2 envois incertains', {}, { timeout: 5000 })).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Noter comme parti : Bâtiplus SAS, Relance par e-mail, niveau 2' }));
     const dialog = await inDialog();
     expect(dialog.getByText('LGR-2026-00142')).toBeVisible();
     await userEvent.click(dialog.getByRole('button', { name: 'Noter comme parti' }));
     expect(await screen.findByText('Envoi à Bâtiplus SAS noté comme parti.')).toBeVisible();
-    expect(screen.queryByText('1 envoi incertain')).toBeNull();
+    expect(await screen.findByText('1 envoi incertain')).toBeVisible();
+  });
+  it('tells that a registered letter noted as sent is not the first letter', async () => {
+    openAs('cl', '/relances');
+    await userEvent.click(await screen.findByRole('button', { name: 'Noter comme parti : Bâtiplus SAS, Courrier recommandé, mise en demeure' }, { timeout: 5000 }));
+    const dialog = await inDialog();
+    expect(dialog.getByText('MySendingBox')).toBeVisible();
+    expect(dialog.getByText(/ne vaut pas premier courrier/)).toBeVisible();
   });
   it('is neither shown nor decided by a claims officer', async () => {
     expect((await call('hb', '/sendings/uncertain')).status).toBe(403);

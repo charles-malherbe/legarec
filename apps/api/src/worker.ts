@@ -16,6 +16,7 @@ import { documentJobs } from './modules/documents/documents.jobs';
 import { planJobs } from './modules/payments/plans.jobs';
 import { receiptJobs } from './modules/payments/receipts.jobs';
 import { resendEventJobs } from './modules/reminders/resend-events.jobs';
+import { letterEventJobs, sweepLetters, type LetterTracking } from './modules/reminders/letter-events.jobs';
 import { letterJobs } from './modules/reminders/letters.jobs';
 import { sendingJobs, sweepSendings } from './modules/reminders/sendings.jobs';
 import { MySendingBoxClient } from './letters/mysendingbox';
@@ -59,6 +60,10 @@ const storage = storageFor(config, {
 });
 const pdf = new PdfRenderer(config.CHROMIUM_PATH);
 const pdfTemplates = fileURLToPath(new URL('../templates/pdf/', import.meta.url));
+// MySendingBox never redirects either.
+const mysendingbox = new MySendingBoxClient((url, init) => fetch(url, { ...init, redirect: 'error' }));
+// What became of the letters: asked to MySendingBox when a webhook names one, and again by the clock.
+const letterTracking: LetterTracking = { vault, mysendingbox, real: config.MYSENDINGBOX_ENV === 'production', logger };
 const handlers: JobHandlers = {
   documents: documentJobs(storage, scanner),
   pdf: { ...receiptJobs(storage, pdf, pdfTemplates), ...planJobs(storage, pdf, pdfTemplates) },
@@ -99,8 +104,7 @@ const handlers: JobHandlers = {
       storage,
       pdf,
       templates: pdfTemplates,
-      // MySendingBox never redirects either.
-      mysendingbox: new MySendingBoxClient((url, init) => fetch(url, { ...init, redirect: 'error' })),
+      mysendingbox,
       asWorker: (work) => database.run({ kind: 'worker', job: 'case-letter' }, work),
       production: config.NODE_ENV === 'production',
       real: config.MYSENDINGBOX_ENV === 'production',
@@ -108,7 +112,7 @@ const handlers: JobHandlers = {
     }),
   },
   // With what Resend says of the reminders afterwards: nothing leaves from there, and it may wait behind the purge.
-  maintenance: { ...accessCodeJobs(vault), ...resendEventJobs({ logger }) },
+  maintenance: { ...accessCodeJobs(vault), ...resendEventJobs({ logger }), ...letterEventJobs(letterTracking) },
   ai: aiJobs(() => aiSetup(config), vault),
 };
 const resealAll = async () => {
@@ -150,7 +154,11 @@ async function main() {
     },
     // Something new on a case: its summary, once the case has been quiet for a few minutes (docs/ia.md).
     // No reminder stays queued for ever: abandoned or too old, it fails and the case says so.
-    reminders: { 'sendings-sweep': async () => void (await sweepSendings((work) => database.run({ kind: 'worker', job: 'sendings-sweep' }, work))) },
+    reminders: {
+      'sendings-sweep': async () => void (await sweepSendings((work) => database.run({ kind: 'worker', job: 'sendings-sweep' }, work))),
+      // A webhook may be lost: the letters on their way are asked again.
+      'letters-tracking': async () => void (await sweepLetters((work) => database.run({ kind: 'worker', job: 'letters-tracking' }, work), letterTracking)),
+    },
     ai: {
       'case-events': async () =>
         void (await sweepCaseEvents(
@@ -173,6 +181,9 @@ async function main() {
         : []),
       scheduleRepeated(connection, { queue: 'reminders', name: 'sendings-sweep', pattern: '*/5 * * * *', attempts: 1 }).catch(() =>
         logger.warn('sweep of the sendings not scheduled'),
+      ),
+      scheduleRepeated(connection, { queue: 'reminders', name: 'letters-tracking', pattern: '20 */6 * * *', attempts: 1 }).catch(() =>
+        logger.warn('tracking of the letters not scheduled'),
       ),
       scheduleRepeated(connection, { queue: 'ai', name: 'case-events', pattern: '*/5 * * * *', attempts: 1 }).catch(() =>
         logger.warn('case events of the assistant not scheduled'),

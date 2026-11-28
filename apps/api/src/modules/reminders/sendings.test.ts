@@ -436,6 +436,23 @@ describe('an uncertain sending decided by a person', () => {
     expect((await settle('manager', randomUUID(), 'SENT')).status).toBe(404);
     expect(await rows('SELECT status FROM sendings WHERE id = $1', [id])).toEqual([{ status: 'UNCERTAIN' }]);
   });
+
+  it('decides a registered letter as an e-mail, which never becomes the first letter of the case', async () => {
+    const made = await eligible(test.s.manager);
+    const [line] = await rows<{ id: string }>(
+      `INSERT INTO sendings (case_id, creditor_id, channel, template, created_by, created_at)
+       SELECT id, creditor_id, 'REGISTERED_LETTER', 'FRIENDLY', officer_id, now() - interval '72 hours' FROM cases WHERE id = $1 RETURNING id`,
+      [made.id],
+    );
+    await rows("UPDATE sendings SET status = 'UNCERTAIN' WHERE id = $1", [line!.id]);
+    await rows('UPDATE cases SET first_letter_on = NULL, first_letter_reference = NULL WHERE id = $1', [made.id]);
+    const item = (await call('manager', 'GET', '/sendings/uncertain')).body as { items: { id: string; channel: string; level: number | null; letter: string | null }[] };
+    expect(item.items.find((entry) => entry.id === line!.id)).toMatchObject({ channel: 'REGISTERED_LETTER', level: null, letter: 'FRIENDLY' });
+    expect((await settle('manager', line!.id, 'SENT')).status).toBe(204);
+    expect(await rows('SELECT status FROM sendings WHERE id = $1', [line!.id])).toEqual([{ status: 'SENT' }]);
+    expect((await events(made.id, 'REMINDER_SENT')).map((event) => [event.title, event.detail])).toEqual([['Relance notée partie', 'Courrier recommandé · relance amiable']]);
+    expect(await rows('SELECT first_letter_on, first_letter_reference FROM cases WHERE id = $1', [made.id])).toEqual([{ first_letter_on: null, first_letter_reference: null }]);
+  });
 });
 
 describe('reminders from the list of cases', () => {
