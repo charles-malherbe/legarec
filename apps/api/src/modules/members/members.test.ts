@@ -295,6 +295,7 @@ describe('disabling', () => {
     const browser = await signedIn(email);
     const [first, second] = [await newCase(id), await newCase(id)];
     await rows('UPDATE users SET substitute_id = $1 WHERE id = $2', [id, s.officerB]);
+    await rows('UPDATE users SET recent_case_ids = $1 WHERE id = $2', [[first, second], id]);
     expect((await disable('manager', id, 2)).status).toBe(204);
     expect((await browser.session()).status).toBe(401);
     expect((await new Browser(real).login(email)).status).toBe(401);
@@ -306,6 +307,8 @@ describe('disabling', () => {
       { kind: 'CASE_RELEASED', title: 'Dossier sans gestionnaire', actor_label: 'Remi Test', on_behalf_of_id: s.director, visible_to_creditor: false },
     ]);
     expect(await rows('SELECT substitute_id FROM users WHERE id = $1', [s.officerB])).toEqual([{ substitute_id: null }]);
+    // The last cases it opened go with it (DECISIONS.md, 28/11/2026).
+    expect(await rows('SELECT cardinality(recent_case_ids) AS kept FROM users WHERE id = $1', [id])).toEqual([{ kept: 0 }]);
     expect(await audited('MEMBER_DISABLED', id)).toEqual([{ actor_id: s.manager, on_behalf_of_id: s.director, params: { role: 'CLAIMS_OFFICER' } }]);
     // The reason stays with the account, out of the journal and of the list.
     expect(JSON.stringify([await list('director'), await rows('SELECT * FROM audit_log')])).not.toContain('Départ du cabinet');

@@ -283,6 +283,13 @@ export function Shell() {
   // Breadcrumb of a file, read from the same answer as the page.
   const caseId = /^\/debiteurs\/(?!nouveau$)([^/]+)$/.exec(pathname)?.[1];
   const { data: openCase } = useApi(caseDetail, `/cases/${caseId}`, { enabled: !!caseId && user.role !== 'DEVELOPER' });
+  // The API noted the case as it read it: the frame is read again once, so that the case comes first among the recent
+  // ones under the search box (DECISIONS.md, 28/11/2026).
+  const opened = openCase ? `d:${openCase.id}` : undefined;
+  const firstRecent = shell ? (shell.recentCases[0]?.id ?? '') : undefined;
+  useEffect(() => {
+    if (opened && firstRecent !== undefined && opened !== firstRecent) void client.invalidateQueries({ queryKey: ['shell'] });
+  }, [client, opened, firstRecent]);
   const creditorId = /^\/creanciers\/(?!nouveau$)([^/]+)(?:\/modifier)?$/.exec(pathname)?.[1];
   const { data: openCreditor } = useApi(creditorDetail, `/creditors/${creditorId}`, { enabled: !!creditorId && user.role !== 'DEVELOPER' });
   const steps =
@@ -292,7 +299,14 @@ export function Shell() {
         ? [{ label: 'Créanciers', href: '/creanciers' }, { label: openCase.creditor, href: `/creanciers/${openCase.creditorId}` }, { label: openCase.name }]
         : trail;
   const acting = delegationFor(pathname, user);
-  const pageHits = PAGES.filter(([href, label]) => canOpen(href, user) && label.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 4);
+  const typed = query.trim();
+  const pageHits = PAGES.filter(([href, label]) => canOpen(href, user) && label.toLowerCase().includes(typed.toLowerCase())).slice(0, 4);
+  // Before anything is typed, the last cases opened; then what the API finds.
+  const caseHits = typed
+    ? debounced
+      ? hits.map((hit) => ({ ...hit, group: GROUP_LABEL[hit.kind] }))
+      : []
+    : (shell?.recentCases ?? []).map((hit) => ({ ...hit, id: `recent:${hit.id}`, group: 'Dossiers récents' }));
 
   return (
     <div className={css.root} data-density={user.preferences.density}>
@@ -323,10 +337,10 @@ export function Shell() {
             onQuery: setQuery,
             onOpen: (hit) => void navigate(hit.href),
             hits: [
-              ...(debounced ? hits.map((hit) => ({ ...hit, group: GROUP_LABEL[hit.kind] })) : []),
+              ...caseHits,
               ...pageHits.map(([href, label]) => ({
                 id: `page:${href}`,
-                group: query ? 'Pages' : 'Accès rapide',
+                group: typed ? 'Pages' : 'Accès rapide',
                 title: label,
                 sub: pending(href) ? 'Page · bientôt disponible' : 'Page',
                 href,

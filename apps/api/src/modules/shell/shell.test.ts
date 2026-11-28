@@ -136,6 +136,65 @@ describe('the frame of the screens', () => {
   });
 });
 
+describe('the last cases opened', () => {
+  const open = async (as: string, id: string) => expect((await call(as, 'GET', `/cases/${id}`)).status, id).toBe(200);
+  const recent = async (as: string) => (await shell(as)).recentCases.map((hit) => hit.id);
+  const stored = async (id: string) => (await rows<{ ids: string }>('SELECT recent_case_ids::text AS ids FROM users WHERE id = $1', [id]))[0]!.ids;
+  beforeEach(async () => void (await rows("UPDATE users SET recent_case_ids = '{}'")));
+
+  it('come under the search box, the latest first, five at most and each once', async () => {
+    const made: string[] = [];
+    for (let index = 0; index < 6; index += 1) made.push(await newCase(`Récent ${index}`, `90020010${index}`, test.s.officerA, `REC-${index}`));
+    for (const id of made) await open('officerA', id);
+    await open('officerA', made[3]!);
+    await open('officerA', made[3]!);
+    expect(await recent('officerA')).toEqual([3, 5, 4, 2, 1].map((index) => `d:${made[index]}`));
+    // As the search shows the case.
+    expect((await shell('officerA')).recentCases[0]).toEqual((await search('officerA', 'récent 3')).find((hit) => hit.kind === 'DEBTOR'));
+  });
+
+  it('belong to the person, and nobody else reads them', async () => {
+    await open('officerA', mine);
+    expect(await recent('officerA')).toEqual([`d:${mine}`]);
+    expect(await recent('manager')).toEqual([]);
+    // The team reads the accounts of the others (the team page), never this column; nor writes it.
+    for (const right of ['SELECT', 'UPDATE'])
+      expect(await rows("SELECT has_column_privilege('legarec_staff', 'users', 'recent_case_ids', $1) AS granted", [right]), right).toEqual([
+        { granted: false },
+      ]);
+  });
+
+  it('keep nothing of a case refused, and leave out one the person no longer reads', async () => {
+    await open('officerA', mine);
+    // Refused (question 141): not noted.
+    expect((await call('officerA', 'GET', `/cases/${theirs}`)).status).toBe(403);
+    expect(await stored(test.s.officerA)).toBe(`{${mine}}`);
+    await assign('director', [mine], test.s.officerB);
+    expect(await recent('officerA')).toEqual([]);
+    await assign('director', [mine], test.s.officerA);
+    expect(await recent('officerA')).toEqual([`d:${mine}`]);
+  });
+
+  it('leave out an anonymized case, and never note one', async () => {
+    const [kept, forgotten] = [
+      await newCase('Récent gardé', '900200200', test.s.officerA, 'REC-G'),
+      await newCase('Récent oublié', '900200201', test.s.officerA, 'REC-O'),
+    ];
+    await open('officerA', kept);
+    await open('officerA', forgotten);
+    await rows('UPDATE cases SET anonymized_at = now() WHERE id = $1', [forgotten]);
+    expect(await recent('officerA')).toEqual([`d:${kept}`]);
+    await rows("UPDATE users SET recent_case_ids = '{}'");
+    await open('officerA', forgotten);
+    expect(await stored(test.s.officerA)).toBe('{}');
+  });
+
+  it('are those of the Director too, on the cases of the others that the Director reads', async () => {
+    await open('director', theirs);
+    expect(await recent('director')).toEqual([`d:${theirs}`]);
+  });
+});
+
 describe('a notification of cases', () => {
   it('always says how many, by PostgreSQL itself', async () => {
     for (const kind of ['CASE_ASSIGNED', 'SUBSTITUTE_NOTICE'])

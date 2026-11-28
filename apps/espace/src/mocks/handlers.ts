@@ -6,6 +6,7 @@ import {
   PROOF_MINUTES,
   sensitiveAction,
   type Dashboard,
+  type SearchResult,
   type Session,
   type ShellData,
 } from '@legarec/contracts';
@@ -83,8 +84,8 @@ const NOTIFICATIONS: ShellData['notifications'] = [
     href: '/echeanciers',
   },
 ];
-const searchIndex = (session: NonNullable<ReturnType<typeof currentSession>>) => [
-  ...readable(session).map((item) => ({
+const searchIndex = (session: NonNullable<ReturnType<typeof currentSession>>): SearchResult[] => [
+  ...readable(session).map((item): SearchResult => ({
     id: `d:${item.id}`,
     kind: 'DEBTOR',
     title: item.name,
@@ -92,7 +93,7 @@ const searchIndex = (session: NonNullable<ReturnType<typeof currentSession>>) =>
     href: `/debiteurs/${item.id}`,
     initials: item.name.slice(0, 2).toUpperCase(),
   })),
-  ...CREDITORS.filter((item) => item.id !== 'all' && canSeeCreditor(session, item.id)).map((item) => ({
+  ...CREDITORS.filter((item) => item.id !== 'all' && canSeeCreditor(session, item.id)).map((item): SearchResult => ({
     id: `c:${item.id}`,
     kind: 'CREDITOR',
     title: item.name,
@@ -271,6 +272,9 @@ export const handlers: HttpHandler[] = [
     const session = currentSession();
     if (!session) return unauthorized();
     const noCase = session.role === 'DEVELOPER';
+    // As the API: among the last cases opened, those still readable, in their order.
+    const index = searchIndex(session);
+    const recentCases = noCase ? [] : (state.recentCases.get(session.userId) ?? []).flatMap((id) => index.filter((hit) => hit.id === `d:${id}`));
     return HttpResponse.json({
       creditors: noCase ? [] : CREDITORS.filter((item) => item.id === 'all' || canSeeCreditor(session, item.id)),
       counts: noCase
@@ -280,6 +284,7 @@ export const handlers: HttpHandler[] = [
         ...item,
         unread: item.unread && !state.readNotifications.has(item.id),
       })),
+      recentCases,
     } satisfies ShellData);
   }),
   http.post('/api/notifications/read', async ({ request }) => {

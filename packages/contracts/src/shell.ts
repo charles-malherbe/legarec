@@ -11,10 +11,6 @@ export const menuCounts = z.object({
 });
 export const notificationKind = z.enum(['PAYMENT', 'MESSAGE', 'DEADLINE', 'CREDITOR', 'SYSTEM']);
 export const notification = z.object({ id: z.string(), kind: notificationKind, text: z.string(), meta: z.string(), href: z.string(), unread: z.boolean() });
-export const shellData = z.object({ creditors: z.array(creditorSummary), counts: menuCounts, notifications: z.array(notification) });
-export type ShellData = z.infer<typeof shellData>;
-export type Notification = z.infer<typeof notification>;
-
 export const searchHit = z.object({
   id: z.string(),
   kind: z.enum(['DEBTOR', 'CREDITOR', 'INVOICE']),
@@ -24,3 +20,13 @@ export const searchHit = z.object({
   initials: z.string(),
 });
 export type SearchResult = z.infer<typeof searchHit>;
+
+export const shellData = z.object({
+  creditors: z.array(creditorSummary),
+  counts: menuCounts,
+  notifications: z.array(notification),
+  /** The last cases opened, the latest first, offered under the search box before anything is typed (five at most). */
+  recentCases: z.array(searchHit).max(5),
+});
+export type ShellData = z.infer<typeof shellData>;
+export type Notification = z.infer<typeof notification>;

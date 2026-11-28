@@ -25,6 +25,7 @@ import { done, forbidden, guarded, notFound, staffWithCases } from '../http';
 import { creditorFacts } from './creditorFacts';
 import { addGdprRequest } from './settings';
 import { mayHoldCases } from './steering';
+import { noteRecentCase } from '../state';
 
 export const OFFICERS: Record<string, { name: string; role: Role }> = {
   cl: { name: 'Camille Laurent', role: 'COLLECTION_MANAGER' },
@@ -845,6 +846,7 @@ export const caseHandlers = [
       if (!canReadCase(session, ownership(item))) return forbidden();
       if (session.role === 'DIRECTOR' && item.officerId !== session.userId && !extra[item.id]?.history.some((entry) => entry.title === 'Dossier consulté'))
         log(item.id, session, 'Dossier consulté', 'Consultation par le Directeur', 'neutral');
+      noteRecentCase(session.userId, item.id);
       return HttpResponse.json(detailOf(item, session));
     }),
   ),

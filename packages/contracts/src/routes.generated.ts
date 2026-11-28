@@ -7613,6 +7613,15 @@ export interface operations {
                             href: string;
                             unread: boolean;
                         }[];
+                        recentCases: {
+                            id: string;
+                            /** @enum {string} */
+                            kind: "DEBTOR" | "CREDITOR" | "INVOICE";
+                            title: string;
+                            sub: string;
+                            href: string;
+                            initials: string;
+                        }[];
                     };
                 };
             };

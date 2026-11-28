@@ -13161,12 +13161,54 @@
                         ],
                         "additionalProperties": false
                       }
+                    },
+                    "recentCases": {
+                      "maxItems": 5,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "DEBTOR",
+                              "CREDITOR",
+                              "INVOICE"
+                            ]
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "sub": {
+                            "type": "string"
+                          },
+                          "href": {
+                            "type": "string"
+                          },
+                          "initials": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "title",
+                          "sub",
+                          "href",
+                          "initials"
+                        ],
+                        "additionalProperties": false
+                      }
                     }
                   },
                   "required": [
                     "creditors",
                     "counts",
-                    "notifications"
+                    "notifications",
+                    "recentCases"
                   ],
                   "additionalProperties": false
                 }

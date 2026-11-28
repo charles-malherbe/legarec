@@ -1,4 +1,4 @@
-import { formatCents, formatSiren, REQUEST_BODIES, searchHit, shellData, type SearchResult, type ShellData } from '@legarec/contracts';
+import { formatCents, formatSiren, REQUEST_BODIES, searchHit, shellData, type CaseListItem, type SearchResult, type ShellData } from '@legarec/contracts';
 import { Body, Controller, Get, HttpCode, Inject, Post } from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
@@ -36,7 +36,7 @@ export class ShellController {
     const bell = (await this.notifications.list(BELL)).map(({ id, text, meta, href, unread }) => ({ id, kind: 'SYSTEM' as const, text, meta, href, unread }));
     // Reminders, calls and messages: with their own modules.
     const counts = { teamOnline: 0, remindersToday: 0, litigationUrgent: 0, callQueue: 0, unreadEmails: 0, unreadSms: 0 };
-    if (this.withoutCases()) return { creditors: [], counts, notifications: bell };
+    if (this.withoutCases()) return { creditors: [], counts, notifications: bell, recentCases: [] };
     const creditors = (await this.creditors.list()).map(({ id, name, initials, siren, debtors }) => ({ id, name, initials, siren, count: debtors }));
     const online = await this.database.tx.user.count({
       where: { status: 'ACTIVE', role: { in: ['DIRECTOR', 'COLLECTION_MANAGER', 'CLAIMS_OFFICER'] }, lastSeenAt: { gt: new Date(Date.now() - ONLINE_MS) } },
@@ -46,6 +46,7 @@ export class ShellController {
       // Litigation: the cases awaiting the agreement of their creditor, on which this person acts.
       counts: { ...counts, teamOnline: online, litigationUrgent: await this.litigation.waiting(currentActor() as StaffActor) },
       notifications: bell,
+      recentCases: (await this.cases.recent()).map(debtorHit),
     };
   }
 
@@ -59,14 +60,7 @@ export class ShellController {
     const creditors = await this.creditors.named(query, HITS);
     const invoices = await this.cases.invoicesNamed(query, HITS);
     return [
-      ...found.map((item): SearchResult => ({
-        id: `d:${item.id}`,
-        kind: 'DEBTOR',
-        title: item.name,
-        sub: `${item.identifier} · ${item.creditor} · ${item.statusLabel}`,
-        href: `/debiteurs/${item.id}`,
-        initials: initialsOf(item.name),
-      })),
+      ...found.map(debtorHit),
       ...creditors.map((item): SearchResult => ({
         id: `c:${item.id}`,
         kind: 'CREDITOR',
@@ -90,4 +84,16 @@ export class ShellController {
     const actor = currentActor();
     return actor.kind !== 'staff' || actor.role === 'DEVELOPER';
   }
+}
+
+/** A case under the search box: its debtor, and what tells it apart from the cases of the same name. */
+function debtorHit(item: CaseListItem): SearchResult {
+  return {
+    id: `d:${item.id}`,
+    kind: 'DEBTOR',
+    title: item.name,
+    sub: `${item.identifier} · ${item.creditor} · ${item.statusLabel}`,
+    href: `/debiteurs/${item.id}`,
+    initials: initialsOf(item.name),
+  };
 }
