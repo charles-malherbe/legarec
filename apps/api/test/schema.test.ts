@@ -235,9 +235,9 @@ describe('rights of the roles inside', () => {
       'notifications UPDATE (read_at)',
       'retention_runs SELECT (id, kind, ran_at, removed)',
       'support_tickets SELECT (created_at, id, message, number, status, subject, user_id)',
-      'users SELECT (absent_from, absent_until, anonymized_at, auto_reply, created_at, creditor_id, daily_summary, density, disabled_at, email, extension, first_name, id, invited_at, last_name, last_seen_at, low_vision, password_changed_at, quiet_hours, role, status, substitute_id, theme, two_factor_required)',
+      'users SELECT (absent_from, absent_until, anonymized_at, auto_reply, created_at, creditor_id, daily_summary, density, disabled_at, email, extension, first_name, id, invited_at, last_name, last_seen_at, low_vision, menu_closed_groups, menu_collapsed, password_changed_at, quiet_hours, role, status, substitute_id, theme, two_factor_required)',
       // One's own line: never the role, the address, the status nor the credentials.
-      'users UPDATE (absent_from, absent_until, auto_reply, daily_summary, density, first_name, last_name, low_vision, quiet_hours, substitute_id, theme)',
+      'users UPDATE (absent_from, absent_until, auto_reply, daily_summary, density, first_name, last_name, low_vision, menu_closed_groups, menu_collapsed, quiet_hours, substitute_id, theme)',
       'vault_secrets SELECT (created_at, decided_by, id, kind, last_used_at, name, requested_by, rotated_at, rotation, status)',
       'setting_versions SELECT (changed_at, changed_by, id, key, on_behalf_of_id)',
       'settings SELECT (key, on_behalf_of_id, updated_at, updated_by, value, version)',
@@ -451,7 +451,7 @@ describe('rights of the roles inside', () => {
       'user_sessions UPDATE (last_seen_at, revoked_at)',
       'users DELETE (*)',
       'users INSERT (creditor_id, email, first_name, invited_at, invited_by, last_name, role)',
-      'users UPDATE (anonymized_at, disabled_at, disabled_by, disabled_reason, email, extension, first_name, invited_at, last_name, last_seen_at, password_hash, role, status, substitute_id, two_factor_required)',
+      'users UPDATE (anonymized_at, disabled_at, disabled_by, disabled_reason, email, extension, first_name, invited_at, last_name, last_seen_at, password_hash, recent_case_ids, role, status, substitute_id, two_factor_required)',
       // Written, never read.
       'vault_secrets INSERT (id, name, rotation, value_cipher)',
       'vault_secrets UPDATE (decided_by, requested_by, rotated_at, status, value_cipher)',
@@ -465,7 +465,7 @@ describe('rights of the roles inside', () => {
       'debtor_retired_codes SELECT (code_hmac, debtor_id)',
       'vault_secrets SELECT (created_at, id, kind, name, rotated_at, status, value_cipher)',
       'notifications INSERT (action, actor_id, case_count, case_id, creditor_id, kind, plan_decision, plan_id, sending_id, target_id, ticket_id, user_id)',
-      'users SELECT (absent_from, absent_until, anonymized_at, creditor_id, disabled_at, email, first_name, id, invited_at, invited_by, last_name, password_hash, role, status, substitute_id, two_factor_required)',
+      'users SELECT (absent_from, absent_until, anonymized_at, creditor_id, disabled_at, email, first_name, id, invited_at, invited_by, last_name, password_hash, recent_case_ids, role, status, substitute_id, two_factor_required)',
       'debtor_access_codes SELECT (code_cipher, code_hmac, debtor_id, version)',
       'debtor_access_codes UPDATE (code_cipher, code_hmac, generated_at, generated_by, version)',
       'debtors SELECT (anonymized_at, id, kind, name, name_confirmed, siren)',
@@ -678,6 +678,9 @@ describe('rights on the functions', () => {
   it.each([
     ['add_case_event', ['debtor', 'partner', 'staff', 'worker']],
     ['note_consultation', ['staff']],
+    // One's own list of the last cases opened (DECISIONS.md, 28/11/2026).
+    ['recent_cases', ['staff']],
+    ['note_recent_case', ['staff']],
     ['assign_cases', ['staff']],
     ['next_number', ['staff', 'worker']],
     ['purge_audit', ['retention']],
@@ -815,6 +818,7 @@ describe('rights on the functions', () => {
       'purge_waiting_files forget_waiting_files purge_old_history forget_case_story forget_old_history',
       'forget_payments forget_invoices invoice_batches accounting_cutoff',
       'referenced_files',
+      'recent_cases note_recent_case',
     ].flatMap((names) => names.split(' '));
     const found = await rows<{ proname: string }>(
       "SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'app' ORDER BY 1",

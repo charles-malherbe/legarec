@@ -35,7 +35,8 @@ describe('the dashboard', () => {
     await makeCase(null, 25_000);
     const officer = await read('officerA');
     expect(officer).toMatchObject({ scope: 'PERSONAL', outstanding: 100_000, overdue30: 100_000, team: [] });
-    expect(officer.priorities.map((item) => item.href)).toEqual([`/dossiers/${mine}`]);
+    // Each priority opens its case file, at its address in the espace.
+    expect(officer.priorities.map((item) => item.href)).toEqual([`/debiteurs/${mine}`]);
     const manager = await read('manager');
     expect(manager).toMatchObject({ scope: 'TEAM', outstanding: 175_000 });
     expect(manager.aging.find((item) => item.label === '31 – 60 j')).toMatchObject({ amount: 175_000, percent: 100 });

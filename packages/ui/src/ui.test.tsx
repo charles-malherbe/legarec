@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import {
   Alerte,
@@ -23,12 +24,15 @@ import {
   Progression,
   Reglage,
   Statut,
+  Sidebar,
   SuggestionIA,
   Tableau,
   Toolbar,
   Tuile,
   useConfirm,
   useToast,
+  type SidebarCreditor,
+  type SidebarProps,
 } from './index';
 import { axeViolations, renderUi } from './testing';
 
@@ -349,4 +353,168 @@ it('only names the creditor in the footer when it is given', () => {
   renderUi(<PiedDePage />);
   expect(screen.queryByText(/pour le compte de/)).toBeNull();
   expect(document.body.textContent).not.toMatch(/carte/i);
+});
+
+describe('Sidebar', () => {
+  const NAMES = [
+    'Matériaux Delta',
+    'Énergies Rhône',
+    'Médiatel',
+    'TransAlp Leasing',
+    'Crédit Horizon',
+    'Bâtiplus',
+    'Garage Valmont',
+    'Nordis Logistique',
+    'Atelier Mistral',
+  ];
+  const creditors = (count: number): SidebarCreditor[] => [
+    { id: 'all', name: 'Tous les créanciers', initials: '∗', count: 248 },
+    ...NAMES.slice(0, count).map((name, index) => ({
+      id: `c${index}`,
+      name,
+      initials: name.slice(0, 2).toUpperCase(),
+      siren: `40122897${index}`,
+      count: index + 1,
+    })),
+  ];
+  const Menu = (props: Partial<SidebarProps>) => {
+    const [active, setActive] = useState(props.active ?? '/');
+    return (
+      <>
+        <h1>Page</h1>
+        <button type="button" onClick={() => setActive('/relances')}>
+          Aller aux relances
+        </button>
+        <Sidebar
+          groups={[
+            { id: 'pil', label: 'Pilotage', items: [{ href: '/', label: 'Tableau de bord', icon: 'home' }] },
+            {
+              id: 'rec',
+              label: 'Recouvrement',
+              items: [
+                { href: '/relances', label: 'Relances', icon: 'agenda' },
+                { href: '/echeanciers', label: 'Échéanciers', icon: 'plan' },
+              ],
+            },
+          ]}
+          footer={[{ href: '/parametres', label: 'Paramètres', icon: 'settings' }]}
+          creditors={creditors(3)}
+          creditorId="all"
+          creditorsHref="/creanciers"
+          onCreditor={noop}
+          {...props}
+          active={active}
+        />
+      </>
+    );
+  };
+  const nav = () => screen.getByRole('navigation', { name: 'Navigation principale' });
+
+  it('opens the group of the current page, and gives what the person closes or reduces to be remembered', async () => {
+    const onClosedGroups = vi.fn();
+    const onCollapsed = vi.fn();
+    renderUi(<Menu closedGroups={['rec']} onClosedGroups={onClosedGroups} onCollapsed={onCollapsed} />);
+    expect(within(nav()).getByRole('button', { name: 'Recouvrement' })).toHaveAttribute('aria-expanded', 'false');
+    expect(within(nav()).queryByRole('link', { name: 'Relances' })).toBeNull();
+    // Arriving on one of its pages opens it: the menu shows where one is.
+    await userEvent.click(screen.getByRole('button', { name: 'Aller aux relances' }));
+    expect(within(nav()).getByRole('link', { name: 'Relances' })).toHaveAttribute('aria-current', 'page');
+    await userEvent.click(within(nav()).getByRole('button', { name: 'Pilotage' }));
+    expect(onClosedGroups).toHaveBeenLastCalledWith(['pil']);
+    await userEvent.click(within(nav()).getByRole('button', { name: 'Réduire le menu' }));
+    expect(onCollapsed).toHaveBeenLastCalledWith(true);
+    expect(nav()).toHaveAttribute('data-collapsed');
+    expect(within(nav()).getByRole('link', { name: 'Relances' })).toBeVisible();
+  });
+
+  it('opens as remembered, the group of the current page open whatever was kept', () => {
+    const { unmount } = renderUi(<Menu active="/relances" closedGroups={['rec', 'pil']} />);
+    expect(within(nav()).getByRole('link', { name: 'Relances' })).toHaveAttribute('aria-current', 'page');
+    expect(within(nav()).getByRole('button', { name: 'Pilotage' })).toHaveAttribute('aria-expanded', 'false');
+    unmount();
+    renderUi(<Menu collapsed />);
+    expect(nav()).toHaveAttribute('data-collapsed');
+    expect(within(nav()).getByRole('button', { name: 'Agrandir le menu' })).toBeVisible();
+  });
+
+  it('lets the creditor be chosen with the keyboard, as in a select', async () => {
+    const onCreditor = vi.fn();
+    renderUi(<Menu creditorId="c1" onCreditor={onCreditor} />);
+    const button = within(nav()).getByRole('button', { name: /changer de créancier/ });
+    const option = (name: RegExp) => within(screen.getByRole('listbox', { name: 'Créanciers' })).getByRole('option', { name });
+    button.focus();
+    await userEvent.keyboard('{ArrowDown}');
+    expect(button).toHaveAttribute('aria-expanded', 'true');
+    // On the creditor shown, then the arrows, Home, End and the first letters.
+    expect(option(/Énergies Rhône/)).toHaveFocus();
+    await userEvent.keyboard('{ArrowDown}');
+    expect(option(/Médiatel/)).toHaveFocus();
+    await userEvent.keyboard('{Home}');
+    expect(option(/Tous les créanciers/)).toHaveFocus();
+    await userEvent.keyboard('{End}');
+    expect(option(/Médiatel/)).toHaveFocus();
+    await userEvent.keyboard('m');
+    expect(option(/Matériaux Delta/)).toHaveFocus();
+    // Escape closes the list and gives the focus back.
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(button).toHaveFocus();
+    await userEvent.keyboard('{Enter}');
+    await userEvent.keyboard('{ArrowUp}{Enter}');
+    expect(onCreditor).toHaveBeenLastCalledWith('c0');
+    expect(button).toHaveFocus();
+    // A click elsewhere closes it too.
+    await userEvent.click(button);
+    expect(screen.getByRole('listbox')).toBeVisible();
+    await userEvent.click(screen.getByRole('heading', { name: 'Page' }));
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(await axeViolations(nav())).toEqual([]);
+  });
+
+  it('offers a search among many creditors, without the accents', async () => {
+    const onCreditor = vi.fn();
+    renderUi(<Menu creditors={creditors(9)} onCreditor={onCreditor} />);
+    await userEvent.click(within(nav()).getByRole('button', { name: /changer de créancier/ }));
+    const field = screen.getByRole('searchbox', { name: 'Rechercher un créancier' });
+    expect(field).toHaveFocus();
+    await userEvent.type(field, 'energie');
+    const list = screen.getByRole('listbox', { name: 'Créanciers' });
+    expect(
+      within(list)
+        .getAllByRole('option')
+        .map((item) => item.dataset.name),
+    ).toEqual(['Énergies Rhône']);
+    await userEvent.keyboard('{ArrowDown}');
+    expect(within(list).getByRole('option', { name: /Énergies Rhône/ })).toHaveFocus();
+    await userEvent.keyboard('{ArrowUp}');
+    expect(field).toHaveFocus();
+    await userEvent.clear(field);
+    await userEvent.type(field, 'zzz');
+    expect(screen.getByText('Aucun créancier ne correspond à « zzz ».')).toBeVisible();
+    await userEvent.clear(field);
+    await userEvent.type(field, 'valmont{Enter}');
+    expect(onCreditor).toHaveBeenLastCalledWith('c6');
+    expect(await axeViolations(nav())).toEqual([]);
+  });
+
+  it('keeps the focus in the mobile drawer, the page behind out of reach until it closes', async () => {
+    renderUi(
+      <div>
+        <Menu />
+        <main>
+          <button type="button">Dans la page</button>
+        </main>
+      </div>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Ouvrir le menu' }));
+    await waitFor(() => expect(nav()).toContainElement(document.activeElement as HTMLElement));
+    expect(screen.getByText('Dans la page').closest('main')).toHaveAttribute('inert');
+    for (let step = 0; step < 12; step += 1) {
+      await userEvent.tab();
+      expect(nav()).toContainElement(document.activeElement as HTMLElement);
+    }
+    await userEvent.keyboard('{Escape}');
+    expect(screen.getByRole('button', { name: 'Ouvrir le menu' })).toHaveFocus();
+    expect(screen.getByText('Dans la page').closest('main')).not.toHaveAttribute('inert');
+  });
 });

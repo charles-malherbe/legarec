@@ -465,6 +465,47 @@ describe('dashboard', () => {
   });
 });
 
+describe('search', () => {
+  beforeEach(() => {
+    state.recentCases.clear();
+    // The palette scrolls to the option chosen, which jsdom cannot.
+    Element.prototype.scrollIntoView = vi.fn();
+  });
+  const openFromSearch = async (query: string, name: RegExp) => {
+    await userEvent.keyboard('/');
+    await userEvent.type(await screen.findByPlaceholderText('Débiteur, SIRET, SIREN, facture…'), query);
+    await userEvent.click(await screen.findByRole('option', { name }));
+  };
+  const recent = async () => {
+    await userEvent.keyboard('/');
+    const group = await screen.findByRole('group', { name: 'Dossiers récents' });
+    return within(group)
+      .getAllByRole('option')
+      .map((option) => option.textContent);
+  };
+  it('offers the cases opened last before anything is typed, the latest first', async () => {
+    setAccount('cl');
+    open();
+    await screen.findByRole('heading', { name: 'Bonjour Camille' });
+    await userEvent.keyboard('/');
+    expect(await screen.findByRole('group', { name: 'Accès rapide' })).toBeVisible();
+    expect(screen.queryByRole('group', { name: 'Dossiers récents' })).toBeNull();
+    await userEvent.keyboard('{Escape}');
+    await openFromSearch('batiplus', /^Bâtiplus SAS/);
+    expect(await screen.findByRole('heading', { level: 1, name: 'Bâtiplus SAS' })).toBeVisible();
+    await openFromSearch('nordis', /^Nordis Logistique/);
+    expect(await screen.findByRole('heading', { level: 1, name: 'Nordis Logistique' })).toBeVisible();
+    const [first, second, ...others] = await recent();
+    expect(first).toContain('Nordis Logistique');
+    expect(second).toContain('Bâtiplus SAS');
+    expect(others).toEqual([]);
+    // Once something is typed, the search alone.
+    await userEvent.type(screen.getByPlaceholderText('Débiteur, SIRET, SIREN, facture…'), 'nord');
+    await waitFor(() => expect(screen.queryByRole('group', { name: 'Dossiers récents' })).toBeNull());
+    expect(await screen.findByRole('group', { name: 'Débiteurs' })).toBeVisible();
+  });
+});
+
 it('restricts technical settings and billing by role', () => {
   const user = (role: 'DEVELOPER' | 'DIRECTOR' | 'COLLECTION_MANAGER' | 'CLAIMS_OFFICER', activeDelegations: ('TECHNICAL' | 'ADMINISTRATIVE')[] = []) =>
     ({ role, activeDelegations, userId: 'x' }) as Parameters<typeof canOpen>[1];

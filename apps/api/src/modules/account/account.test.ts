@@ -103,10 +103,15 @@ describe('Mon compte', () => {
 
   it('keeps the display chosen', async () => {
     const browser = await signedIn((await newAccount(test)).email);
-    const chosen = { theme: 'dark', density: 'compact', lowVision: true };
+    const chosen = { theme: 'dark', density: 'compact', lowVision: true, menuCollapsed: true, menuClosedGroups: ['rec', 'doc'] };
     expect((await browser.change('/auth/preferences', chosen)).status).toBe(204);
     expect((await browser.session()).body).toMatchObject({ preferences: chosen });
     expect((await browser.change('/auth/preferences', { ...chosen, theme: 'pink' })).status).toBe(422);
+    // Groups by their key only, never a text of the page.
+    expect((await browser.change('/auth/preferences', { ...chosen, menuClosedGroups: ['Dossier Bâtiplus'] })).status).toBe(422);
+    // A page loaded before the menu was remembered keeps saving the display, without forgetting the menu.
+    expect((await browser.change('/auth/preferences', { theme: 'light', density: 'compact', lowVision: true })).status).toBe(204);
+    expect((await browser.session()).body).toMatchObject({ preferences: { ...chosen, theme: 'light' } });
   });
 
   it('keeps an absence, with a substitute who handles cases', async () => {

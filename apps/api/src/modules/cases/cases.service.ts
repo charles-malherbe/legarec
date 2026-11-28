@@ -158,6 +158,8 @@ export class CasesService {
     }
     // The Director reads a case of someone else: noted once an hour.
     await tx.$executeRaw`SELECT app.note_consultation(${id}::uuid)`;
+    // First of the cases offered under the search box (DECISIONS.md, 28/11/2026).
+    await tx.$executeRaw`SELECT app.note_recent_case(${id}::uuid)`;
     const found = await tx.case.findUniqueOrThrow({
       where: { id },
       select: {
@@ -480,6 +482,22 @@ export class CasesService {
     return rows
       .filter((row) => row.id !== except && row.creditor_id !== exceptCreditor)
       .map((row) => ({ creditor: row.creditor, invoices: row.invoices, amount: Number(row.amount) }));
+  }
+
+  /**
+   * The last cases this person opened, the latest first (DECISIONS.md, 28/11/2026): among them, those the policies still
+   * show, and not anonymized.
+   */
+  async recent(): Promise<CaseListItem[]> {
+    const [list] = await this.database.tx.$queryRaw<{ ids: string[] }[]>`SELECT app.recent_cases() AS ids`;
+    const ids = list?.ids ?? [];
+    if (!ids.length) return [];
+    const found = new Map((await this.rows(sql`AND c.id = ANY (${ids}::uuid[]) AND c.anonymized_at IS NULL`)).map((row) => [row.id, row]));
+    const now = dayOf(new Date());
+    return ids.flatMap((id) => {
+      const row = found.get(id);
+      return row ? [itemOf(row, now)] : [];
+    });
   }
 
   /** Name, reference, number of the company or of an invoice, creditor. Null without any query. */

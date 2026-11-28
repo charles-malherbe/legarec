@@ -2594,6 +2594,8 @@ export interface operations {
                             /** @enum {string} */
                             density: "comfortable" | "compact";
                             lowVision: boolean;
+                            menuCollapsed: boolean;
+                            menuClosedGroups: string[];
                         };
                     };
                 };
@@ -2635,6 +2637,8 @@ export interface operations {
                                 /** @enum {string} */
                                 density: "comfortable" | "compact";
                                 lowVision: boolean;
+                                menuCollapsed: boolean;
+                                menuClosedGroups: string[];
                             };
                         } | null;
                     } | {
@@ -2690,6 +2694,8 @@ export interface operations {
                                 /** @enum {string} */
                                 density: "comfortable" | "compact";
                                 lowVision: boolean;
+                                menuCollapsed: boolean;
+                                menuClosedGroups: string[];
                             };
                         } | null;
                     } | {
@@ -2789,6 +2795,8 @@ export interface operations {
                                 /** @enum {string} */
                                 density: "comfortable" | "compact";
                                 lowVision: boolean;
+                                menuCollapsed: boolean;
+                                menuClosedGroups: string[];
                             };
                         } | null;
                     };
@@ -3010,6 +3018,8 @@ export interface operations {
                                 /** @enum {string} */
                                 density: "comfortable" | "compact";
                                 lowVision: boolean;
+                                menuCollapsed: boolean;
+                                menuClosedGroups: string[];
                             };
                         } | null;
                     } | {
@@ -3065,6 +3075,8 @@ export interface operations {
                                 /** @enum {string} */
                                 density: "comfortable" | "compact";
                                 lowVision: boolean;
+                                menuCollapsed: boolean;
+                                menuClosedGroups: string[];
                             };
                         } | null;
                     } | {
@@ -3164,6 +3176,8 @@ export interface operations {
                                 /** @enum {string} */
                                 density: "comfortable" | "compact";
                                 lowVision: boolean;
+                                menuCollapsed: boolean;
+                                menuClosedGroups: string[];
                             };
                         } | null;
                     };
@@ -7598,6 +7612,15 @@ export interface operations {
                             meta: string;
                             href: string;
                             unread: boolean;
+                        }[];
+                        recentCases: {
+                            id: string;
+                            /** @enum {string} */
+                            kind: "DEBTOR" | "CREDITOR" | "INVOICE";
+                            title: string;
+                            sub: string;
+                            href: string;
+                            initials: string;
                         }[];
                     };
                 };

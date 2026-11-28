@@ -26,7 +26,14 @@ export const state = {
   preferences: new Map<string, Session['preferences']>(),
   delegations: ['TECHNICAL', 'ADMINISTRATIVE'] as Session['activeDelegations'],
   names: new Map<string, { firstName: string; lastName: string }>(),
+  /** The last cases opened by each account, the latest first (as `users.recent_case_ids`). */
+  recentCases: new Map<string, string[]>(),
 };
+
+/** As `app.note_recent_case`: the case opened goes first, and the sixth falls off. */
+export function noteRecentCase(userId: string, caseId: string) {
+  state.recentCases.set(userId, [caseId, ...(state.recentCases.get(userId) ?? []).filter((id) => id !== caseId)].slice(0, 5));
+}
 
 export function setAccount(id: string | null) {
   state.accountId = id === 'none' ? null : id;

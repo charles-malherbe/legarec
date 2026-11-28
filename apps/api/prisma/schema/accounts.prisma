@@ -132,6 +132,10 @@ model User {
   theme             UserTheme   @default(dbgenerated("'light'::user_theme"))
   density           UserDensity @default(dbgenerated("'comfortable'::user_density"))
   lowVision         Boolean     @default(dbgenerated("false")) @map("low_vision")
+  menuCollapsed     Boolean     @default(dbgenerated("false")) @map("menu_collapsed")
+  menuClosedGroups  String[]    @default(dbgenerated("'{}'::text[]")) @map("menu_closed_groups")
+  /// The last cases opened, read and written by app.recent_cases() and app.note_recent_case() only.
+  recentCaseIds     String[]    @default(dbgenerated("'{}'::uuid[]")) @map("recent_case_ids") @db.Uuid
   dailySummary      Boolean     @default(dbgenerated("true")) @map("daily_summary")
   quietHours        Boolean     @default(dbgenerated("true")) @map("quiet_hours")
   substituteId      String?     @map("substitute_id") @db.Uuid

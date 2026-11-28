@@ -113,12 +113,25 @@
                         },
                         "lowVision": {
                           "type": "boolean"
+                        },
+                        "menuCollapsed": {
+                          "type": "boolean"
+                        },
+                        "menuClosedGroups": {
+                          "maxItems": 10,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^[a-z]{1,16}$"
+                          }
                         }
                       },
                       "required": [
                         "theme",
                         "density",
-                        "lowVision"
+                        "lowVision",
+                        "menuCollapsed",
+                        "menuClosedGroups"
                       ],
                       "additionalProperties": false
                     }
@@ -237,12 +250,25 @@
                                 },
                                 "lowVision": {
                                   "type": "boolean"
+                                },
+                                "menuCollapsed": {
+                                  "type": "boolean"
+                                },
+                                "menuClosedGroups": {
+                                  "maxItems": 10,
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string",
+                                    "pattern": "^[a-z]{1,16}$"
+                                  }
                                 }
                               },
                               "required": [
                                 "theme",
                                 "density",
-                                "lowVision"
+                                "lowVision",
+                                "menuCollapsed",
+                                "menuClosedGroups"
                               ],
                               "additionalProperties": false
                             }
@@ -439,12 +465,25 @@
                                 },
                                 "lowVision": {
                                   "type": "boolean"
+                                },
+                                "menuCollapsed": {
+                                  "type": "boolean"
+                                },
+                                "menuClosedGroups": {
+                                  "maxItems": 10,
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string",
+                                    "pattern": "^[a-z]{1,16}$"
+                                  }
                                 }
                               },
                               "required": [
                                 "theme",
                                 "density",
-                                "lowVision"
+                                "lowVision",
+                                "menuCollapsed",
+                                "menuClosedGroups"
                               ],
                               "additionalProperties": false
                             }
@@ -711,12 +750,25 @@
                             },
                             "lowVision": {
                               "type": "boolean"
+                            },
+                            "menuCollapsed": {
+                              "type": "boolean"
+                            },
+                            "menuClosedGroups": {
+                              "maxItems": 10,
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "pattern": "^[a-z]{1,16}$"
+                              }
                             }
                           },
                           "required": [
                             "theme",
                             "density",
-                            "lowVision"
+                            "lowVision",
+                            "menuCollapsed",
+                            "menuClosedGroups"
                           ],
                           "additionalProperties": false
                         }
@@ -1156,12 +1208,25 @@
                                 },
                                 "lowVision": {
                                   "type": "boolean"
+                                },
+                                "menuCollapsed": {
+                                  "type": "boolean"
+                                },
+                                "menuClosedGroups": {
+                                  "maxItems": 10,
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string",
+                                    "pattern": "^[a-z]{1,16}$"
+                                  }
                                 }
                               },
                               "required": [
                                 "theme",
                                 "density",
-                                "lowVision"
+                                "lowVision",
+                                "menuCollapsed",
+                                "menuClosedGroups"
                               ],
                               "additionalProperties": false
                             }
@@ -1358,12 +1423,25 @@
                                 },
                                 "lowVision": {
                                   "type": "boolean"
+                                },
+                                "menuCollapsed": {
+                                  "type": "boolean"
+                                },
+                                "menuClosedGroups": {
+                                  "maxItems": 10,
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string",
+                                    "pattern": "^[a-z]{1,16}$"
+                                  }
                                 }
                               },
                               "required": [
                                 "theme",
                                 "density",
-                                "lowVision"
+                                "lowVision",
+                                "menuCollapsed",
+                                "menuClosedGroups"
                               ],
                               "additionalProperties": false
                             }
@@ -1630,12 +1708,25 @@
                             },
                             "lowVision": {
                               "type": "boolean"
+                            },
+                            "menuCollapsed": {
+                              "type": "boolean"
+                            },
+                            "menuClosedGroups": {
+                              "maxItems": 10,
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "pattern": "^[a-z]{1,16}$"
+                              }
                             }
                           },
                           "required": [
                             "theme",
                             "density",
-                            "lowVision"
+                            "lowVision",
+                            "menuCollapsed",
+                            "menuClosedGroups"
                           ],
                           "additionalProperties": false
                         }
@@ -13070,12 +13161,54 @@
                         ],
                         "additionalProperties": false
                       }
+                    },
+                    "recentCases": {
+                      "maxItems": 5,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "DEBTOR",
+                              "CREDITOR",
+                              "INVOICE"
+                            ]
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "sub": {
+                            "type": "string"
+                          },
+                          "href": {
+                            "type": "string"
+                          },
+                          "initials": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "title",
+                          "sub",
+                          "href",
+                          "initials"
+                        ],
+                        "additionalProperties": false
+                      }
                     }
                   },
                   "required": [
                     "creditors",
                     "counts",
-                    "notifications"
+                    "notifications",
+                    "recentCases"
                   ],
                   "additionalProperties": false
                 }
