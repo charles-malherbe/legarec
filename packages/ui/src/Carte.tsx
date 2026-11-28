@@ -15,6 +15,8 @@ export interface CarteProps extends LayoutProps {
   actionHref?: string;
   /** `link`: a short link on the line of the title, as « Voir le créancier → » in the mockup. */
   actionVariant?: 'secondary' | 'link';
+  /** The action leads to a part not finished yet: « Bientôt », as `soon` of `Bouton`. */
+  actionSoon?: boolean | string;
   onAction?: () => void;
   padding?: 'none' | 'sm' | 'md';
   tone?: 'default' | 'subtle' | 'highlight' | 'danger';
@@ -31,6 +33,7 @@ export function Carte({
   actionIcon,
   actionHref,
   actionVariant = 'secondary',
+  actionSoon,
   onAction,
   padding = 'md',
   tone = 'default',
@@ -49,7 +52,9 @@ export function Carte({
             </div>
             {description && <p className={css.description}>{description}</p>}
           </div>
-          {actionLabel && <Bouton label={actionLabel} variant={actionVariant} size="sm" icon={actionIcon} href={actionHref} onPress={onAction} />}
+          {actionLabel && (
+            <Bouton label={actionLabel} variant={actionVariant} size="sm" icon={actionIcon} href={actionHref} onPress={onAction} soon={actionSoon} />
+          )}
         </div>
       )}
       <div className={css.body} data-padding={padding}>

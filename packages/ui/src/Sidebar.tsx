@@ -12,6 +12,8 @@ export interface SidebarItem {
   count?: number;
   countTone?: 'navy' | 'yellow' | 'rose' | 'muted';
   countLabel?: string;
+  /** A page not finished yet: greyed with « Bientôt », still a link to it (DECISIONS.md, 28/11/2026). */
+  soon?: boolean;
 }
 export interface SidebarGroup {
   id: string;
@@ -63,14 +65,16 @@ export function Sidebar({ active, groups, footer, creditors, creditorId, credito
   const item = (entry: SidebarItem) => {
     const on = entry.href === active;
     const has = !!entry.count;
+    const name = `${entry.label}${entry.soon ? ', bientôt disponible' : ''}`;
     return (
       <Link
         key={entry.href}
         to={entry.href}
         className={css.link}
         aria-current={on ? 'page' : undefined}
-        title={expanded ? undefined : entry.label}
-        aria-label={expanded ? undefined : `${entry.label}${has ? `, ${entry.count} ${entry.countLabel ?? ''}` : ''}`}
+        data-soon={entry.soon || undefined}
+        title={expanded ? undefined : name}
+        aria-label={expanded ? undefined : `${name}${has ? `, ${entry.count} ${entry.countLabel ?? ''}` : ''}`}
         onClick={() => setDrawer(false)}
       >
         {on && <span aria-hidden className={css.marker} />}
@@ -78,6 +82,11 @@ export function Sidebar({ active, groups, footer, creditors, creditorId, credito
           <Icone icon={entry.icon} size={18} />
         </span>
         {expanded && <span className={css.linkLabel}>{entry.label}</span>}
+        {expanded && entry.soon && (
+          <span className={css.soon}>
+            Bientôt<span className={css.hidden}> disponible</span>
+          </span>
+        )}
         {expanded && has && (
           <span className={css.count} data-tone={entry.countTone ?? 'muted'}>
             {cap(entry.count ?? 0)}

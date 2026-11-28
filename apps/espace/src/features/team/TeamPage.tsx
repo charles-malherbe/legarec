@@ -121,7 +121,7 @@ function Activity() {
                 ]
         }
         actions={[
-          { label: 'Exporter le rapport', disabled: true },
+          { label: 'Exporter le rapport', soon: true },
           { label: 'Objectifs de l’équipe', primary: true, kbd: 'N', href: '/parametres' },
         ]}
       />

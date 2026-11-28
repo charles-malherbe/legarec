@@ -101,6 +101,33 @@ describe('Bouton', () => {
     for (const button of screen.getAllByRole('button')) await userEvent.click(button);
     expect(press).not.toHaveBeenCalled();
   });
+  it('keeps a part to come reachable: greyed, described, and saying why instead of acting', async () => {
+    const press = vi.fn();
+    const { container } = renderUi(
+      <main>
+        <Bouton label="Exporter" soon onPress={press} />
+        <Bouton label="Envoyer" variant="secondary" disabled soon="l’envoi n’est pas encore relié à l’espace." onPress={press} />
+        <Bouton label="Appeler" href="/appels" soon="la téléphonie n’est pas encore reliée à l’espace." />
+        <Tuile title="Boîtes e-mail" href="/boites" soon />
+      </main>,
+    );
+    const exporter = screen.getByRole('button', { name: 'Exporter' });
+    expect(exporter).toHaveAccessibleDescription('Bientôt disponible.');
+    expect(exporter).toHaveAttribute('title', 'Bientôt disponible.');
+    // Never disabled: it is reached with the keyboard, and pressed.
+    const send = screen.getByRole('button', { name: 'Envoyer' });
+    expect(send).toBeEnabled();
+    send.focus();
+    await userEvent.keyboard('{Enter}');
+    expect(await screen.findByText('Bientôt disponible : l’envoi n’est pas encore relié à l’espace.', { selector: '[role="status"] span' })).toBeVisible();
+    expect(press).not.toHaveBeenCalled();
+    // A link still leads to its page.
+    const call = screen.getByRole('link', { name: 'Appeler' });
+    expect(call).toHaveAttribute('href', '/appels');
+    expect(call).toHaveAccessibleDescription('Bientôt disponible : la téléphonie n’est pas encore reliée à l’espace.');
+    expect(screen.getByRole('link', { name: /Boîtes e-mail/ })).toHaveTextContent('Bientôt');
+    expect(await axeViolations(container)).toEqual([]);
+  });
 });
 
 describe('Champ', () => {

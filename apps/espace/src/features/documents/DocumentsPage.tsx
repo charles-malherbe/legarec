@@ -13,7 +13,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { useCreditorScope } from '../../app/creditorScope';
 import { useApi, useChange } from '../../app/data';
-import { opens, shown } from '../../app/features';
+import { soon, soonAt } from '../../app/features';
 import layout from '@legarec/ui/layout.module.css';
 import { pageOf } from '../../shared/paging';
 import { listState, matches } from '../../shared/listState';
@@ -150,7 +150,7 @@ export function DocumentsPage() {
         description={data ? `${data.total.toLocaleString('fr-FR')} documents · ${data.size} · classés par créancier et par débiteur` : ' '}
         actions={[
           { label: 'Importer des fichiers', onPress: () => document.querySelector<HTMLElement>('#import-documents button')?.focus() },
-          ...(opens('/documents/rediger') ? [{ label: '+ Nouveau courrier', primary: true, kbd: 'N', href: '/documents/rediger' }] : []),
+          { label: '+ Nouveau courrier', primary: true, kbd: 'N', href: '/documents/rediger', soon: soonAt('/documents/rediger') },
         ]}
       />
       <div className={css.grid3}>
@@ -307,8 +307,8 @@ export function DocumentsPage() {
               <div className={layout.inline}>
                 <Bouton label="Télécharger" onPress={() => void fetchFile(current)} />
                 <Bouton variant="secondary" label="Partager au créancier" onPress={() => share(current)} />
-                {shown('document-sending') && <Bouton variant="secondary" label="Envoyer" onPress={() => send(current)} />}
-                <Bouton variant="secondary" label="Historique (2)" disabled />
+                <Bouton variant="secondary" label="Envoyer" onPress={() => send(current)} soon={soon('document-sending')} />
+                <Bouton variant="secondary" label="Historique (2)" soon />
               </div>
             </div>
           </aside>

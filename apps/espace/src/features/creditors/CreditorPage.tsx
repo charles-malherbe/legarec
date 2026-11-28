@@ -4,7 +4,7 @@ import { Badge, Bouton, Carte, EtatListe, Icone, Onglets, Tableau, type Tone } f
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { useApi } from '../../app/data';
-import { opens } from '../../app/features';
+import { ready } from '../../app/features';
 import { useCurrentUser } from '../../app/session';
 import layout from '@legarec/ui/layout.module.css';
 import { STATUS_TONE } from '../dashboard/DashboardPage';
@@ -63,8 +63,8 @@ export function CreditorPage() {
             </p>
           </div>
           <div className={layout.inline}>
-            <Bouton variant="secondary" label="Importer des factures (CSV)" disabled />
-            <Bouton variant="secondary" label="Rapport créancier" disabled />
+            <Bouton variant="secondary" label="Importer des factures (CSV)" soon />
+            <Bouton variant="secondary" label="Rapport créancier" soon />
             {canChange && <Bouton label="+ Ajouter un débiteur" href={`/debiteurs/nouveau?creancier=${data.id}`} />}
           </div>
         </div>
@@ -273,7 +273,8 @@ export function CreditorPage() {
                 <a href={toTelHref(data.contact.phone)} className={layout.link}>
                   {data.contact.phone}
                 </a>
-                {opens('/e-mails') ? (
+                {/* An address is data: it stays plain text, readable, until the e-mails are ready. */}
+                {ready('emails') ? (
                   <Link to="/e-mails" state={{ to: data.contact.email }} className={layout.link}>
                     {data.contact.email}
                   </Link>

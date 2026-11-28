@@ -6,7 +6,7 @@ import contract from '../../../../packages/contracts/openapi.json?raw';
 import { axeViolations } from '../../../../packages/ui/src/testing';
 import { callState, resetCalls } from '../mocks/routes/calls';
 import { mockApi, openAs } from '../testing';
-import { FEATURES, opens, shown, unknownFeatures } from './features';
+import { FEATURES, pending, ready, SOON, soonAt, unknownFeatures, type Feature } from './features';
 
 const server = mockApi();
 // cmdk brings the active result into view: jsdom lays nothing out.
@@ -17,12 +17,14 @@ afterEach(() => {
   server.events.removeAllListeners();
 });
 
-/** A build that leaves out every part still without its API: the production build, as long as `VITE_FEATURES` names none. */
+/** A build where no part still without its API is ready: the production build, as long as `VITE_FEATURES` names none. */
 const withoutApi = () => vi.stubEnv('VITE_FEATURES', '');
 /** Development, which simulates them all. */
 const simulated = () => vi.stubEnv('VITE_FEATURES', undefined);
 
 const SCREENS = ['/appels', '/e-mails', '/sms', '/documents/rediger', '/parametres/techniques/boites'];
+/** The entries of the menu of these parts. */
+const WAITING = ['/appels', '/e-mails', '/sms', '/documents/rediger'];
 const MENU = [
   '/',
   '/rapports',
@@ -72,28 +74,43 @@ const menu = async () => {
     .filter((href) => href !== '/parametres');
 };
 
+/** What a greyed button or link says, to a screen reader and when it is pressed. */
+const says = (feature: Feature) => `Bientôt disponible : ${SOON[feature]}`;
+/** The message shown when a greyed button is pressed. */
+const toast = (text: string) => screen.findByText(text, { selector: '[role="status"] span' });
+const soonLinks = (nav: HTMLElement) => [...nav.querySelectorAll('a[data-soon]')].map((link) => link.getAttribute('href'));
+
 describe('setting', () => {
-  it('shows every part in development, none in a production build', () => {
+  it('has every part ready in development, none in a production build', () => {
     simulated();
-    expect(FEATURES.filter((feature) => shown(feature))).toEqual([...FEATURES]);
-    expect(SCREENS.every(opens)).toBe(true);
+    expect(FEATURES.filter((feature) => ready(feature))).toEqual([...FEATURES]);
+    expect(SCREENS.filter((screen) => pending(screen))).toEqual([]);
     vi.stubEnv('DEV', false);
-    expect(FEATURES.filter((feature) => shown(feature))).toEqual([]);
-    expect(SCREENS.filter(opens)).toEqual([]);
+    expect(FEATURES.filter((feature) => ready(feature))).toEqual([]);
+    expect(SCREENS.filter((screen) => pending(screen))).toEqual(SCREENS);
   });
-  it('shows the parts it names, and only them, in production as in development', () => {
+  it('makes ready the parts it names, and only them, in production as in development', () => {
     vi.stubEnv('DEV', false);
     vi.stubEnv('VITE_FEATURES', ' calls, letters ');
-    expect(FEATURES.filter((feature) => shown(feature))).toEqual(['calls', 'letters']);
-    expect(SCREENS.filter(opens)).toEqual(['/appels', '/documents/rediger']);
+    expect(FEATURES.filter((feature) => ready(feature))).toEqual(['calls', 'letters']);
+    expect(SCREENS.filter((screen) => pending(screen))).toEqual(['/e-mails', '/sms', '/parametres/techniques/boites']);
     vi.stubEnv('DEV', true);
     withoutApi();
-    expect(FEATURES.filter((feature) => shown(feature))).toEqual([]);
+    expect(FEATURES.filter((feature) => ready(feature))).toEqual([]);
   });
-  it('closes the screens of a part left out with what follows their address, and nothing else', () => {
+  it('finds the part of a screen with what follows its address, and nothing else', () => {
     withoutApi();
-    expect(['/appels/demo', '/e-mails?to=x', '/sms#fil', '/documents/rediger?dossier=demo', '/parametres/techniques/boites/b1'].filter(opens)).toEqual([]);
-    expect(['/', '/documents', '/appelsx', '/parametres/techniques', '/parametres/techniques/secrets', '/aide'].every(opens)).toBe(true);
+    expect(['/appels/demo', '/e-mails?to=x', '/sms#fil', '/documents/rediger?dossier=demo', '/parametres/techniques/boites/b1'].map(pending)).toEqual([
+      'calls',
+      'emails',
+      'sms',
+      'letters',
+      'mailboxes',
+    ]);
+    expect(['/', '/documents', '/appelsx', '/parametres/techniques', '/parametres/techniques/secrets', '/aide'].map(pending)).toEqual(Array(6).fill(undefined));
+    expect(soonAt('/appels')).toBe(SOON.calls);
+    simulated();
+    expect(soonAt('/appels')).toBeUndefined();
   });
   it('names the parts the build does not know, so that it stops', () => {
     expect(unknownFeatures('calls, phone,,emails, SMS')).toEqual(['phone', 'SMS']);
@@ -102,55 +119,65 @@ describe('setting', () => {
 });
 
 describe('without the API of these parts', () => {
-  it('keeps the menu in its validated order, without their entries, counters nor empty group', async () => {
+  it('keeps the whole menu in its validated order, their entries greyed with « Bientôt », without counters', async () => {
     withoutApi();
     const { container } = openAs('cl', '/');
-    expect(await menu()).toEqual(MENU.filter((href) => !SCREENS.includes(href)));
+    expect(await menu()).toEqual(MENU);
     const nav = screen.getByRole('navigation', { name: 'Navigation principale' });
-    expect(within(nav).queryByRole('button', { name: 'Communication' })).toBeNull();
-    expect(within(nav).getByRole('button', { name: 'Documents' })).toBeVisible();
+    expect(soonLinks(nav)).toEqual(WAITING);
+    expect(within(nav).getByRole('link', { name: /^Appels.*Bientôt.*disponible/ })).toHaveAttribute('href', '/appels');
+    expect(within(nav).getByRole('button', { name: 'Communication' })).toBeVisible();
     expect(nav).not.toHaveTextContent(/appels en file|e-mails non lus|SMS non lus/);
     expect(await screen.findByRole('heading', { name: 'Bonjour Camille' })).toBeVisible();
     expect(await axeViolations(container)).toEqual([]);
   });
   it.each([
-    ['cl', '/appels'],
-    ['cl', '/e-mails'],
-    ['cl', '/sms'],
-    ['cl', '/documents/rediger?dossier=demo'],
-    ['dev', '/parametres/techniques/boites'],
-  ])('leads %s from %s to « Page introuvable », never to a screen in error', async (account, path) => {
+    ['cl', '/appels', 'Appels'],
+    ['cl', '/e-mails', 'E-mails'],
+    ['cl', '/sms', 'SMS'],
+    ['cl', '/documents/rediger?dossier=demo', 'Rédiger un courrier'],
+    ['dev', '/parametres/techniques/boites', /Boîtes e-mail/],
+  ])('opens for %s %s on « Bientôt disponible », never on a screen in error', async (account, path, title) => {
     withoutApi();
     const seen = requests();
     const { container } = openAs(account, path);
-    expect(await screen.findByRole('heading', { name: 'Page introuvable' })).toBeVisible();
+    expect(await screen.findByRole('heading', { level: 1, name: title })).toBeVisible();
+    expect(await screen.findByText('Bientôt disponible')).toBeVisible();
     expect(unanswered(seen)).toEqual([]);
     expect(await axeViolations(container)).toEqual([]);
   });
-  it('ignores their shortcuts and leaves them out of the list', async () => {
+  it('leads their shortcuts to their page, and lists them as to come', async () => {
     withoutApi();
     openAs('cl', '/');
-    const heading = await screen.findByRole('heading', { name: 'Bonjour Camille' });
-    for (const key of ['a', 'm', 's']) {
+    await screen.findByRole('heading', { name: 'Bonjour Camille' });
+    for (const [key, page] of [
+      ['a', 'Appels'],
+      ['m', 'E-mails'],
+      ['s', 'SMS'],
+    ]) {
       await userEvent.keyboard(`g${key}`);
-      expect(heading).toBeVisible();
+      expect(await screen.findByRole('heading', { level: 1, name: page })).toBeVisible();
+      expect(screen.getByText('Bientôt disponible')).toBeVisible();
     }
     await userEvent.keyboard('?');
     const dialog = await screen.findByRole('dialog', { name: 'Raccourcis clavier' });
     const goTo = within(dialog).getByRole('heading', { name: 'Aller à' }).closest('section');
     expect(goTo).toHaveTextContent('Débiteurs');
-    expect(goTo).not.toHaveTextContent(/Appels|E-mails|SMS/);
+    expect(goTo).toHaveTextContent(/Appels \(bientôt\).*E-mails \(bientôt\).*SMS \(bientôt\)/);
     expect(within(dialog).queryByRole('heading', { name: 'Téléphone' })).toBeNull();
   });
-  it('offers none of their pages in the search, nor the letter in « Créer »', async () => {
+  it('offers their pages in the search, and the letter in « Créer », marked as to come', async () => {
     withoutApi();
     openAs('cl', '/');
     await screen.findByRole('heading', { name: 'Bonjour Camille' });
     await userEvent.click(screen.getByRole('button', { name: 'Créer' }));
     const create = screen.getByRole('navigation', { name: 'Créer' });
-    expect(within(create).getByRole('link', { name: /Débiteur/ })).toBeVisible();
-    expect(within(create).queryByRole('link', { name: /Courrier/ })).toBeNull();
-    await userEvent.keyboard('{Escape}/');
+    expect(within(create).getByRole('link', { name: /^Débiteur/ })).not.toHaveAttribute('data-soon');
+    const letter = within(create).getByRole('link', { name: /^Courrier.*Bientôt.*disponible/ });
+    expect(letter).toHaveAttribute('href', '/documents/rediger');
+    await userEvent.click(letter);
+    expect(await screen.findByRole('heading', { level: 1, name: 'Rédiger un courrier' })).toBeVisible();
+    await userEvent.keyboard('/');
     const input = await screen.findByPlaceholderText('Débiteur, SIRET, SIREN, facture…');
     for (const [query, page] of [
       ['appels', /^Appels/],
@@ -160,7 +187,7 @@ describe('without the API of these parts', () => {
     ] as const) {
       await userEvent.clear(input);
       await userEvent.type(input, query);
-      expect(screen.queryByRole('option', { name: page })).toBeNull();
+      expect(await screen.findByRole('option', { name: page })).toHaveTextContent('Page · bientôt disponible');
     }
   });
   it('never asks for an incoming call', async () => {
@@ -172,90 +199,116 @@ describe('without the API of these parts', () => {
     expect(screen.queryByRole('button', { name: /Décrocher/ })).toBeNull();
     expect(seen.filter((line) => line.includes('/calls'))).toEqual([]);
   });
-  it('keeps the dashboard and the reminders without the calls page', async () => {
+  it('keeps the calls of the dashboard and of the reminders greyed, leading to their page', async () => {
     withoutApi();
     const seen = requests();
-    const dashboard = openAs('hb', '/');
-    await screen.findByRole('button', { name: 'Exporter' });
-    expect(screen.queryByText('Démarrer ma session d’appels')).toBeNull();
+    // The manager's dashboard, whose priorities include a call.
+    const dashboard = openAs('cl', '/');
+    const start = await screen.findByRole('link', { name: 'Démarrer ma session d’appels' });
+    expect(start).toHaveAttribute('href', '/appels');
+    expect(start).toHaveAccessibleDescription(says('calls'));
+    // A priority leading to a page to come is greyed the same way; one leading to a case file stays as it is.
+    expect(await screen.findByRole('link', { name: 'Appeler : Appeler Bâtiplus SAS' })).toHaveAccessibleDescription(says('calls'));
+    expect(screen.getByRole('link', { name: 'Vérifier : Contrôler la promesse de Nordis Logistique' })).not.toHaveAttribute('data-soon');
+    // An export to come: reached with the keyboard, it says so instead of acting.
+    const exporter = screen.getByRole('button', { name: 'Exporter' });
+    expect(exporter).toBeEnabled();
+    await userEvent.click(exporter);
+    expect(await toast('Bientôt disponible.')).toBeVisible();
     dashboard.unmount();
     openAs('hb', '/relances');
-    expect(await screen.findByRole('button', { name: 'Reporter : Groupe Hélio' }, { timeout: 5000 })).toBeVisible();
-    expect(screen.queryByRole('link', { name: 'Appeler Groupe Hélio' })).toBeNull();
-    expect(screen.queryByText('Démarrer ma session d’appels')).toBeNull();
+    const call = await screen.findByRole('link', { name: 'Appeler Groupe Hélio' }, { timeout: 5000 });
+    expect(call).toHaveAccessibleDescription(says('calls'));
+    expect(screen.getByRole('link', { name: 'Démarrer ma session d’appels' })).toHaveAccessibleDescription(says('calls'));
     expect(unanswered(seen)).toEqual([]);
   });
-  it('keeps the case file without writing, calling nor drafting a letter from it', async () => {
+  it('keeps writing, calling and drafting a letter in the case file, greyed', async () => {
     withoutApi();
     const seen = requests();
     const { container } = openAs('cl', '/debiteurs/demo');
     expect(await screen.findByRole('heading', { name: 'Bâtiplus SAS' })).toBeVisible();
-    expect(screen.queryByRole('button', { name: /^E-mail : / })).toBeNull();
+    // An address is data: it stays plain text, readable.
     expect(screen.queryByRole('button', { name: /^Écrire à / })).toBeNull();
+    const mail = screen.getByRole('button', { name: /^E-mail : / });
+    expect(mail).toHaveAccessibleDescription(says('emails'));
+    await userEvent.click(mail);
+    expect(await toast(says('emails'))).toBeVisible();
+    expect(screen.queryByRole('textbox', { name: /Objet/ })).toBeNull();
     await userEvent.click(screen.getByRole('tab', { name: /Échanges/ }));
-    expect(screen.queryByRole('button', { name: 'Écrire un e-mail' })).toBeNull();
-    for (const channel of ['Appeler', 'E-mail', 'SMS']) expect(screen.queryByRole('link', { name: channel })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Écrire un e-mail' })).toHaveAccessibleDescription(says('emails'));
+    for (const [channel, feature] of [
+      ['Appeler', 'calls'],
+      ['E-mail', 'emails'],
+      ['SMS', 'sms'],
+    ] as const)
+      expect(screen.getByRole('link', { name: channel })).toHaveAccessibleDescription(says(feature));
     await userEvent.click(screen.getByRole('tab', { name: /Documents/ }));
-    expect(await screen.findByRole('heading', { name: 'Documents du dossier' })).toBeVisible();
-    expect(screen.queryByText('+ Nouveau courrier')).toBeNull();
+    expect(await screen.findByRole('link', { name: '+ Nouveau courrier' })).toHaveAccessibleDescription(says('letters'));
     expect(unanswered(seen)).toEqual([]);
     expect(await axeViolations(container)).toEqual([]);
   });
-  it('keeps the documents, the payment plans, a template and a creditor without their sending', async () => {
+  it('keeps the sending of the documents, the payment plans and a template greyed, and the creditor address as text', async () => {
     withoutApi();
     const seen = requests();
     const documents = openAs('cl', '/documents');
     expect(await screen.findByRole('button', { name: 'Télécharger' })).toBeVisible();
-    expect(screen.queryByRole('button', { name: 'Envoyer' })).toBeNull();
-    expect(screen.queryByText('+ Nouveau courrier')).toBeNull();
+    const send = screen.getByRole('button', { name: 'Envoyer' });
+    expect(send).toHaveAccessibleDescription(says('document-sending'));
+    await userEvent.click(send);
+    expect(await toast(says('document-sending'))).toBeVisible();
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByText('+ Nouveau courrier').closest('a')).toHaveAccessibleDescription(says('letters'));
     documents.unmount();
     const plans = openAs('cl', '/echeanciers');
     expect(await screen.findByRole('button', { name: 'Modifier le plan' })).toBeVisible();
-    expect(screen.queryByRole('button', { name: 'Envoyer un rappel' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Envoyer un rappel' })).toHaveAccessibleDescription(says('installment-reminders'));
     plans.unmount();
     const template = openAs('cl', '/parametres/modeles/rappel');
     expect(await screen.findByText('Liste des champs de fusion')).toBeVisible();
-    expect(screen.queryByRole('button', { name: 'M’envoyer un test' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'M’envoyer un test' })).toHaveAccessibleDescription(says('template-tests'));
     template.unmount();
     openAs('cl', '/creanciers/md');
     expect(await screen.findByText('c.besson@materiauxdelta.example')).not.toHaveAttribute('href');
     expect(unanswered(seen)).toEqual([]);
   });
-  it('keeps the technical settings without the mailboxes', async () => {
+  it('keeps the mailboxes greyed in the technical settings', async () => {
     withoutApi();
     const seen = requests();
     openAs('dev', '/parametres/techniques');
-    expect(await screen.findByRole('link', { name: /Secrets/ })).toBeVisible();
-    expect(screen.queryByRole('link', { name: /Boîtes e-mail/ })).toBeNull();
+    expect(await screen.findByRole('link', { name: /Secrets/ })).not.toHaveAttribute('data-soon');
+    const mailboxes = screen.getByRole('link', { name: /Boîtes e-mail/ });
+    expect(mailboxes).toHaveAttribute('data-soon');
+    expect(mailboxes).toHaveTextContent('Bientôt');
+    await userEvent.click(mailboxes);
+    expect(await screen.findByText('Bientôt disponible')).toBeVisible();
     expect(unanswered(seen)).toEqual([]);
   });
-  it.each([...MENU.filter((href) => !SCREENS.includes(href)), '/notifications', '/parametres', '/compte', '/aide'])(
-    'opens %s asking the API only routes it answers',
-    async (path) => {
-      withoutApi();
-      const seen = requests();
-      openAs('cl', path);
-      await screen.findByRole('heading', { level: 1 });
-      expect(seen).not.toEqual([]);
-      expect(unanswered(seen)).toEqual([]);
-    },
-  );
-  it('keeps the SMS shown alone without calling nor drafting', async () => {
+  it.each([...MENU, '/notifications', '/parametres', '/compte', '/aide'])('opens %s asking the API only routes it answers', async (path) => {
+    withoutApi();
+    const seen = requests();
+    openAs('cl', path);
+    await screen.findByRole('heading', { level: 1 });
+    expect(seen).not.toEqual([]);
+    expect(unanswered(seen)).toEqual([]);
+  });
+  it('keeps calling and drafting greyed beside the SMS ready alone', async () => {
     vi.stubEnv('VITE_FEATURES', 'sms');
     openAs('cl', '/sms');
     expect(await screen.findByRole('link', { name: 'Ouvrir le dossier' })).toBeVisible();
-    expect(screen.queryByRole('link', { name: 'Appeler' })).toBeNull();
-    expect(screen.queryByText('Envoi groupé')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Appeler' })).toHaveAccessibleDescription(says('calls'));
+    expect(screen.getByRole('link', { name: 'Envoi groupé' })).toHaveAccessibleDescription(says('letters'));
   });
 });
 
 describe('with the API of these parts, or in development', () => {
-  it('shows the whole menu and every page', async () => {
+  it('shows the whole menu without « Bientôt », and every page', async () => {
     simulated();
     openAs('cl', '/');
     expect(await menu()).toEqual(MENU);
-    expect(within(screen.getByRole('navigation', { name: 'Navigation principale' })).getByRole('button', { name: 'Communication' })).toBeVisible();
-    expect(await screen.findByText('Démarrer ma session d’appels')).toBeVisible();
+    const nav = screen.getByRole('navigation', { name: 'Navigation principale' });
+    expect(soonLinks(nav)).toEqual([]);
+    expect(within(nav).getByRole('button', { name: 'Communication' })).toBeVisible();
+    expect(await screen.findByRole('link', { name: 'Démarrer ma session d’appels' })).not.toHaveAttribute('data-soon');
     for (const [key, page] of [
       ['a', 'Appels'],
       ['m', 'E-mails'],
@@ -263,22 +316,26 @@ describe('with the API of these parts, or in development', () => {
     ]) {
       await userEvent.keyboard(`g${key}`);
       expect(await screen.findByRole('heading', { level: 1, name: page })).toBeVisible();
+      expect(screen.queryByText('Bientôt disponible')).toBeNull();
     }
     await userEvent.keyboard('?');
-    expect(within(await screen.findByRole('dialog', { name: 'Raccourcis clavier' })).getByRole('heading', { name: 'Téléphone' })).toBeVisible();
+    const dialog = await screen.findByRole('dialog', { name: 'Raccourcis clavier' });
+    expect(within(dialog).getByRole('heading', { name: 'Téléphone' })).toBeVisible();
+    expect(dialog).not.toHaveTextContent('bientôt');
     await userEvent.keyboard('{Escape}/');
     await userEvent.type(await screen.findByPlaceholderText('Débiteur, SIRET, SIREN, facture…'), 'courrier');
-    expect(await screen.findByRole('option', { name: /^Rédiger un courrier/ })).toBeVisible();
+    expect(await screen.findByRole('option', { name: /^Rédiger un courrier/ })).not.toHaveTextContent('bientôt');
   });
-  it('shows a part again as soon as the setting names it', async () => {
+  it('makes a part ready as soon as the setting names it', async () => {
     vi.stubEnv('DEV', false);
     vi.stubEnv('VITE_FEATURES', 'calls,letters');
     callState.incoming = true;
     openAs('cl', '/');
     expect(await screen.findByRole('button', { name: /Décrocher/ })).toBeVisible();
-    expect(await menu()).toEqual(MENU.filter((href) => !['/e-mails', '/sms', '/parametres/techniques/boites'].includes(href)));
+    expect(await menu()).toEqual(MENU);
+    expect(soonLinks(screen.getByRole('navigation', { name: 'Navigation principale' }))).toEqual(['/e-mails', '/sms']);
     await userEvent.click(screen.getByRole('button', { name: 'Créer' }));
-    expect(within(screen.getByRole('navigation', { name: 'Créer' })).getByRole('link', { name: /Courrier/ })).toBeVisible();
+    expect(within(screen.getByRole('navigation', { name: 'Créer' })).getByRole('link', { name: /^Courrier/ })).not.toHaveAttribute('data-soon');
   });
   it('asks routes the API does not answer yet, which the simulations stand in for', async () => {
     simulated();
@@ -287,37 +344,38 @@ describe('with the API of these parts, or in development', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Appels' })).toBeVisible();
     expect(unanswered(seen)).toContain('GET /staff/calls');
   });
-  it('offers the sending buttons and the links', async () => {
+  it('offers the sending buttons and the links, without « Bientôt »', async () => {
     simulated();
     const documents = openAs('cl', '/documents');
-    expect(await screen.findByRole('button', { name: 'Envoyer' })).toBeVisible();
-    expect(screen.getByText('+ Nouveau courrier')).toBeVisible();
+    expect(await screen.findByRole('button', { name: 'Envoyer' })).not.toHaveAttribute('data-soon');
+    expect(screen.getByText('+ Nouveau courrier').closest('a')).not.toHaveAttribute('data-soon');
     documents.unmount();
     const plans = openAs('cl', '/echeanciers');
-    expect(await screen.findByRole('button', { name: 'Envoyer un rappel' })).toBeVisible();
+    expect(await screen.findByRole('button', { name: 'Envoyer un rappel' })).not.toHaveAttribute('data-soon');
     plans.unmount();
     const template = openAs('cl', '/parametres/modeles/rappel');
-    expect(await screen.findByRole('button', { name: 'M’envoyer un test' })).toBeVisible();
+    expect(await screen.findByRole('button', { name: 'M’envoyer un test' })).not.toHaveAttribute('data-soon');
     template.unmount();
     const reminders = openAs('hb', '/relances');
-    expect(await screen.findByRole('link', { name: 'Appeler Groupe Hélio' }, { timeout: 5000 })).toBeVisible();
+    expect(await screen.findByRole('link', { name: 'Appeler Groupe Hélio' }, { timeout: 5000 })).not.toHaveAttribute('data-soon');
     reminders.unmount();
     const creditor = openAs('cl', '/creanciers/md');
     expect(await screen.findByText('c.besson@materiauxdelta.example')).toHaveAttribute('href', '/e-mails');
     creditor.unmount();
     const sms = openAs('cl', '/sms');
-    expect(await screen.findByRole('link', { name: 'Appeler' })).toBeVisible();
-    expect(screen.getByText('Envoi groupé')).toBeVisible();
+    expect(await screen.findByRole('link', { name: 'Appeler' })).not.toHaveAttribute('data-soon');
+    expect(screen.getByRole('link', { name: 'Envoi groupé' })).not.toHaveAttribute('data-soon');
     sms.unmount();
     const settings = openAs('dev', '/parametres/techniques');
-    expect(await screen.findByRole('link', { name: /Boîtes e-mail/ })).toBeVisible();
+    expect(await screen.findByRole('link', { name: /Boîtes e-mail/ })).not.toHaveAttribute('data-soon');
     settings.unmount();
     openAs('cl', '/debiteurs/demo');
-    expect(await screen.findByRole('button', { name: /^E-mail : / })).toBeVisible();
+    expect(await screen.findAllByRole('button', { name: /^Écrire à / })).not.toEqual([]);
+    expect(screen.getByRole('button', { name: /^E-mail : / })).not.toHaveAttribute('data-soon');
     await userEvent.click(screen.getByRole('tab', { name: /Échanges/ }));
-    expect(screen.getByRole('button', { name: 'Écrire un e-mail' })).toBeVisible();
-    for (const channel of ['Appeler', 'E-mail', 'SMS']) expect(screen.getByRole('link', { name: channel })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Écrire un e-mail' })).not.toHaveAttribute('data-soon');
+    for (const channel of ['Appeler', 'E-mail', 'SMS']) expect(screen.getByRole('link', { name: channel })).not.toHaveAttribute('data-soon');
     await userEvent.click(screen.getByRole('tab', { name: /Documents/ }));
-    expect(await screen.findByText('+ Nouveau courrier')).toBeVisible();
+    expect(await screen.findByRole('link', { name: '+ Nouveau courrier' })).not.toHaveAttribute('data-soon');
   });
 });

@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [
     react(),
     {
-      // A part of the portal named wrongly in `VITE_FEATURES` would stay hidden without a word: the build stops instead.
+      // A part of the portal named wrongly in `VITE_FEATURES` would stay greyed without a word: the build stops instead.
       name: 'legarec-features',
       configResolved({ env }) {
         const unknown = unknownFeatures(env.VITE_FEATURES as string | undefined);

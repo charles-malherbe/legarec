@@ -202,7 +202,7 @@ export function CasesPage() {
         ]}
         actions={[
           { label: 'Importer des factures', href: '/creanciers/md' },
-          { label: 'Exporter', disabled: true },
+          { label: 'Exporter', soon: true },
           ...(user.role === 'CLAIMS_OFFICER' ? [] : [{ label: '+ Nouveau débiteur', primary: true, kbd: 'N', href: '/debiteurs/nouveau' }]),
         ]}
       />
