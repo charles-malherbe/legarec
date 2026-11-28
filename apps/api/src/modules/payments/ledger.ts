@@ -1,8 +1,7 @@
 import type { NewPayment, Payment } from '@legarec/contracts';
 import { Inject, Injectable } from '@nestjs/common';
-import type { Prisma } from '../../generated/prisma/client';
 import { Audit } from '../../platform/audit/audit';
-import { Database } from '../../platform/database/database';
+import { Database, type Transaction } from '../../platform/database/database';
 import { conflict, invalid } from '../../platform/errors/api-error';
 import { dayOf } from '../../platform/format';
 import { dayText } from '../creditors/mandates';
@@ -55,6 +54,7 @@ export const maskedLabel = (label: string, director: boolean) =>
         return `${plain.slice(0, 4)} •••• ${plain.slice(-4)}`;
       });
 
+type CaseSelect = NonNullable<NonNullable<Parameters<Transaction['case']['findMany']>[0]>['select']>;
 /** What a ledger reads of a case; a debtor does not read the details of a cheque nor the label of a transfer. */
 const ledgerSelect = (debtor: boolean) =>
   ({
@@ -80,8 +80,10 @@ const ledgerSelect = (debtor: boolean) =>
         receipt: { select: { id: true } },
       },
     },
-  }) satisfies Prisma.CaseSelect;
-type Found = Prisma.CaseGetPayload<{ select: ReturnType<typeof ledgerSelect> }>;
+  }) satisfies CaseSelect;
+/** Read with the select above: what `ledgerOf` is given, a case at a time. */
+const findLedgers = (tx: Transaction, ids: string[], debtor: boolean) => tx.case.findMany({ where: { id: { in: ids } }, select: ledgerSelect(debtor) });
+type Found = Awaited<ReturnType<typeof findLedgers>>[number];
 
 /** The amounts of a case as of `today`, from what was read of it. */
 function ledgerOf(found: Found, rates: Rate[], today: Day, director: boolean): Ledger {
@@ -182,7 +184,7 @@ export class Ledgers {
   async readMany(caseIds: readonly string[], today: Day = dayOf(new Date())): Promise<Map<string, Ledger>> {
     if (caseIds.length === 0) return new Map();
     const { tx } = this.database;
-    const found = await tx.case.findMany({ where: { id: { in: [...caseIds] } }, select: ledgerSelect(false) });
+    const found = await findLedgers(tx, [...caseIds], false);
     const rates = await this.rates();
     return new Map(found.map((item) => [item.id, ledgerOf(item, rates, today, false)]));
   }
