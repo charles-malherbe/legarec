@@ -38,7 +38,7 @@ export type JobHandlers = Partial<Record<QueueName, Record<string, JobDefinition
 export type ScheduledHandlers = Partial<Record<QueueName, Record<string, () => Promise<void>>>>;
 
 /** What leaves through these queues reaches someone: never twice, whatever a definition says. */
-const ONE_TRY: ReadonlySet<QueueName> = new Set(['letter', 'sms', 'staff-email', 'reminders']);
+const ONE_TRY: ReadonlySet<QueueName> = new Set(['email', 'letter', 'sms', 'staff-email', 'reminders']);
 
 interface Stored {
   id: string;

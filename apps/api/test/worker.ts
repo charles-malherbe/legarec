@@ -8,6 +8,7 @@ import { ResendClient, type HttpClient } from '../src/emails/resend';
 import { EmailRenderer, TEMPLATES_DIR } from '../src/emails/renderer';
 import { aiJobs } from '../src/ai/ai.jobs';
 import type { AiSetup } from '../src/ai/provider';
+import { accountMail } from '../src/modules/auth/account-mail';
 import { accountJobs } from '../src/modules/auth/auth.jobs';
 import { AuthKeys } from '../src/modules/auth/keys';
 import { accessCodeJobs } from '../src/modules/debtor-access/access-codes.jobs';
@@ -30,6 +31,9 @@ import { OutboxPublisher } from '../src/platform/queue/publisher';
 import { connectValkey } from '../src/platform/queue/valkey';
 import type { TestApp } from './app';
 
+/** The addresses of the firm a test key may write to, outside production. */
+export const DEV_RECIPIENTS = ['recette@legarec.test'];
+
 export interface Mail {
   name: AutomaticEmail;
   to: string;
@@ -39,8 +43,9 @@ export interface Mail {
 }
 
 /**
- * The real worker, whose e-mails go nowhere. `http` stands for the provider of the reminders: without it, a call to a
- * provider fails the test, for no test ever reaches one.
+ * The real worker, whose e-mails go nowhere. `http` stands for Resend, for the reminders and the e-mails of the accounts:
+ * without it, a call to a provider fails the test, for no test ever reaches one. `run()` gives the e-mails of the accounts
+ * that were simulated, for want of a key.
  */
 export function startMailWorker(
   test: TestApp,
@@ -65,32 +70,53 @@ export function startMailWorker(
   const letterPages: string[] = [];
   const vault = new Vault(test.config);
   const pdf = new PdfRenderer();
-  let sending: Pick<Mail, 'name' | 'data'> | undefined;
   const settings = () => database.run({ kind: 'worker', job: 'email-settings' }, async (tx) => emailConfigOf(await SettingValues.read(tx), test.config));
   const emails = new EmailsService(
     new EmailRenderer(TEMPLATES_DIR),
-    // The page itself is left out of what a failed test prints.
-    { send: ({ to, subject, html }) => Promise.resolve(void mails.push(Object.defineProperty({ ...sending!, to, subject } as Mail, 'html', { value: html }))) },
+    { send: () => Promise.reject(new Error('every e-mail is composed, then sent')) },
     settings,
   );
-  const send = (name: AutomaticEmail, to: string, data: unknown) => {
-    sending = { name, data: data as Mail['data'] };
-    return emails.send(name, to, data);
-  };
-  const handlers = {
-    email: {
-      ...accountJobs({ keys: new AuthKeys(test.config), portals: test.config, send }),
+  /** Each message of the accounts, with the template and the data it was written from. */
+  const written = new WeakMap<AutomaticMessage, Pick<Mail, 'name' | 'data'>>();
+  const composing: Pick<EmailsService, 'compose'> = {
+    compose: async (name, to, data) => {
+      const message = await emails.compose(name, to, data);
+      written.set(message, { name, data: data as Mail['data'] });
+      return message;
     },
+  };
+  const resend = new ResendClient(http ?? (() => Promise.reject(new Error('a test never reaches a provider'))));
+  const handlers = {
+    email: accountJobs({
+      keys: new AuthKeys(test.config),
+      portals: test.config,
+      mail: accountMail({
+        asWorker: (work) => database.run({ kind: 'worker', job: 'account-email' }, work),
+        vault,
+        emails: composing,
+        resend,
+        production,
+        real,
+        devRecipients: DEV_RECIPIENTS,
+        // The page itself is left out of what a failed test prints.
+        simulate: (message) =>
+          Promise.resolve(
+            void mails.push(
+              Object.defineProperty({ ...written.get(message)!, to: message.to, subject: message.subject } as Mail, 'html', { value: message.html }),
+            ),
+          ),
+      }),
+    }),
     reminders: {
       ...sendingJobs({
         database,
         asWorker: (work) => database.run({ kind: 'worker', job: 'case-reminder' }, work),
         vault,
         emails,
-        resend: new ResendClient(http ?? (() => Promise.reject(new Error('a test never reaches a provider')))),
+        resend,
         production,
         real,
-        devRecipients: ['recette@legarec.test'],
+        devRecipients: DEV_RECIPIENTS,
         simulate: (message) => Promise.resolve(void simulated.push(message)),
         ...(now ? { now } : {}),
       }),

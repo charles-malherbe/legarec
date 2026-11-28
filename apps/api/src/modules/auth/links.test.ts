@@ -8,6 +8,7 @@ import { startMailWorker, type Mail, type MailWorker } from '../../../test/worke
 import { newToken } from '../../platform/crypto/keyring';
 import { Database } from '../../platform/database/database';
 import { accountCommand, USAGE } from './account-command';
+import type { AccountMail } from './account-mail';
 import { accountJobs } from './auth.jobs';
 import { AuthKeys } from './keys';
 
@@ -21,6 +22,11 @@ const actionsOf = async (id: string) =>
   (await rows<{ action: string }>('SELECT action FROM audit_log WHERE actor_id = $1 OR entity_id = $1 ORDER BY occurred_at, id', [id])).map(
     (row) => row.action,
   );
+/** What each e-mail of the accounts does once its checks have passed. */
+const mailBy =
+  (send: (name: AutomaticEmail, to: string, data: unknown) => Promise<void>): AccountMail =>
+  (to) =>
+    Promise.resolve((name, data) => send(name, to, data));
 const tokenIn = (mail: Mail | undefined) => /\/(?:reinitialisation|activation)\/([\w-]{43})/u.exec(mail?.html ?? '')![1]!;
 
 beforeAll(async () => {
@@ -294,16 +300,13 @@ describe('an e-mail run again', () => {
     rows(`UPDATE outbox SET published_at = NULL, claimed_at = NULL, done_at = NULL WHERE name = $1 AND payload ->> '${key}' = $2`, [name, id]);
   const live = (id: string) => rows('SELECT 1 FROM auth_tokens WHERE user_id = $1 AND used_at IS NULL AND expires_at > now()', [id]);
 
-  it('gives another link, the only one that works', async () => {
+  it('is never sent twice: what may have left keeps its link, the task fails as uncertain', async () => {
     const { id, email } = await newAccount(test);
     const first = await resetLink(email);
     await again('reset-link', 'userId', id);
-    const mails = await sent();
-    expect(mails.map((mail) => mail.to)).toEqual([email]);
-    const second = tokenIn(mails[0]);
-    expect(second).not.toBe(first);
-    expect((await staff().get(`/auth/reset/${first}`)).status).toBe(410);
-    expect((await staff().get(`/auth/reset/${second}`)).status).toBe(200);
+    expect(await sent()).toEqual([]);
+    expect(await rows("SELECT failure FROM outbox WHERE name = 'reset-link' AND payload ->> 'userId' = $1", [id])).toEqual([{ failure: 'UNCERTAIN' }]);
+    expect((await staff().get(`/auth/reset/${first}`)).status).toBe(200);
     expect(await live(id)).toHaveLength(1);
   });
 
@@ -324,7 +327,7 @@ describe('an e-mail run again', () => {
     expect(await sent()).toEqual([]);
   });
 
-  it('that could not leave draws another link at its next try: what was lost opens nothing', async () => {
+  it('that could not leave is drawn again when asked again: what was lost opens nothing', async () => {
     const { id, email } = await newAccount(test);
     const jobs = new Database(test.database.url('jobs'), { poolSize: 2 });
     const leaving: { name: AutomaticEmail; to: string; token: string }[] = [];
@@ -333,7 +336,7 @@ describe('an e-mail run again', () => {
       leaving.push({ name, to, token: (data as { reset_url: string }).reset_url.split('/').at(-1)! });
       return cut ? Promise.reject(new Error('the provider does not answer')) : Promise.resolve();
     };
-    const task = accountJobs({ keys: new AuthKeys(test.config), portals: test.config, send })['reset-link']!;
+    const task = accountJobs({ keys: new AuthKeys(test.config), portals: test.config, mail: mailBy(send) })['reset-link']!;
     const run = () =>
       task.run({
         taskId: randomUUID(),
@@ -356,7 +359,7 @@ describe('an e-mail run again', () => {
   });
 
   it('refuses a task that names nobody', async () => {
-    const jobs = accountJobs({ keys: new AuthKeys(test.config), portals: test.config, send: () => Promise.reject(new Error('sent')) });
+    const jobs = accountJobs({ keys: new AuthKeys(test.config), portals: test.config, mail: () => Promise.reject(new Error('sent')) });
     for (const [name, payload] of [
       ['invitation', {}],
       ['reset-link', { userId: 12 }],
@@ -636,7 +639,12 @@ describe('invitation', () => {
     await rows("UPDATE delegations SET withdrawn_at = now(), withdrawn_by = granted_by WHERE kind = 'ADMINISTRATIVE'");
     try {
       expect(await sent()).toEqual([]);
-      expect(await rows("SELECT failure FROM outbox WHERE name = 'invitation' AND failed_at IS NOT NULL")).toEqual([{ failure: 'AUTHOR_GONE' }]);
+      expect(
+        await rows(
+          "SELECT failure FROM outbox WHERE name = 'invitation' AND failed_at IS NOT NULL AND payload ->> 'userId' = (SELECT id::text FROM users WHERE email = $1)",
+          [email],
+        ),
+      ).toEqual([{ failure: 'AUTHOR_GONE' }]);
     } finally {
       await rows("UPDATE delegations SET withdrawn_at = NULL, withdrawn_by = NULL WHERE kind = 'ADMINISTRATIVE'");
     }
