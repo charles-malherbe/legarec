@@ -11,6 +11,7 @@ import { TeamPage } from '../features/team/TeamPage';
 import { AccountPage } from '../features/account/AccountPage';
 import { ArticlePage } from '../features/help/ArticlePage';
 import { HelpPage } from '../features/help/HelpPage';
+import { SignInHelpPage } from '../features/help/SignInHelpPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
 import { MergeFieldsPage } from '../features/templates/MergeFieldsPage';
 import { TemplatePage } from '../features/templates/TemplatePage';
@@ -76,6 +77,7 @@ export function App() {
         <Routes>
           <Route path="/connexion" element={<LoginPage />} />
           <Route path="/mot-de-passe-oublie" element={<ForgotPasswordPage />} />
+          <Route path="/aide-connexion" element={<SignInHelpPage />} />
           <Route path="/reinitialisation/:token" element={<ResetPasswordPage />} />
           <Route path="/activation/:token" element={<ActivationPage />} />
           <Route path="/mentions-legales" element={<PageLegale page="mentions" />} />

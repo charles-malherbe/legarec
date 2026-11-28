@@ -19,6 +19,7 @@ import {
   PageHeader,
   Pagination,
   PiedDePage,
+  PortailContext,
   Progression,
   Reglage,
   Statut,
@@ -126,18 +127,73 @@ describe('Champ', () => {
   });
 });
 
+describe('Champ, password', () => {
+  it('says that Caps Lock is on while typing a password, and announces it', async () => {
+    renderUi(<Champ label="Mot de passe" type="password" value="" onChange={noop} />);
+    const input = screen.getByLabelText('Mot de passe');
+    const status = document.getElementById(`${input.id}-caps`);
+    expect(status).toHaveAttribute('aria-live', 'polite');
+    expect(status).toBeEmptyDOMElement();
+    // One keyboard for the whole test: Caps Lock stays on between two calls, as on a real one.
+    const user = userEvent.setup();
+    await user.click(input);
+    await user.keyboard('{CapsLock}a');
+    expect(status).toHaveTextContent('Majuscules activées');
+    expect(input.getAttribute('aria-describedby')).toContain(`${input.id}-caps`);
+    await user.keyboard('{CapsLock}b');
+    expect(status).toBeEmptyDOMElement();
+    expect(input).not.toHaveAttribute('aria-describedby');
+  });
+
+  it('keeps the warning off the other fields', () => {
+    renderUi(<Champ label="Nom" value="" onChange={noop} />);
+    expect(document.getElementById(`${screen.getByLabelText('Nom').id}-caps`)).toBeNull();
+  });
+});
+
 describe('PageConnexion', () => {
-  it('shows the negative logo of the media kit, served with the page, never the name as a logo', async () => {
+  it('shows the firm as on every portal, the emblem of the kit next to its name in text, never the logo file', async () => {
     const { container } = renderUi(
       <PageConnexion>
-        <h2>Connexion</h2>
+        <h1>Connexion</h1>
       </PageConnexion>,
     );
-    const logo = screen.getByRole('img', { name: 'Legarec, cabinet de recouvrement' });
-    expect(logo.getAttribute('src')).toMatch(/legarec-logo-horizontal-negatif.*\.png$/);
-    expect(logo.getAttribute('src')).not.toMatch(/^https?:|media\.legarec\.fr/);
-    expect(screen.queryByText('Legarec, cabinet de recouvrement')).toBeNull();
+    const intro = screen.getByRole('region', { name: 'Présentation' });
+    expect(within(intro).getByText('Legarec')).toBeVisible();
+    expect(within(intro).getByText('Cabinet de recouvrement')).toBeVisible();
+    expect(within(intro).queryByRole('img')).toBeNull();
+    expect(container.querySelector('img[src*="logo"]')).toBeNull();
+    // One title for the page, the one of the form: the line on the portal is not a heading.
+    expect(screen.getAllByRole('heading', { level: 1 }).map((heading) => heading.textContent)).toEqual(['Connexion']);
     expect(await axeViolations(container)).toEqual([]);
+  });
+
+  it('leads to help that opens without an account: the sign-in help of the staff, the help of the creditors', () => {
+    const { unmount } = renderUi(
+      <PageConnexion>
+        <h1>Connexion</h1>
+      </PageConnexion>,
+    );
+    expect(screen.getByRole('link', { name: 'Aide à la connexion' })).toHaveAttribute('href', '/aide-connexion');
+    unmount();
+    renderUi(
+      <PortailContext.Provider value="partenaires">
+        <PageConnexion>
+          <h1>Connexion</h1>
+        </PageConnexion>
+      </PortailContext.Provider>,
+    );
+    expect(screen.getByRole('link', { name: 'Centre d’aide' })).toHaveAttribute('href', '/aide');
+  });
+
+  it('does not link the help page to itself', () => {
+    renderUi(
+      <PageConnexion help={false}>
+        <h1>Aide à la connexion</h1>
+      </PageConnexion>,
+    );
+    expect(screen.queryByText(/Besoin d.aide/)).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Aide à la connexion' })).toBeNull();
   });
 });
 

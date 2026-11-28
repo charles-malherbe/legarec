@@ -82,6 +82,22 @@ textarea.input {
   outline: 2px solid var(--marine);
   outline-offset: 1px;
 }
+.caps {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  color: var(--warning-fg);
+}
+/* Out of the flow while empty, so that it adds no gap under the field, yet still in the accessibility tree. */
+.caps:empty {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
 .help {
   font-size: var(--fs-xs);
   line-height: 1.45;

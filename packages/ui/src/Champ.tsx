@@ -1,5 +1,5 @@
 import { Input, NativeSelect, Textarea, TextInput } from '@mantine/core';
-import { useId, type ChangeEvent, type HTMLInputAutoCompleteAttribute, type InputHTMLAttributes, type ReactNode } from 'react';
+import { useId, useState, type ChangeEvent, type HTMLInputAutoCompleteAttribute, type InputHTMLAttributes, type KeyboardEvent, type ReactNode } from 'react';
 import { Icone } from './Icone';
 import css from './Champ.module.css';
 import type { LayoutProps } from './types';
@@ -31,6 +31,8 @@ export interface ChampProps extends LayoutProps {
   maxLength?: number;
   spellCheck?: boolean;
   autoFocus?: boolean;
+  /** Says « Majuscules activées » while Caps Lock is on; by default for a password, even while it is shown. */
+  capsLockWarning?: boolean;
   onChange?: (value: string) => void;
   onBlur?: () => void;
 }
@@ -39,14 +41,22 @@ export function Champ(props: ChampProps) {
   const auto = useId();
   const id = props.fieldId ?? auto;
   const { label, type = 'text', value, help, error, prefix, suffix, size = 'md' } = props;
-  const describedBy = error ? `${id}-err` : help ? `${id}-help` : undefined;
+  const [capsLock, setCapsLock] = useState(false);
+  const watchCaps = props.capsLockWarning ?? type === 'password';
+  const describedBy =
+    [error ? `${id}-err` : help ? `${id}-help` : undefined, watchCaps && capsLock ? `${id}-caps` : undefined].filter(Boolean).join(' ') || undefined;
+  // Read on every key, Caps Lock included: no event says it changed while the field had no focus.
+  const readCaps = (event: KeyboardEvent<HTMLInputElement>) => setCapsLock(event.getModifierState('CapsLock'));
   const shared = {
     id,
     value,
     disabled: props.disabled,
     required: props.required,
     error: error ? true : undefined,
-    onBlur: props.onBlur,
+    onBlur: () => {
+      setCapsLock(false);
+      props.onBlur?.();
+    },
     'aria-label': props.hideLabel ? label : undefined,
 
     'aria-describedby': describedBy,
@@ -107,11 +117,24 @@ export function Champ(props: ChampProps) {
             autoComplete={props.autocomplete}
             inputMode={props.inputMode}
             spellCheck={props.spellCheck}
+            onKeyDown={watchCaps ? readCaps : undefined}
+            onKeyUp={watchCaps ? readCaps : undefined}
           />
         )}
         {props.action && <span className={css.action}>{props.action}</span>}
         {suffix && <span className={css.affix}>{suffix}</span>}
       </div>
+      {watchCaps && (
+        // Present but empty while Caps Lock is off: a live region is announced only if it exists before its text changes.
+        <span id={`${id}-caps`} aria-live="polite" className={css.caps}>
+          {capsLock && (
+            <>
+              <Icone icon="alert" size={14} />
+              Majuscules activées
+            </>
+          )}
+        </span>
+      )}
       {help && !error && (
         <span id={`${id}-help`} className={css.help}>
           {help}

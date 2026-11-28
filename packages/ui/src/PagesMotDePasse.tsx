@@ -35,7 +35,7 @@ export function ForgotPasswordPage() {
       <form className={css.step} onSubmit={(event) => void submit(event)}>
         {back}
         <div className={css.heading}>
-          <h2>Mot de passe oublié</h2>
+          <h1>Mot de passe oublié</h1>
           <p>Nous vous envoyons un lien de réinitialisation, valable 1 heure.</p>
         </div>
         <Champ label="Adresse e-mail" type="email" size="lg" autocomplete="username" required value={email} onChange={setEmail} />
@@ -141,7 +141,7 @@ export function ResetPasswordPage() {
       <form className={css.step} onSubmit={(event) => void submit(event)}>
         {back}
         <div className={css.heading}>
-          <h2>Nouveau mot de passe</h2>
+          <h1>Nouveau mot de passe</h1>
           {data && <p>Pour {data.email} · lien valable 1 heure.</p>}
         </div>
         {expired && <Alerte tone="danger" text="Ce lien a expiré (validité 1 heure). Demandez-en un nouveau depuis « Mot de passe oublié »." />}
@@ -215,7 +215,7 @@ export function ActivationPage() {
           <>
             <div className={css.heading}>
               <span className={css.eyebrow}>Activation · étape {step} sur 3</span>
-              <h2>{titles[step - 1]}</h2>
+              <h1>{titles[step - 1]}</h1>
               <p>{texts[step - 1]}</p>
             </div>
             {step === 1 && (

@@ -20,3 +20,16 @@ body {
 :root:not([data-a11y='malvoyant']) body {
   line-height: normal;
 }
+/* Titles in lines of even length, paragraphs without a word alone on their last line (DECISIONS.md, 27/11/2026). */
+h1,
+h2,
+h3,
+h4 {
+  text-wrap: balance;
+}
+p,
+li,
+dd,
+figcaption {
+  text-wrap: pretty;
+}

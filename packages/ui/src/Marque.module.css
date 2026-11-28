@@ -1,0 +1,37 @@
+.root {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2h);
+}
+.root[data-size='lg'] {
+  gap: var(--sp-3);
+}
+.name {
+  display: flex;
+  flex-direction: column;
+}
+.title {
+  font-family: var(--font-brand);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--marine-text);
+}
+.subtitle {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+.root[data-size='lg'] .title {
+  font-size: var(--fs-2xl);
+  letter-spacing: -0.01em;
+}
+.root[data-size='lg'] .subtitle {
+  font-size: var(--fs-sm);
+}
+/* On navy: white name, the subtitle in the light accent of the page. */
+:global([data-dark]) .title {
+  color: var(--on-dark);
+}
+:global([data-dark]) .subtitle {
+  color: var(--on-dark-accent);
+}

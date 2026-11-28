@@ -17,11 +17,6 @@
   justify-content: space-between;
   gap: var(--sp-10);
 }
-.logoImage {
-  height: 64px;
-  width: auto;
-  align-self: flex-start;
-}
 .pitch {
   display: flex;
   flex-direction: column;
@@ -51,12 +46,15 @@
   height: var(--sp-0h);
   background: var(--or);
 }
-.headline h1 {
+.tagline {
   margin: 0;
+  font-family: var(--font-title);
   font-size: var(--fs-3xl);
+  font-weight: 700;
   line-height: 1.15;
   letter-spacing: -0.02em;
-  color: var(--on-dark) !important;
+  color: var(--on-dark);
+  text-wrap: balance;
 }
 .features {
   list-style: none;
@@ -179,7 +177,7 @@
   gap: var(--sp-1h);
   align-items: flex-start;
 }
-.heading h2 {
+.heading h1 {
   margin: 0;
   font-size: var(--fs-2xl);
   letter-spacing: -0.02em;
@@ -222,6 +220,8 @@
   font-size: var(--fs-sm);
   color: var(--text-3);
   text-align: center;
+  /* Short centred lines of even length, never a last word alone. */
+  text-wrap: balance;
 }
 .links a {
   font-weight: 600;
@@ -314,18 +314,33 @@
   text-transform: uppercase;
   color: var(--text-3);
 }
-/* Presentation above the form (the two columns no longer fit): the form comes sooner, without the feature list. */
+/* Presentation above the form (the two columns no longer fit): the form comes sooner, without the feature list. One
+   column, so that the band keeps the height of its content and the form takes the rest of the screen. */
 @media (max-width: 959px) {
+  .root {
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
   .intro {
+    flex: none;
     gap: var(--sp-6);
+  }
+  .side {
+    flex: 1 0 auto;
   }
   .features {
     display: none;
   }
 }
+/* Phone: a compact band (the firm and the portal), so that the form starts in the first screen. */
 @media (max-width: 767px) {
   .intro {
-    padding: var(--sp-6) var(--sp-4);
+    padding: var(--sp-4);
+    gap: var(--sp-3);
+  }
+  .tagline,
+  .pills {
+    display: none;
   }
   .side {
     padding: var(--sp-4);
