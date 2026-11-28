@@ -95,7 +95,8 @@ export function accountJobs({ keys, portals, send }: Parts): Record<string, JobD
         await send('staff-new-device', session.user.email, {
           device: { name: session.deviceLabel, login_at: longMoment(session.createdAt), ...(session.ip ? { ip: session.ip } : {}) },
           recipient: { first_name: session.user.firstName },
-          secure_url: `${portals.STAFF_PORTAL_URL}/compte`,
+          // Passwords and active sessions: the security tab of the account.
+          secure_url: `${portals.STAFF_PORTAL_URL}/compte?onglet=securite`,
         });
       },
     },

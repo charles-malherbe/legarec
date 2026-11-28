@@ -346,13 +346,6 @@
   color: var(--text);
   box-shadow: var(--shadow-sm);
 }
-.lowVision {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2h);
-  padding: var(--sp-1h) var(--sp-2);
-  font-size: var(--fs-base);
-}
 .notifHead,
 .notifFoot {
   display: flex;

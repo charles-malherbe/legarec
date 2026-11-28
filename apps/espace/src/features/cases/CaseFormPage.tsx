@@ -301,7 +301,7 @@ function Form({ choices }: { choices: { creditors: { id: string; name: string }[
               title="Convention signée à déposer"
               text="Le mandat est actif, mais sa convention signée manque sur la fiche du créancier."
               actionLabel="Voir le créancier"
-              actionHref={`/creanciers/${form.creditorId}`}
+              actionHref={`/creanciers/${form.creditorId}?onglet=convention`}
             />
           )}
           {blocked && (
@@ -314,7 +314,7 @@ function Form({ choices }: { choices: { creditors: { id: string; name: string }[
                   : `Aucun mandat de ${creditorName} n’est en vigueur. Aucun dossier ne s’ouvre.`
               }
               actionLabel="Voir le créancier"
-              actionHref={`/creanciers/${form.creditorId}`}
+              actionHref={`/creanciers/${form.creditorId}?onglet=convention`}
             />
           )}
         </div>

@@ -9,6 +9,7 @@ import layout from '@legarec/ui/layout.module.css';
 import { STATUS_TONE } from '../dashboard/DashboardPage';
 import { ApiError } from '../../app/api';
 import { useCurrentUser } from '../../app/session';
+import { useTabParam } from '../../app/tabs';
 import { AccessDenied } from '../error/ErrorPage';
 import { AccessCodeCard } from './AccessCodeCard';
 import { CaseMessage } from './CaseMessage';
@@ -20,6 +21,8 @@ import { PaymentForm, PaymentsCard } from './Payments';
 import { ReminderForm } from './ReminderForm';
 
 type Tab = 'overview' | 'invoices' | 'history' | 'exchanges' | 'documents';
+/** The sections in the address: `/debiteurs/<id>?onglet=factures`. */
+const SLUGS: Record<Tab, string> = { overview: 'vue-d-ensemble', invoices: 'factures', history: 'historique', exchanges: 'echanges', documents: 'documents' };
 
 /** « Bâtiplus SAS » → « BS ». */
 const initialsOf = (name: string) =>
@@ -61,7 +64,7 @@ export function CasePage() {
 function CaseView({ data }: { data: CaseDetail }) {
   const change = useChange();
   const toast = useToast();
-  const [tab, setTab] = useState<Tab>('overview');
+  const [tab, setTab] = useTabParam(SLUGS, 'overview');
   const [panel, setPanel] = useState<'reminder' | 'payment' | 'message' | 'debtor' | null>(null);
   const [reported, setReported] = useState(false);
   const [noting, setNoting] = useState(false);

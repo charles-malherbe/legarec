@@ -61,7 +61,7 @@ describe('the search', () => {
       ]),
     );
     const [invoice] = (await search('officerA', 'zq_7')).filter((hit) => hit.kind === 'INVOICE');
-    expect(invoice).toMatchObject({ title: 'ZQ_7', href: `/debiteurs/${mine}` });
+    expect(invoice).toMatchObject({ title: 'ZQ_7', href: `/debiteurs/${mine}?onglet=factures` });
     expect(invoice!.sub).toMatch(/^Ébénisterie 100 % chêne · Électricité Zéphyr · 1\s200,50\s€$/u);
     expect((await search('officerA', 'ref-zq_7')).map((hit) => hit.kind)).toContain('INVOICE');
   });

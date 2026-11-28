@@ -351,15 +351,15 @@ export function Shell() {
           createItems={CREATE.filter((item) => canOpen(item.href, user)).map((item) => ({ ...item, soon: !!pending(item.href) }))}
           notifications={{
             href: '/notifications',
-            preferencesHref: '/compte',
+            preferencesHref: '/compte?onglet=notifications',
             items: (shell?.notifications ?? []).map((item) => ({ ...item, ...NOTIFICATION[item.kind] })),
             onRead: (id) => void read([id]),
             onReadAll: () => void read((shell?.notifications ?? []).map((item) => item.id)),
           }}
           accountLinks={[
-            { label: 'Mon profil', href: '/compte', icon: 'user' },
-            { label: 'Sécurité et connexion', href: '/compte', icon: 'shield', hint: '2FA' },
-            { label: 'Préférences de notification', href: '/compte', icon: 'bell' },
+            { label: 'Mon profil', href: '/compte?onglet=profil', icon: 'user' },
+            { label: 'Sécurité et connexion', href: '/compte?onglet=securite', icon: 'shield', hint: '2FA' },
+            { label: 'Préférences de notification', href: '/compte?onglet=notifications', icon: 'bell' },
             { label: 'Paramètres du cabinet', href: '/parametres', icon: 'settings' },
           ]}
           display={{

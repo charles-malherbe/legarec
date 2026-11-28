@@ -395,7 +395,7 @@ describe('e-mails to the holder', () => {
         data: {
           device: { name: 'Safari · iPhone', ip, login_at: expect.stringMatching(/^\d{1,2} \S+ \d{4} à \d{2}:\d{2}$/u) as string },
           recipient: { first_name: 'Nora' },
-          secure_url: 'http://localhost:5173/compte',
+          secure_url: 'http://localhost:5173/compte?onglet=securite',
         },
       }),
     ]);

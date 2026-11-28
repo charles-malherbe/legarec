@@ -71,7 +71,8 @@ export class NotificationsService {
             return {
               text: `${signed(actor)} a changé le titulaire du rôle Développeur : la délégation technique a pris fin`,
               meta: 'Délégations',
-              href: '/compte',
+              // The card of the delegations, in the profile of the Director.
+              href: '/compte?onglet=profil',
               cta: 'Ouvrir mon compte',
             };
           case 'DEVELOPER_CHANGED':

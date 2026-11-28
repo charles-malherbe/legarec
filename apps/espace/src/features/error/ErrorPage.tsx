@@ -7,7 +7,7 @@ const CONTENT = {
     title: 'Accès réservé',
     text: 'Cette page est réservée à d’autres rôles. Si vous pensez en avoir besoin, demandez l’accès à un responsable du recouvrement.',
     label: 'Voir mes droits',
-    href: '/compte',
+    href: '/compte?onglet=profil',
   },
   404: {
     title: 'Page introuvable',

@@ -74,7 +74,8 @@ export class ShellController {
         kind: 'INVOICE',
         title: item.number,
         sub: `${item.debtor} · ${item.creditor} · ${formatCents(Number(item.left), { decimals: 'always' })}`,
-        href: `/debiteurs/${item.case_id}`,
+        // The case opens on its invoices.
+        href: `/debiteurs/${item.case_id}?onglet=factures`,
         initials: initialsOf(item.debtor),
       })),
     ];
