@@ -307,7 +307,8 @@ Les 161 routes simulées se répartissent ainsi :
 - [x] « Rédiger un courrier » : attestation de solde (PDF seul, dossier soldé, clos compris)
 - [x] « Rédiger un courrier » : envoi groupé du Responsable (créancier, ancienneté, recompté, dossiers écartés avec leur motif)
 - [x] « Rédiger un courrier » : brouillon (PDF gardé dans le dossier, non envoyé)
-- [ ] Courriers, suite : lien de signature, échéancier, envoi de l'attestation de solde de « Rédiger un courrier », original chiffré avec le code (décision 118), envoi d'un document, essai d'un modèle (question 210)
+- [x] « Rédiger un courrier » : proposition d'échéancier (échéancier qui attend son débiteur, par la poste ou PDF)
+- [ ] Courriers, suite : lien de signature, e-mail de la proposition d'échéancier, envoi de l'attestation de solde de « Rédiger un courrier », original chiffré avec le code (décision 118), envoi d'un document, essai d'un modèle (question 210)
 - [ ] Scénarios automatiques : règles à spécifier (question 216)
 - [x] Rappel d'échéance d'un échéancier (`POST /staff/payment-plans/:id/reminder`, `lot/q-rappel-echeance`, question 221) : e-mail `installment-reminder` de la prochaine échéance d'un échéancier actif, à la demande du collaborateur, à l'adresse principale (particulier compris), plafond, plages et une relance à la fois par dossier appliqués, lien vers le portail sans code ; refusé si l'échéance n'est plus celle confirmée (`INSTALLMENT_CHANGED`) ou s'il n'y en a plus (`NO_NEXT_INSTALLMENT`) ; ne compte pas comme une étape des relances (niveau vide). Pas de SMS (lot R), pas d'envoi automatique ; « Envoyer un rappel » n'est plus grisé
 - [x] Dérogation motivée au plafond de contacts (question 214, `lot/q-derogation-plafond`) : relance par e-mail depuis la fiche, Responsable ou Directeur, motif obligatoire gardé sur l'envoi, historique et journal d'audit sans texte libre, rôle revérifié par la base

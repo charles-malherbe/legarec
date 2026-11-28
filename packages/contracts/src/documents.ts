@@ -79,6 +79,7 @@ export const sendingRefusal = z.enum([
   'LEVEL_CHANGED',
   'NO_NEXT_INSTALLMENT',
   'INSTALLMENT_CHANGED',
+  'NO_PLAN_PROPOSED',
 ]);
 export type SendingRefusal = z.infer<typeof sendingRefusal>;
 export const SENDING_REFUSALS: Record<SendingRefusal, string> = {
@@ -89,6 +90,7 @@ export const SENDING_REFUSALS: Record<SendingRefusal, string> = {
   NO_ADDRESS: 'l’adresse postale du débiteur est incomplète',
   INDIVIDUAL: 'les relances par e-mail ne s’adressent pas à un particulier',
   NOT_SETTLED: 'le dossier n’est pas soldé',
+  NO_PLAN_PROPOSED: 'aucun échéancier n’attend l’accord du débiteur',
   CASE_CLOSED: 'le dossier est clos',
   FIRM_INCOMPLETE: 'des valeurs du cabinet sont encore entre crochets dans Paramètres',
   NOT_AVAILABLE: 'ce mode d’envoi n’est pas encore disponible',

@@ -29,6 +29,8 @@ import { capOf, capPeriod, suspensionOf } from './contact-rules';
 
 type Reminder = z.infer<(typeof REQUEST_BODIES)['staff']['POST /cases/:id/reminders']>;
 type Template = Reminder['template'] | 'INSTALLMENT';
+/** What leaves by the post: the three reminders, and the proposal of a plan of Rédiger un courrier. */
+type LetterOf = Reminder['template'] | 'PAYMENT_PLAN';
 type Wanted = z.infer<(typeof REQUEST_BODIES)['staff']['POST /cases/reminders']>['items'][number];
 /** The validated e-mail of the kit for each template of the form: reminder-1 to reminder-3 (question 212). */
 export const REMINDER_LEVELS = { FRIENDLY: 1, FIRM: 2, FORMAL_NOTICE: 3 } as const;
@@ -216,13 +218,16 @@ export class SendingsService {
    * override; no hours. One letter at a time per case. The worker writes the PDF, keeps it in the case, then posts it.
    * A plain letter (`LETTER`, « Courrier simple » of Rédiger un courrier) follows the same rules, and never is a first letter.
    */
-  private async remindByLetter(found: Found, template: Reminder['template'], channel: 'REGISTERED_LETTER' | 'LETTER', delay = 8): Promise<void> {
+  private async remindByLetter(found: Found, template: LetterOf, channel: 'REGISTERED_LETTER' | 'LETTER', delay = 8): Promise<void> {
     const { tx } = this.database;
     if (found.closedOn || found.anonymizedAt) throw refused('CASE_CLOSED');
     const suspended = suspensionOf(found.status, found._count.plans);
     if (suspended) throw refused(suspended);
     if (QUOTES_FIRST_LETTER.has(template) && (!found.firstLetterReference || !found.firstLetterOn)) throw refused('NO_FIRST_LETTER');
     if (!streetLinesOf(found.debtorAddress) || !found.debtorPostalCode || !found.debtorCity?.trim()) throw refused('NO_ADDRESS');
+    // The proposal of a plan goes with the plan that waits for its debtor, and no other.
+    if (template === 'PAYMENT_PLAN' && !(await tx.paymentPlan.count({ where: { caseId: found.id, status: 'WAITING_DEBTOR' } })))
+      throw refused('NO_PLAN_PROPOSED');
     const settings = await SettingValues.read(tx);
     const firm = (field: string) => settings.text('firm', 'cabinet', field);
     // The letter names the firm and leaves from its address: nothing between brackets, and an address the post reads.
@@ -249,7 +254,7 @@ export class SendingsService {
   }
 
   /** A letter of Rédiger un courrier, for one case: the rules of the registered letter of the case card (question 210). */
-  async letter(caseId: string, template: Reminder['template'], channel: 'REGISTERED_LETTER' | 'LETTER', delay: number): Promise<void> {
+  async letter(caseId: string, template: LetterOf, channel: 'REGISTERED_LETTER' | 'LETTER', delay: number): Promise<void> {
     const { tx } = this.database;
     const found = await tx.case.findFirst({ where: { id: caseId }, select: CASE });
     if (!found) throw notFound();

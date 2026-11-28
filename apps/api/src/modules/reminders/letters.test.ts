@@ -332,6 +332,40 @@ describe('Rédiger un courrier (question 210)', () => {
     expect((await batch({ expected: 2, filters: { creditor: 'nobody', age: '60+' } })).status).toBe(422);
   });
 
+  it('writes the proposal of the plan that waits for its debtor, by the post or kept in the case', async () => {
+    const found = await made();
+    expect((await compose('officerA', { caseIds: [found.id], channel: 'DOWNLOAD', template: 'PAYMENT_PLAN' })).body).toEqual({ code: 'NO_PLAN_PROPOSED' });
+    const [{ creditor_id: creditor }] = (await rows<{ creditor_id: string }>('SELECT creditor_id FROM cases WHERE id = $1', [found.id])) as [
+      { creditor_id: string },
+    ];
+    const first = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
+    // Straight in the table, without the task that writes its PDF (whose author would be the test).
+    const plan = randomUUID();
+    await test.database.admin.query(`BEGIN; SET LOCAL session_replication_role = replica;
+      INSERT INTO payment_plans (id, case_id, creditor_id, total_cents, months, method, first_due_on, status, threshold_months, owned_by_director, requested_by)
+        VALUES ('${plan}', '${found.id}', '${creditor}', 1860000, 3, 'TRANSFER', '${first}', 'WAITING_DEBTOR', 6, false, '${test.s.officerA}');
+      INSERT INTO installments (case_id, creditor_id, plan_id, number, due_on, amount_cents)
+        SELECT '${found.id}', '${creditor}', '${plan}', n, '${first}'::date + (n - 1) * interval '1 month', 620000 FROM generate_series(1, 3) n;
+      COMMIT;`);
+    // No e-mail says « proposition d'échéancier » yet.
+    expect((await compose('officerA', { caseIds: [found.id], channel: 'EMAIL_PDF', template: 'PAYMENT_PLAN' })).body).toEqual({ code: 'NOT_AVAILABLE' });
+    worker.letterPages.splice(0);
+    expect((await compose('officerA', { caseIds: [found.id], channel: 'LETTER', template: 'PAYMENT_PLAN' })).status).toBe(200);
+    await worker.run();
+    expect(await lines(found.id)).toMatchObject([{ channel: 'LETTER', template: 'PAYMENT_PLAN', status: 'SENT' }]);
+    const page = worker.letterPages.at(-1)!.replace(/\s/gu, ' ');
+    expect(page).toContain('3 mensualités de 6 200,00');
+    expect(page).toContain('18 600,00');
+    expect(await rows("SELECT detail FROM case_events WHERE case_id = $1 AND kind = 'REMINDER_SENT'", [found.id])).toEqual([
+      { detail: 'Courrier · proposition d’échéancier' },
+    ]);
+    expect(
+      await rows("SELECT title, category::text FROM documents WHERE case_id = $1 AND source = 'GENERATED' AND category = 'PAYMENT_PLAN'", [found.id]),
+    ).toEqual([{ title: 'Proposition d’échéancier (courrier simple)', category: 'PAYMENT_PLAN' }]);
+    // Never a first letter, whatever the post says.
+    expect((await firstLetter(found.id)).reference).toBeNull();
+  });
+
   it('keeps a draft in the case, sent to nobody', async () => {
     const found = await made();
     expect((await call('officerA', 'POST', '/documents/compose/draft', { template: 'FRIENDLY', caseId: found.id })).status).toBe(204);
@@ -349,13 +383,13 @@ describe('Rédiger un courrier (question 210)', () => {
   it('refuses what is not open yet, another selection, and whoever does not act on the case', async () => {
     const found = await made();
     expect((await compose('officerA', { caseIds: [found.id], channel: 'EMAIL_SIGNATURE' })).body).toEqual({ code: 'NOT_AVAILABLE' });
-    expect((await compose('officerA', { caseIds: [found.id], template: 'PAYMENT_PLAN' })).body).toEqual({ code: 'NOT_AVAILABLE' });
+    expect((await compose('officerA', { caseIds: [found.id], template: 'PAYMENT_PLAN' })).body).toEqual({ code: 'NO_PLAN_PROPOSED' });
     expect((await compose('officerA', { caseIds: [found.id], expected: 2 })).body).toEqual({ code: 'SELECTION_CHANGED' });
     expect((await compose('officerA', { caseIds: [found.id], delay: 10 })).status).toBe(422);
     expect((await compose('officerB', { caseIds: [found.id] })).status).toBe(404);
     expect((await compose('director', { caseIds: [found.id] })).status).toBe(403);
     expect((await call('officerA', 'POST', '/documents/compose/draft', { template: 'PAYMENT_PLAN', caseId: found.id })).body).toEqual({
-      code: 'NOT_AVAILABLE',
+      code: 'NO_PLAN_PROPOSED',
     });
     expect((await call('officerB', 'POST', '/documents/compose/draft', { template: 'FRIENDLY', caseId: found.id })).status).toBe(404);
     expect(await lines(found.id)).toEqual([]);

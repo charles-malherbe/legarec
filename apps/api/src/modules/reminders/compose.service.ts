@@ -19,6 +19,8 @@ import { SendingsService } from './sendings.service';
 
 type Compose = z.infer<(typeof REQUEST_BODIES)['staff']['POST /documents/compose']>;
 type Query = z.infer<typeof composeQuery>;
+/** What is written from a template of Paramètres › Modèles and may leave by the post. */
+type Written = 'FRIENDLY' | 'FIRM' | 'FORMAL_NOTICE' | 'PAYMENT_PLAN';
 type Draft = z.infer<(typeof REQUEST_BODIES)['staff']['POST /documents/compose/draft']>;
 /** Days late of the oldest invoice still due, for each choice of the screen. */
 const BATCH_AGES: Record<Query['age'], [number, number]> = { '0-30': [1, 30], '31-60': [31, 60], '60+': [61, Number.MAX_SAFE_INTEGER] };
@@ -45,7 +47,7 @@ const RECIPIENTS_MAX = 50;
 /** Closed cases stay offered for so many days: the certificate of a settled case is written after it closed. */
 const CLOSED_DAYS = 90;
 /** What leaves from here for now: the three reminders of Paramètres › Modèles (question 210). */
-const TEMPLATES: ReadonlySet<string> = new Set(['FRIENDLY', 'FIRM', 'FORMAL_NOTICE', 'CLEARANCE']);
+const TEMPLATES: ReadonlySet<string> = new Set(['FRIENDLY', 'FIRM', 'FORMAL_NOTICE', 'CLEARANCE', 'PAYMENT_PLAN']);
 const QUOTES_FIRST_LETTER: ReadonlySet<string> = new Set(['FIRM', 'FORMAL_NOTICE']);
 
 /**
@@ -213,15 +215,16 @@ export class ComposeService {
       if (body.channel !== 'DOWNLOAD') throw conflict('NOT_AVAILABLE');
       return this.file(caseId, 'CLEARANCE', body.delay);
     }
-    const template = body.template as 'FRIENDLY' | 'FIRM' | 'FORMAL_NOTICE';
+    const template = body.template as Written;
     if (body.channel === 'REGISTERED_LETTER' || body.channel === 'LETTER') return this.sendings.letter(caseId, template, body.channel, body.delay);
-    if (body.channel === 'EMAIL_PDF') return this.sendings.emailWithLetter(caseId, template, body.delay);
+    // The e-mail carries the reminder of the same level: none says « proposition d'échéancier » (a text to validate).
+    if (body.channel === 'EMAIL_PDF' && template !== 'PAYMENT_PLAN') return this.sendings.emailWithLetter(caseId, template, body.delay);
     if (body.channel !== 'DOWNLOAD') throw conflict('NOT_AVAILABLE');
     return this.file(caseId, template, body.delay);
   }
 
   /** « Télécharger seulement »: the PDF alone, written by the worker and kept in the case, sent to nobody. */
-  private async file(caseId: string, template: 'FRIENDLY' | 'FIRM' | 'FORMAL_NOTICE' | 'CLEARANCE', delay: number, draft = false): Promise<void> {
+  private async file(caseId: string, template: Written | 'CLEARANCE', delay: number, draft = false): Promise<void> {
     const { tx } = this.database;
     const found = await tx.case.findFirst({
       where: { id: caseId },
@@ -251,6 +254,7 @@ export class ComposeService {
       const suspended = suspensionOf(found.status, found._count.plans);
       if (suspended) throw conflict(suspended);
       if (QUOTES_FIRST_LETTER.has(template) && (!found.firstLetterReference || !found.firstLetterOn)) throw conflict('NO_FIRST_LETTER');
+      if (template === 'PAYMENT_PLAN' && !(await tx.paymentPlan.count({ where: { caseId, status: 'WAITING_DEBTOR' } }))) throw conflict('NO_PLAN_PROPOSED');
     }
     if (!streetLinesOf(found.debtorAddress) || !found.debtorPostalCode || !found.debtorCity?.trim()) throw conflict('NO_ADDRESS');
     await this.outbox.add({ queue: 'reminders', name: draft ? 'case-letter-draft' : 'case-letter-file', payload: { case: caseId, template, delay } });
@@ -262,6 +266,6 @@ export class ComposeService {
    */
   async draft(body: Draft): Promise<void> {
     if (!TEMPLATES.has(body.template)) throw conflict('NOT_AVAILABLE');
-    return this.file(body.caseId, body.template as 'FRIENDLY' | 'FIRM' | 'FORMAL_NOTICE' | 'CLEARANCE', LETTER_DELAYS[0]!, true);
+    return this.file(body.caseId, body.template as Written | 'CLEARANCE', LETTER_DELAYS[0]!, true);
   }
 }
