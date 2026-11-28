@@ -224,7 +224,10 @@ const BODIES: { [P in Portal]: Record<keyof (typeof REQUEST_BODIES)[P], readonly
       { status: 'CASHED', version: 2 },
       { status: 'RECONCILED', version: 1 },
     ],
-    'POST /cases/:id/reminders': [{ channel: 'EMAIL', template: 'FRIENDLY', recipient: 'compta@batiplus.example', message: 'Bonjour' }],
+    'POST /cases/:id/reminders': [
+      { channel: 'EMAIL', template: 'FRIENDLY', recipient: 'compta@batiplus.example', message: 'Bonjour' },
+      { channel: 'EMAIL', template: 'FIRM', recipient: 'compta@batiplus.example', capOverride: 'Le débiteur a demandé ce rappel par téléphone.' },
+    ],
     'POST /gdpr/requests': [{ caseId: 'meunier', kind: 'ACCESS', origin: 'Courrier' }],
     'POST /remittances': [
       { until: '2026-11-14', expected: [{ creditorId: 'delta', toPay: 2_290_000, accountId: 'compte' }], retained: [] },

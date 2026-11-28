@@ -194,6 +194,23 @@ describe('case file', () => {
     expect(sent[0]).toHaveProperty('message');
     expect(sent[1]).not.toHaveProperty('message');
   });
+  it('lets the manager override the cap of contacts with a reason (question 214)', async () => {
+    const body = { channel: 'EMAIL', template: 'FRIENDLY', recipient: 'compta@exemple.test' };
+    // The cap of the debtor reached (two e-mails a week by default).
+    for (let index = 0; index < 2; index += 1) expect((await call('cl', '/cases/demo/reminders', body)).status).toBe(204);
+    openAs('cl', '/debiteurs/demo');
+    await userEvent.click(await screen.findByRole('button', { name: 'Envoyer une relance' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Envoyer la relance' }));
+    await confirmWith('Envoyer la relance');
+    expect(await screen.findByText('La relance n’est pas partie : le plafond de contacts de ce débiteur est atteint.')).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Déroger au plafond' }));
+    const dialog = within(await screen.findByRole('alertdialog', { name: 'Déroger au plafond de contacts ?' }));
+    await userEvent.type(dialog.getByLabelText('Motif de la dérogation'), 'Court');
+    expect(dialog.getByRole('button', { name: 'Envoyer en dérogation' })).toBeDisabled();
+    await userEvent.type(dialog.getByLabelText('Motif de la dérogation'), ' : demande du débiteur');
+    await userEvent.click(dialog.getByRole('button', { name: 'Envoyer en dérogation' }));
+    expect(await screen.findByText('Relance envoyée, en dérogation au plafond de contacts.')).toBeVisible();
+  });
   it('shows the access code in clear to those who act on the case, and to nobody else', async () => {
     openAs('cl', '/debiteurs/demo');
     expect(await screen.findByText('KXPM')).toBeVisible();

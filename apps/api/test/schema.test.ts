@@ -280,8 +280,8 @@ describe('rights of the roles inside', () => {
       'planned_reminders SELECT (case_id, created_at, created_by, creditor_id, done_at, due_on, due_time, id, kind, title, warning)',
       'planned_reminders UPDATE (done_at, due_on, due_time)',
       // What leaves for a debtor (lot Q): started by whoever acts on the case; only the worker says what left. Neither the text typed nor the reference of the provider is read back.
-      'sendings INSERT (case_id, channel, contact_id, creditor_id, level, template)',
-      'sendings SELECT (case_id, channel, complained_at, confirmed_at, contact_id, created_at, created_by, creditor_id, delivered_at, document_id, failure, id, level, on_behalf_of_id, sent_at, simulated, status, template, undelivered_at, undelivered_reason)',
+      'sendings INSERT (cap_override_reason, case_id, channel, contact_id, creditor_id, level, template)',
+      'sendings SELECT (cap_override_reason, case_id, channel, complained_at, confirmed_at, contact_id, created_at, created_by, creditor_id, delivered_at, document_id, failure, id, level, on_behalf_of_id, sent_at, simulated, status, template, undelivered_at, undelivered_reason)',
       // Litigation: read with the cases; opened and followed on those one acts on, the dates and the author set by PostgreSQL.
       'litigation_files INSERT (case_id, consent, creditor_id, stage, version)',
       'litigation_files SELECT (case_id, consent, consent_noted_at, consent_noted_by, court, created_at, created_by, creditor_id, id, on_behalf_of_id, partner_name, stage, stage_since, title_on, version)',
@@ -789,7 +789,7 @@ describe('rights on the functions', () => {
     ...['creditor_decide_plan', 'creditor_upload', 'creditor_deposit'].map((name) => [name, ['partner']] as [string, string[]]),
     ...['debtor_accept_plan', 'debtor_file'].map((name) => [name, ['debtor']] as [string, string[]]),
     ['queue_plan_pdf', []],
-    ...['money_case', 'issue_receipt', 'follow_allocation', 'check_allocations', 'keep_receipt', 'keep_sending'].map(
+    ...['money_case', 'issue_receipt', 'follow_allocation', 'check_allocations', 'keep_receipt', 'keep_sending', 'check_cap_override'].map(
       (name) => [name, []] as [string, string[]],
     ),
     // Tools of the migrations.
@@ -822,7 +822,7 @@ describe('rights on the functions', () => {
       'debtor_link ask_code_by_sms firm_payment_settings limited_message',
       'gdpr_request gdpr_keeper gdpr_registry gdpr_answer gdpr_export gdpr_erasure gdpr_erase',
       'anonymize_case forget_case forget_debtor erasure_blockers erasure_digest case_writable',
-      'note_ai_decision ai_key ai_spent ai_budget_alert ai_journal ai_journal_totals planned_contacts sent_contacts service_ready service_key tell_sending_failed hook_secret invalidate_unreachable_contact keep_sending keep_done_reminder litigation_rules case_exists correct_debtor accept_deposit refuse_deposit remittance_core creditor_payouts remittance_sources remittance_summary note_settlement remittance_draft validate_remittances mark_remittances_paid remittance_batches remittance_batch',
+      'note_ai_decision ai_key ai_spent ai_budget_alert ai_journal ai_journal_totals planned_contacts sent_contacts service_ready service_key tell_sending_failed hook_secret invalidate_unreachable_contact keep_sending check_cap_override keep_done_reminder litigation_rules case_exists correct_debtor accept_deposit refuse_deposit remittance_core creditor_payouts remittance_sources remittance_summary note_settlement remittance_draft validate_remittances mark_remittances_paid remittance_batches remittance_batch',
       'billing_overview credit_notes save_credit_note_draft delete_credit_note_draft issue_credit_note invoice_lines_left invoice_left invoice_settled_on check_credit_lines',
       'purge_remittances purge_invoices purge_payments purge_accounting_documents forget_remittances forget_lone_invoices forget_bounced_payments forget_accounting_documents',
       'purge_waiting_files forget_waiting_files purge_old_history forget_case_story forget_old_history',

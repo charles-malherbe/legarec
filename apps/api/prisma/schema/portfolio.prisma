@@ -534,6 +534,8 @@ model Sending {
   simulated     Boolean        @default(dbgenerated("false"))
   providerRef   String?        @map("provider_ref")
   failure       String?
+  /// Reason of a justified override of the contact cap (question 214).
+  capOverrideReason String? @map("cap_override_reason")
   createdBy     String         @default(dbgenerated("app.user_id()")) @map("created_by") @db.Uuid
   onBehalfOfId  String?        @default(dbgenerated("app.on_behalf_of()")) @map("on_behalf_of_id") @db.Uuid
   createdAt     DateTime       @default(dbgenerated("now()")) @map("created_at") @db.Timestamptz(3)
